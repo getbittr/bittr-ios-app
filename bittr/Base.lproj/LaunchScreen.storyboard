@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="coin1" translatesAutoresizingMaskIntoConstraints="NO" id="ksX-gF-nvi">
+                                <rect key="frame" x="181.66666666666666" y="423.66666666666669" width="30" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="30" id="4rD-zj-OeI"/>
+                                    <constraint firstAttribute="height" constant="30" id="EYB-Uq-6HL"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="coin4" translatesAutoresizingMaskIntoConstraints="NO" id="2eN-la-NWW">
+                                <rect key="frame" x="186" y="428" width="21" height="21"/>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="coin3" translatesAutoresizingMaskIntoConstraints="NO" id="Zjv-Tl-TdL">
+                                <rect key="frame" x="181.66666666666666" y="434.66666666666669" width="18.666666666666657" height="19"/>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                        <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                        <constraints>
+                            <constraint firstItem="Zjv-Tl-TdL" firstAttribute="width" secondItem="ksX-gF-nvi" secondAttribute="width" multiplier="0.63" id="BlO-p4-24r"/>
+                            <constraint firstItem="2eN-la-NWW" firstAttribute="centerX" secondItem="ksX-gF-nvi" secondAttribute="centerX" id="Dc8-c9-ZKK"/>
+                            <constraint firstItem="2eN-la-NWW" firstAttribute="height" secondItem="ksX-gF-nvi" secondAttribute="height" multiplier="0.7" id="FGn-QF-9nx"/>
+                            <constraint firstItem="ksX-gF-nvi" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="QZl-fQ-Dzw"/>
+                            <constraint firstItem="ksX-gF-nvi" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" id="X8t-aC-twv"/>
+                            <constraint firstItem="Zjv-Tl-TdL" firstAttribute="height" secondItem="ksX-gF-nvi" secondAttribute="height" multiplier="0.63" id="bNR-VH-hkC"/>
+                            <constraint firstItem="Zjv-Tl-TdL" firstAttribute="bottom" secondItem="ksX-gF-nvi" secondAttribute="bottom" id="fFi-8G-3yA"/>
+                            <constraint firstItem="Zjv-Tl-TdL" firstAttribute="leading" secondItem="ksX-gF-nvi" secondAttribute="leading" id="j0t-cI-dNh"/>
+                            <constraint firstItem="2eN-la-NWW" firstAttribute="width" secondItem="ksX-gF-nvi" secondAttribute="width" multiplier="0.7" id="lDa-ej-Stv"/>
+                            <constraint firstItem="2eN-la-NWW" firstAttribute="centerY" secondItem="ksX-gF-nvi" secondAttribute="centerY" id="y7R-m8-vKs"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="coin1" width="180" height="180"/>
+        <image name="coin3" width="114" height="114"/>
+        <image name="coin4" width="126" height="126"/>
+    </resources>
+</document>
