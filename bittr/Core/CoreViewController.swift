@@ -49,7 +49,7 @@ class CoreViewController: UIViewController {
         super.viewDidLoad()
         
         // FOR TESTING:
-        //CacheManager.deleteClientInfo()
+        CacheManager.deleteClientInfo()
         
         selectedView.layer.cornerRadius = 13
         leftWhite.layer.cornerRadius = 13
@@ -60,9 +60,9 @@ class CoreViewController: UIViewController {
         rightButton.setTitle("", for: .normal)
         yellowcurve.alpha = 0.85
         
-        let blurEffectView = BlurEffectViewLight()
+        //let blurEffectView = BlurEffectViewLight()
         //topBar.insertSubview(blurEffectView, at: 0)
-        let blurEffectView2 = BlurEffectViewLight()
+        //let blurEffectView2 = BlurEffectViewLight()
         //menuBarView.insertSubview(blurEffectView2, at: 0)
         
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)

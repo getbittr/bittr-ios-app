@@ -63,6 +63,9 @@ class CacheManager: NSObject {
                             if let actualIbanOrder = ibanDataDict["order"] as? Int {
                                 iban.order = actualIbanOrder
                             }
+                            if let actualIbanToken = ibanDataDict["token"] as? String {
+                                iban.emailToken = actualIbanToken
+                            }
                             
                             ibansInClient += [iban]
                         }

@@ -29,6 +29,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var backgroundButton2: UIButton!
     
+    @IBOutlet weak var nextButtonLabel: UILabel!
+    @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
+    
     var currentClientID = ""
     var currentIbanID = ""
     
@@ -71,6 +74,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         if self.nextView.backgroundColor == UIColor.black {
             
+            self.nextButtonLabel.alpha = 0
+            self.nextButtonActivityIndicator.startAnimating()
+            
             let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
             if let actualDeviceDict = deviceDict {
                 // Client exists in cache.
@@ -83,8 +89,8 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 let newIbanEntity = IbanEntity()
                 newIbanEntity.order = 0
                 newIbanEntity.id = UUID().uuidString
-                newIbanEntity.yourEmail = self.emailTextField.text!
-                newIbanEntity.yourIbanNumber = self.ibanTextField.text!
+                newIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+                newIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
                 newClient.ibanEntities += [newIbanEntity]
                 CacheManager.addIban(clientID: newClient.id, iban: newIbanEntity)
                 
@@ -138,14 +144,24 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
                 guard let data = data else {
                     print(String(describing: error))
+                    
+                    let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                    self.present(alert, animated: true)
+                    
                     return
                 }
                 print(String(data: data, encoding: .utf8)!)
+                
+                DispatchQueue.main.async {
+                    let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier, "client":self.currentClientID, "iban":self.currentIbanID]
+                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                    self.nextButtonActivityIndicator.stopAnimating()
+                    self.nextButtonLabel.alpha = 1
+                }
             }
             task.resume()
             
-            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier, "client":self.currentClientID, "iban":self.currentIbanID]
-             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
     

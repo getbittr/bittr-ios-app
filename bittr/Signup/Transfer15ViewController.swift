@@ -24,6 +24,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     var currentClientID = ""
     var currentIbanID = ""
     
+    @IBOutlet weak var nextButtonLabel: UILabel!
+    @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -69,6 +72,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
         
         updateButtonColor()
         if self.nextView.backgroundColor == UIColor.black {
+            
+            self.nextButtonLabel.alpha = 0
+            self.nextButtonActivityIndicator.startAnimating()
             
             let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
             if let actualDeviceDict = deviceDict {
@@ -142,6 +148,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                                                 let emailToken = actualDataDict["token"]
                                                 if let actualEmailToken = emailToken as? String {
                                                     CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
+                                                    
+                                                    DispatchQueue.main.async {
+                                                        self.createClient(page: sender.accessibilityIdentifier!)
+                                                    }
                                                 }
                                             }
                                         } catch let error as NSError {
@@ -151,9 +161,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                                 }
                                 task.resume()
                                 
-                                
-                                let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                             }
                         }
                     }
@@ -161,6 +168,212 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
             }
         }
     }
+    
+    
+    func createClient(page:String) {
+        
+        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        if let actualDeviceDict = deviceDict {
+            // Some device information exists.
+            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            for client in clients {
+                if client.id == self.currentClientID {
+                    for iban in client.ibanEntities {
+                        if iban.id == self.currentIbanID {
+                            
+                            print(iban.emailToken)
+                            print(iban.yourIbanNumber)
+                            
+                            let parameters = [
+                              [
+                                "key": "message",
+                                "value": "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(iban.emailToken.prefix(32)). IBAN: \(iban.yourIbanNumber)",
+                                "type": "text"
+                              ]] as [[String : Any]]
+                            
+                            let boundary = "Boundary-\(UUID().uuidString)"
+                            var body = ""
+                            var error: Error? = nil
+                            for param in parameters {
+                                if param["disabled"] == nil {
+                                    let paramName = param["key"]!
+                                    body += "--\(boundary)\r\n"
+                                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
+                                    if param["contentType"] != nil {
+                                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
+                                    }
+                                    let paramType = param["type"] as! String
+                                    if paramType == "text" {
+                                        let paramValue = param["value"] as! String
+                                        body += "\r\n\r\n\(paramValue)\r\n"
+                                    } /*else {
+                                        let paramSrc = param["src"] as! String
+                                        let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
+                                        let fileContent = String(data: fileData, encoding: .utf8)!
+                                        body += "; filename=\"\(paramSrc)\"\r\n"
+                                          + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
+                                    }*/
+                                    
+                                }
+                            }
+                            body += "--\(boundary)--\r\n";
+                            print(body)
+                            let postData = body.data(using: .utf8)
+                            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/sign/onchain")!,timeoutInterval: Double.infinity)
+                            request.addValue("application/form-data", forHTTPHeaderField: "Content-Type")
+                            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                            request.httpMethod = "POST"
+                            request.httpBody = postData
+                            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                                guard let data = data else {
+                                    print(String(describing: error))
+                                    let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
+                                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                    self.present(alert, animated: true)
+                                    return
+                              }
+                              
+                                print(String(data: data, encoding: .utf8)!)
+                                
+                                
+                            }
+                            task.resume()
+                            
+                            /*print(iban.emailToken)
+                            print(iban.yourIbanNumber)
+                            print(iban.yourEmail)
+                            
+                            let parameters = [
+                              [
+                                "key": "email",
+                                "value": iban.yourEmail,
+                                "type": "text"
+                              ],
+                              [
+                                "key": "email_token",
+                                "value": iban.emailToken,
+                                "type": "text"
+                              ],
+                              [
+                                "key": "bitcoin_address",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "xpub_key",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "xpub_addr_type",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "xpub_path",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "initial_address_type",
+                                "value": "extended",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "category",
+                                "value": "ledger",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "bitcoin_message",
+                                "value": "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(iban.emailToken.prefix(32)). IBAN: \(iban.yourIbanNumber)",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "bitcoin_signature",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "iban",
+                                "value": iban.yourIbanNumber,
+                                "type": "text"
+                              ],
+                              [
+                                "key": "id",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "planned_volume",
+                                "value": "",
+                                "type": "text"
+                              ],
+                              [
+                                "key": "planned_volume_frequency",
+                                "value": "",
+                                "type": "text"
+                              ]] as [[String : Any]]
+                            
+                            let boundary = "Boundary-\(UUID().uuidString)"
+                            var body = ""
+                            var error: Error? = nil
+                            for param in parameters {
+                                if param["disabled"] == nil {
+                                    let paramName = param["key"]!
+                                    body += "--\(boundary)\r\n"
+                                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
+                                    if param["contentType"] != nil {
+                                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
+                                    }
+                                    let paramType = param["type"] as! String
+                                    if paramType == "text" {
+                                        let paramValue = param["value"] as! String
+                                        body += "\r\n\r\n\(paramValue)\r\n"
+                                    } /*else {
+                                        let paramSrc = param["src"] as! String
+                                        let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
+                                        let fileContent = String(data: fileData, encoding: .utf8)!
+                                        body += "; filename=\"\(paramSrc)\"\r\n"
+                                          + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
+                                    }*/
+                                    
+                                }
+                            }
+                            body += "--\(boundary)--\r\n";
+                            let postData = body.data(using: .utf8)
+                            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/customer")!,timeoutInterval: Double.infinity)
+                            request.addValue("application/form-data", forHTTPHeaderField: "Content-Type")
+                            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                            request.httpMethod = "POST"
+                            request.httpBody = postData
+                            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                                guard let data = data else {
+                                    print(String(describing: error))
+                                    let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
+                                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                    self.present(alert, animated: true)
+                                    return
+                              }
+                              
+                                print(String(data: data, encoding: .utf8)!)
+                                
+                                
+                            }
+                            task.resume()*/
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.nextButtonActivityIndicator.stopAnimating()
+        self.nextButtonLabel.alpha = 1
+        
+        let notificationDict:[String: Any] = ["page":page]
+         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
     
     @IBAction func resendCodeButtonTapped(_ sender: UIButton) {
         
