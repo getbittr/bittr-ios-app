@@ -240,7 +240,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
     func createClient(address:String, signature:String, message:String, page:String, iban:IbanEntity) {
         
-        let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":address, "xpub_key":"", "xpub_addr_type":"", "xpub_path":"", "initial_address_type":"extended", "category":"ledger", "bitcoin_message":message, "bitcoin_signature":signature, "iban":iban.yourIbanNumber, "id":"", "planned_volume":"", "planned_volume_frequency":""]
+        let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":address, "initial_address_type":"simple", "bitcoin_message":message, "bitcoin_signature":signature, "iban":iban.yourIbanNumber]
         
         let hello = "Hello"
         
