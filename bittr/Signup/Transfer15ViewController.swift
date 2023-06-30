@@ -240,9 +240,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
     func createClient(address:String, signature:String, message:String, page:String, iban:IbanEntity) {
         
-        let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":address, "xpub_key":"", "xpub_addr_type":"", "xpub_path":"", "initial_address_type":"extended", "category":"ledger", "bitcoin_message":message, "bitcoin_signature":signature, "iban":iban.yourIbanNumber, "id":"", "planned_volume":"", "planned_volume_frequency":""]
-        
-        let hello = "Hello"
+        let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":address/*, "xpub_key":"", "xpub_addr_type":"", "xpub_path":""*/, "initial_address_type":"simple", "category":"ledger", "bitcoin_message":message, "bitcoin_signature":signature, "iban":iban.yourIbanNumber/*, "id":"", "planned_volume":"", "planned_volume_frequency":""*/] as [String:Any]
         
         do {
             let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
@@ -263,6 +261,31 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                 
                 print(String(data: data, encoding: .utf8)!)
                 
+                var dataDictionary:NSDictionary?
+                if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                    do {
+                        dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                        if let actualDataDict = dataDictionary {
+                            if let actualDataItems = actualDataDict["data"] as? NSDictionary {
+                                let dataOurIban = actualDataItems["iban"]
+                                let dataCode = actualDataItems["deposit_code"]
+                                let dataSwift = actualDataItems["swift"]
+                                if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
+                                    CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                    DispatchQueue.main.async {
+                                        
+                                        self.nextButtonActivityIndicator.stopAnimating()
+                                        self.nextButtonLabel.alpha = 1
+                                        let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
+                                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                    }
+                                }
+                            }
+                        }
+                    } catch let error as NSError {
+                        print(error)
+                    }
+                }
             }
             task.resume()
         } catch let error as NSError {
@@ -302,7 +325,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
           ],
           [
             "key": "initial_address_type",
-            "value": "extended",
+            "value": "simple",
             "type": "text"
           ],
           [
@@ -388,11 +411,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
         }
         task.resume()*/
         
-        self.nextButtonActivityIndicator.stopAnimating()
-        self.nextButtonLabel.alpha = 1
         
-        let notificationDict:[String: Any] = ["page":page]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
     

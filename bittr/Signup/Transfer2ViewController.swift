@@ -25,6 +25,13 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var screenshotView: UIView!
     @IBOutlet weak var screenshotButton: UIButton!
     
+    var currentClientID = ""
+    var currentIbanID = ""
+    
+    @IBOutlet weak var ourIbanLabel: UILabel!
+    @IBOutlet weak var yourCodeLabel: UILabel!
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -47,7 +54,39 @@ class Transfer2ViewController: UIViewController {
         viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
         viewBorder.lineWidth = 2
         self.checkView.layer.addSublayer(viewBorder)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
     }
+    
+    
+    @objc func updateData(notification:NSNotification) {
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
+                self.currentClientID = clientID
+                self.currentIbanID = ibanID
+                
+                if userInfo["code"] as? Bool == true {
+                    
+                    let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+                    if let actualDeviceDict = deviceDict {
+                        let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+                        for client in clients {
+                            if client.id == self.currentClientID {
+                                for iban in client.ibanEntities {
+                                    if iban.id == self.currentIbanID {
+                                        
+                                        self.ourIbanLabel.text = iban.ourIbanNumber
+                                        self.yourCodeLabel.text = iban.yourUniqueCode
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     
     override func viewDidAppear(_ animated: Bool) {
         

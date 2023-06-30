@@ -129,7 +129,39 @@ class CacheManager: NSObject {
             for client in clients {
                 var ibansDict = NSMutableDictionary()
                 for iban in client.ibanEntities {
-                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken], forKey: iban.id as NSCopying)
+                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken, "ourswift":iban.ourSwift], forKey: iban.id as NSCopying)
+                }
+                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            }
+            UserDefaults.standard.set(updatedClientsDict, forKey: "device")
+            UserDefaults.standard.synchronize()
+        }
+    }
+    
+    static func addBittrIban(clientID:String, ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
+        
+        let clientsDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        if let actualClientsDict = clientsDict {
+            
+            let clients = self.parseDevice(deviceDict: actualClientsDict)
+            
+            for client in clients {
+                if client.id == clientID {
+                    for iban in client.ibanEntities {
+                        if iban.id == ibanID {
+                            iban.ourIbanNumber = ourIban
+                            iban.yourUniqueCode = yourCode
+                            iban.ourSwift = ourSwift
+                        }
+                    }
+                }
+            }
+            
+            var updatedClientsDict = NSMutableDictionary()
+            for client in clients {
+                var ibansDict = NSMutableDictionary()
+                for iban in client.ibanEntities {
+                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken, "ourswift":iban.ourSwift], forKey: iban.id as NSCopying)
                 }
                 updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
             }

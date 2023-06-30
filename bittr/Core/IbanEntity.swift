@@ -17,4 +17,5 @@ class IbanEntity: NSObject {
     var order = 0
     var id = ""
     var emailToken = ""
+    var ourSwift = ""
 }
