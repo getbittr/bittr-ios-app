@@ -12,7 +12,7 @@ class IbanEntity: NSObject {
     var yourIbanNumber = ""
     var yourEmail = ""
     var ourIbanNumber = ""
-    var ourName = ""
+    var ourName = "BITTR AG"
     var yourUniqueCode = ""
     var order = 0
     var id = ""

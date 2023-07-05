@@ -46,9 +46,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     let year:[CGFloat] = [28468, 28321, 18054, 23712, 19738, 21336, 15726, 16239, 22776, 18960, 27503, 25793]
     let fiveYears:[CGFloat] = [6894, 5352, 3517, 9207, 8033, 8370, 15788, 50193, 29098, 56278, 35614, 20120, 25793]
     
+    var client = Client()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        
+        
         numberViewLeft.layer.cornerRadius = 13
         numberViewMiddle.layer.cornerRadius = 13
         numberViewRight.layer.cornerRadius = 13
@@ -83,6 +87,18 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(fixGraphViewHeight), name: NSNotification.Name(rawValue: "fixgraph"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+    }
+    
+    @objc func setClient() {
+        
+        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        if let actualDeviceDict = deviceDict {
+            // Client exists in cache.
+            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            
+            self.client = clients[0]
+        }
     }
     
     override func viewDidLayoutSubviews() {
@@ -166,9 +182,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         performSegue(withIdentifier: "HomeToTransaction", sender: self)
     }
     
-    @objc func fixGraphViewHeight() {
+    @objc func fixGraphViewHeight() {}
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
-        
+        if segue.identifier == "HomeToGoal" {
+            let goalVC = segue.destination as? GoalViewController
+            if let actualGoalVC = goalVC {
+                actualGoalVC.client = self.client
+            }
+        }
     }
     
     @IBAction func graphButtonTapped(_ sender: UIButton) {

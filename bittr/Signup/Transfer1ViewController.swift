@@ -80,7 +80,38 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
             if let actualDeviceDict = deviceDict {
                 // Client exists in cache.
-                //let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+                let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+                
+                if self.currentClientID != "", self.currentIbanID != "" {
+                    // We're updating information to an existing IBAN entity.
+                    for client in clients {
+                        if client.id == self.currentClientID {
+                            for iban in client.ibanEntities {
+                                if iban.id == self.currentIbanID {
+                                    iban.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    iban.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
+                                    
+                                    CacheManager.addIban(clientID: self.currentClientID, iban: iban)
+                                }
+                            }
+                        }
+                    }
+                } else if self.currentClientID != "", self.currentIbanID == "" {
+                    // We're adding another IBAN to an existing client.
+                    for client in clients {
+                        if client.id == self.currentClientID {
+                            let newIbanEntity = IbanEntity()
+                            newIbanEntity.order = client.ibanEntities.count
+                            newIbanEntity.id = UUID().uuidString
+                            newIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+                            newIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
+                            client.ibanEntities += [newIbanEntity]
+                            CacheManager.addIban(clientID: client.id, iban: newIbanEntity)
+                            
+                            self.currentIbanID = newIbanEntity.id
+                        }
+                    }
+                }
             } else {
                 // No clients exist yet in cache.
                 let newClient = Client()
@@ -144,11 +175,11 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
                 guard let data = data else {
                     print(String(describing: error))
-                    
-                    let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                    self.present(alert, animated: true)
-                    
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                    }
                     return
                 }
                 print(String(data: data, encoding: .utf8)!)

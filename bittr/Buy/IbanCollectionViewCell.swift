@@ -16,6 +16,12 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var emailView: UIView!
     
+    @IBOutlet weak var labelYourEmail: UILabel!
+    @IBOutlet weak var labelYourIban: UILabel!
+    @IBOutlet weak var labelOurIban: UILabel!
+    @IBOutlet weak var labelOurName: UILabel!
+    @IBOutlet weak var labelYourCode: UILabel!
+    
     override func awakeFromNib() {
         
         cardBackgroundView.layer.cornerRadius = 20

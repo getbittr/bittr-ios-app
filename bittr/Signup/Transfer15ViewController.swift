@@ -146,11 +146,22 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                                             dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
                                             if let actualDataDict = dataDictionary {
                                                 let emailToken = actualDataDict["token"]
+                                                let errorMessage = actualDataDict["message"]
                                                 if let actualEmailToken = emailToken as? String {
                                                     CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
                                                     
                                                     DispatchQueue.main.async {
                                                         self.getAddress(page: sender.accessibilityIdentifier!)
+                                                    }
+                                                } else if let actualErrorMessage = errorMessage as? String {
+                                                    if actualErrorMessage == "Invalid 2FA verification token provided" {
+                                                        DispatchQueue.main.async {
+                                                            self.nextButtonActivityIndicator.stopAnimating()
+                                                            self.nextButtonLabel.alpha = 1
+                                                            let alert = UIAlertController(title: "Oops!", message: "Please enter the correct verification code.", preferredStyle: .alert)
+                                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                                            self.present(alert, animated: true)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -278,6 +289,21 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                                         self.nextButtonLabel.alpha = 1
                                         let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
                                          NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                    }
+                                }
+                            } else if let actualApiMessage = actualDataDict["message"] as? String {
+                                // Some message has been received.
+                                DispatchQueue.main.async {
+                                    if actualApiMessage == "Unable to create customer account (invalid iban)" {
+                                        self.nextButtonActivityIndicator.stopAnimating()
+                                        self.nextButtonLabel.alpha = 1
+                                        self.codeTextField.text = nil
+                                        let alert = UIAlertController(title: "Oops!", message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
+                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                                            let notificationDict:[String: Any] = ["page":"6"]
+                                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                        }))
+                                        self.present(alert, animated: true)
                                     }
                                 }
                             }

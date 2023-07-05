@@ -14,6 +14,8 @@ class RegisterIbanViewController: UIViewController {
     
     @IBOutlet weak var transfer1ContainerViewLeading: NSLayoutConstraint!
     
+    var currentClientID = ""
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -57,6 +59,18 @@ class RegisterIbanViewController: UIViewController {
     @IBAction func downButtonTapped(_ sender: UIButton) {
         
         self.dismiss(animated: true, completion: nil)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "RegisterToTransfer1" {
+            
+            let transfer1VC = segue.destination as? Transfer1ViewController
+            if let actualTransfer1VC = transfer1VC {
+                
+                actualTransfer1VC.currentClientID = self.currentClientID
+            }
+        }
     }
     
 }

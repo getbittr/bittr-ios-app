@@ -34,6 +34,8 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     @IBOutlet weak var addAnotherView: UIView!
     @IBOutlet weak var addAnotherButton: UIButton!
     
+    var client = Client()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -69,7 +71,17 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         viewBorder.lineWidth = 1
         addAnotherView.layer.addSublayer(viewBorder)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(downButtonTapped), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+    }
+    
+    @objc func resetClient() {
+        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        if let actualDeviceDict = deviceDict {
+            // Client exists in cache.
+            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            self.client = clients[0]
+            self.ibanCollectionView.reloadData()
+        }
     }
     
     override func viewDidLayoutSubviews() {
@@ -205,6 +217,17 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         
         if let actualCell = cell {
             
+            if self.client.ibanEntities.count == 0 {
+                
+                return actualCell
+            }
+            
+            actualCell.labelYourEmail.text = self.client.ibanEntities[indexPath.row].yourEmail
+            actualCell.labelYourIban.text = self.client.ibanEntities[indexPath.row].yourIbanNumber
+            actualCell.labelOurIban.text = self.client.ibanEntities[indexPath.row].ourIbanNumber
+            actualCell.labelOurName.text = self.client.ibanEntities[indexPath.row].ourName
+            actualCell.labelYourCode.text = self.client.ibanEntities[indexPath.row].yourUniqueCode
+            
             return actualCell
         }
         
@@ -213,12 +236,28 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
+        if self.client.ibanEntities.count > 0 {
+            return self.client.ibanEntities.count
+        }
+        
         return 2
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         return CGSize(width: 335, height: 285)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "GoalToRegister" {
+            
+            let registerVC = segue.destination as? RegisterIbanViewController
+            if let actualRegisterVC = registerVC {
+                
+                actualRegisterVC.currentClientID = self.client.id
+            }
+        }
     }
 
     

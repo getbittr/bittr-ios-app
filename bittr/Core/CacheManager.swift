@@ -95,6 +95,34 @@ class CacheManager: NSObject {
         
         if let actualClientsDict = clientsDict {
             // At least one client already exists.
+            let clients = self.parseDevice(deviceDict: actualClientsDict)
+            for client in clients {
+                if client.id == clientID {
+                    var ibanExists = false
+                    for existingIban in client.ibanEntities {
+                        if existingIban.id == iban.id {
+                            ibanExists = true
+                            existingIban.yourIbanNumber = iban.yourIbanNumber
+                            existingIban.yourEmail = iban.yourEmail
+                        }
+                    }
+                    if ibanExists == false {
+                        // This is a new IBAN entity.
+                        client.ibanEntities += [iban]
+                    }
+                }
+            }
+            
+            var updatedClientsDict = NSMutableDictionary()
+            for client in clients {
+                var ibansDict = NSMutableDictionary()
+                for existingIban in client.ibanEntities {
+                    ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift], forKey: existingIban.id as NSCopying)
+                }
+                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            }
+            UserDefaults.standard.set(updatedClientsDict, forKey: "device")
+            UserDefaults.standard.synchronize()
         } else {
             // No clients have been added yet.
             let client = Client()

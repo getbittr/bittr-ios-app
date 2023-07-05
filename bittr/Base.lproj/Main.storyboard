@@ -1862,6 +1862,11 @@
                                                                     <outlet property="codeView" destination="byT-e7-soa" id="bZ3-4O-uM8"/>
                                                                     <outlet property="emailView" destination="s2J-km-9qr" id="N2f-eY-ZDh"/>
                                                                     <outlet property="ibanView" destination="P98-KT-ymT" id="SMo-Q5-qca"/>
+                                                                    <outlet property="labelOurIban" destination="J0p-xF-MwV" id="pOf-Zm-n7n"/>
+                                                                    <outlet property="labelOurName" destination="W2R-Af-rKJ" id="qvQ-Wp-jkg"/>
+                                                                    <outlet property="labelYourCode" destination="zPb-a8-HkZ" id="u6I-Yj-ATo"/>
+                                                                    <outlet property="labelYourEmail" destination="wnx-R0-I6S" id="sgk-fm-Hi5"/>
+                                                                    <outlet property="labelYourIban" destination="qfL-du-jmJ" id="Xhf-T9-Cky"/>
                                                                     <outlet property="nameView" destination="ZYH-uF-oeJ" id="6Nm-Aw-4Zd"/>
                                                                     <outlet property="yourIbanView" destination="aJq-w3-xHl" id="Dfq-vi-vcO"/>
                                                                 </connections>
@@ -1896,7 +1901,7 @@
                                                         <state key="normal" title="Button"/>
                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                         <connections>
-                                                            <segue destination="MJR-vf-Ggh" kind="show" id="KFx-zS-laP"/>
+                                                            <segue destination="MJR-vf-Ggh" kind="show" identifier="GoalToRegister" id="KFx-zS-laP"/>
                                                         </connections>
                                                     </button>
                                                 </subviews>
@@ -2015,7 +2020,7 @@
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="XVu-cp-TRQ" userLabel="Transfer1 Container View">
                                 <rect key="frame" x="0.0" y="80" width="393" height="710"/>
                                 <connections>
-                                    <segue destination="nfD-IJ-hag" kind="embed" id="ANA-Kn-Mbn"/>
+                                    <segue destination="nfD-IJ-hag" kind="embed" identifier="RegisterToTransfer1" id="ANA-Kn-Mbn"/>
                                 </connections>
                             </containerView>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xpg-OD-y7s" userLabel="Transfer15 Container View">
