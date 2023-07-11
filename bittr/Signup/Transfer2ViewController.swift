@@ -31,6 +31,9 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var ourIbanLabel: UILabel!
     @IBOutlet weak var yourCodeLabel: UILabel!
     
+    @IBOutlet weak var ibanButton: UIButton!
+    @IBOutlet weak var nameButton: UIButton!
+    @IBOutlet weak var codeButton: UIButton!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,6 +49,10 @@ class Transfer2ViewController: UIViewController {
         nextButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         screenshotButton.setTitle("", for: .normal)
+        
+        ibanButton.setTitle("", for: .normal)
+        nameButton.setTitle("", for: .normal)
+        codeButton.setTitle("", for: .normal)
         
         let viewBorder = CAShapeLayer()
         viewBorder.strokeColor = UIColor.black.cgColor
@@ -77,6 +84,10 @@ class Transfer2ViewController: UIViewController {
                                         
                                         self.ourIbanLabel.text = iban.ourIbanNumber
                                         self.yourCodeLabel.text = iban.yourUniqueCode
+                                        
+                                        self.ibanButton.accessibilityIdentifier = iban.ourIbanNumber
+                                        self.nameButton.accessibilityIdentifier = iban.ourName
+                                        self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
                                     }
                                 }
                             }
@@ -148,6 +159,14 @@ class Transfer2ViewController: UIViewController {
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
+    }
+    
+    @IBAction func copyItem(_ sender: UIButton) {
+        
+        UIPasteboard.general.string = sender.accessibilityIdentifier
+        let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
     }
     
 }

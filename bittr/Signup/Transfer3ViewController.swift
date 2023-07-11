@@ -20,6 +20,9 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var articleButton2: UIButton!
     @IBOutlet weak var backButton: UIButton!
     
+    var currentClientID = ""
+    var currentIbanID = ""
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -34,15 +37,40 @@ class Transfer3ViewController: UIViewController {
         articleButton.setTitle("", for: .normal)
         articleButton2.setTitle("", for: .normal)
         backButton.setTitle("", for: .normal)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+    }
+    
+    @objc func updateData(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
+                self.currentClientID = clientID
+                self.currentIbanID = ibanID
+            }
+        }
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        let alert = UIAlertController(title: "Open your banking app", message: "\nCreate your (recurring) transfer to\n\nNL12 INGB 1234 5678 90\nBITTR AG\n1234567890", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Done", style: .cancel, handler: {_ in
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        }))
-        self.present(alert, animated: true)
+        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        if let actualDeviceDict = deviceDict {
+            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            for client in clients {
+                if client.id == self.currentClientID {
+                    for iban in client.ibanEntities {
+                        if iban.id == self.currentIbanID {
+                            
+                            let alert = UIAlertController(title: "Open your banking app", message: "\nCreate your (recurring) transfer to\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Done", style: .cancel, handler: {_ in
+                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+                            }))
+                            self.present(alert, animated: true)
+                        }
+                    }
+                }
+            }
+        }
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

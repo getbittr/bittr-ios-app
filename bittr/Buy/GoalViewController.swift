@@ -228,6 +228,10 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
             actualCell.labelOurName.text = self.client.ibanEntities[indexPath.row].ourName
             actualCell.labelYourCode.text = self.client.ibanEntities[indexPath.row].yourUniqueCode
             
+            actualCell.ibanButton.accessibilityIdentifier = self.client.ibanEntities[indexPath.row].ourIbanNumber
+            actualCell.nameButton.accessibilityIdentifier = self.client.ibanEntities[indexPath.row].ourName
+            actualCell.codeButton.accessibilityIdentifier = self.client.ibanEntities[indexPath.row].yourUniqueCode
+            
             return actualCell
         }
         
@@ -260,5 +264,11 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         }
     }
 
-    
+    @IBAction func copyItem(_ sender: UIButton) {
+        
+        UIPasteboard.general.string = sender.accessibilityIdentifier
+        let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
+    }
 }

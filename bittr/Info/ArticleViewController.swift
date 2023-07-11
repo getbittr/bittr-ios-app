@@ -15,9 +15,16 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     @IBOutlet weak var downButton: UIButton!
     
     var article:Article?
+    var headerImage = UIImage()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        if article?.category == "faq" {
+            article?.text.sort(by: { text1, text2 in
+                (text1["order"] as! Int) < (text2["order"] as! Int)
+            })
+        }
 
         oneArticleTableView.delegate = self
         oneArticleTableView.dataSource = self
@@ -27,8 +34,11 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         downButton.setTitle("", for: .normal)
         
         if let actualArticle = article {
-            
-            oneArticleImage.image = UIImage(named: actualArticle.image)
+            if actualArticle.category == "General" {
+                oneArticleImage.image = headerImage
+            } else {
+                oneArticleImage.image = UIImage(named: actualArticle.image)
+            }
         }
     }
     

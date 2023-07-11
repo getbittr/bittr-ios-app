@@ -22,6 +22,10 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var labelOurName: UILabel!
     @IBOutlet weak var labelYourCode: UILabel!
     
+    @IBOutlet weak var ibanButton: UIButton!
+    @IBOutlet weak var nameButton: UIButton!
+    @IBOutlet weak var codeButton: UIButton!
+    
     override func awakeFromNib() {
         
         cardBackgroundView.layer.cornerRadius = 20
@@ -35,6 +39,9 @@ class IbanCollectionViewCell: UICollectionViewCell {
         cardBackgroundView.layer.shadowOffset = CGSize(width: 0, height: 7)
         cardBackgroundView.layer.shadowRadius = 10.0
         cardBackgroundView.layer.shadowOpacity = 0.1
+        
+        ibanButton.setTitle("", for: .normal)
+        nameButton.setTitle("", for: .normal)
+        codeButton.setTitle("", for: .normal)
     }
-    
 }

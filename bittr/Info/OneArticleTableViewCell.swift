@@ -40,7 +40,9 @@ class OneArticleTableViewCell: UITableViewCell {
     
     func setText(cellText:String) {
         
-        let htmlText = cellText.replacingOccurrences(of: "<title>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 26; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<intro>", with: "<span style=\"font-family: 'Gilroy-Regular', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(70, 56, 194)\">").replacingOccurrences(of: "<header>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 20; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<normal>", with: "<span style=\"font-family: 'Gilroy-Regular', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<subtitle>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 12; color: rgb(70, 56, 194)\">")
+        let newCellText = cellText.replacingOccurrences(of: "<strong>", with: "").replacingOccurrences(of: "&lt;", with: "<").replacingOccurrences(of: "&gt;", with: ">")
+        
+        let htmlText = newCellText.replacingOccurrences(of: "<title>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 26; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<intro>", with: "<span style=\"font-family: 'Gilroy-Regular', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(70, 56, 194)\">").replacingOccurrences(of: "<header>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 20; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<normal>", with: "<span style=\"font-family: 'Gilroy-Regular', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<subtitle>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 12; color: rgb(70, 56, 194)\">")
         
         if let htmlData = htmlText.data(using: .unicode) {
             
