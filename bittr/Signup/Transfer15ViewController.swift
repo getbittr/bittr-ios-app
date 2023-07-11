@@ -27,6 +27,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var nextButtonLabel: UILabel!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
+    var counter = 0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -443,85 +445,108 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func resendCodeButtonTapped(_ sender: UIButton) {
         
-        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            for client in clients {
-                if client.id == self.currentClientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == self.currentIbanID {
-                            
-                            let parameters = [
-                              [
-                                "key": "email",
-                                "value": iban.yourEmail,
-                                "type": "text"
-                              ],
-                              [
-                                "key": "category",
-                                "value": "ledger",
-                                "type": "text"
-                              ]] as [[String : Any]]
-                            
-                            let boundary = "Boundary-\(UUID().uuidString)"
-                            var body = ""
-                            var error: Error? = nil
-                            for param in parameters {
-                                if param["disabled"] == nil {
-                                    let paramName = param["key"]!
-                                    body += "--\(boundary)\r\n"
-                                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
-                                    if param["contentType"] != nil {
-                                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
+        if self.counter == 0 {
+            
+            let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+            if let actualDeviceDict = deviceDict {
+                let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+                for client in clients {
+                    if client.id == self.currentClientID {
+                        for iban in client.ibanEntities {
+                            if iban.id == self.currentIbanID {
+                                
+                                let parameters = [
+                                  [
+                                    "key": "email",
+                                    "value": iban.yourEmail,
+                                    "type": "text"
+                                  ],
+                                  [
+                                    "key": "category",
+                                    "value": "ledger",
+                                    "type": "text"
+                                  ]] as [[String : Any]]
+                                
+                                let boundary = "Boundary-\(UUID().uuidString)"
+                                var body = ""
+                                var error: Error? = nil
+                                for param in parameters {
+                                    if param["disabled"] == nil {
+                                        let paramName = param["key"]!
+                                        body += "--\(boundary)\r\n"
+                                        body += "Content-Disposition:form-data; name=\"\(paramName)\""
+                                        if param["contentType"] != nil {
+                                            body += "\r\nContent-Type: \(param["contentType"] as! String)"
+                                        }
+                                        let paramType = param["type"] as! String
+                                        if paramType == "text" {
+                                            let paramValue = param["value"] as! String
+                                            body += "\r\n\r\n\(paramValue)\r\n"
+                                        } /*else {
+                                            let paramSrc = param["src"] as! String
+                                            let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
+                                            let fileContent = String(data: fileData, encoding: .utf8)!
+                                            body += "; filename=\"\(paramSrc)\"\r\n"
+                                                    + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
+                                        }*/
                                     }
-                                    let paramType = param["type"] as! String
-                                    if paramType == "text" {
-                                        let paramValue = param["value"] as! String
-                                        body += "\r\n\r\n\(paramValue)\r\n"
-                                    } /*else {
-                                        let paramSrc = param["src"] as! String
-                                        let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
-                                        let fileContent = String(data: fileData, encoding: .utf8)!
-                                        body += "; filename=\"\(paramSrc)\"\r\n"
-                                                + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
-                                    }*/
                                 }
-                            }
-                            body += "--\(boundary)--\r\n";
-                            let postData = body.data(using: .utf8)
-                            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email")!,timeoutInterval: Double.infinity)
-                            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-                            request.httpMethod = "POST"
-                            request.httpBody = postData
-                            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                                guard let data = data else {
-                                    print(String(describing: error))
+                                body += "--\(boundary)--\r\n";
+                                let postData = body.data(using: .utf8)
+                                var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email")!,timeoutInterval: Double.infinity)
+                                request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                                request.httpMethod = "POST"
+                                request.httpBody = postData
+                                let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                                    guard let data = data else {
+                                        print(String(describing: error))
+                                        DispatchQueue.main.async {
+                                            let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
+                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                            self.present(alert, animated: true)
+                                        }
+                                        return
+                                    }
+                                    print(String(data: data, encoding: .utf8)!)
+                                    
                                     DispatchQueue.main.async {
-                                        let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
+                                        let alert = UIAlertController(title: "We've resent our email!", message: "Check your Spam and Promotion folders to see if the code is there.\n\nPlease also check whether \(iban.yourEmail) is correct.", preferredStyle: .alert)
                                         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                        alert.addAction(UIAlertAction(title: "Change email", style: .default, handler: {_ in
+                                            let notificationDict:[String: Any] = ["page":"6"]
+                                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                        }))
                                         self.present(alert, animated: true)
                                     }
-                                    return
                                 }
-                                print(String(data: data, encoding: .utf8)!)
+                                task.resume()
                                 
-                                DispatchQueue.main.async {
-                                    let alert = UIAlertController(title: "We've resent our email!", message: "Check your Spam and Promotion folders to see if the code is there.\n\nPlease also check whether \(iban.yourEmail) is correct.", preferredStyle: .alert)
-                                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                                    alert.addAction(UIAlertAction(title: "Change email", style: .default, handler: {_ in
-                                        let notificationDict:[String: Any] = ["page":"6"]
-                                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                    }))
-                                    self.present(alert, animated: true)
-                                }
+                                self.counter = 30
+                                Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateCounter), userInfo: nil, repeats: true)
                             }
-                            task.resume()
                         }
                     }
                 }
             }
+        } else {
+            let alert = UIAlertController(title: "", message: "Please wait 30 seconds before requesting another verification code.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: "Change email", style: .default, handler: {_ in
+                let notificationDict:[String: Any] = ["page":"6"]
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            }))
+            self.present(alert, animated: true)
         }
     }
+    
+    
+    @objc func updateCounter() {
+        if counter > 0 {
+            print("\(counter) seconds left")
+            counter -= 1
+        }
+    }
+    
     
     func updateButtonColor() {
         

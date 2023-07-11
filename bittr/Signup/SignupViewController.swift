@@ -74,6 +74,10 @@ class SignupViewController: UIViewController {
                     self.signup1ContainerViewLeading.constant = leadingConstant
                     self.view.layoutIfNeeded()
                 }
+                
+                if pageNumber == "9" {
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil, userInfo: nil) as Notification)
+                }
             }
         }
     }

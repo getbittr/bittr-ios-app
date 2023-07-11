@@ -14,6 +14,7 @@ class ArticleCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var articleTitleLabel: UILabel!
     @IBOutlet weak var articleBlackView: UIView!
     @IBOutlet weak var articleImageView: UIImageView!
+    @IBOutlet weak var spinner: UIActivityIndicatorView!
     
     override func awakeFromNib() {
         

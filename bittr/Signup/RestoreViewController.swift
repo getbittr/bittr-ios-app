@@ -37,6 +37,12 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var backgroundButton2: UIButton!
     @IBOutlet weak var backButton: UIButton!
     
+    @IBOutlet weak var spinner1: UIActivityIndicatorView!
+    @IBOutlet weak var articleImage: UIImageView!
+    @IBOutlet weak var articleTitle: UILabel!
+    let pageArticle1Slug = "wallet-recovery"
+    var pageArticle1 = Article()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -63,6 +69,32 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         mnemonic10.delegate = self
         mnemonic11.delegate = self
         mnemonic12.delegate = self
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+    }
+    
+    @objc func setSignupArticles(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
+                self.pageArticle1 = actualArticle
+                DispatchQueue.main.async {
+                    self.articleTitle.text = self.pageArticle1.title
+                }
+                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+            }
+        }
+    }
+    
+    @objc func setArticleImage(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualImage = userInfo["image"] as? UIImage {
+                self.spinner1.stopAnimating()
+                self.articleImage.image = actualImage
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -114,6 +146,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
         
+        self.view.endEditing(true)
+        
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
          NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
@@ -124,7 +158,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["tag":sender.tag]
+        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }

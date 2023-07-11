@@ -15,6 +15,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var articlesCollectionView: UICollectionView!
     @IBOutlet weak var newsHeader: UIView!
     @IBOutlet weak var faqHeader: UIView!
+    @IBOutlet weak var noArticles: UILabel!
     
     
     let questions = [["title":"How does bittr work?", "image":"article1", "text":[["text":"<title>How does Bittr work?</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"]]],["title":"Why do I want to buy bitcoin?", "image":"article2", "text":[["text":"<title>Why do I want to buy bitcoin?</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"]]],["title":"What and how does bittr charge me?", "image":"article3", "text":[["text":"<title>What and how does bittr charge me?</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"]]],["title":"Does bittr support every bank account?", "image":"article4", "text":[["text":"<title>Does bittr support every bank account?</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"]]],["title":"What is dollar cost averaging?", "image":"article5", "text":[["text":"<title>What is dollar cost averaging?</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"]]]]
@@ -22,10 +23,12 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     let articles = [["title":"Save bitcoin into your bittr lightning wallet", "image":"article6", "text":[["text":"<title>Save bitcoin into your bittr lightning wallet</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"],["text":"<header>The problems</span><br><br><normal>Googling ‘business plan’ yields over 5 billion results. That’s so much information that it’s impossible to distinguish good from bad.</span><br><br><normal>Then there are tons of templates that provide little (if any) guidance into how to fill in each blank.</span><br><br><normal>Plus every template is different and there are many different philosophies as to what a business plan should and shouldn’t contain.</span><br><br><br>"]]],["title":"The new bittr app is here!", "image":"article7", "text":[["text":"<title>The new bittr app is here!</span><br><br><subtitle>By Tom⠀•⠀August 30th, 2022</span><br><br><br><intro>We try to make it as easy as possible for you to write your business plan. Here are the problems we ran into and the solution we provide.</span><br><br><br>"]]]]
     
     var faqArticles = [Article]()
-    var faqImages = [Int:UIImage]()
+    var newsArticles = [Article]()
+    var everyArticle = [String:Article]()
+    var allImages = [String:UIImage]()
     
-    var faqOrNews = ""
-    var tappedArticle = 0
+    //var faqOrNews = ""
+    var tappedArticle = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -55,10 +58,11 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         getArticles()
     }
     
-    func parseArticles(articles:NSDictionary) -> [Article] {
+    func parseArticles(articles:NSDictionary) -> [String:Article] {
         
-        var faqArticles = [Article]()
-        var newsArticles = [Article]()
+        /*var faqArticles = [Article]()
+        var newsArticles = [Article]()*/
+        var allArticles = [String:Article]()
         
         for (articleid, articledata) in articles {
             
@@ -92,10 +96,11 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
             }
             
-            faqArticles += [thisArticle]
+            //faqArticles += [thisArticle]
+            allArticles.updateValue(thisArticle, forKey: thisArticle.id)
         }
         
-        return faqArticles
+        return allArticles
     }
     
     func getArticles() {
@@ -116,9 +121,27 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                     dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
                     if let actualDataDict = dataDictionary {
                         if let actualArticles = actualDataDict["articles"] as? NSDictionary {
-                            self.faqArticles = self.parseArticles(articles: actualArticles)
+                            self.everyArticle = self.parseArticles(articles: actualArticles)
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil, userInfo: self.everyArticle) as Notification)
+                            for (articleid, articledata) in self.everyArticle {
+                                if articledata.category == "General", articledata.isVisible == true {
+                                    self.faqArticles += [articledata]
+                                    //self.newsArticles += [articledata]
+                                } else {
+                                    if articledata.isVisible == true {
+                                        self.newsArticles += [articledata]
+                                    }
+                                }
+                            }
                             DispatchQueue.main.async {
+                                self.faqArticles.sort { article1, article2 in
+                                    article1.order < article2.order
+                                }
+                                self.newsArticles.sort { article1, article2 in
+                                    article1.order < article2.order
+                                }
                                 self.infoTableView.reloadData()
+                                self.articlesCollectionView.reloadData()
                             }
                         }
                         /*if let actualDataItems = actualDataDict["data"] as? NSDictionary {
@@ -217,22 +240,24 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
             actualCell.layer.zPosition = CGFloat(indexPath.row)
             actualCell.titleLabel.text = self.faqArticles[indexPath.row].title
             actualCell.articleButton.tag = indexPath.row
+            actualCell.articleButton.accessibilityIdentifier = self.faqArticles[indexPath.row].id
             
             actualCell.spinner.startAnimating()
             let session = URLSession(configuration: .default)
             let downloadPicTask = session.dataTask(with: URL(string: self.faqArticles[indexPath.row].image)!) { (data, response, error) in
                 if let e = error {
-                    print("Error downloading cat picture: \(e)")
+                    print("Error downloading picture: \(e)")
                 } else {
                     if let res = response as? HTTPURLResponse {
-                        print("Downloaded cat picture with response code \(res.statusCode)")
+                        print("Downloaded picture with response code \(res.statusCode)")
                         if let imageData = data {
                             let image = UIImage(data: imageData)
                             // Do something with your image.
                             DispatchQueue.main.async {
                                 actualCell.spinner.stopAnimating()
                                 actualCell.articleImage.image = image
-                                self.faqImages.updateValue(image!, forKey: indexPath.row)
+                                self.allImages.updateValue(image!, forKey: self.faqArticles[indexPath.row].id)
+                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.faqArticles[indexPath.row].id)"), object: nil, userInfo: ["image":image!]) as Notification)
                             }
                         } else {
                             print("Couldn't get image: Image is nil")
@@ -251,7 +276,14 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return self.articles.count
+        
+        if self.newsArticles.count == 0 {
+            self.noArticles.alpha = 1
+        } else {
+            self.noArticles.alpha = 0
+        }
+        
+        return self.newsArticles.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -260,9 +292,41 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if let actualCell = cell {
             
-            actualCell.articleTitleLabel.text = self.articles[indexPath.row]["title"] as? String
-            actualCell.articleImageView.image = UIImage(named: self.articles[indexPath.row]["image"] as? String ?? "article1")
+            actualCell.articleTitleLabel.text = self.newsArticles[indexPath.row].title
             actualCell.articleButton.tag = indexPath.row
+            actualCell.articleButton.accessibilityIdentifier = self.newsArticles[indexPath.row].id
+            
+            if let previouslyDownloadedImage = self.allImages[self.newsArticles[indexPath.row].id] {
+                actualCell.spinner.stopAnimating()
+                actualCell.articleImageView.image = previouslyDownloadedImage
+            } else {
+                actualCell.spinner.startAnimating()
+                let session = URLSession(configuration: .default)
+                let downloadPicTask = session.dataTask(with: URL(string: self.newsArticles[indexPath.row].image)!) { (data, response, error) in
+                    if let e = error {
+                        print("Error downloading picture: \(e)")
+                    } else {
+                        if let res = response as? HTTPURLResponse {
+                            print("Downloaded picture with response code \(res.statusCode)")
+                            if let imageData = data {
+                                let image = UIImage(data: imageData)
+                                // Do something with your image.
+                                DispatchQueue.main.async {
+                                    actualCell.spinner.stopAnimating()
+                                    actualCell.articleImageView.image = image
+                                    self.allImages.updateValue(image!, forKey: self.newsArticles[indexPath.row].id)
+                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.newsArticles[indexPath.row].id)"), object: nil, userInfo: ["image":image!]) as Notification)
+                                }
+                            } else {
+                                print("Couldn't get image: Image is nil")
+                            }
+                        } else {
+                            print("Couldn't get response code for some reason")
+                        }
+                    }
+                }
+                downloadPicTask.resume()
+            }
             
             return actualCell
         }
@@ -277,8 +341,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         
-        self.faqOrNews = sender.accessibilityIdentifier ?? "faq"
-        self.tappedArticle = sender.tag
+        self.tappedArticle = sender.accessibilityIdentifier ?? ""
         
         performSegue(withIdentifier: "InfoToArticle", sender: self)
     }
@@ -289,25 +352,33 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             let oneArticleVC = segue.destination as! ArticleViewController
             var article = Article()
-            if faqOrNews == "faq" {
+            if let thisImage = self.allImages[self.tappedArticle] {
+                oneArticleVC.headerImage = thisImage
+            }
+            article = self.everyArticle[self.tappedArticle] ?? Article()
+            oneArticleVC.article = article
+            
+            /*if faqOrNews == "faq" {
                 if let thisImage = self.faqImages[self.tappedArticle] {
                     oneArticleVC.headerImage = thisImage
                 }
                 article = self.faqArticles[self.tappedArticle]
+            } else if faqOrNews == "signup" {
+                
             } else {
                 article.image = self.articles[self.tappedArticle]["image"] as? String ?? "article1"
                 article.text = self.articles[self.tappedArticle]["text"] as? [NSDictionary] ?? [NSDictionary]()
             }
-            oneArticleVC.article = article
+            oneArticleVC.article = article*/
         }
     }
     
     @objc func launchArticle(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let articleTag = userInfo["tag"] as? Int {
+            if let articleTag = userInfo["tag"] as? String {
                 
-                self.faqOrNews = "faq"
+                //self.faqOrNews = "signup"
                 self.tappedArticle = articleTag
                 
                 performSegue(withIdentifier: "InfoToArticle", sender: self)

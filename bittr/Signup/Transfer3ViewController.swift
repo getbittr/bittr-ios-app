@@ -23,6 +23,23 @@ class Transfer3ViewController: UIViewController {
     var currentClientID = ""
     var currentIbanID = ""
     
+    @IBOutlet weak var spinner1: UIActivityIndicatorView!
+    @IBOutlet weak var articleImage: UIImageView!
+    @IBOutlet weak var articleTitle: UILabel!
+    let pageArticle1Slug = "bitcoin-lightning"
+    var pageArticle1 = Article()
+    
+    @IBOutlet weak var spinner2: UIActivityIndicatorView!
+    @IBOutlet weak var article2Image: UIImageView!
+    @IBOutlet weak var article2Title: UILabel!
+    let pageArticle2Slug = "dollar-cost-averaging"
+    var pageArticle2 = Article()
+    
+    @IBOutlet weak var centerView: UIView!
+    @IBOutlet weak var contentView: UIView!
+    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -39,6 +56,130 @@ class Transfer3ViewController: UIViewController {
         backButton.setTitle("", for: .normal)
         
         NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles2), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setArticle2Image), name: NSNotification.Name(rawValue: "setimage\(pageArticle2Slug)"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(checkImageDownload), name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil)
+    }
+    
+    
+    @objc func checkImageDownload() {
+        
+        if self.article2Image.image == nil {
+            let session = URLSession(configuration: .default)
+            let downloadPicTask = session.dataTask(with: URL(string: self.pageArticle2.image)!) { (data, response, error) in
+                if let e = error {
+                    print("Error downloading picture: \(e)")
+                } else {
+                    if let res = response as? HTTPURLResponse {
+                        print("Downloaded picture with response code \(res.statusCode)")
+                        if let imageData = data {
+                            let image = UIImage(data: imageData)
+                            // Do something with your image.
+                            DispatchQueue.main.async {
+                                self.spinner2.stopAnimating()
+                                self.article2Image.image = image
+                            }
+                        } else {
+                            print("Couldn't get image: Image is nil")
+                        }
+                    } else {
+                        print("Couldn't get response code for some reason")
+                    }
+                }
+            }
+            downloadPicTask.resume()
+        }
+        
+        if self.articleImage.image == nil {
+            let session = URLSession(configuration: .default)
+            let downloadPicTask = session.dataTask(with: URL(string: self.pageArticle1.image)!) { (data, response, error) in
+                if let e = error {
+                    print("Error downloading picture: \(e)")
+                } else {
+                    if let res = response as? HTTPURLResponse {
+                        print("Downloaded picture with response code \(res.statusCode)")
+                        if let imageData = data {
+                            let image = UIImage(data: imageData)
+                            // Do something with your image.
+                            DispatchQueue.main.async {
+                                self.spinner1.stopAnimating()
+                                self.articleImage.image = image
+                            }
+                        } else {
+                            print("Couldn't get image: Image is nil")
+                        }
+                    } else {
+                        print("Couldn't get response code for some reason")
+                    }
+                }
+            }
+            downloadPicTask.resume()
+        }
+    }
+    
+    
+    override func viewDidAppear(_ animated: Bool) {
+        
+        var centerViewHeight = centerView.bounds.height
+        
+        if centerView.bounds.height + 40 > contentView.bounds.height {
+            
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 60)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.centerViewCenterY.constant = 0
+            self.view.layoutIfNeeded()
+        }
+    }
+    
+    
+    @objc func setSignupArticles(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
+                self.pageArticle1 = actualArticle
+                DispatchQueue.main.async {
+                    self.articleTitle.text = self.pageArticle1.title
+                }
+                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+            }
+        }
+    }
+    
+    @objc func setArticleImage(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualImage = userInfo["image"] as? UIImage {
+                self.spinner1.stopAnimating()
+                self.articleImage.image = actualImage
+            }
+        }
+    }
+    
+    @objc func setSignupArticles2(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualArticle = userInfo[pageArticle2Slug] as? Article {
+                self.pageArticle2 = actualArticle
+                DispatchQueue.main.async {
+                    self.article2Title.text = self.pageArticle2.title
+                }
+                self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
+            }
+        }
+    }
+    
+    @objc func setArticle2Image(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualImage = userInfo["image"] as? UIImage {
+                self.spinner2.stopAnimating()
+                self.article2Image.image = actualImage
+            }
+        }
     }
     
     @objc func updateData(notification:NSNotification) {
@@ -75,7 +216,7 @@ class Transfer3ViewController: UIViewController {
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["tag":sender.tag]
+        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }
