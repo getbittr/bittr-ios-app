@@ -88,5 +88,21 @@ class LightningNodeService {
         try ldkNode.stop()
     }
     
+    func newFundingAddress() async throws -> String {
+        let fundingAddress = try ldkNode.newOnchainAddress()
+        return fundingAddress
+    }
+    
+    func signMessage(message: String) async throws -> String {
+        guard let data = message.data(using: .utf8) else {
+            throw NSError(domain: "InvalidInput", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid input string. Couldn't convert to UTF8 data."])
+        }
+        
+        let bytes = [UInt8](data)
+        let signedMessage = try ldkNode.signMessage(msg: bytes)
+        
+        return signedMessage
+    }
+    
 }
 

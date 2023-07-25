@@ -31,6 +31,9 @@
 		05980B582A46F8DA001F312F /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B572A46F8DA001F312F /* CacheManager.swift */; };
 		05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241029E6C98100F9861F /* HomeViewController.swift */; };
 		05A2241329E6E56500F9861F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241229E6E56500F9861F /* GraphView.swift */; };
+		05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */; };
+		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
+		05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */; };
 		05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
 		05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C08429CCB55600C1E695 /* AppDelegate.swift */; };
@@ -111,6 +114,9 @@
 		05980B572A46F8DA001F312F /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		05A2241029E6C98100F9861F /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		05A2241229E6E56500F9861F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
+		05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressViewModel.swift; sourceTree = "<group>"; };
+		05A965C12A6FBE1F00265BE6 /* MondayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MondayError.swift; sourceTree = "<group>"; };
+		05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeIDViewModel.swift; sourceTree = "<group>"; };
 		05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer15ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -304,6 +310,9 @@
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
 				05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */,
 				05D5D0ED2A66852D00A1E771 /* Constants.swift */,
+				05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */,
+				05A965C12A6FBE1F00265BE6 /* MondayError.swift */,
+				05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */,
 			);
 			path = Lightning;
 			sourceTree = "<group>";
@@ -503,6 +512,7 @@
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
 				05A2241329E6E56500F9861F /* GraphView.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
+				05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */,
@@ -512,11 +522,13 @@
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
+				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,
 				05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
+				05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
