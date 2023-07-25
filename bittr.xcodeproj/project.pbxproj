@@ -49,6 +49,14 @@
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
+		05D5D0DC2A6677EF00A1E771 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */; };
+		05D5D0DF2A66790400A1E771 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0DE2A66790400A1E771 /* CodeScanner */; };
+		05D5D0E22A66796B00A1E771 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0E12A66796B00A1E771 /* KeychainSwift */; };
+		05D5D0E52A667BC500A1E771 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0E42A667BC500A1E771 /* LDKNode */; };
+		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; };
+		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
+		05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */; };
+		05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0ED2A66852D00A1E771 /* Constants.swift */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
@@ -125,6 +133,10 @@
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
+		05D5D0E62A66825000A1E771 /* LightningNodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningNodeService.swift; sourceTree = "<group>"; };
+		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
+		05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileManager+Extensions.swift"; sourceTree = "<group>"; };
+		05D5D0ED2A66852D00A1E771 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05E743502A3581F9007755A2 /* RestoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewController.swift; sourceTree = "<group>"; };
@@ -142,6 +154,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				05D5D0E52A667BC500A1E771 /* LDKNode in Frameworks */,
+				05D5D0E22A66796B00A1E771 /* KeychainSwift in Frameworks */,
+				05D5D0DF2A66790400A1E771 /* CodeScanner in Frameworks */,
+				05D5D0DC2A6677EF00A1E771 /* BitcoinDevKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,6 +286,7 @@
 		05C3C0B429CCBFDD00C1E695 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				05D5D0E82A66835300A1E771 /* Lightning */,
 				05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */,
 				05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */,
 				05980B552A46F892001F312F /* Device.swift */,
@@ -278,6 +295,17 @@
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		05D5D0E82A66835300A1E771 /* Lightning */ = {
+			isa = PBXGroup;
+			children = (
+				05D5D0E62A66825000A1E771 /* LightningNodeService.swift */,
+				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
+				05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */,
+				05D5D0ED2A66852D00A1E771 /* Constants.swift */,
+			);
+			path = Lightning;
 			sourceTree = "<group>";
 		};
 		05E299582A39CB1200FA0AEE /* Buy */ = {
@@ -328,6 +356,12 @@
 			dependencies = (
 			);
 			name = bittr;
+			packageProductDependencies = (
+				05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */,
+				05D5D0DE2A66790400A1E771 /* CodeScanner */,
+				05D5D0E12A66796B00A1E771 /* KeychainSwift */,
+				05D5D0E42A667BC500A1E771 /* LDKNode */,
+			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
 			productType = "com.apple.product-type.application";
@@ -400,6 +434,12 @@
 				Base,
 			);
 			mainGroup = 05C3C07829CCB55600C1E695;
+			packageReferences = (
+				05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */,
+				05D5D0DD2A66790400A1E771 /* XCRemoteSwiftPackageReference "CodeScanner" */,
+				05D5D0E02A66796B00A1E771 /* XCRemoteSwiftPackageReference "keychain-swift" */,
+				05D5D0E32A667BC500A1E771 /* XCRemoteSwiftPackageReference "ldk-node" */,
+			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -456,6 +496,7 @@
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
+				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
@@ -472,6 +513,7 @@
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
+				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,
 				05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
@@ -481,10 +523,12 @@
 				05C3C0BC29CE75FA00C1E695 /* BlurEffectViewLight.swift in Sources */,
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
+				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,
 				05980B542A46F7E4001F312F /* Client.swift in Sources */,
 				05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */,
 				053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */,
 				05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */,
+				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
@@ -664,7 +708,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 27;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -676,7 +720,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -696,7 +740,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 27;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -708,7 +752,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -838,6 +882,64 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
+			requirement = {
+				kind = exactVersion;
+				version = 0.29.0;
+			};
+		};
+		05D5D0DD2A66790400A1E771 /* XCRemoteSwiftPackageReference "CodeScanner" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twostraws/CodeScanner";
+			requirement = {
+				kind = exactVersion;
+				version = 2.3.2;
+			};
+		};
+		05D5D0E02A66796B00A1E771 /* XCRemoteSwiftPackageReference "keychain-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/evgenyneu/keychain-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 20.0.0;
+			};
+		};
+		05D5D0E32A667BC500A1E771 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lightningdevkit/ldk-node";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */;
+			productName = BitcoinDevKit;
+		};
+		05D5D0DE2A66790400A1E771 /* CodeScanner */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D5D0DD2A66790400A1E771 /* XCRemoteSwiftPackageReference "CodeScanner" */;
+			productName = CodeScanner;
+		};
+		05D5D0E12A66796B00A1E771 /* KeychainSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D5D0E02A66796B00A1E771 /* XCRemoteSwiftPackageReference "keychain-swift" */;
+			productName = KeychainSwift;
+		};
+		05D5D0E42A667BC500A1E771 /* LDKNode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D5D0E32A667BC500A1E771 /* XCRemoteSwiftPackageReference "ldk-node" */;
+			productName = LDKNode;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 05C3C07929CCB55600C1E695 /* Project object */;
 }

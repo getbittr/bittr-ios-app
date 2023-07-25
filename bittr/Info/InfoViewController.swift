@@ -113,7 +113,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                 return
             }
             
-            print(String(data: data, encoding: .utf8)!)
+            //print(String(data: data, encoding: .utf8)!)
             
             var dataDictionary:NSDictionary?
             if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
@@ -249,7 +249,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                     print("Error downloading picture: \(e)")
                 } else {
                     if let res = response as? HTTPURLResponse {
-                        print("Downloaded picture with response code \(res.statusCode)")
+                        //print("Downloaded picture with response code \(res.statusCode)")
                         if let imageData = data {
                             let image = UIImage(data: imageData)
                             // Do something with your image.

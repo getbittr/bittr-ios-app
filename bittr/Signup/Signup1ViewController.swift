@@ -24,6 +24,9 @@ class Signup1ViewController: UIViewController {
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
     
+    @IBOutlet weak var nextButtonSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var createWalletLabel: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -43,7 +46,16 @@ class Signup1ViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didReceiveMnemonic), name: NSNotification.Name(rawValue: "setwords"), object: nil)
     }
+    
+    
+    @objc func didReceiveMnemonic() {
+        
+        self.createWalletLabel.alpha = 1
+        self.nextButtonSpinner.stopAnimating()
+    }
+    
     
     @objc func setSignupArticles(notification:NSNotification) {
         

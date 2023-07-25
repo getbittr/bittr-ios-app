@@ -23,5 +23,7 @@
 	</dict>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Allow bittr to add this screenshot to your Photo Library.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow bittr to scan a QR code.</string>
 </dict>
 </plist>

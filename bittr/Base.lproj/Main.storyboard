@@ -4555,7 +4555,7 @@
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="XLe-2c-RaP" userLabel="Save View">
                                                         <rect key="frame" x="110.66666666666667" y="123.00000000000003" width="171.66666666666663" height="45"/>
                                                         <subviews>
-                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Create wallet" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="2g0-x2-Xyc">
+                                                            <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Create wallet" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="2g0-x2-Xyc">
                                                                 <rect key="frame" x="19.999999999999986" y="16.333333333333314" width="131.66666666666663" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="Hk2-JX-3cg"/>
@@ -4565,6 +4565,10 @@
                                                                 <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
+                                                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="cCB-0i-LIq">
+                                                                <rect key="frame" x="75.999999999999986" y="12.333333333333314" width="20" height="20"/>
+                                                                <color key="color" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                            </activityIndicatorView>
                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P17-iD-Tds">
                                                                 <rect key="frame" x="0.0" y="0.0" width="171.66666666666666" height="45"/>
                                                                 <accessibility key="accessibilityConfiguration" identifier="0"/>
@@ -4578,6 +4582,8 @@
                                                         </subviews>
                                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                         <constraints>
+                                                            <constraint firstItem="cCB-0i-LIq" firstAttribute="centerX" secondItem="XLe-2c-RaP" secondAttribute="centerX" id="9Up-rI-j7a"/>
+                                                            <constraint firstItem="cCB-0i-LIq" firstAttribute="centerY" secondItem="XLe-2c-RaP" secondAttribute="centerY" id="EJP-ji-mQm"/>
                                                             <constraint firstItem="2g0-x2-Xyc" firstAttribute="centerY" secondItem="XLe-2c-RaP" secondAttribute="centerY" constant="1" id="IVP-IH-9C0"/>
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="80" id="Nhl-oM-GVQ"/>
                                                             <constraint firstItem="P17-iD-Tds" firstAttribute="leading" secondItem="XLe-2c-RaP" secondAttribute="leading" id="OmL-Or-WJk"/>
@@ -4741,9 +4747,11 @@
                         <outlet property="articleTitle" destination="ekn-qU-CgZ" id="pAv-5A-nDF"/>
                         <outlet property="buttonView" destination="XLe-2c-RaP" id="YNy-Y3-23W"/>
                         <outlet property="cardView" destination="rcs-je-r1w" id="UJE-QA-apH"/>
+                        <outlet property="createWalletLabel" destination="2g0-x2-Xyc" id="0Jy-O9-78o"/>
                         <outlet property="headerView" destination="fIw-RO-ZOF" id="nBs-jM-6KN"/>
                         <outlet property="imageContainer" destination="NSI-rf-BXI" id="qPY-tU-5TG"/>
                         <outlet property="nextButton" destination="P17-iD-Tds" id="mve-Zm-7Nc"/>
+                        <outlet property="nextButtonSpinner" destination="cCB-0i-LIq" id="3hs-3E-O2Q"/>
                         <outlet property="restoreButton" destination="fhe-fR-dJp" id="pqR-70-tvh"/>
                         <outlet property="restoreView" destination="CqH-yy-gih" id="YFF-Xy-0o7"/>
                         <outlet property="spinner1" destination="Nxf-bR-6cU" id="hZv-cp-Cn4"/>
@@ -5072,8 +5080,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="gloom" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="OhD-bg-Kwf" userLabel="Word Label">
-                                                                                <rect key="frame" x="45.000000000000007" y="9.6666666666666572" width="96.666666666666686" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="OhD-bg-Kwf" userLabel="Word Label">
+                                                                                <rect key="frame" x="45.000000000000007" y="10.666666666666657" width="96.666666666666686" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="6B0-wD-Rj3"/>
                                                                                 </constraints>
@@ -5104,8 +5112,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="month" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bIt-m3-3Qe" userLabel="Word Label">
-                                                                                <rect key="frame" x="45.000000000000007" y="9.6666666666666572" width="96.666666666666686" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bIt-m3-3Qe" userLabel="Word Label">
+                                                                                <rect key="frame" x="45.000000000000007" y="10.666666666666657" width="96.666666666666686" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="HsZ-hy-cnf"/>
                                                                                 </constraints>
@@ -5136,8 +5144,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="viable" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pDO-Sd-627" userLabel="Word Label">
-                                                                                <rect key="frame" x="45.000000000000007" y="9.6666666666666856" width="96.666666666666686" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pDO-Sd-627" userLabel="Word Label">
+                                                                                <rect key="frame" x="45.000000000000007" y="10.666666666666686" width="96.666666666666686" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="kPC-TO-zrt"/>
                                                                                 </constraints>
@@ -5168,8 +5176,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="hospital" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ccY-dJ-MI2" userLabel="Word Label">
-                                                                                <rect key="frame" x="45.000000000000007" y="9.6666666666666856" width="96.666666666666686" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ccY-dJ-MI2" userLabel="Word Label">
+                                                                                <rect key="frame" x="45.000000000000007" y="10.666666666666686" width="96.666666666666686" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="DkL-tb-aQd"/>
                                                                                 </constraints>
@@ -5200,8 +5208,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="alcohol" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="dK0-ir-SCs" userLabel="Word Label">
-                                                                                <rect key="frame" x="45.000000000000007" y="9.6666666666666856" width="96.666666666666686" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="dK0-ir-SCs" userLabel="Word Label">
+                                                                                <rect key="frame" x="45.000000000000007" y="10.666666666666686" width="96.666666666666686" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="Jdj-lm-TMy"/>
                                                                                 </constraints>
@@ -5232,8 +5240,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ocean" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ygf-O3-ivL" userLabel="Word Label">
-                                                                                <rect key="frame" x="45.000000000000007" y="9.6666666666666856" width="96.666666666666686" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ygf-O3-ivL" userLabel="Word Label">
+                                                                                <rect key="frame" x="45.000000000000007" y="10.666666666666686" width="96.666666666666686" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="zIu-PD-hqI"/>
                                                                                 </constraints>
@@ -5296,8 +5304,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="police" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="fTj-MK-O2t" userLabel="Word Label">
-                                                                                <rect key="frame" x="44.999999999999993" y="9.6666666666666572" width="96.333333333333314" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="fTj-MK-O2t" userLabel="Word Label">
+                                                                                <rect key="frame" x="44.999999999999993" y="10.666666666666657" width="96.333333333333314" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="OtP-Oh-FEW"/>
                                                                                 </constraints>
@@ -5328,8 +5336,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="stamp" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0JF-fK-0WT" userLabel="Word Label">
-                                                                                <rect key="frame" x="44.999999999999993" y="9.6666666666666572" width="96.333333333333314" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0JF-fK-0WT" userLabel="Word Label">
+                                                                                <rect key="frame" x="44.999999999999993" y="10.666666666666657" width="96.333333333333314" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="KiY-AQ-AdO"/>
                                                                                 </constraints>
@@ -5360,8 +5368,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="claim" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XKM-zF-jtw" userLabel="Word Label">
-                                                                                <rect key="frame" x="44.999999999999993" y="9.6666666666666856" width="96.333333333333314" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XKM-zF-jtw" userLabel="Word Label">
+                                                                                <rect key="frame" x="44.999999999999993" y="10.666666666666686" width="96.333333333333314" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="VY4-Ql-aeP"/>
                                                                                 </constraints>
@@ -5392,8 +5400,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="heart" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1ak-px-jiU" userLabel="Word Label">
-                                                                                <rect key="frame" x="44.999999999999993" y="9.6666666666666856" width="96.333333333333314" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1ak-px-jiU" userLabel="Word Label">
+                                                                                <rect key="frame" x="44.999999999999993" y="10.666666666666686" width="96.333333333333314" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="DIV-mS-wUN"/>
                                                                                 </constraints>
@@ -5424,8 +5432,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="off" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="nyz-w2-4Ok" userLabel="Word Label">
-                                                                                <rect key="frame" x="44.999999999999993" y="9.6666666666666856" width="96.333333333333314" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="nyz-w2-4Ok" userLabel="Word Label">
+                                                                                <rect key="frame" x="44.999999999999993" y="10.666666666666686" width="96.333333333333314" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="wXQ-UO-LHz"/>
                                                                                 </constraints>
@@ -5456,8 +5464,8 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ghost" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="acd-Gm-Ylq" userLabel="Word Label">
-                                                                                <rect key="frame" x="44.999999999999993" y="9.6666666666666856" width="96.333333333333314" height="18"/>
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="acd-Gm-Ylq" userLabel="Word Label">
+                                                                                <rect key="frame" x="44.999999999999993" y="10.666666666666686" width="96.333333333333314" height="16"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="16" id="NsT-P2-5fq"/>
                                                                                 </constraints>
@@ -5681,6 +5689,18 @@
                         <outlet property="saveView" destination="JgN-Uc-0Zk" id="S9q-39-Ce6"/>
                         <outlet property="scrollView" destination="D20-Dd-pdc" id="asV-zc-6e4"/>
                         <outlet property="spinner1" destination="uf1-M4-wET" id="gJu-Zy-swU"/>
+                        <outlet property="word1" destination="OhD-bg-Kwf" id="gLa-QG-gW2"/>
+                        <outlet property="word10" destination="nyz-w2-4Ok" id="I17-Uf-Wf6"/>
+                        <outlet property="word11" destination="ygf-O3-ivL" id="fLF-hN-4UI"/>
+                        <outlet property="word12" destination="acd-Gm-Ylq" id="d5c-pa-nK1"/>
+                        <outlet property="word2" destination="fTj-MK-O2t" id="RsF-sY-G6J"/>
+                        <outlet property="word3" destination="bIt-m3-3Qe" id="vct-xF-20A"/>
+                        <outlet property="word4" destination="0JF-fK-0WT" id="wHr-g7-iEk"/>
+                        <outlet property="word5" destination="pDO-Sd-627" id="lRQ-a4-bBP"/>
+                        <outlet property="word6" destination="XKM-zF-jtw" id="Ybe-ay-NaF"/>
+                        <outlet property="word7" destination="ccY-dJ-MI2" id="bw2-o8-O1g"/>
+                        <outlet property="word8" destination="1ak-px-jiU" id="elS-C5-KPi"/>
+                        <outlet property="word9" destination="dK0-ir-SCs" id="7NO-Vs-7N7"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="grw-ai-gOK" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>

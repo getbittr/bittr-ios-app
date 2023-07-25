@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import KeychainSwift
 
 class Signup6ViewController: UIViewController, UITextFieldDelegate {
 
@@ -91,6 +92,11 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
                  NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                 //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+                
+                let keychain = KeychainSwift()
+                keychain.synchronizable = true
+                keychain.set(actualPreviousPin, forKey: "pin")
+                
             } else {
                 let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))

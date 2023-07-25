@@ -6,6 +6,9 @@
 //
 
 import UIKit
+import LDKNode
+import KeychainSwift
+import BitcoinDevKit
 
 class CoreViewController: UIViewController {
 
@@ -45,11 +48,15 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
     @IBOutlet weak var blackSignupBackground: UIView!
     
+    let keychain = KeychainSwift()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // FOR TESTING:
         CacheManager.deleteClientInfo()
+        //keychain.synchronizable = true
+        //keychain.delete("")
         
         selectedView.layer.cornerRadius = 13
         leftWhite.layer.cornerRadius = 13
@@ -66,6 +73,38 @@ class CoreViewController: UIViewController {
         //menuBarView.insertSubview(blurEffectView2, at: 0)
         
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        
+        startLightning()
+    }
+    
+    func startLightning() {
+        
+        keychain.synchronizable = true
+        if let storedMnemonic = keychain.get("") {
+            // Wallet already exists.
+            
+            Task {
+                do {
+                    try await LightningNodeService.shared.start()
+                } catch let error as NodeError {
+                    print(error.localizedDescription)
+                } catch {
+                    print(error.localizedDescription)
+                }
+            }
+        } else {
+            // No wallet exists yet.
+            
+            Task {
+                do {
+                    try await LightningNodeService.shared.start()
+                } catch let error as NodeError {
+                    print(error.localizedDescription)
+                } catch {
+                    print(error.localizedDescription)
+                }
+            }
+        }
     }
     
     override func viewDidLayoutSubviews() {

@@ -28,6 +28,19 @@ class Signup3ViewController: UIViewController {
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
     
+    @IBOutlet weak var word1: UILabel!
+    @IBOutlet weak var word2: UILabel!
+    @IBOutlet weak var word3: UILabel!
+    @IBOutlet weak var word4: UILabel!
+    @IBOutlet weak var word5: UILabel!
+    @IBOutlet weak var word6: UILabel!
+    @IBOutlet weak var word7: UILabel!
+    @IBOutlet weak var word8: UILabel!
+    @IBOutlet weak var word9: UILabel!
+    @IBOutlet weak var word10: UILabel!
+    @IBOutlet weak var word11: UILabel!
+    @IBOutlet weak var word12: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -44,6 +57,33 @@ class Signup3ViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
+    }
+    
+    @objc func setWords(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualMnemonic = userInfo["mnemonic"] as? String {
+                
+                let individualWords:[String] = actualMnemonic.components(separatedBy: " ")
+                self.word1.text = individualWords[0]
+                self.word2.text = individualWords[1]
+                self.word3.text = individualWords[2]
+                self.word4.text = individualWords[3]
+                self.word5.text = individualWords[4]
+                self.word6.text = individualWords[5]
+                self.word7.text = individualWords[6]
+                self.word8.text = individualWords[7]
+                self.word9.text = individualWords[8]
+                self.word10.text = individualWords[9]
+                self.word11.text = individualWords[10]
+                self.word12.text = individualWords[11]
+                
+                let checkWords:[String] = [self.word2.text!, self.word7.text!, self.word9.text!]
+                let notificationDict = ["words":checkWords]
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setcheckwords"), object: nil, userInfo: notificationDict) as Notification)
+            }
+        }
     }
     
     @objc func setSignupArticles(notification:NSNotification) {

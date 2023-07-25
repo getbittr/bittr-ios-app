@@ -8,7 +8,7 @@
 import UIKit
 
 class Signup4ViewController: UIViewController, UITextFieldDelegate {
-
+    
     @IBOutlet weak var mnemonicView1: UIView!
     @IBOutlet weak var mnemonicView2: UIView!
     @IBOutlet weak var mnemonicView3: UIView!
@@ -26,9 +26,11 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     
+    var checkWords = [String]()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         mnemonicView1.layer.cornerRadius = 13
         mnemonicView2.layer.cornerRadius = 13
         mnemonicView3.layer.cornerRadius = 13
@@ -47,6 +49,16 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setcheckwords"), object: nil)
+    }
+    
+    @objc func setCheckWords(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualWords = userInfo["words"] as? [String] {
+                self.checkWords = actualWords
+            }
+        }
     }
     
     @objc func keyboardWillDisappear() {
@@ -74,7 +86,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "police" && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "hospital" && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "alcohol" {
+        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
@@ -91,7 +103,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             textField.resignFirstResponder()
         }
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "police" && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "hospital" && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "alcohol" {
+        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
@@ -102,7 +114,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "police" && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "hospital" && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "alcohol" {
+        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
@@ -113,7 +125,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         self.view.endEditing(true)
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "police" && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "hospital" && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "alcohol" {
+        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
             
             let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]

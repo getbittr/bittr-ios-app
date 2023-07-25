@@ -1,0 +1,92 @@
+//
+//  LightningNodeService.swift
+//  bittr
+//
+//  Created by Tom Melters on 18/07/2023.
+//
+
+import Foundation
+import LDKNode
+import BitcoinDevKit
+import KeychainSwift
+
+class LightningNodeService {
+    private let ldkNode: LdkNode
+    private let keychain = KeychainSwift()
+    private let mnemonicKey = ""
+    private let storageManager = LightningStorage()
+    
+    
+    class var shared: LightningNodeService {
+        struct Singleton {
+            static let instance = LightningNodeService(network: .testnet)
+        }
+        return Singleton.instance
+    }
+    
+    
+    init(network: LDKNode.Network) {
+        
+        try? FileManager.deleteLDKNodeLogLatestFile()
+        
+        let config = Config(
+            storageDirPath: storageManager.getDocumentsDirectory(),
+            network: network,
+            listeningAddress: "0.0.0.0:9735",
+            defaultCltvExpiryDelta: UInt32(144),
+            onchainWalletSyncIntervalSecs: UInt64(60),
+            walletSyncIntervalSecs: UInt64(20),
+            feeRateCacheUpdateIntervalSecs: UInt64(600),
+            logLevel: .debug
+//            ,trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326"]
+        )
+        
+        let nodeBuilder = Builder.fromConfig(config: config)
+        
+        let mnemonicString: String
+        keychain.synchronizable = true
+        if let storedMnemonic = keychain.get(mnemonicKey) {
+            mnemonicString = storedMnemonic
+            print("mnemonicString: \(mnemonicString)")
+        } else {
+            let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
+            mnemonicString = mnemonic.asString()
+            print("New mnemonicString: \(mnemonicString)")
+            keychain.set(mnemonicString, forKey: mnemonicKey)
+        }
+        
+        let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
+        
+        nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
+        
+        switch network {
+        case .bitcoin:
+            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
+        case .regtest:
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
+        case .signet:
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
+        case .testnet:
+            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
+        }
+        
+        let ldkNode = try! nodeBuilder.build()
+        
+        self.ldkNode = ldkNode
+    }
+    
+    
+    func start() async throws {
+        try ldkNode.start()
+    }
+    
+    
+    func stop() throws {
+        try ldkNode.stop()
+    }
+    
+}
+
