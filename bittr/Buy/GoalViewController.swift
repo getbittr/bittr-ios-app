@@ -33,6 +33,7 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     @IBOutlet weak var addAnotherView: UIView!
     @IBOutlet weak var addAnotherButton: UIButton!
+    @IBOutlet weak var emptyLabel: UILabel!
     
     var client = Client()
     
@@ -241,10 +242,12 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         if self.client.ibanEntities.count > 0 {
+            self.emptyLabel.alpha = 0
             return self.client.ibanEntities.count
         }
         
-        return 2
+        self.emptyLabel.alpha = 1
+        return 0
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {

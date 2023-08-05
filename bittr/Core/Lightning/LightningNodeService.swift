@@ -43,6 +43,7 @@ class LightningNodeService {
         
         let nodeBuilder = Builder.fromConfig(config: config)
         
+        // For now, the mnemonic can only be set once before the first-ever startup of the ldkNode. It cannot be changed later on.
         let mnemonicString: String
         keychain.synchronizable = true
         if let storedMnemonic = keychain.get(mnemonicKey) {
@@ -50,7 +51,7 @@ class LightningNodeService {
             print("mnemonicString: \(mnemonicString)")
         } else {
             let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
-            mnemonicString = mnemonic.asString()
+            mnemonicString = mnemonic.asString() //"mutual welcome bird hawk mystery warfare dinosaur sure tray coyote video cool"
             print("New mnemonicString: \(mnemonicString)")
             keychain.set(mnemonicString, forKey: mnemonicKey)
         }

@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import KeychainSwift
+import LDKNode
 
 class RestoreViewController: UIViewController, UITextFieldDelegate {
 
@@ -42,6 +44,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
+    
+    @IBOutlet weak var restoreButtonText: UILabel!
+    @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
+    
+    let keychain = KeychainSwift()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -141,7 +148,60 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         self.view.endEditing(true)
         
+        self.restoreButtonText.alpha = 0
+        self.restoreButtonSpinner.startAnimating()
+        
+        let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text]
+        
+        var enteredMnemonic = ""
+        
+        for eachWord in enteredWords {
+            if let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String {
+                if enteredMnemonic == "" {
+                    enteredMnemonic = actualWord
+                } else {
+                    enteredMnemonic = "\(enteredMnemonic) \(actualWord)"
+                }
+            } else {
+                
+            }
+        }
+        
+        /*let defaults = UserDefaults.standard
+        defaults.set(enteredMnemonic, forKey: "newmnemonic")
+        defaults.synchronize()*/
+        
+        keychain.synchronizable = true
+        keychain.set(enteredMnemonic, forKey: "")
+        
+        //LightningNodeService.init(network: LDKNode.Network.testnet)
+        /*Task {
+            do {
+                //try LightningNodeService.shared.stop()
+                
+                /*keychain.synchronizable = true
+                keychain.set(enteredMnemonic, forKey: "")*/
+                try await LightningNodeService.shared.start()
+                
+                /*do {
+                    try await LightningNodeService.shared.start()
+                    LightningNodeService.init(network: LDKNode.Network.testnet)
+                } catch let error as NodeError {
+                    print(error.localizedDescription)
+                } catch {
+                    print(error.localizedDescription)
+                }*/
+            } catch let error as NodeError {
+                print(error.localizedDescription)
+            } catch {
+                print(error.localizedDescription)
+            }
+        }*/
+        
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+        
+        self.restoreButtonSpinner.stopAnimating()
+        self.restoreButtonText.alpha = 1
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {

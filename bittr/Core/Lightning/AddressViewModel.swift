@@ -19,6 +19,9 @@ class AddressViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.address = address
                 self.isAddressFinished = true
+                
+                let notificationDict:[String: Any] = ["address":address]
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setnewaddress"), object: nil, userInfo: notificationDict) as Notification)
             }
         } catch let error as NodeError {
             let errorString = handleNodeError(error)

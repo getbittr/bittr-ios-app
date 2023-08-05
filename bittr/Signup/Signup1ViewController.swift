@@ -83,6 +83,11 @@ class Signup1ViewController: UIViewController {
 
     @IBAction func restoreButtonClicked(_ sender: UIButton) {
         
+        let alert = UIAlertController(title: "Oops!", message: "It's currently not possible to restore another wallet into our app. Please contact us if you have questions.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
+        return
+        
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }

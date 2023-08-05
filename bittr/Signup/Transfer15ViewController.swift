@@ -517,6 +517,16 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                                              NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                                         }))
                                         self.present(alert, animated: true)
+                                    } else {
+                                        self.nextButtonActivityIndicator.stopAnimating()
+                                        self.nextButtonLabel.alpha = 1
+                                        self.codeTextField.text = nil
+                                        let alert = UIAlertController(title: "Oops!", message: "Something went wrong. (\(actualApiMessage).) Please try again later.", preferredStyle: .alert)
+                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                                            let notificationDict:[String: Any] = ["page":"6"]
+                                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                        }))
+                                        self.present(alert, animated: true)
                                     }
                                 }
                             }
