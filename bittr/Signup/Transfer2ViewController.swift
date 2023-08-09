@@ -41,6 +41,9 @@ class Transfer2ViewController: UIViewController {
     let pageArticle1Slug = "when-do-i-receive-my-bitcoin"
     var pageArticle1 = Article()
     
+    var articles:[String:Article]?
+    var allImages:[String:UIImage]?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -72,6 +75,22 @@ class Transfer2ViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        
+        if let actualArticles = articles {
+            if let actualArticle = actualArticles[pageArticle1Slug] {
+                self.pageArticle1 = actualArticle
+                DispatchQueue.main.async {
+                    self.articleTitle.text = self.pageArticle1.title
+                }
+                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+            }
+        }
+        
+        if let actualImages = allImages {
+            if let actualImage = actualImages[pageArticle1Slug] {
+                self.articleImage.image = actualImage
+            }
+        }
     }
     
     @objc func setSignupArticles(notification:NSNotification) {

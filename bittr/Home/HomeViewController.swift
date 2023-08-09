@@ -47,6 +47,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     let fiveYears:[CGFloat] = [6894, 5352, 3517, 9207, 8033, 8370, 15788, 50193, 29098, 56278, 35614, 20120, 25793]
     
     var client = Client()
+    var articles:[String:Article]?
+    var allImages:[String:UIImage]?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -88,6 +90,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         NotificationCenter.default.addObserver(self, selector: #selector(fixGraphViewHeight), name: NSNotification.Name(rawValue: "fixgraph"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
+    }
+    
+    @objc func updateAllImages(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let actualImages = userInfo["images"] as? [String:UIImage] {
+                self.allImages = actualImages
+            }
+        }
     }
     
     @objc func setClient() {
@@ -98,6 +111,24 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
             
             self.client = clients[0]
+        }
+    }
+    
+    @objc func setSignupArticles(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            
+            var allArticles = [String:Article]()
+            
+            for (articleid, articledata) in userInfo {
+                if let actualSlug = articleid as? String, let actualArticle = articledata as? Article {
+                    allArticles.updateValue(actualArticle, forKey: actualSlug)
+                }
+            }
+            
+            if allArticles.count != 0 {
+                self.articles = allArticles
+            }
         }
     }
     
@@ -190,6 +221,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let goalVC = segue.destination as? GoalViewController
             if let actualGoalVC = goalVC {
                 actualGoalVC.client = self.client
+                if let actualArticles = self.articles {
+                    actualGoalVC.articles = actualArticles
+                }
+                if let actualImages = self.allImages {
+                    actualGoalVC.allImages = actualImages
+                }
             }
         }
     }

@@ -13,9 +13,10 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     @IBOutlet weak var oneArticleHeaderView: UIView!
     @IBOutlet weak var oneArticleImage: UIImageView!
     @IBOutlet weak var downButton: UIButton!
+    @IBOutlet weak var imageSpinner: UIActivityIndicatorView!
     
     var article:Article?
-    var headerImage = UIImage()
+    var headerImage:UIImage?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,12 +34,36 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         
         downButton.setTitle("", for: .normal)
         
-        if let actualArticle = article {
-            if actualArticle.category == "General" {
-                oneArticleImage.image = headerImage
-            } else {
-                oneArticleImage.image = UIImage(named: actualArticle.image)
+        if let actualHeaderImage = headerImage {
+            oneArticleImage.image = actualHeaderImage
+        }
+        
+        if oneArticleImage.image == nil {
+            
+            self.imageSpinner.startAnimating()
+            let session = URLSession(configuration: .default)
+            let downloadPicTask = session.dataTask(with: URL(string: self.article?.image ?? "")!) { (data, response, error) in
+                if let e = error {
+                    print("Error downloading picture: \(e)")
+                } else {
+                    if let res = response as? HTTPURLResponse {
+                        //print("Downloaded picture with response code \(res.statusCode)")
+                        if let imageData = data {
+                            let image = UIImage(data: imageData)
+                            // Do something with your image.
+                            DispatchQueue.main.async {
+                                self.imageSpinner.stopAnimating()
+                                self.oneArticleImage.image = image
+                            }
+                        } else {
+                            print("Couldn't get image: Image is nil")
+                        }
+                    } else {
+                        print("Couldn't get response code for some reason")
+                    }
+                }
             }
+            downloadPicTask.resume()
         }
     }
     

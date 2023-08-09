@@ -36,6 +36,8 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     @IBOutlet weak var emptyLabel: UILabel!
     
     var client = Client()
+    var articles:[String:Article]?
+    var allImages:[String:UIImage]?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -263,6 +265,12 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
             if let actualRegisterVC = registerVC {
                 
                 actualRegisterVC.currentClientID = self.client.id
+                if let actualArticles = self.articles {
+                    actualRegisterVC.articles = actualArticles
+                }
+                if let actualImages = self.allImages {
+                    actualRegisterVC.allImages = actualImages
+                }
             }
         }
     }

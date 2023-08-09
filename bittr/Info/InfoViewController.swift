@@ -258,6 +258,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 actualCell.articleImage.image = image
                                 self.allImages.updateValue(image!, forKey: self.faqArticles[indexPath.row].id)
                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.faqArticles[indexPath.row].id)"), object: nil, userInfo: ["image":image!]) as Notification)
+                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updateallimages"), object: nil, userInfo: ["images":self.allImages]) as Notification)
                             }
                         } else {
                             print("Couldn't get image: Image is nil")

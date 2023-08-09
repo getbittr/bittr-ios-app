@@ -15,6 +15,8 @@ class RegisterIbanViewController: UIViewController {
     @IBOutlet weak var transfer1ContainerViewLeading: NSLayoutConstraint!
     
     var currentClientID = ""
+    var articles:[String:Article]?
+    var allImages:[String:UIImage]?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,6 +71,24 @@ class RegisterIbanViewController: UIViewController {
             if let actualTransfer1VC = transfer1VC {
                 
                 actualTransfer1VC.currentClientID = self.currentClientID
+                actualTransfer1VC.articles = self.articles
+                actualTransfer1VC.allImages = self.allImages
+            }
+        } else if segue.identifier == "RegisterToTransfer2" {
+            
+            let transfer2VC = segue.destination as? Transfer2ViewController
+            if let actualTransfer2VC = transfer2VC {
+                
+                actualTransfer2VC.articles = self.articles
+                actualTransfer2VC.allImages = self.allImages
+            }
+        } else if segue.identifier == "RegisterToTransfer3" {
+            
+            let transfer3VC = segue.destination as? Transfer3ViewController
+            if let actualTransfer3VC = transfer3VC {
+                
+                actualTransfer3VC.articles = self.articles
+                actualTransfer3VC.allImages = self.allImages
             }
         }
     }

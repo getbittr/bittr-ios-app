@@ -5,7 +5,6 @@
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="collection view cell content view" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -905,7 +904,7 @@
                                                         <view contentMode="scaleToFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="sVK-Sk-MNX" userLabel="Labels View">
                                                             <rect key="frame" x="82.333333333333329" y="12.333333333333336" width="195.33333333333337" height="35"/>
                                                             <subviews>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
                                                                     <rect key="frame" x="0.0" y="0.0" width="87.666666666666671" height="16"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Omc-6m-9MB"/>
@@ -914,7 +913,7 @@
                                                                     <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
                                                                     <rect key="frame" x="0.0" y="21" width="39.333333333333336" height="14"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="StM-Ll-Dhj"/>
@@ -2084,13 +2083,13 @@
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="MzN-tU-RqA" userLabel="Transfer2 Container View">
                                 <rect key="frame" x="786" y="80" width="393" height="710"/>
                                 <connections>
-                                    <segue destination="Eou-hh-jOP" kind="embed" id="FcF-su-Uc9"/>
+                                    <segue destination="Eou-hh-jOP" kind="embed" identifier="RegisterToTransfer2" id="FcF-su-Uc9"/>
                                 </connections>
                             </containerView>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="2Hk-Ye-npJ" userLabel="Transfer3 Container View">
                                 <rect key="frame" x="1179" y="80" width="393" height="710"/>
                                 <connections>
-                                    <segue destination="m03-wv-Hng" kind="embed" id="Gzl-2D-aZy"/>
+                                    <segue destination="m03-wv-Hng" kind="embed" identifier="RegisterToTransfer3" id="Gzl-2D-aZy"/>
                                 </connections>
                             </containerView>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="downarrow32" translatesAutoresizingMaskIntoConstraints="NO" id="WNC-8n-zBA">
@@ -4224,10 +4223,15 @@
                                     <subviews>
                                         <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="ye8-DX-yDm">
                                             <rect key="frame" x="0.0" y="0.0" width="393" height="231"/>
+                                            <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="280" id="TeL-FQ-Sca"/>
                                             </constraints>
                                         </imageView>
+                                        <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="qdL-m2-k9Z">
+                                            <rect key="frame" x="186.66666666666666" y="105.66666666666667" width="20" height="20"/>
+                                            <color key="color" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </activityIndicatorView>
                                         <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="downarrow32" translatesAutoresizingMaskIntoConstraints="NO" id="k8D-0Z-zCa">
                                             <rect key="frame" x="20" y="15" width="20" height="20"/>
                                             <constraints>
@@ -4244,15 +4248,17 @@
                                             </connections>
                                         </button>
                                     </subviews>
-                                    <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     <constraints>
                                         <constraint firstItem="Lse-ge-Tni" firstAttribute="leading" secondItem="k8D-0Z-zCa" secondAttribute="leading" constant="-10" id="1dt-ri-MFO"/>
                                         <constraint firstItem="Lse-ge-Tni" firstAttribute="trailing" secondItem="k8D-0Z-zCa" secondAttribute="trailing" constant="10" id="33Q-L2-Hod"/>
                                         <constraint firstAttribute="bottom" secondItem="ye8-DX-yDm" secondAttribute="bottom" id="6kZ-df-aZ9"/>
                                         <constraint firstItem="ye8-DX-yDm" firstAttribute="leading" secondItem="KzD-46-qEg" secondAttribute="leading" id="DWY-Px-E8x"/>
                                         <constraint firstItem="Lse-ge-Tni" firstAttribute="bottom" secondItem="k8D-0Z-zCa" secondAttribute="bottom" constant="10" id="HcT-vS-Q0n"/>
+                                        <constraint firstItem="qdL-m2-k9Z" firstAttribute="centerX" secondItem="ye8-DX-yDm" secondAttribute="centerX" id="Viq-Kq-HDl"/>
                                         <constraint firstAttribute="trailing" secondItem="ye8-DX-yDm" secondAttribute="trailing" id="Y9g-iH-gcK"/>
                                         <constraint firstItem="Lse-ge-Tni" firstAttribute="top" secondItem="k8D-0Z-zCa" secondAttribute="top" constant="-10" id="nhV-OY-RDP"/>
+                                        <constraint firstItem="qdL-m2-k9Z" firstAttribute="centerY" secondItem="ye8-DX-yDm" secondAttribute="centerY" id="rCx-kn-upf"/>
                                         <constraint firstItem="ye8-DX-yDm" firstAttribute="top" secondItem="KzD-46-qEg" secondAttribute="top" id="sh7-lN-cNj"/>
                                         <constraint firstItem="k8D-0Z-zCa" firstAttribute="leading" secondItem="KzD-46-qEg" secondAttribute="leading" constant="20" id="uLV-VQ-OBT"/>
                                         <constraint firstItem="k8D-0Z-zCa" firstAttribute="top" secondItem="KzD-46-qEg" secondAttribute="top" constant="15" id="xYn-UM-sB7"/>
@@ -4286,6 +4292,7 @@
                     <navigationItem key="navigationItem" id="aWm-Ni-E2V"/>
                     <connections>
                         <outlet property="downButton" destination="Lse-ge-Tni" id="gBc-8v-tDW"/>
+                        <outlet property="imageSpinner" destination="qdL-m2-k9Z" id="SA0-al-dL0"/>
                         <outlet property="oneArticleHeaderView" destination="KzD-46-qEg" id="ZDX-cK-e6S"/>
                         <outlet property="oneArticleImage" destination="ye8-DX-yDm" id="svE-bW-k6v"/>
                         <outlet property="oneArticleTableView" destination="upo-6q-dHS" id="2Ef-pg-Klq"/>
@@ -9379,8 +9386,5 @@
         <image name="logo80" width="80" height="80"/>
         <image name="square.on.square" catalog="system" width="128" height="116"/>
         <image name="yellowcurve" width="400" height="15"/>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
     </resources>
 </document>

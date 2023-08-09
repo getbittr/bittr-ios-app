@@ -40,6 +40,9 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
     
+    var articles:[String:Article]?
+    var allImages:[String:UIImage]?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -62,6 +65,32 @@ class Transfer3ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticle2Image), name: NSNotification.Name(rawValue: "setimage\(pageArticle2Slug)"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(checkImageDownload), name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil)
+        
+        if let actualArticles = articles {
+            if let actualArticle = actualArticles[pageArticle1Slug] {
+                self.pageArticle1 = actualArticle
+                DispatchQueue.main.async {
+                    self.articleTitle.text = self.pageArticle1.title
+                }
+                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+            }
+            if let actualArticle2 = actualArticles[pageArticle2Slug] {
+                self.pageArticle2 = actualArticle2
+                DispatchQueue.main.async {
+                    self.article2Title.text = self.pageArticle2.title
+                }
+                self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
+            }
+        }
+        
+        if let actualImages = allImages {
+            if let actualImage = actualImages[pageArticle1Slug] {
+                self.articleImage.image = actualImage
+            }
+            if let actualImage2 = actualImages[pageArticle2Slug] {
+                self.article2Image.image = actualImage2
+            }
+        }
     }
     
     

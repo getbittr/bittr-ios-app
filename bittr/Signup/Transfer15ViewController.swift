@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import BitcoinDevKit
 
 class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
