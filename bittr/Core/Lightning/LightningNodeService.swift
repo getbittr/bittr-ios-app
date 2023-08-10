@@ -77,6 +77,8 @@ class LightningNodeService {
         let ldkNode = try! nodeBuilder.build()
         
         self.ldkNode = ldkNode
+        
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: nil) as Notification)
     }
     
     
@@ -92,6 +94,11 @@ class LightningNodeService {
     func newFundingAddress() async throws -> String {
         let fundingAddress = try ldkNode.newOnchainAddress()
         return fundingAddress
+    }
+    
+    func getTotalOnchainBalanceSats() async throws -> UInt64 {
+        let balance = try ldkNode.totalOnchainBalanceSats()
+        return balance
     }
     
     func signMessage(message: String) async throws -> String {

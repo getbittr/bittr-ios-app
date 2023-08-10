@@ -16,6 +16,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var homeTableView: UITableView!
     @IBOutlet weak var balanceView: UIView!
     @IBOutlet weak var balanceLabel: UILabel!
+    @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerViewTop: NSLayoutConstraint!
     
@@ -38,7 +40,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
     
-    let balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0 sats</span></center>"
+    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0 sats</span></center>"
     
     let day:[CGFloat] = [25777, 26002, 25701, 25779, 25840, 25856, 25797, 25671, 25821, 25927, 25793]
     let week:[CGFloat] = [26563, 25596, 26018, 26234, 26180, 26339, 25791, 25793]
@@ -53,8 +55,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        
-        
         numberViewLeft.layer.cornerRadius = 13
         numberViewMiddle.layer.cornerRadius = 13
         numberViewRight.layer.cornerRadius = 13
@@ -79,19 +79,79 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         homeTableView.delegate = self
         homeTableView.dataSource = self
         
-        if let htmlData = balanceText.data(using: .unicode) {
-            do {
-                let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                balanceLabel.attributedText = attributedText
-            } catch let e as NSError {
-                print("Couldn't fetch text: \(e.localizedDescription)")
-            }
-        }
-        
         NotificationCenter.default.addObserver(self, selector: #selector(fixGraphViewHeight), name: NSNotification.Name(rawValue: "fixgraph"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setTotalSats), name: NSNotification.Name(rawValue: "settotalsats"), object: nil)
+    }
+    
+    @objc func loadWalletData() {
+        let bitcoinViewModel = BitcoinViewModel()
+        Task {
+            await bitcoinViewModel.getTotalOnchainBalanceSats()
+        }
+    }
+    
+    @objc func setTotalSats(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let satsBalance = userInfo["balance"] as? String {
+                
+                print("Sats " + satsBalance)
+                
+                var zeros = "0.00 000 00"
+                var numbers = satsBalance + " sats"
+                
+                //satsBalance = "12345"
+                
+                switch satsBalance.count {
+                case 1:
+                    zeros = "0.00 000 00"
+                    numbers = satsBalance + " sats"
+                case 2:
+                    zeros = "0.00 000 0"
+                    numbers = satsBalance + " sats"
+                case 3:
+                    zeros = "0.00 000 "
+                    numbers = satsBalance + " sats"
+                case 4:
+                    zeros = "0.00 00"
+                    numbers = satsBalance[0] + " " + satsBalance[1..<4] + " sats"
+                case 5:
+                    zeros = "0.00 0"
+                    numbers = satsBalance[0..<2] + " " + satsBalance[2..<5] + " sats"
+                case 6:
+                    zeros = "0.00 "
+                    numbers = satsBalance[0..<3] + " " + satsBalance[3..<6] + " sats"
+                case 7:
+                    zeros = "0.0"
+                    numbers = satsBalance[0] + " " + satsBalance[1..<4] + " " + satsBalance[4..<7] + " sats"
+                case 8:
+                    zeros = "0."
+                    numbers = satsBalance[0..<2] + " " + satsBalance[2..<5] + " " + satsBalance[5..<8] + " sats"
+                default:
+                    zeros = ""
+                    numbers = "btc \(CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)/100000000)"
+                }
+                
+                balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+                
+                if let htmlData = balanceText.data(using: .unicode) {
+                    do {
+                        let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                        balanceLabel.attributedText = attributedText
+                        balanceSpinner.stopAnimating()
+                        balanceLabel.alpha = 1
+                        conversionLabel.alpha = 1
+                        
+                    } catch let e as NSError {
+                        print("Couldn't fetch text: \(e.localizedDescription)")
+                    }
+                }
+            }
+        }
     }
     
     @objc func updateAllImages(notification:NSNotification) {
@@ -280,4 +340,31 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
     }
     
+}
+
+extension String {
+
+    var length: Int {
+        return count
+    }
+
+    subscript (i: Int) -> String {
+        return self[i ..< i + 1]
+    }
+
+    func substring(fromIndex: Int) -> String {
+        return self[min(fromIndex, length) ..< length]
+    }
+
+    func substring(toIndex: Int) -> String {
+        return self[0 ..< max(0, toIndex)]
+    }
+
+    subscript (r: Range<Int>) -> String {
+        let range = Range(uncheckedBounds: (lower: max(0, min(length, r.lowerBound)),
+                                            upper: min(length, max(0, r.upperBound))))
+        let start = index(startIndex, offsetBy: range.lowerBound)
+        let end = index(start, offsetBy: range.upperBound - range.lowerBound)
+        return String(self[start ..< end])
+    }
 }

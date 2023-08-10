@@ -427,7 +427,7 @@
                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="uqU-tX-CDt"/>
                                             </constraints>
                                         </view>
-                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" verticalCompressionResistancePriority="751" text="0.00 000 000 sats" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="16" translatesAutoresizingMaskIntoConstraints="NO" id="3jF-mW-421" userLabel="Balance Label">
+                                        <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" verticalCompressionResistancePriority="751" text="0.00 000 000 sats" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="16" translatesAutoresizingMaskIntoConstraints="NO" id="3jF-mW-421" userLabel="Balance Label">
                                             <rect key="frame" x="30" y="131" width="333" height="40"/>
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="40" id="eIe-WY-faY"/>
@@ -436,7 +436,11 @@
                                             <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                             <nil key="highlightedColor"/>
                                         </label>
-                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="252" verticalCompressionResistancePriority="751" text="€ 0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="hC6-So-bRq" userLabel="Conversion Label">
+                                        <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="ceh-Lb-MfG">
+                                            <rect key="frame" x="186.66666666666666" y="161" width="20" height="20"/>
+                                            <color key="color" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </activityIndicatorView>
+                                        <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="252" verticalCompressionResistancePriority="751" text="€ 0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="hC6-So-bRq" userLabel="Conversion Label">
                                             <rect key="frame" x="50" y="176" width="293" height="28"/>
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="28" id="OZ2-98-6nm"/>
@@ -848,6 +852,7 @@
                                         <constraint firstItem="Py3-h9-1Kx" firstAttribute="leading" secondItem="jlW-33-8oJ" secondAttribute="leading" constant="20" id="IJE-D3-Zdg"/>
                                         <constraint firstItem="PVp-WC-UZG" firstAttribute="top" secondItem="6Vb-bn-Bmy" secondAttribute="bottom" id="N0B-cN-rRK"/>
                                         <constraint firstItem="PVp-WC-UZG" firstAttribute="top" secondItem="akB-PQ-Eft" secondAttribute="bottom" constant="30" id="NpI-Wg-kRV"/>
+                                        <constraint firstItem="ceh-Lb-MfG" firstAttribute="centerY" secondItem="3jF-mW-421" secondAttribute="centerY" constant="20" id="OQi-WZ-diT"/>
                                         <constraint firstItem="3jF-mW-421" firstAttribute="top" secondItem="2mQ-tw-975" secondAttribute="bottom" constant="15" id="PBD-N7-pqY"/>
                                         <constraint firstItem="hC6-So-bRq" firstAttribute="leading" secondItem="jlW-33-8oJ" secondAttribute="leading" constant="50" id="Pyp-G6-9HS"/>
                                         <constraint firstItem="xlo-m2-M9A" firstAttribute="centerX" secondItem="jlW-33-8oJ" secondAttribute="centerX" id="ROF-xH-KTv"/>
@@ -864,6 +869,7 @@
                                         <constraint firstItem="akB-PQ-Eft" firstAttribute="leading" secondItem="jlW-33-8oJ" secondAttribute="leading" id="dTd-dU-ViJ"/>
                                         <constraint firstItem="PXd-M4-cuS" firstAttribute="leading" secondItem="jlW-33-8oJ" secondAttribute="leading" id="gvV-am-qxs"/>
                                         <constraint firstItem="Py3-h9-1Kx" firstAttribute="trailing" secondItem="jlW-33-8oJ" secondAttribute="trailing" constant="-20" id="jYK-dg-jZb"/>
+                                        <constraint firstItem="ceh-Lb-MfG" firstAttribute="centerX" secondItem="3jF-mW-421" secondAttribute="centerX" id="kDo-9M-pL9"/>
                                         <constraint firstItem="akB-PQ-Eft" firstAttribute="top" secondItem="xlo-m2-M9A" secondAttribute="bottom" constant="25" id="pdV-L7-pHR"/>
                                     </constraints>
                                 </view>
@@ -1027,7 +1033,9 @@
                     </view>
                     <connections>
                         <outlet property="balanceLabel" destination="3jF-mW-421" id="tuf-YT-C4T"/>
+                        <outlet property="balanceSpinner" destination="ceh-Lb-MfG" id="P1v-i3-9e4"/>
                         <outlet property="balanceView" destination="jlW-33-8oJ" id="XdS-QP-e7q"/>
+                        <outlet property="conversionLabel" destination="hC6-So-bRq" id="5RY-pj-AiW"/>
                         <outlet property="dayButton" destination="mQB-CG-Bcc" id="BfW-ug-EGe"/>
                         <outlet property="fiveYearsButton" destination="ph8-fc-cpD" id="A95-ai-f9s"/>
                         <outlet property="goalButton" destination="YNZ-Sf-fbk" id="XSM-7U-sDb"/>
