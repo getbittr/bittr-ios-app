@@ -15,6 +15,7 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var leftCard: UIView!
     @IBOutlet weak var rightCard: UIView!
     
+    @IBOutlet weak var balanceLabel: UILabel!
     @IBOutlet weak var btcSlider: UISlider!
     @IBOutlet weak var btcBalance: UILabel!
     @IBOutlet weak var btcEuro: UILabel!
@@ -29,6 +30,9 @@ class MoveViewController: UIViewController {
     var totalStatus:Float = 9521948
     var presetAmount:Double?
     
+    var fetchedBtcBalance:CGFloat = 0.0
+    var fetchedBtclnBalance:CGFloat = 0.0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -39,9 +43,14 @@ class MoveViewController: UIViewController {
         leftCard.layer.cornerRadius = 13
         rightCard.layer.cornerRadius = 13
         
+        totalStatus = Float(fetchedBtcBalance + fetchedBtclnBalance)
         btcSlider.maximumValue = totalStatus
         btcSlider.minimumValue = 0
-        btcSlider.value = btcStatus
+        btcSlider.value = Float(fetchedBtcBalance)
+        
+        btcBalance.text = String(fetchedBtcBalance.rounded() * 0.00000001)
+        btclnBalance.text = String(fetchedBtclnBalance.rounded() * 0.00000001)
+        balanceLabel.text = String((fetchedBtcBalance.rounded()+fetchedBtclnBalance.rounded()) * 0.00000001) + " btc"
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -52,10 +61,10 @@ class MoveViewController: UIViewController {
         
         btcBalance.text = String("\(sender.value.rounded() * 0.00000001)")
         btclnBalance.text = String("\((btcSlider.maximumValue - sender.value.rounded()) * 0.00000001)")
-        btcEuro.text = String("€ \(Int(((sender.value/btcSlider.maximumValue) * 2625).rounded()))")
-        btclnEuro.text = String("€ \(Int(((1-(sender.value/btcSlider.maximumValue)) * 2625).rounded()))")
+        //btcEuro.text = String("€ \(Int(((sender.value/btcSlider.maximumValue) * 2625).rounded()))")
+        //btclnEuro.text = String("€ \(Int(((1-(sender.value/btcSlider.maximumValue)) * 2625).rounded()))")
         
-        self.presetAmount = (Double(totalStatus - btcStatus) - Double(totalStatus - sender.value.rounded())) * 0.00000001
+        self.presetAmount = (Double(totalStatus - Float(fetchedBtcBalance)) - Double(totalStatus - sender.value.rounded())) * 0.00000001
         if self.presetAmount ?? 0 < 0 {
             self.presetAmount = 0
         }

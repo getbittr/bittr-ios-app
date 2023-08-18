@@ -27,6 +27,18 @@ class LightningNodeService {
     
     init(network: LDKNode.Network) {
         
+        /*if let deleteStorage = UserDefaults.standard.value(forKey: "deletestorage") as? Bool {
+            if deleteStorage == true {
+                do {
+                    try FileManager.default.removeItem(atPath: storageManager.getDocumentsDirectory())
+                } catch {
+                    print(error.localizedDescription)
+                }
+                
+                UserDefaults.standard.set(false, forKey: "deletestorage")
+            }
+        }*/
+        
         try? FileManager.deleteLDKNodeLogLatestFile()
         
         let config = Config(
@@ -80,6 +92,7 @@ class LightningNodeService {
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: nil) as Notification)
     }
+    
     
     
     func start() async throws {

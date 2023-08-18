@@ -171,8 +171,30 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         defaults.set(enteredMnemonic, forKey: "newmnemonic")
         defaults.synchronize()*/
         
+        if keychain.get("") != nil {
+            UserDefaults.standard.set(true, forKey: "deletestorage")
+        }
+        
         keychain.synchronizable = true
         keychain.set(enteredMnemonic, forKey: "")
+        
+        do {
+            try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
+        } catch {
+            print(error.localizedDescription)
+        }
+        
+        
+        Task {
+            do {
+                try await LightningNodeService.shared.start()
+            } catch let error as NodeError {
+                print(error.localizedDescription)
+            } catch {
+                print(error.localizedDescription)
+            }
+        }
+        
         
         //LightningNodeService.init(network: LDKNode.Network.testnet)
         /*Task {

@@ -27,6 +27,8 @@ class Signup1ViewController: UIViewController {
     @IBOutlet weak var nextButtonSpinner: UIActivityIndicatorView!
     @IBOutlet weak var createWalletLabel: UILabel!
     
+    var nextTapped = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -54,6 +56,12 @@ class Signup1ViewController: UIViewController {
         
         self.createWalletLabel.alpha = 1
         self.nextButtonSpinner.stopAnimating()
+        
+        if nextTapped == true {
+            let notificationDict:[String: Any] = ["page":"0"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            nextTapped = false
+        }
     }
     
     
@@ -83,10 +91,10 @@ class Signup1ViewController: UIViewController {
 
     @IBAction func restoreButtonClicked(_ sender: UIButton) {
         
-        let alert = UIAlertController(title: "Oops!", message: "It's currently not possible to restore another wallet into our app. Please contact us if you have questions.", preferredStyle: .alert)
+        /*let alert = UIAlertController(title: "Oops!", message: "It's currently not possible to restore another wallet into our app. Please contact us if you have questions.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
         self.present(alert, animated: true)
-        return
+        return*/
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
@@ -94,8 +102,11 @@ class Signup1ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.createWalletLabel.alpha = 0
+        self.nextButtonSpinner.startAnimating()
+        self.nextTapped = true
+        
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "startlightning"), object: nil, userInfo: nil) as Notification)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

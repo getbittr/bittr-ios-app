@@ -73,11 +73,12 @@ class CoreViewController: UIViewController {
         //menuBarView.insertSubview(blurEffectView2, at: 0)
         
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         
-        startLightning()
+        //startLightning()
     }
     
-    func startLightning() {
+    @objc func startLightning() {
         
         keychain.synchronizable = true
         if let storedMnemonic = keychain.get("") {

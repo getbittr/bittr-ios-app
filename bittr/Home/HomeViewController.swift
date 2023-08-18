@@ -52,6 +52,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     
+    var btcBalance:CGFloat = 0.0
+    var balanceWasFetched = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -105,6 +108,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 var numbers = satsBalance + " sats"
                 
                 //satsBalance = "12345"
+                
+                self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
+                self.balanceWasFetched = true
                 
                 switch satsBalance.count {
                 case 1:
@@ -266,7 +272,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func moveButtonTapped(_ sender: UIButton) {
-        performSegue(withIdentifier: "HomeToMove", sender: self)
+        if self.balanceWasFetched == true {
+            performSegue(withIdentifier: "HomeToMove", sender: self)
+        }
     }
     
     @IBAction func transactionButtonTapped(_ sender: UIButton) {
@@ -287,6 +295,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 if let actualImages = self.allImages {
                     actualGoalVC.allImages = actualImages
                 }
+            }
+        } else if segue.identifier == "HomeToMove" {
+            let moveVC = segue.destination as? MoveViewController
+            if let actualMoveVC = moveVC {
+                actualMoveVC.fetchedBtcBalance = self.btcBalance
             }
         }
     }
