@@ -99,6 +99,8 @@ class MoveViewController: UIViewController {
             
             let sendVC = segue.destination as? SendViewController
             if let actualSendVC = sendVC {
+                actualSendVC.btcAmount = fetchedBtcBalance.rounded() * 0.00000001
+                actualSendVC.btclnAmount = fetchedBtclnBalance.rounded() * 0.00000001
                 if let actualPresetAmount = self.presetAmount {
                     actualSendVC.presetAmount = actualPresetAmount
                 }

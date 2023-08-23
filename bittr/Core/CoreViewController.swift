@@ -50,6 +50,9 @@ class CoreViewController: UIViewController {
     
     let keychain = KeychainSwift()
     
+    var signupAlpha:CGFloat = 1
+    var blackSignupAlpha:CGFloat = 0.3
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -75,38 +78,65 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         
-        //startLightning()
+        keychain.synchronizable = true
+        if let storedMnemonic = keychain.get("") {
+            // Wallet exists.
+            startLightning()
+            signupAlpha = 0
+            blackSignupAlpha = 0
+        }
     }
     
     @objc func startLightning() {
         
-        keychain.synchronizable = true
-        if let storedMnemonic = keychain.get("") {
-            // Wallet already exists.
-            
-            Task {
-                do {
-                    try await LightningNodeService.shared.start()
-                } catch let error as NodeError {
-                    print(error.localizedDescription)
-                } catch {
-                    print(error.localizedDescription)
-                }
-            }
-        } else {
-            // No wallet exists yet.
-            
-            Task {
-                do {
-                    try await LightningNodeService.shared.start()
-                } catch let error as NodeError {
-                    print(error.localizedDescription)
-                } catch {
-                    print(error.localizedDescription)
-                }
+        Task {
+            do {
+                try await LightningNodeService.shared.start()
+            } catch let error as NodeError {
+                print(error.localizedDescription)
+            } catch {
+                print(error.localizedDescription)
             }
         }
     }
+    
+    
+    func resetApp() {
+    
+        do {
+            try LightningNodeService.shared.stop()
+            
+            keychain.synchronizable = true
+            keychain.delete("")
+            
+            do {
+                try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
+            } catch {
+                print(error.localizedDescription)
+            }
+            
+            let notificationDict:[String: Any] = ["page":"restore"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            
+            self.signupContainerView.alpha = 1
+            
+            UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
+                
+                NSLayoutConstraint.deactivate([self.signupBottom])
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom])
+                self.blackSignupBackground.alpha = 1
+                self.view.layoutIfNeeded()
+            }
+        } catch let error as NodeError {
+            print(error.localizedDescription)
+        } catch {
+            print(error.localizedDescription)
+        }
+        
+        
+    }
+    
     
     override func viewDidLayoutSubviews() {
         
@@ -149,7 +179,12 @@ class CoreViewController: UIViewController {
                         NSLayoutConstraint.deactivate([self.logoViewCenterY])
                         self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
                         NSLayoutConstraint.activate([self.logoViewTop])
-                        self.signupContainerView.alpha = 1
+                        self.signupContainerView.alpha = self.signupAlpha
+                        if self.signupAlpha == 0 {
+                            self.homeContainerView.alpha = 1
+                            self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
+                            self.menuBarView.alpha = 1
+                        }
                         self.view.layoutIfNeeded()
                     } completion: { finished in
                         UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
@@ -169,7 +204,7 @@ class CoreViewController: UIViewController {
                             self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
                             self.homeContainerView.alpha = 1
                             self.menuBarView.alpha = 1
-                            self.blackSignupBackground.alpha = 0.3
+                            self.blackSignupBackground.alpha = self.blackSignupAlpha
                             
                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
                         }
@@ -226,6 +261,17 @@ class CoreViewController: UIViewController {
             self.view.layoutIfNeeded()
         } completion: { finished in
             self.signupContainerView.alpha = 0
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "CoreToSettings" {
+            let settingsVC = segue.destination as? SettingsViewController
+            if let actualSettingsVC = settingsVC {
+                
+                actualSettingsVC.coreVC = self
+            }
         }
     }
     

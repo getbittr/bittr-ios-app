@@ -80,6 +80,8 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         amountTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
+        self.availableAmount.text = "Send all: " + String(self.btcAmount)
+        
         if let actualPresetAmount = presetAmount {
             
             self.fromLabel.text = "My BTCLN wallet"
@@ -138,11 +140,18 @@ class SendViewController: UIViewController, UITextFieldDelegate {
             self.toTextFieldTrailing.constant = -10
         }
         let btclnOption = UIAlertAction(title: "My BTCLN wallet", style: .default) { (action) in
-            self.fromLabel.text = "My BTCLN wallet"
+            
+            let alert = UIAlertController(title: "Unavailable", message: "This feature is still being worked on.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            
+            return
+            
+            /*self.fromLabel.text = "My BTCLN wallet"
             self.toTextField.text = "My BTC wallet"
             self.availableAmount.text = "Send all: " + String(self.btclnAmount)
             self.clipboardWidth.constant = 0
-            self.toTextFieldTrailing.constant = 0
+            self.toTextFieldTrailing.constant = 0*/
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         actionSheet.addAction(btcOption)
@@ -195,18 +204,33 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        self.fromConfirmation.text = self.fromLabel.text
-        self.toConfirmation.text = self.toTextField.text
-        self.amountConfirmation.text = self.amountTextField.text
-        self.feesConfirmation.text = "0.0"
-        self.totalConfirmation.text = self.amountTextField.text
-        
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+        let formatter = NumberFormatter()
+        formatter.decimalSeparator = "."
+        if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) == 0  {
             
-            NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-            self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.scrollViewTrailing])
-            self.view.layoutIfNeeded()
+            // Fields are left empty or the amount if set to zero.
+            
+        } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
+            
+            // Insufficient funds available.
+            let alert = UIAlertController(title: "Oops!", message: "Make sure the amount of BTC you wish to send is within your spendable balance.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+        } else {
+            
+            self.fromConfirmation.text = self.fromLabel.text
+            self.toConfirmation.text = self.toTextField.text
+            self.amountConfirmation.text = self.amountTextField.text
+            self.feesConfirmation.text = "0.0"
+            self.totalConfirmation.text = self.amountTextField.text
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                
+                NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+                self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.scrollViewTrailing])
+                self.view.layoutIfNeeded()
+            }
         }
     }
     

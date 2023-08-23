@@ -12,7 +12,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     @IBOutlet weak var settingsTableView: UITableView!
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
     
-    let settings = [["label":"Privacy Policy", "icon":"iconprivacy", "id":"privacy"],["label":"Terms & Conditions", "icon":"iconterms", "id":"terms"],["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],["label":"Get support", "icon":"iconsupport", "id":"support"],["label":"Currency", "icon":"iconcurrency", "id":"currency"]]
+    var coreVC:CoreViewController?
+    
+    let settings = [["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],["label":"Get support", "icon":"iconsupport", "id":"support"],["label":"Restore wallet", "icon":"iconwallet", "id":"restore"],["label":"Privacy Policy", "icon":"iconprivacy", "id":"privacy"],["label":"Terms & Conditions", "icon":"iconterms", "id":"terms"],["label":"Currency", "icon":"iconcurrency", "id":"currency"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -71,6 +73,23 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             if websiteUrl != nil {
                 UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
             }
+        } else if sender.accessibilityIdentifier == "restore" {
+            
+            let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+                
+                let secondAlert = UIAlertController(title: "Restore wallet", message: "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.", preferredStyle: .alert)
+                secondAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+                    
+                    if let actualCoreVC = self.coreVC {
+                        actualCoreVC.resetApp()
+                    }
+                }))
+                self.present(secondAlert, animated: true)
+            }))
+            self.present(alert, animated: true)
         } else if sender.accessibilityIdentifier == "currency" {
             let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in

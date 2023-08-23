@@ -62,7 +62,7 @@
                             <containerView opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="NZl-5Q-kB0" userLabel="Settings Container View">
                                 <rect key="frame" x="786" y="9" width="393" height="859"/>
                                 <connections>
-                                    <segue destination="wBF-p2-fZ3" kind="embed" id="kd4-EU-fsh"/>
+                                    <segue destination="wBF-p2-fZ3" kind="embed" identifier="CoreToSettings" id="kd4-EU-fsh"/>
                                 </connections>
                             </containerView>
                             <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xl0-vi-rxc" userLabel="Menu Bar View">
