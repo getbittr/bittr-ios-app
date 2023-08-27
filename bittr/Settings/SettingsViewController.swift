@@ -14,7 +14,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     var coreVC:CoreViewController?
     
-    let settings = [["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],["label":"Get support", "icon":"iconsupport", "id":"support"],["label":"Restore wallet", "icon":"iconwallet", "id":"restore"],["label":"Privacy Policy", "icon":"iconprivacy", "id":"privacy"],["label":"Terms & Conditions", "icon":"iconterms", "id":"terms"],["label":"Currency", "icon":"iconcurrency", "id":"currency"]]
+    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"iconsupport", "id":"support"],["label":"Restore wallet", "icon":"iconwallet", "id":"restore"],["label":"Privacy Policy", "icon":"iconprivacy", "id":"privacy"],["label":"Terms & Conditions", "icon":"iconterms", "id":"terms"],["label":"Currency", "icon":"iconcurrency", "id":"currency"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,6 +43,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             
             if self.settings[indexPath.row]["id"] == "currency" {
                 actualCell.currencyLabel.text = "€"
+                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                    actualCell.currencyLabel.text = "CHF"
+                }
             } else {
                 actualCell.currencyLabel.text = ""
             }
@@ -93,26 +96,30 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         } else if sender.accessibilityIdentifier == "currency" {
             let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
+                
+                UserDefaults.standard.set("€", forKey: "currency")
                 let notificationDict:[String: Any] = ["currency":"€"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
             }
-            let usdOption = UIAlertAction(title: "USD $", style: .default) { (action) in
+            /*let usdOption = UIAlertAction(title: "USD $", style: .default) { (action) in
                 let notificationDict:[String: Any] = ["currency":"$"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
-            }
+            }*/
             let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
+                
+                UserDefaults.standard.set("CHF", forKey: "currency")
                 let notificationDict:[String: Any] = ["currency":"CHF"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
             }
-            let gbpOption = UIAlertAction(title: "GBP £", style: .default) { (action) in
+            /*let gbpOption = UIAlertAction(title: "GBP £", style: .default) { (action) in
                 let notificationDict:[String: Any] = ["currency":"£"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
-            }
+            }*/
             let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
             actionSheet.addAction(eurOption)
-            actionSheet.addAction(usdOption)
+            //actionSheet.addAction(usdOption)
             actionSheet.addAction(chfOption)
-            actionSheet.addAction(gbpOption)
+            //actionSheet.addAction(gbpOption)
             actionSheet.addAction(cancelAction)
             present(actionSheet, animated: true, completion: nil)
         }

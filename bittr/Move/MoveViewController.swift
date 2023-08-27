@@ -21,6 +21,7 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var btcEuro: UILabel!
     @IBOutlet weak var btclnBalance: UILabel!
     @IBOutlet weak var btclnEuro: UILabel!
+    @IBOutlet weak var conversionLabel: UILabel!
     
     @IBOutlet weak var receiveButton: UIButton!
     @IBOutlet weak var sendButton: UIButton!
@@ -32,6 +33,8 @@ class MoveViewController: UIViewController {
     
     var fetchedBtcBalance:CGFloat = 0.0
     var fetchedBtclnBalance:CGFloat = 0.0
+    var eurValue:CGFloat = 0.0
+    var chfValue:CGFloat = 0.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,9 +51,33 @@ class MoveViewController: UIViewController {
         btcSlider.minimumValue = 0
         btcSlider.value = Float(fetchedBtcBalance)
         
-        btcBalance.text = String(fetchedBtcBalance.rounded() * 0.00000001)
-        btclnBalance.text = String(fetchedBtclnBalance.rounded() * 0.00000001)
-        balanceLabel.text = String((fetchedBtcBalance.rounded()+fetchedBtclnBalance.rounded()) * 0.00000001) + " btc"
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        
+        
+        var fetchedBtcString = "\(fetchedBtcBalance.rounded() * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
+        var fetchedBtclnString = "\(fetchedBtclnBalance.rounded() * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
+        var fetchedTotalString = "\((fetchedBtcBalance.rounded()+fetchedBtclnBalance.rounded()) * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
+        
+        
+        
+        btcBalance.text = "\(numberFormatter.number(from: fetchedBtcString)!.decimalValue as NSNumber)"
+        btclnBalance.text = "\(numberFormatter.number(from: fetchedBtclnString)!.decimalValue as NSNumber)"
+        balanceLabel.text = "\(numberFormatter.number(from: fetchedTotalString)!.decimalValue as NSNumber) btc"
+        
+        var correctBtcBalance = fetchedBtcBalance * 0.00000001
+        var correctValue:CGFloat = self.eurValue
+        var currencySymbol = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            correctValue = self.chfValue
+            currencySymbol = "CHF"
+        }
+        var balanceValue = String(Int((correctBtcBalance*correctValue).rounded()))
+        conversionLabel.text = currencySymbol + " " + balanceValue
+        btcEuro.text = currencySymbol + " " + balanceValue
+        btclnEuro.text = currencySymbol + " " + "0"
+        print(currencySymbol + " " + balanceValue)
+        
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -59,10 +86,22 @@ class MoveViewController: UIViewController {
     
     @IBAction func sliderValueHasChanged(_ sender: UISlider) {
         
-        btcBalance.text = String("\(sender.value.rounded() * 0.00000001)")
-        btclnBalance.text = String("\((btcSlider.maximumValue - sender.value.rounded()) * 0.00000001)")
-        //btcEuro.text = String("€ \(Int(((sender.value/btcSlider.maximumValue) * 2625).rounded()))")
-        //btclnEuro.text = String("€ \(Int(((1-(sender.value/btcSlider.maximumValue)) * 2625).rounded()))")
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        btcBalance.text = "\(numberFormatter.number(from: "\(sender.value.rounded() * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+        btclnBalance.text = "\(numberFormatter.number(from: "\((btcSlider.maximumValue - sender.value.rounded()) * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+        
+        var correctValue:CGFloat = self.eurValue
+        var currencySymbol = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            correctValue = self.chfValue
+            currencySymbol = "CHF"
+        }
+        var eurBalanceValue = String(Int(((CGFloat(sender.value.rounded()/btcSlider.maximumValue.rounded()))*(fetchedBtcBalance+fetchedBtclnBalance)*0.00000001*correctValue).rounded()))
+        var eurLnBalanceValue = String(Int(((1-(CGFloat(sender.value.rounded()/btcSlider.maximumValue.rounded())))*(fetchedBtcBalance+fetchedBtclnBalance)*0.00000001*correctValue).rounded()))
+        
+        btcEuro.text = currencySymbol + " " + eurBalanceValue
+        btclnEuro.text = currencySymbol + " " + eurLnBalanceValue
         
         self.presetAmount = (Double(totalStatus - Float(fetchedBtcBalance)) - Double(totalStatus - sender.value.rounded())) * 0.00000001
         if self.presetAmount ?? 0 < 0 {

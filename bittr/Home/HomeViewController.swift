@@ -54,6 +54,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var btcBalance:CGFloat = 0.0
     var balanceWasFetched = false
+    var eurValue:CGFloat = 0.0
+    var chfValue:CGFloat = 0.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -88,6 +90,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setTotalSats), name: NSNotification.Name(rawValue: "settotalsats"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
     }
     
     @objc func loadWalletData() {
@@ -148,9 +151,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     do {
                         let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                         balanceLabel.attributedText = attributedText
-                        balanceSpinner.stopAnimating()
                         balanceLabel.alpha = 1
-                        conversionLabel.alpha = 1
+                        
+                        self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)/100000000)
                         
                     } catch let e as NSError {
                         print("Couldn't fetch text: \(e.localizedDescription)")
@@ -159,6 +162,91 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
     }
+    
+    
+    func setConversion(btcValue:CGFloat) {
+        
+        var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data else {
+                print(String(describing: error))
+                return
+            }
+            
+            //print(String(data: data, encoding: .utf8)!)
+            
+            var dataDictionary:NSDictionary?
+            if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                do {
+                    dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                    if let actualDataDict = dataDictionary {
+                        if var actualEurValue = actualDataDict["btc_eur"] as? String, var actualChfValue = actualDataDict["btc_chf"] as? String {
+                            
+                            if actualEurValue.contains("."), Locale.current.decimalSeparator == "," {
+                                actualEurValue = actualEurValue.replacingOccurrences(of: ".", with: ",")
+                                actualChfValue = actualChfValue.replacingOccurrences(of: ".", with: ",")
+                            } else if actualEurValue.contains(","), Locale.current.decimalSeparator == "." {
+                                actualEurValue = actualEurValue.replacingOccurrences(of: ",", with: ".")
+                                actualChfValue = actualChfValue.replacingOccurrences(of: ",", with: ".")
+                            }
+                            
+                            self.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
+                            self.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
+                            
+                            var correctValue:CGFloat = self.eurValue
+                            var currencySymbol = "€"
+                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                                correctValue = self.chfValue
+                                currencySymbol = "CHF"
+                            }
+                            
+                            var balanceValue = String(Int((btcValue*correctValue).rounded()))
+                            
+                            switch balanceValue.count {
+                            case 0..<4:
+                                balanceValue = balanceValue
+                            case 4:
+                                balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+                            case 5:
+                                balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+                            case 6:
+                                balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+                            case 7:
+                                balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+                            case 8:
+                                balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+                            case 9:
+                                balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+                            default:
+                                balanceValue = balanceValue
+                            }
+                            
+                            DispatchQueue.main.async {
+                                self.conversionLabel.text = currencySymbol + " " + balanceValue
+                                self.balanceSpinner.stopAnimating()
+                                self.conversionLabel.alpha = 1
+                                print(currencySymbol + " " + balanceValue)
+                            }
+                        }
+                    }
+                } catch let error as NSError {
+                    print(error)
+                }
+            }
+        }
+        task.resume()
+    }
+    
+    
+    @objc func changeCurrency(notification:NSNotification) {
+        
+        self.conversionLabel.alpha = 0
+        self.balanceSpinner.startAnimating()
+        
+        self.setConversion(btcValue: self.btcBalance/100000000)
+    }
+    
     
     @objc func updateAllImages(notification:NSNotification) {
         
@@ -300,6 +388,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let moveVC = segue.destination as? MoveViewController
             if let actualMoveVC = moveVC {
                 actualMoveVC.fetchedBtcBalance = self.btcBalance
+                actualMoveVC.eurValue = self.eurValue
+                actualMoveVC.chfValue = self.chfValue
             }
         }
     }

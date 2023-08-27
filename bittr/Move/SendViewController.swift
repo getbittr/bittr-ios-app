@@ -80,13 +80,15 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         amountTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
-        self.availableAmount.text = "Send all: " + String(self.btcAmount)
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
         
         if let actualPresetAmount = presetAmount {
             
             self.fromLabel.text = "My BTCLN wallet"
             self.toTextField.text = "My BTC wallet"
-            self.availableAmount.text = "Send all: " + String(self.btclnAmount)
+            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btclnAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
             self.clipboardWidth.constant = 0
             self.toTextFieldTrailing.constant = 0
             self.amountTextField.text = String(actualPresetAmount)
@@ -131,11 +133,14 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func fromButtonTapped(_ sender: UIButton) {
         
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         let btcOption = UIAlertAction(title: "My BTC wallet", style: .default) { (action) in
             self.fromLabel.text = "My BTC wallet"
             self.toTextField.text = ""
-            self.availableAmount.text = "Send all: " + String(self.btcAmount)
+            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)")!.decimalValue as NSNumber)"
             self.clipboardWidth.constant = 20
             self.toTextFieldTrailing.constant = -10
         }
@@ -149,7 +154,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
             
             /*self.fromLabel.text = "My BTCLN wallet"
             self.toTextField.text = "My BTC wallet"
-            self.availableAmount.text = "Send all: " + String(self.btclnAmount)
+            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btclnAmount)")!.decimalValue as NSNumber)"
             self.clipboardWidth.constant = 0
             self.toTextFieldTrailing.constant = 0*/
         }
@@ -185,10 +190,12 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
         
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
         if self.fromLabel.text == "My BTC wallet" {
-            self.amountTextField.text = String(self.btcAmount)
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btcAmount)")!.decimalValue as NSNumber)"
         } else {
-            self.amountTextField.text = String(self.btclnAmount)
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btclnAmount)")!.decimalValue as NSNumber)"
         }
     }
     

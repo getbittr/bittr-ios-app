@@ -437,7 +437,7 @@
                                             <nil key="highlightedColor"/>
                                         </label>
                                         <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="ceh-Lb-MfG">
-                                            <rect key="frame" x="186.66666666666666" y="161" width="20" height="20"/>
+                                            <rect key="frame" x="186.66666666666666" y="180" width="20" height="20"/>
                                             <color key="color" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         </activityIndicatorView>
                                         <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="252" verticalCompressionResistancePriority="751" text="€ 0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="hC6-So-bRq" userLabel="Conversion Label">
@@ -852,7 +852,7 @@
                                         <constraint firstItem="Py3-h9-1Kx" firstAttribute="leading" secondItem="jlW-33-8oJ" secondAttribute="leading" constant="20" id="IJE-D3-Zdg"/>
                                         <constraint firstItem="PVp-WC-UZG" firstAttribute="top" secondItem="6Vb-bn-Bmy" secondAttribute="bottom" id="N0B-cN-rRK"/>
                                         <constraint firstItem="PVp-WC-UZG" firstAttribute="top" secondItem="akB-PQ-Eft" secondAttribute="bottom" constant="30" id="NpI-Wg-kRV"/>
-                                        <constraint firstItem="ceh-Lb-MfG" firstAttribute="centerY" secondItem="3jF-mW-421" secondAttribute="centerY" constant="20" id="OQi-WZ-diT"/>
+                                        <constraint firstItem="ceh-Lb-MfG" firstAttribute="centerY" secondItem="hC6-So-bRq" secondAttribute="centerY" id="OQi-WZ-diT"/>
                                         <constraint firstItem="3jF-mW-421" firstAttribute="top" secondItem="2mQ-tw-975" secondAttribute="bottom" constant="15" id="PBD-N7-pqY"/>
                                         <constraint firstItem="hC6-So-bRq" firstAttribute="leading" secondItem="jlW-33-8oJ" secondAttribute="leading" constant="50" id="Pyp-G6-9HS"/>
                                         <constraint firstItem="xlo-m2-M9A" firstAttribute="centerX" secondItem="jlW-33-8oJ" secondAttribute="centerX" id="ROF-xH-KTv"/>
@@ -2522,6 +2522,7 @@
                         <outlet property="btcSlider" destination="mex-9B-cJE" id="mMg-bd-8T6"/>
                         <outlet property="btclnBalance" destination="WO1-40-yFz" id="yFQ-qo-2VX"/>
                         <outlet property="btclnEuro" destination="Njp-Cu-NcC" id="gqE-Oh-leL"/>
+                        <outlet property="conversionLabel" destination="Z8s-Tq-bcC" id="hUs-Dj-mYY"/>
                         <outlet property="downButton" destination="kw6-8V-6GB" id="WTn-2k-UXB"/>
                         <outlet property="headerView" destination="sck-MY-2sN" id="JhR-RE-ZZd"/>
                         <outlet property="leftCard" destination="FS4-tw-Dmi" id="Fmk-j0-0rQ"/>
@@ -4361,7 +4362,7 @@
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="D6f-hH-Ghz"/>
                                                                         <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="HYA-Rl-4KN"/>
                                                                     </constraints>
-                                                                    <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="21"/>
+                                                                    <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
                                                                     <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>

@@ -57,7 +57,7 @@ class CoreViewController: UIViewController {
         super.viewDidLoad()
         
         // FOR TESTING:
-        CacheManager.deleteClientInfo()
+        //CacheManager.deleteClientInfo()
         //keychain.synchronizable = true
         //keychain.delete("")
         
