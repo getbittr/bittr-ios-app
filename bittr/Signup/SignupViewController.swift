@@ -32,6 +32,12 @@ class SignupViewController: UIViewController {
                 case "restore":
                     leadingConstant = 0
                     currentPage = -1
+                case "-3":
+                    leadingConstant = 2 * viewWidth
+                    currentPage = -2
+                case "-4":
+                    leadingConstant = 3 * viewWidth
+                    currentPage = -3
                 case "-1":
                     leadingConstant = viewWidth
                     currentPage = 1

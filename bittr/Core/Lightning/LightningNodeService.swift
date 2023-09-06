@@ -125,5 +125,10 @@ class LightningNodeService {
         return signedMessage
     }
     
+    func listPayments() -> [PaymentDetails] {
+        let payments = ldkNode.listPayments()
+        return payments
+    }
+    
 }
 

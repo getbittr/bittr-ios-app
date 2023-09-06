@@ -220,7 +220,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             }
         }*/
         
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
         
         self.restoreButtonSpinner.stopAnimating()
         self.restoreButtonText.alpha = 1

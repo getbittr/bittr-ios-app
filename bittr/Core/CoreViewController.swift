@@ -44,9 +44,11 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var middleWhite: UIView!
     @IBOutlet weak var rightWhite: UIView!
     
+    @IBOutlet weak var pinContainerView: UIView!
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
     @IBOutlet weak var blackSignupBackground: UIView!
+    @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
     let keychain = KeychainSwift()
     
@@ -79,11 +81,12 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         
         keychain.synchronizable = true
-        if let storedMnemonic = keychain.get("") {
-            // Wallet exists.
-            startLightning()
+        if let storedMnemonic = keychain.get("pin") {
+            // Wallet exists. Launch pin.
             signupAlpha = 0
             blackSignupAlpha = 0
+        } else {
+            // No wallet exists yet. Go through signup.
         }
     }
     
@@ -108,6 +111,7 @@ class CoreViewController: UIViewController {
             
             keychain.synchronizable = true
             keychain.delete("")
+            keychain.delete("pin")
             
             do {
                 try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
@@ -127,9 +131,41 @@ class CoreViewController: UIViewController {
                 NSLayoutConstraint.activate([self.signupBottom])
                 self.blackSignupBackground.alpha = 1
                 self.view.layoutIfNeeded()
+            } completion: { finished in
+                
+                self.pinContainerView.alpha = 0
             }
         } catch let error as NodeError {
             print(error.localizedDescription)
+            
+            // LDKNode wasn't active yet.
+            keychain.synchronizable = true
+            keychain.delete("")
+            keychain.delete("pin")
+            
+            do {
+                try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
+            } catch {
+                print(error.localizedDescription)
+            }
+            
+            let notificationDict:[String: Any] = ["page":"restore"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            
+            self.signupContainerView.alpha = 1
+            
+            UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
+                
+                NSLayoutConstraint.deactivate([self.signupBottom])
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom])
+                self.blackSignupBackground.alpha = 1
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                
+                self.pinContainerView.alpha = 0
+            }
+            
         } catch {
             print(error.localizedDescription)
         }
@@ -181,9 +217,10 @@ class CoreViewController: UIViewController {
                         NSLayoutConstraint.activate([self.logoViewTop])
                         self.signupContainerView.alpha = self.signupAlpha
                         if self.signupAlpha == 0 {
-                            self.homeContainerView.alpha = 1
-                            self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
-                            self.menuBarView.alpha = 1
+                            self.pinContainerView.alpha = 1
+                            //self.homeContainerView.alpha = 1
+                            //self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
+                            //self.menuBarView.alpha = 1
                         }
                         self.view.layoutIfNeeded()
                     } completion: { finished in
@@ -204,7 +241,7 @@ class CoreViewController: UIViewController {
                             self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
                             self.homeContainerView.alpha = 1
                             self.menuBarView.alpha = 1
-                            self.blackSignupBackground.alpha = self.blackSignupAlpha
+                            self.blackSignupBackground.alpha = 1
                             
                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
                         }
@@ -269,9 +306,31 @@ class CoreViewController: UIViewController {
         if segue.identifier == "CoreToSettings" {
             let settingsVC = segue.destination as? SettingsViewController
             if let actualSettingsVC = settingsVC {
-                
                 actualSettingsVC.coreVC = self
             }
+        } else if segue.identifier == "CoreToPin" {
+            let pinVC = segue.destination as? PinViewController
+            if let actualPinVC = pinVC {
+                actualPinVC.coreVC = self
+            }
+        }
+    }
+    
+    func correctPin() {
+        
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "fixgraph"), object: nil, userInfo: nil) as Notification)
+        
+        startLightning()
+        
+        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
+            
+            NSLayoutConstraint.deactivate([self.pinBottom])
+            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.pinBottom])
+            self.blackSignupBackground.alpha = 0
+            self.view.layoutIfNeeded()
+        } completion: { finished in
+            self.pinContainerView.alpha = 0
         }
     }
     

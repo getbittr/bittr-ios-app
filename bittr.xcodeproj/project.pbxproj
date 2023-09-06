@@ -11,6 +11,9 @@
 		050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB02A1BBB9600563F29 /* SignupViewController.swift */; };
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
+		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
+		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
+		051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */; };
 		052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
@@ -95,6 +98,9 @@
 		050B4BB02A1BBB9600563F29 /* SignupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupViewController.swift; sourceTree = "<group>"; };
 		050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup1ViewController.swift; sourceTree = "<group>"; };
 		050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup2ViewController.swift; sourceTree = "<group>"; };
+		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
+		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
+		051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore3ViewController.swift; sourceTree = "<group>"; };
 		052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollectionViewCell.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
@@ -202,6 +208,8 @@
 				05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */,
 				05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */,
 				05E743502A3581F9007755A2 /* RestoreViewController.swift */,
+				051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */,
+				051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */,
 			);
 			path = Signup;
 			sourceTree = "<group>";
@@ -224,6 +232,7 @@
 				05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */,
 				053190E529FEE4DE0072CE76 /* ProfitViewController.swift */,
 				053190EB29FEE5190072CE76 /* TransactionViewController.swift */,
+				051D778E2A9DEAC8002107C0 /* PinViewController.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -508,6 +517,7 @@
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
+				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
 				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
@@ -518,6 +528,7 @@
 				05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
+				051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */,
 				05F8DC5B29F2B45F008052B5 /* InfoViewController.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
@@ -539,6 +550,7 @@
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,
+				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,
 				05980B542A46F7E4001F312F /* Client.swift in Sources */,
 				05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */,
 				053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */,
@@ -724,7 +736,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -759,7 +771,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;

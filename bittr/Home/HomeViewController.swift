@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import LDKNode
+import BitcoinDevKit
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
@@ -39,6 +41,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var graphViewHeight: NSLayoutConstraint!
     
     var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
+    var fetchedTransactions = [[String:String]]()
     
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0 sats</span></center>"
     
@@ -227,6 +230,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 self.balanceSpinner.stopAnimating()
                                 self.conversionLabel.alpha = 1
                                 print(currencySymbol + " " + balanceValue)
+                                
+                                self.getTransactions()
                             }
                         }
                     }
@@ -236,6 +241,26 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         task.resume()
+    }
+    
+    
+    func getTransactions() {
+        
+        let paymentDetails = LightningNodeService.shared.listPayments()
+        
+        //BitcoinDevKit.Wallet.listTransactions(Wallet)
+        
+        /*let db = DatabaseConfig.memory
+        do {
+            
+            
+            let descriptorSecretKey = BitcoinDevKit.DescriptorSecretKey(network: .testnet, mnemonic: try! BitcoinDevKit.Mnemonic.fromString(mnemonic: "worry nation success gaze bird shine turtle fiscal shrug echo claw two"), password: nil)
+            
+            //try Descriptor.init(descriptor: T##String, network: T##Network)
+            
+        } catch let error {
+            print(error.localizedDescription)
+        }*/
     }
     
     

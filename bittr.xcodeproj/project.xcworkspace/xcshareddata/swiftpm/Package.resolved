@@ -33,7 +33,7 @@
       "location" : "https://github.com/lightningdevkit/ldk-node",
       "state" : {
         "branch" : "main",
-        "revision" : "77acd3b49366c95fc6e13caaa910cf640b55dbd2"
+        "revision" : "a9bb2e9c5b9892213b244bc2fb474a5fe0c76802"
       }
     }
   ],
