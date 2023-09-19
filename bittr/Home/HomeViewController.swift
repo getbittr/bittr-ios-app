@@ -40,7 +40,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var fiveYearsButton: UIButton!
     @IBOutlet weak var graphViewHeight: NSLayoutConstraint!
     
+    @IBOutlet weak var tableSpinner: UIActivityIndicatorView!
+    
     var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
+    var setTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0 sats</span></center>"
@@ -59,6 +62,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var balanceWasFetched = false
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
+    
+    var tappedTransaction = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -96,10 +101,33 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
     }
     
-    @objc func loadWalletData() {
+    @objc func loadWalletData(notification:NSNotification) {
         let bitcoinViewModel = BitcoinViewModel()
         Task {
             await bitcoinViewModel.getTotalOnchainBalanceSats()
+        }
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
+                print("Received: \(receivedTransactions)")
+                
+                for eachTransaction in receivedTransactions {
+                    
+                    let thisTransaction = Transaction()
+                    thisTransaction.id = eachTransaction.txid
+                    thisTransaction.fee = Int(eachTransaction.fee!)
+                    thisTransaction.received = Int(eachTransaction.received)
+                    thisTransaction.sent = Int(eachTransaction.sent)
+                    thisTransaction.height = Int(eachTransaction.confirmationTime!.height)
+                    thisTransaction.timestamp = Int(eachTransaction.confirmationTime!.timestamp)
+                    
+                    setTransactions += [thisTransaction]
+                }
+                
+                setTransactions.sort { transaction1, transaction2 in
+                    transaction1.timestamp > transaction2.timestamp
+                }
+            }
         }
     }
     
@@ -231,7 +259,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 self.conversionLabel.alpha = 1
                                 print(currencySymbol + " " + balanceValue)
                                 
-                                self.getTransactions()
+                                self.homeTableView.reloadData()
+                                self.tableSpinner.stopAnimating()
+                                
+                                //self.getTransactions()
                             }
                         }
                     }
@@ -244,7 +275,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
-    func getTransactions() {
+    /*func getTransactions() {
         
         let paymentDetails = LightningNodeService.shared.listPayments()
         
@@ -261,7 +292,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } catch let error {
             print(error.localizedDescription)
         }*/
-    }
+    }*/
     
     
     @objc func changeCurrency(notification:NSNotification) {
@@ -353,10 +384,48 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if let actualCell = cell {
             
-            actualCell.dayLabel.text = self.transactions[indexPath.row]["day"]
-            actualCell.satsLabel.text = "+ \(self.transactions[indexPath.row]["amount"] ?? "?") sats"
-            actualCell.eurosLabel.text = "+ \(self.transactions[indexPath.row]["euros"] ?? "?") €"
-            actualCell.gainLabel.text = self.transactions[indexPath.row]["gain"]
+            let thisTransaction = self.setTransactions[indexPath.row]
+            
+            // Set date.
+            let transactionDate = Date(timeIntervalSince1970: Double(thisTransaction.timestamp))
+            let dateFormatter = DateFormatter()
+            dateFormatter.timeZone = TimeZone.current
+            dateFormatter.dateFormat = "MMM dd"
+            let transactionDateString = dateFormatter.string(from: transactionDate)
+            
+            actualCell.dayLabel.text = transactionDateString
+            
+            // Set sats.
+            if thisTransaction.received != 0 {
+                actualCell.satsLabel.text = "+ \(addSpacesToString(balanceValue: String(thisTransaction.received))) sats"
+            } else {
+                actualCell.satsLabel.text = "- \(addSpacesToString(balanceValue: String(thisTransaction.sent))) sats"
+            }
+            
+            // Set conversion
+            var correctValue:CGFloat = self.eurValue
+            var currencySymbol = "€"
+            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                correctValue = self.chfValue
+                currencySymbol = "CHF"
+            }
+            var plusSymbol = "+"
+            var transactionValue = CGFloat(thisTransaction.received)/100000000
+            if thisTransaction.sent != 0 {
+                transactionValue = CGFloat(thisTransaction.sent)/100000000
+                plusSymbol = "-"
+            }
+            
+            var balanceValue = String(Int((transactionValue*correctValue).rounded()))
+            balanceValue = addSpacesToString(balanceValue: balanceValue)
+            
+            actualCell.eurosLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
+            
+            // Set gain label
+            actualCell.gainLabel.text = ""
+            
+            // Set button
+            actualCell.transactionButton.tag = indexPath.row
             
             actualCell.layer.zPosition = CGFloat(indexPath.row)
             
@@ -366,9 +435,33 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         return UITableViewCell()
     }
     
+    func addSpacesToString(balanceValue:String) -> String {
+        
+        var balanceValue = balanceValue
+        
+        switch balanceValue.count {
+        case 4:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+        case 5:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+        case 6:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+        case 7:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+        case 8:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+        case 9:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+        default:
+            balanceValue = balanceValue[0..<balanceValue.count]
+        }
+        
+        return balanceValue
+    }
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        return self.transactions.count
+        return self.setTransactions.count
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -391,6 +484,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func transactionButtonTapped(_ sender: UIButton) {
+        
+        self.tappedTransaction = sender.tag
+        
         performSegue(withIdentifier: "HomeToTransaction", sender: self)
     }
     
@@ -415,6 +511,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualMoveVC.fetchedBtcBalance = self.btcBalance
                 actualMoveVC.eurValue = self.eurValue
                 actualMoveVC.chfValue = self.chfValue
+            }
+        } else if segue.identifier == "HomeToTransaction" {
+            let transactionVC = segue.destination as? TransactionViewController
+            if let actualTransactionVC = transactionVC {
+                actualTransactionVC.tappedTransaction = self.setTransactions[self.tappedTransaction]
+                actualTransactionVC.eurValue = self.eurValue
+                actualTransactionVC.chfValue = self.chfValue
             }
         }
     }

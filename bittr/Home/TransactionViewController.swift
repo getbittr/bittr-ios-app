@@ -21,6 +21,19 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var nowView: UIView!
     @IBOutlet weak var profitView: UIView!
     
+    // Labels
+    @IBOutlet weak var dateLabel: UILabel!
+    @IBOutlet weak var amountLabel: UILabel!
+    @IBOutlet weak var toLabel: UILabel!
+    @IBOutlet weak var idLabel: UILabel!
+    @IBOutlet weak var valueThenLabel: UILabel!
+    @IBOutlet weak var valueNowLabel: UILabel!
+    @IBOutlet weak var profitLabel: UILabel!
+    
+    var tappedTransaction = Transaction()
+    var eurValue = 0.0
+    var chfValue = 0.0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -35,6 +48,43 @@ class TransactionViewController: UIViewController {
         thenView.layer.cornerRadius = 7
         nowView.layer.cornerRadius = 7
         profitView.layer.cornerRadius = 7
+        
+        
+        let transactionDate = Date(timeIntervalSince1970: Double(tappedTransaction.timestamp))
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current
+        dateFormatter.dateFormat = "dd MMM yyyy HH:mm"
+        let transactionDateString = dateFormatter.string(from: transactionDate)
+        
+        dateLabel.text = transactionDateString
+        
+        
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        
+        if tappedTransaction.received != 0 {
+            amountLabel.text = "+ \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.received)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
+        } else {
+            amountLabel.text = "- \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
+        }
+        
+        idLabel.text = tappedTransaction.id
+        
+        var correctValue:CGFloat = self.eurValue
+        var currencySymbol = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            correctValue = self.chfValue
+            currencySymbol = "CHF"
+        }
+        var plusSymbol = "+"
+        var transactionValue = CGFloat(tappedTransaction.received)/100000000
+        if tappedTransaction.sent != 0 {
+            transactionValue = CGFloat(tappedTransaction.sent)/100000000
+            plusSymbol = "-"
+        }
+        var balanceValue = String(Int((transactionValue*correctValue).rounded()))
+        
+        self.valueNowLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
