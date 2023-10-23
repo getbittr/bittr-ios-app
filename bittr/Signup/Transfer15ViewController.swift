@@ -465,82 +465,94 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
     func createBittrAccount(receivedAddress:String, receivedSignature:String, message:String, page:String, iban:IbanEntity) {
         
-        let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":receivedAddress/*, "xpub_key":"", "xpub_addr_type":"", "xpub_path":""*/, "initial_address_type":"simple", "category":"ledger", "bitcoin_message":message, "bitcoin_signature":receivedSignature, "iban":iban.yourIbanNumber/*, "id":"", "planned_volume":"", "planned_volume_frequency":""*/] as [String:Any]
-        
-        do {
-            let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
-            
-            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/customer")!,timeoutInterval: Double.infinity)
-            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpMethod = "POST"
-            request.httpBody = postData
-            
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data else {
-                    print(String(describing: error))
-                    let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                    self.present(alert, animated: true)
-                    return
-                }
+        let lightningPubKey = LightningNodeService(network: .testnet).nodeId()
+        Task {
+            do {
+                let lightningSignature = try await LightningNodeService(network: .testnet).signMessage(message: message)
+                print("Fetched signature: " + lightningSignature)
                 
-                print(String(data: data, encoding: .utf8)!)
+                let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":receivedAddress/*, "xpub_key":"", "xpub_addr_type":"", "xpub_path":""*/, "initial_address_type":"simple", "category":"ledger", "bitcoin_message":message, "bitcoin_signature":/*receivedSignature*/"Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=", "iban":iban.yourIbanNumber/*, "id":"", "planned_volume":"", "planned_volume_frequency":""*/, "lightning_pubkey":lightningPubKey, "lightning_signature":lightningSignature] as [String:Any]
                 
-                var dataDictionary:NSDictionary?
-                if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                    do {
-                        dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                        if let actualDataDict = dataDictionary {
-                            if let actualDataItems = actualDataDict["data"] as? NSDictionary {
-                                let dataOurIban = actualDataItems["iban"]
-                                let dataCode = actualDataItems["deposit_code"]
-                                let dataSwift = actualDataItems["swift"]
-                                if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
-                                    CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
-                                    DispatchQueue.main.async {
-                                        
-                                        self.nextButtonActivityIndicator.stopAnimating()
-                                        self.nextButtonLabel.alpha = 1
-                                        let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
-                                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                do {
+                    let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
+                    
+                    var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/customer")!,timeoutInterval: Double.infinity)
+                    request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.httpMethod = "POST"
+                    request.httpBody = postData
+                    
+                    let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                        guard let data = data else {
+                            print(String(describing: error))
+                            let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
+                            return
+                        }
+                        
+                        print(String(data: data, encoding: .utf8)!)
+                        
+                        var dataDictionary:NSDictionary?
+                        if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                            do {
+                                dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                                if let actualDataDict = dataDictionary {
+                                    if let actualDataItems = actualDataDict["data"] as? NSDictionary {
+                                        let dataOurIban = actualDataItems["iban"]
+                                        let dataCode = actualDataItems["deposit_code"]
+                                        let dataSwift = actualDataItems["swift"]
+                                        if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
+                                            CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                            DispatchQueue.main.async {
+                                                
+                                                self.nextButtonActivityIndicator.stopAnimating()
+                                                self.nextButtonLabel.alpha = 1
+                                                let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
+                                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                            }
+                                        }
+                                    } else if let actualApiMessage = actualDataDict["message"] as? String {
+                                        // Some message has been received.
+                                        DispatchQueue.main.async {
+                                            if actualApiMessage == "Unable to create customer account (invalid iban)" {
+                                                self.nextButtonActivityIndicator.stopAnimating()
+                                                self.nextButtonLabel.alpha = 1
+                                                self.codeTextField.text = nil
+                                                let alert = UIAlertController(title: "Oops!", message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
+                                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                                                    let notificationDict:[String: Any] = ["page":"6"]
+                                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                                }))
+                                                self.present(alert, animated: true)
+                                            } else {
+                                                self.nextButtonActivityIndicator.stopAnimating()
+                                                self.nextButtonLabel.alpha = 1
+                                                self.codeTextField.text = nil
+                                                let alert = UIAlertController(title: "Oops!", message: "Something went wrong. (\(actualApiMessage).) Please try again later.", preferredStyle: .alert)
+                                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                                                    let notificationDict:[String: Any] = ["page":"6"]
+                                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                                }))
+                                                self.present(alert, animated: true)
+                                            }
+                                        }
                                     }
                                 }
-                            } else if let actualApiMessage = actualDataDict["message"] as? String {
-                                // Some message has been received.
-                                DispatchQueue.main.async {
-                                    if actualApiMessage == "Unable to create customer account (invalid iban)" {
-                                        self.nextButtonActivityIndicator.stopAnimating()
-                                        self.nextButtonLabel.alpha = 1
-                                        self.codeTextField.text = nil
-                                        let alert = UIAlertController(title: "Oops!", message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
-                                            let notificationDict:[String: Any] = ["page":"6"]
-                                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                        }))
-                                        self.present(alert, animated: true)
-                                    } else {
-                                        self.nextButtonActivityIndicator.stopAnimating()
-                                        self.nextButtonLabel.alpha = 1
-                                        self.codeTextField.text = nil
-                                        let alert = UIAlertController(title: "Oops!", message: "Something went wrong. (\(actualApiMessage).) Please try again later.", preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
-                                            let notificationDict:[String: Any] = ["page":"6"]
-                                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                        }))
-                                        self.present(alert, animated: true)
-                                    }
-                                }
+                            } catch let error as NSError {
+                                print(error)
                             }
                         }
-                    } catch let error as NSError {
-                        print(error)
                     }
+                    task.resume()
+                } catch let error as NSError {
+                    print(error)
                 }
+            } catch let error as NSError {
+                print(error)
             }
-            task.resume()
-        } catch let error as NSError {
-            print(error)
         }
+        
+        
     }
     
     

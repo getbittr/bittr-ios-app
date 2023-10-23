@@ -162,6 +162,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                             self.currentIbanID = newIbanEntity.id
                         }
                     }
+                } else if self.currentClientID == "", clients.count == 1 {
+                    self.currentClientID = clients[0].id
+                    self.currentIbanID = clients[0].ibanEntities[0].id
+                    clients[0].ibanEntities[0].yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
+                    clients[0].ibanEntities[0].yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+                    CacheManager.addIban(clientID: self.currentClientID, iban: clients[0].ibanEntities[0])
                 }
             } else {
                 // No clients exist yet in cache.

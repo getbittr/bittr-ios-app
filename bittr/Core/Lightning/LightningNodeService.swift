@@ -9,6 +9,7 @@ import Foundation
 import LDKNode
 import BitcoinDevKit
 import KeychainSwift
+import bdkFFI
 
 class LightningNodeService {
     private let ldkNode: LdkNode
@@ -16,6 +17,7 @@ class LightningNodeService {
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
     
+    //private let setWallet:Wallet?
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -151,6 +153,20 @@ class LightningNodeService {
         
         self.ldkNode = ldkNode
         
+        
+        
+        //let listedChannels = self.ldkNode.listChannels()
+        
+        /*do {
+            try syncWallets()*/
+            
+            //let listedChannels = self.listChannels()
+            //let listedPayments = self.listPayments()
+            //let listedPeers = self.listPeers()
+        /*} catch {
+            print("Some error occurred 159. \(error.localizedDescription)")
+        }*/
+        
         var transactionsNotificationDict = [AnyHashable:Any]()
         if let actualTransactions = wallet_transactions {
             transactionsNotificationDict = ["transactions":actualTransactions]
@@ -160,6 +176,18 @@ class LightningNodeService {
     }
     
     
+    func getFees() {
+        
+        //self.ldkNode.sendToOnchainAddress(address: <#T##Address#>, amountMsat: <#T##UInt64#>)
+    }
+    
+    
+    func sendTo(address:String) {
+        
+        //var partiallySignedBitcoinTransaction = setWallet
+        //Wallet().sign(psbt: PartiallySignedTransaction, signOptions: <#T##SignOptions?#>)
+    }
+    
     
     func start() async throws {
         try ldkNode.start()
@@ -168,6 +196,11 @@ class LightningNodeService {
     
     func stop() throws {
         try ldkNode.stop()
+    }
+    
+    func nodeId() -> String {
+        let nodeID = ldkNode.nodeId()
+        return nodeID
     }
     
     func newFundingAddress() async throws -> String {
@@ -191,9 +224,23 @@ class LightningNodeService {
         return signedMessage
     }
     
+    func listPeers() -> [PeerDetails] {
+        let peers = ldkNode.listPeers()
+        return peers
+    }
+    
     func listPayments() -> [PaymentDetails] {
         let payments = ldkNode.listPayments()
         return payments
+    }
+    
+    func listChannels() -> [ChannelDetails] {
+        let channels = ldkNode.listChannels()
+        return channels
+    }
+    
+    func syncWallets() throws {
+        try ldkNode.syncWallets()
     }
     
 }

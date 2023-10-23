@@ -193,9 +193,9 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
         if self.fromLabel.text == "My BTC wallet" {
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btcAmount)")!.decimalValue as NSNumber)"
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
         } else {
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btclnAmount)")!.decimalValue as NSNumber)"
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btclnAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
         }
     }
     

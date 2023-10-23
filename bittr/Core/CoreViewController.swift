@@ -319,6 +319,7 @@ class CoreViewController: UIViewController {
     func correctPin() {
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "fixgraph"), object: nil, userInfo: nil) as Notification)
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setclient"), object: nil, userInfo: nil) as Notification)
         
         startLightning()
         
