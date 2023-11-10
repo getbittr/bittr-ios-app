@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LDKNode
 
 class SendViewController: UIViewController, UITextFieldDelegate {
 
@@ -51,6 +52,8 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     var btcAmount = 0.07255647
     var btclnAmount = 0.02266301
     var presetAmount:Double?
+    
+    var lightningNodeService:LightningNodeService?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -254,7 +257,19 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        self.dismiss(animated: true)
+        if let actualLightningNodeService = self.lightningNodeService {
+            do {
+                let transactionID = try actualLightningNodeService.sendToOnchainAddress(address: "tb1qw2c3lxufxqe2x9s4rdzh65tpf4d7fssjgh8nv6", amountMsat: 10)
+                print("Successful transaction.")
+                self.dismiss(animated: true)
+            } catch let error as NSError {
+                print("Some error occurred: \(error.localizedDescription)")
+                self.dismiss(animated: true)
+            }
+        } else {
+            print("LightningNodeService wasn't set.")
+            self.dismiss(animated: true)
+        }
     }
     
 }

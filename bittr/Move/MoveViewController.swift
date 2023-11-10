@@ -36,6 +36,8 @@ class MoveViewController: UIViewController {
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
+    var lightningNodeService:LightningNodeService?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -142,6 +144,9 @@ class MoveViewController: UIViewController {
                 actualSendVC.btclnAmount = fetchedBtclnBalance.rounded() * 0.00000001
                 if let actualPresetAmount = self.presetAmount {
                     actualSendVC.presetAmount = actualPresetAmount
+                }
+                if let actualLightningNodeService = self.lightningNodeService {
+                    actualSendVC.lightningNodeService = actualLightningNodeService
                 }
             }
         }

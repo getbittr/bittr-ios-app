@@ -17,6 +17,14 @@ class ProfitViewController: UIViewController {
     @IBOutlet weak var currentValueView: UIView!
     @IBOutlet weak var profitView: UIView!
     
+    var totalProfit = 0
+    var totalInvestments = 0
+    var totalValue = 0
+    
+    @IBOutlet weak var totalInvestmentLabel: UILabel!
+    @IBOutlet weak var totalValueLabel: UILabel!
+    @IBOutlet weak var totalProfitLabel: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -26,6 +34,17 @@ class ProfitViewController: UIViewController {
         divestedView.layer.cornerRadius = 13
         currentValueView.layer.cornerRadius = 13
         profitView.layer.cornerRadius = 13
+        
+        var currencySymbol = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            currencySymbol = "CHF"
+        }
+        
+        self.totalInvestmentLabel.text = "\(currencySymbol) \(self.totalInvestments)"
+        self.totalValueLabel.text = "\(currencySymbol) \(self.totalValue)"
+        self.totalProfitLabel.text = "\(currencySymbol) \(self.totalProfit)"
+        
+        
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {

@@ -16,4 +16,6 @@ class Transaction: NSObject {
     var height = 0
     var timestamp = 0
     var isBittr = false
+    var purchaseAmount = 0
+    var currency = "EUR"
 }

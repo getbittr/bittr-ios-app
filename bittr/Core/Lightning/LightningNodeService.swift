@@ -82,38 +82,30 @@ class LightningNodeService {
             
             // Attempt to create a mnemonic object from the provided mnemonic string.
             let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: mnemonicString)
-            print("Success 81")
             
             // Create a BIP32 extended root key using the mnemonic and a nil password
             let bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
-            print("Success 85")
             
             // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
             let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
-            print("Success 90")
             
             // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
             let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
-            print("Success 93")
             
             // Set up the local SQLite database for the Bitcoin wallet using the provided file path
             let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
             let config = SqliteDbConfiguration(path: dbPath.path)
-            print("Success 98")
             
             // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
             let wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
-            print("Success 102")
             
             // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
             let electrum = ElectrumConfig(url: "ssl://electrum.blockstream.info:60002", socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
             let blockchainConfig = BlockchainConfig.electrum(config: electrum)
             let blockchain = try Blockchain(config: blockchainConfig)
-            print("Success 108")
             
             // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
             try wallet.sync(blockchain: blockchain, progress: nil)
-            print("Success 112")
             
             // Uncomment the following lines to get the on-chain balance (although LDK also does that
             // Get the confirmed balance from the wallet
@@ -122,7 +114,6 @@ class LightningNodeService {
             
             // Retrieve a list of transaction details from the wallet, excluding raw transaction data
             wallet_transactions = try wallet.listTransactions(includeRaw: false)
-            print("Success 122")
             
             // Print the balance and the list of wallet transactions
             print("wallet_transactions: \(wallet_transactions ?? [TransactionDetails]())")
@@ -169,23 +160,16 @@ class LightningNodeService {
         
         var transactionsNotificationDict = [AnyHashable:Any]()
         if let actualTransactions = wallet_transactions {
-            transactionsNotificationDict = ["transactions":actualTransactions]
+            transactionsNotificationDict = ["transactions":actualTransactions,"lightningnodeservice":self]
         }
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
     }
     
     
-    func getFees() {
-        
-        //self.ldkNode.sendToOnchainAddress(address: <#T##Address#>, amountMsat: <#T##UInt64#>)
-    }
-    
-    
-    func sendTo(address:String) {
-        
-        //var partiallySignedBitcoinTransaction = setWallet
-        //Wallet().sign(psbt: PartiallySignedTransaction, signOptions: <#T##SignOptions?#>)
+    func sendToOnchainAddress(address: LDKNode.Address, amountMsat: UInt64) throws -> Txid {
+        let txId = try ldkNode.sendToOnchainAddress(address: address, amountMsat: amountMsat)
+        return txId
     }
     
     

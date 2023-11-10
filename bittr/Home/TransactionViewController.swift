@@ -30,6 +30,10 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var valueNowLabel: UILabel!
     @IBOutlet weak var profitLabel: UILabel!
     
+    // Heights
+    @IBOutlet weak var thenViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var profitViewHeight: NSLayoutConstraint!
+    
     var tappedTransaction = Transaction()
     var eurValue = 0.0
     var chfValue = 0.0
@@ -85,6 +89,23 @@ class TransactionViewController: UIViewController {
         var balanceValue = String(Int((transactionValue*correctValue).rounded()))
         
         self.valueNowLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
+        
+        if tappedTransaction.isBittr == true {
+            
+            thenViewHeight.constant = 40
+            profitViewHeight.constant = 40
+            thenView.alpha = 1
+            profitView.alpha = 1
+            valueThenLabel.text = "+ \(tappedTransaction.purchaseAmount) \(currencySymbol)"
+            profitLabel.text = "\(Int((transactionValue*correctValue).rounded())-tappedTransaction.purchaseAmount) \(currencySymbol)"
+        } else {
+            thenViewHeight.constant = 0
+            profitViewHeight.constant = 0
+            thenView.alpha = 0
+            profitView.alpha = 0
+            valueThenLabel.text = ""
+            profitLabel.text = ""
+        }
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {

@@ -687,7 +687,7 @@
                                                                 <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="uB1-hN-oXh" userLabel="Number View">
                                                                     <rect key="frame" x="0.0" y="0.0" width="108.66666666666667" height="50"/>
                                                                     <subviews>
-                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="🌱  € 1 240" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wYb-Vf-9rd">
+                                                                        <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="🌱  € 1 240" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wYb-Vf-9rd">
                                                                             <rect key="frame" x="13" y="19" width="80.666666666666671" height="16"/>
                                                                             <constraints>
                                                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="IrB-Pm-8Vh"/>
@@ -697,13 +697,19 @@
                                                                             <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                             <nil key="highlightedColor"/>
                                                                         </label>
+                                                                        <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="gjc-9F-u7C">
+                                                                            <rect key="frame" x="43.666666666666657" y="14.333333333333314" width="20" height="20"/>
+                                                                            <color key="color" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                        </activityIndicatorView>
                                                                     </subviews>
                                                                     <color key="backgroundColor" white="1" alpha="0.69832131092209226" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                     <constraints>
                                                                         <constraint firstItem="wYb-Vf-9rd" firstAttribute="leading" secondItem="uB1-hN-oXh" secondAttribute="leading" constant="13" id="NFf-Mm-btC"/>
                                                                         <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="WFq-pb-IdD"/>
+                                                                        <constraint firstItem="gjc-9F-u7C" firstAttribute="centerX" secondItem="uB1-hN-oXh" secondAttribute="centerX" id="Z3w-fe-vHg"/>
                                                                         <constraint firstAttribute="trailing" secondItem="wYb-Vf-9rd" secondAttribute="trailing" constant="15" id="eGB-Rx-KqX"/>
                                                                         <constraint firstItem="wYb-Vf-9rd" firstAttribute="centerY" secondItem="uB1-hN-oXh" secondAttribute="centerY" constant="2" id="hO4-xa-k8o"/>
+                                                                        <constraint firstItem="gjc-9F-u7C" firstAttribute="centerY" secondItem="uB1-hN-oXh" secondAttribute="centerY" id="mYw-tj-CZ0"/>
                                                                     </constraints>
                                                                 </view>
                                                                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="xpc-Ne-aXT" userLabel="Profit Button">
@@ -1053,6 +1059,8 @@
                         <outlet property="balanceLabel" destination="3jF-mW-421" id="tuf-YT-C4T"/>
                         <outlet property="balanceSpinner" destination="ceh-Lb-MfG" id="P1v-i3-9e4"/>
                         <outlet property="balanceView" destination="jlW-33-8oJ" id="XdS-QP-e7q"/>
+                        <outlet property="bittrProfitLabel" destination="wYb-Vf-9rd" id="CXk-pC-388"/>
+                        <outlet property="bittrProfitSpinner" destination="gjc-9F-u7C" id="bIE-kr-SB8"/>
                         <outlet property="conversionLabel" destination="hC6-So-bRq" id="5RY-pj-AiW"/>
                         <outlet property="dayButton" destination="mQB-CG-Bcc" id="BfW-ug-EGe"/>
                         <outlet property="fiveYearsButton" destination="ph8-fc-cpD" id="A95-ai-f9s"/>
@@ -1101,7 +1109,7 @@
                                         <rect key="frame" x="0.0" y="0.0" width="393" height="790"/>
                                         <subviews>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="30m-ZY-7r6" userLabel="Center View">
-                                                <rect key="frame" x="0.0" y="231" width="393" height="328"/>
+                                                <rect key="frame" x="0.0" y="258.66666666666669" width="393" height="273.00000000000006"/>
                                                 <subviews>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="dtg-TH-Vtw" userLabel="Header View">
                                                         <rect key="frame" x="146" y="0.0" width="101" height="26"/>
@@ -1139,7 +1147,7 @@
                                                         <rect key="frame" x="30" y="118" width="333" height="45"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="⬇️  Total investment" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="FoI-Kt-yRS">
-                                                                <rect key="frame" x="15" y="16.666666666666686" width="133" height="14"/>
+                                                                <rect key="frame" x="15" y="16.333333333333314" width="133" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="SxJ-1t-TVu"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="tRs-Js-nJs"/>
@@ -1149,7 +1157,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 1 385" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3xb-r7-4YA">
-                                                                <rect key="frame" x="263" y="15.666666666666686" width="55" height="18"/>
+                                                                <rect key="frame" x="263" y="15.333333333333314" width="55" height="18"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="qjN-vb-Mg6"/>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="yEu-to-CUn"/>
@@ -1168,11 +1176,11 @@
                                                             <constraint firstItem="FoI-Kt-yRS" firstAttribute="centerY" secondItem="QDG-HU-4du" secondAttribute="centerY" constant="1" id="wvW-ha-svf"/>
                                                         </constraints>
                                                     </view>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="u2D-lT-7zn" userLabel="Output View">
-                                                        <rect key="frame" x="30" y="173" width="333" height="45"/>
+                                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="u2D-lT-7zn" userLabel="Output View">
+                                                        <rect key="frame" x="30" y="173" width="333" height="0.0"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="⬆️  Total divested" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oQS-tQ-QYK">
-                                                                <rect key="frame" x="15.000000000000007" y="16.666666666666686" width="116.66666666666669" height="14"/>
+                                                                <rect key="frame" x="15.000000000000007" y="-6" width="116.66666666666669" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="H85-oR-qVO"/>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="TuK-1Q-12i"/>
@@ -1182,7 +1190,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 0" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oV5-vx-eFH">
-                                                                <rect key="frame" x="291.33333333333331" y="15.666666666666686" width="26.666666666666686" height="18"/>
+                                                                <rect key="frame" x="291.33333333333331" y="-7" width="26.666666666666686" height="18"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="03H-kN-ncv"/>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="Aj7-eG-JrU"/>
@@ -1197,15 +1205,15 @@
                                                             <constraint firstAttribute="trailing" secondItem="oV5-vx-eFH" secondAttribute="trailing" constant="15" id="D5I-Ky-9YP"/>
                                                             <constraint firstItem="oQS-tQ-QYK" firstAttribute="centerY" secondItem="u2D-lT-7zn" secondAttribute="centerY" constant="1" id="Op3-ma-s1K"/>
                                                             <constraint firstItem="oQS-tQ-QYK" firstAttribute="leading" secondItem="u2D-lT-7zn" secondAttribute="leading" constant="15" id="dOn-Wq-cBm"/>
-                                                            <constraint firstAttribute="height" constant="45" id="yi6-fg-F4k"/>
+                                                            <constraint firstAttribute="height" id="yi6-fg-F4k"/>
                                                             <constraint firstItem="oV5-vx-eFH" firstAttribute="centerY" secondItem="u2D-lT-7zn" secondAttribute="centerY" constant="2" id="yzF-8A-gUX"/>
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0Rt-xb-uFJ" userLabel="Current View">
-                                                        <rect key="frame" x="30" y="228" width="333" height="45"/>
+                                                        <rect key="frame" x="30" y="173" width="333" height="45"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="💰  Current value" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8Sd-Zr-XU8">
-                                                                <rect key="frame" x="15.000000000000007" y="16.666666666666686" width="114.66666666666669" height="14"/>
+                                                                <rect key="frame" x="15.000000000000007" y="16.333333333333314" width="114.66666666666669" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="fCk-os-yJj"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="sgA-OJ-zAT"/>
@@ -1215,7 +1223,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 2 625" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ZAg-Od-Khf">
-                                                                <rect key="frame" x="260.66666666666669" y="15.666666666666686" width="57.333333333333314" height="18"/>
+                                                                <rect key="frame" x="260.66666666666669" y="15.333333333333314" width="57.333333333333314" height="18"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="Y0M-pH-nGe"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="kDq-2M-xpi"/>
@@ -1235,10 +1243,10 @@
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="NNa-K7-oAe" userLabel="Profit View">
-                                                        <rect key="frame" x="30" y="283" width="333" height="45"/>
+                                                        <rect key="frame" x="30" y="228" width="333" height="45"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="🌱  Total profit" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="awm-Un-yBE">
-                                                                <rect key="frame" x="15" y="16.666666666666629" width="96" height="14"/>
+                                                                <rect key="frame" x="15" y="16.333333333333314" width="96" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="ews-9b-3uN"/>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="xaA-1U-pnG"/>
@@ -1248,7 +1256,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 1 240" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9kE-2i-A5W">
-                                                                <rect key="frame" x="261" y="15.666666666666629" width="57" height="18"/>
+                                                                <rect key="frame" x="261" y="15.333333333333314" width="57" height="18"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="qEu-az-ABU"/>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="upt-GQ-Obt"/>
@@ -1284,7 +1292,7 @@
                                                     <constraint firstItem="0Rt-xb-uFJ" firstAttribute="leading" secondItem="30m-ZY-7r6" secondAttribute="leading" constant="30" id="oe6-9c-ePK"/>
                                                     <constraint firstItem="NNa-K7-oAe" firstAttribute="leading" secondItem="30m-ZY-7r6" secondAttribute="leading" constant="30" id="q2Y-tw-JWs"/>
                                                     <constraint firstAttribute="trailing" secondItem="NNa-K7-oAe" secondAttribute="trailing" constant="30" id="s6N-cY-Aoc"/>
-                                                    <constraint firstItem="0Rt-xb-uFJ" firstAttribute="top" secondItem="u2D-lT-7zn" secondAttribute="bottom" constant="10" id="ttf-qW-hhv"/>
+                                                    <constraint firstItem="0Rt-xb-uFJ" firstAttribute="top" secondItem="u2D-lT-7zn" secondAttribute="bottom" id="ttf-qW-hhv"/>
                                                     <constraint firstItem="QDG-HU-4du" firstAttribute="leading" secondItem="30m-ZY-7r6" secondAttribute="leading" constant="30" id="ucB-ah-B0K"/>
                                                     <constraint firstItem="u2D-lT-7zn" firstAttribute="leading" secondItem="30m-ZY-7r6" secondAttribute="leading" constant="30" id="w6z-Kc-B8K"/>
                                                     <constraint firstItem="QDG-HU-4du" firstAttribute="top" secondItem="oad-Fw-h2Z" secondAttribute="bottom" constant="35" id="wYe-yZ-TED"/>
@@ -1355,6 +1363,9 @@
                         <outlet property="headerView" destination="dtg-TH-Vtw" id="Zuc-qW-9Eh"/>
                         <outlet property="investedView" destination="QDG-HU-4du" id="3sC-pH-jSD"/>
                         <outlet property="profitView" destination="NNa-K7-oAe" id="EYF-Wx-k8w"/>
+                        <outlet property="totalInvestmentLabel" destination="3xb-r7-4YA" id="UaJ-My-baD"/>
+                        <outlet property="totalProfitLabel" destination="9kE-2i-A5W" id="kbz-Id-D9u"/>
+                        <outlet property="totalValueLabel" destination="ZAg-Od-Khf" id="dQe-c6-6wQ"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Rag-45-CPO" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -3566,7 +3577,7 @@
                                         <rect key="frame" x="0.0" y="0.0" width="393" height="790"/>
                                         <subviews>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Ybn-YO-iI7" userLabel="Center View">
-                                                <rect key="frame" x="0.0" y="261" width="393" height="268"/>
+                                                <rect key="frame" x="0.0" y="266" width="393" height="258"/>
                                                 <subviews>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="36u-Ap-hCS" userLabel="Header View">
                                                         <rect key="frame" x="145.33333333333334" y="0.0" width="102.66666666666666" height="26"/>
@@ -3592,7 +3603,7 @@
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aRt-m2-Vao" userLabel="Body View">
-                                                        <rect key="frame" x="25" y="56" width="343" height="212"/>
+                                                        <rect key="frame" x="25" y="56" width="343" height="202"/>
                                                         <subviews>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="jGG-ZD-nM8" userLabel="Date View">
                                                                 <rect key="frame" x="10" y="10" width="323" height="40"/>
@@ -3718,44 +3729,11 @@
                                                                     <constraint firstItem="rbE-EF-LGM" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="b7i-Yv-GYW" secondAttribute="trailing" constant="15" id="tpm-Ck-byO"/>
                                                                 </constraints>
                                                             </view>
-                                                            <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="1PO-U9-tcP" userLabel="Then View">
-                                                                <rect key="frame" x="10" y="152" width="323" height="0.0"/>
-                                                                <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Value then" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="X7t-0T-Zls">
-                                                                        <rect key="frame" x="15" y="-6" width="70" height="14"/>
-                                                                        <constraints>
-                                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="CmP-MU-tIH"/>
-                                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Jja-S0-kE4"/>
-                                                                        </constraints>
-                                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
-                                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="30 €" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="7" translatesAutoresizingMaskIntoConstraints="NO" id="OsV-av-cRr" userLabel="Amount Number">
-                                                                        <rect key="frame" x="279.66666666666669" y="-7" width="28.333333333333314" height="14"/>
-                                                                        <constraints>
-                                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="uSI-eY-Dyn"/>
-                                                                        </constraints>
-                                                                        <fontDescription key="fontDescription" name="Gilroy-Regular" family="Gilroy-Regular" pointSize="14"/>
-                                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                </subviews>
-                                                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                                <constraints>
-                                                                    <constraint firstItem="X7t-0T-Zls" firstAttribute="leading" secondItem="1PO-U9-tcP" secondAttribute="leading" constant="15" id="43c-YG-N8v"/>
-                                                                    <constraint firstItem="OsV-av-cRr" firstAttribute="centerY" secondItem="1PO-U9-tcP" secondAttribute="centerY" id="F7a-M3-nLE"/>
-                                                                    <constraint firstAttribute="height" id="Mmg-HQ-VFK"/>
-                                                                    <constraint firstAttribute="trailing" secondItem="OsV-av-cRr" secondAttribute="trailing" constant="15" id="RVd-0Z-TRQ"/>
-                                                                    <constraint firstItem="OsV-av-cRr" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="X7t-0T-Zls" secondAttribute="trailing" constant="15" id="Vs1-3O-m8F"/>
-                                                                    <constraint firstItem="X7t-0T-Zls" firstAttribute="centerY" secondItem="1PO-U9-tcP" secondAttribute="centerY" constant="1" id="Wjp-S0-3HZ"/>
-                                                                </constraints>
-                                                            </view>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="zZ1-Ep-iVe" userLabel="Now View">
                                                                 <rect key="frame" x="10" y="152" width="323" height="40"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Value now" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="CFu-Ep-ZIf">
-                                                                        <rect key="frame" x="15" y="14" width="67.333333333333329" height="14"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Current value" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="CFu-Ep-ZIf">
+                                                                        <rect key="frame" x="15" y="14" width="88.666666666666671" height="14"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="bxa-H2-KKG"/>
                                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="lfx-he-YXf"/>
@@ -3784,8 +3762,41 @@
                                                                     <constraint firstAttribute="height" constant="40" id="qxa-uD-O9W"/>
                                                                 </constraints>
                                                             </view>
+                                                            <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="1PO-U9-tcP" userLabel="Then View">
+                                                                <rect key="frame" x="10" y="192" width="323" height="0.0"/>
+                                                                <subviews>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Purchase value" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="X7t-0T-Zls">
+                                                                        <rect key="frame" x="15" y="-6" width="99" height="14"/>
+                                                                        <constraints>
+                                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="CmP-MU-tIH"/>
+                                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Jja-S0-kE4"/>
+                                                                        </constraints>
+                                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
+                                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                        <nil key="highlightedColor"/>
+                                                                    </label>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="30 €" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="7" translatesAutoresizingMaskIntoConstraints="NO" id="OsV-av-cRr" userLabel="Amount Number">
+                                                                        <rect key="frame" x="279.66666666666669" y="-7" width="28.333333333333314" height="14"/>
+                                                                        <constraints>
+                                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="uSI-eY-Dyn"/>
+                                                                        </constraints>
+                                                                        <fontDescription key="fontDescription" name="Gilroy-Regular" family="Gilroy-Regular" pointSize="14"/>
+                                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                        <nil key="highlightedColor"/>
+                                                                    </label>
+                                                                </subviews>
+                                                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                <constraints>
+                                                                    <constraint firstItem="X7t-0T-Zls" firstAttribute="leading" secondItem="1PO-U9-tcP" secondAttribute="leading" constant="15" id="43c-YG-N8v"/>
+                                                                    <constraint firstItem="OsV-av-cRr" firstAttribute="centerY" secondItem="1PO-U9-tcP" secondAttribute="centerY" id="F7a-M3-nLE"/>
+                                                                    <constraint firstAttribute="height" id="Mmg-HQ-VFK"/>
+                                                                    <constraint firstAttribute="trailing" secondItem="OsV-av-cRr" secondAttribute="trailing" constant="15" id="RVd-0Z-TRQ"/>
+                                                                    <constraint firstItem="OsV-av-cRr" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="X7t-0T-Zls" secondAttribute="trailing" constant="15" id="Vs1-3O-m8F"/>
+                                                                    <constraint firstItem="X7t-0T-Zls" firstAttribute="centerY" secondItem="1PO-U9-tcP" secondAttribute="centerY" constant="1" id="Wjp-S0-3HZ"/>
+                                                                </constraints>
+                                                            </view>
                                                             <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cze-Lm-SGi" userLabel="Profit View">
-                                                                <rect key="frame" x="10" y="202" width="323" height="0.0"/>
+                                                                <rect key="frame" x="10" y="192" width="323" height="0.0"/>
                                                                 <subviews>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Profit" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9ny-SE-cHO">
                                                                         <rect key="frame" x="15.000000000000004" y="-6" width="34.333333333333343" height="14"/>
@@ -3823,20 +3834,20 @@
                                                             <constraint firstItem="1PO-U9-tcP" firstAttribute="leading" secondItem="aRt-m2-Vao" secondAttribute="leading" constant="10" id="28b-5e-Cbl"/>
                                                             <constraint firstItem="ZfX-M2-Ypy" firstAttribute="leading" secondItem="aRt-m2-Vao" secondAttribute="leading" constant="10" id="5Lb-k8-pCO"/>
                                                             <constraint firstItem="cze-Lm-SGi" firstAttribute="leading" secondItem="aRt-m2-Vao" secondAttribute="leading" constant="10" id="6GZ-Pc-KPg"/>
-                                                            <constraint firstItem="cze-Lm-SGi" firstAttribute="top" secondItem="zZ1-Ep-iVe" secondAttribute="bottom" constant="10" id="6fO-6W-5eq"/>
+                                                            <constraint firstItem="cze-Lm-SGi" firstAttribute="top" secondItem="1PO-U9-tcP" secondAttribute="bottom" id="6fO-6W-5eq"/>
                                                             <constraint firstAttribute="trailing" secondItem="rEw-ei-JhU" secondAttribute="trailing" constant="10" id="81v-mM-vqD"/>
                                                             <constraint firstItem="xQ3-yX-kwa" firstAttribute="leading" secondItem="aRt-m2-Vao" secondAttribute="leading" constant="10" id="Jod-rS-lSx"/>
                                                             <constraint firstAttribute="bottom" secondItem="cze-Lm-SGi" secondAttribute="bottom" constant="10" id="Jvd-er-KRf"/>
                                                             <constraint firstAttribute="trailing" secondItem="zZ1-Ep-iVe" secondAttribute="trailing" constant="10" id="JxB-m7-M8a"/>
                                                             <constraint firstItem="xQ3-yX-kwa" firstAttribute="top" secondItem="jGG-ZD-nM8" secondAttribute="bottom" constant="10" id="Kv0-P2-hTr"/>
                                                             <constraint firstAttribute="trailing" secondItem="1PO-U9-tcP" secondAttribute="trailing" constant="10" id="NNt-Jt-Vqi"/>
-                                                            <constraint firstItem="zZ1-Ep-iVe" firstAttribute="top" secondItem="1PO-U9-tcP" secondAttribute="bottom" id="R9w-cl-Y0Q"/>
+                                                            <constraint firstItem="zZ1-Ep-iVe" firstAttribute="top" secondItem="ZfX-M2-Ypy" secondAttribute="bottom" id="R9w-cl-Y0Q"/>
                                                             <constraint firstItem="rEw-ei-JhU" firstAttribute="leading" secondItem="aRt-m2-Vao" secondAttribute="leading" constant="10" id="TSR-tE-bZb"/>
                                                             <constraint firstItem="ZfX-M2-Ypy" firstAttribute="top" secondItem="rEw-ei-JhU" secondAttribute="bottom" id="Wt1-4O-wrw"/>
                                                             <constraint firstAttribute="trailing" secondItem="jGG-ZD-nM8" secondAttribute="trailing" constant="10" id="ZN4-E2-hO3"/>
                                                             <constraint firstItem="jGG-ZD-nM8" firstAttribute="top" secondItem="aRt-m2-Vao" secondAttribute="top" constant="10" id="cRD-oH-BXP"/>
                                                             <constraint firstAttribute="trailing" secondItem="xQ3-yX-kwa" secondAttribute="trailing" constant="10" id="iW6-3z-44O"/>
-                                                            <constraint firstItem="1PO-U9-tcP" firstAttribute="top" secondItem="ZfX-M2-Ypy" secondAttribute="bottom" id="jD6-Lj-01a"/>
+                                                            <constraint firstItem="1PO-U9-tcP" firstAttribute="top" secondItem="zZ1-Ep-iVe" secondAttribute="bottom" id="jD6-Lj-01a"/>
                                                             <constraint firstAttribute="trailing" secondItem="ZfX-M2-Ypy" secondAttribute="trailing" constant="10" id="laf-qz-XpS"/>
                                                             <constraint firstItem="rEw-ei-JhU" firstAttribute="top" secondItem="xQ3-yX-kwa" secondAttribute="bottom" id="n9g-NO-0xC"/>
                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="100" id="qlJ-VR-XdF"/>
@@ -3924,7 +3935,9 @@
                         <outlet property="nowView" destination="zZ1-Ep-iVe" id="l9E-Jj-EXw"/>
                         <outlet property="profitLabel" destination="deX-pc-jwY" id="AdZ-Qb-fJu"/>
                         <outlet property="profitView" destination="cze-Lm-SGi" id="5ID-sE-brK"/>
+                        <outlet property="profitViewHeight" destination="KRQ-DO-xCr" id="6gF-og-ZcZ"/>
                         <outlet property="thenView" destination="1PO-U9-tcP" id="d0I-JN-hqj"/>
+                        <outlet property="thenViewHeight" destination="Mmg-HQ-VFK" id="s8x-rD-QUM"/>
                         <outlet property="toLabel" destination="SWm-Gn-KpO" id="q3s-Wy-MwG"/>
                         <outlet property="toView" destination="rEw-ei-JhU" id="jmP-16-a1j"/>
                         <outlet property="valueNowLabel" destination="8Va-KF-0nC" id="CjU-WD-9R7"/>
