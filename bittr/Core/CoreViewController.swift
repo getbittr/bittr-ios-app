@@ -92,6 +92,8 @@ class CoreViewController: UIViewController {
     
     @objc func startLightning() {
         
+        // Step 3.
+        
         Task {
             do {
                 try await LightningNodeService.shared.start()
@@ -317,6 +319,8 @@ class CoreViewController: UIViewController {
     }
     
     func correctPin() {
+        
+        // Step 2.
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "fixgraph"), object: nil, userInfo: nil) as Notification)
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setclient"), object: nil, userInfo: nil) as Notification)

@@ -67,19 +67,20 @@ class MoveViewController: UIViewController {
         btclnBalance.text = "\(numberFormatter.number(from: fetchedBtclnString)!.decimalValue as NSNumber)"
         balanceLabel.text = "\(numberFormatter.number(from: fetchedTotalString)!.decimalValue as NSNumber) btc"
         
-        var correctBtcBalance = fetchedBtcBalance * 0.00000001
+        let correctBtcBalance = fetchedBtcBalance * 0.00000001
+        let correctBtclnBalance = fetchedBtclnBalance * 0.00000001
         var correctValue:CGFloat = self.eurValue
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
             correctValue = self.chfValue
             currencySymbol = "CHF"
         }
-        var balanceValue = String(Int((correctBtcBalance*correctValue).rounded()))
+        var balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*correctValue).rounded()))
+        var btcBalanceValue = String(Int(((correctBtcBalance)*correctValue).rounded()))
+        var btclnBalanceValue = String(Int(((correctBtclnBalance)*correctValue).rounded()))
         conversionLabel.text = currencySymbol + " " + balanceValue
-        btcEuro.text = currencySymbol + " " + balanceValue
-        btclnEuro.text = currencySymbol + " " + "0"
-        print(currencySymbol + " " + balanceValue)
-        
+        btcEuro.text = currencySymbol + " " + btcBalanceValue
+        btclnEuro.text = currencySymbol + " " + btclnBalanceValue
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {

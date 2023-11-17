@@ -29,17 +29,7 @@ class LightningNodeService {
     
     init(network: LDKNode.Network) {
         
-        /*if let deleteStorage = UserDefaults.standard.value(forKey: "deletestorage") as? Bool {
-            if deleteStorage == true {
-                do {
-                    try FileManager.default.removeItem(atPath: storageManager.getDocumentsDirectory())
-                } catch {
-                    print(error.localizedDescription)
-                }
-                
-                UserDefaults.standard.set(false, forKey: "deletestorage")
-            }
-        }*/
+        // Step 5.
         
         try? FileManager.deleteLDKNodeLogLatestFile()
         
@@ -70,6 +60,7 @@ class LightningNodeService {
             keychain.set(mnemonicString, forKey: mnemonicKey)
         }
         
+        // Step 6.
         let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
         
@@ -126,6 +117,7 @@ class LightningNodeService {
             print("Some error occurred. \(error.localizedDescription)")
         }
         
+        let actualWalletTransactions = wallet_transactions ?? [TransactionDetails]()
         
         switch network {
         case .bitcoin:
@@ -144,26 +136,48 @@ class LightningNodeService {
         
         self.ldkNode = ldkNode
         
+        // Connect to Lightning peer.
+        let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
+        let address = "109.205.181.232:9735" // Extract this from your peer string
         
-        
-        //let listedChannels = self.ldkNode.listChannels()
-        
-        /*do {
-            try syncWallets()*/
-            
-            //let listedChannels = self.listChannels()
-            //let listedPayments = self.listPayments()
-            //let listedPeers = self.listPeers()
-        /*} catch {
-            print("Some error occurred 159. \(error.localizedDescription)")
-        }*/
-        
-        var transactionsNotificationDict = [AnyHashable:Any]()
-        if let actualTransactions = wallet_transactions {
-            transactionsNotificationDict = ["transactions":actualTransactions,"lightningnodeservice":self]
+        Task {
+            do {
+                try await LightningNodeService.shared.connect(
+                    nodeId: nodeId,
+                    address: address,
+                    persist: true
+                )
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    // Handle UI error showing here, like showing an alert
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    // Handle UI error showing here, like showing an alert
+                }
+            }
         }
         
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
+        // Get Lightning channels.
+        Task {
+            do {
+                let channels = try await LightningNodeService.shared.listChannels()
+                print("Channels: \(channels)")
+                
+                let payments = try await LightningNodeService.shared.listPayments()
+                print("Payments: \(payments)")
+                
+                var transactionsNotificationDict = [AnyHashable:Any]()
+                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels]
+                
+                // Step 9.
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
+            } catch {
+                print("Error listing channels: \(error.localizedDescription)")
+            }
+        }
+        
     }
     
     
@@ -174,6 +188,8 @@ class LightningNodeService {
     
     
     func start() async throws {
+        
+        // Step 4.
         try ldkNode.start()
     }
     
@@ -208,19 +224,27 @@ class LightningNodeService {
         return signedMessage
     }
     
-    func listPeers() -> [PeerDetails] {
+    func listPeers() async throws -> [PeerDetails] {
         let peers = ldkNode.listPeers()
         return peers
     }
     
-    func listPayments() -> [PaymentDetails] {
+    func listPayments() async throws -> [PaymentDetails] {
         let payments = ldkNode.listPayments()
         return payments
     }
     
-    func listChannels() -> [ChannelDetails] {
+    func listChannels() async throws -> [ChannelDetails] {
         let channels = ldkNode.listChannels()
         return channels
+    }
+    
+    func connect(nodeId: PublicKey, address: String, persist: Bool) async throws {
+        try ldkNode.connect(
+            nodeId: nodeId,
+            address: address,
+            persist: persist
+        )
     }
     
     func syncWallets() throws {

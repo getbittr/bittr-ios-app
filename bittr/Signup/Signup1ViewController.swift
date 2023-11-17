@@ -54,6 +54,8 @@ class Signup1ViewController: UIViewController {
     
     @objc func didReceiveMnemonic() {
         
+        // Step 7.
+        
         self.createWalletLabel.alpha = 1
         self.nextButtonSpinner.stopAnimating()
         

@@ -62,6 +62,8 @@ class Signup3ViewController: UIViewController {
     
     @objc func setWords(notification:NSNotification) {
         
+        // Step 8.
+        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualMnemonic = userInfo["mnemonic"] as? String {
                 

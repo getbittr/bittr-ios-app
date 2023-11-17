@@ -95,6 +95,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             if actualCorrectPin == self.pinTextField.text {
                 // Correct pin.
                 if let actualCoreVC = self.coreVC {
+                    // Step 1.
                     actualCoreVC.correctPin()
                 }
             } else {

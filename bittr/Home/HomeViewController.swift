@@ -66,6 +66,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var allImages:[String:UIImage]?
     
     var btcBalance:CGFloat = 0.0
+    var btclnBalance:CGFloat = 0.0
+    var totalBalanceSats:CGFloat = 0.0
     var balanceWasFetched = false
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
@@ -112,11 +114,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @objc func loadWalletData(notification:NSNotification) {
-        let bitcoinViewModel = BitcoinViewModel()
-        Task {
-            await bitcoinViewModel.getTotalOnchainBalanceSats()
-        }
         
+        // Step 10.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
                 print("Received: \(receivedTransactions)")
@@ -150,18 +149,33 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     transaction1.timestamp > transaction2.timestamp
                 }
                 
-                self.calculateProfit()
+                //self.calculateProfit()
             }
             
             if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
                 
                 self.lightningNodeService = actualLightningNodeService
             }
+            
+            if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
+                for eachChannel in actualLightningChannels {
+                    self.btclnBalance += CGFloat(eachChannel.channelValueSats)
+                }
+            }
+        }
+        
+        
+        // Step 11.
+        let bitcoinViewModel = BitcoinViewModel()
+        Task {
+            await bitcoinViewModel.getTotalOnchainBalanceSats()
         }
     }
     
     
     func calculateProfit() {
+        
+        // Step 17.
         
         self.bittrProfitLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
@@ -174,7 +188,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         for eachTransaction in self.setTransactions {
             
-            handledTransactions += 1
             var correctValue:CGFloat = self.eurValue
             var currencySymbol = "€"
             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
@@ -184,8 +197,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if eachTransaction.isBittr == true {
                 
-                var transactionValue = CGFloat(eachTransaction.received)/100000000
-                var transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
+                handledTransactions += 1
+                let transactionValue = CGFloat(eachTransaction.received)/100000000
+                let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
                 
                 accumulatedProfit += transactionProfit
                 accumulatedInvestments += eachTransaction.purchaseAmount
@@ -240,7 +254,73 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
+    func fetchAndPrintChannels() {
+        
+        Task {
+            do {
+                let channels = try await LightningNodeService.shared.listChannels()
+                print("Channels: \(channels)")
+            } catch {
+                print("Error listing channels: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    
+    func fetchAndPrintPeers() {
+        
+        Task {
+            do {
+                let peers = try await LightningNodeService.shared.listPeers()
+                print("Peers: \(peers)")
+            } catch {
+                print("Error listing peers: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    
+    func fetchAndPrintPayments() {
+        
+        Task {
+            do {
+                let payments = try await LightningNodeService.shared.listPayments()
+                print("Payments: \(payments)")
+            } catch {
+                print("Error listing peers: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    
+    func connectToPeer() {
+        let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
+        let address = "109.205.181.232:9735" // Extract this from your peer string
+        
+        Task {
+            do {
+                try await LightningNodeService.shared.connect(
+                    nodeId: nodeId,
+                    address: address,
+                    persist: true
+                )
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    // Handle UI error showing here, like showing an alert
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    // Handle UI error showing here, like showing an alert
+                }
+            }
+        }
+    }
+    
+    
     @objc func setTotalSats(notification:NSNotification) {
+        
+        // Step 13.
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let satsBalance = userInfo["balance"] as? String {
@@ -255,34 +335,37 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
                 self.balanceWasFetched = true
                 
-                switch satsBalance.count {
+                self.totalBalanceSats = self.btcBalance + self.btclnBalance
+                let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
+                
+                switch totalBalanceSatsString.count {
                 case 1:
                     zeros = "0.00 000 00"
-                    numbers = satsBalance + " sats"
+                    numbers = totalBalanceSatsString + " sats"
                 case 2:
                     zeros = "0.00 000 0"
-                    numbers = satsBalance + " sats"
+                    numbers = totalBalanceSatsString + " sats"
                 case 3:
                     zeros = "0.00 000 "
-                    numbers = satsBalance + " sats"
+                    numbers = totalBalanceSatsString + " sats"
                 case 4:
                     zeros = "0.00 00"
-                    numbers = satsBalance[0] + " " + satsBalance[1..<4] + " sats"
+                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " sats"
                 case 5:
                     zeros = "0.00 0"
-                    numbers = satsBalance[0..<2] + " " + satsBalance[2..<5] + " sats"
+                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " sats"
                 case 6:
                     zeros = "0.00 "
-                    numbers = satsBalance[0..<3] + " " + satsBalance[3..<6] + " sats"
+                    numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6] + " sats"
                 case 7:
                     zeros = "0.0"
-                    numbers = satsBalance[0] + " " + satsBalance[1..<4] + " " + satsBalance[4..<7] + " sats"
+                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7] + " sats"
                 case 8:
                     zeros = "0."
-                    numbers = satsBalance[0..<2] + " " + satsBalance[2..<5] + " " + satsBalance[5..<8] + " sats"
+                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8] + " sats"
                 default:
                     zeros = ""
-                    numbers = "btc \(CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)/100000000)"
+                    numbers = "btc \(totalBalanceSats/100000000)"
                 }
                 
                 balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
@@ -293,7 +376,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         balanceLabel.attributedText = attributedText
                         balanceLabel.alpha = 1
                         
-                        self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)/100000000)
+                        // Step 14.
+                        self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000)
                         
                     } catch let e as NSError {
                         print("Couldn't fetch text: \(e.localizedDescription)")
@@ -306,6 +390,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func setConversion(btcValue:CGFloat) {
         
+        // Step 15.
         var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
@@ -371,6 +456,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 self.homeTableView.reloadData()
                                 self.tableSpinner.stopAnimating()
                                 
+                                // Step 16.
                                 self.calculateProfit()
                             }
                         }
@@ -594,6 +680,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func moveButtonTapped(_ sender: UIButton) {
+        
+        //self.fetchAndPrintPayments()
+        
         if self.balanceWasFetched == true {
             performSegue(withIdentifier: "HomeToMove", sender: self)
         }
@@ -625,6 +714,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let moveVC = segue.destination as? MoveViewController
             if let actualMoveVC = moveVC {
                 actualMoveVC.fetchedBtcBalance = self.btcBalance
+                actualMoveVC.fetchedBtclnBalance = self.btclnBalance
                 actualMoveVC.eurValue = self.eurValue
                 actualMoveVC.chfValue = self.chfValue
                 
