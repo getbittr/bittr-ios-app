@@ -159,7 +159,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
                 for eachChannel in actualLightningChannels {
-                    self.btclnBalance += CGFloat(eachChannel.channelValueSats)
+                    // Divide outboundCapacityMsat by 1000 and add it to btclnBalance
+                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat) / 1000.0
                 }
             }
         }
