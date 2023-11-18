@@ -591,11 +591,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             actualCell.dayLabel.text = transactionDateString
             
             // Set sats.
-            if thisTransaction.received != 0 {
+            var plusSymbol = "+"
+            if thisTransaction.received - thisTransaction.sent < 0 {
+                plusSymbol = "-"
+            }
+            actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+            /*if thisTransaction.received != 0 {
                 actualCell.satsLabel.text = "+ \(addSpacesToString(balanceValue: String(thisTransaction.received))) sats"
             } else {
                 actualCell.satsLabel.text = "- \(addSpacesToString(balanceValue: String(thisTransaction.sent))) sats"
-            }
+            }*/
             
             // Set conversion
             var correctValue:CGFloat = self.eurValue
@@ -604,15 +609,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 correctValue = self.chfValue
                 currencySymbol = "CHF"
             }
-            var plusSymbol = "+"
-            var transactionValue = CGFloat(thisTransaction.received)/100000000
-            if thisTransaction.sent != 0 {
-                transactionValue = CGFloat(thisTransaction.sent)/100000000
+            
+            var transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
+            /*if transactionValue < 0 {
+                //transactionValue = CGFloat(thisTransaction.sent)/100000000
                 plusSymbol = "-"
-            }
+            }*/
             
             var balanceValue = String(Int((transactionValue*correctValue).rounded()))
-            balanceValue = addSpacesToString(balanceValue: balanceValue)
+            balanceValue = addSpacesToString(balanceValue: balanceValue).replacingOccurrences(of: "-", with: "")
             
             actualCell.eurosLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
             

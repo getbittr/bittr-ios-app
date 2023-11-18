@@ -66,11 +66,16 @@ class TransactionViewController: UIViewController {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
         
-        if tappedTransaction.received != 0 {
+        var plusSymbol = "+"
+        if tappedTransaction.received - tappedTransaction.sent < 0 {
+            plusSymbol = "-"
+        }
+        amountLabel.text = "\(plusSymbol) \(String(describing: numberFormatter.number(from: "\(CGFloat(tappedTransaction.received-tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber).replacingOccurrences(of: "-", with: "")) btc"
+        /*if tappedTransaction.received != 0 {
             amountLabel.text = "+ \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.received)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
         } else {
             amountLabel.text = "- \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
-        }
+        }*/
         
         idLabel.text = tappedTransaction.id
         
@@ -80,13 +85,13 @@ class TransactionViewController: UIViewController {
             correctValue = self.chfValue
             currencySymbol = "CHF"
         }
-        var plusSymbol = "+"
-        var transactionValue = CGFloat(tappedTransaction.received)/100000000
-        if tappedTransaction.sent != 0 {
+        
+        var transactionValue = CGFloat(tappedTransaction.received-tappedTransaction.sent)/100000000
+        /*if tappedTransaction.sent != 0 {
             transactionValue = CGFloat(tappedTransaction.sent)/100000000
             plusSymbol = "-"
-        }
-        var balanceValue = String(Int((transactionValue*correctValue).rounded()))
+        }*/
+        var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
         
         self.valueNowLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
         
