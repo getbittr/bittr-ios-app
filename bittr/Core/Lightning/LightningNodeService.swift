@@ -16,8 +16,9 @@ class LightningNodeService {
     private let keychain = KeychainSwift()
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
-    
-    //private let setWallet:Wallet?
+    private var bdkWallet: BitcoinDevKit.Wallet?
+    private var blockchain: Blockchain?
+    private var xpub = ""
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -80,6 +81,25 @@ class LightningNodeService {
             // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
             let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
             
+            let descriptor = bip84ExternalDescriptor.asString()
+            
+            let components = descriptor.components(separatedBy: "]")
+            
+            if components.count > 1 {
+                
+                let xpubPart = components[1].split(separator: "/").first
+                
+                if let xpub = xpubPart {
+                    print("XPUB: \(xpub)")
+                    self.xpub = String(xpub)
+                } else {
+                    print("Error: Could not extract XPUB")
+                }
+                
+            } else {
+                print("Error: Descriptor format not recognized")
+            }
+            
             // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
             let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
             
@@ -94,9 +114,11 @@ class LightningNodeService {
             let electrum = ElectrumConfig(url: "ssl://electrum.blockstream.info:60002", socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
             let blockchainConfig = BlockchainConfig.electrum(config: electrum)
             let blockchain = try Blockchain(config: blockchainConfig)
+            self.blockchain = blockchain
             
             // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
             try wallet.sync(blockchain: blockchain, progress: nil)
+            self.bdkWallet = wallet
             
             // Uncomment the following lines to get the on-chain balance (although LDK also does that
             // Get the confirmed balance from the wallet
@@ -251,5 +273,17 @@ class LightningNodeService {
         try ldkNode.syncWallets()
     }
     
+    func getWallet() -> BitcoinDevKit.Wallet? {
+        return bdkWallet
+    }
+    
+    func getBlockchain() -> Blockchain? {
+        return blockchain
+    }
+    
+    func getXpub() -> String {
+        return xpub
+    }
+
 }
 

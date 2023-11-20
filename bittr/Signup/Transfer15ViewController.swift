@@ -260,17 +260,17 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
         Task {
             
             // Get real onchain address.
-            await self.addressViewModel.newFundingAddress()
-            let receivedAddress = self.addressViewModel.address
+            let wallet = LightningNodeService.shared.getWallet()
+            let firstAddress = try wallet?.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
             
             // Get real signature.
             let receivedSignature = try await nodeIDViewModel.signMessage(message: message)
             
-            print("Received address: \(receivedAddress)")
+            print("Received address: \(firstAddress ?? "")")
             print("Received signature: \(receivedSignature)")
             
             // Send to Bittr.
-            self.createBittrAccount(receivedAddress: receivedAddress, receivedSignature: receivedSignature, message: message, page: page, iban: iban)
+            self.createBittrAccount(receivedAddress: firstAddress ?? "", receivedSignature: receivedSignature, message: message, page: page, iban: iban)
         }
     }
     
@@ -283,7 +283,24 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                 let lightningSignature = try await LightningNodeService(network: .testnet).signMessage(message: message)
                 print("Fetched signature: " + lightningSignature)
                 
-                let parameters = ["email":iban.yourEmail, "email_token":iban.emailToken, "bitcoin_address":receivedAddress/*, "xpub_key":"", "xpub_addr_type":"", "xpub_path":""*/, "initial_address_type":"simple", "category":"ledger", "bitcoin_message":message, "bitcoin_signature":/*receivedSignature*/"Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=", "iban":iban.yourIbanNumber/*, "id":"", "planned_volume":"", "planned_volume_frequency":""*/, "lightning_pubkey":lightningPubKey, "lightning_signature":lightningSignature] as [String:Any]
+                let xpub = LightningNodeService.shared.getXpub()
+                
+                let parameters: [String: Any] = [
+                    "email": iban.yourEmail,
+                    "email_token": iban.emailToken,
+                    "bitcoin_address": receivedAddress,
+                    "initial_address_type": "extended",
+                    "category": "ledger",
+                    "bitcoin_message": message,
+                    "bitcoin_signature": "Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=",
+                    "iban": iban.yourIbanNumber,
+                    "lightning_pubkey": lightningPubKey,
+                    "lightning_signature": lightningSignature,
+                    "xpub_key": xpub,
+                    "xpub_addr_type": "bech32",
+                    "xpub_path": "m/0/x",
+                    "skip_xpub_usage_check": "true"
+                ]
                 
                 do {
                     let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])

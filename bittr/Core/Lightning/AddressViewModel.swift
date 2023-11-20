@@ -14,6 +14,7 @@ class AddressViewModel: ObservableObject {
     @Published var isAddressFinished: Bool = false
     
     func newFundingAddress() async {
+        // TODO: We should fetch the last unUsedAddress from BDK instead of always a new address (from LDK).
         do {
             let address = try await LightningNodeService.shared.newFundingAddress()
             DispatchQueue.main.async {
