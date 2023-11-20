@@ -127,8 +127,21 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     thisTransaction.fee = Int(eachTransaction.fee!)
                     thisTransaction.received = Int(eachTransaction.received)
                     thisTransaction.sent = Int(eachTransaction.sent)
-                    thisTransaction.height = Int(eachTransaction.confirmationTime!.height)
-                    thisTransaction.timestamp = Int(eachTransaction.confirmationTime!.timestamp)
+                    if let confirmationTime = eachTransaction.confirmationTime {
+                        thisTransaction.height = Int(confirmationTime.height)
+                    } else {
+                        // Handle the case where confirmationTime is nil.
+                        // For example, set a default value or leave it unassigned.
+                        let defaultValue = 0
+                        thisTransaction.height = defaultValue // Replace defaultValue with an appropriate value
+                    }
+                    if let confirmationTime = eachTransaction.confirmationTime {
+                        thisTransaction.timestamp = Int(confirmationTime.timestamp)
+                    } else {
+                        // Handle the nil case, e.g., by setting a default value
+                        let currentTimestamp = Int(Date().timeIntervalSince1970)
+                        thisTransaction.timestamp = currentTimestamp // Replace defaultValue with an appropriate value
+                    }
                     
                     Task {
                         if await fetchTransactionData(txIds: [eachTransaction.txid]) == true {
