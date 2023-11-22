@@ -8,6 +8,7 @@
 import UIKit
 import CoreImage.CIFilterBuiltins
 import CodeScanner
+import LDKNode
 
 class ReceiveViewController: UIViewController {
 
@@ -87,7 +88,44 @@ class ReceiveViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.getNewAddress()
         }
+        
+        //self.receivePayment(amountMsat: 10000000, description: "Hello", expirySecs: 3600)
     }
+    
+    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) {
+        Task {
+            do {
+                let invoice = try await LightningNodeService.shared.receivePayment(
+                    amountMsat: amountMsat,
+                    description: description,
+                    expirySecs: expirySecs
+                )
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: "Invoice Created", message: "Invoice: \(invoice)", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Copy Invoice", style: .default, handler: { _ in
+                        // Copy the invoice to the clipboard
+                        UIPasteboard.general.string = invoice
+                    }))
+                    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+                    self.present(alert, animated: true)
+                }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: "Error", message: errorString.detail, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    self.present(alert, animated: true)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    self.present(alert, animated: true)
+                }
+            }
+        }
+    }
+
     
     func generateQRCode(from string: String) -> UIImage {
         let context = CIContext()

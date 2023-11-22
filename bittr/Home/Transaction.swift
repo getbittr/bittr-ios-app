@@ -18,4 +18,5 @@ class Transaction: NSObject {
     var isBittr = false
     var purchaseAmount = 0
     var currency = "EUR"
+    var isLightning = false
 }

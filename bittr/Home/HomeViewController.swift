@@ -76,6 +76,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var lightningNodeService:LightningNodeService?
     
+    var didStartReset = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -111,6 +113,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setTotalSats), name: NSNotification.Name(rawValue: "settotalsats"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
     }
     
     @objc func loadWalletData(notification:NSNotification) {
@@ -120,49 +123,78 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
                 print("Received: \(receivedTransactions)")
                 
+                var txIds = [String]()
                 for eachTransaction in receivedTransactions {
+                    txIds += [eachTransaction.txid]
+                }
+                Task {
+                    await fetchTransactionData(txIds:txIds)
                     
-                    let thisTransaction = Transaction()
-                    thisTransaction.id = eachTransaction.txid
-                    thisTransaction.fee = Int(eachTransaction.fee!)
-                    thisTransaction.received = Int(eachTransaction.received)
-                    thisTransaction.sent = Int(eachTransaction.sent)
-                    if let confirmationTime = eachTransaction.confirmationTime {
-                        thisTransaction.height = Int(confirmationTime.height)
-                    } else {
-                        // Handle the case where confirmationTime is nil.
-                        // For example, set a default value or leave it unassigned.
-                        let defaultValue = 0
-                        thisTransaction.height = defaultValue // Replace defaultValue with an appropriate value
-                    }
-                    if let confirmationTime = eachTransaction.confirmationTime {
-                        thisTransaction.timestamp = Int(confirmationTime.timestamp)
-                    } else {
-                        // Handle the nil case, e.g., by setting a default value
-                        let currentTimestamp = Int(Date().timeIntervalSince1970)
-                        thisTransaction.timestamp = currentTimestamp // Replace defaultValue with an appropriate value
-                    }
-                    
-                    Task {
-                        if await fetchTransactionData(txIds: [eachTransaction.txid]) == true {
-                            // This is a Bittr transaction.
+                    DispatchQueue.main.async {
+                        for eachTransaction in receivedTransactions {
                             
-                            thisTransaction.isBittr = true
-                            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
-                            thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                            let thisTransaction = Transaction()
+                            thisTransaction.id = eachTransaction.txid
+                            thisTransaction.fee = Int(eachTransaction.fee!)
+                            thisTransaction.received = Int(eachTransaction.received)
+                            thisTransaction.sent = Int(eachTransaction.sent)
+                            thisTransaction.isLightning = false
+                            if let confirmationTime = eachTransaction.confirmationTime {
+                                thisTransaction.height = Int(confirmationTime.height)
+                                thisTransaction.timestamp = Int(confirmationTime.timestamp)
+                            } else {
+                                // Handle the case where confirmationTime is nil.
+                                // For example, set a default value or leave it unassigned.
+                                let defaultValue = 0
+                                thisTransaction.height = defaultValue // Replace defaultValue with an appropriate value
+                                let currentTimestamp = Int(Date().timeIntervalSince1970)
+                                thisTransaction.timestamp = currentTimestamp // Replace defaultValue with an appropriate value
+                            }
+                            if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
+                                thisTransaction.isBittr = true
+                                thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                                
+                                print(thisTransaction.purchaseAmount)
+                            }
                             
-                            print(thisTransaction.purchaseAmount)
+                            /*Task {
+                                if await fetchTransactionData(txIds: [eachTransaction.txid]) == true {
+                                    // This is a Bittr transaction.
+                                    
+                                    thisTransaction.isBittr = true
+                                    thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                    thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                                    
+                                    print(thisTransaction.purchaseAmount)
+                                }
+                            }*/
+                            
+                            self.setTransactions += [thisTransaction]
+                        }
+                        
+                        if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
+                            
+                            for eachPayment in receivedPayments {
+                                let thisTransaction = Transaction()
+                                if eachPayment.direction == .inbound {
+                                    thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
+                                } else {
+                                    thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
+                                }
+                                thisTransaction.isLightning = true
+                                thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                thisTransaction.id = "Lightning transaction"
+                                
+                                self.setTransactions += [thisTransaction]
+                            }
+                        }
+                        
+                        self.setTransactions.sort { transaction1, transaction2 in
+                            transaction1.timestamp > transaction2.timestamp
                         }
                     }
-                    
-                    setTransactions += [thisTransaction]
                 }
-                
-                setTransactions.sort { transaction1, transaction2 in
-                    transaction1.timestamp > transaction2.timestamp
-                }
-                
-                //self.calculateProfit()
             }
             
             if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
@@ -172,8 +204,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
                 for eachChannel in actualLightningChannels {
-                    // Divide outboundCapacityMsat by 1000 and add it to btclnBalance
-                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat) / 1000.0
+                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000)
                 }
             }
         }
@@ -188,6 +219,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     
     func calculateProfit() {
+        
+        self.didStartReset = false
         
         // Step 17.
         
@@ -257,8 +290,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 // This is not a Bittr transaction.
                 return false
             } else {
-                // This is a Bittr transaction.
-                self.bittrTransactions.setValue(["amount":bittrApiTransactions[0].purchaseAmount, "currency":bittrApiTransactions[0].currency], forKey: bittrApiTransactions[0].txId)
+                // There are Bittr transactions.
+                for eachTransaction in bittrApiTransactions {
+                    self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
+                }
                 return true
             }
         } catch {
@@ -469,6 +504,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 
                                 self.homeTableView.reloadData()
                                 self.tableSpinner.stopAnimating()
+                                self.homeTableView.alpha = 1
                                 
                                 // Step 16.
                                 self.calculateProfit()
@@ -700,7 +736,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func moveButtonTapped(_ sender: UIButton) {
         
-        //self.fetchAndPrintPayments()
+        //self.resetWallet()
         
         if self.balanceWasFetched == true {
             performSegue(withIdentifier: "HomeToMove", sender: self)
@@ -806,6 +842,39 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
     }
+    
+    
+    @objc func resetWallet() {
+        
+        print("Reset wallet.")
+        
+        self.setTransactions.removeAll()
+        self.calculatedProfit = 0
+        self.calculatedInvestments = 0
+        self.calculatedCurrentValue = 0
+        self.btcBalance = 0.0
+        self.btclnBalance = 0.0
+        self.totalBalanceSats = 0.0
+        
+        self.bittrProfitLabel.alpha = 0
+        self.bittrProfitSpinner.startAnimating()
+        self.balanceLabel.alpha = 0
+        self.conversionLabel.alpha = 0
+        self.balanceSpinner.startAnimating()
+        self.homeTableView.reloadData()
+        self.tableSpinner.startAnimating()
+        
+        LightningNodeService.shared.walletReset()
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        
+        if scrollView.contentOffset.y < -200, self.didStartReset == false {
+            self.didStartReset = true
+            self.resetWallet()
+        }
+    }
+    
     
 }
 

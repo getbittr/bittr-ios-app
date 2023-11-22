@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import BitcoinDevKit
 
 class SendViewController: UIViewController, UITextFieldDelegate {
 
@@ -48,6 +49,8 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var feesConfirmation: UILabel!
     @IBOutlet weak var totalConfirmation: UILabel!
     @IBOutlet weak var sendButton: UIButton!
+    @IBOutlet weak var sendSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var sendLabel: UILabel!
     
     var btcAmount = 0.07255647
     var btclnAmount = 0.02266301
@@ -257,21 +260,54 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        if let actualLightningNodeService = self.lightningNodeService {
-            do {
-                let transactionID = try actualLightningNodeService.sendToOnchainAddress(address: "tb1qw2c3lxufxqe2x9s4rdzh65tpf4d7fssjgh8nv6", amountMsat: 10)
-                print("Successful transaction.")
-                self.dismiss(animated: true)
-            } catch let error as NSError {
-                print("Some error occurred: \(error.localizedDescription)")
-                self.dismiss(animated: true)
+        let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to send \(self.amountConfirmation.text ?? "these") btc to \(self.toConfirmation.text ?? "this address")?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in 
+            
+            self.sendLabel.alpha = 0
+            self.sendSpinner.startAnimating()
+            
+            if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
+                
+                let actualAmount:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000)
+                
+                // tb1qw2c3lxufxqe2x9s4rdzh65tpf4d7fssjgh8nv6
+                let actualAddress:String = self.toConfirmation.text!
+                
+                Task {
+                    do {
+                        let address = try Address(address: actualAddress)
+                        let script = address.scriptPubkey()
+                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
+                        let details = try txBuilder.finish(wallet: actualWallet)
+                        let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
+                        let tx = details.psbt.extractTx()
+                        try actualBlockchain.broadcast(transaction: tx)
+                        let txid = details.psbt.txid()
+                        print("Transaction ID: \(txid)")
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            print("Successful transaction.")
+                            /*NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "resetwallet"), object: nil, userInfo: nil) as Notification)*/
+                            self.sendLabel.alpha = 1
+                            self.sendSpinner.stopAnimating()
+                            
+                            let successAlert = UIAlertController(title: "Success", message: "Your transaction has been sent and will show up in your wallet shortly.", preferredStyle: .alert)
+                            successAlert.addAction(UIAlertAction(title: "Okay", style: .default, handler: {_ in
+                                self.dismiss(animated: true)
+                            }))
+                            self.present(successAlert, animated: true)
+                        }
+                    } catch {
+                        print("Transaction error: \(error.localizedDescription)")
+                    }
+                }
+            } else {
+                print("Wallet or Blockchain instance not available.")
             }
-        } else {
-            print("LightningNodeService wasn't set.")
-            self.dismiss(animated: true)
-        }
+        }))
+        self.present(alert, animated: true)
     }
-    
 }
 
 extension UITextField {

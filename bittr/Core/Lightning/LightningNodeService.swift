@@ -191,7 +191,7 @@ class LightningNodeService {
                 print("Payments: \(payments)")
                 
                 var transactionsNotificationDict = [AnyHashable:Any]()
-                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels]
+                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments]
                 
                 // Step 9.
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
@@ -284,6 +284,33 @@ class LightningNodeService {
     func getXpub() -> String {
         return xpub
     }
+    
+    func walletReset() {
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            do {
+                try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
+                
+                let actualTransactions:[TransactionDetails] = try self.bdkWallet!.listTransactions(includeRaw: false)
+                Task {
+                    let actualChannels = try await LightningNodeService.shared.listChannels()
+                    let actualPayments = try await LightningNodeService.shared.listPayments()
+                    DispatchQueue.main.async {
+                        let transactionsNotificationDict:[AnyHashable:Any] = ["transactions":actualTransactions,"lightningnodeservice":self,"channels":actualChannels,"payments":actualPayments]
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
+                    }
+                }
+            } catch {
+                print("Error getting transactions. \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Invoice {
+        let invoice = try ldkNode.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
+        return invoice
+    }
+
 
 }
 
