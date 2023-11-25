@@ -186,7 +186,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
                                 thisTransaction.id = "Lightning transaction"
                                 
-                                self.setTransactions += [thisTransaction]
+                                if eachPayment.status == .succeeded {
+                                    self.setTransactions += [thisTransaction]
+                                }
                             }
                         }
                         
