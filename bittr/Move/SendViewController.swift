@@ -58,6 +58,18 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     var lightningNodeService:LightningNodeService?
     
+    @IBOutlet weak var switchView: UIView!
+    @IBOutlet weak var regularView: UIView!
+    @IBOutlet weak var instantView: UIView!
+    @IBOutlet weak var regularButton: UIButton!
+    @IBOutlet weak var instantButton: UIButton!
+    @IBOutlet weak var toLabel: UILabel!
+    @IBOutlet weak var topLabel: UILabel!
+    @IBOutlet weak var amountLabel: UILabel!
+    @IBOutlet weak var nextLabel: UILabel!
+    @IBOutlet weak var nextViewTop: NSLayoutConstraint!
+    @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -72,6 +84,8 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         nextButton.setTitle("", for: .normal)
         editButton.setTitle("", for: .normal)
         sendButton.setTitle("", for: .normal)
+        regularButton.setTitle("", for: .normal)
+        instantButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         fromView.layer.cornerRadius = 13
@@ -81,6 +95,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         confirmHeaderView.layer.cornerRadius = 13
         editView.layer.cornerRadius = 13
         sendView.layer.cornerRadius = 13
+        switchView.layer.cornerRadius = 13
         
         toTextField.delegate = self
         amountTextField.delegate = self
@@ -217,32 +232,112 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        let formatter = NumberFormatter()
-        formatter.decimalSeparator = "."
-        if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) == 0  {
+        if self.nextLabel.text == "Next" {
             
-            // Fields are left empty or the amount if set to zero.
-            
-        } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
-            
-            // Insufficient funds available.
-            let alert = UIAlertController(title: "Oops!", message: "Make sure the amount of BTC you wish to send is within your spendable balance.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
-        } else {
-            
-            self.fromConfirmation.text = self.fromLabel.text
-            self.toConfirmation.text = self.toTextField.text
-            self.amountConfirmation.text = self.amountTextField.text
-            self.feesConfirmation.text = "0.0"
-            self.totalConfirmation.text = self.amountTextField.text
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            let formatter = NumberFormatter()
+            formatter.decimalSeparator = "."
+            if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) == 0  {
                 
-                NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-                self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
-                NSLayoutConstraint.activate([self.scrollViewTrailing])
-                self.view.layoutIfNeeded()
+                // Fields are left empty or the amount if set to zero.
+                
+            } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
+                
+                // Insufficient funds available.
+                let alert = UIAlertController(title: "Oops!", message: "Make sure the amount of BTC you wish to send is within your spendable balance.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                self.present(alert, animated: true)
+            } else {
+            
+                self.nextLabel.alpha = 0
+                self.nextSpinner.startAnimating()
+                
+                self.fromConfirmation.text = self.fromLabel.text
+                self.toConfirmation.text = self.toTextField.text
+                self.amountConfirmation.text = self.amountTextField.text
+                self.feesConfirmation.text = "0.0"
+                self.totalConfirmation.text = self.amountTextField.text
+                
+                if let actualBlockchain = LightningNodeService.shared.getBlockchain() {
+                    
+                    Task {
+                        do {
+                            let high = try actualBlockchain.estimateFee(target: 1)
+                            let medium = try actualBlockchain.estimateFee(target: 3)
+                            let low = try actualBlockchain.estimateFee(target: 6)
+                            
+                            print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
+                            
+                            DispatchQueue.main.async {
+                                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                                    
+                                    NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+                                    self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
+                                    NSLayoutConstraint.activate([self.scrollViewTrailing])
+                                    self.view.layoutIfNeeded()
+                                }
+                                
+                                self.nextLabel.alpha = 1
+                                self.nextSpinner.stopAnimating()
+                            }
+                        } catch {
+                            print("Error: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+        } else if self.nextLabel.text == "Pay" {
+            
+            // Pay lightning invoice.
+            if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespaces) == "" {
+                // Invoice field was left empty.
+            } else {
+                let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to pay invoice \(self.toTextField.text!)?", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in
+                    
+                    self.nextLabel.alpha = 0
+                    self.nextSpinner.startAnimating()
+                    
+                    Task {
+                        do {
+                            let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Invoice(self.toTextField.text!.replacingOccurrences(of: " ", with: "")))
+                            DispatchQueue.main.async {
+                                // Success alert
+                                let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                                self.present(alert, animated: true)
+                                
+                                self.nextLabel.alpha = 1
+                                self.nextSpinner.stopAnimating()
+                                self.toTextField.text = nil
+                            }
+                        } catch let error as NodeError {
+                            let errorString = handleNodeError(error)
+                            DispatchQueue.main.async {
+                                // Error alert for NodeError
+                                
+                                self.nextLabel.alpha = 1
+                                self.nextSpinner.stopAnimating()
+                                
+                                let alert = UIAlertController(title: "Payment Error", message: errorString.detail, preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                self.present(alert, animated: true)
+                            }
+                        } catch {
+                            DispatchQueue.main.async {
+                                // General error alert
+                                
+                                self.nextLabel.alpha = 1
+                                self.nextSpinner.stopAnimating()
+                                
+                                let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                self.present(alert, animated: true)
+                            }
+                        }
+                    }
+                }))
+                self.present(alert, animated: true)
             }
         }
     }
@@ -308,6 +403,49 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         }))
         self.present(alert, animated: true)
     }
+    
+    
+    @IBAction func switchTapped(_ sender: UIButton) {
+        
+        if sender.accessibilityIdentifier == "regular" {
+            self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                
+                self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet."
+                self.toLabel.text = "To"
+                self.toTextField.placeholder = "Enter address"
+                self.amountView.alpha = 1
+                self.amountLabel.alpha = 1
+                self.availableAmount.alpha = 1
+                self.availableButton.alpha = 1
+                self.nextLabel.text = "Next"
+                self.nextViewTop.constant = 30
+                
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                
+                self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
+                self.toLabel.text = "Invoice"
+                self.toTextField.placeholder = "Enter invoice"
+                self.amountView.alpha = 0
+                self.amountLabel.alpha = 0
+                self.availableAmount.alpha = 0
+                self.availableButton.alpha = 0
+                self.nextLabel.text = "Pay"
+                self.nextViewTop.constant = -80
+                
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
 }
 
 extension UITextField {

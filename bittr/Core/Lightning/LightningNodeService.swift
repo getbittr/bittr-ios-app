@@ -310,6 +310,12 @@ class LightningNodeService {
         let invoice = try ldkNode.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
         return invoice
     }
+    
+    func sendPayment(invoice: Invoice) async throws -> PaymentHash {
+        let paymentHash = try ldkNode.sendPayment(invoice: invoice)
+        return paymentHash
+    }
+
 
 
 }

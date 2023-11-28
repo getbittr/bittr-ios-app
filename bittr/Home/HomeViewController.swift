@@ -127,6 +127,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 for eachTransaction in receivedTransactions {
                     txIds += [eachTransaction.txid]
                 }
+                /*if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
+                    for eachPayment in receivedPayments {
+                        txIds += [eachPayment.preimage ?? "Lightning transaction"]
+                    }
+                }*/
+                
                 Task {
                     await fetchTransactionData(txIds:txIds)
                     
@@ -184,7 +190,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 }
                                 thisTransaction.isLightning = true
                                 thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                                thisTransaction.id = "Lightning transaction"
+                                thisTransaction.id = eachPayment.preimage ?? "Lightning transaction"
+                                
+                                if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
+                                    thisTransaction.isBittr = true
+                                    thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                    thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                                    
+                                    print(thisTransaction.purchaseAmount)
+                                }
                                 
                                 if eachPayment.status == .succeeded {
                                     self.setTransactions += [thisTransaction]
@@ -211,7 +225,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         
-        
         // Step 11.
         let bitcoinViewModel = BitcoinViewModel()
         Task {
@@ -235,47 +248,58 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var accumulatedInvestments = 0
         var accumulatedCurrentValue = 0
         
-        for eachTransaction in self.setTransactions {
+        var correctValue:CGFloat = self.eurValue
+        var currencySymbol = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            correctValue = self.chfValue
+            currencySymbol = "CHF"
+        }
+        
+        if self.setTransactions.count == 0 {
+            // There are no transactions.
+            self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+            self.bittrProfitLabel.alpha = 1
+            self.bittrProfitSpinner.stopAnimating()
             
-            var correctValue:CGFloat = self.eurValue
-            var currencySymbol = "€"
-            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.chfValue
-                currencySymbol = "CHF"
-            }
-            
-            if eachTransaction.isBittr == true {
+            self.calculatedProfit = accumulatedProfit
+            self.calculatedInvestments = accumulatedInvestments
+            self.calculatedCurrentValue = accumulatedCurrentValue
+        } else {
+            for eachTransaction in self.setTransactions {
                 
-                handledTransactions += 1
-                let transactionValue = CGFloat(eachTransaction.received)/100000000
-                let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
-                
-                accumulatedProfit += transactionProfit
-                accumulatedInvestments += eachTransaction.purchaseAmount
-                accumulatedCurrentValue += Int((transactionValue*correctValue).rounded())
-                
-                if bittrTransactionsCount == handledTransactions {
-                    // We're done counting.
+                if eachTransaction.isBittr == true {
                     
-                    self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
-                    self.bittrProfitLabel.alpha = 1
-                    self.bittrProfitSpinner.stopAnimating()
+                    handledTransactions += 1
+                    let transactionValue = CGFloat(eachTransaction.received)/100000000
+                    let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
                     
-                    self.calculatedProfit = accumulatedProfit
-                    self.calculatedInvestments = accumulatedInvestments
-                    self.calculatedCurrentValue = accumulatedCurrentValue
-                }
-            } else {
-                
-                if bittrTransactionsCount == handledTransactions {
+                    accumulatedProfit += transactionProfit
+                    accumulatedInvestments += eachTransaction.purchaseAmount
+                    accumulatedCurrentValue += Int((transactionValue*correctValue).rounded())
                     
-                    self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
-                    self.bittrProfitLabel.alpha = 1
-                    self.bittrProfitSpinner.stopAnimating()
+                    if bittrTransactionsCount == handledTransactions {
+                        // We're done counting.
+                        
+                        self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+                        self.bittrProfitLabel.alpha = 1
+                        self.bittrProfitSpinner.stopAnimating()
+                        
+                        self.calculatedProfit = accumulatedProfit
+                        self.calculatedInvestments = accumulatedInvestments
+                        self.calculatedCurrentValue = accumulatedCurrentValue
+                    }
+                } else {
                     
-                    self.calculatedProfit = accumulatedProfit
-                    self.calculatedInvestments = accumulatedInvestments
-                    self.calculatedCurrentValue = accumulatedCurrentValue
+                    if bittrTransactionsCount == handledTransactions {
+                        
+                        self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+                        self.bittrProfitLabel.alpha = 1
+                        self.bittrProfitSpinner.stopAnimating()
+                        
+                        self.calculatedProfit = accumulatedProfit
+                        self.calculatedInvestments = accumulatedInvestments
+                        self.calculatedCurrentValue = accumulatedCurrentValue
+                    }
                 }
             }
         }
@@ -299,7 +323,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 return true
             }
         } catch {
-            print("Error: \(error.localizedDescription)")
+            print("Bittr error: \(error.localizedDescription)")
             return false
         }
     }
