@@ -36,6 +36,8 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         
         if let actualHeaderImage = headerImage {
             oneArticleImage.image = actualHeaderImage
+        } else {
+            oneArticleImage.image = UIImage(data: CacheManager.getImage(key: self.article?.image ?? "empty"))
         }
         
         if oneArticleImage.image == nil {
@@ -54,6 +56,19 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
                             DispatchQueue.main.async {
                                 self.imageSpinner.stopAnimating()
                                 self.oneArticleImage.image = image
+                                
+                                // Store image in cache.
+                                let imageSize = image!.size.height * image!.size.width
+                                let imageDownsize = 1000000 / imageSize
+                                var imageData:Data?
+                                if imageDownsize < 1 {
+                                    imageData = image!.jpegData(compressionQuality: imageDownsize)!
+                                } else {
+                                    imageData = image!.jpegData(compressionQuality: 1)!
+                                }
+                                if let actualImageData = imageData {
+                                    CacheManager.storeImageInCache(key: self.article!.image, data: actualImageData)
+                                }
                             }
                         } else {
                             print("Couldn't get image: Image is nil")

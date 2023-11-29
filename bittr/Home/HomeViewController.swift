@@ -127,11 +127,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 for eachTransaction in receivedTransactions {
                     txIds += [eachTransaction.txid]
                 }
-                /*if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
+                if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                     for eachPayment in receivedPayments {
-                        txIds += [eachPayment.preimage ?? "Lightning transaction"]
+                        if eachPayment.preimage != nil {
+                            txIds += [eachPayment.preimage ?? "Lightning transaction"]
+                        }
                     }
-                }*/
+                }
                 
                 Task {
                     await fetchTransactionData(txIds:txIds)

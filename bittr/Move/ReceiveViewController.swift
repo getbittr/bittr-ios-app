@@ -134,7 +134,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             if let newAddress = userInfo["address"] as? String {
                 self.addressLabel.text = newAddress
                 self.addressCopy.alpha = 1
-                self.qrCodeImage.image = generateQRCode(from: newAddress)
+                self.qrCodeImage.image = generateQRCode(from: "bitcoin:" + newAddress)
                 self.qrCodeImage.layer.magnificationFilter = .nearest
                 self.qrCodeImage.alpha = 1
                 self.addressSpinner.stopAnimating()

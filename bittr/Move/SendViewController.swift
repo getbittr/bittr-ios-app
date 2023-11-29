@@ -8,8 +8,11 @@
 import UIKit
 import LDKNode
 import BitcoinDevKit
+import CodeScanner
+import AVFoundation
 
-class SendViewController: UIViewController, UITextFieldDelegate {
+
+class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
 
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
@@ -58,6 +61,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     var lightningNodeService:LightningNodeService?
     
+    @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var switchView: UIView!
     @IBOutlet weak var regularView: UIView!
     @IBOutlet weak var instantView: UIView!
@@ -69,6 +73,11 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var nextViewTop: NSLayoutConstraint!
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
+    
+    var captureSession: AVCaptureSession!
+    var previewLayer: AVCaptureVideoPreviewLayer!
+    @IBOutlet weak var scannerView: UIView!
+    var scannerWorks = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -96,6 +105,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         editView.layer.cornerRadius = 13
         sendView.layer.cornerRadius = 13
         switchView.layer.cornerRadius = 13
+        scannerView.layer.cornerRadius = 13
         
         toTextField.delegate = self
         amountTextField.delegate = self
@@ -114,12 +124,161 @@ class SendViewController: UIViewController, UITextFieldDelegate {
             self.toTextFieldTrailing.constant = 0
             self.amountTextField.text = String(actualPresetAmount)
         }
+        
+        /*let codeScanner = CodeScannerView(codeTypes: [.qr]) { result in
+        }*/
+        
+        fixQrScanner()
+        
     }
+    
+    
+    func fixQrScanner() {
+        
+        captureSession = AVCaptureSession()
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
+            self.scannerWorks = false
+            return
+        }
+        let videoInput: AVCaptureDeviceInput
+        do {
+            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+        } catch {
+            self.scannerWorks = false
+            return
+        }
+        
+        if (captureSession.canAddInput(videoInput)) {
+            captureSession.addInput(videoInput)
+        } else {
+            failed()
+            return
+        }
+        
+        let metadataOutput = AVCaptureMetadataOutput()
+        
+        if (captureSession.canAddOutput(metadataOutput)) {
+            captureSession.addOutput(metadataOutput)
+
+            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+            metadataOutput.metadataObjectTypes = [.qr]
+        } else {
+            failed()
+            return
+        }
+        
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.frame = self.scannerView.layer.bounds
+        previewLayer.videoGravity = .resizeAspectFill
+        self.scannerView.layer.addSublayer(previewLayer)
+        
+        captureSession.startRunning()
+        self.scannerWorks = true
+    }
+    
+    func failed() {
+        let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
+        ac.addAction(UIAlertAction(title: "Okay", style: .default))
+        present(ac, animated: true)
+        captureSession = nil
+        
+        self.scannerWorks = false
+        
+        self.scannerView.alpha = 0
+        self.toLabel.alpha = 1
+        self.toView.alpha = 1
+        self.amountLabel.alpha = 1
+        self.amountView.alpha = 1
+        self.availableAmount.alpha = 1
+        self.availableButton.alpha = 1
+        self.nextViewTop.constant = -30
+        //self.nextView.alpha = 1
+    }
+    
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        
+        captureSession.stopRunning()
+
+        if let metadataObject = metadataObjects.first {
+            guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
+            guard let stringValue = readableObject.stringValue else { return }
+            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+            found(code: stringValue)
+        }
+    }
+    
+    func found(code: String) {
+        print(code)
+        
+        if !code.contains("bitcoin") {
+            self.toTextField.text = nil
+            self.amountTextField.text = nil
+            let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "Okay", style: .default))
+            present(ac, animated: true)
+        } else {
+            let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "")
+            let components = address.components(separatedBy: "?")
+            if let bitcoinAddress = components.first {
+                // Success.
+                self.toTextField.text = bitcoinAddress
+                
+                if components.count > 1 {
+                    if components[1].contains("amount") {
+                        //let bitcoinAmount = components[1].replacingOccurrences(of: "amount=", with: "")
+                        
+                        let numberFormatter = NumberFormatter()
+                        numberFormatter.numberStyle = .decimal
+                        let bitcoinAmount = numberFormatter.number(from: components[1].replacingOccurrences(of: "amount=", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber
+                        
+                        self.amountTextField.text = "\(bitcoinAmount)"
+                    } else {
+                        self.amountTextField.text = nil
+                    }
+                } else {
+                    self.amountTextField.text = nil
+                }
+            } else {
+                self.toTextField.text = nil
+                self.amountTextField.text = nil
+                let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "Okay", style: .default))
+                present(ac, animated: true)
+            }
+        }
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            
+            self.scannerView.alpha = 0
+            self.toLabel.alpha = 1
+            self.toView.alpha = 1
+            self.amountLabel.alpha = 1
+            self.amountView.alpha = 1
+            self.availableAmount.alpha = 1
+            self.availableButton.alpha = 1
+            self.nextLabel.text = "Next"
+            self.nextViewTop.constant = -30
+            
+            self.view.layoutIfNeeded()
+        }
+    }
+    
     
     override func viewWillAppear(_ animated: Bool) {
         
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        
+        if (captureSession?.isRunning == false) {
+            captureSession.startRunning()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        
+        if (captureSession?.isRunning == true) {
+            captureSession.stopRunning()
+        }
     }
     
     @objc func keyboardWillDisappear() {
@@ -222,7 +381,30 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
         
-        self.toTextField.text = UIPasteboard.general.string
+        //self.toTextField.text = UIPasteboard.general.string
+        
+        // Open QR scanner.
+        if self.scannerWorks == true {
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.toLabel.alpha = 0
+                self.toView.alpha = 0
+                self.amountView.alpha = 0
+                self.amountLabel.alpha = 0
+                self.availableAmount.alpha = 0
+                self.availableButton.alpha = 0
+                //self.nextView.alpha = 0
+                self.scannerView.alpha = 1
+                self.nextLabel.text = "Manual input"
+                self.nextViewTop.constant = 30
+                
+                self.view.layoutIfNeeded()
+            }
+            
+            if (self.captureSession?.isRunning == false) {
+                self.captureSession.startRunning()
+            }
+        }
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
@@ -339,6 +521,24 @@ class SendViewController: UIViewController, UITextFieldDelegate {
                 }))
                 self.present(alert, animated: true)
             }
+        } else if self.nextLabel.text == "Manual input" {
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                
+                self.toLabel.alpha = 1
+                self.toView.alpha = 1
+                self.amountView.alpha = 1
+                self.amountLabel.alpha = 1
+                self.availableAmount.alpha = 1
+                self.availableButton.alpha = 1
+                //self.nextView.alpha = 1
+                self.scannerView.alpha = 0
+                self.nextViewTop.constant = -30
+                self.nextLabel.text = "Next"
+                
+                self.view.layoutIfNeeded()
+            }
+            
         }
     }
     
@@ -408,29 +608,58 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     @IBAction func switchTapped(_ sender: UIButton) {
         
         if sender.accessibilityIdentifier == "regular" {
+            // Regular
+            
             self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
-                self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet."
-                self.toLabel.text = "To"
+                self.toTextField.text = nil
+                self.amountTextField.text = nil
+                self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
+                self.toLabel.text = "Address"
                 self.toTextField.placeholder = "Enter address"
-                self.amountView.alpha = 1
-                self.amountLabel.alpha = 1
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                self.nextLabel.text = "Next"
-                self.nextViewTop.constant = 30
+                if self.scannerWorks == true {
+                    self.toLabel.alpha = 0
+                    self.toView.alpha = 0
+                    self.amountView.alpha = 0
+                    self.amountLabel.alpha = 0
+                    self.availableAmount.alpha = 0
+                    self.availableButton.alpha = 0
+                    //self.nextView.alpha = 0
+                    self.scannerView.alpha = 1
+                    self.nextLabel.text = "Manual input"
+                    self.nextViewTop.constant = 30
+                    
+                    if (self.captureSession?.isRunning == false) {
+                        self.captureSession.startRunning()
+                    }
+                } else {
+                    self.toLabel.alpha = 1
+                    self.toView.alpha = 1
+                    self.amountView.alpha = 1
+                    self.amountLabel.alpha = 1
+                    self.availableAmount.alpha = 1
+                    self.availableButton.alpha = 1
+                    //self.nextView.alpha = 1
+                    self.scannerView.alpha = 0
+                    self.nextLabel.text = "Next"
+                    self.nextViewTop.constant = -30
+                }
                 
                 self.view.layoutIfNeeded()
             }
         } else {
+            // Instant
+            
             self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
+                self.toTextField.text = nil
+                self.amountTextField.text = nil
                 self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
                 self.toLabel.text = "Invoice"
                 self.toTextField.placeholder = "Enter invoice"
@@ -439,7 +668,11 @@ class SendViewController: UIViewController, UITextFieldDelegate {
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
                 self.nextLabel.text = "Pay"
-                self.nextViewTop.constant = -80
+                self.nextViewTop.constant = -140
+                self.scannerView.alpha = 0
+                self.toLabel.alpha = 1
+                self.toView.alpha = 1
+                //self.nextView.alpha = 1
                 
                 self.view.layoutIfNeeded()
             }

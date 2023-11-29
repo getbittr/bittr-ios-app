@@ -198,4 +198,36 @@ class CacheManager: NSObject {
         }
     }
     
+    
+    static func storeImageInCache(key:String, data:Data) {
+        let defaults = UserDefaults.standard
+        var existingImages = defaults.value(forKey: "articleimages") as? [String:Data]
+        if var actualExistingImages = existingImages {
+            // Images have already been stored.
+            actualExistingImages.updateValue(data, forKey: key)
+            defaults.set(actualExistingImages, forKey: "articleimages")
+        } else {
+            // No images have been stored yet.
+            var newExistingImages = [String:Data]()
+            newExistingImages.updateValue(data, forKey: key)
+            defaults.set(newExistingImages, forKey: "articleimages")
+        }
+    }
+    
+    
+    static func getImage(key:String) -> Data {
+        
+        let defaults = UserDefaults.standard
+        var existingImages = defaults.value(forKey: "articleimages") as? [String:Data]
+        
+        if let actualExistingImages = existingImages {
+            if let actualImage = actualExistingImages[key] {
+                return actualImage
+            }
+        }
+        
+        return Data()
+    }
+    
+    
 }
