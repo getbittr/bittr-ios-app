@@ -114,7 +114,63 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(setTotalSats), name: NSNotification.Name(rawValue: "settotalsats"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
+        
+        // TODO: Hide after testing.
+        //CacheManager.deleteCache()
+        showCachedData()
     }
+    
+    
+    func showCachedData() {
+        
+        // Set cached balance.
+        if let cachedBalance = CacheManager.getCachedData(key: "balance") as? String {
+            if cachedBalance != "empty" {
+                
+                if let htmlData = cachedBalance.data(using: .unicode) {
+                    do {
+                        let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                        balanceLabel.attributedText = attributedText
+                        balanceLabel.alpha = 1
+                    } catch let e as NSError {
+                        print("Couldn't fetch text: \(e.localizedDescription)")
+                    }
+                }
+            }
+        }
+        
+        // Set cached conversion.
+        /*if let cachedConversion = CacheManager.getCachedData(key: "conversion") as? String {
+            if cachedConversion != "empty" {
+                
+                self.conversionLabel.text = cachedConversion
+                self.balanceSpinner.stopAnimating()
+                self.conversionLabel.alpha = 1
+            }
+        }*/
+        
+        // Set cached Eur Value.
+        if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
+            self.eurValue = cachedEurValue
+        }
+        
+        // Set cached Chf Value.
+        if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
+            self.chfValue = cachedChfValue
+        }
+        
+        // Set cached transactions.
+        if let cachedTransactions = CacheManager.getCachedData(key: "transactions") as? [Transaction] {
+            
+            self.setTransactions = cachedTransactions
+            
+            self.homeTableView.reloadData()
+            self.tableSpinner.stopAnimating()
+            self.homeTableView.alpha = 1
+            self.homeTableView.isUserInteractionEnabled = false
+        }
+    }
+    
     
     @objc func loadWalletData(notification:NSNotification) {
         
@@ -122,6 +178,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
                 print("Received: \(receivedTransactions)")
+                
+                self.setTransactions.removeAll()
                 
                 var txIds = [String]()
                 for eachTransaction in receivedTransactions {
@@ -211,6 +269,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         self.setTransactions.sort { transaction1, transaction2 in
                             transaction1.timestamp > transaction2.timestamp
                         }
+                        
+                        CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
                     }
                 }
             }
@@ -447,6 +507,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
                 balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
                 
+                CacheManager.updateCachedData(data: balanceText, key: "balance")
+                
                 if let htmlData = balanceText.data(using: .unicode) {
                     do {
                         let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
@@ -496,6 +558,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             self.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
                             self.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
                             
+                            CacheManager.updateCachedData(data: self.eurValue, key: "eurvalue")
+                            CacheManager.updateCachedData(data: self.chfValue, key: "chfvalue")
+                            
                             var correctValue:CGFloat = self.eurValue
                             var currencySymbol = "€"
                             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
@@ -526,11 +591,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             
                             DispatchQueue.main.async {
                                 self.conversionLabel.text = currencySymbol + " " + balanceValue
+                                CacheManager.updateCachedData(data: currencySymbol + " " + balanceValue, key: "conversion")
                                 self.balanceSpinner.stopAnimating()
                                 self.conversionLabel.alpha = 1
                                 print(currencySymbol + " " + balanceValue)
                                 
                                 self.homeTableView.reloadData()
+                                self.homeTableView.isUserInteractionEnabled = true
                                 self.tableSpinner.stopAnimating()
                                 self.homeTableView.alpha = 1
                                 

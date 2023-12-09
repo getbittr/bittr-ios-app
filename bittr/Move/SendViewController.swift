@@ -73,6 +73,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var nextViewTop: NSLayoutConstraint!
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var qrImage: UIImageView!
     
     var captureSession: AVCaptureSession!
     var previewLayer: AVCaptureVideoPreviewLayer!
@@ -389,6 +390,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 self.toLabel.alpha = 0
                 self.toView.alpha = 0
+                self.pasteButton.alpha = 0
+                self.qrImage.alpha = 0
+                self.toTextFieldTrailing.constant = 20
                 self.amountView.alpha = 0
                 self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 0
@@ -527,6 +531,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 
                 self.toLabel.alpha = 1
                 self.toView.alpha = 1
+                self.pasteButton.alpha = 1
+                self.qrImage.alpha = 1
+                self.toTextFieldTrailing.constant = -10
                 self.amountView.alpha = 1
                 self.amountLabel.alpha = 1
                 self.availableAmount.alpha = 1
@@ -623,6 +630,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 if self.scannerWorks == true {
                     self.toLabel.alpha = 0
                     self.toView.alpha = 0
+                    self.pasteButton.alpha = 0
+                    self.qrImage.alpha = 0
+                    self.toTextFieldTrailing.constant = 20
                     self.amountView.alpha = 0
                     self.amountLabel.alpha = 0
                     self.availableAmount.alpha = 0
@@ -638,6 +648,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 } else {
                     self.toLabel.alpha = 1
                     self.toView.alpha = 1
+                    self.pasteButton.alpha = 0
+                    self.qrImage.alpha = 0
+                    self.toTextFieldTrailing.constant = 20
                     self.amountView.alpha = 1
                     self.amountLabel.alpha = 1
                     self.availableAmount.alpha = 1
@@ -658,6 +671,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
+                self.pasteButton.alpha = 0
+                self.qrImage.alpha = 0
+                self.toTextFieldTrailing.constant = 20
                 self.toTextField.text = nil
                 self.amountTextField.text = nil
                 self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."

@@ -8,12 +8,18 @@
 import UIKit
 
 class CacheManager: NSObject {
-
+    
     
     static func deleteClientInfo() {
         
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: "device")
+    }
+    
+    static func deleteCache() {
+        
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "cache")
     }
     
     
@@ -227,6 +233,203 @@ class CacheManager: NSObject {
         }
         
         return Data()
+    }
+    
+    
+    static func parseTransactions(transactions:[Transaction]) -> [NSDictionary] {
+        
+        var transactionsDict = [NSDictionary()]
+        
+        for eachTransaction in transactions {
+            
+            let oneTransaction = NSMutableDictionary()
+            oneTransaction.setObject(eachTransaction.id, forKey: "id" as NSCopying)
+            oneTransaction.setObject(eachTransaction.purchaseAmount, forKey: "purchaseAmount" as NSCopying)
+            oneTransaction.setObject(eachTransaction.received, forKey: "received" as NSCopying)
+            oneTransaction.setObject(eachTransaction.sent, forKey: "sent" as NSCopying)
+            oneTransaction.setObject(eachTransaction.isBittr, forKey: "isBittr" as NSCopying)
+            oneTransaction.setObject(eachTransaction.timestamp, forKey: "timestamp" as NSCopying)
+            oneTransaction.setObject(eachTransaction.currency, forKey: "currency" as NSCopying)
+            oneTransaction.setObject(eachTransaction.height, forKey: "height" as NSCopying)
+            oneTransaction.setObject(eachTransaction.isLightning, forKey: "isLightning" as NSCopying)
+            oneTransaction.setObject(eachTransaction.fee, forKey: "fee" as NSCopying)
+            
+            transactionsDict += [oneTransaction]
+        }
+        
+        return transactionsDict
+    }
+    
+    static func getTransactions(transactionsDict:[NSDictionary]) -> [Transaction] {
+        
+        var allTransactions = [Transaction]()
+        
+        for eachTransaction in transactionsDict {
+            
+            let thisTransaction = Transaction()
+            if let transactionID = eachTransaction["id"] as? String {
+                thisTransaction.id = transactionID
+            }
+            if let transactionPurchase = eachTransaction["purchaseAmount"] as? Int {
+                thisTransaction.purchaseAmount = transactionPurchase
+            }
+            if let transactionReceived = eachTransaction["received"] as? Int {
+                thisTransaction.received = transactionReceived
+            }
+            if let transactionSent = eachTransaction["sent"] as? Int {
+                thisTransaction.sent = transactionSent
+            }
+            if let transactionBittr = eachTransaction["isBittr"] as? Bool {
+                thisTransaction.isBittr = transactionBittr
+            }
+            if let transactionTimestamp = eachTransaction["timestamp"] as? Int {
+                thisTransaction.timestamp = transactionTimestamp
+            }
+            if let transactionCurrency = eachTransaction["currency"] as? String {
+                thisTransaction.currency = transactionCurrency
+            }
+            if let transactionHeight = eachTransaction["height"] as? Int {
+                thisTransaction.height = transactionHeight
+            }
+            if let transactionLightning = eachTransaction["isLightning"] as? Bool {
+                thisTransaction.isLightning = transactionLightning
+            }
+            if let transactionFee = eachTransaction["fee"] as? Int {
+                thisTransaction.fee = transactionFee
+            }
+            
+            allTransactions += [thisTransaction]
+        }
+        
+        return allTransactions
+    }
+    
+    
+    static func updateCachedData(data:Any, key:String) {
+        
+        let defaults = UserDefaults.standard
+        let existingCache = defaults.value(forKey: "cache") as? NSDictionary
+        
+        if let actualExistingCache = existingCache {
+            // Cache is available.
+            
+            if let actualMutableCache = actualExistingCache.mutableCopy() as? NSMutableDictionary {
+                if key == "balance" {
+                    if let actualData = data as? String {
+                        actualMutableCache.setObject(actualData, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: "cache")
+                    }
+                } else if key == "transactions" {
+                    if let actualData = data as? [Transaction] {
+                        let actualDataDict = self.parseTransactions(transactions: actualData)
+                        actualMutableCache.setObject(actualDataDict, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: "cache")
+                    }
+                } else if key == "conversion" {
+                    if let actualData = data as? String {
+                        actualMutableCache.setObject(actualData, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: "cache")
+                    }
+                } else if key == "eurvalue" {
+                    if let actualData = data as? CGFloat {
+                        actualMutableCache.setObject(actualData, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: "cache")
+                    }
+                } else if key == "chfvalue" {
+                    if let actualData = data as? CGFloat {
+                        actualMutableCache.setObject(actualData, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: "cache")
+                    }
+                }
+            }
+        } else {
+            // No cache exista yet.
+            
+            if key == "balance" {
+                if let actualData = data as? String {
+                    let newCache = NSMutableDictionary()
+                    newCache.setObject(actualData, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: "cache")
+                }
+            } else if key == "transactions" {
+                if let actualData = data as? [Transaction] {
+                    let newCache = NSMutableDictionary()
+                    let actualDataDict = self.parseTransactions(transactions: actualData)
+                    newCache.setObject(actualDataDict, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: "cache")
+                }
+            } else if key == "conversion" {
+                if let actualData = data as? String {
+                    let newCache = NSMutableDictionary()
+                    newCache.setObject(actualData, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: "cache")
+                }
+            } else if key == "eurvalue" {
+                if let actualData = data as? CGFloat {
+                    let newCache = NSMutableDictionary()
+                    newCache.setObject(actualData, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: "cache")
+                }
+            } else if key == "chfvalue" {
+                if let actualData = data as? CGFloat {
+                    let newCache = NSMutableDictionary()
+                    newCache.setObject(actualData, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: "cache")
+                }
+            }
+        }
+        
+        
+    }
+    
+    static func getCachedData(key:String) -> Any {
+        
+        let defaults = UserDefaults.standard
+        let cachedData = defaults.value(forKey: "cache") as? NSDictionary
+        
+        if let actualCachedData = cachedData {
+            
+            if key == "balance" {
+                if let cachedBalance = actualCachedData[key] as? String {
+                    return cachedBalance
+                } else {
+                    return "empty"
+                }
+            } else if key == "transactions" {
+                if let cachedTransactions = actualCachedData[key] as? [NSDictionary] {
+                    
+                    let parsedTransactions = self.getTransactions(transactionsDict: cachedTransactions)
+                    
+                    return parsedTransactions
+                    
+                } else {
+                    return "empty"
+                }
+            } else if key == "conversion" {
+                if let cachedConversion = actualCachedData[key] as? String {
+                    return cachedConversion
+                } else {
+                    return "empty"
+                }
+            } else if key == "eurvalue" {
+                if let cachedEurValue = actualCachedData[key] as? CGFloat {
+                    return cachedEurValue
+                } else {
+                    return "empty"
+                }
+            } else if key == "chfvalue" {
+                if let cachedChfValue = actualCachedData[key] as? CGFloat {
+                    return cachedChfValue
+                } else {
+                    return "empty"
+                }
+            } else {
+                return "empty"
+            }
+        } else {
+            // No data has been cached yet.
+            return "empty"
+        }
     }
     
     
