@@ -7,8 +7,9 @@
 
 import UIKit
 import BitcoinDevKit
+import UserNotifications
 
-class Transfer15ViewController: UIViewController, UITextFieldDelegate {
+class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
     
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var nextView: UIView!
@@ -33,6 +34,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     var addressViewModel = AddressViewModel()
     var nodeIDViewModel = NodeIDViewModel()
     
+    var setSender = ""
+    var start2Fa = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -49,6 +53,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
         backgroundButton2.setTitle("", for: .normal)
         
         NotificationCenter.default.addObserver(self, selector: #selector(updateClient), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
     }
     
     @objc func updateClient(notification:NSNotification) {
@@ -82,103 +87,132 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
             self.nextButtonLabel.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
             
-            let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
-            if let actualDeviceDict = deviceDict {
-                // Some device information exists.
-                let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-                
-                for client in clients {
-                    if client.id == self.currentClientID {
-                        
-                        for iban in client.ibanEntities {
-                            if iban.id == self.currentIbanID {
-                                
-                                let parameters = [
-                                  [
-                                    "key": "email_address",
-                                    "value": iban.yourEmail,
-                                    "type": "text"
-                                  ],
-                                  [
-                                    "key": "token_2fa",
-                                    "value": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    "type": "text"
-                                  ]] as [[String : Any]]
-                                
-                                let boundary = "Boundary-\(UUID().uuidString)"
-                                var body = ""
-                                var error: Error? = nil
-                                for param in parameters {
-                                    if param["disabled"] == nil {
-                                        let paramName = param["key"]!
-                                        body += "--\(boundary)\r\n"
-                                        body += "Content-Disposition:form-data; name=\"\(paramName)\""
-                                        if param["contentType"] != nil {
-                                            body += "\r\nContent-Type: \(param["contentType"] as! String)"
-                                        }
-                                        let paramType = param["type"] as! String
-                                        if paramType == "text" {
-                                            let paramValue = param["value"] as! String
-                                            body += "\r\n\r\n\(paramValue)\r\n"
-                                        } /*else {
-                                          let paramSrc = param["src"] as! String
-                                          let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
-                                          let fileContent = String(data: fileData, encoding: .utf8)!
-                                          body += "; filename=\"\(paramSrc)\"\r\n"
-                                            + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
-                                        }*/
-                                        
+            let current = UNUserNotificationCenter.current()
+            current.getNotificationSettings { (settings) in
+                if settings.authorizationStatus == .notDetermined {
+                    
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: "Receive notifications", message: "\nTo send you bitcoin lightning payments, we need to notify you to open the Bittr app.\n\nPlease select your preference in the next alert.", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                            self.askForPushNotifications(sender: sender.accessibilityIdentifier!)
+                        }))
+                        self.present(alert, animated: true)
+                    }
+                } else {
+                    self.check2Fa(sender: sender.accessibilityIdentifier!)
+                }
+            }
+        }
+    }
+    
+    
+    @objc func resume2Fa() {
+        if start2Fa == true {
+            self.check2Fa(sender: self.setSender)
+            self.start2Fa = false
+        }
+    }
+    
+    func check2Fa(sender:String) {
+        
+        print("Check 2FA started.")
+        
+        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        if let actualDeviceDict = deviceDict {
+            // Some device information exists.
+            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            
+            for client in clients {
+                if client.id == self.currentClientID {
+                    
+                    for iban in client.ibanEntities {
+                        if iban.id == self.currentIbanID {
+                            
+                            let parameters = [
+                              [
+                                "key": "email_address",
+                                "value": iban.yourEmail,
+                                "type": "text"
+                              ],
+                              [
+                                "key": "token_2fa",
+                                "value": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines),
+                                "type": "text"
+                              ]] as [[String : Any]]
+                            
+                            let boundary = "Boundary-\(UUID().uuidString)"
+                            var body = ""
+                            var error: Error? = nil
+                            for param in parameters {
+                                if param["disabled"] == nil {
+                                    let paramName = param["key"]!
+                                    body += "--\(boundary)\r\n"
+                                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
+                                    if param["contentType"] != nil {
+                                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
                                     }
-                                }
-                                body += "--\(boundary)--\r\n";
-                                let postData = body.data(using: .utf8)
-                                
-                                var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email/check2fa")!,timeoutInterval: Double.infinity)
-                                request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-                                request.httpMethod = "POST"
-                                request.httpBody = postData
-                                
-                                let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                                    guard let data = data else {
-                                        print(String(describing: error))
-                                        return
-                                    }
-                                    print(String(data: data, encoding: .utf8)!)
+                                    let paramType = param["type"] as! String
+                                    if paramType == "text" {
+                                        let paramValue = param["value"] as! String
+                                        body += "\r\n\r\n\(paramValue)\r\n"
+                                    } /*else {
+                                      let paramSrc = param["src"] as! String
+                                      let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
+                                      let fileContent = String(data: fileData, encoding: .utf8)!
+                                      body += "; filename=\"\(paramSrc)\"\r\n"
+                                        + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
+                                    }*/
                                     
-                                    var dataDictionary:NSDictionary?
-                                    if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                                        
-                                        do {
-                                            dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                                            if let actualDataDict = dataDictionary {
-                                                let emailToken = actualDataDict["token"]
-                                                let errorMessage = actualDataDict["message"]
-                                                if let actualEmailToken = emailToken as? String {
-                                                    CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
-                                                    
+                                }
+                            }
+                            body += "--\(boundary)--\r\n";
+                            let postData = body.data(using: .utf8)
+                            
+                            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email/check2fa")!,timeoutInterval: Double.infinity)
+                            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                            request.httpMethod = "POST"
+                            request.httpBody = postData
+                            
+                            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                                guard let data = data else {
+                                    print(String(describing: error))
+                                    return
+                                }
+                                print(String(data: data, encoding: .utf8)!)
+                                
+                                var dataDictionary:NSDictionary?
+                                if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                                    
+                                    do {
+                                        dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                                        if let actualDataDict = dataDictionary {
+                                            let emailToken = actualDataDict["token"]
+                                            let errorMessage = actualDataDict["message"]
+                                            if let actualEmailToken = emailToken as? String {
+                                                CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
+                                                
+                                                DispatchQueue.main.async {
+                                                    self.getAddress(page: sender)
+                                                }
+                                            } else if let actualErrorMessage = errorMessage as? String {
+                                                if actualErrorMessage == "Invalid 2FA verification token provided" {
                                                     DispatchQueue.main.async {
-                                                        self.getAddress(page: sender.accessibilityIdentifier!)
-                                                    }
-                                                } else if let actualErrorMessage = errorMessage as? String {
-                                                    if actualErrorMessage == "Invalid 2FA verification token provided" {
-                                                        DispatchQueue.main.async {
-                                                            self.nextButtonActivityIndicator.stopAnimating()
-                                                            self.nextButtonLabel.alpha = 1
-                                                            let alert = UIAlertController(title: "Oops!", message: "Please enter the correct verification code.", preferredStyle: .alert)
-                                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                                                            self.present(alert, animated: true)
-                                                        }
+                                                        self.nextButtonActivityIndicator.stopAnimating()
+                                                        self.nextButtonLabel.alpha = 1
+                                                        let alert = UIAlertController(title: "Oops!", message: "Please enter the correct verification code.", preferredStyle: .alert)
+                                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                                        self.present(alert, animated: true)
                                                     }
                                                 }
                                             }
-                                        } catch let error as NSError {
-                                            print(error)
                                         }
+                                    } catch let error as NSError {
+                                        print(error)
                                     }
                                 }
-                                task.resume()
-                                
                             }
+                            task.resume()
+                            
                         }
                     }
                 }
@@ -277,15 +311,15 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
     func createBittrAccount(receivedAddress:String, receivedSignature:String, message:String, page:String, iban:IbanEntity) {
         
-        let lightningPubKey = LightningNodeService(network: .testnet).nodeId()
+        let lightningPubKey = LightningNodeService.shared.nodeId()
         Task {
             do {
-                let lightningSignature = try await LightningNodeService(network: .testnet).signMessage(message: message)
+                let lightningSignature = try await LightningNodeService.shared.signMessage(message: message)
                 print("Fetched signature: " + lightningSignature)
                 
                 let xpub = LightningNodeService.shared.getXpub()
                 
-                let parameters: [String: Any] = [
+                var parameters: [String: Any] = [
                     "email": iban.yourEmail,
                     "email_token": iban.emailToken,
                     "bitcoin_address": receivedAddress,
@@ -299,7 +333,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
                     "xpub_key": xpub,
                     "xpub_addr_type": "bech32",
                     "xpub_path": "m/0/x",
-                    "skip_xpub_usage_check": "true"
+                    "skip_xpub_usage_check": "true",
+                    "ios_device_token": CacheManager.getRegistrationToken()
                 ]
                 
                 do {
@@ -550,6 +585,42 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+    }
+    
+    func askForPushNotifications(sender:String) {
+        
+        let current = UNUserNotificationCenter.current()
+        current.getNotificationSettings { (settings) in
+            
+            if settings.authorizationStatus == .notDetermined {
+                // User hasn't set their preference yet.
+                
+                current.delegate = self
+                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                    
+                    print("Permission granted: \(granted)")
+                    guard granted else {
+                        self.check2Fa(sender: sender)
+                        return
+                    }
+                    
+                    // Double check that the preference is now authorized.
+                    current.getNotificationSettings { (settings) in
+                        print("Notification settings: \(settings)")
+                        guard settings.authorizationStatus == .authorized else {
+                            self.check2Fa(sender: sender)
+                            return
+                        }
+                        DispatchQueue.main.async {
+                            // Register for notifications.
+                            self.start2Fa = true
+                            self.setSender = sender
+                            UIApplication.shared.registerForRemoteNotifications()
+                        }
+                    }
+                }
+            }
+        }
     }
     
 }

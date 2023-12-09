@@ -8,8 +8,9 @@
 import UIKit
 import LDKNode
 import BitcoinDevKit
+import UserNotifications
 
-class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {
 
     @IBOutlet weak var numberViewLeft: UIView!
     @IBOutlet weak var numberViewMiddle: UIView!
@@ -365,6 +366,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
             }
         }
+        
+        //self.askForPushNotifications()
     }
     
     
@@ -967,6 +970,35 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if scrollView.contentOffset.y < -200, self.didStartReset == false {
             self.didStartReset = true
             self.resetWallet()
+        }
+    }
+    
+    
+    func askForPushNotifications() {
+        
+        let current = UNUserNotificationCenter.current()
+        current.getNotificationSettings { (settings) in
+            
+            if settings.authorizationStatus == .notDetermined {
+                // User hasn't set their preference yet.
+                
+                current.delegate = self
+                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                    
+                    print("Permission granted: \(granted)")
+                    guard granted else {return}
+                    
+                    // Double check that the preference is now authorized.
+                    current.getNotificationSettings { (settings) in
+                        print("Notification settings: \(settings)")
+                        guard settings.authorizationStatus == .authorized else {return}
+                        DispatchQueue.main.async {
+                            // Register for notifications.
+                            UIApplication.shared.registerForRemoteNotifications()
+                        }
+                    }
+                }
+            }
         }
     }
     

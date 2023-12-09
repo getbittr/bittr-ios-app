@@ -433,4 +433,23 @@ class CacheManager: NSObject {
     }
     
     
+    static func storeNotificationsToken(token:String) {
+        
+        let defaults = UserDefaults.standard
+        defaults.set(token, forKey: "notificationstoken")
+    }
+    
+    static func getRegistrationToken() -> String {
+        
+        let defaults = UserDefaults.standard
+        let cachedToken = defaults.value(forKey: "notificationstoken") as? String
+        
+        if let actualCachedToken = cachedToken {
+            return actualCachedToken
+        } else {
+            return "empty"
+        }
+    }
+    
+    
 }
