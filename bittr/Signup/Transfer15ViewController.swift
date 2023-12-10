@@ -90,7 +90,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             let current = UNUserNotificationCenter.current()
             current.getNotificationSettings { (settings) in
                 if settings.authorizationStatus == .notDetermined {
-                    
+                    // Notifications preference hasn't been set yet.
                     DispatchQueue.main.async {
                         let alert = UIAlertController(title: "Receive notifications", message: "\nTo send you bitcoin lightning payments, we need to notify you to open the Bittr app.\n\nPlease select your preference in the next alert.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
@@ -98,6 +98,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         }))
                         self.present(alert, animated: true)
                     }
+                } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == "empty" {
+                    // Notifications preference has been set but token hasn't been cached.
+                    self.askForPushNotifications(sender: sender.accessibilityIdentifier!)
                 } else {
                     self.check2Fa(sender: sender.accessibilityIdentifier!)
                 }
@@ -618,6 +621,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             UIApplication.shared.registerForRemoteNotifications()
                         }
                     }
+                }
+            } else if settings.authorizationStatus == .authorized {
+                // User has already authorized notifications.
+                DispatchQueue.main.async {
+                    // Register for notifications.
+                    self.start2Fa = true
+                    self.setSender = sender
+                    UIApplication.shared.registerForRemoteNotifications()
                 }
             }
         }

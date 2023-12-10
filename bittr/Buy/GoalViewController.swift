@@ -39,6 +39,8 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     
+    var allIbanEntities = [IbanEntity]()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -75,6 +77,19 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         addAnotherView.layer.addSublayer(viewBorder)
         
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        
+        self.parseIbanEntities()
+    }
+    
+    func parseIbanEntities() {
+        
+        for eachIbanEntity in self.client.ibanEntities {
+            if eachIbanEntity.yourUniqueCode != "" {
+                self.allIbanEntities += [eachIbanEntity]
+            }
+        }
+        
+        self.ibanCollectionView.reloadData()
     }
     
     @objc func resetClient() {
@@ -83,7 +98,8 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
             // Client exists in cache.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
             self.client = clients[0]
-            self.ibanCollectionView.reloadData()
+            //self.ibanCollectionView.reloadData()
+            self.parseIbanEntities()
         }
     }
     
@@ -220,20 +236,20 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         
         if let actualCell = cell {
             
-            if self.client.ibanEntities.count == 0 {
+            if self.allIbanEntities.count == 0 {
                 
                 return actualCell
             }
             
-            actualCell.labelYourEmail.text = self.client.ibanEntities[indexPath.row].yourEmail
-            actualCell.labelYourIban.text = self.client.ibanEntities[indexPath.row].yourIbanNumber
-            actualCell.labelOurIban.text = self.client.ibanEntities[indexPath.row].ourIbanNumber
-            actualCell.labelOurName.text = self.client.ibanEntities[indexPath.row].ourName
-            actualCell.labelYourCode.text = self.client.ibanEntities[indexPath.row].yourUniqueCode
+            actualCell.labelYourEmail.text = self.allIbanEntities[indexPath.row].yourEmail
+            actualCell.labelYourIban.text = self.allIbanEntities[indexPath.row].yourIbanNumber
+            actualCell.labelOurIban.text = self.allIbanEntities[indexPath.row].ourIbanNumber
+            actualCell.labelOurName.text = self.allIbanEntities[indexPath.row].ourName
+            actualCell.labelYourCode.text = self.allIbanEntities[indexPath.row].yourUniqueCode
             
-            actualCell.ibanButton.accessibilityIdentifier = self.client.ibanEntities[indexPath.row].ourIbanNumber
-            actualCell.nameButton.accessibilityIdentifier = self.client.ibanEntities[indexPath.row].ourName
-            actualCell.codeButton.accessibilityIdentifier = self.client.ibanEntities[indexPath.row].yourUniqueCode
+            actualCell.ibanButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourIbanNumber
+            actualCell.nameButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourName
+            actualCell.codeButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].yourUniqueCode
             
             return actualCell
         }
@@ -243,9 +259,9 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
-        if self.client.ibanEntities.count > 0 {
+        if /*self.client.ibanEntities.count*/ self.allIbanEntities.count > 0 {
             self.emptyLabel.alpha = 0
-            return self.client.ibanEntities.count
+            return self.allIbanEntities.count
         }
         
         self.emptyLabel.alpha = 1
