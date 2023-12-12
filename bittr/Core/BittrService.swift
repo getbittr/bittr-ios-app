@@ -13,6 +13,42 @@ class BittrService {
     private let baseURL = URL(string: "https://staging.getbittr.com/api/")!
     private let session = URLSession(configuration: .default)
     
+    func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
+            var urlComponents = URLComponents(string: "https://staging.getbittr.com/api/payout/lightning")!
+            urlComponents.queryItems = [
+                URLQueryItem(name: "notification_id", value: notificationId),
+                URLQueryItem(name: "invoice", value: invoice),
+                URLQueryItem(name: "signature", value: signature),
+                URLQueryItem(name: "pubkey", value: pubkey)
+            ]
+            
+            guard let url = urlComponents.url else {
+                throw BittrServiceError.other("Invalid URL" as! Error)
+            }
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                throw BittrServiceError.serverError("Invalid server response")
+            }
+            
+            let decodedResponse = try JSONDecoder().decode(BittrPayoutResponse.self, from: data)
+            
+            if decodedResponse.success {
+                if let preImage = decodedResponse.preImage {
+                    return decodedResponse
+                } else {
+                    throw BittrServiceError.noData
+                }
+            } else {
+                throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
+            }
+        }
+    
     func fetchBittrTransactions(txIds: [String], depositCodes: [String]) async throws -> [BittrTransaction] {
         
         let txIdsString = txIds.joined(separator: ",")
@@ -66,6 +102,24 @@ class BittrService {
         }
     }
     
+}
+
+struct BittrPayoutResponse: Codable {
+    let success: Bool
+    let error: String?
+    let preImage: String?
+    let bitcoinAmount: String?
+    let fiatAmount: String?
+    let fiatCurrency: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case error
+        case preImage = "pre_image"
+        case bitcoinAmount = "bitcoin_amount"
+        case fiatAmount = "fiat_amount"
+        case fiatCurrency = "fiat_currency"
+    }
 }
 
 struct BittrTransactionResponse: Codable {

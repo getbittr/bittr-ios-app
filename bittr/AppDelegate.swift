@@ -59,8 +59,50 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        
-        print(userInfo)
+        // Print entire userInfo dictionary to console
+        print("Received remote notification: \(userInfo)")
+
+        // Check for the special key that indicates this is a silent notification.
+        if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
+            print("Received special data: \(specialData)")
+
+            // Extract required data from specialData
+            if let notificationId = specialData["notification_id"] as? String {
+                let bitcoinAmountString = specialData["bitcoin_amount"] as? String ?? "0"
+                let bitcoinAmount = Double(bitcoinAmountString) ?? 0.0
+                let amountMsat = UInt64(bitcoinAmount * 100_000_000_000)
+                
+                let pubkey = LightningNodeService.shared.nodeId()
+
+                
+                // Call payoutLightning in an async context
+                Task.init {
+                    let invoice = try await LightningNodeService.shared.receivePayment(
+                        amountMsat: amountMsat,
+                        description: notificationId,
+                        expirySecs: 3600
+                    )
+                    
+                    let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                    
+                    do {
+                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
+                        print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
+                        completionHandler(.newData)
+                    } catch {
+                        print("Error occurred: \(error.localizedDescription)")
+                        completionHandler(.failed)
+                    }
+                }
+            } else {
+                print("Required data not found in notification.")
+                completionHandler(.noData)
+            }
+        } else {
+            // No special key, so this is a normal notification.
+            print("No special key found in notification.")
+            completionHandler(.noData)
+        }
     }
 
 
