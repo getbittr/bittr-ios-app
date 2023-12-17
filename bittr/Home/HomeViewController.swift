@@ -14,7 +14,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
     @IBOutlet weak var numberViewLeft: UIView!
     @IBOutlet weak var numberViewMiddle: UIView!
-    @IBOutlet weak var numberViewRight: UIView!
+    @IBOutlet weak var numberViewSend: UIView!
+    @IBOutlet weak var numberViewReceive: UIView!
     
     @IBOutlet weak var homeTableView: UITableView!
     @IBOutlet weak var balanceView: UIView!
@@ -26,7 +27,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBOutlet weak var profitButton: UIButton!
     @IBOutlet weak var goalButton: UIButton!
-    @IBOutlet weak var moveButton: UIButton!
+    @IBOutlet weak var sendButton: UIButton!
+    @IBOutlet weak var receiveButton: UIButton!
     
     @IBOutlet weak var graphView: GraphView!
     @IBOutlet weak var optionDayView: UIView!
@@ -84,12 +86,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
         numberViewLeft.layer.cornerRadius = 13
         numberViewMiddle.layer.cornerRadius = 13
-        numberViewRight.layer.cornerRadius = 13
+        numberViewSend.layer.cornerRadius = 13
+        numberViewReceive.layer.cornerRadius = 13
         headerView.layer.cornerRadius = 13
         
         profitButton.setTitle("", for: .normal)
         goalButton.setTitle("", for: .normal)
-        moveButton.setTitle("", for: .normal)
+        sendButton.setTitle("", for: .normal)
+        receiveButton.setTitle("", for: .normal)
         
         optionDayView.layer.cornerRadius = 13
         optionWeekView.layer.cornerRadius = 13
@@ -115,6 +119,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(setTotalSats), name: NSNotification.Name(rawValue: "settotalsats"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(moveButtonTapped), name: NSNotification.Name(rawValue: "openmovevc"), object: nil)
         
         // TODO: Hide after testing.
         //CacheManager.deleteCache()
@@ -774,6 +779,20 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualCell.gainView.alpha = 1
                 let relativeGain:Int = Int((CGFloat(Int((transactionValue*correctValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
                 actualCell.gainLabel.text = "\(relativeGain) %"
+                
+                if relativeGain < 0 {
+                    // Loss.
+                    actualCell.arrowImage.image = UIImage(systemName: "arrow.down")
+                    actualCell.arrowImage.tintColor = UIColor(red: 152/255, green: 138/255, blue: 73/255, alpha: 1)
+                    actualCell.gainLabel.textColor = UIColor(red: 152/255, green: 138/255, blue: 73/255, alpha: 1)
+                    actualCell.gainView.backgroundColor = UIColor(red: 248/255, green: 245/255, blue: 229/255, alpha: 1)
+                } else {
+                    // Profit.
+                    actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
+                    actualCell.arrowImage.tintColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
+                    actualCell.gainLabel.textColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
+                    actualCell.gainView.backgroundColor = UIColor(red: 231/255, green: 248/255, blue: 229/255, alpha: 1)
+                }
             } else {
                 actualCell.gainView.alpha = 0
                 actualCell.gainLabel.text = ""
@@ -832,12 +851,24 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         performSegue(withIdentifier: "HomeToGoal", sender: self)
     }
     
-    @IBAction func moveButtonTapped(_ sender: UIButton) {
+    @objc func moveButtonTapped() {
         
         //self.resetWallet()
         
         if self.balanceWasFetched == true {
             performSegue(withIdentifier: "HomeToMove", sender: self)
+        }
+    }
+    
+    @IBAction func sendButtonTapped(_ sender: UIButton) {
+        if self.balanceWasFetched == true {
+            performSegue(withIdentifier: "HomeToSend", sender: self)
+        }
+    }
+    
+    @IBAction func receiveButtonTapped(_ sender: UIButton) {
+        if self.balanceWasFetched == true {
+            performSegue(withIdentifier: "HomeToReceive", sender: self)
         }
     }
     
@@ -873,6 +904,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualMoveVC.lightningNodeService = actualLightningNodeService
+                }
+            }
+        } else if segue.identifier == "HomeToSend" {
+            let sendVC = segue.destination as? SendViewController
+            if let actualSendVC = sendVC {
+                
+                actualSendVC.btcAmount = self.btcBalance.rounded() * 0.00000001
+                actualSendVC.btclnAmount = self.btclnBalance.rounded() * 0.00000001
+                if let actualLightningNodeService = self.lightningNodeService {
+                    actualSendVC.lightningNodeService = actualLightningNodeService
                 }
             }
         } else if segue.identifier == "HomeToTransaction" {

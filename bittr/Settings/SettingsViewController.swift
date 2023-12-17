@@ -13,8 +13,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
     
     var coreVC:CoreViewController?
+    var tappedUrl:String?
     
-    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"iconsupport", "id":"support"],["label":"Restore wallet", "icon":"iconwallet", "id":"restore"],["label":"Privacy Policy", "icon":"iconprivacy", "id":"privacy"],["label":"Terms & Conditions", "icon":"iconterms", "id":"terms"],["label":"Currency", "icon":"iconcurrency", "id":"currency"]]
+    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet details", "icon":"bitcoinsign.circle", "id":"wallets"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,7 +38,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         if let actualCell = cell {
             
             actualCell.layer.zPosition = CGFloat(indexPath.row)
-            actualCell.settingsCardImage.image = UIImage(named: self.settings[indexPath.row]["icon"] ?? "iconterms")
+            //actualCell.settingsCardImage.image = UIImage(named: self.settings[indexPath.row]["icon"] ?? "iconterms")
+            actualCell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
+            actualCell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
             actualCell.settingsCardLabel.text = self.settings[indexPath.row]["label"] ?? "Unnamed"
             actualCell.settingsButton.accessibilityIdentifier = self.settings[indexPath.row]["id"] ?? ""
             
@@ -59,23 +62,32 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     @IBAction func settingsTapped(_ sender: UIButton) {
         
         if sender.accessibilityIdentifier == "privacy" {
-            let website:String = "https://getbittr.com/privacy-policy"
+            self.tappedUrl = "https://getbittr.com/privacy-policy"
+            self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
+            
+            /*let website:String = "https://getbittr.com/privacy-policy"
             let websiteUrl:NSURL? = NSURL(string: website)
             if websiteUrl != nil {
                 UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
-            }
+            }*/
         } else if sender.accessibilityIdentifier == "terms" {
-            let website:String = "https://getbittr.com/terms-and-conditions"
+            self.tappedUrl = "https://getbittr.com/terms-and-conditions"
+            self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
+            
+            /*let website:String = "https://getbittr.com/terms-and-conditions"
             let websiteUrl:NSURL? = NSURL(string: website)
             if websiteUrl != nil {
                 UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
-            }
+            }*/
         } else if sender.accessibilityIdentifier == "support" {
-            let website:String = "https://getbittr.com/support"
+            self.tappedUrl = "https://getbittr.com/support"
+            self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
+            
+            /*let website:String = "https://getbittr.com/support"
             let websiteUrl:NSURL? = NSURL(string: website)
             if websiteUrl != nil {
                 UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
-            }
+            }*/
         } else if sender.accessibilityIdentifier == "restore" {
             
             let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
@@ -122,6 +134,22 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             //actionSheet.addAction(gbpOption)
             actionSheet.addAction(cancelAction)
             present(actionSheet, animated: true, completion: nil)
+        } else if sender.accessibilityIdentifier == "wallets" {
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "openmovevc"), object: nil, userInfo: nil) as Notification)
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "SettingsToWebsite" {
+            
+            let websiteVC = segue.destination as? WebsiteViewController
+            if let actualWebsiteVC = websiteVC {
+                if let actualTappedUrl = self.tappedUrl {
+                    
+                    actualWebsiteVC.tappedUrl = actualTappedUrl
+                }
+            }
         }
     }
     

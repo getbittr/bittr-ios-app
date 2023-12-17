@@ -31,6 +31,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var button0: UIButton!
     @IBOutlet weak var buttonBackspace: UIButton!
     @IBOutlet weak var pinTextField: UITextField!
+    @IBOutlet weak var pinSpinner: UIActivityIndicatorView!
     
     var correctPin:String?
     
@@ -95,8 +96,11 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             if actualCorrectPin == self.pinTextField.text {
                 // Correct pin.
                 if let actualCoreVC = self.coreVC {
+                    
+                    self.pinSpinner.startAnimating()
+                    
                     // Step 1.
-                    actualCoreVC.correctPin()
+                    actualCoreVC.correctPin(spinner:self.pinSpinner)
                 }
             } else {
                 // Wrong pin.

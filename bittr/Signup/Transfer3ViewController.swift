@@ -71,6 +71,10 @@ class Transfer3ViewController: UIViewController {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
                     self.articleTitle.text = self.pageArticle1.title
+                    self.articleImage.image = UIImage(data: CacheManager.getImage(key: self.pageArticle1.image))
+                    if self.articleImage.image != nil {
+                        self.spinner1.stopAnimating()
+                    }
                 }
                 self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
             }
@@ -78,6 +82,10 @@ class Transfer3ViewController: UIViewController {
                 self.pageArticle2 = actualArticle2
                 DispatchQueue.main.async {
                     self.article2Title.text = self.pageArticle2.title
+                    self.article2Image.image = UIImage(data: CacheManager.getImage(key: self.pageArticle2.image))
+                    if self.article2Image.image != nil {
+                        self.spinner2.stopAnimating()
+                    }
                 }
                 self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
             }

@@ -318,7 +318,7 @@ class CoreViewController: UIViewController {
         }
     }
     
-    func correctPin() {
+    func correctPin(spinner:UIActivityIndicatorView) {
         
         // Step 2.
         
@@ -336,6 +336,7 @@ class CoreViewController: UIViewController {
             self.view.layoutIfNeeded()
         } completion: { finished in
             self.pinContainerView.alpha = 0
+            spinner.stopAnimating()
         }
     }
     

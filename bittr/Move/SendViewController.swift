@@ -49,8 +49,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var fromConfirmation: UILabel!
     @IBOutlet weak var toConfirmation: UILabel!
     @IBOutlet weak var amountConfirmation: UILabel!
-    @IBOutlet weak var feesConfirmation: UILabel!
-    @IBOutlet weak var totalConfirmation: UILabel!
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var sendSpinner: UIActivityIndicatorView!
     @IBOutlet weak var sendLabel: UILabel!
@@ -80,6 +78,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var scannerView: UIView!
     var scannerWorks = false
     
+    @IBOutlet weak var fastView: UIView!
+    @IBOutlet weak var mediumView: UIView!
+    @IBOutlet weak var slowView: UIView!
+    @IBOutlet weak var fastButton: UIButton!
+    @IBOutlet weak var mediumButton: UIButton!
+    @IBOutlet weak var slowButton: UIButton!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -96,6 +101,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         sendButton.setTitle("", for: .normal)
         regularButton.setTitle("", for: .normal)
         instantButton.setTitle("", for: .normal)
+        fastButton.setTitle("", for: .normal)
+        mediumButton.setTitle("", for: .normal)
+        slowButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         fromView.layer.cornerRadius = 13
@@ -107,6 +115,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         sendView.layer.cornerRadius = 13
         switchView.layer.cornerRadius = 13
         scannerView.layer.cornerRadius = 13
+        
+        fastView.layer.cornerRadius = 13
+        mediumView.layer.cornerRadius = 13
+        slowView.layer.cornerRadius = 13
         
         toTextField.delegate = self
         amountTextField.delegate = self
@@ -418,6 +430,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
+        self.view.endEditing(true)
+        
         if self.nextLabel.text == "Next" {
             
             let formatter = NumberFormatter()
@@ -440,8 +454,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.fromConfirmation.text = self.fromLabel.text
                 self.toConfirmation.text = self.toTextField.text
                 self.amountConfirmation.text = self.amountTextField.text
-                self.feesConfirmation.text = "0.0"
-                self.totalConfirmation.text = self.amountTextField.text
                 
                 if let actualBlockchain = LightningNodeService.shared.getBlockchain() {
                     
@@ -692,6 +704,28 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 
                 self.view.layoutIfNeeded()
             }
+        }
+    }
+    
+    @IBAction func feeButtonTapped(_ sender: UIButton) {
+        
+        switch sender.accessibilityIdentifier! {
+        case "fast":
+            self.fastView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+        case "medium":
+            self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+        case "slow":
+            self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.slowView.backgroundColor = UIColor(white: 1, alpha: 1)
+        default:
+            self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
         }
     }
     

@@ -17,6 +17,7 @@ class HistoryTableViewCell: UITableViewCell {
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var gainView: UIView!
     @IBOutlet weak var gainLabel: UILabel!
+    @IBOutlet weak var arrowImage: UIImageView!
     
     override func awakeFromNib() {
         super.awakeFromNib()
