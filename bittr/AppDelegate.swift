@@ -59,11 +59,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-<<<<<<< HEAD
         
-        print("Notification user info.")
-        print(userInfo)
-=======
         // Print entire userInfo dictionary to console
         print("Received remote notification: \(userInfo)")
 
@@ -108,7 +104,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             print("No special key found in notification.")
             completionHandler(.noData)
         }
->>>>>>> 3093cd6fcb71ef6b210aa4b314fd48c5bf1232bb
+        
     }
 
 

@@ -84,6 +84,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var fastButton: UIButton!
     @IBOutlet weak var mediumButton: UIButton!
     @IBOutlet weak var slowButton: UIButton!
+    @IBOutlet weak var satsFast: UILabel!
+    @IBOutlet weak var eurosFast: UILabel!
+    @IBOutlet weak var satsMedium: UILabel!
+    @IBOutlet weak var eurosMedium: UILabel!
+    @IBOutlet weak var satsSlow: UILabel!
+    @IBOutlet weak var eurosSlow: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -455,7 +461,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.toConfirmation.text = self.toTextField.text
                 self.amountConfirmation.text = self.amountTextField.text
                 
-                if let actualBlockchain = LightningNodeService.shared.getBlockchain() {
+                if let actualBlockchain = LightningNodeService.shared.getBlockchain(), let actualWallet = LightningNodeService.shared.getWallet() {
+                    
+                    let actualAddress:String = self.toConfirmation.text!
+                    let actualAmount:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000)
                     
                     Task {
                         do {
@@ -464,6 +473,49 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             let low = try actualBlockchain.estimateFee(target: 6)
                             
                             print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
+                            
+                            let address = try Address(address: actualAddress)
+                            let script = address.scriptPubkey()
+                            let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
+                            let details = try txBuilder.finish(wallet: actualWallet)
+                            let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
+                            let tx = details.psbt.extractTx()
+                            let size = tx.size()
+
+                            print("Size: \(String(describing: size))")
+                            print("High: \(high.asSatPerVb()*Float(size)), Medium: \(medium.asSatPerVb()*Float(size)), Low: \(low.asSatPerVb()*Float(size))")
+                            
+                            self.satsFast.text = "\(Int(high.asSatPerVb()*Float(size))) sats"
+                            self.satsMedium.text = "\(Int(medium.asSatPerVb()*Float(size))) sats"
+                            self.satsSlow.text = "\(Int(low.asSatPerVb()*Float(size))) sats"
+                            
+                            var currencySymbol = "€"
+                            var conversionRate:CGFloat = 0
+                            var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
+                            var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
+                            conversionRate = eurAmount ?? 0.0
+                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                                currencySymbol = "CHF"
+                                conversionRate = chfAmount ?? 0.0
+                            }
+                            
+                            var fastText = "\(CGFloat(Int((((CGFloat(high.asSatPerVb()*Float(size)))/100000000)*CGFloat(conversionRate))*100))/100)"
+                            if fastText.count == 3 {
+                                fastText = fastText + "0"
+                            }
+                            var mediumText = "\(CGFloat(Int((((CGFloat(medium.asSatPerVb()*Float(size)))/100000000)*CGFloat(conversionRate))*100))/100)"
+                            if mediumText.count == 3 {
+                                mediumText = mediumText + "0"
+                            }
+                            var slowText = "\(CGFloat(Int((((CGFloat(medium.asSatPerVb()*Float(size)))/100000000)*CGFloat(conversionRate))*100))/100)"
+                            if slowText.count == 3 {
+                                slowText = slowText + "0"
+                            }
+                            
+                            self.eurosFast.text = fastText + " " + currencySymbol
+                            self.eurosMedium.text = mediumText + " " + currencySymbol
+                            self.eurosSlow.text = slowText + " " + currencySymbol
+                            
                             
                             DispatchQueue.main.async {
                                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
