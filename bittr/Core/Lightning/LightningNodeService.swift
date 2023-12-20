@@ -10,6 +10,7 @@ import LDKNode
 import BitcoinDevKit
 import KeychainSwift
 import bdkFFI
+import LightningDevKit
 
 class LightningNodeService {
     private let ldkNode: LdkNode
@@ -256,7 +257,7 @@ class LightningNodeService {
         return payments
     }
     
-    func listChannels() async throws -> [ChannelDetails] {
+    func listChannels() async throws -> [LDKNode.ChannelDetails] {
         let channels = ldkNode.listChannels()
         return channels
     }
@@ -314,6 +315,26 @@ class LightningNodeService {
     func sendPayment(invoice: Invoice) async throws -> PaymentHash {
         let paymentHash = try ldkNode.sendPayment(invoice: invoice)
         return paymentHash
+    }
+    
+    func getInvoiceHash(invoiceString:String) -> String {
+        
+        let result = Bolt11Invoice.fromStr(s: invoiceString)
+        if result.isOk() {
+            if let invoice = result.getValue() {
+                print("Invoice parsed successfully: \(invoice)")
+                let paymentHash:[UInt8] = invoice.paymentHash()!
+                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
+                return hexString
+            } else {
+                return "empty"
+            }
+        } else if let error = result.getError() {
+            print("Failed to parse invoice: \(error)")
+            return "empty"
+        } else {
+            return "empty"
+        }
     }
 
 

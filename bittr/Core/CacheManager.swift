@@ -451,5 +451,43 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storeInvoiceTimestamp(hash:String, timestamp:Int) {
+        
+        let defaults = UserDefaults.standard
+        let cachedHashes = defaults.value(forKey: "hashes") as? NSDictionary
+        if let actualCachedHashes = cachedHashes {
+            // Hashes have been cached.
+            if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
+                actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
+                defaults.set(actualMutableHashes, forKey: "hashes")
+                print("Timestamp cached.")
+            }
+        } else {
+            // No hashes have been cached.
+            let actualMutableHashes = NSMutableDictionary()
+            actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
+            defaults.set(actualMutableHashes, forKey: "hashes")
+            print("Timestamp cached.")
+        }
+    }
+    
+    static func getInvoiceTimestamp(hash:String) -> Int {
+        
+        let defaults = UserDefaults.standard
+        let cachedHashes = defaults.value(forKey: "hashes") as? NSDictionary
+        if let actualCachedHashes = cachedHashes {
+            // Hashes have been cached.
+            if let foundTimestamp = actualCachedHashes[hash] as? Int {
+                print("Timestamp found")
+                return foundTimestamp
+            } else {
+                return Int(Date().timeIntervalSince1970)
+            }
+        } else {
+            // No hashes have been cached.
+            return Int(Date().timeIntervalSince1970)
+        }
+    }
+    
     
 }

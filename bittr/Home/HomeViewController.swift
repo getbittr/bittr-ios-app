@@ -255,7 +255,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                     thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
                                 }
                                 thisTransaction.isLightning = true
-                                thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.hash)
                                 thisTransaction.id = eachPayment.preimage ?? "Lightning transaction"
                                 
                                 if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {

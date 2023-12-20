@@ -175,6 +175,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                     expirySecs: expirySecs
                 )
                 DispatchQueue.main.async {
+                    
+                    let invoiceHash = LightningNodeService.shared.getInvoiceHash(invoiceString: invoice)
+                    let newTimestamp = Int(Date().timeIntervalSince1970)
+                    CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                    
                     let alert = UIAlertController(title: "Invoice created", message: "Invoice: \(invoice)", preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "Copy invoice", style: .default, handler: { _ in
                         // Copy the invoice to the clipboard
