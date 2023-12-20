@@ -91,6 +91,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var satsSlow: UILabel!
     @IBOutlet weak var eurosSlow: UILabel!
     
+    var feeLow:Float = 0.0
+    var feeMedium:Float = 0.0
+    var feeHigh:Float = 0.0
+    var selectedFee = "medium"
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -489,6 +494,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             self.satsMedium.text = "\(Int(medium.asSatPerVb()*Float(size))) sats"
                             self.satsSlow.text = "\(Int(low.asSatPerVb()*Float(size))) sats"
                             
+                            self.feeLow = low.asSatPerVb()
+                            self.feeMedium = medium.asSatPerVb()
+                            self.feeHigh = high.asSatPerVb()
+                            
                             var currencySymbol = "€"
                             var conversionRate:CGFloat = 0
                             var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
@@ -644,7 +653,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     do {
                         let address = try Address(address: actualAddress)
                         let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
+                        var selectedVbyte:Float = self.feeMedium
+                        if self.selectedFee == "low" {
+                            selectedVbyte = self.feeLow
+                        } else if self.selectedFee == "high" {
+                            selectedVbyte = self.feeHigh
+                        }
+                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount)).feeRate(satPerVbyte: selectedVbyte)
                         let details = try txBuilder.finish(wallet: actualWallet)
                         let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
                         let tx = details.psbt.extractTx()
@@ -766,18 +781,22 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.selectedFee = "high"
         case "medium":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.selectedFee = "medium"
         case "slow":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.selectedFee = "low"
         default:
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.selectedFee = "medium"
         }
     }
     
