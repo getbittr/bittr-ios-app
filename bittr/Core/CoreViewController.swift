@@ -55,6 +55,10 @@ class CoreViewController: UIViewController {
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
     
+    var didBecomeVisible = false
+    var needsToHandleNotification = false
+    var lightningNotification:NSNotification?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -79,6 +83,7 @@ class CoreViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         
         keychain.synchronizable = true
         if let storedMnemonic = keychain.get("pin") {
@@ -300,6 +305,7 @@ class CoreViewController: UIViewController {
             self.view.layoutIfNeeded()
         } completion: { finished in
             self.signupContainerView.alpha = 0
+            self.didBecomeVisible = true
         }
     }
     
@@ -314,6 +320,11 @@ class CoreViewController: UIViewController {
             let pinVC = segue.destination as? PinViewController
             if let actualPinVC = pinVC {
                 actualPinVC.coreVC = self
+            }
+        } else if segue.identifier == "CoreToHome" {
+            let homeVC = segue.destination as? HomeViewController
+            if let actualHomeVC = homeVC {
+                actualHomeVC.coreVC = self
             }
         }
     }
@@ -337,7 +348,80 @@ class CoreViewController: UIViewController {
         } completion: { finished in
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
+            self.didBecomeVisible = true
         }
     }
+    
+    
+    @objc func handlePaymentNotification(notification:NSNotification) {
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            
+            // Check for the special key that indicates this is a silent notification.
+            if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
+                print("Received special data: \(specialData)")
+                
+                if self.didBecomeVisible == true {
+                    // User has signed in.
+                    self.facilitateNotificationPayout(specialData: specialData)
+                    self.needsToHandleNotification = false
+                } else {
+                    // User hasn't signed in yet.
+                    self.needsToHandleNotification = true
+                    self.lightningNotification = notification
+                    
+                    let alert = UIAlertController(title: "Lightning payment", message: "Please sign in and wait a moment to receive your Lightning payment.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                    self.present(alert, animated: true)
+                }
+            } else {
+                // No special key, so this is a normal notification.
+                print("No special key found in notification.")
+                //completionHandler(.noData)
+            }
+        }
+    }
+    
+    
+    func facilitateNotificationPayout(specialData:[String:Any]) {
+        
+        // Extract required data from specialData
+        if let notificationId = specialData["notification_id"] as? String {
+            let bitcoinAmountString = specialData["bitcoin_amount"] as? String ?? "0"
+            let bitcoinAmount = Double(bitcoinAmountString) ?? 0.0
+            let amountMsat = UInt64(bitcoinAmount * 100_000_000_000)
+            
+            let pubkey = LightningNodeService.shared.nodeId()
+
+            
+            // Call payoutLightning in an async context
+            Task.init {
+                let invoice = try await LightningNodeService.shared.receivePayment(
+                    amountMsat: amountMsat,
+                    description: notificationId,
+                    expirySecs: 3600
+                )
+                
+                let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                
+                do {
+                    let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
+                    print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
+                    //completionHandler(.newData)
+                    
+                    DispatchQueue.main.async {
+                        self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                    }
+                } catch {
+                    print("Error occurred: \(error.localizedDescription)")
+                    //completionHandler(.failed)
+                }
+            }
+        } else {
+            print("Required data not found in notification.")
+            //completionHandler(.noData)
+        }
+    }
+    
     
 }

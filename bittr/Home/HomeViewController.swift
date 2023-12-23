@@ -81,6 +81,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var didStartReset = false
     
+    var coreVC:CoreViewController?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -373,6 +375,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         //self.askForPushNotifications()
+        
+        // Step 18
+        if let actualCoreVC = self.coreVC {
+            if actualCoreVC.needsToHandleNotification == true, let actualNotification = actualCoreVC.lightningNotification {
+                actualCoreVC.handlePaymentNotification(notification: actualNotification)
+            }
+        }
     }
     
     

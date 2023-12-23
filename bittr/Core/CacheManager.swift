@@ -481,10 +481,12 @@ class CacheManager: NSObject {
                 print("Timestamp found")
                 return foundTimestamp
             } else {
+                self.storeInvoiceTimestamp(hash: hash, timestamp: Int(Date().timeIntervalSince1970))
                 return Int(Date().timeIntervalSince1970)
             }
         } else {
             // No hashes have been cached.
+            self.storeInvoiceTimestamp(hash: hash, timestamp: Int(Date().timeIntervalSince1970))
             return Int(Date().timeIntervalSince1970)
         }
     }

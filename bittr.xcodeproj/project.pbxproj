@@ -58,6 +58,7 @@
 		05C3C0BC29CE75FA00C1E695 /* BlurEffectViewLight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */; };
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
+		05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
 		05D4E9C92B32E92A008823D7 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D4E9C82B32E92A008823D7 /* LightningDevKit */; };
 		05D5D0DC2A6677EF00A1E771 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */; };
@@ -153,6 +154,7 @@
 		05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurEffectViewLight.swift; sourceTree = "<group>"; };
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
+		05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningPaymentViewController.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
 		05D5D0E62A66825000A1E771 /* LightningNodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningNodeService.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
@@ -243,6 +245,7 @@
 				053190EB29FEE5190072CE76 /* TransactionViewController.swift */,
 				051D778E2A9DEAC8002107C0 /* PinViewController.swift */,
 				052DC6922AA853B700CD59B0 /* Transaction.swift */,
+				05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -564,6 +567,7 @@
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
 				05C3C0BC29CE75FA00C1E695 /* BlurEffectViewLight.swift in Sources */,
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
+				05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */,
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
@@ -755,7 +759,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 50;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -793,7 +797,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 50;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
