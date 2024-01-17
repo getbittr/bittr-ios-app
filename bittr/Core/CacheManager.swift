@@ -14,6 +14,9 @@ class CacheManager: NSObject {
         
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: "device")
+        defaults.removeObject(forKey: "cache")
+        defaults.removeObject(forKey: "pin")
+        defaults.removeObject(forKey: "mnemonic")
     }
     
     static func deleteCache() {
@@ -401,7 +404,6 @@ class CacheManager: NSObject {
                     let parsedTransactions = self.getTransactions(transactionsDict: cachedTransactions)
                     
                     return parsedTransactions
-                    
                 } else {
                     return "empty"
                 }
@@ -478,7 +480,6 @@ class CacheManager: NSObject {
         if let actualCachedHashes = cachedHashes {
             // Hashes have been cached.
             if let foundTimestamp = actualCachedHashes[hash] as? Int {
-                print("Timestamp found")
                 return foundTimestamp
             } else {
                 self.storeInvoiceTimestamp(hash: hash, timestamp: Int(Date().timeIntervalSince1970))
@@ -491,5 +492,38 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storeMnemonic(mnemonic:String) {
+        let defaults = UserDefaults.standard
+        defaults.set(mnemonic, forKey: "mnemonic")
+    }
+    
+    static func getMnemonic() -> String {
+        
+        let defaults = UserDefaults.standard
+        let cachedMnemonic = defaults.value(forKey: "mnemonic") as? String
+        
+        if let actualCachedMnemonic = cachedMnemonic {
+            return actualCachedMnemonic
+        } else {
+            return "empty"
+        }
+    }
+    
+    static func storePin(pin:String) {
+        let defaults = UserDefaults.standard
+        defaults.set(pin, forKey: "pin")
+    }
+    
+    static func getPin() -> String {
+        
+        let defaults = UserDefaults.standard
+        let cachedPin = defaults.value(forKey: "pin") as? String
+        
+        if let actualCachedPin = cachedPin {
+            return actualCachedPin
+        } else {
+            return "empty"
+        }
+    }
     
 }

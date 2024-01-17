@@ -47,6 +47,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
     var setTransactions = [Transaction]()
+    var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary()
     
@@ -68,6 +69,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     
+    var bdkBalance:CGFloat = 0.0
     var btcBalance:CGFloat = 0.0
     var btclnBalance:CGFloat = 0.0
     var totalBalanceSats:CGFloat = 0.0
@@ -171,6 +173,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if let cachedTransactions = CacheManager.getCachedData(key: "transactions") as? [Transaction] {
             
             self.setTransactions = cachedTransactions
+            self.lastCachedTransactions = cachedTransactions
             
             self.homeTableView.reloadData()
             self.tableSpinner.stopAnimating()
@@ -293,6 +296,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000)
                 }
             }
+            
+            if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
+                self.bdkBalance = CGFloat(actualBdkBalance)
+            }
         }
         
         // Step 11.
@@ -308,6 +315,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.didStartReset = false
         
         // Step 17.
+        print("Step 17")
         
         self.bittrProfitLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
@@ -377,18 +385,50 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         //self.askForPushNotifications()
         
         // Step 18
+        print("Step 18")
         if let actualCoreVC = self.coreVC {
             if actualCoreVC.needsToHandleNotification == true, let actualNotification = actualCoreVC.lightningNotification {
                 actualCoreVC.handlePaymentNotification(notification: actualNotification)
             }
         }
+        
+        // TODO: Hide after testing.
+        // Connect to peer called.
+        //self.connectToPeer()
+        self.fetchAndPrintPeers()
+        
+        //UIApplication.shared.registerForRemoteNotifications()
     }
     
     
     func fetchTransactionData(txIds:[String]) async -> Bool {
         
+        var depositCodes = [String]()
+        for eachIbanEntity in self.client.ibanEntities {
+            if eachIbanEntity.yourUniqueCode != "" {
+                depositCodes += [eachIbanEntity.yourUniqueCode]
+            }
+        }
+        // TODO: Remove after testing.
+        //depositCodes += ["5GCPDLWU5FVQ"]
+        
+        var cachedBittrTransactionIDs = [String]()
+        for eachTransaction in self.lastCachedTransactions {
+            if eachTransaction.isBittr == true {
+                self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
+                cachedBittrTransactionIDs += [eachTransaction.id]
+            }
+        }
+        
+        var newTxIds = [String]()
+        for eachTxId in txIds {
+            if !cachedBittrTransactionIDs.contains(eachTxId) {
+                newTxIds += [eachTxId]
+            }
+        }
+        
         do {
-            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: txIds, depositCodes: ["5GCPDLWU5FVQ"])
+            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
             print("Transactions: \(bittrApiTransactions)")
             
             if bittrApiTransactions.count == 0 {
@@ -462,10 +502,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
+                    print("Connect to peer error: \(error.localizedDescription)")
                 }
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
+                    print("Connect to peer error without message.")
                 }
             }
         }
@@ -489,6 +531,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
                 self.balanceWasFetched = true
                 
+                if self.btcBalance == 0.0, self.btclnBalance == 0.0, self.bdkBalance != 0.0 {
+                    self.btcBalance = self.bdkBalance
+                }
                 self.totalBalanceSats = self.btcBalance + self.btclnBalance
                 let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
                 
@@ -547,6 +592,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func setConversion(btcValue:CGFloat) {
         
         // Step 15.
+        print("Step 15")
         var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
@@ -619,6 +665,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 self.homeTableView.alpha = 1
                                 
                                 // Step 16.
+                                print("Step 16")
                                 self.calculateProfit()
                             }
                         }

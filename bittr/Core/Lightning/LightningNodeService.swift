@@ -20,6 +20,7 @@ class LightningNodeService {
     private var bdkWallet: BitcoinDevKit.Wallet?
     private var blockchain: Blockchain?
     private var xpub = ""
+    private var bdkBalance = 0
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -50,16 +51,27 @@ class LightningNodeService {
         let nodeBuilder = Builder.fromConfig(config: config)
         
         // For now, the mnemonic can only be set once before the first-ever startup of the ldkNode. It cannot be changed later on.
-        let mnemonicString: String
+        var mnemonicString = ""
         keychain.synchronizable = true
-        if let storedMnemonic = keychain.get(mnemonicKey) {
-            mnemonicString = storedMnemonic
-            print("mnemonicString: \(mnemonicString)")
-        } else {
-            let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
-            mnemonicString = mnemonic.asString() //"mutual welcome bird hawk mystery warfare dinosaur sure tray coyote video cool"
-            print("New mnemonicString: \(mnemonicString)")
+        if CacheManager.getMnemonic() != "empty" {
+            mnemonicString = CacheManager.getMnemonic()
+            print("Cached mnemonicString: \(mnemonicString)")
             keychain.set(mnemonicString, forKey: mnemonicKey)
+            print("Keychain: \(keychain.get(mnemonicKey) ?? "None")")
+        } else {
+            if let storedMnemonic = keychain.get(mnemonicKey) {
+                // Migration away from Keychain.
+                mnemonicString = storedMnemonic
+                print("mnemonicString: \(mnemonicString)")
+                CacheManager.storeMnemonic(mnemonic: mnemonicString)
+                //keychain.delete(mnemonicKey)
+            } else {
+                let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
+                mnemonicString = mnemonic.asString() //"mutual welcome bird hawk mystery warfare dinosaur sure tray coyote video cool"
+                print("New mnemonicString: \(mnemonicString)")
+                keychain.set(mnemonicString, forKey: mnemonicKey)
+                CacheManager.storeMnemonic(mnemonic: mnemonicString)
+            }
         }
         
         // Step 6.
@@ -123,7 +135,7 @@ class LightningNodeService {
             
             // Uncomment the following lines to get the on-chain balance (although LDK also does that
             // Get the confirmed balance from the wallet
-            // let balance = try wallet.getBalance().confirmed
+            bdkBalance = Int(try wallet.getBalance().confirmed)
             // print("transactions: \(balance)")
             
             // Retrieve a list of transaction details from the wallet, excluding raw transaction data
@@ -170,14 +182,17 @@ class LightningNodeService {
                     address: address,
                     persist: true
                 )
+                print("Did connect to peer.")
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
+                    print("Can't connect to peer: \(error.localizedDescription)")
                 }
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
+                    print("Can't connect to peer: No error message.")
                 }
             }
         }
@@ -192,7 +207,7 @@ class LightningNodeService {
                 print("Payments: \(payments)")
                 
                 var transactionsNotificationDict = [AnyHashable:Any]()
-                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments]
+                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance]
                 
                 // Step 9.
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)

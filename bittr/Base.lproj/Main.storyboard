@@ -220,6 +220,34 @@
                                     <segue destination="kpA-3J-DOj" kind="embed" id="mC1-2o-1Ai"/>
                                 </connections>
                             </containerView>
+                            <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="8US-GO-j7G" userLabel="Pending Payment View">
+                                <rect key="frame" x="77" y="411.66666666666669" width="239" height="54"/>
+                                <subviews>
+                                    <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="xgs-tX-bRY" userLabel="Pending Spinner">
+                                        <rect key="frame" x="30" y="17" width="20" height="20"/>
+                                        <color key="color" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
+                                    </activityIndicatorView>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="receiving payment" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="A91-KS-y3A" userLabel="Pending Label">
+                                        <rect key="frame" x="70" y="20" width="139" height="16"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="NI3-N5-8Hr"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
+                                        <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstItem="xgs-tX-bRY" firstAttribute="centerY" secondItem="8US-GO-j7G" secondAttribute="centerY" id="1aB-5p-eDJ"/>
+                                    <constraint firstItem="xgs-tX-bRY" firstAttribute="leading" secondItem="8US-GO-j7G" secondAttribute="leading" constant="30" id="6Qz-gN-qHq"/>
+                                    <constraint firstItem="A91-KS-y3A" firstAttribute="leading" secondItem="xgs-tX-bRY" secondAttribute="trailing" constant="20" id="EX0-SZ-0XF"/>
+                                    <constraint firstAttribute="height" constant="54" id="Ecr-lm-h6d"/>
+                                    <constraint firstAttribute="trailing" secondItem="A91-KS-y3A" secondAttribute="trailing" constant="30" id="W9m-Wq-pL8"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="100" id="s4l-Ct-rlm"/>
+                                    <constraint firstItem="A91-KS-y3A" firstAttribute="centerY" secondItem="8US-GO-j7G" secondAttribute="centerY" constant="1" id="y8p-eL-NEg"/>
+                                </constraints>
+                            </view>
                             <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="edE-8u-X4I" userLabel="Top Bar">
                                 <rect key="frame" x="0.0" y="-1" width="393" height="110"/>
                                 <subviews>
@@ -315,6 +343,8 @@
                         <color key="backgroundColor" red="0.96470588235294119" green="0.7803921568627451" blue="0.26666666666666666" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="NZl-5Q-kB0" firstAttribute="height" secondItem="8xy-Yc-cj7" secondAttribute="height" id="18r-j4-4TG"/>
+                            <constraint firstItem="8US-GO-j7G" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="3Ud-fk-Wg6"/>
+                            <constraint firstItem="8US-GO-j7G" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" id="4Rl-4M-Bhm"/>
                             <constraint firstItem="8xy-Yc-cj7" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="-50" id="4UM-vm-hEH"/>
                             <constraint firstItem="xl0-vi-rxc" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="5o6-bm-aHs"/>
                             <constraint firstItem="uY7-4p-5IQ" firstAttribute="top" secondItem="edE-8u-X4I" secondAttribute="top" id="AqZ-my-7BR"/>
@@ -374,6 +404,8 @@
                         <outlet property="menuBarViewHeight" destination="jsY-Hl-zyj" id="DRr-Ca-9Ce"/>
                         <outlet property="middleButton" destination="nJd-WM-Z4a" id="zlG-3r-whk"/>
                         <outlet property="middleWhite" destination="pGL-5x-K9y" id="vtx-xU-SlZ"/>
+                        <outlet property="pendingSpinner" destination="xgs-tX-bRY" id="bj4-eO-ixW"/>
+                        <outlet property="pendingView" destination="8US-GO-j7G" id="PQ5-0E-bhC"/>
                         <outlet property="pinBottom" destination="IIu-bI-p1k" id="snb-av-gXO"/>
                         <outlet property="pinContainerView" destination="6l3-MI-2La" id="tFt-W3-aFH"/>
                         <outlet property="rightButton" destination="Gfi-9v-jIW" id="cmK-so-xv0"/>
@@ -800,13 +832,13 @@
                                                 <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uLe-s9-V85" userLabel="Bottom Half">
                                                     <rect key="frame" x="75.666666666666686" y="-18.666666666666742" width="242" height="50"/>
                                                     <subviews>
-                                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="ULJ-Ce-2f8" userLabel="Send View">
+                                                        <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ULJ-Ce-2f8" userLabel="Send View">
                                                             <rect key="frame" x="0.0" y="0.0" width="107" height="50"/>
                                                             <subviews>
-                                                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="UZJ-ch-NDn" userLabel="Number View">
+                                                                <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UZJ-ch-NDn" userLabel="Number View">
                                                                     <rect key="frame" x="0.0" y="0.0" width="107" height="50"/>
                                                                     <subviews>
-                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="⬆️   send" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="87N-KH-eOm">
+                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="⬆️   send" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="87N-KH-eOm">
                                                                             <rect key="frame" x="18" y="19" width="69" height="16"/>
                                                                             <constraints>
                                                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="542-eH-pyj"/>
@@ -825,7 +857,7 @@
                                                                         <constraint firstAttribute="trailing" secondItem="87N-KH-eOm" secondAttribute="trailing" constant="20" id="tKJ-Rm-jAE"/>
                                                                     </constraints>
                                                                 </view>
-                                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="pHt-c1-0sg">
+                                                                <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="pHt-c1-0sg">
                                                                     <rect key="frame" x="0.0" y="0.0" width="107" height="50"/>
                                                                     <state key="normal" title="Button"/>
                                                                     <buttonConfiguration key="configuration" style="plain"/>
@@ -847,13 +879,13 @@
                                                                 <constraint firstItem="pHt-c1-0sg" firstAttribute="leading" secondItem="ULJ-Ce-2f8" secondAttribute="leading" id="xZB-de-Ra9"/>
                                                             </constraints>
                                                         </view>
-                                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="9jc-8E-eNK" userLabel="Receive View">
+                                                        <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9jc-8E-eNK" userLabel="Receive View">
                                                             <rect key="frame" x="117" y="0.0" width="125" height="50"/>
                                                             <subviews>
-                                                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="utg-9T-Jet" userLabel="Number View">
+                                                                <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="utg-9T-Jet" userLabel="Number View">
                                                                     <rect key="frame" x="0.0" y="0.0" width="125" height="50"/>
                                                                     <subviews>
-                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="⬇️   receive" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Dp3-Wh-lgj">
+                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="⬇️   receive" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Dp3-Wh-lgj">
                                                                             <rect key="frame" x="18" y="19" width="87" height="16"/>
                                                                             <constraints>
                                                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="8mV-aD-bL1"/>
@@ -872,7 +904,7 @@
                                                                         <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="wpi-Sh-GY2"/>
                                                                     </constraints>
                                                                 </view>
-                                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SgV-sM-k0V">
+                                                                <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SgV-sM-k0V">
                                                                     <rect key="frame" x="0.0" y="0.0" width="125" height="50"/>
                                                                     <state key="normal" title="Button"/>
                                                                     <buttonConfiguration key="configuration" style="plain"/>
@@ -999,7 +1031,7 @@
                                                         <view contentMode="scaleToFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="sVK-Sk-MNX" userLabel="Labels View">
                                                             <rect key="frame" x="82.333333333333329" y="12.333333333333336" width="195.33333333333337" height="35"/>
                                                             <subviews>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
                                                                     <rect key="frame" x="0.0" y="0.0" width="87.666666666666671" height="16"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Omc-6m-9MB"/>
@@ -1008,7 +1040,7 @@
                                                                     <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
                                                                     <rect key="frame" x="0.0" y="21" width="39.333333333333336" height="14"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="StM-Ll-Dhj"/>
@@ -11727,13 +11759,13 @@
         <segue reference="Mkd-J2-qct"/>
         <segue reference="FO1-qU-083"/>
         <segue reference="qmb-vm-Nmz"/>
-        <segue reference="xNF-pP-akb"/>
-        <segue reference="aIy-e9-0Ba"/>
+        <segue reference="hX6-RE-pvS"/>
+        <segue reference="A8J-Ia-44n"/>
     </inferredMetricsTieBreakers>
     <resources>
         <image name="arrow.clockwise" catalog="system" width="113" height="128"/>
-        <image name="arrow.up" catalog="system" width="32" height="32"/>
-        <image name="bolt.fill" catalog="system" width="32" height="32"/>
+        <image name="arrow.up" catalog="system" width="118" height="128"/>
+        <image name="bolt.fill" catalog="system" width="100" height="128"/>
         <image name="buttonlearnblack" width="22" height="24"/>
         <image name="buttonlearnwhite" width="22" height="24"/>
         <image name="buttonpigblack" width="24" height="23"/>
@@ -11747,7 +11779,7 @@
         <image name="delete.left.fill" catalog="system" width="128" height="102"/>
         <image name="downarrow32" width="32" height="16"/>
         <image name="logo80" width="80" height="80"/>
-        <image name="qrcode" catalog="system" width="32" height="32"/>
+        <image name="qrcode" catalog="system" width="128" height="114"/>
         <image name="safari" catalog="system" width="128" height="123"/>
         <image name="square.on.square" catalog="system" width="128" height="116"/>
         <image name="yellowcurve" width="400" height="15"/>

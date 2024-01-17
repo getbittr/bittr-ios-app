@@ -88,6 +88,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
                     self.articleTitle.text = self.pageArticle1.title
+                    self.articleImage.image = UIImage(data: CacheManager.getImage(key: self.pageArticle1.image))
+                    if self.articleImage.image != nil {
+                        self.spinner1.stopAnimating()
+                    }
                 }
                 self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
             }
@@ -174,9 +178,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         if keychain.get("") != nil {
             UserDefaults.standard.set(true, forKey: "deletestorage")
         }
+        if CacheManager.getMnemonic() != "empty" {
+            UserDefaults.standard.set(true, forKey: "deletestorage")
+        }
         
-        keychain.synchronizable = true
-        keychain.set(enteredMnemonic, forKey: "")
+        CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
+        /*keychain.synchronizable = true
+        keychain.set(enteredMnemonic, forKey: "")*/
         
         do {
             try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())

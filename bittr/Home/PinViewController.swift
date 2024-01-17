@@ -58,10 +58,17 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         pinTextField.delegate = self
         
-        let keychain = KeychainSwift()
-        keychain.synchronizable = true
-        if keychain.get("pin") != nil {
-            self.correctPin = keychain.get("pin")
+        if CacheManager.getPin() != "empty" {
+            self.correctPin = CacheManager.getPin()
+        } else {
+            // Migration away from Keychain.
+            let keychain = KeychainSwift()
+            keychain.synchronizable = true
+            if keychain.get("pin") != nil {
+                self.correctPin = keychain.get("pin")
+                CacheManager.storePin(pin: self.correctPin!)
+                keychain.delete("pin")
+            }
         }
     }
     

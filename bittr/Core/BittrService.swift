@@ -56,7 +56,7 @@ class BittrService {
         let depositCodesString = depositCodes.joined(separator: ",")
         let messageString =  depositCodesString + txIdsString
         
-        print(messageString)
+        print("messageString: \(messageString)")
         
         let lightningSignature: String
         

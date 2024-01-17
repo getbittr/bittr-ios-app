@@ -74,6 +74,10 @@ class Signup1ViewController: UIViewController {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
                     self.articleTitle.text = self.pageArticle1.title
+                    self.articleImage.image = UIImage(data: CacheManager.getImage(key: self.pageArticle1.image))
+                    if self.articleImage.image != nil {
+                        self.spinner1.stopAnimating()
+                    }
                 }
                 self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
             }

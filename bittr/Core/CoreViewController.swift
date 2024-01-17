@@ -59,6 +59,9 @@ class CoreViewController: UIViewController {
     var needsToHandleNotification = false
     var lightningNotification:NSNotification?
     
+    @IBOutlet weak var pendingView: UIView!
+    @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -71,6 +74,7 @@ class CoreViewController: UIViewController {
         leftWhite.layer.cornerRadius = 13
         middleWhite.layer.cornerRadius = 13
         rightWhite.layer.cornerRadius = 13
+        pendingView.layer.cornerRadius = 13
         leftButton.setTitle("", for: .normal)
         middleButton.setTitle("", for: .normal)
         rightButton.setTitle("", for: .normal)
@@ -85,13 +89,24 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         
+        // TODO: Hide after testing.
+        //CacheManager.deleteClientInfo()
+        
         keychain.synchronizable = true
-        if let storedMnemonic = keychain.get("pin") {
+        if CacheManager.getPin() != "empty" {
             // Wallet exists. Launch pin.
             signupAlpha = 0
             blackSignupAlpha = 0
         } else {
-            // No wallet exists yet. Go through signup.
+            if let storedPin = keychain.get("pin") {
+                // Wallet exists. Launch pin. Migration away from Keychain.
+                signupAlpha = 0
+                blackSignupAlpha = 0
+                CacheManager.storePin(pin: storedPin)
+                keychain.delete("pin")
+            } else {
+                // No wallet exists yet. Go through signup.
+            }
         }
     }
     
@@ -119,6 +134,7 @@ class CoreViewController: UIViewController {
             keychain.synchronizable = true
             keychain.delete("")
             keychain.delete("pin")
+            CacheManager.deleteClientInfo()
             
             do {
                 try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
@@ -149,6 +165,7 @@ class CoreViewController: UIViewController {
             keychain.synchronizable = true
             keychain.delete("")
             keychain.delete("pin")
+            CacheManager.deleteClientInfo()
             
             do {
                 try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
@@ -176,8 +193,6 @@ class CoreViewController: UIViewController {
         } catch {
             print(error.localizedDescription)
         }
-        
-        
     }
     
     
@@ -363,6 +378,11 @@ class CoreViewController: UIViewController {
                 
                 if self.didBecomeVisible == true {
                     // User has signed in.
+                    
+                    self.pendingSpinner.startAnimating()
+                    self.pendingView.alpha = 1
+                    self.blackSignupBackground.alpha = 0.2
+                    
                     self.facilitateNotificationPayout(specialData: specialData)
                     self.needsToHandleNotification = false
                 } else {
@@ -391,11 +411,35 @@ class CoreViewController: UIViewController {
             let bitcoinAmount = Double(bitcoinAmountString) ?? 0.0
             let amountMsat = UInt64(bitcoinAmount * 100_000_000_000)
             
+            
+            
             let pubkey = LightningNodeService.shared.nodeId()
 
             
             // Call payoutLightning in an async context
             Task.init {
+                
+                let peers = try await LightningNodeService.shared.listPeers()
+                if peers.count == 0 {
+                    DispatchQueue.main.async {
+                        self.pendingSpinner.stopAnimating()
+                        self.pendingView.alpha = 0
+                        self.blackSignupBackground.alpha = 0
+                        let alert = UIAlertController(title: "Lightning payment", message: "Not connected to any peers. [1]", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                    }
+                } else if peers[0].nodeId == "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", peers[0].isConnected == false {
+                    DispatchQueue.main.async {
+                        self.pendingSpinner.stopAnimating()
+                        self.pendingView.alpha = 0
+                        self.blackSignupBackground.alpha = 0
+                        let alert = UIAlertController(title: "Lightning payment", message: "Not connected to any peers. [2]", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                    }
+                }
+                
                 let invoice = try await LightningNodeService.shared.receivePayment(
                     amountMsat: amountMsat,
                     description: notificationId,
@@ -410,6 +454,9 @@ class CoreViewController: UIViewController {
                     //completionHandler(.newData)
                     
                     DispatchQueue.main.async {
+                        self.pendingSpinner.stopAnimating()
+                        self.pendingView.alpha = 0
+                        self.blackSignupBackground.alpha = 0
                         self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                     }
                 } catch {

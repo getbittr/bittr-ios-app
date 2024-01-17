@@ -91,9 +91,10 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             if actualPreviousPin == self.pinTextField.text {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                 
-                let keychain = KeychainSwift()
+                /*let keychain = KeychainSwift()
                 keychain.synchronizable = true
-                keychain.set(actualPreviousPin, forKey: "pin")
+                keychain.set(actualPreviousPin, forKey: "pin")*/
+                CacheManager.storePin(pin: actualPreviousPin)
                 
             } else {
                 let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
