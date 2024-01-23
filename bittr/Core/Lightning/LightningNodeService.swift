@@ -56,20 +56,21 @@ class LightningNodeService {
         if CacheManager.getMnemonic() != "empty" {
             mnemonicString = CacheManager.getMnemonic()
             print("Cached mnemonicString: \(mnemonicString)")
-            keychain.set(mnemonicString, forKey: mnemonicKey)
-            print("Keychain: \(keychain.get(mnemonicKey) ?? "None")")
+            /*keychain.set(mnemonicString, forKey: mnemonicKey)
+            print("Keychain: \(keychain.get(mnemonicKey) ?? "None")")*/
+            keychain.delete(mnemonicKey)
         } else {
             if let storedMnemonic = keychain.get(mnemonicKey) {
                 // Migration away from Keychain.
                 mnemonicString = storedMnemonic
                 print("mnemonicString: \(mnemonicString)")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
-                //keychain.delete(mnemonicKey)
+                keychain.delete(mnemonicKey)
             } else {
                 let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
                 mnemonicString = mnemonic.asString() //"mutual welcome bird hawk mystery warfare dinosaur sure tray coyote video cool"
                 print("New mnemonicString: \(mnemonicString)")
-                keychain.set(mnemonicString, forKey: mnemonicKey)
+                //keychain.set(mnemonicString, forKey: mnemonicKey)
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
             }
         }
@@ -183,19 +184,45 @@ class LightningNodeService {
                     persist: true
                 )
                 print("Did connect to peer.")
+                self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(error.localizedDescription)")
+                    print("Can't connect to peer: \(errorString)")
+                    self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
                 }
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: No error message.")
+                    self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
                 }
             }
         }
+        
+        /*// Get Lightning channels.
+        Task {
+            do {
+                let channels = try await LightningNodeService.shared.listChannels()
+                print("Channels: \(channels)")
+                
+                let payments = try await LightningNodeService.shared.listPayments()
+                print("Payments: \(payments)")
+                
+                var transactionsNotificationDict = [AnyHashable:Any]()
+                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance]
+                
+                // Step 9.
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
+            } catch {
+                print("Error listing channels: \(error.localizedDescription)")
+            }
+        }*/
+        
+    }
+    
+    func getChannelsAndPayments(actualWalletTransactions:[TransactionDetails]) {
         
         // Get Lightning channels.
         Task {
@@ -215,7 +242,6 @@ class LightningNodeService {
                 print("Error listing channels: \(error.localizedDescription)")
             }
         }
-        
     }
     
     
