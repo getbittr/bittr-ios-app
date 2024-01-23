@@ -15,7 +15,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     var coreVC:CoreViewController?
     var tappedUrl:String?
     
-    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet details", "icon":"bitcoinsign.circle", "id":"wallets"]]
+    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet details", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"Device details", "icon":"ipad.and.iphone", "id":"device"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -136,6 +136,8 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             present(actionSheet, animated: true, completion: nil)
         } else if sender.accessibilityIdentifier == "wallets" {
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "openmovevc"), object: nil, userInfo: nil) as Notification)
+        } else if sender.accessibilityIdentifier == "device" {
+            self.performSegue(withIdentifier: "SettingsToDevice", sender: self)
         }
     }
     
