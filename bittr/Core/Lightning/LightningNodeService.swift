@@ -21,6 +21,7 @@ class LightningNodeService {
     private var blockchain: Blockchain?
     private var xpub = ""
     private var bdkBalance = 0
+    private var varWalletTransactions = [TransactionDetails]()
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -154,6 +155,7 @@ class LightningNodeService {
         }
         
         let actualWalletTransactions = wallet_transactions ?? [TransactionDetails]()
+        self.varWalletTransactions = actualWalletTransactions
         
         switch network {
         case .bitcoin:
@@ -173,7 +175,7 @@ class LightningNodeService {
         self.ldkNode = ldkNode
         
         // Connect to Lightning peer.
-        let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
+        /*let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
         let address = "109.205.181.232:9735" // Extract this from your peer string
         
         Task {
@@ -199,7 +201,7 @@ class LightningNodeService {
                     self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
                 }
             }
-        }
+        }*/
         
         /*// Get Lightning channels.
         Task {
@@ -221,6 +223,40 @@ class LightningNodeService {
         }*/
         
     }
+    
+    
+    func connectToLightningPeer() {
+        
+        // Connect to Lightning peer.
+        let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
+        let address = "109.205.181.232:9735" // Extract this from your peer string
+        
+        Task {
+            do {
+                try await LightningNodeService.shared.connect(
+                    nodeId: nodeId,
+                    address: address,
+                    persist: true
+                )
+                print("Did connect to peer.")
+                self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    // Handle UI error showing here, like showing an alert
+                    print("Can't connect to peer: \(errorString)")
+                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    // Handle UI error showing here, like showing an alert
+                    print("Can't connect to peer: No error message.")
+                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                }
+            }
+        }
+    }
+    
     
     func getChannelsAndPayments(actualWalletTransactions:[TransactionDetails]) {
         

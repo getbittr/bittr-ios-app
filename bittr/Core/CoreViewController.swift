@@ -117,10 +117,15 @@ class CoreViewController: UIViewController {
         Task {
             do {
                 try await LightningNodeService.shared.start()
+                print("Started node successfully.")
+                DispatchQueue.main.async {
+                    LightningNodeService.shared.connectToLightningPeer()
+                }
             } catch let error as NodeError {
-                print(error.localizedDescription)
+                let errorString = handleNodeError(error)
+                print("Can't start node. \(errorString.title): \(errorString.detail)")
             } catch {
-                print(error.localizedDescription)
+                print("Can't start node. \(error.localizedDescription)")
             }
         }
     }
