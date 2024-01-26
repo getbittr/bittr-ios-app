@@ -271,6 +271,14 @@ class CoreViewController: UIViewController {
                             self.blackSignupBackground.alpha = 1
                             
                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+                            
+                            // Check internet connection.
+                            if !Reachability.isConnectedToNetwork() {
+                                // User not connected to internet.
+                                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                self.present(alert, animated: true)
+                            }
                         }
                     }
                 }

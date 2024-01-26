@@ -179,6 +179,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                     let invoiceHash = LightningNodeService.shared.getInvoiceHash(invoiceString: invoice)
                     let newTimestamp = Int(Date().timeIntervalSince1970)
                     CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                    if let actualInvoiceText = self.descriptionTextField.text {
+                        CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: actualInvoiceText)
+                    }
                     
                     let alert = UIAlertController(title: "Invoice created", message: "Invoice: \(invoice)", preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "Copy invoice", style: .default, handler: { _ in

@@ -20,6 +20,7 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var thenView: UIView!
     @IBOutlet weak var nowView: UIView!
     @IBOutlet weak var profitView: UIView!
+    @IBOutlet weak var descriptionView: UIView!
     
     // Labels
     @IBOutlet weak var dateLabel: UILabel!
@@ -29,10 +30,12 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var valueThenLabel: UILabel!
     @IBOutlet weak var valueNowLabel: UILabel!
     @IBOutlet weak var profitLabel: UILabel!
+    @IBOutlet weak var descriptionLabel: UILabel!
     
     // Heights
     @IBOutlet weak var thenViewHeight: NSLayoutConstraint!
     @IBOutlet weak var profitViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var descriptionViewHeight: NSLayoutConstraint!
     
     var tappedTransaction = Transaction()
     var eurValue = 0.0
@@ -111,6 +114,26 @@ class TransactionViewController: UIViewController {
             valueThenLabel.text = ""
             profitLabel.text = ""
         }
+        
+        if tappedTransaction.isLightning == true {
+            
+            if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
+                self.descriptionLabel.text = self.tappedTransaction.lnDescription
+            } else {
+                self.descriptionView.alpha = 0
+                NSLayoutConstraint.deactivate([self.descriptionViewHeight])
+                self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.descriptionViewHeight])
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            self.descriptionView.alpha = 0
+            NSLayoutConstraint.deactivate([self.descriptionViewHeight])
+            self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.descriptionViewHeight])
+            self.view.layoutIfNeeded()
+        }
+        
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {

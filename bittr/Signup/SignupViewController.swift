@@ -22,6 +22,15 @@ class SignupViewController: UIViewController {
     
     @objc func nextPageTapped(notification:NSNotification) {
         
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let pageNumber = userInfo["page"] as? String {
                 

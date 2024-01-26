@@ -473,6 +473,24 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storeInvoiceDescription(hash:String, desc:String) {
+        
+        let defaults = UserDefaults.standard
+        let cachedDescriptions = defaults.value(forKey: "descriptions") as? NSDictionary
+        if let actualCachedDescriptions = cachedDescriptions {
+            // Descriptions have been cached.
+            if let actualMutableDescriptions = actualCachedDescriptions.mutableCopy() as? NSMutableDictionary {
+                actualMutableDescriptions.setObject(desc, forKey: hash as NSCopying)
+                defaults.set(actualMutableDescriptions, forKey: "descriptions")
+            }
+        } else {
+            // No descriptions have been cached.
+            let actualMutableDescriptions = NSMutableDictionary()
+            actualMutableDescriptions.setObject(desc, forKey: hash as NSCopying)
+            defaults.set(actualMutableDescriptions, forKey: "descriptions")
+        }
+    }
+    
     static func getInvoiceTimestamp(hash:String) -> Int {
         
         let defaults = UserDefaults.standard
@@ -489,6 +507,23 @@ class CacheManager: NSObject {
             // No hashes have been cached.
             self.storeInvoiceTimestamp(hash: hash, timestamp: Int(Date().timeIntervalSince1970))
             return Int(Date().timeIntervalSince1970)
+        }
+    }
+    
+    static func getInvoiceDescription(hash:String) -> String {
+        
+        let defaults = UserDefaults.standard
+        let cachedDescriptions = defaults.value(forKey: "descriptions") as? NSDictionary
+        if let actualCachedDescriptions = cachedDescriptions {
+            // Descriptions have been cached.
+            if let foundDescription = actualCachedDescriptions[hash] as? String {
+                return foundDescription
+            } else {
+                return ""
+            }
+        } else {
+            // No descriptions have been cached.
+            return ""
         }
     }
     

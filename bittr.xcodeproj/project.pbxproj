@@ -11,6 +11,7 @@
 		050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB02A1BBB9600563F29 /* SignupViewController.swift */; };
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
+		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
 		051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */; };
@@ -104,6 +105,7 @@
 		050B4BB02A1BBB9600563F29 /* SignupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupViewController.swift; sourceTree = "<group>"; };
 		050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup1ViewController.swift; sourceTree = "<group>"; };
 		050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup2ViewController.swift; sourceTree = "<group>"; };
+		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
 		051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore3ViewController.swift; sourceTree = "<group>"; };
@@ -327,6 +329,7 @@
 				05980B512A46F76E001F312F /* IbanEntity.swift */,
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
+				051BE0872B641D41009CED5B /* Reachability.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -566,6 +569,7 @@
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
 				05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */,
+				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
@@ -763,7 +767,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 52;
+				CURRENT_PROJECT_VERSION = 53;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -801,7 +805,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 52;
+				CURRENT_PROJECT_VERSION = 53;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;

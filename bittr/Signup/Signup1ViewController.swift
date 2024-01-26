@@ -102,11 +102,29 @@ class Signup1ViewController: UIViewController {
         self.present(alert, animated: true)
         return*/
         
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
+        
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
         
         self.createWalletLabel.alpha = 0
         self.nextButtonSpinner.startAnimating()

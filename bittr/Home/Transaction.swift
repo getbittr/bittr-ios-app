@@ -19,4 +19,6 @@ class Transaction: NSObject {
     var purchaseAmount = 0
     var currency = "EUR"
     var isLightning = false
+    var lnDescription = ""
+    
 }
