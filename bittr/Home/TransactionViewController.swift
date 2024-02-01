@@ -37,6 +37,11 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var profitViewHeight: NSLayoutConstraint!
     @IBOutlet weak var descriptionViewHeight: NSLayoutConstraint!
     
+    // Notes
+    @IBOutlet weak var noteLabel: UILabel!
+    @IBOutlet weak var noteButton: UIButton!
+    @IBOutlet weak var noteImage: UIImageView!
+    
     var tappedTransaction = Transaction()
     var eurValue = 0.0
     var chfValue = 0.0
@@ -45,6 +50,7 @@ class TransactionViewController: UIViewController {
         super.viewDidLoad()
         
         downButton.setTitle("", for: .normal)
+        noteButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         bodyView.layer.cornerRadius = 13
@@ -98,6 +104,14 @@ class TransactionViewController: UIViewController {
         
         self.valueNowLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
         
+        if CacheManager.getTransactionNote(txid: tappedTransaction.id) != "" {
+            self.noteLabel.text = CacheManager.getTransactionNote(txid: tappedTransaction.id)
+            self.noteImage.alpha = 0
+        } else {
+            self.noteLabel.text = ""
+            self.noteImage.alpha = 1
+        }
+        
         if tappedTransaction.isBittr == true {
             
             thenViewHeight.constant = 40
@@ -138,6 +152,26 @@ class TransactionViewController: UIViewController {
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true)
+    }
+    
+    @IBAction func noteButtonTapped(_ sender: UIButton) {
+        
+        let alert = UIAlertController(title: "Add a note", message: "", preferredStyle: .alert)
+        alert.addTextField { (textField) in
+            textField.text = "\(self.noteLabel.text ?? "")"
+        }
+        alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { (save) in
+            
+            let noteText = alert.textFields![0].text!
+            if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
+                
+                CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: noteText)
+                self.noteLabel.text = noteText
+                self.noteImage.alpha = 0
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
     }
     
 }

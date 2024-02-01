@@ -491,6 +491,24 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storeTransactionNote(txid:String, note:String) {
+        
+        let defaults = UserDefaults.standard
+        let cachedTransactionNotes = defaults.value(forKey: "transactionnotes") as? NSDictionary
+        if let actualCachedNotes = cachedTransactionNotes {
+            // Notes have been cached.
+            if let actualMutableNotes = actualCachedNotes.mutableCopy() as? NSMutableDictionary {
+                actualMutableNotes.setObject(note, forKey: txid as NSCopying)
+                defaults.set(actualMutableNotes, forKey: "transactionnotes")
+            }
+        } else {
+            // No notes have been cached.
+            let actualMutableNotes = NSMutableDictionary()
+            actualMutableNotes.setObject(note, forKey: txid as NSCopying)
+            defaults.set(actualMutableNotes, forKey: "transactionnotes")
+        }
+    }
+    
     static func getInvoiceTimestamp(hash:String) -> Int {
         
         let defaults = UserDefaults.standard
@@ -523,6 +541,23 @@ class CacheManager: NSObject {
             }
         } else {
             // No descriptions have been cached.
+            return ""
+        }
+    }
+    
+    static func getTransactionNote(txid:String) -> String {
+        
+        let defaults = UserDefaults.standard
+        let cachedNotes = defaults.value(forKey: "transactionnotes") as? NSDictionary
+        if let actualCachedNotes = cachedNotes {
+            // Notes have been cached.
+            if let foundNote = actualCachedNotes[txid] as? String {
+                return foundNote
+            } else {
+                return ""
+            }
+        } else {
+            // No notes have been cached.
             return ""
         }
     }

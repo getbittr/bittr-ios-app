@@ -174,54 +174,6 @@ class LightningNodeService {
         
         self.ldkNode = ldkNode
         
-        // Connect to Lightning peer.
-        /*let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
-        let address = "109.205.181.232:9735" // Extract this from your peer string
-        
-        Task {
-            do {
-                try await LightningNodeService.shared.connect(
-                    nodeId: nodeId,
-                    address: address,
-                    persist: true
-                )
-                print("Did connect to peer.")
-                self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorString)")
-                    self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: No error message.")
-                    self.getChannelsAndPayments(actualWalletTransactions: actualWalletTransactions)
-                }
-            }
-        }*/
-        
-        /*// Get Lightning channels.
-        Task {
-            do {
-                let channels = try await LightningNodeService.shared.listChannels()
-                print("Channels: \(channels)")
-                
-                let payments = try await LightningNodeService.shared.listPayments()
-                print("Payments: \(payments)")
-                
-                var transactionsNotificationDict = [AnyHashable:Any]()
-                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance]
-                
-                // Step 9.
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
-            } catch {
-                print("Error listing channels: \(error.localizedDescription)")
-            }
-        }*/
-        
     }
     
     

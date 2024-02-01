@@ -212,6 +212,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             
                             let thisTransaction = Transaction()
                             thisTransaction.id = eachTransaction.txid
+                            thisTransaction.note = CacheManager.getTransactionNote(txid: eachTransaction.txid)
                             thisTransaction.fee = Int(eachTransaction.fee!)
                             thisTransaction.received = Int(eachTransaction.received)
                             thisTransaction.sent = Int(eachTransaction.sent)
@@ -263,6 +264,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.hash)
                                 thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.hash)
                                 thisTransaction.id = eachPayment.preimage ?? "Lightning transaction"
+                                thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
                                 
                                 if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
                                     thisTransaction.isBittr = true
@@ -833,6 +835,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             // Set gain label
             if thisTransaction.isBittr == true {
+                actualCell.updateBoltTrailing(position: "left")
+                actualCell.bittrImage.alpha = 1
                 actualCell.gainView.alpha = 1
                 let relativeGain:Int = Int((CGFloat(Int((transactionValue*correctValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
                 actualCell.gainLabel.text = "\(relativeGain) %"
@@ -851,8 +855,20 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     actualCell.gainView.backgroundColor = UIColor(red: 231/255, green: 248/255, blue: 229/255, alpha: 1)
                 }
             } else {
+                actualCell.updateBoltTrailing(position: "right")
+                actualCell.bittrImage.alpha = 0
                 actualCell.gainView.alpha = 0
                 actualCell.gainLabel.text = ""
+                /*actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
+                actualCell.arrowImage.tintColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
+                actualCell.gainLabel.textColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
+                actualCell.gainView.backgroundColor = UIColor(red: 231/255, green: 248/255, blue: 229/255, alpha: 1)*/
+            }
+            
+            if thisTransaction.isLightning == true {
+                actualCell.boltImage.alpha = 1
+            } else {
+                actualCell.boltImage.alpha = 0
             }
             
             // Set button
