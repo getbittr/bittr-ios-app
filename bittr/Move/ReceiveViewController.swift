@@ -124,7 +124,44 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     func getNewAddress() {
         Task {
-            await addressViewModel.newFundingAddress()
+            //await addressViewModel.newFundingAddress()
+            do {
+                let address = try await LightningNodeService.shared.newFundingAddress()
+                DispatchQueue.main.async {
+                    self.addressLabel.text = address
+                    self.addressCopy.alpha = 1
+                    self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
+                    self.qrCodeImage.layer.magnificationFilter = .nearest
+                    self.qrCodeImage.alpha = 1
+                    self.addressSpinner.stopAnimating()
+                    self.qrcodeSpinner.stopAnimating()
+                }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. (\(errorString).) Please try again.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                        self.getNewAddress()
+                    }))
+                    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                        self.addressSpinner.stopAnimating()
+                        self.qrcodeSpinner.stopAnimating()
+                    }))
+                    self.present(alert, animated: true)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                        self.getNewAddress()
+                    }))
+                    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                        self.addressSpinner.stopAnimating()
+                        self.qrcodeSpinner.stopAnimating()
+                    }))
+                    self.present(alert, animated: true)
+                }
+            }
         }
     }
     

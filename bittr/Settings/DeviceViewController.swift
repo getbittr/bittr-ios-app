@@ -15,6 +15,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var keyView: UIView!
     @IBOutlet weak var tokenButton: UIButton!
     @IBOutlet weak var keyButton: UIButton!
+    @IBOutlet weak var imagesView: UIView!
+    @IBOutlet weak var imagesButton: UIButton!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,9 +24,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         downButton.setTitle("", for: .normal)
         tokenButton.setTitle("", for: .normal)
         keyButton.setTitle("", for: .normal)
+        imagesButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
         tokenView.layer.cornerRadius = 13
         keyView.layer.cornerRadius = 13
+        imagesView.layer.cornerRadius = 13
         
         NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
     }
@@ -91,6 +95,20 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             UIPasteboard.general.string = lightningKey
         }))
         alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
+    }
+    
+    @IBAction func imagesButtonTapped(_ sender: UIButton) {
+        
+        let alert = UIAlertController(title: "Cached images", message: "Are you sure you want to remove your cached images?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Remove", style: .default, handler: { _ in
+            // Copy the invoice to the clipboard
+            CacheManager.emptyImage()
+            let alert = UIAlertController(title: "Cache emptied", message: "Any cached images have been removed.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     

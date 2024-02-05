@@ -188,7 +188,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Step 10.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
-                print("Received: \(receivedTransactions)")
+                print("Received: \(receivedTransactions.count)")
                 
                 self.setTransactions.removeAll()
                 
@@ -318,7 +318,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.didStartReset = false
         
         // Step 17.
-        print("Step 17")
+        //print("Step 17")
         
         self.bittrProfitLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
@@ -388,7 +388,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         //self.askForPushNotifications()
         
         // Step 18
-        print("Step 18")
+        //print("Step 18")
         if let actualCoreVC = self.coreVC {
             if actualCoreVC.needsToHandleNotification == true, let actualNotification = actualCoreVC.lightningNotification {
                 actualCoreVC.handlePaymentNotification(notification: actualNotification)
@@ -432,7 +432,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         do {
             let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
-            print("Transactions: \(bittrApiTransactions)")
+            print("Transactions: \(bittrApiTransactions.count)")
             
             if bittrApiTransactions.count == 0 {
                 // This is not a Bittr transaction.
@@ -595,7 +595,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func setConversion(btcValue:CGFloat) {
         
         // Step 15.
-        print("Step 15")
+        //print("Step 15")
         var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
@@ -668,7 +668,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 self.homeTableView.alpha = 1
                                 
                                 // Step 16.
-                                print("Step 16")
+                                //print("Step 16")
                                 self.calculateProfit()
                             }
                         }

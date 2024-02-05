@@ -25,6 +25,12 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: "cache")
     }
     
+    static func emptyImage() {
+        
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "articleimages")
+    }
+    
     
     static func parseDevice(deviceDict:NSDictionary) -> [Client] {
         

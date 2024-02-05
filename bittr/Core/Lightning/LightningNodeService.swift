@@ -144,7 +144,7 @@ class LightningNodeService {
             wallet_transactions = try wallet.listTransactions(includeRaw: false)
             
             // Print the balance and the list of wallet transactions
-            print("wallet_transactions: \(wallet_transactions ?? [TransactionDetails]())")
+            print("wallet_transactions fetched.")
             
             // Uncomment the following lines to get a new address from the wallet
             // let new_address = try wallet.getAddress(addressIndex: AddressIndex.new)
@@ -216,10 +216,10 @@ class LightningNodeService {
         Task {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
-                print("Channels: \(channels)")
+                print("Channels: \(channels.count)")
                 
                 let payments = try await LightningNodeService.shared.listPayments()
-                print("Payments: \(payments)")
+                print("Payments: \(payments.count)")
                 
                 var transactionsNotificationDict = [AnyHashable:Any]()
                 transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance]
