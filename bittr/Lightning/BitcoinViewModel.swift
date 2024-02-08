@@ -23,8 +23,6 @@ class BitcoinViewModel: ObservableObject {
             let intBalance = Int(balance)
             let stringIntBalance = String(intBalance)
             
-            //let lnBalance = LightningNodeService.shared.listChannels()
-            
             // Step 12.
             DispatchQueue.main.async {
                 self.totalBalance = stringIntBalance

@@ -573,7 +573,7 @@ class CacheManager: NSObject {
         defaults.set(mnemonic, forKey: "mnemonic")
     }
     
-    static func getMnemonic() -> String {
+    static func getMnemonic() -> String? {
         
         let defaults = UserDefaults.standard
         let cachedMnemonic = defaults.value(forKey: "mnemonic") as? String
@@ -581,7 +581,7 @@ class CacheManager: NSObject {
         if let actualCachedMnemonic = cachedMnemonic {
             return actualCachedMnemonic
         } else {
-            return "empty"
+            return nil
         }
     }
     
@@ -590,7 +590,7 @@ class CacheManager: NSObject {
         defaults.set(pin, forKey: "pin")
     }
     
-    static func getPin() -> String {
+    static func getPin() -> String? {
         
         let defaults = UserDefaults.standard
         let cachedPin = defaults.value(forKey: "pin") as? String
@@ -598,7 +598,7 @@ class CacheManager: NSObject {
         if let actualCachedPin = cachedPin {
             return actualCachedPin
         } else {
-            return "empty"
+            return nil
         }
     }
     

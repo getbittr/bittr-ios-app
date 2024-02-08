@@ -53,25 +53,24 @@ class LightningNodeService {
         
         // For now, the mnemonic can only be set once before the first-ever startup of the ldkNode. It cannot be changed later on.
         var mnemonicString = ""
-        keychain.synchronizable = true
-        if CacheManager.getMnemonic() != "empty" {
-            mnemonicString = CacheManager.getMnemonic()
+        if let actualMnemonic = CacheManager.getMnemonic() {
+            // Mnemonic found in storage.
+            mnemonicString = actualMnemonic
             print("Cached mnemonicString: \(mnemonicString)")
-            /*keychain.set(mnemonicString, forKey: mnemonicKey)
-            print("Keychain: \(keychain.get(mnemonicKey) ?? "None")")*/
-            keychain.delete(mnemonicKey)
         } else {
+            // No mnemonic in storage. Check Keychain.
+            keychain.synchronizable = true
             if let storedMnemonic = keychain.get(mnemonicKey) {
-                // Migration away from Keychain.
+                // Mnemonic found in Keychain.
                 mnemonicString = storedMnemonic
                 print("mnemonicString: \(mnemonicString)")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
                 keychain.delete(mnemonicKey)
             } else {
+                // No mnemonic found in Keychain either. Create new mnemonic.
                 let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
-                mnemonicString = mnemonic.asString() //"mutual welcome bird hawk mystery warfare dinosaur sure tray coyote video cool"
+                mnemonicString = mnemonic.asString()
                 print("New mnemonicString: \(mnemonicString)")
-                //keychain.set(mnemonicString, forKey: mnemonicKey)
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
             }
         }

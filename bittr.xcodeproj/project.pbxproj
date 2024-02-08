@@ -40,6 +40,16 @@
 		05980B582A46F8DA001F312F /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B572A46F8DA001F312F /* CacheManager.swift */; };
 		05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241029E6C98100F9861F /* HomeViewController.swift */; };
 		05A2241329E6E56500F9861F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241229E6E56500F9861F /* GraphView.swift */; };
+		05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD762B750446002F0282 /* IntroAnimation.swift */; };
+		05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD792B750567002F0282 /* Navigation.swift */; };
+		05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7B2B750838002F0282 /* ShowPin.swift */; };
+		05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7D2B7509BD002F0282 /* StartLightning.swift */; };
+		05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7F2B750A40002F0282 /* HandlePaymentNotification.swift */; };
+		05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD812B750A8F002F0282 /* ResetApp.swift */; };
+		05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD872B750F82002F0282 /* ShowCachedData.swift */; };
+		05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD892B750FAF002F0282 /* LoadWalletData.swift */; };
+		05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */; };
+		05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */; };
 		05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */; };
 		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
 		05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */; };
@@ -134,6 +144,16 @@
 		05980B572A46F8DA001F312F /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		05A2241029E6C98100F9861F /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		05A2241229E6E56500F9861F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
+		05A8BD762B750446002F0282 /* IntroAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroAnimation.swift; sourceTree = "<group>"; };
+		05A8BD792B750567002F0282 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		05A8BD7B2B750838002F0282 /* ShowPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowPin.swift; sourceTree = "<group>"; };
+		05A8BD7D2B7509BD002F0282 /* StartLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartLightning.swift; sourceTree = "<group>"; };
+		05A8BD7F2B750A40002F0282 /* HandlePaymentNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandlePaymentNotification.swift; sourceTree = "<group>"; };
+		05A8BD812B750A8F002F0282 /* ResetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetApp.swift; sourceTree = "<group>"; };
+		05A8BD872B750F82002F0282 /* ShowCachedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowCachedData.swift; sourceTree = "<group>"; };
+		05A8BD892B750FAF002F0282 /* LoadWalletData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadWalletData.swift; sourceTree = "<group>"; };
+		05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchAndPrint.swift; sourceTree = "<group>"; };
+		05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTable.swift; sourceTree = "<group>"; };
 		05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressViewModel.swift; sourceTree = "<group>"; };
 		05A965C12A6FBE1F00265BE6 /* MondayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MondayError.swift; sourceTree = "<group>"; };
 		05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeIDViewModel.swift; sourceTree = "<group>"; };
@@ -239,19 +259,64 @@
 			path = Move;
 			sourceTree = "<group>";
 		};
-		05A2240F29E6C97000F9861F /* Home */ = {
+		05A2240F29E6C97000F9861F /* HomeVC */ = {
 			isa = PBXGroup;
 			children = (
 				05A2241029E6C98100F9861F /* HomeViewController.swift */,
 				05A2241229E6E56500F9861F /* GraphView.swift */,
+				05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */,
 				05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */,
+				05A8BD872B750F82002F0282 /* ShowCachedData.swift */,
+				05A8BD892B750FAF002F0282 /* LoadWalletData.swift */,
+				05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */,
+			);
+			path = HomeVC;
+			sourceTree = "<group>";
+		};
+		05A8BD752B750422002F0282 /* CoreVC */ = {
+			isa = PBXGroup;
+			children = (
+				05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */,
+				05A8BD762B750446002F0282 /* IntroAnimation.swift */,
+				05A8BD792B750567002F0282 /* Navigation.swift */,
+				05A8BD7B2B750838002F0282 /* ShowPin.swift */,
+				05A8BD7D2B7509BD002F0282 /* StartLightning.swift */,
+				05A8BD7F2B750A40002F0282 /* HandlePaymentNotification.swift */,
+				05A8BD812B750A8F002F0282 /* ResetApp.swift */,
+			);
+			path = CoreVC;
+			sourceTree = "<group>";
+		};
+		05A8BD832B750EE2002F0282 /* ProfitVC */ = {
+			isa = PBXGroup;
+			children = (
 				053190E529FEE4DE0072CE76 /* ProfitViewController.swift */,
+			);
+			path = ProfitVC;
+			sourceTree = "<group>";
+		};
+		05A8BD842B750F12002F0282 /* TransactionVC */ = {
+			isa = PBXGroup;
+			children = (
 				053190EB29FEE5190072CE76 /* TransactionViewController.swift */,
+			);
+			path = TransactionVC;
+			sourceTree = "<group>";
+		};
+		05A8BD852B750F28002F0282 /* PinVC */ = {
+			isa = PBXGroup;
+			children = (
 				051D778E2A9DEAC8002107C0 /* PinViewController.swift */,
-				052DC6922AA853B700CD59B0 /* Transaction.swift */,
+			);
+			path = PinVC;
+			sourceTree = "<group>";
+		};
+		05A8BD862B750F56002F0282 /* PaymentVC */ = {
+			isa = PBXGroup;
+			children = (
 				05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */,
 			);
-			path = Home;
+			path = PaymentVC;
 			sourceTree = "<group>";
 		};
 		05C3C07829CCB55600C1E695 = {
@@ -283,9 +348,15 @@
 			isa = PBXGroup;
 			children = (
 				05ECDAAA2B249768002A410D /* bittr.entitlements */,
-				05C3C0B429CCBFDD00C1E695 /* Core */,
+				05A8BD752B750422002F0282 /* CoreVC */,
+				05A8BD852B750F28002F0282 /* PinVC */,
 				050B4BAF2A1BBB6400563F29 /* Signup */,
-				05A2240F29E6C97000F9861F /* Home */,
+				05D5D0E82A66835300A1E771 /* Lightning */,
+				05C3C0B429CCBFDD00C1E695 /* Helpers */,
+				05A2240F29E6C97000F9861F /* HomeVC */,
+				05A8BD842B750F12002F0282 /* TransactionVC */,
+				05A8BD832B750EE2002F0282 /* ProfitVC */,
+				05A8BD862B750F56002F0282 /* PaymentVC */,
 				05E299582A39CB1200FA0AEE /* Buy */,
 				0579B26F2A0530DB0007891F /* Move */,
 				05F8DC5829F2B436008052B5 /* Info */,
@@ -318,11 +389,9 @@
 			path = bittrUITests;
 			sourceTree = "<group>";
 		};
-		05C3C0B429CCBFDD00C1E695 /* Core */ = {
+		05C3C0B429CCBFDD00C1E695 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				05D5D0E82A66835300A1E771 /* Lightning */,
-				05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */,
 				05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */,
 				05980B552A46F892001F312F /* Device.swift */,
 				05980B532A46F7E4001F312F /* Client.swift */,
@@ -330,8 +399,9 @@
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
+				052DC6922AA853B700CD59B0 /* Transaction.swift */,
 			);
-			path = Core;
+			path = Helpers;
 			sourceTree = "<group>";
 		};
 		05D5D0E82A66835300A1E771 /* Lightning */ = {
@@ -542,10 +612,13 @@
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
 				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
+				05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */,
 				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
+				05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
+				05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */,
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
 				05A2241329E6E56500F9861F /* GraphView.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
@@ -560,6 +633,9 @@
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
+				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
+				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
+				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
@@ -577,19 +653,23 @@
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */,
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
+				05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
 				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,
+				05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */,
 				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,
 				05980B542A46F7E4001F312F /* Client.swift in Sources */,
 				05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */,
 				053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */,
 				05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */,
+				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				057A01512A836B1900CA0747 /* BitcoinViewModel.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
+				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
 				05980B562A46F892001F312F /* Device.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

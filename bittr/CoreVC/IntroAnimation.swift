@@ -1,0 +1,97 @@
+//
+//  IntroAnimation.swift
+//  bittr
+//
+//  Created by Tom Melters on 08/02/2024.
+//
+
+import UIKit
+
+extension CoreViewController {
+
+    override func viewDidLayoutSubviews() {
+        
+        firstCoin.layer.cornerRadius = firstCoin.bounds.height / 2
+        secondCoin.layer.cornerRadius = firstCoin.bounds.height / 2
+        
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        
+        if #available(iOS 13.0, *) {
+            if let window = UIApplication.shared.windows.first {
+                if window.safeAreaInsets.bottom == 0 {
+                    self.menuBarViewHeight.constant = 68
+                }
+            }
+        } else if #available(iOS 11.0, *) {
+            if let window = UIApplication.shared.keyWindow {
+                if window.safeAreaInsets.bottom == 0 {
+                    self.menuBarViewHeight.constant = 68
+                }
+            }
+        }
+        
+        UIView.animate(withDuration: 0.6, delay: 0.3, options: .curveEaseInOut) {
+            self.firstCoinCenterX.constant = -40
+            self.firstCoinCenterY.constant = 40
+            self.view.layoutIfNeeded()
+        } completion: { finished in
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.logoViewWidth.constant = 99
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                    self.logoViewWidth.constant = 94
+                    self.view.layoutIfNeeded()
+                } completion: { finished in
+                    UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseInOut) {
+                        NSLayoutConstraint.deactivate([self.logoViewCenterY])
+                        self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
+                        NSLayoutConstraint.activate([self.logoViewTop])
+                        self.signupContainerView.alpha = self.signupAlpha
+                        if self.signupAlpha == 0 {
+                            self.pinContainerView.alpha = 1
+                            //self.homeContainerView.alpha = 1
+                            //self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
+                            //self.menuBarView.alpha = 1
+                        }
+                        self.view.layoutIfNeeded()
+                    } completion: { finished in
+                        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                            NSLayoutConstraint.deactivate([self.logoViewTop])
+                            self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 10)
+                            NSLayoutConstraint.activate([self.logoViewTop])
+                            self.finalLogo.alpha = 1
+                            self.view.layoutIfNeeded()
+                        } completion: { finished in
+                            self.coin1.alpha = 0
+                            self.coin3.alpha = 0
+                            self.secondCoin.alpha = 0
+                            self.blackCoin.alpha = 0
+                            self.firstCoin.alpha = 0
+                            self.coverView.alpha = 0
+                            self.topBar.alpha = 1
+                            self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
+                            self.homeContainerView.alpha = 1
+                            self.menuBarView.alpha = 1
+                            self.blackSignupBackground.alpha = 1
+                            
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+                            
+                            // Check internet connection.
+                            if !Reachability.isConnectedToNetwork() {
+                                // User not connected to internet.
+                                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                self.present(alert, animated: true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}

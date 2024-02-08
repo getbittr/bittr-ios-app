@@ -1,0 +1,422 @@
+//
+//  LoadWalletData.swift
+//  bittr
+//
+//  Created by Tom Melters on 08/02/2024.
+//
+
+import UIKit
+import BitcoinDevKit
+import LDKNode
+
+extension HomeViewController {
+
+    @objc func loadWalletData(notification:NSNotification) {
+        
+        // Step 10.
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
+                print("Received: \(receivedTransactions.count)")
+                
+                self.setTransactions.removeAll()
+                
+                var txIds = [String]()
+                for eachTransaction in receivedTransactions {
+                    txIds += [eachTransaction.txid]
+                }
+                if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
+                    for eachPayment in receivedPayments {
+                        if eachPayment.preimage != nil {
+                            txIds += [eachPayment.preimage ?? "Lightning transaction"]
+                        }
+                    }
+                }
+                
+                Task {
+                    await fetchTransactionData(txIds:txIds)
+                    
+                    DispatchQueue.main.async {
+                        for eachTransaction in receivedTransactions {
+                            
+                            let thisTransaction = Transaction()
+                            thisTransaction.id = eachTransaction.txid
+                            thisTransaction.note = CacheManager.getTransactionNote(txid: eachTransaction.txid)
+                            thisTransaction.fee = Int(eachTransaction.fee!)
+                            thisTransaction.received = Int(eachTransaction.received)
+                            thisTransaction.sent = Int(eachTransaction.sent)
+                            thisTransaction.isLightning = false
+                            if let confirmationTime = eachTransaction.confirmationTime {
+                                thisTransaction.height = Int(confirmationTime.height)
+                                thisTransaction.timestamp = Int(confirmationTime.timestamp)
+                            } else {
+                                // Handle the case where confirmationTime is nil.
+                                // For example, set a default value or leave it unassigned.
+                                let defaultValue = 0
+                                thisTransaction.height = defaultValue // Replace defaultValue with an appropriate value
+                                let currentTimestamp = Int(Date().timeIntervalSince1970)
+                                thisTransaction.timestamp = currentTimestamp // Replace defaultValue with an appropriate value
+                            }
+                            if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
+                                thisTransaction.isBittr = true
+                                thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                                
+                                print(thisTransaction.purchaseAmount)
+                            }
+                            
+                            self.setTransactions += [thisTransaction]
+                        }
+                        
+                        if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
+                            
+                            for eachPayment in receivedPayments {
+                                let thisTransaction = Transaction()
+                                if eachPayment.direction == .inbound {
+                                    thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
+                                } else {
+                                    thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
+                                }
+                                thisTransaction.isLightning = true
+                                thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.hash)
+                                thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.hash)
+                                thisTransaction.id = eachPayment.preimage ?? "Lightning transaction"
+                                thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
+                                
+                                if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
+                                    thisTransaction.isBittr = true
+                                    thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                    thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                                    
+                                    print(thisTransaction.purchaseAmount)
+                                }
+                                
+                                if eachPayment.status == .succeeded {
+                                    self.setTransactions += [thisTransaction]
+                                }
+                            }
+                        }
+                        
+                        self.setTransactions.sort { transaction1, transaction2 in
+                            transaction1.timestamp > transaction2.timestamp
+                        }
+                        
+                        CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
+                    }
+                }
+            }
+            
+            if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
+                
+                self.lightningNodeService = actualLightningNodeService
+            }
+            
+            if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
+                for eachChannel in actualLightningChannels {
+                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000)
+                }
+            }
+            
+            if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
+                self.bdkBalance = CGFloat(actualBdkBalance)
+            }
+        }
+        
+        // Step 11.
+        let bitcoinViewModel = BitcoinViewModel()
+        Task {
+            await bitcoinViewModel.getTotalOnchainBalanceSats()
+        }
+    }
+    
+    
+    func fetchTransactionData(txIds:[String]) async -> Bool {
+        
+        var depositCodes = [String]()
+        for eachIbanEntity in self.client.ibanEntities {
+            if eachIbanEntity.yourUniqueCode != "" {
+                depositCodes += [eachIbanEntity.yourUniqueCode]
+            }
+        }
+        
+        //depositCodes += ["5GCPDLWU5FVQ"]
+        
+        var cachedBittrTransactionIDs = [String]()
+        for eachTransaction in self.lastCachedTransactions {
+            if eachTransaction.isBittr == true {
+                self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
+                cachedBittrTransactionIDs += [eachTransaction.id]
+            }
+        }
+        
+        var newTxIds = [String]()
+        for eachTxId in txIds {
+            if !cachedBittrTransactionIDs.contains(eachTxId) {
+                newTxIds += [eachTxId]
+            }
+        }
+        
+        do {
+            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
+            print("Bittr transactions: \(bittrApiTransactions.count)")
+            
+            if bittrApiTransactions.count == 0 {
+                // This is not a Bittr transaction.
+                return false
+            } else {
+                // There are Bittr transactions.
+                for eachTransaction in bittrApiTransactions {
+                    self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
+                }
+                return true
+            }
+        } catch {
+            print("Bittr error: \(error.localizedDescription)")
+            return false
+        }
+    }
+    
+    
+    @objc func setTotalSats(notification:NSNotification) {
+        
+        // Step 13.
+        
+        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let satsBalance = userInfo["balance"] as? String {
+                
+                print("Sats " + satsBalance)
+                
+                var zeros = "0.00 000 00"
+                var numbers = satsBalance + " sats"
+                
+                self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
+                self.balanceWasFetched = true
+                
+                if self.btcBalance == 0.0, self.btclnBalance == 0.0, self.bdkBalance != 0.0 {
+                    self.btcBalance = self.bdkBalance
+                }
+                self.totalBalanceSats = self.btcBalance + self.btclnBalance
+                let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
+                
+                switch totalBalanceSatsString.count {
+                case 1:
+                    zeros = "0.00 000 00"
+                    numbers = totalBalanceSatsString + " sats"
+                case 2:
+                    zeros = "0.00 000 0"
+                    numbers = totalBalanceSatsString + " sats"
+                case 3:
+                    zeros = "0.00 000 "
+                    numbers = totalBalanceSatsString + " sats"
+                case 4:
+                    zeros = "0.00 00"
+                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " sats"
+                case 5:
+                    zeros = "0.00 0"
+                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " sats"
+                case 6:
+                    zeros = "0.00 "
+                    numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6] + " sats"
+                case 7:
+                    zeros = "0.0"
+                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7] + " sats"
+                case 8:
+                    zeros = "0."
+                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8] + " sats"
+                default:
+                    zeros = ""
+                    numbers = "btc \(totalBalanceSats/100000000)"
+                }
+                
+                balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+                
+                CacheManager.updateCachedData(data: balanceText, key: "balance")
+                
+                if let htmlData = balanceText.data(using: .unicode) {
+                    do {
+                        let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                        balanceLabel.attributedText = attributedText
+                        balanceLabel.alpha = 1
+                        
+                        // Step 14.
+                        self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000)
+                        
+                    } catch let e as NSError {
+                        print("Couldn't fetch text: \(e.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    func setConversion(btcValue:CGFloat) {
+        
+        // Step 15.
+        
+        var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data else {
+                print(String(describing: error))
+                return
+            }
+            
+            var dataDictionary:NSDictionary?
+            if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                do {
+                    dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                    if let actualDataDict = dataDictionary {
+                        if var actualEurValue = actualDataDict["btc_eur"] as? String, var actualChfValue = actualDataDict["btc_chf"] as? String {
+                            
+                            if actualEurValue.contains("."), Locale.current.decimalSeparator == "," {
+                                actualEurValue = actualEurValue.replacingOccurrences(of: ".", with: ",")
+                                actualChfValue = actualChfValue.replacingOccurrences(of: ".", with: ",")
+                            } else if actualEurValue.contains(","), Locale.current.decimalSeparator == "." {
+                                actualEurValue = actualEurValue.replacingOccurrences(of: ",", with: ".")
+                                actualChfValue = actualChfValue.replacingOccurrences(of: ",", with: ".")
+                            }
+                            
+                            self.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
+                            self.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
+                            
+                            CacheManager.updateCachedData(data: self.eurValue, key: "eurvalue")
+                            CacheManager.updateCachedData(data: self.chfValue, key: "chfvalue")
+                            
+                            var correctValue:CGFloat = self.eurValue
+                            var currencySymbol = "€"
+                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                                correctValue = self.chfValue
+                                currencySymbol = "CHF"
+                            }
+                            
+                            var balanceValue = String(Int((btcValue*correctValue).rounded()))
+                            
+                            switch balanceValue.count {
+                            case 0..<4:
+                                balanceValue = balanceValue
+                            case 4:
+                                balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+                            case 5:
+                                balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+                            case 6:
+                                balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+                            case 7:
+                                balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+                            case 8:
+                                balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+                            case 9:
+                                balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+                            default:
+                                balanceValue = balanceValue
+                            }
+                            
+                            DispatchQueue.main.async {
+                                self.conversionLabel.text = currencySymbol + " " + balanceValue
+                                CacheManager.updateCachedData(data: currencySymbol + " " + balanceValue, key: "conversion")
+                                self.balanceSpinner.stopAnimating()
+                                self.conversionLabel.alpha = 1
+                                print(currencySymbol + " " + balanceValue)
+                                
+                                self.homeTableView.reloadData()
+                                self.homeTableView.isUserInteractionEnabled = true
+                                self.tableSpinner.stopAnimating()
+                                self.homeTableView.alpha = 1
+                                
+                                // Step 16.
+                                
+                                self.calculateProfit()
+                            }
+                        }
+                    }
+                } catch let error as NSError {
+                    print(error)
+                }
+            }
+        }
+        task.resume()
+    }
+    
+    
+    func calculateProfit() {
+        
+        self.didStartReset = false
+        
+        // Step 17.
+        
+        self.bittrProfitLabel.alpha = 0
+        self.bittrProfitSpinner.startAnimating()
+        
+        let bittrTransactionsCount = self.bittrTransactions.count
+        var handledTransactions = 0
+        var accumulatedProfit = 0
+        var accumulatedInvestments = 0
+        var accumulatedCurrentValue = 0
+        
+        var correctValue:CGFloat = self.eurValue
+        var currencySymbol = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            correctValue = self.chfValue
+            currencySymbol = "CHF"
+        }
+        
+        if self.setTransactions.count == 0 {
+            // There are no transactions.
+            self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+            self.bittrProfitLabel.alpha = 1
+            self.bittrProfitSpinner.stopAnimating()
+            
+            self.calculatedProfit = accumulatedProfit
+            self.calculatedInvestments = accumulatedInvestments
+            self.calculatedCurrentValue = accumulatedCurrentValue
+        } else {
+            for eachTransaction in self.setTransactions {
+                
+                if eachTransaction.isBittr == true {
+                    
+                    handledTransactions += 1
+                    let transactionValue = CGFloat(eachTransaction.received)/100000000
+                    let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
+                    
+                    accumulatedProfit += transactionProfit
+                    accumulatedInvestments += eachTransaction.purchaseAmount
+                    accumulatedCurrentValue += Int((transactionValue*correctValue).rounded())
+                    
+                    if bittrTransactionsCount == handledTransactions {
+                        // We're done counting.
+                        
+                        self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+                        self.bittrProfitLabel.alpha = 1
+                        self.bittrProfitSpinner.stopAnimating()
+                        
+                        self.calculatedProfit = accumulatedProfit
+                        self.calculatedInvestments = accumulatedInvestments
+                        self.calculatedCurrentValue = accumulatedCurrentValue
+                    }
+                } else {
+                    
+                    if bittrTransactionsCount == handledTransactions {
+                        
+                        self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+                        self.bittrProfitLabel.alpha = 1
+                        self.bittrProfitSpinner.stopAnimating()
+                        
+                        self.calculatedProfit = accumulatedProfit
+                        self.calculatedInvestments = accumulatedInvestments
+                        self.calculatedCurrentValue = accumulatedCurrentValue
+                    }
+                }
+            }
+        }
+        
+        // Step 18
+        
+        if let actualCoreVC = self.coreVC {
+            if actualCoreVC.needsToHandleNotification == true, let actualNotification = actualCoreVC.lightningNotification {
+                actualCoreVC.handlePaymentNotification(notification: actualNotification)
+            }
+        }
+        
+        self.fetchAndPrintPeers()
+    }
+
+}
