@@ -254,12 +254,30 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
+        
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         if self.balanceWasFetched == true {
             performSegue(withIdentifier: "HomeToSend", sender: self)
         }
     }
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
+        
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         if self.balanceWasFetched == true {
             performSegue(withIdentifier: "HomeToReceive", sender: self)
         }
@@ -402,6 +420,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         
         if scrollView.contentOffset.y < -200, self.didStartReset == false {
+            
+            if !Reachability.isConnectedToNetwork() {
+                // User not connected to internet.
+                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                self.present(alert, animated: true)
+                return
+            }
+            
             self.didStartReset = true
             self.resetWallet()
         }

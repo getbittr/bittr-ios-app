@@ -216,6 +216,7 @@ class LightningNodeService {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
                 print("Channels: \(channels.count)")
+                print("Channels: \(channels)")
                 
                 let payments = try await LightningNodeService.shared.listPayments()
                 print("Payments: \(payments.count)")

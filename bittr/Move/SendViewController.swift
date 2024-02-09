@@ -443,6 +443,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         self.view.endEditing(true)
         
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         if self.nextLabel.text == "Next" {
             
             let formatter = NumberFormatter()
@@ -634,6 +642,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
+        
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
         
         let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to send \(self.amountConfirmation.text ?? "these") btc to \(self.toConfirmation.text ?? "this address")?", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))

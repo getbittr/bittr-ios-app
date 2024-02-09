@@ -88,6 +88,13 @@ extension CoreViewController {
                     expirySecs: 3600
                 )
                 
+                DispatchQueue.main.async {
+                    let invoiceHash = LightningNodeService.shared.getInvoiceHash(invoiceString: invoice)
+                    let newTimestamp = Int(Date().timeIntervalSince1970)
+                    CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
+                }
+                
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                 
                 do {
