@@ -12,7 +12,7 @@ struct LightningStorage {
     func getDocumentsDirectory() -> String {
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let pathString = path.path
-        print(pathString)
+        print("Path string: " + pathString)
         return pathString
     }
 }

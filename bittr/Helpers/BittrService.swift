@@ -10,14 +10,14 @@ import Foundation
 class BittrService {
 
     static let shared = BittrService()
-    //private let baseURL = URL(string: "https://staging.getbittr.com/api/")!
-    private let baseURL = URL(string: "https://2489-81-20-241-228.ngrok-free.app/")!
+    private let baseURL = URL(string: "https://staging.getbittr.com/api/")!
+    //private let baseURL = URL(string: "https://2489-81-20-241-228.ngrok-free.app/")!
     private let session = URLSession(configuration: .default)
     
     func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
             
-        var urlComponents = URLComponents(string: "https://2489-81-20-241-228.ngrok-free.app/payout/lightning")!
-        //var urlComponents = URLComponents(string: "https://staging.getbittr.com/api/payout/lightning")!
+        //var urlComponents = URLComponents(string: "https://2489-81-20-241-228.ngrok-free.app/payout/lightning")!
+        var urlComponents = URLComponents(string: "https://staging.getbittr.com/api/payout/lightning")!
         urlComponents.queryItems = [
             URLQueryItem(name: "notification_id", value: notificationId),
             URLQueryItem(name: "invoice", value: invoice),

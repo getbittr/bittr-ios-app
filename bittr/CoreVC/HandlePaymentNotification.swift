@@ -110,7 +110,14 @@ extension CoreViewController {
                     }
                 } catch {
                     print("Error occurred: \(error.localizedDescription)")
-                    //completionHandler(.failed)
+                    DispatchQueue.main.async {
+                        self.pendingSpinner.stopAnimating()
+                        self.pendingView.alpha = 0
+                        self.blackSignupBackground.alpha = 0
+                        let alert = UIAlertController(title: "Lightning payment", message: "We couldn't complete your Lightning payment. Error: \(error.localizedDescription).", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                    }
                 }
             }
         } else {

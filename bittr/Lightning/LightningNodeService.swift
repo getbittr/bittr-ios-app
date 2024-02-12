@@ -182,28 +182,72 @@ class LightningNodeService {
         let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
         let address = "109.205.181.232:9735" // Extract this from your peer string
         
-        Task {
+        let connectTask = Task {
             do {
                 try await LightningNodeService.shared.connect(
                     nodeId: nodeId,
                     address: address,
                     persist: true
                 )
+                try Task.checkCancellation()
+                if Task.isCancelled == true {
+                    print("Did connect to peer, but too late.")
+                    return false
+                }
                 print("Did connect to peer.")
-                self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                return true
+                //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorString)")
-                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
                 }
+                return false
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: No error message.")
+                    //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                }
+                return false
+            }
+        }
+        
+        let timeoutTask = Task {
+            try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
+            connectTask.cancel()
+            print("Connecting to peer takes too long.")
+            do {
+                try LightningNodeService.shared.ldkNode.disconnect(nodeId: nodeId)
+                DispatchQueue.main.async {
+                    print("Did disconnect from peer.")
                     self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
                 }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    print("Can't disconnect from peer: \(errorString)")
+                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    print("Can't disconnect from peer: No error message.")
+                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                }
+            }
+        }
+        
+        Task.init {
+            let result = await connectTask.value
+            timeoutTask.cancel()
+            if result == true {
+                // Could connect to peer.
+                self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+            } else {
+                // Couldn't connect to peer.
+                self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
             }
         }
     }
@@ -217,6 +261,11 @@ class LightningNodeService {
                 let channels = try await LightningNodeService.shared.listChannels()
                 print("Channels: \(channels.count)")
                 print("Channels: \(channels)")
+                if channels.count > 0 {
+                    if let channelTxoID = channels[0].fundingTxo?.txid as? String {
+                        CacheManager.storeTxoID(txoID: channelTxoID)
+                    }
+                }
                 
                 let payments = try await LightningNodeService.shared.listPayments()
                 print("Payments: \(payments.count)")

@@ -111,7 +111,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data else {
-                print(String(describing: error))
+                print("Articles request error: " + String(describing: error))
                 return
             }
             
@@ -178,7 +178,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                         }*/
                     }
                 } catch let error as NSError {
-                    print(error)
+                    print("Articles request error: " + error.localizedDescription)
                 }
             }
         }

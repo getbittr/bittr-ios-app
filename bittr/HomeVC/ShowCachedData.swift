@@ -21,6 +21,8 @@ extension HomeViewController {
                         let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                         balanceLabel.attributedText = attributedText
                         balanceLabel.alpha = 1
+                        bitcoinSign.alpha = 0.22
+                        satsSign.alpha = 1
                     } catch let e as NSError {
                         print("Couldn't fetch text: \(e.localizedDescription)")
                     }

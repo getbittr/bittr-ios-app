@@ -75,11 +75,18 @@ class TransactionViewController: UIViewController {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
         
+        // Set sats.
         var plusSymbol = "+"
         if tappedTransaction.received - tappedTransaction.sent < 0 {
             plusSymbol = "-"
         }
-        amountLabel.text = "\(plusSymbol) \(String(describing: numberFormatter.number(from: "\(CGFloat(tappedTransaction.received-tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber).replacingOccurrences(of: "-", with: "")) btc"
+        amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(tappedTransaction.received - tappedTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+        
+        /*var plusSymbol = "+"
+        if tappedTransaction.received - tappedTransaction.sent < 0 {
+            plusSymbol = "-"
+        }
+        amountLabel.text = "\(plusSymbol) \(String(describing: numberFormatter.number(from: "\(CGFloat(tappedTransaction.received-tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber).replacingOccurrences(of: "-", with: "")) btc"*/
         /*if tappedTransaction.received != 0 {
             amountLabel.text = "+ \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.received)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
         } else {
@@ -172,6 +179,30 @@ class TransactionViewController: UIViewController {
         }))
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         self.present(alert, animated: true)
+    }
+    
+    func addSpacesToString(balanceValue:String) -> String {
+        
+        var balanceValue = balanceValue
+        
+        switch balanceValue.count {
+        case 4:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+        case 5:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+        case 6:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+        case 7:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+        case 8:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+        case 9:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+        default:
+            balanceValue = balanceValue[0..<balanceValue.count]
+        }
+        
+        return balanceValue
     }
     
 }

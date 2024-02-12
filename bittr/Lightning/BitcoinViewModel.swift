@@ -25,6 +25,7 @@ class BitcoinViewModel: ObservableObject {
             
             // Step 12.
             DispatchQueue.main.async {
+                print("Balance fetched successfully.")
                 self.totalBalance = stringIntBalance
                 self.isTotalBalanceFinished = true
                 let notificationDict:[String: Any] = ["balance":stringIntBalance]
@@ -34,10 +35,12 @@ class BitcoinViewModel: ObservableObject {
             let errorString = handleNodeError(error)
             DispatchQueue.main.async {
                 self.bitcoinViewError = .init(title: errorString.title, detail: errorString.detail)
+                print("Can't get balance. \(errorString.title): \(errorString.detail)")
             }
         } catch {
             DispatchQueue.main.async {
                 self.bitcoinViewError = .init(title: "Unexpected error", detail: error.localizedDescription)
+                print("Can't get balance. No error message.")
             }
         }
     }

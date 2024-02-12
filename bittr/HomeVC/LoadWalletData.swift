@@ -31,6 +31,9 @@ extension HomeViewController {
                         }
                     }
                 }
+                /*if let cachedFundingTxo = CacheManager.getTxoID() {
+                    txIds += [cachedFundingTxo]
+                }*/
                 
                 Task {
                     await fetchTransactionData(txIds:txIds)
@@ -60,8 +63,6 @@ extension HomeViewController {
                                 thisTransaction.isBittr = true
                                 thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
                                 thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
-                                
-                                print(thisTransaction.purchaseAmount)
                             }
                             
                             self.setTransactions += [thisTransaction]
@@ -86,8 +87,6 @@ extension HomeViewController {
                                     thisTransaction.isBittr = true
                                     thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
                                     thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
-                                    
-                                    print(thisTransaction.purchaseAmount)
                                 }
                                 
                                 if eachPayment.status == .succeeded {
@@ -165,7 +164,12 @@ extension HomeViewController {
             } else {
                 // There are Bittr transactions.
                 for eachTransaction in bittrApiTransactions {
-                    self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
+                    if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
+                        // This is the funding Txo.
+                        self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency/*, "date":eachTransaction.datetime*/], forKey: eachTransaction.txId)
+                    } else {
+                        self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
+                    }
                 }
                 return true
             }
@@ -186,7 +190,7 @@ extension HomeViewController {
                 print("Sats " + satsBalance)
                 
                 var zeros = "0.00 000 00"
-                var numbers = satsBalance + " sats"
+                var numbers = satsBalance
                 
                 self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
                 self.balanceWasFetched = true
@@ -197,34 +201,37 @@ extension HomeViewController {
                 self.totalBalanceSats = self.btcBalance + self.btclnBalance
                 let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
                 
+                var bitcoinSignAlpha = 0.22
+                
                 switch totalBalanceSatsString.count {
                 case 1:
                     zeros = "0.00 000 00"
-                    numbers = totalBalanceSatsString + " sats"
+                    numbers = totalBalanceSatsString
                 case 2:
                     zeros = "0.00 000 0"
-                    numbers = totalBalanceSatsString + " sats"
+                    numbers = totalBalanceSatsString
                 case 3:
                     zeros = "0.00 000 "
-                    numbers = totalBalanceSatsString + " sats"
+                    numbers = totalBalanceSatsString
                 case 4:
                     zeros = "0.00 00"
-                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " sats"
+                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4]
                 case 5:
                     zeros = "0.00 0"
-                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " sats"
+                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5]
                 case 6:
                     zeros = "0.00 "
-                    numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6] + " sats"
+                    numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6]
                 case 7:
                     zeros = "0.0"
-                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7] + " sats"
+                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7]
                 case 8:
                     zeros = "0."
-                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8] + " sats"
+                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8]
                 default:
                     zeros = ""
-                    numbers = "btc \(totalBalanceSats/100000000)"
+                    numbers = "\(totalBalanceSats/100000000)"
+                    bitcoinSignAlpha = 1
                 }
                 
                 balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
@@ -236,6 +243,12 @@ extension HomeViewController {
                         let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                         balanceLabel.attributedText = attributedText
                         balanceLabel.alpha = 1
+                        bitcoinSign.alpha = bitcoinSignAlpha
+                        if bitcoinSignAlpha == 1 {
+                            satsSign.alpha = 0
+                        } else {
+                            satsSign.alpha = 1
+                        }
                         
                         // Step 14.
                         self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000)
@@ -257,7 +270,7 @@ extension HomeViewController {
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data else {
-                print(String(describing: error))
+                print("Conversion error:" + String(describing: error))
                 return
             }
             
@@ -329,7 +342,7 @@ extension HomeViewController {
                         }
                     }
                 } catch let error as NSError {
-                    print(error)
+                    print("Conversion error:" + error.localizedDescription)
                 }
             }
         }

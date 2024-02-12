@@ -24,6 +24,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerViewTop: NSLayoutConstraint!
+    @IBOutlet weak var bitcoinSign: UIImageView!
+    @IBOutlet weak var satsSign: UILabel!
     
     @IBOutlet weak var profitButton: UIButton!
     @IBOutlet weak var goalButton: UIButton!
@@ -57,7 +59,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var calculatedInvestments = 0
     var calculatedCurrentValue = 0
     
-    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0 sats</span></center>"
+    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
     let day:[CGFloat] = [25777, 26002, 25701, 25779, 25840, 25856, 25797, 25671, 25821, 25927, 25793]
     let week:[CGFloat] = [26563, 25596, 26018, 26234, 26180, 26339, 25791, 25793]

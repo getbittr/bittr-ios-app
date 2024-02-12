@@ -307,7 +307,9 @@ class CacheManager: NSObject {
                 thisTransaction.fee = transactionFee
             }
             
-            allTransactions += [thisTransaction]
+            if thisTransaction.timestamp != 0 {
+                allTransactions += [thisTransaction]
+            }
         }
         
         return allTransactions
@@ -597,6 +599,23 @@ class CacheManager: NSObject {
         
         if let actualCachedPin = cachedPin {
             return actualCachedPin
+        } else {
+            return nil
+        }
+    }
+    
+    static func storeTxoID(txoID:String) {
+        let defaults = UserDefaults.standard
+        defaults.set(txoID, forKey: "txoid")
+    }
+    
+    static func getTxoID() -> String? {
+        
+        let defaults = UserDefaults.standard
+        let cachedTxoID = defaults.value(forKey: "txoid") as? String
+        
+        if let actualCachedTxoID = cachedTxoID {
+            return actualCachedTxoID
         } else {
             return nil
         }

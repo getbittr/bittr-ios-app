@@ -232,7 +232,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     func found(code: String) {
-        print(code)
+        print("Code: " + code)
         
         if !code.contains("bitcoin") {
             self.toTextField.text = nil

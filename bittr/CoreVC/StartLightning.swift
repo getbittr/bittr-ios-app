@@ -40,6 +40,15 @@ extension CoreViewController {
             startTask.cancel()
             print("Row 141 taking too long.")
             DispatchQueue.main.async {
+                do {
+                    try LightningNodeService.shared.stop()
+                    print("Node stopped.")
+                } catch let error as NodeError {
+                    let errorString = handleNodeError(error)
+                    print("Can't stop node. \(errorString.title): \(errorString.detail)")
+                } catch {
+                    print("Can't stop node. \(error.localizedDescription)")
+                }
                 let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
                     self.startLightning()

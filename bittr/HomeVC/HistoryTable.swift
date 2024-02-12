@@ -55,7 +55,7 @@ extension HomeViewController {
             var balanceValue = String(Int((transactionValue*correctValue).rounded()))
             balanceValue = addSpacesToString(balanceValue: balanceValue).replacingOccurrences(of: "-", with: "")
             
-            actualCell.eurosLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
+            actualCell.eurosLabel.text = balanceValue + " " + currencySymbol
             
             // Set gain label
             if thisTransaction.isBittr == true {
