@@ -31,9 +31,9 @@ extension HomeViewController {
                         }
                     }
                 }
-                /*if let cachedFundingTxo = CacheManager.getTxoID() {
+                if let cachedFundingTxo = CacheManager.getTxoID() {
                     txIds += [cachedFundingTxo]
-                }*/
+                }
                 
                 Task {
                     await fetchTransactionData(txIds:txIds)
@@ -151,6 +151,8 @@ extension HomeViewController {
         for eachTxId in txIds {
             if !cachedBittrTransactionIDs.contains(eachTxId) {
                 newTxIds += [eachTxId]
+            } else if eachTxId == CacheManager.getTxoID() ?? "" {
+                newTxIds += [eachTxId]
             }
         }
         
@@ -159,14 +161,32 @@ extension HomeViewController {
             print("Bittr transactions: \(bittrApiTransactions.count)")
             
             if bittrApiTransactions.count == 0 {
-                // This is not a Bittr transaction.
+                // There are no Bittr transactions.
                 return false
             } else {
                 // There are Bittr transactions.
                 for eachTransaction in bittrApiTransactions {
+                    
                     if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                         // This is the funding Txo.
-                        self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency/*, "date":eachTransaction.datetime*/], forKey: eachTransaction.txId)
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                        let transactionDate = formatter.date(from:eachTransaction.datetime)!
+                        let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
+                        
+                        let thisTransaction = Transaction()
+                        thisTransaction.isBittr = true
+                        thisTransaction.isLightning = true
+                        thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                        thisTransaction.currency = eachTransaction.currency
+                        thisTransaction.id = eachTransaction.txId
+                        thisTransaction.sent = 0
+                        thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!) / CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.historicalExchangeRate).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!) * 100000000)
+                        thisTransaction.timestamp = transactionTimestamp
+                        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachTransaction.txId)
+                        self.setTransactions += [thisTransaction]
+                        
+                        //self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "date":transactionTimestamp], forKey: eachTransaction.txId)
                     } else {
                         self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
                     }

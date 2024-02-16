@@ -42,6 +42,9 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var noteButton: UIButton!
     @IBOutlet weak var noteImage: UIImageView!
     
+    // Buttons
+    @IBOutlet weak var transactionButton: UIButton!
+    
     var tappedTransaction = Transaction()
     var eurValue = 0.0
     var chfValue = 0.0
@@ -51,6 +54,7 @@ class TransactionViewController: UIViewController {
         
         downButton.setTitle("", for: .normal)
         noteButton.setTitle("", for: .normal)
+        transactionButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         bodyView.layer.cornerRadius = 13
@@ -109,7 +113,7 @@ class TransactionViewController: UIViewController {
         }*/
         var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
         
-        self.valueNowLabel.text = plusSymbol + " " + balanceValue + " " + currencySymbol
+        self.valueNowLabel.text = balanceValue + " " + currencySymbol
         
         if CacheManager.getTransactionNote(txid: tappedTransaction.id) != "" {
             self.noteLabel.text = CacheManager.getTransactionNote(txid: tappedTransaction.id)
@@ -125,7 +129,7 @@ class TransactionViewController: UIViewController {
             profitViewHeight.constant = 40
             thenView.alpha = 1
             profitView.alpha = 1
-            valueThenLabel.text = "+ \(tappedTransaction.purchaseAmount) \(currencySymbol)"
+            valueThenLabel.text = "\(tappedTransaction.purchaseAmount) \(currencySymbol)"
             profitLabel.text = "\(Int((transactionValue*correctValue).rounded())-tappedTransaction.purchaseAmount) \(currencySymbol)"
         } else {
             thenViewHeight.constant = 0
@@ -203,6 +207,14 @@ class TransactionViewController: UIViewController {
         }
         
         return balanceValue
+    }
+    
+    @IBAction func idButtonTapped(_ sender: UIButton) {
+        
+        UIPasteboard.general.string = self.tappedTransaction.id
+        let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.id, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
     }
     
 }

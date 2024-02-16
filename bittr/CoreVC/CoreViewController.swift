@@ -61,6 +61,7 @@ class CoreViewController: UIViewController {
     
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
+    var varSpecialData:[String: Any]?
     
     var homeVC:HomeViewController?
     

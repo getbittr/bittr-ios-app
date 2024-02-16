@@ -96,6 +96,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var feeHigh:Float = 0.0
     var selectedFee = "medium"
     
+    var onchainOrLightning = "onchain"
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -139,7 +141,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         numberFormatter.numberStyle = .decimal
         self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
         
-        if let actualPresetAmount = presetAmount {
+        /*if let actualPresetAmount = presetAmount {
             
             self.fromLabel.text = "My BTCLN wallet"
             self.toTextField.text = "My BTC wallet"
@@ -147,7 +149,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.clipboardWidth.constant = 0
             self.toTextFieldTrailing.constant = 0
             self.amountTextField.text = String(actualPresetAmount)
-        }
+        }*/
         
         /*let codeScanner = CodeScannerView(codeTypes: [.qr]) { result in
         }*/
@@ -234,10 +236,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     func found(code: String) {
         print("Code: " + code)
         
-        if !code.contains("bitcoin") {
+        if self.onchainOrLightning == "onchain", !code.contains("bitcoin") {
             self.toTextField.text = nil
             self.amountTextField.text = nil
             let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "Okay", style: .default))
+            present(ac, animated: true)
+        } else if self.onchainOrLightning == "lightning", !code.lowercased().contains("ln") {
+            self.toTextField.text = nil
+            self.amountTextField.text = nil
+            let ac = UIAlertController(title: "No lightning address found.", message: "Please scan a lightning address QR code or input the address manually.", preferredStyle: .alert)
             ac.addAction(UIAlertAction(title: "Okay", style: .default))
             present(ac, animated: true)
         } else {
@@ -276,12 +284,30 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.scannerView.alpha = 0
             self.toLabel.alpha = 1
             self.toView.alpha = 1
-            self.amountLabel.alpha = 1
-            self.amountView.alpha = 1
-            self.availableAmount.alpha = 1
-            self.availableButton.alpha = 1
-            self.nextLabel.text = "Next"
-            self.nextViewTop.constant = -30
+            
+            if self.onchainOrLightning == "onchain" {
+                
+                self.pasteButton.alpha = 1
+                self.qrImage.alpha = 1
+                self.toTextFieldTrailing.constant = -10
+                self.amountLabel.alpha = 1
+                self.amountView.alpha = 1
+                self.availableAmount.alpha = 1
+                self.availableButton.alpha = 1
+                self.nextLabel.text = "Next"
+                self.nextViewTop.constant = -30
+            } else {
+                
+                self.pasteButton.alpha = 1
+                self.qrImage.alpha = 1
+                self.toTextFieldTrailing.constant = -10
+                self.amountView.alpha = 0
+                self.amountLabel.alpha = 0
+                self.availableAmount.alpha = 0
+                self.availableButton.alpha = 0
+                self.nextLabel.text = "Pay"
+                self.nextViewTop.constant = -140
+            }
             
             self.view.layoutIfNeeded()
         }
@@ -405,8 +431,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
         
-        //self.toTextField.text = UIPasteboard.general.string
-        
         // Open QR scanner.
         if self.scannerWorks == true {
             
@@ -415,7 +439,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.toView.alpha = 0
                 self.pasteButton.alpha = 0
                 self.qrImage.alpha = 0
-                self.toTextFieldTrailing.constant = 20
+                self.toTextFieldTrailing.constant = -10
                 self.amountView.alpha = 0
                 self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 0
@@ -546,8 +570,27 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                             }
+                        } catch let error as BdkError {
+                            
+                            print("BDK error: \(error)")
+                            DispatchQueue.main.async {
+                                
+                                self.nextLabel.alpha = 1
+                                self.nextSpinner.stopAnimating()
+                                
+                                let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error).", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                self.present(alert, animated: true)
+                            }
                         } catch {
                             print("Error: \(error.localizedDescription)")
+                            
+                            self.nextLabel.alpha = 1
+                            self.nextSpinner.stopAnimating()
+                            
+                            let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                            self.present(alert, animated: true)
                         }
                     }
                 }
@@ -606,7 +649,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 }))
                 self.present(alert, animated: true)
             }
-        } else if self.nextLabel.text == "Manual input" {
+        } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "onchain" {
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
@@ -623,6 +666,25 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.scannerView.alpha = 0
                 self.nextViewTop.constant = -30
                 self.nextLabel.text = "Next"
+                
+                self.view.layoutIfNeeded()
+            }
+        } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "lightning" {
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                
+                self.toLabel.alpha = 1
+                self.toView.alpha = 1
+                self.pasteButton.alpha = 1
+                self.qrImage.alpha = 1
+                self.toTextFieldTrailing.constant = -10
+                self.amountView.alpha = 0
+                self.amountLabel.alpha = 0
+                self.availableAmount.alpha = 0
+                self.availableButton.alpha = 0
+                self.scannerView.alpha = 0
+                self.nextLabel.text = "Pay"
+                self.nextViewTop.constant = -140
                 
                 self.view.layoutIfNeeded()
             }
@@ -711,6 +773,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if sender.accessibilityIdentifier == "regular" {
             // Regular
+            self.onchainOrLightning = "onchain"
             
             self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -722,12 +785,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
                 self.toLabel.text = "Address"
                 self.toTextField.placeholder = "Enter address"
+                
                 if self.scannerWorks == true {
                     self.toLabel.alpha = 0
                     self.toView.alpha = 0
                     self.pasteButton.alpha = 0
                     self.qrImage.alpha = 0
-                    self.toTextFieldTrailing.constant = 20
+                    self.toTextFieldTrailing.constant = -10
                     self.amountView.alpha = 0
                     self.amountLabel.alpha = 0
                     self.availableAmount.alpha = 0
@@ -760,30 +824,50 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             }
         } else {
             // Instant
+            self.onchainOrLightning = "lightning"
             
             self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
-                self.pasteButton.alpha = 0
-                self.qrImage.alpha = 0
-                self.toTextFieldTrailing.constant = 20
                 self.toTextField.text = nil
                 self.amountTextField.text = nil
                 self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
                 self.toLabel.text = "Invoice"
                 self.toTextField.placeholder = "Enter invoice"
-                self.amountView.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableAmount.alpha = 0
-                self.availableButton.alpha = 0
-                self.nextLabel.text = "Pay"
-                self.nextViewTop.constant = -140
-                self.scannerView.alpha = 0
-                self.toLabel.alpha = 1
-                self.toView.alpha = 1
-                //self.nextView.alpha = 1
+                
+                if self.scannerWorks == true {
+                    self.toLabel.alpha = 0
+                    self.toView.alpha = 0
+                    self.pasteButton.alpha = 0
+                    self.qrImage.alpha = 0
+                    self.toTextFieldTrailing.constant = -10
+                    self.amountView.alpha = 0
+                    self.amountLabel.alpha = 0
+                    self.availableAmount.alpha = 0
+                    self.availableButton.alpha = 0
+                    self.scannerView.alpha = 1
+                    self.nextLabel.text = "Manual input"
+                    self.nextViewTop.constant = 30
+                    
+                    if (self.captureSession?.isRunning == false) {
+                        self.captureSession.startRunning()
+                    }
+                } else {
+                    self.pasteButton.alpha = 0
+                    self.qrImage.alpha = 0
+                    self.toTextFieldTrailing.constant = 20
+                    self.amountView.alpha = 0
+                    self.amountLabel.alpha = 0
+                    self.availableAmount.alpha = 0
+                    self.availableButton.alpha = 0
+                    self.nextLabel.text = "Pay"
+                    self.nextViewTop.constant = -140
+                    self.scannerView.alpha = 0
+                    self.toLabel.alpha = 1
+                    self.toView.alpha = 1
+                }
                 
                 self.view.layoutIfNeeded()
             }

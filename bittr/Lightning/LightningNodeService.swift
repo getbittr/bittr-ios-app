@@ -22,6 +22,7 @@ class LightningNodeService {
     private var xpub = ""
     private var bdkBalance = 0
     private var varWalletTransactions = [TransactionDetails]()
+    private var varMnemonicString = ""
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -56,24 +57,26 @@ class LightningNodeService {
         if let actualMnemonic = CacheManager.getMnemonic() {
             // Mnemonic found in storage.
             mnemonicString = actualMnemonic
-            print("Cached mnemonicString: \(mnemonicString)")
+            print("Mnemonic found.")
         } else {
             // No mnemonic in storage. Check Keychain.
             keychain.synchronizable = true
             if let storedMnemonic = keychain.get(mnemonicKey) {
                 // Mnemonic found in Keychain.
                 mnemonicString = storedMnemonic
-                print("mnemonicString: \(mnemonicString)")
+                print("Mnemonic found in Keychain.")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
                 keychain.delete(mnemonicKey)
             } else {
                 // No mnemonic found in Keychain either. Create new mnemonic.
                 let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
                 mnemonicString = mnemonic.asString()
-                print("New mnemonicString: \(mnemonicString)")
+                print("No mnemonic found. Created a new one.")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
             }
         }
+        
+        self.varMnemonicString = mnemonicString
         
         // Step 6.
         let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
@@ -81,13 +84,35 @@ class LightningNodeService {
         
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
+        switch network {
+        case .bitcoin:
+            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
+        case .regtest:
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
+        case .signet:
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
+        case .testnet:
+            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
+            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
+        }
+        
+        let ldkNode = try! nodeBuilder.build()
+        
+        self.ldkNode = ldkNode
+        
+    }
+    
+    
+    func startBDK() {
+        
         var wallet_transactions:[TransactionDetails]?
         
         // BDK launch.
         do {
             
             // Attempt to create a mnemonic object from the provided mnemonic string.
-            let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: mnemonicString)
+            let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
             
             // Create a BIP32 extended root key using the mnemonic and a nil password
             let bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
@@ -149,30 +174,14 @@ class LightningNodeService {
             // let new_address = try wallet.getAddress(addressIndex: AddressIndex.new)
             // print("new_address: \(new_address.address.asString())")
             
+            let actualWalletTransactions = wallet_transactions ?? [TransactionDetails]()
+            self.varWalletTransactions = actualWalletTransactions
+            
+            self.connectToLightningPeer()
+            
         } catch {
             print("Some error occurred. \(error.localizedDescription)")
         }
-        
-        let actualWalletTransactions = wallet_transactions ?? [TransactionDetails]()
-        self.varWalletTransactions = actualWalletTransactions
-        
-        switch network {
-        case .bitcoin:
-            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
-        case .regtest:
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
-        case .signet:
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
-        case .testnet:
-            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
-        }
-        
-        let ldkNode = try! nodeBuilder.build()
-        
-        self.ldkNode = ldkNode
-        
     }
     
     
@@ -260,7 +269,7 @@ class LightningNodeService {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
                 print("Channels: \(channels.count)")
-                print("Channels: \(channels)")
+                //print("Channels: \(channels)")
                 if channels.count > 0 {
                     if let channelTxoID = channels[0].fundingTxo?.txid as? String {
                         CacheManager.storeTxoID(txoID: channelTxoID)

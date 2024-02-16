@@ -63,7 +63,7 @@ extension CoreViewController {
                 timeoutTask.cancel()
                 print("Started node successfully.")
                 DispatchQueue.main.async {
-                    LightningNodeService.shared.connectToLightningPeer()
+                    LightningNodeService.shared.startBDK()
                 }
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)

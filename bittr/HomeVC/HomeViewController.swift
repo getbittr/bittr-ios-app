@@ -411,6 +411,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.bittrProfitLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
         self.balanceLabel.alpha = 0
+        self.bitcoinSign.alpha = 0
+        self.satsSign.alpha = 0
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         self.homeTableView.reloadData()
