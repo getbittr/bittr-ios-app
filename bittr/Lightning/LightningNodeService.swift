@@ -23,6 +23,7 @@ class LightningNodeService {
     private var bdkBalance = 0
     private var varWalletTransactions = [TransactionDetails]()
     private var varMnemonicString = ""
+    private var currentHeight = 0
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -177,6 +178,9 @@ class LightningNodeService {
             let actualWalletTransactions = wallet_transactions ?? [TransactionDetails]()
             self.varWalletTransactions = actualWalletTransactions
             
+            let fetchedCurrentHeight = try blockchain.getHeight()
+            self.currentHeight = Int(fetchedCurrentHeight)
+            
             self.connectToLightningPeer()
             
         } catch {
@@ -280,7 +284,7 @@ class LightningNodeService {
                 print("Payments: \(payments.count)")
                 
                 var transactionsNotificationDict = [AnyHashable:Any]()
-                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance]
+                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance, "currentheight":self.currentHeight]
                 
                 // Step 9.
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)

@@ -120,7 +120,7 @@ extension CoreViewController {
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
-                            let alert = UIAlertController(title: "Bittr payout", message: "\(error.localizedDescription).", preferredStyle: .alert)
+                            let alert = UIAlertController(title: "Bittr payout", message: "\(error.localizedDescription)", preferredStyle: .alert)
                             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                         }

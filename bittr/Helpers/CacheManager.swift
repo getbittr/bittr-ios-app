@@ -230,7 +230,7 @@ class CacheManager: NSObject {
     }
     
     
-    static func getImage(key:String) -> Data {
+    static func getImage(key:String) -> Data? {
         
         let defaults = UserDefaults.standard
         var existingImages = defaults.value(forKey: "articleimages") as? [String:Data]
@@ -241,7 +241,7 @@ class CacheManager: NSObject {
             }
         }
         
-        return Data()
+        return nil
     }
     
     

@@ -81,7 +81,9 @@ class Transfer2ViewController: UIViewController {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
                     self.articleTitle.text = self.pageArticle1.title
-                    self.articleImage.image = UIImage(data: CacheManager.getImage(key: self.pageArticle1.image))
+                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                        self.articleImage.image = UIImage(data: actualData)
+                    }
                     if self.articleImage.image != nil {
                         self.spinner1.stopAnimating()
                     }

@@ -244,8 +244,9 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
             actualCell.articleButton.tag = indexPath.row
             actualCell.articleButton.accessibilityIdentifier = self.faqArticles[indexPath.row].id
             
-            actualCell.articleImage.image = UIImage(data: CacheManager.getImage(key: self.faqArticles[indexPath.row].image))
-            if actualCell.articleImage.image == nil {
+            if let actualData = CacheManager.getImage(key: self.faqArticles[indexPath.row].image) {
+                actualCell.articleImage.image = UIImage(data: actualData)
+            } else {
                 // Image hasn't been saved to cache before.
                 
                 actualCell.spinner.startAnimating()
@@ -322,8 +323,9 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualCell.articleImageView.image = previouslyDownloadedImage
             } else {
                 
-                actualCell.articleImageView.image = UIImage(data: CacheManager.getImage(key: self.newsArticles[indexPath.row].image))
-                if actualCell.articleImageView.image == nil {
+                if let actualData = CacheManager.getImage(key: self.newsArticles[indexPath.row].image) {
+                    actualCell.articleImageView.image = UIImage(data: actualData)
+                } else {
                     // Image hasn't been saved to cache before.
                     
                     actualCell.spinner.startAnimating()

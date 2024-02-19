@@ -42,6 +42,16 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var noteButton: UIButton!
     @IBOutlet weak var noteImage: UIImageView!
     
+    // Confirmations
+    @IBOutlet weak var confirmationsView: UIView!
+    @IBOutlet weak var confirmationsAmount: UILabel!
+    @IBOutlet weak var confirmationsViewHeight: NSLayoutConstraint!
+    
+    // Fees
+    @IBOutlet weak var feesView: UIView!
+    @IBOutlet weak var feesAmount: UILabel!
+    @IBOutlet weak var feesViewHeight: NSLayoutConstraint!
+    
     // Buttons
     @IBOutlet weak var transactionButton: UIButton!
     
@@ -86,17 +96,6 @@ class TransactionViewController: UIViewController {
         }
         amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(tappedTransaction.received - tappedTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
         
-        /*var plusSymbol = "+"
-        if tappedTransaction.received - tappedTransaction.sent < 0 {
-            plusSymbol = "-"
-        }
-        amountLabel.text = "\(plusSymbol) \(String(describing: numberFormatter.number(from: "\(CGFloat(tappedTransaction.received-tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber).replacingOccurrences(of: "-", with: "")) btc"*/
-        /*if tappedTransaction.received != 0 {
-            amountLabel.text = "+ \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.received)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
-        } else {
-            amountLabel.text = "- \(numberFormatter.number(from: "\(CGFloat(tappedTransaction.sent)/100000000)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber) btc"
-        }*/
-        
         idLabel.text = tappedTransaction.id
         
         var correctValue:CGFloat = self.eurValue
@@ -107,10 +106,6 @@ class TransactionViewController: UIViewController {
         }
         
         var transactionValue = CGFloat(tappedTransaction.received-tappedTransaction.sent)/100000000
-        /*if tappedTransaction.sent != 0 {
-            transactionValue = CGFloat(tappedTransaction.sent)/100000000
-            plusSymbol = "-"
-        }*/
         var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
         
         self.valueNowLabel.text = balanceValue + " " + currencySymbol
@@ -141,6 +136,12 @@ class TransactionViewController: UIViewController {
         }
         
         if tappedTransaction.isLightning == true {
+            // Lightning transaction.
+            
+            self.confirmationsViewHeight.constant = 0
+            self.confirmationsView.alpha = 0
+            self.feesViewHeight.constant = 0
+            self.feesView.alpha = 0
             
             if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
                 self.descriptionLabel.text = self.tappedTransaction.lnDescription
@@ -152,6 +153,23 @@ class TransactionViewController: UIViewController {
                 self.view.layoutIfNeeded()
             }
         } else {
+            // Onchain transaction
+            
+            self.confirmationsViewHeight.constant = 40
+            self.confirmationsView.alpha = 1
+            self.confirmationsAmount.text = "\(tappedTransaction.confirmations)"
+            
+            if tappedTransaction.received - tappedTransaction.sent < 0 {
+                // Outgoing transaction.
+                self.feesViewHeight.constant = 40
+                self.feesView.alpha = 1
+                self.feesAmount.text = "\(tappedTransaction.fee) sats"
+            } else {
+                // Incoming transaction.
+                self.feesViewHeight.constant = 0
+                self.feesView.alpha = 0
+            }
+            
             self.descriptionView.alpha = 0
             NSLayoutConstraint.deactivate([self.descriptionViewHeight])
             self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)

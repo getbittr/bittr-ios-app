@@ -49,6 +49,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var invoiceButton: UIButton!
     
     var keyboardIsActive = false
+    var maximumReceivableLNSats:Int?
+    @IBOutlet weak var receivableLNLabel: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -75,6 +77,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         amountTextField.delegate = self
         descriptionTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        
+        if let actualReceivableLN = maximumReceivableLNSats {
+            self.receivableLNLabel.text = "You can receive up to \(actualReceivableLN) satoshis."
+        }
         
         NotificationCenter.default.addObserver(self, selector: #selector(setNewAddress), name: NSNotification.Name(rawValue: "setnewaddress"), object: nil)
         
@@ -328,14 +334,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 // Some field was left empty.
             } else {
                 // Fields have been filled out.
-                let alert = UIAlertController(title: "Confirm", message: "Are you sure you want to create an invoice for the amount of \(self.amountTextField.text!) satoshis?", preferredStyle: .alert)
+                /*let alert = UIAlertController(title: "Confirm", message: "Are you sure you want to create an invoice for the amount of \(self.amountTextField.text!) satoshis?", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                alert.addAction(UIAlertAction(title: "Create invoice", style: .default, handler: { _ in
+                alert.addAction(UIAlertAction(title: "Create invoice", style: .default, handler: { _ in*/
                     
                     let actualAmount = (Int(self.amountTextField.text!) ?? 0) * 1000
                     self.receivePayment(amountMsat: UInt64(actualAmount), description: self.descriptionTextField.text!, expirySecs: 3600)
-                }))
-                self.present(alert, animated: true)
+                /*}))
+                self.present(alert, animated: true)*/
             }
         }
     }

@@ -56,6 +56,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var btcAmount = 0.07255647
     var btclnAmount = 0.02266301
     var presetAmount:Double?
+    var maximumSendableLNSats:Int?
     
     var lightningNodeService:LightningNodeService?
     
@@ -72,6 +73,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var nextViewTop: NSLayoutConstraint!
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
     @IBOutlet weak var qrImage: UIImageView!
+    @IBOutlet weak var availableAmountTop: NSLayoutConstraint!
     
     var captureSession: AVCaptureSession!
     var previewLayer: AVCaptureVideoPreviewLayer!
@@ -296,6 +298,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.availableButton.alpha = 1
                 self.nextLabel.text = "Next"
                 self.nextViewTop.constant = -30
+                
+                let numberFormatter = NumberFormatter()
+                numberFormatter.numberStyle = .decimal
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+                self.availableAmountTop.constant = 10
             } else {
                 
                 self.pasteButton.alpha = 1
@@ -306,7 +313,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
                 self.nextLabel.text = "Pay"
-                self.nextViewTop.constant = -140
+                self.nextViewTop.constant = -120
+                
+                if let actualMaxAmount = self.maximumSendableLNSats {
+                    self.availableAmount.alpha = 1
+                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+                    self.availableAmountTop.constant = -135
+                }
             }
             
             self.view.layoutIfNeeded()
@@ -667,6 +680,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.nextViewTop.constant = -30
                 self.nextLabel.text = "Next"
                 
+                let numberFormatter = NumberFormatter()
+                numberFormatter.numberStyle = .decimal
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+                self.availableAmountTop.constant = 10
+                
                 self.view.layoutIfNeeded()
             }
         } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "lightning" {
@@ -684,7 +702,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.availableButton.alpha = 0
                 self.scannerView.alpha = 0
                 self.nextLabel.text = "Pay"
-                self.nextViewTop.constant = -140
+                self.nextViewTop.constant = -120
+                
+                if let actualMaxAmount = self.maximumSendableLNSats {
+                    self.availableAmount.alpha = 1
+                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+                    self.availableAmountTop.constant = -135
+                }
                 
                 self.view.layoutIfNeeded()
             }
@@ -818,6 +842,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     self.scannerView.alpha = 0
                     self.nextLabel.text = "Next"
                     self.nextViewTop.constant = -30
+                    
+                    let numberFormatter = NumberFormatter()
+                    numberFormatter.numberStyle = .decimal
+                    self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+                    self.availableAmountTop.constant = 10
                 }
                 
                 self.view.layoutIfNeeded()
@@ -863,10 +892,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     self.availableAmount.alpha = 0
                     self.availableButton.alpha = 0
                     self.nextLabel.text = "Pay"
-                    self.nextViewTop.constant = -140
+                    self.nextViewTop.constant = -120
                     self.scannerView.alpha = 0
                     self.toLabel.alpha = 1
                     self.toView.alpha = 1
+                    
+                    if let actualMaxAmount = self.maximumSendableLNSats {
+                        self.availableAmount.alpha = 1
+                        self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+                        self.availableAmountTop.constant = -135
+                    }
                 }
                 
                 self.view.layoutIfNeeded()

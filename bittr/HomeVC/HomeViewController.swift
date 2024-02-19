@@ -78,6 +78,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var balanceWasFetched = false
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
+    var channels:[ChannelDetails]?
+    var currentHeight:Int?
     
     var tappedTransaction = 0
     
@@ -323,10 +325,25 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let sendVC = segue.destination as? SendViewController
             if let actualSendVC = sendVC {
                 
+                if let actualChannels = self.channels {
+                    if actualChannels.count > 0 {
+                        actualSendVC.maximumSendableLNSats = Int(actualChannels[0].outboundCapacityMsat/1000 - (actualChannels[0].unspendablePunishmentReserve ?? 0))
+                    }
+                }
                 actualSendVC.btcAmount = self.btcBalance.rounded() * 0.00000001
                 actualSendVC.btclnAmount = self.btclnBalance.rounded() * 0.00000001
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualSendVC.lightningNodeService = actualLightningNodeService
+                }
+            }
+        } else if segue.identifier == "HomeToReceive" {
+            let receiveVC = segue.destination as? ReceiveViewController
+            if let actualReceiveVC = receiveVC {
+                
+                if let actualChannels = self.channels {
+                    if actualChannels.count > 0 {
+                        actualReceiveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
+                    }
                 }
             }
         } else if segue.identifier == "HomeToTransaction" {

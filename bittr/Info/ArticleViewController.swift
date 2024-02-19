@@ -37,7 +37,9 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         if let actualHeaderImage = headerImage {
             oneArticleImage.image = actualHeaderImage
         } else {
-            oneArticleImage.image = UIImage(data: CacheManager.getImage(key: self.article?.image ?? "empty"))
+            if let actualData = CacheManager.getImage(key: self.article?.image ?? "") {
+                oneArticleImage.image = UIImage(data: actualData)
+            }
         }
         
         if oneArticleImage.image == nil {

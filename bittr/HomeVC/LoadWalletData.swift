@@ -15,6 +15,11 @@ extension HomeViewController {
         
         // Step 10.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            
+            if let actualCurrentHeight = userInfo["currentheight"] as? Int {
+                self.currentHeight = actualCurrentHeight
+            }
+            
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
                 print("Received: \(receivedTransactions.count)")
                 
@@ -51,11 +56,15 @@ extension HomeViewController {
                             if let confirmationTime = eachTransaction.confirmationTime {
                                 thisTransaction.height = Int(confirmationTime.height)
                                 thisTransaction.timestamp = Int(confirmationTime.timestamp)
+                                if let actualCurrentHeight = self.currentHeight {
+                                    thisTransaction.confirmations = actualCurrentHeight - thisTransaction.height
+                                }
                             } else {
                                 // Handle the case where confirmationTime is nil.
                                 // For example, set a default value or leave it unassigned.
                                 let defaultValue = 0
                                 thisTransaction.height = defaultValue // Replace defaultValue with an appropriate value
+                                thisTransaction.confirmations = 0
                                 let currentTimestamp = Int(Date().timeIntervalSince1970)
                                 thisTransaction.timestamp = currentTimestamp // Replace defaultValue with an appropriate value
                             }
@@ -112,6 +121,7 @@ extension HomeViewController {
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
                 for eachChannel in actualLightningChannels {
                     self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000)
+                    self.channels = actualLightningChannels
                 }
             }
             
