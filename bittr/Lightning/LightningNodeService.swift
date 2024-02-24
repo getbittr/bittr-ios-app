@@ -183,8 +183,14 @@ class LightningNodeService {
             
             self.connectToLightningPeer()
             
+        } catch let error as BdkError {
+            print("Some error occurred. \(error)")
+            let notificationDict:[String: Any] = ["message":"We can't seem to connect to the Blockchain. Please check your network."]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
         } catch {
             print("Some error occurred. \(error.localizedDescription)")
+            let notificationDict:[String: Any] = ["message":"\(error.localizedDescription)"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
     

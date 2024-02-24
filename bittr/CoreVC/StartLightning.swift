@@ -40,20 +40,7 @@ extension CoreViewController {
             startTask.cancel()
             print("Row 141 taking too long.")
             DispatchQueue.main.async {
-                do {
-                    try LightningNodeService.shared.stop()
-                    print("Node stopped.")
-                } catch let error as NodeError {
-                    let errorString = handleNodeError(error)
-                    print("Can't stop node. \(errorString.title): \(errorString.detail)")
-                } catch {
-                    print("Can't stop node. \(error.localizedDescription)")
-                }
-                let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                    self.startLightning()
-                }))
-                self.present(alert, animated: true)
+                self.stopLightning(notification: nil)
             }
         }
         
@@ -71,6 +58,36 @@ extension CoreViewController {
             } catch {
                 print("Can't start node. \(error.localizedDescription)")
             }
+        }
+    }
+    
+    @objc func stopLightning(notification:NSNotification?) {
+        do {
+            try LightningNodeService.shared.stop()
+            print("Node stopped.")
+        } catch let error as NodeError {
+            let errorString = handleNodeError(error)
+            print("Can't stop node. \(errorString.title): \(errorString.detail)")
+        } catch {
+            print("Can't stop node. \(error.localizedDescription)")
+        }
+        
+        if let actualNotification = notification {
+            if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
+                if let notificationMessage = userInfo["message"] as? String {
+                    let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again. Error: \(notificationMessage)", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                        self.startLightning()
+                    }))
+                    self.present(alert, animated: true)
+                }
+            }
+        } else {
+            let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                self.startLightning()
+            }))
+            self.present(alert, animated: true)
         }
     }
 

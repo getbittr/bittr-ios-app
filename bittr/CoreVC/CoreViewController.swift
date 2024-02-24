@@ -65,6 +65,10 @@ class CoreViewController: UIViewController {
     
     var homeVC:HomeViewController?
     
+    // QuestionVC
+    var tappedQuestion = ""
+    var tappedAnswer = ""
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -82,6 +86,8 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
         
         
         // Determine whether to show pin view or signup view.

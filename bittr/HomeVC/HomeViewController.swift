@@ -52,6 +52,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary()
+    var cachedLightningIds = [String]()
     
     @IBOutlet weak var bittrProfitLabel: UILabel!
     @IBOutlet weak var bittrProfitSpinner: UIActivityIndicatorView!
@@ -89,6 +90,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var coreVC:CoreViewController?
     
+    @IBOutlet weak var balanceButton: UIButton!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -102,6 +105,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         goalButton.setTitle("", for: .normal)
         sendButton.setTitle("", for: .normal)
         receiveButton.setTitle("", for: .normal)
+        balanceButton.setTitle("", for: .normal)
         
         optionDayView.layer.cornerRadius = 13
         optionWeekView.layer.cornerRadius = 13
@@ -484,6 +488,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
+    @IBAction func balanceButtonTapped(_ sender: UIButton) {
+        
+        let notificationDict:[String: Any] = ["question":"what are satoshis?","answer":"Named after bitcoin founder Satoshi Nakamoto, one satoshi is 0.00000001 bitcoin. It's the smallest denominator of the currency.\n\nWhen using bitcoin for small payments, it's therefore easier to use satoshis."]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
     
 }
 

@@ -84,6 +84,8 @@
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
+		05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC22B88009E00AAA342 /* QuestionViewController.swift */; };
+		05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */; };
 		05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */; };
 		05F8DC5B29F2B45F008052B5 /* InfoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */; };
 		05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */; };
@@ -188,6 +190,8 @@
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05E743502A3581F9007755A2 /* RestoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewController.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
+		05F31CC22B88009E00AAA342 /* QuestionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionViewController.swift; sourceTree = "<group>"; };
+		05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchQuestion.swift; sourceTree = "<group>"; };
 		05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTableViewCell.swift; sourceTree = "<group>"; };
 		05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoViewController.swift; sourceTree = "<group>"; };
 		05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
@@ -283,6 +287,7 @@
 				05A8BD7D2B7509BD002F0282 /* StartLightning.swift */,
 				05A8BD7F2B750A40002F0282 /* HandlePaymentNotification.swift */,
 				05A8BD812B750A8F002F0282 /* ResetApp.swift */,
+				05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */,
 			);
 			path = CoreVC;
 			sourceTree = "<group>";
@@ -361,6 +366,7 @@
 				0579B26F2A0530DB0007891F /* Move */,
 				05F8DC5829F2B436008052B5 /* Info */,
 				05F8DC5929F2B449008052B5 /* Settings */,
+				05F31CC12B88008E00AAA342 /* QuestionVC */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
 				05C3C08629CCB55600C1E695 /* SceneDelegate.swift */,
 				05C3C08829CCB55600C1E695 /* ViewController.swift */,
@@ -427,6 +433,14 @@
 				05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */,
 			);
 			path = Buy;
+			sourceTree = "<group>";
+		};
+		05F31CC12B88008E00AAA342 /* QuestionVC */ = {
+			isa = PBXGroup;
+			children = (
+				05F31CC22B88009E00AAA342 /* QuestionViewController.swift */,
+			);
+			path = QuestionVC;
 			sourceTree = "<group>";
 		};
 		05F8DC5829F2B436008052B5 /* Info */ = {
@@ -632,6 +646,7 @@
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
+				05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
@@ -658,6 +673,7 @@
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
 				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,
 				05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */,
+				05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */,
 				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,
 				05980B542A46F7E4001F312F /* Client.swift in Sources */,
 				05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */,
@@ -847,7 +863,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 59;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -885,7 +901,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 59;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;

@@ -25,6 +25,12 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: "cache")
     }
     
+    static func deleteLightningTransactions() {
+        
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "lightning")
+    }
+    
     static func emptyImage() {
         
         let defaults = UserDefaults.standard
@@ -247,7 +253,7 @@ class CacheManager: NSObject {
     
     static func parseTransactions(transactions:[Transaction]) -> [NSDictionary] {
         
-        var transactionsDict = [NSDictionary()]
+        var transactionsDict = [NSDictionary]()
         
         for eachTransaction in transactions {
             
@@ -262,6 +268,8 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.height, forKey: "height" as NSCopying)
             oneTransaction.setObject(eachTransaction.isLightning, forKey: "isLightning" as NSCopying)
             oneTransaction.setObject(eachTransaction.fee, forKey: "fee" as NSCopying)
+            oneTransaction.setObject(eachTransaction.channelId, forKey: "channelId" as NSCopying)
+            oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
             
             transactionsDict += [oneTransaction]
         }
@@ -306,6 +314,12 @@ class CacheManager: NSObject {
             if let transactionFee = eachTransaction["fee"] as? Int {
                 thisTransaction.fee = transactionFee
             }
+            if let transactionChannelId = eachTransaction["channelId"] as? String {
+                thisTransaction.channelId = transactionChannelId
+            }
+            if let transactionIsFundingTransaction = eachTransaction["isFundingTransaction"] as? Bool {
+                thisTransaction.isFundingTransaction = transactionIsFundingTransaction
+            }
             
             if thisTransaction.timestamp != 0 {
                 allTransactions += [thisTransaction]
@@ -313,6 +327,46 @@ class CacheManager: NSObject {
         }
         
         return allTransactions
+    }
+    
+    
+    static func storeLightningTransaction(thisTransaction:Transaction) {
+        
+        let defaults = UserDefaults.standard
+        let existingCache = defaults.value(forKey: "lightning") as? NSDictionary
+        
+        if let actualExistingCache = existingCache {
+            // A cache already exists.
+            if let actualMutableCache = actualExistingCache.mutableCopy() as? NSMutableDictionary {
+                let transactionDict = self.parseTransactions(transactions: [thisTransaction])
+                actualMutableCache.setObject(transactionDict[0], forKey: thisTransaction.id as NSCopying)
+                defaults.set(actualMutableCache, forKey: "lightning")
+            }
+        } else {
+            // No cache exists yet.
+            let newCache = NSMutableDictionary()
+            let transactionDict = self.parseTransactions(transactions: [thisTransaction])
+            newCache.setObject(transactionDict[0], forKey: thisTransaction.id as NSCopying)
+            defaults.set(newCache, forKey: "lightning")
+        }
+    }
+    
+    
+    static func getLightningTransactions() -> [Transaction]? {
+        
+        let defaults = UserDefaults.standard
+        let cachedData = defaults.value(forKey: "lightning") as? NSDictionary
+        
+        if let actualExistingCache = cachedData {
+            var allTransactions = [NSMutableDictionary]()
+            for (transactionId, transactionData) in actualExistingCache {
+                allTransactions.append((transactionData as! NSDictionary).mutableCopy() as! NSMutableDictionary)
+            }
+            let parsedTransactions = self.getTransactions(transactionsDict: allTransactions)
+            return parsedTransactions
+        } else {
+            return nil
+        }
     }
     
     

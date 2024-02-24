@@ -63,6 +63,12 @@ extension CoreViewController {
             if let actualInfoVC = infoVC {
                 actualInfoVC.coreVC = self
             }
+        } else if segue.identifier == "CoreToQuestion" {
+            let questionVC = segue.destination as? QuestionViewController
+            if let actualQuestionVC = questionVC {
+                actualQuestionVC.headerText = self.tappedQuestion
+                actualQuestionVC.answerText = self.tappedAnswer
+            }
         }
     }
     

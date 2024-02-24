@@ -22,5 +22,7 @@ class Transaction: NSObject {
     var lnDescription = ""
     var confirmations = 0
     var note = ""
+    var channelId = ""
+    var isFundingTransaction = false
     
 }
