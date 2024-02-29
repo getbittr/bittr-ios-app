@@ -25,7 +25,7 @@ class BitcoinViewModel: ObservableObject {
             
             // Step 12.
             DispatchQueue.main.async {
-                print("Balance fetched successfully.")
+                print("Did fetch onchain balance.")
                 self.totalBalance = stringIntBalance
                 self.isTotalBalanceFinished = true
                 let notificationDict:[String: Any] = ["balance":stringIntBalance]

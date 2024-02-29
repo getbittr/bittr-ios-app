@@ -58,21 +58,21 @@ class LightningNodeService {
         if let actualMnemonic = CacheManager.getMnemonic() {
             // Mnemonic found in storage.
             mnemonicString = actualMnemonic
-            print("Mnemonic found.")
+            print("Did find mnemonic.")
         } else {
             // No mnemonic in storage. Check Keychain.
             keychain.synchronizable = true
             if let storedMnemonic = keychain.get(mnemonicKey) {
                 // Mnemonic found in Keychain.
                 mnemonicString = storedMnemonic
-                print("Mnemonic found in Keychain.")
+                print("Did find mnemonic in Keychain.")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
                 keychain.delete(mnemonicKey)
             } else {
                 // No mnemonic found in Keychain either. Create new mnemonic.
                 let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
                 mnemonicString = mnemonic.asString()
-                print("No mnemonic found. Created a new one.")
+                print("Did not find mnemonic. Creating a new one.")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
             }
         }
@@ -130,7 +130,7 @@ class LightningNodeService {
                 let xpubPart = components[1].split(separator: "/").first
                 
                 if let xpub = xpubPart {
-                    print("XPUB: \(xpub)")
+                    print("Did get XPUB.")
                     self.xpub = String(xpub)
                 } else {
                     print("Error: Could not extract XPUB")
@@ -169,7 +169,7 @@ class LightningNodeService {
             wallet_transactions = try wallet.listTransactions(includeRaw: false)
             
             // Print the balance and the list of wallet transactions
-            print("wallet_transactions fetched.")
+            print("Did fetch BDK transactions.")
             
             // Uncomment the following lines to get a new address from the wallet
             // let new_address = try wallet.getAddress(addressIndex: AddressIndex.new)

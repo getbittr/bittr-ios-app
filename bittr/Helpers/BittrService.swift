@@ -64,7 +64,7 @@ class BittrService {
         
         do {
             lightningSignature = try await LightningNodeService.shared.signMessage(message: messageString)
-            print("Fetched signature: " + lightningSignature)
+            print("Did fetch Lightning signature.")
         } catch {
             throw BittrServiceError.networkError(error)
         }

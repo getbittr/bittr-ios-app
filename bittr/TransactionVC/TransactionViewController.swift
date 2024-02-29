@@ -31,6 +31,8 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var valueNowLabel: UILabel!
     @IBOutlet weak var profitLabel: UILabel!
     @IBOutlet weak var descriptionLabel: UILabel!
+    @IBOutlet weak var typeLabel: UILabel!
+    @IBOutlet weak var boltImage: UIImageView!
     
     // Heights
     @IBOutlet weak var thenViewHeight: NSLayoutConstraint!
@@ -54,6 +56,7 @@ class TransactionViewController: UIViewController {
     
     // Buttons
     @IBOutlet weak var transactionButton: UIButton!
+    @IBOutlet weak var descriptionButton: UIButton!
     
     var tappedTransaction = Transaction()
     var eurValue = 0.0
@@ -65,6 +68,7 @@ class TransactionViewController: UIViewController {
         downButton.setTitle("", for: .normal)
         noteButton.setTitle("", for: .normal)
         transactionButton.setTitle("", for: .normal)
+        descriptionButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         bodyView.layer.cornerRadius = 13
@@ -138,6 +142,8 @@ class TransactionViewController: UIViewController {
         if tappedTransaction.isLightning == true {
             // Lightning transaction.
             
+            self.typeLabel.text = "Instant"
+            self.boltImage.alpha = 0.8
             self.confirmationsViewHeight.constant = 0
             self.confirmationsView.alpha = 0
             self.feesViewHeight.constant = 0
@@ -155,6 +161,8 @@ class TransactionViewController: UIViewController {
         } else {
             // Onchain transaction
             
+            self.typeLabel.text = "Regular"
+            self.boltImage.alpha = 0
             self.confirmationsViewHeight.constant = 40
             self.confirmationsView.alpha = 1
             self.confirmationsAmount.text = "\(tappedTransaction.confirmations)"
@@ -231,6 +239,14 @@ class TransactionViewController: UIViewController {
         
         UIPasteboard.general.string = self.tappedTransaction.id
         let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.id, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
+    }
+    
+    @IBAction func descriptionButtonTapped(_ sender: UIButton) {
+        
+        UIPasteboard.general.string = self.tappedTransaction.lnDescription
+        let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }

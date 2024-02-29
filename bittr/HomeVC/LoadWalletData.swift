@@ -245,8 +245,6 @@ extension HomeViewController {
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let satsBalance = userInfo["balance"] as? String {
                 
-                print("Sats " + satsBalance)
-                
                 var zeros = "0.00 000 00"
                 var numbers = satsBalance
                 
@@ -323,6 +321,7 @@ extension HomeViewController {
     func setConversion(btcValue:CGFloat) {
         
         // Step 15.
+        print("Did start currency conversion.")
         
         var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
         
@@ -386,7 +385,6 @@ extension HomeViewController {
                                 CacheManager.updateCachedData(data: currencySymbol + " " + balanceValue, key: "conversion")
                                 self.balanceSpinner.stopAnimating()
                                 self.conversionLabel.alpha = 1
-                                print(currencySymbol + " " + balanceValue)
                                 
                                 self.homeTableView.reloadData()
                                 self.homeTableView.isUserInteractionEnabled = true
@@ -432,7 +430,7 @@ extension HomeViewController {
         
         if self.setTransactions.count == 0 {
             // There are no transactions.
-            self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+            self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
             self.bittrProfitLabel.alpha = 1
             self.bittrProfitSpinner.stopAnimating()
             
@@ -455,7 +453,7 @@ extension HomeViewController {
                     if bittrTransactionsCount == handledTransactions {
                         // We're done counting.
                         
-                        self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+                        self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
                         self.bittrProfitLabel.alpha = 1
                         self.bittrProfitSpinner.stopAnimating()
                         
@@ -467,7 +465,7 @@ extension HomeViewController {
                     
                     if bittrTransactionsCount == handledTransactions {
                         
-                        self.bittrProfitLabel.text = "🌱  \(currencySymbol) \(accumulatedProfit)"
+                        self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
                         self.bittrProfitLabel.alpha = 1
                         self.bittrProfitSpinner.stopAnimating()
                         

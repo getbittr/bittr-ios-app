@@ -36,9 +36,9 @@ extension CoreViewController {
         }
         
         let timeoutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
+            try await Task.sleep(nanoseconds: UInt64(10) * NSEC_PER_SEC)
             startTask.cancel()
-            print("Row 141 taking too long.")
+            print("Could not start node within 10 seconds. Will stop node.")
             DispatchQueue.main.async {
                 self.stopLightning(notification: nil)
             }
@@ -48,7 +48,7 @@ extension CoreViewController {
             do {
                 let result = try await startTask.value
                 timeoutTask.cancel()
-                print("Started node successfully.")
+                print("Did start node.")
                 DispatchQueue.main.async {
                     LightningNodeService.shared.startBDK()
                 }
@@ -75,7 +75,7 @@ extension CoreViewController {
         if let actualNotification = notification {
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {
-                    let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again. Error: \(notificationMessage)", preferredStyle: .alert)
+                    let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
                         self.startLightning()
                     }))
@@ -83,7 +83,7 @@ extension CoreViewController {
                 }
             }
         } else {
-            let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again.", preferredStyle: .alert)
+            let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
                 self.startLightning()
             }))

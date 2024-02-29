@@ -52,6 +52,18 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     var maximumReceivableLNSats:Int?
     @IBOutlet weak var receivableLNLabel: UILabel!
     
+    // Lightning invoice confirmation
+    @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var lnConfirmationHeaderView: UIView!
+    @IBOutlet weak var lnConfirmationQRView: UIView!
+    @IBOutlet weak var lnConfirmationAddressView: UIView!
+    @IBOutlet weak var lnInvoiceLabel: UILabel!
+    @IBOutlet weak var copyInvoiceButton: UIButton!
+    @IBOutlet weak var lnConfirmationDoneButton: UIButton!
+    @IBOutlet weak var lnConfirmationDoneView: UIView!
+    @IBOutlet weak var lnQRImage: UIImageView!
+    var createdInvoice = ""
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -65,6 +77,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         backgroundButton.setTitle("", for: .normal)
         contentBackgroundButton.setTitle("", for: .normal)
         invoiceButton.setTitle("", for: .normal)
+        copyInvoiceButton.setTitle("", for: .normal)
+        lnConfirmationDoneButton.setTitle("", for: .normal)
+        
         headerView.layer.cornerRadius = 13
         qrView.layer.cornerRadius = 13
         addressView.layer.cornerRadius = 13
@@ -73,6 +88,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         amountView.layer.cornerRadius = 13
         descriptionView.layer.cornerRadius = 13
         createView.layer.cornerRadius = 13
+        lnConfirmationHeaderView.layer.cornerRadius = 13
+        lnConfirmationQRView.layer.cornerRadius = 13
+        lnConfirmationAddressView.layer.cornerRadius = 13
+        lnConfirmationDoneView.layer.cornerRadius = 13
         
         amountTextField.delegate = self
         descriptionTextField.delegate = self
@@ -226,7 +245,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                         CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: actualInvoiceText)
                     }
                     
-                    let alert = UIAlertController(title: "Invoice created", message: "Invoice: \(invoice)", preferredStyle: .alert)
+                    /*let alert = UIAlertController(title: "Invoice created", message: "Invoice: \(invoice)", preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "Copy invoice", style: .default, handler: { _ in
                         // Copy the invoice to the clipboard
                         UIPasteboard.general.string = invoice
@@ -239,7 +258,23 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                         self.amountTextField.text = nil
                         self.descriptionTextField.text = nil
                     }))
-                    self.present(alert, animated: true)
+                    self.present(alert, animated: true)*/
+                    
+                    self.lnInvoiceLabel.text = "\(invoice)"
+                    self.lnQRImage.image = self.generateQRCode(from: "lightning:" + invoice)
+                    self.lnQRImage.layer.magnificationFilter = .nearest
+                    self.createdInvoice = invoice
+                    
+                    // Show confirmation view.
+                    UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                        NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+                        self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
+                        NSLayoutConstraint.activate([self.scrollViewTrailing])
+                        self.view.layoutIfNeeded()
+                    }
+                    
+                    self.amountTextField.text = nil
+                    self.descriptionTextField.text = nil
                 }
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
@@ -343,6 +378,28 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 /*}))
                 self.present(alert, animated: true)*/
             }
+        }
+    }
+    
+    @IBAction func copyInvoiceButtonTapped(_ sender: UIButton) {
+        
+        if self.createdInvoice != "" {
+            UIPasteboard.general.string = self.createdInvoice
+            UIPasteboard.general.string = sender.accessibilityIdentifier
+            let alert = UIAlertController(title: "Copied", message: self.createdInvoice, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+        }
+    }
+    
+    @IBAction func lnDoneButtonTapped(_ sender: UIButton) {
+        
+        // Hide confirmation view.
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+            self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.scrollViewTrailing])
+            self.view.layoutIfNeeded()
         }
     }
     

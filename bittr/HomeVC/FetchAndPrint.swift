@@ -27,7 +27,15 @@ extension HomeViewController {
         Task {
             do {
                 let peers = try await LightningNodeService.shared.listPeers()
-                print("Peers: \(peers)")
+                if peers.count == 1 {
+                    if peers[0].isConnected == true {
+                        print("Did successfully check peer connection.")
+                    } else {
+                        print("Not connected to peer.")
+                    }
+                } else {
+                    print("Not connected to peer.")
+                }
             } catch {
                 print("Error listing peers: \(error.localizedDescription)")
             }
