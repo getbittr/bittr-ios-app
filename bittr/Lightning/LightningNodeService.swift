@@ -101,7 +101,6 @@ class LightningNodeService {
         let ldkNode = try! nodeBuilder.build()
         
         self.ldkNode = ldkNode
-        
     }
     
     
@@ -156,13 +155,18 @@ class LightningNodeService {
             let blockchain = try Blockchain(config: blockchainConfig)
             self.blockchain = blockchain
             
+            print("Did initiate wallet and blockchain.")
+            
             // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
             try wallet.sync(blockchain: blockchain, progress: nil)
             self.bdkWallet = wallet
             
+            print("Did sync wallet.")
+            
             // Uncomment the following lines to get the on-chain balance (although LDK also does that
             // Get the confirmed balance from the wallet
             bdkBalance = Int(try wallet.getBalance().confirmed)
+            print("Did fetch onchain balance from BDK. \(bdkBalance)")
             // print("transactions: \(balance)")
             
             // Retrieve a list of transaction details from the wallet, excluding raw transaction data

@@ -121,7 +121,14 @@ extension CoreViewController {
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
                             let alert = UIAlertController(title: "Bittr payout", message: "\(error.localizedDescription)", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            if error.localizedDescription.contains("try again") {
+                                alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                                    if let actualSpecialData = self.varSpecialData {
+                                        self.facilitateNotificationPayout(specialData: actualSpecialData)
+                                    }
+                                }))
+                            }
+                            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                         }
                     }

@@ -26,6 +26,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var headerViewTop: NSLayoutConstraint!
     @IBOutlet weak var bitcoinSign: UIImageView!
     @IBOutlet weak var satsSign: UILabel!
+    @IBOutlet weak var questionCircle: UIImageView!
     
     @IBOutlet weak var profitButton: UIButton!
     @IBOutlet weak var goalButton: UIButton!
@@ -434,6 +435,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
         self.satsSign.alpha = 0
+        self.questionCircle.alpha = 0
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         self.homeTableView.reloadData()

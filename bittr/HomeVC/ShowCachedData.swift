@@ -23,6 +23,7 @@ extension HomeViewController {
                         balanceLabel.alpha = 1
                         bitcoinSign.alpha = 0.22
                         satsSign.alpha = 1
+                        questionCircle.alpha = 0.4
                     } catch let e as NSError {
                         print("Couldn't fetch text: \(e.localizedDescription)")
                     }

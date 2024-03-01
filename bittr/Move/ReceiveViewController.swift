@@ -47,6 +47,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var descriptionTextField: UITextField!
     @IBOutlet weak var descriptionButton: UIButton!
     @IBOutlet weak var invoiceButton: UIButton!
+    @IBOutlet weak var receivableButton: UIButton!
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -79,6 +80,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         invoiceButton.setTitle("", for: .normal)
         copyInvoiceButton.setTitle("", for: .normal)
         lnConfirmationDoneButton.setTitle("", for: .normal)
+        receivableButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         qrView.layer.cornerRadius = 13
@@ -401,6 +403,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.scrollViewTrailing])
             self.view.layoutIfNeeded()
         }
+    }
+    
+    @IBAction func receivableButtonTapped(_ sender: UIButton) {
+        
+        let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"There's a limit to the amount of satoshis you can receive per invoice.\n\nYour bitcoin lightning channel has a size, ten times the amount of your first Bittr purchase. If the size is 10,000 sats and you've already purchased 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the channel size. If you need more, you can create multiple invoices.\n\nWhen the channel is full, we empty the channel funds into your bitcoin wallet so that you have space again."]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
     }
     
 }

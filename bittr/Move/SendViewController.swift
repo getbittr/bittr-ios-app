@@ -34,8 +34,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var pasteButton: UIButton!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var qrButton: UIButton!
+    @IBOutlet weak var backgroundQR: UIView!
+    @IBOutlet weak var backgroundPaste: UIView!
+    @IBOutlet weak var backgroundKeyboard: UIView!
     @IBOutlet weak var keyboardButton: UIButton!
     @IBOutlet weak var toTextFieldHeight: NSLayoutConstraint!
+    @IBOutlet weak var questionCircle: UIImageView!
     
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentView: UIView!
@@ -77,7 +81,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
     @IBOutlet weak var qrImage: UIImageView!
     @IBOutlet weak var availableAmountTop: NSLayoutConstraint!
+    @IBOutlet weak var availableAmountCenterX: NSLayoutConstraint!
+    @IBOutlet weak var availableButtonTop: NSLayoutConstraint!
     @IBOutlet weak var invoiceLabel: UILabel!
+    @IBOutlet weak var toTextFieldTop: NSLayoutConstraint! // 5
+    @IBOutlet weak var invoiceLabelTop: NSLayoutConstraint! // 10
     
     var captureSession: AVCaptureSession!
     var previewLayer: AVCaptureVideoPreviewLayer!
@@ -141,6 +149,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         fastView.layer.cornerRadius = 13
         mediumView.layer.cornerRadius = 13
         slowView.layer.cornerRadius = 13
+        
+        backgroundQR.layer.cornerRadius = 13
+        backgroundPaste.layer.cornerRadius = 13
+        backgroundKeyboard.layer.cornerRadius = 13
         
         toTextField.delegate = self
         amountTextField.delegate = self
@@ -207,7 +219,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         previewLayer.videoGravity = .resizeAspectFill
         self.scannerView.layer.addSublayer(previewLayer)
         
-        captureSession.startRunning()
+        //captureSession.startRunning()
         self.scannerWorks = true
     }
     
@@ -258,13 +270,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             ac.addAction(UIAlertAction(title: "Okay", style: .default))
             present(ac, animated: true)
         } else {
-            let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "")
+            let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
             let components = address.components(separatedBy: "?")
             if let bitcoinAddress = components.first {
                 // Success.
                 self.toTextField.alpha = 0
                 self.invoiceLabel.text = bitcoinAddress
                 self.invoiceLabel.alpha = 1
+                self.invoiceLabelTop.constant = 20
                 
                 if components.count > 1 {
                     if components[1].contains("amount") {
@@ -318,6 +331,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 numberFormatter.numberStyle = .decimal
                 self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
                 self.availableAmountTop.constant = 10
+                self.availableButtonTop.constant = 0
+                self.availableAmountCenterX.constant = 0
+                self.questionCircle.alpha = 0
             } else {
                 
                 self.pasteButton.alpha = 1
@@ -325,19 +341,23 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.toTextFieldTrailing.constant = -10
                 self.amountView.alpha = 0
                 self.amountLabel.alpha = 0
-                self.availableAmount.alpha = 0
-                self.availableButton.alpha = 0
+                self.availableAmount.alpha = 1
+                self.availableButton.alpha = 1
                 self.nextLabel.text = "Pay"
                 self.nextViewTop.constant = -120
+                self.availableAmountTop.constant = -75
+                self.availableButtonTop.constant = -85
+                self.availableAmountCenterX.constant = -10
+                self.questionCircle.alpha = 1
                 
                 if let actualMaxAmount = self.maximumSendableLNSats {
-                    self.availableAmount.alpha = 1
                     self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                    self.availableAmountTop.constant = -135
+                } else {
+                    self.availableAmount.text = "You can send 0 satoshis."
                 }
                 
                 NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: -40)
+                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
                 NSLayoutConstraint.activate([self.nextViewTop])
             }
             
@@ -370,6 +390,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
             self.toTextFieldHeight.constant = 0
             self.toTextField.alpha = 0
+            self.toTextFieldTop.constant = 5
         }
         
         NSLayoutConstraint.deactivate([contentViewBottom])
@@ -456,23 +477,26 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
         
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .decimal
-        if self.fromLabel.text == "My BTC wallet" {
+        if self.onchainOrLightning == "onchain" {
+            // Regular
+            let numberFormatter = NumberFormatter()
+            numberFormatter.numberStyle = .decimal
             self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
         } else {
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btclnAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+            // Instant
+            let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel."]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
         
         captureSession.stopRunning()
-        
-        self.selectedInput = "paste"
         self.view.endEditing(true)
         
         if let actualString = UIPasteboard.general.string {
+            
+            self.selectedInput = "paste"
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
@@ -480,6 +504,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.toTextFieldHeight.constant = 0
                 self.invoiceLabel.text = actualString
                 self.invoiceLabel.alpha = 1
+                self.invoiceLabelTop.constant = 20
+                self.toTextFieldTop.constant = 5
                 
                 self.view.layoutIfNeeded()
             }
@@ -538,6 +564,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.toTextFieldHeight.constant = 25
             self.invoiceLabel.text = nil
             self.invoiceLabel.alpha = 0
+            self.toTextFieldTop.constant = 15
+            self.invoiceLabelTop.constant = 10
         }
         
         self.toTextField.becomeFirstResponder()
@@ -552,15 +580,15 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         self.view.endEditing(true)
         
-        if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
-            return
-        }
-        
         if self.nextLabel.text == "Next" {
+            
+            if !Reachability.isConnectedToNetwork() {
+                // User not connected to internet.
+                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                self.present(alert, animated: true)
+                return
+            }
             
             var invoiceText = self.toTextField.text
             if self.selectedInput != "keyboard" {
@@ -687,6 +715,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             }
         } else if self.nextLabel.text == "Pay" {
             
+            if !Reachability.isConnectedToNetwork() {
+                // User not connected to internet.
+                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                self.present(alert, animated: true)
+                return
+            }
+            
             var invoiceText = self.toTextField.text
             if self.selectedInput != "keyboard" {
                 invoiceText = self.invoiceLabel.text
@@ -761,7 +797,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.availableButton.alpha = 1
                 //self.nextView.alpha = 1
                 self.scannerView.alpha = 0
-                self.nextViewTop.constant = -30
+                //self.nextViewTop.constant = -30
                 self.nextLabel.text = "Next"
                 
                 NSLayoutConstraint.deactivate([self.nextViewTop])
@@ -772,6 +808,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 numberFormatter.numberStyle = .decimal
                 self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
                 self.availableAmountTop.constant = 10
+                self.availableButtonTop.constant = 0
+                self.availableAmountCenterX.constant = 0
+                self.questionCircle.alpha = 0
                 
                 self.view.layoutIfNeeded()
             }
@@ -788,19 +827,23 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 //self.toTextFieldTrailing.constant = -10
                 self.amountView.alpha = 0
                 self.amountLabel.alpha = 0
-                self.availableButton.alpha = 0
+                self.availableButton.alpha = 1
                 self.scannerView.alpha = 0
                 self.nextLabel.text = "Pay"
-                self.availableAmount.alpha = 0
+                self.availableAmount.alpha = 1
+                self.availableAmountTop.constant = -75
+                self.availableButtonTop.constant = -85
+                self.availableAmountCenterX.constant = -10
+                self.questionCircle.alpha = 1
                 
                 if let actualMaxAmount = self.maximumSendableLNSats {
-                    self.availableAmount.alpha = 1
                     self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                    self.availableAmountTop.constant = -135
+                } else {
+                    self.availableAmount.text = "You can send 0 satoshis."
                 }
                 
                 NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: -40)
+                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
                 NSLayoutConstraint.activate([self.nextViewTop])
                 
                 self.view.layoutIfNeeded()
@@ -887,6 +930,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
+        self.invoiceLabel.text = nil
+        self.toTextFieldHeight.constant = 0
+        self.toTextField.text = nil
+        self.amountTextField.text = nil
+        self.toTextFieldTop.constant = 5
+        self.invoiceLabelTop.constant = 10
+        captureSession.stopRunning()
+        
         if sender.accessibilityIdentifier == "regular" {
             // Regular
             self.onchainOrLightning = "onchain"
@@ -896,13 +947,40 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
-                self.invoiceLabel.text = nil
-                self.toTextFieldHeight.constant = 0
-                self.toTextField.text = nil
-                self.amountTextField.text = nil
                 self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
                 self.toLabel.text = "Address"
                 self.toTextField.placeholder = "Enter address"
+                
+                self.toLabel.alpha = 1
+                self.toView.alpha = 1
+                self.pasteButton.alpha = 1
+                self.qrImage.alpha = 1
+                self.toTextFieldTrailing.constant = -10
+                self.amountView.alpha = 1
+                self.amountLabel.alpha = 1
+                self.availableAmount.alpha = 1
+                self.availableButton.alpha = 1
+                //self.nextView.alpha = 1
+                self.scannerView.alpha = 0
+                //self.nextViewTop.constant = -30
+                self.nextLabel.text = "Next"
+                
+                NSLayoutConstraint.deactivate([self.nextViewTop])
+                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
+                NSLayoutConstraint.activate([self.nextViewTop])
+                
+                let numberFormatter = NumberFormatter()
+                numberFormatter.numberStyle = .decimal
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+                self.availableAmountTop.constant = 10
+                self.availableButtonTop.constant = 0
+                self.availableAmountCenterX.constant = 0
+                self.questionCircle.alpha = 0
+                
+                self.view.layoutIfNeeded()
+            }
+            
+            /*UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
                 if self.scannerWorks == true {
                     self.toLabel.alpha = 0
@@ -944,10 +1022,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     numberFormatter.numberStyle = .decimal
                     self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
                     self.availableAmountTop.constant = 10
+                    self.availableButtonTop.constant = 0
+                    self.availableAmountCenterX.constant = 0
+                    self.questionCircle.alpha = 0
                 }
                 
                 self.view.layoutIfNeeded()
-            }
+            }*/
         } else {
             // Instant
             self.onchainOrLightning = "lightning"
@@ -957,13 +1038,42 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
-                self.invoiceLabel.text = nil
-                self.toTextField.text = nil
-                self.toTextFieldHeight.constant = 0
-                self.amountTextField.text = nil
                 self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
                 self.toLabel.text = "Invoice"
                 self.toTextField.placeholder = "Enter invoice"
+                
+                self.toLabel.alpha = 1
+                self.toView.alpha = 1
+                self.pasteButton.alpha = 1
+                self.qrImage.alpha = 1
+                //self.toTextFieldTrailing.constant = -10
+                self.amountView.alpha = 0
+                self.amountLabel.alpha = 0
+                self.availableButton.alpha = 1
+                self.scannerView.alpha = 0
+                self.nextLabel.text = "Pay"
+                self.availableAmount.alpha = 1
+                self.availableAmountTop.constant = -75
+                self.availableButtonTop.constant = -85
+                self.availableAmountCenterX.constant = -10
+                self.questionCircle.alpha = 1
+                
+                if let actualMaxAmount = self.maximumSendableLNSats {
+                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+                } else {
+                    self.availableAmount.text = "You can send 0 satoshis."
+                }
+                
+                NSLayoutConstraint.deactivate([self.nextViewTop])
+                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
+                NSLayoutConstraint.activate([self.nextViewTop])
+                
+                self.view.layoutIfNeeded()
+            }
+            
+            /*UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                
+                // TODO:
                 
                 if self.scannerWorks == true {
                     self.toLabel.alpha = 0
@@ -991,23 +1101,28 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     self.toTextFieldTrailing.constant = 20
                     self.amountView.alpha = 0
                     self.amountLabel.alpha = 0
-                    self.availableAmount.alpha = 0
-                    self.availableButton.alpha = 0
+                    //self.availableAmount.alpha = 0
+                    self.availableButton.alpha = 1
                     self.nextLabel.text = "Pay"
                     self.nextViewTop.constant = -120
                     self.scannerView.alpha = 0
                     self.toLabel.alpha = 1
                     self.toView.alpha = 1
+                    self.availableAmount.alpha = 1
+                    self.availableAmountTop.constant = -75
+                    self.availableButtonTop.constant = -85
+                    self.availableAmountCenterX.constant = -10
+                    self.questionCircle.alpha = 1
                     
                     if let actualMaxAmount = self.maximumSendableLNSats {
-                        self.availableAmount.alpha = 1
                         self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                        self.availableAmountTop.constant = -135
+                    } else {
+                        self.availableAmount.text = "You can send 0 satoshis."
                     }
                 }
                 
                 self.view.layoutIfNeeded()
-            }
+            }*/
         }
     }
     

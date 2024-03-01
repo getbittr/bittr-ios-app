@@ -27,6 +27,14 @@ extension HomeViewController {
                 }
             }
             
+            if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
+                self.lightningNodeService = actualLightningNodeService
+            }
+            
+            if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
+                self.bdkBalance = CGFloat(actualBdkBalance)
+            }
+            
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
                 print("Received: \(receivedTransactions.count)")
                 
@@ -135,24 +143,25 @@ extension HomeViewController {
                         }
                         
                         CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
+                        
+                        // Step 11.
+                        /*let bitcoinViewModel = BitcoinViewModel()
+                        Task {
+                            print("Will fetch onchain balance.")
+                            await bitcoinViewModel.getTotalOnchainBalanceSats()
+                        }*/
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "settotalsats"), object: nil, userInfo: nil) as Notification)
                     }
                 }
+            } else {
+                // Step 11.
+                /*let bitcoinViewModel = BitcoinViewModel()
+                Task {
+                    print("Will fetch onchain balance.")
+                    await bitcoinViewModel.getTotalOnchainBalanceSats()
+                }*/
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "settotalsats"), object: nil, userInfo: nil) as Notification)
             }
-            
-            if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
-                
-                self.lightningNodeService = actualLightningNodeService
-            }
-            
-            if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
-                self.bdkBalance = CGFloat(actualBdkBalance)
-            }
-        }
-        
-        // Step 11.
-        let bitcoinViewModel = BitcoinViewModel()
-        Task {
-            await bitcoinViewModel.getTotalOnchainBalanceSats()
         }
     }
     
@@ -188,6 +197,8 @@ extension HomeViewController {
                 }
             }
         }
+        
+        print("TxIds being sent to Bittr: \(newTxIds.count)")
         
         do {
             let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
@@ -242,18 +253,18 @@ extension HomeViewController {
         
         // Step 13.
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let satsBalance = userInfo["balance"] as? String {
-                
+        /*if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            if let satsBalance = userInfo["balance"] as? String {*/
+        self.btcBalance = self.bdkBalance
                 var zeros = "0.00 000 00"
-                var numbers = satsBalance
+                var numbers = "\(self.btcBalance)"
                 
-                self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
+                //self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
                 self.balanceWasFetched = true
                 
-                if self.btcBalance == 0.0, self.btclnBalance == 0.0, self.bdkBalance != 0.0 {
+                /*if self.btcBalance == 0.0, self.btclnBalance == 0.0, self.bdkBalance != 0.0 {
                     self.btcBalance = self.bdkBalance
-                }
+                }*/
                 self.totalBalanceSats = self.btcBalance + self.btclnBalance
                 let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
                 
@@ -302,8 +313,10 @@ extension HomeViewController {
                         bitcoinSign.alpha = bitcoinSignAlpha
                         if bitcoinSignAlpha == 1 {
                             satsSign.alpha = 0
+                            questionCircle.alpha = 0
                         } else {
                             satsSign.alpha = 1
+                            questionCircle.alpha = 0.4
                         }
                         
                         // Step 14.
@@ -313,8 +326,8 @@ extension HomeViewController {
                         print("Couldn't fetch text: \(e.localizedDescription)")
                     }
                 }
-            }
-        }
+            //}
+        //}
     }
     
     
@@ -407,6 +420,8 @@ extension HomeViewController {
     
     
     func calculateProfit() {
+        
+        print("Did start calculating profit.")
         
         self.didStartReset = false
         

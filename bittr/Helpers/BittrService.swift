@@ -36,7 +36,7 @@ class BittrService {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw BittrServiceError.serverError("Invalid server response")
+            throw BittrServiceError.serverError("Couldn't connect to Bittr to complete payout. Please try again or check your connection.")
         }
         
         let decodedResponse = try JSONDecoder().decode(BittrPayoutResponse.self, from: data)
@@ -65,43 +65,43 @@ class BittrService {
         do {
             lightningSignature = try await LightningNodeService.shared.signMessage(message: messageString)
             print("Did fetch Lightning signature.")
+            
+            let lightningPubKey = LightningNodeService.shared.nodeId()
+            
+            var urlComponents = URLComponents(url: baseURL.appendingPathComponent("transaction_info"), resolvingAgainstBaseURL: false)!
+            urlComponents.queryItems = [
+                URLQueryItem(name: "tx_ids", value: txIdsString),
+                URLQueryItem(name: "deposit_codes", value: depositCodesString),
+                URLQueryItem(name: "signature", value: lightningSignature),
+                URLQueryItem(name: "pubkey", value: lightningPubKey)
+            ]
+            
+            guard let url = urlComponents.url else {
+                throw BittrServiceError.other("Invalid URL" as! Error)
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                throw BittrServiceError.serverError("Invalid server response")
+            }
+            
+            let decodedResponse = try JSONDecoder().decode(BittrTransactionResponse.self, from: data)
+            
+            if decodedResponse.success {
+                if let data = decodedResponse.data {
+                    return data
+                } else {
+                    throw BittrServiceError.noData
+                }
+            } else {
+                throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
+            }
         } catch {
             throw BittrServiceError.networkError(error)
-        }
-        
-        let lightningPubKey = LightningNodeService.shared.nodeId()
-        
-        var urlComponents = URLComponents(url: baseURL.appendingPathComponent("transaction_info"), resolvingAgainstBaseURL: false)!
-        urlComponents.queryItems = [
-            URLQueryItem(name: "tx_ids", value: txIdsString),
-            URLQueryItem(name: "deposit_codes", value: depositCodesString),
-            URLQueryItem(name: "signature", value: lightningSignature),
-            URLQueryItem(name: "pubkey", value: lightningPubKey)
-        ]
-        
-        guard let url = urlComponents.url else {
-            throw BittrServiceError.other("Invalid URL" as! Error)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw BittrServiceError.serverError("Invalid server response")
-        }
-        
-        let decodedResponse = try JSONDecoder().decode(BittrTransactionResponse.self, from: data)
-        
-        if decodedResponse.success {
-            if let data = decodedResponse.data {
-                return data
-            } else {
-                throw BittrServiceError.noData
-            }
-        } else {
-            throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
         }
     }
     
