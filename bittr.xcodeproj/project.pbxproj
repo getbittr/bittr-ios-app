@@ -1055,7 +1055,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-swift/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.0.118;
+				version = 0.0.121;
 			};
 		};
 		05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */ = {

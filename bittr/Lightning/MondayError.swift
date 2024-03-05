@@ -18,7 +18,6 @@ func handleNodeError(_ error: NodeError) -> MondayError {
     switch error {
         
     case .AlreadyRunning(message: let message):
-        
         return .init(title: "AlreadyRunning", detail: message)
         
     case .NotRunning(message: let message):
@@ -72,8 +71,8 @@ func handleNodeError(_ error: NodeError) -> MondayError {
     case .InvalidAddress(message: let message):
         return .init(title: "InvalidAddress", detail: message)
 
-    case .InvalidNetAddress(message: let message):
-        return .init(title: "InvalidNetAddress", detail: message)
+    //case .InvalidNetAddress(message: let message):
+        //return .init(title: "InvalidNetAddress", detail: message)
 
     case .InvalidPublicKey(message: let message):
         return .init(title: "InvalidPublicKey", detail: message)
@@ -102,6 +101,15 @@ func handleNodeError(_ error: NodeError) -> MondayError {
     case .ChannelConfigUpdateFailed(message: let message):
         return .init(title: "ChannelConfigUpdateFailed", detail: message)
 
+    case .ProbeSendingFailed(message: let message):
+        return .init(title: "ProbeSendingFailed", detail: message)
+        
+    case .FeerateEstimationUpdateFailed(message: let message):
+        return .init(title: "FeerateEstimationUpdateFailed", detail: message)
+        
+    case .InvalidSocketAddress(message: let message):
+        return .init(title: "InvalidSocketAddress", detail: message)
+        
     }
     
 }

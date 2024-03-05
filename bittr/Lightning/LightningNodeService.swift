@@ -11,6 +11,7 @@ import BitcoinDevKit
 import KeychainSwift
 import bdkFFI
 import LightningDevKit
+import LDKNodeFFI
 
 class LightningNodeService {
     private let ldkNode: LdkNode
@@ -42,7 +43,7 @@ class LightningNodeService {
         let config = Config(
             storageDirPath: storageManager.getDocumentsDirectory(),
             network: network,
-            listeningAddress: "0.0.0.0:9735",
+            listeningAddresses: ["0.0.0.0:9735"],
             defaultCltvExpiryDelta: UInt32(144),
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
@@ -224,7 +225,7 @@ class LightningNodeService {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorString)")
+                    print("Can't connect to peer. Error message: \(errorString.title), \(errorString.detail)")
                     //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
                 }
                 return false
@@ -408,12 +409,12 @@ class LightningNodeService {
         }
     }
     
-    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Invoice {
+    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> String {
         let invoice = try ldkNode.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
         return invoice
     }
     
-    func sendPayment(invoice: Invoice) async throws -> PaymentHash {
+    func sendPayment(invoice: String) async throws -> PaymentHash {
         let paymentHash = try ldkNode.sendPayment(invoice: invoice)
         return paymentHash
     }

@@ -741,7 +741,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     
                     Task {
                         do {
-                            let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Invoice(invoiceText!.replacingOccurrences(of: " ", with: "")))
+                            let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))
                             DispatchQueue.main.async {
                                 // Success alert
                                 let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
