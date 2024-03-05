@@ -10,7 +10,7 @@ import LDKNode
 import BitcoinDevKit
 import KeychainSwift
 import bdkFFI
-import LightningDevKit
+//import LightningDevKit
 import LDKNodeFFI
 
 class LightningNodeService {
@@ -409,19 +409,20 @@ class LightningNodeService {
         }
     }
     
-    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> String {
+    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
         let invoice = try ldkNode.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
         return invoice
     }
     
-    func sendPayment(invoice: String) async throws -> PaymentHash {
+    func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
         let paymentHash = try ldkNode.sendPayment(invoice: invoice)
         return paymentHash
     }
     
-    func getInvoiceHash(invoiceString:String) -> String {
+    /*func getInvoiceHash(invoiceString:String) -> String {
         
         let result = Bolt11Invoice.fromStr(s: invoiceString)
+        //let result = Bolt11Invoice(stringLiteral: invoiceString)
         if result.isOk() {
             if let invoice = result.getValue() {
                 print("Invoice parsed successfully: \(invoice)")
@@ -437,7 +438,7 @@ class LightningNodeService {
         } else {
             return "empty"
         }
-    }
+    }*/
 
 
 

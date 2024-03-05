@@ -7,6 +7,8 @@
 
 import UIKit
 import LDKNode
+import LDKNodeFFI
+import LightningDevKit
 
 extension CoreViewController {
     
@@ -95,7 +97,7 @@ extension CoreViewController {
                     )
                     
                     DispatchQueue.main.async {
-                        let invoiceHash = LightningNodeService.shared.getInvoiceHash(invoiceString: invoice)
+                        let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
                         let newTimestamp = Int(Date().timeIntervalSince1970)
                         CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                         CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
@@ -137,6 +139,27 @@ extension CoreViewController {
         } else {
             print("Required data not found in notification.")
             //completionHandler(.noData)
+        }
+    }
+    
+    func getInvoiceHash(invoiceString:String) -> String {
+        
+        let result = Bolt11Invoice.fromStr(s: invoiceString)
+        //let result = Bolt11Invoice(stringLiteral: invoiceString)
+        if result.isOk() {
+            if let invoice = result.getValue() {
+                print("Invoice parsed successfully: \(invoice)")
+                let paymentHash:[UInt8] = invoice.paymentHash()!
+                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
+                return hexString
+            } else {
+                return "empty"
+            }
+        } else if let error = result.getError() {
+            print("Failed to parse invoice: \(error)")
+            return "empty"
+        } else {
+            return "empty"
         }
     }
     

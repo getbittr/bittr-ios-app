@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import LDKNodeFFI
 
 extension CoreViewController {
 

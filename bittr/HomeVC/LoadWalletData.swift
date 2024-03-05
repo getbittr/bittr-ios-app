@@ -8,6 +8,7 @@
 import UIKit
 import BitcoinDevKit
 import LDKNode
+import LDKNodeFFI
 
 extension HomeViewController {
 

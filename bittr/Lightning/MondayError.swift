@@ -7,6 +7,7 @@
 
 import Foundation
 import LDKNode
+import LDKNodeFFI
 
 struct MondayError {
     let title: String

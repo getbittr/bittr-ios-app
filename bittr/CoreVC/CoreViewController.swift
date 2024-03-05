@@ -9,6 +9,7 @@ import UIKit
 import LDKNode
 import KeychainSwift
 import BitcoinDevKit
+import LDKNodeFFI
 
 class CoreViewController: UIViewController {
 

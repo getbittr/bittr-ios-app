@@ -9,6 +9,8 @@ import UIKit
 import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
+import LDKNodeFFI
+import LightningDevKit
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate {
 
@@ -230,6 +232,26 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         //self.receivePayment(amountMsat: 10000000, description: "Hello", expirySecs: 3600)
     }
     
+    func getInvoiceHash(invoiceString:String) -> String {
+        let result = Bolt11Invoice.fromStr(s: invoiceString)
+        //let result = Bolt11Invoice(stringLiteral: invoiceString)
+        if result.isOk() {
+            if let invoice = result.getValue() {
+                print("Invoice parsed successfully: \(invoice)")
+                let paymentHash:[UInt8] = invoice.paymentHash()!
+                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
+                return hexString
+            } else {
+                return "empty"
+            }
+        } else if let error = result.getError() {
+            print("Failed to parse invoice: \(error)")
+            return "empty"
+        } else {
+            return "empty"
+        }
+    }
+    
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) {
         Task {
             do {
@@ -240,7 +262,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 )
                 DispatchQueue.main.async {
                     
-                    let invoiceHash = LightningNodeService.shared.getInvoiceHash(invoiceString: invoice)
+                    let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
                     let newTimestamp = Int(Date().timeIntervalSince1970)
                     CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                     if let actualInvoiceText = self.descriptionTextField.text {

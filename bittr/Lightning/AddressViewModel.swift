@@ -7,6 +7,7 @@
 
 import Foundation
 import LDKNode
+import LDKNodeFFI
 
 class AddressViewModel: ObservableObject {
     @Published var address: String = ""

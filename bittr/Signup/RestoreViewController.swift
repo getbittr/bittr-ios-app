@@ -8,6 +8,7 @@
 import UIKit
 import KeychainSwift
 import LDKNode
+import LDKNodeFFI
 
 class RestoreViewController: UIViewController, UITextFieldDelegate {
 
