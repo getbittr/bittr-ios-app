@@ -25,6 +25,7 @@ class LightningNodeService {
     private var varWalletTransactions = [TransactionDetails]()
     private var varMnemonicString = ""
     private var currentHeight = 0
+    private var didInitiate = false
     
     class var shared: LightningNodeService {
         struct Singleton {
@@ -102,100 +103,114 @@ class LightningNodeService {
         let ldkNode = try! nodeBuilder.build()
         
         self.ldkNode = ldkNode
+        
+        self.didInitiate = true
+        
+        /*Task {
+            do {
+                try await start()
+                print("Successful start.")
+            } catch {
+                print("Unsuccessful node start. \(error.localizedDescription)")
+            }
+        }*/
     }
     
     
     func startBDK() {
         
-        var wallet_transactions:[TransactionDetails]?
-        
-        // BDK launch.
-        do {
+        DispatchQueue.global(qos: .background).async {
             
-            // Attempt to create a mnemonic object from the provided mnemonic string.
-            let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
+            var walletTransactions:[TransactionDetails]?
             
-            // Create a BIP32 extended root key using the mnemonic and a nil password
-            let bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
-            
-            // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
-            let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
-            
-            let descriptor = bip84ExternalDescriptor.asString()
-            
-            let components = descriptor.components(separatedBy: "]")
-            
-            if components.count > 1 {
+            // BDK launch.
+            do {
                 
-                let xpubPart = components[1].split(separator: "/").first
+                // Attempt to create a mnemonic object from the provided mnemonic string.
+                let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
                 
-                if let xpub = xpubPart {
-                    print("Did get XPUB.")
-                    self.xpub = String(xpub)
+                // Create a BIP32 extended root key using the mnemonic and a nil password
+                let bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
+                
+                // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
+                let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
+                
+                let descriptor = bip84ExternalDescriptor.asString()
+                
+                let components = descriptor.components(separatedBy: "]")
+                
+                if components.count > 1 {
+                    
+                    let xpubPart = components[1].split(separator: "/").first
+                    
+                    if let xpub = xpubPart {
+                        print("Did get XPUB.")
+                        self.xpub = String(xpub)
+                    } else {
+                        print("Error: Could not extract XPUB")
+                    }
+                    
                 } else {
-                    print("Error: Could not extract XPUB")
+                    print("Error: Descriptor format not recognized")
                 }
                 
-            } else {
-                print("Error: Descriptor format not recognized")
+                // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
+                let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
+                
+                // Set up the local SQLite database for the Bitcoin wallet using the provided file path
+                let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
+                let config = SqliteDbConfiguration(path: dbPath.path)
+                
+                // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
+                let wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
+                
+                // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
+                let electrum = ElectrumConfig(url: "ssl://electrum.blockstream.info:60002", socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
+                let blockchainConfig = BlockchainConfig.electrum(config: electrum)
+                let blockchain = try Blockchain(config: blockchainConfig)
+                self.blockchain = blockchain
+                
+                print("Did initiate wallet and blockchain.")
+                
+                // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
+                try wallet.sync(blockchain: blockchain, progress: nil)
+                self.bdkWallet = wallet
+                
+                print("Did sync wallet.")
+                
+                // Uncomment the following lines to get the on-chain balance (although LDK also does that
+                // Get the confirmed balance from the wallet
+                self.bdkBalance = Int(try wallet.getBalance().confirmed)
+                print("Did fetch onchain balance from BDK. \(self.bdkBalance)")
+                // print("transactions: \(balance)")
+                
+                // Retrieve a list of transaction details from the wallet, excluding raw transaction data
+                walletTransactions = try wallet.listTransactions(includeRaw: false)
+                
+                // Print the balance and the list of wallet transactions
+                print("Did fetch BDK transactions.")
+                
+                // Uncomment the following lines to get a new address from the wallet
+                // let new_address = try wallet.getAddress(addressIndex: AddressIndex.new)
+                // print("new_address: \(new_address.address.asString())")
+                
+                let actualWalletTransactions = walletTransactions ?? [TransactionDetails]()
+                self.varWalletTransactions = actualWalletTransactions
+                
+                let fetchedCurrentHeight = try blockchain.getHeight()
+                self.currentHeight = Int(fetchedCurrentHeight)
+                
+                self.connectToLightningPeer()
+                
+            } catch let error as BdkError {
+                print("Some error occurred. \(error)")
+                let notificationDict:[String: Any] = ["message":"We can't seem to connect to the Blockchain. Please check your network."]
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
+            } catch {
+                print("Some error occurred. \(error.localizedDescription)")
+                let notificationDict:[String: Any] = ["message":"\(error.localizedDescription)"]
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
             }
-            
-            // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
-            let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
-            
-            // Set up the local SQLite database for the Bitcoin wallet using the provided file path
-            let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
-            let config = SqliteDbConfiguration(path: dbPath.path)
-            
-            // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
-            let wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
-            
-            // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
-            let electrum = ElectrumConfig(url: "ssl://electrum.blockstream.info:60002", socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
-            let blockchainConfig = BlockchainConfig.electrum(config: electrum)
-            let blockchain = try Blockchain(config: blockchainConfig)
-            self.blockchain = blockchain
-            
-            print("Did initiate wallet and blockchain.")
-            
-            // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
-            try wallet.sync(blockchain: blockchain, progress: nil)
-            self.bdkWallet = wallet
-            
-            print("Did sync wallet.")
-            
-            // Uncomment the following lines to get the on-chain balance (although LDK also does that
-            // Get the confirmed balance from the wallet
-            bdkBalance = Int(try wallet.getBalance().confirmed)
-            print("Did fetch onchain balance from BDK. \(bdkBalance)")
-            // print("transactions: \(balance)")
-            
-            // Retrieve a list of transaction details from the wallet, excluding raw transaction data
-            wallet_transactions = try wallet.listTransactions(includeRaw: false)
-            
-            // Print the balance and the list of wallet transactions
-            print("Did fetch BDK transactions.")
-            
-            // Uncomment the following lines to get a new address from the wallet
-            // let new_address = try wallet.getAddress(addressIndex: AddressIndex.new)
-            // print("new_address: \(new_address.address.asString())")
-            
-            let actualWalletTransactions = wallet_transactions ?? [TransactionDetails]()
-            self.varWalletTransactions = actualWalletTransactions
-            
-            let fetchedCurrentHeight = try blockchain.getHeight()
-            self.currentHeight = Int(fetchedCurrentHeight)
-            
-            self.connectToLightningPeer()
-            
-        } catch let error as BdkError {
-            print("Some error occurred. \(error)")
-            let notificationDict:[String: Any] = ["message":"We can't seem to connect to the Blockchain. Please check your network."]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
-        } catch {
-            print("Some error occurred. \(error.localizedDescription)")
-            let notificationDict:[String: Any] = ["message":"\(error.localizedDescription)"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
     
@@ -315,7 +330,10 @@ class LightningNodeService {
     func start() async throws {
         
         // Step 4.
-        try ldkNode.start()
+        print("Did initiate: \(self.didInitiate)")
+        if self.didInitiate == true {
+            try ldkNode.start()
+        }
     }
     
     

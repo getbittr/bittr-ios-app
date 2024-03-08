@@ -70,6 +70,8 @@ class CoreViewController: UIViewController {
     var tappedQuestion = ""
     var tappedAnswer = ""
     
+    var didStartNode = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         

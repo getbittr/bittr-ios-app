@@ -56,6 +56,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var receivableLNLabel: UILabel!
     
     // Lightning invoice confirmation
+    @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var centerViewRegular: UIView!
+    @IBOutlet weak var centerViewInstant: UIView!
+    @IBOutlet weak var centerViewBoth: UIView!
+    
     @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
     @IBOutlet weak var lnConfirmationHeaderView: UIView!
     @IBOutlet weak var lnConfirmationQRView: UIView!
@@ -269,21 +274,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                         CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: actualInvoiceText)
                     }
                     
-                    /*let alert = UIAlertController(title: "Invoice created", message: "Invoice: \(invoice)", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Copy invoice", style: .default, handler: { _ in
-                        // Copy the invoice to the clipboard
-                        UIPasteboard.general.string = invoice
-                        
-                        self.amountTextField.text = nil
-                        self.descriptionTextField.text = nil
-                    }))
-                    alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: { _ in
-                        
-                        self.amountTextField.text = nil
-                        self.descriptionTextField.text = nil
-                    }))
-                    self.present(alert, animated: true)*/
-                    
                     self.lnInvoiceLabel.text = "\(invoice)"
                     self.lnQRImage.image = self.generateQRCode(from: "lightning:" + invoice)
                     self.lnQRImage.layer.magnificationFilter = .nearest
@@ -338,21 +328,32 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
+        //var bottomCenterView:UIView = self.centerViewRegular
         if sender.accessibilityIdentifier == "regular" {
             self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            //bottomCenterView = self.centerViewRegular
         } else {
             self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
+            //var bottomCenterView = self.centerViewInstant
         }
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             
             var viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
+            var centerViewBottomConstant:CGFloat = -200
             if sender.accessibilityIdentifier == "regular" {
                 viewWidth = 0
+                centerViewBottomConstant = 0
             }
             self.centerViewRegularTrailing.constant = -viewWidth
+            self.centerViewBottom.constant = centerViewBottomConstant
+            
+            /*NSLayoutConstraint.deactivate([self.centerViewBottom])
+            self.centerViewBottom = NSLayoutConstraint(item: self.centerViewBoth!, attribute: .bottom, relatedBy: .equal, toItem: bottomCenterView, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.centerViewBottom])*/
+            
             self.view.layoutIfNeeded()
         }
     }
@@ -389,18 +390,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.view.endEditing(true)
         } else {
             
-            if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.descriptionTextField.text == nil || self.descriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
+            if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == ""/* || self.descriptionTextField.text == nil || self.descriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == ""*/ {
                 // Some field was left empty.
             } else {
-                // Fields have been filled out.
-                /*let alert = UIAlertController(title: "Confirm", message: "Are you sure you want to create an invoice for the amount of \(self.amountTextField.text!) satoshis?", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                alert.addAction(UIAlertAction(title: "Create invoice", style: .default, handler: { _ in*/
-                    
-                    let actualAmount = (Int(self.amountTextField.text!) ?? 0) * 1000
-                    self.receivePayment(amountMsat: UInt64(actualAmount), description: self.descriptionTextField.text!, expirySecs: 3600)
-                /*}))
-                self.present(alert, animated: true)*/
+                let actualAmount = (Int(self.amountTextField.text!) ?? 0) * 1000
+                self.receivePayment(amountMsat: UInt64(actualAmount), description: self.descriptionTextField.text ?? "", expirySecs: 3600)
             }
         }
     }
