@@ -55,12 +55,28 @@ extension HomeViewController {
         if let cachedTransactions = CacheManager.getCachedData(key: "transactions") as? [Transaction] {
             
             self.setTransactions = cachedTransactions
+            self.newTransactions = cachedTransactions
             self.lastCachedTransactions = cachedTransactions
             
-            self.homeTableView.reloadData()
+            /*self.homeTableView.reloadData()
             self.tableSpinner.stopAnimating()
             self.homeTableView.alpha = 1
-            self.homeTableView.isUserInteractionEnabled = false
+            self.homeTableView.isUserInteractionEnabled = false*/
+        }
+        
+        // Set conversion.
+        if let actualCachedBalance = CacheManager.getCachedData(key: "satsbalance") as? String {
+            if actualCachedBalance != "empty" {
+                
+                self.bittrTransactions = NSMutableDictionary()
+                for eachTransaction in self.lastCachedTransactions {
+                    if eachTransaction.isBittr == true {
+                        self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
+                    }
+                }
+                
+                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: actualCachedBalance)!)/100000000, cachedData: true)
+            }
         }
     }
 

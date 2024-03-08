@@ -49,8 +49,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBOutlet weak var tableSpinner: UIActivityIndicatorView!
     
+    @IBOutlet weak var yourWalletLabel: UILabel!
+    @IBOutlet weak var yourWalletLabelLeading: NSLayoutConstraint!
+    @IBOutlet weak var yourWalletSpinner: UIActivityIndicatorView!
+    
     var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
     var setTransactions = [Transaction]()
+    var newTransactions = [Transaction]()
     var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary()
@@ -89,6 +94,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var lightningNodeService:LightningNodeService?
     
     var didStartReset = false
+    var didFetchConversion = false
     
     var coreVC:CoreViewController?
     
@@ -144,7 +150,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         
-        self.setConversion(btcValue: self.btcBalance/100000000)
+        self.setConversion(btcValue: self.btcBalance/100000000, cachedData: false)
     }
     
     
@@ -265,6 +271,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
+        if self.yourWalletLabel.text == "syncing" {
+            // Wallet isn't ready.
+            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet..", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
             let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
@@ -279,6 +293,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
+        
+        if self.yourWalletLabel.text == "syncing" {
+            // Wallet isn't ready.
+            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet..", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
@@ -333,7 +355,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
                 if let actualChannels = self.channels {
                     if actualChannels.count > 0 {
-                        actualSendVC.maximumSendableLNSats = Int(actualChannels[0].outboundCapacityMsat/1000 - (actualChannels[0].unspendablePunishmentReserve ?? 0))
+                        let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
+                        let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
+                        actualSendVC.maximumSendableLNSats = outboundCapacitySats - punishmentReserveSats
+                        if actualSendVC.maximumSendableLNSats! < 0 {
+                            actualSendVC.maximumSendableLNSats = 0
+                        }
                     }
                 }
                 actualSendVC.btcAmount = self.btcBalance.rounded() * 0.00000001
@@ -424,6 +451,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         print("Reset wallet.")
         
         self.setTransactions.removeAll()
+        self.newTransactions.removeAll()
         self.calculatedProfit = 0
         self.calculatedInvestments = 0
         self.calculatedCurrentValue = 0
@@ -442,12 +470,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.tableSpinner.startAnimating()
         
+        self.yourWalletLabel.text = "syncing"
+        self.yourWalletLabelLeading.constant = 10
+        self.yourWalletSpinner.startAnimating()
+        
         LightningNodeService.shared.walletReset()
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         
-        if scrollView.contentOffset.y < -200, self.didStartReset == false {
+        if scrollView.contentOffset.y < -200, self.didStartReset == false, self.yourWalletLabel.text != "syncing" {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.

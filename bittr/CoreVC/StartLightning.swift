@@ -42,6 +42,16 @@ extension CoreViewController {
             print("Could not start node within 10 seconds. Will stop node.")
             DispatchQueue.main.async {
                 self.stopLightning(notification: nil)
+                
+                do {
+                    try LightningNodeService.shared.stop()
+                    print("Node stopped.")
+                } catch let error as NodeError {
+                    let errorString = handleNodeError(error)
+                    print("Can't stop node. \(errorString.title): \(errorString.detail)")
+                } catch {
+                    print("Can't stop node. \(error.localizedDescription)")
+                }
             }
         }
         
@@ -63,17 +73,19 @@ extension CoreViewController {
     }
     
     @objc func stopLightning(notification:NSNotification?) {
-        do {
-            try LightningNodeService.shared.stop()
-            print("Node stopped.")
-        } catch let error as NodeError {
-            let errorString = handleNodeError(error)
-            print("Can't stop node. \(errorString.title): \(errorString.detail)")
-        } catch {
-            print("Can't stop node. \(error.localizedDescription)")
-        }
         
         if let actualNotification = notification {
+            
+            do {
+                try LightningNodeService.shared.stop()
+                print("Node stopped.")
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                print("Can't stop node. \(errorString.title): \(errorString.detail)")
+            } catch {
+                print("Can't stop node. \(error.localizedDescription)")
+            }
+            
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {
                     let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)

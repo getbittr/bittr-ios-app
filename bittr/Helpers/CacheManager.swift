@@ -409,6 +409,11 @@ class CacheManager: NSObject {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
                         defaults.set(actualMutableCache, forKey: "cache")
                     }
+                } else if key == "satsbalance" {
+                    if let actualData = data as? String {
+                        actualMutableCache.setObject(actualData, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: "cache")
+                    }
                 }
             }
         } else {
@@ -445,13 +450,19 @@ class CacheManager: NSObject {
                     newCache.setObject(actualData, forKey: key as NSCopying)
                     defaults.set(newCache, forKey: "cache")
                 }
+            } else if key == "satsbalance" {
+                if let actualData = data as? String {
+                    let newCache = NSMutableDictionary()
+                    newCache.setObject(actualData, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: "cache")
+                }
             }
         }
         
         
     }
     
-    static func getCachedData(key:String) -> Any {
+    static func getCachedData(key:String) -> Any? {
         
         let defaults = UserDefaults.standard
         let cachedData = defaults.value(forKey: "cache") as? NSDictionary
@@ -490,6 +501,12 @@ class CacheManager: NSObject {
                     return cachedChfValue
                 } else {
                     return "empty"
+                }
+            } else if key == "satsbalance" {
+                if let cachedSatsBalance = actualCachedData[key] as? String {
+                    return cachedSatsBalance
+                } else {
+                    return nil
                 }
             } else {
                 return "empty"
