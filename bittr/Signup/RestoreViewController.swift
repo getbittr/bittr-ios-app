@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import KeychainSwift
+//import KeychainSwift
 import LDKNode
 import LDKNodeFFI
 
@@ -49,7 +49,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var restoreButtonText: UILabel!
     @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
     
-    let keychain = KeychainSwift()
+    //let keychain = KeychainSwift()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -178,9 +178,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         defaults.set(enteredMnemonic, forKey: "newmnemonic")
         defaults.synchronize()*/
         
-        if keychain.get("") != nil {
+        /*if keychain.get("") != nil {
             UserDefaults.standard.set(true, forKey: "deletestorage")
-        }
+        }*/
         if CacheManager.getMnemonic() != "empty" {
             UserDefaults.standard.set(true, forKey: "deletestorage")
         }

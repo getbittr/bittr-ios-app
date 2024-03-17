@@ -14,26 +14,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/twostraws/CodeScanner",
       "state" : {
-        "revision" : "4b2f9c57d03bfe94e6b45572e0c908c1433c32b2",
-        "version" : "2.3.2"
-      }
-    },
-    {
-      "identity" : "keychain-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/evgenyneu/keychain-swift.git",
-      "state" : {
-        "revision" : "d108a1fa6189e661f91560548ef48651ed8d93b9",
-        "version" : "20.0.0"
+        "revision" : "303bd5adbb61d068c3bcbb839857340c3e6ff8b0",
+        "version" : "2.4.0"
       }
     },
     {
       "identity" : "ldk-node",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/lightningdevkit/ldk-node",
+      "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
         "branch" : "main",
-        "revision" : "fcb85b5b720bb91bbeb00acbd71ae4b75fe87f9f"
+        "revision" : "71b1d3c5594b1901cb88b47defec4c6507fba6db"
       }
     },
     {

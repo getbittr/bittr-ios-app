@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import KeychainSwift
+//import KeychainSwift
 
 class PinViewController: UIViewController, UITextFieldDelegate {
 
@@ -60,7 +60,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         if CacheManager.getPin() != "empty" {
             self.correctPin = CacheManager.getPin()
-        } else {
+        } /*else {
             // Migration away from Keychain.
             let keychain = KeychainSwift()
             keychain.synchronizable = true
@@ -69,7 +69,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
                 CacheManager.storePin(pin: self.correctPin!)
                 keychain.delete("pin")
             }
-        }
+        }*/
     }
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {

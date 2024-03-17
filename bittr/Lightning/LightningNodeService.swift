@@ -8,14 +8,14 @@
 import Foundation
 import LDKNode
 import BitcoinDevKit
-import KeychainSwift
+//import KeychainSwift
 import bdkFFI
 //import LightningDevKit
 import LDKNodeFFI
 
 class LightningNodeService {
     private let ldkNode: LdkNode
-    private let keychain = KeychainSwift()
+    //private let keychain = KeychainSwift()
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
     private var bdkWallet: BitcoinDevKit.Wallet?
@@ -63,20 +63,20 @@ class LightningNodeService {
             print("Did find mnemonic.")
         } else {
             // No mnemonic in storage. Check Keychain.
-            keychain.synchronizable = true
-            if let storedMnemonic = keychain.get(mnemonicKey) {
+            //keychain.synchronizable = true
+            /*if let storedMnemonic = keychain.get(mnemonicKey) {
                 // Mnemonic found in Keychain.
                 mnemonicString = storedMnemonic
                 print("Did find mnemonic in Keychain.")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
                 keychain.delete(mnemonicKey)
-            } else {
+            } else {*/
                 // No mnemonic found in Keychain either. Create new mnemonic.
                 let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
                 mnemonicString = mnemonic.asString()
                 print("Did not find mnemonic. Creating a new one.")
                 CacheManager.storeMnemonic(mnemonic: mnemonicString)
-            }
+            //}
         }
         
         self.varMnemonicString = mnemonicString

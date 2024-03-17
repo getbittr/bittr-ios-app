@@ -17,9 +17,9 @@ extension CoreViewController {
         do {
             try LightningNodeService.shared.stop()
             
-            keychain.synchronizable = true
-            keychain.delete("")
-            keychain.delete("pin")
+            //keychain.synchronizable = true
+            //keychain.delete("")
+            //keychain.delete("pin")
             CacheManager.deleteClientInfo()
             
             do {
@@ -48,9 +48,9 @@ extension CoreViewController {
             print(error.localizedDescription)
             
             // LDKNode wasn't active yet.
-            keychain.synchronizable = true
-            keychain.delete("")
-            keychain.delete("pin")
+            //keychain.synchronizable = true
+            //keychain.delete("")
+            //keychain.delete("pin")
             CacheManager.deleteClientInfo()
             
             do {

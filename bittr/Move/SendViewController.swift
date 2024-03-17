@@ -659,15 +659,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                 conversionRate = chfAmount ?? 0.0
                             }
                             
-                            var fastText = "\(CGFloat(Int((((CGFloat(high.asSatPerVb()*Float(size)))/100000000)*CGFloat(conversionRate))*100))/100)"
+                            let fast1 = CGFloat(high.asSatPerVb()*Float(size))
+                            var fastText = "\(CGFloat(Int(((fast1/100000000)*conversionRate)*100))/100)"
                             if fastText.count == 3 {
                                 fastText = fastText + "0"
                             }
-                            var mediumText = "\(CGFloat(Int((((CGFloat(medium.asSatPerVb()*Float(size)))/100000000)*CGFloat(conversionRate))*100))/100)"
+                            let medium1 = CGFloat(medium.asSatPerVb()*Float(size))
+                            var mediumText = "\(CGFloat(Int(((medium1/100000000)*conversionRate)*100))/100)"
                             if mediumText.count == 3 {
                                 mediumText = mediumText + "0"
                             }
-                            var slowText = "\(CGFloat(Int((((CGFloat(medium.asSatPerVb()*Float(size)))/100000000)*CGFloat(conversionRate))*100))/100)"
+                            let slow1 = CGFloat(medium.asSatPerVb()*Float(size))
+                            var slowText = "\(CGFloat(Int(((slow1/100000000)*conversionRate)*100))/100)"
                             if slowText.count == 3 {
                                 slowText = slowText + "0"
                             }

@@ -7,7 +7,7 @@
 
 import UIKit
 import LDKNode
-import KeychainSwift
+//import KeychainSwift
 import BitcoinDevKit
 import LDKNodeFFI
 
@@ -51,7 +51,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
-    let keychain = KeychainSwift()
+    //let keychain = KeychainSwift()
     
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
@@ -100,17 +100,7 @@ class CoreViewController: UIViewController {
             blackSignupAlpha = 0
             
         } else {
-            keychain.synchronizable = true
-            if let storedPin = keychain.get("pin") {
-                // Wallet exists. Launch pin. Migration away from Keychain.
-                signupAlpha = 0
-                blackSignupAlpha = 0
-                CacheManager.storePin(pin: storedPin)
-                keychain.delete("pin")
-                
-            } else {
-                // No wallet exists yet. Go through signup.
-            }
+            // No wallet exists yet. Go through signup.
         }
     }
     

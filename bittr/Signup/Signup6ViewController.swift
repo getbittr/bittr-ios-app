@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import KeychainSwift
+//import KeychainSwift
 
 class Signup6ViewController: UIViewController, UITextFieldDelegate {
 

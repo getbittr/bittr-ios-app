@@ -72,15 +72,14 @@
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
 		05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
-		05D4E9C92B32E92A008823D7 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D4E9C82B32E92A008823D7 /* LightningDevKit */; };
-		05D5D0DC2A6677EF00A1E771 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */; };
-		05D5D0DF2A66790400A1E771 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0DE2A66790400A1E771 /* CodeScanner */; };
-		05D5D0E22A66796B00A1E771 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0E12A66796B00A1E771 /* KeychainSwift */; };
-		05D5D0E52A667BC500A1E771 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 05D5D0E42A667BC500A1E771 /* LDKNode */; };
 		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
 		05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */; };
 		05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0ED2A66852D00A1E771 /* Constants.swift */; };
+		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
+		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
+		05D80E052BA4178E00E2F093 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E042BA4178E00E2F093 /* LDKNode */; };
+		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
@@ -206,11 +205,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				05D4E9C92B32E92A008823D7 /* LightningDevKit in Frameworks */,
-				05D5D0E52A667BC500A1E771 /* LDKNode in Frameworks */,
-				05D5D0E22A66796B00A1E771 /* KeychainSwift in Frameworks */,
-				05D5D0DF2A66790400A1E771 /* CodeScanner in Frameworks */,
-				05D5D0DC2A6677EF00A1E771 /* BitcoinDevKit in Frameworks */,
+				05D80E052BA4178E00E2F093 /* LDKNode in Frameworks */,
+				05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */,
+				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
+				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -484,11 +482,10 @@
 			);
 			name = bittr;
 			packageProductDependencies = (
-				05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */,
-				05D5D0DE2A66790400A1E771 /* CodeScanner */,
-				05D5D0E12A66796B00A1E771 /* KeychainSwift */,
-				05D5D0E42A667BC500A1E771 /* LDKNode */,
-				05D4E9C82B32E92A008823D7 /* LightningDevKit */,
+				05D80DFE2BA4170800E2F093 /* CodeScanner */,
+				05D80E012BA4174E00E2F093 /* BitcoinDevKit */,
+				05D80E042BA4178E00E2F093 /* LDKNode */,
+				05D80E072BA4203600E2F093 /* LightningDevKit */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -563,11 +560,10 @@
 			);
 			mainGroup = 05C3C07829CCB55600C1E695;
 			packageReferences = (
-				05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */,
-				05D5D0DD2A66790400A1E771 /* XCRemoteSwiftPackageReference "CodeScanner" */,
-				05D5D0E02A66796B00A1E771 /* XCRemoteSwiftPackageReference "keychain-swift" */,
-				05D5D0E32A667BC500A1E771 /* XCRemoteSwiftPackageReference "ldk-node" */,
-				05D4E9C72B32E92A008823D7 /* XCRemoteSwiftPackageReference "ldk-swift" */,
+				05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */,
+				05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */,
+				05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */,
+				05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -1050,15 +1046,15 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		05D4E9C72B32E92A008823D7 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {
+		05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/lightningdevkit/ldk-swift/";
+			repositoryURL = "https://github.com/twostraws/CodeScanner";
 			requirement = {
-				kind = exactVersion;
-				version = 0.0.121;
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
 			};
 		};
-		05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */ = {
+		05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
 			requirement = {
@@ -1066,57 +1062,44 @@
 				version = 0.29.0;
 			};
 		};
-		05D5D0DD2A66790400A1E771 /* XCRemoteSwiftPackageReference "CodeScanner" */ = {
+		05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/twostraws/CodeScanner";
-			requirement = {
-				kind = exactVersion;
-				version = 2.3.2;
-			};
-		};
-		05D5D0E02A66796B00A1E771 /* XCRemoteSwiftPackageReference "keychain-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/evgenyneu/keychain-swift.git";
-			requirement = {
-				kind = exactVersion;
-				version = 20.0.0;
-			};
-		};
-		05D5D0E32A667BC500A1E771 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/lightningdevkit/ldk-node";
+			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
 			requirement = {
 				branch = main;
 				kind = branch;
 			};
 		};
+		05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lightningdevkit/ldk-swift/";
+			requirement = {
+				kind = exactVersion;
+				version = 0.0.121;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		05D4E9C82B32E92A008823D7 /* LightningDevKit */ = {
+		05D80DFE2BA4170800E2F093 /* CodeScanner */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 05D4E9C72B32E92A008823D7 /* XCRemoteSwiftPackageReference "ldk-swift" */;
-			productName = LightningDevKit;
-		};
-		05D5D0DB2A6677EF00A1E771 /* BitcoinDevKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 05D5D0DA2A6677EF00A1E771 /* XCRemoteSwiftPackageReference "bdk-swift" */;
-			productName = BitcoinDevKit;
-		};
-		05D5D0DE2A66790400A1E771 /* CodeScanner */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 05D5D0DD2A66790400A1E771 /* XCRemoteSwiftPackageReference "CodeScanner" */;
+			package = 05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */;
 			productName = CodeScanner;
 		};
-		05D5D0E12A66796B00A1E771 /* KeychainSwift */ = {
+		05D80E012BA4174E00E2F093 /* BitcoinDevKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 05D5D0E02A66796B00A1E771 /* XCRemoteSwiftPackageReference "keychain-swift" */;
-			productName = KeychainSwift;
+			package = 05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */;
+			productName = BitcoinDevKit;
 		};
-		05D5D0E42A667BC500A1E771 /* LDKNode */ = {
+		05D80E042BA4178E00E2F093 /* LDKNode */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 05D5D0E32A667BC500A1E771 /* XCRemoteSwiftPackageReference "ldk-node" */;
+			package = 05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */;
 			productName = LDKNode;
+		};
+		05D80E072BA4203600E2F093 /* LightningDevKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */;
+			productName = LightningDevKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
