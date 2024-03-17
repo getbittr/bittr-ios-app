@@ -696,4 +696,32 @@ class CacheManager: NSObject {
         }
     }
     
+    static func updateSentToBittr(txids:[String]) {
+        
+        let defaults = UserDefaults.standard
+        let cachedSentToBittr = defaults.value(forKey: "senttobittr") as? [String]
+        
+        if var actualSentToBittr = cachedSentToBittr {
+            // TxIDs were stored before.
+            actualSentToBittr += txids
+            defaults.set(actualSentToBittr, forKey: "senttobittr")
+        } else {
+            // No TxIDs were stored before.
+            let newSentToBittr:[String] = txids
+            defaults.setValue(newSentToBittr, forKey: "senttobittr")
+        }
+    }
+    
+    static func getSentToBittr() -> [String]? {
+        
+        let defaults = UserDefaults.standard
+        let cachedSentToBittr = defaults.value(forKey: "senttobittr") as? [String]
+        
+        if let actualSentToBittr = cachedSentToBittr {
+            return actualSentToBittr
+        } else {
+            return nil
+        }
+    }
+    
 }
