@@ -11,6 +11,7 @@ import BitcoinDevKit
 import CodeScanner
 import AVFoundation
 import LDKNodeFFI
+import LightningDevKit
 
 
 class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
@@ -821,6 +822,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
                 // Invoice field was left empty.
             } else {
+                
+                /*let parsedInvoice = Bolt11Invoice.fromStr(s: invoiceText!)
+                if let invoiceValue = parsedInvoice.getValue() {
+                    if let thisInvoiceHash = invoiceValue.paymentHash() {
+                        let thisInvoiceHashHex = thisInvoiceHash.map {
+                            String(format: "%02x", $0)
+                        }.joined()
+                        let invoiceAmount = LightningNodeService.shared.getPaymentDetails(paymentHash: thisInvoiceHashHex)
+                    }
+                }*/
+                
                 let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to pay invoice \(invoiceText!)?", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
                 alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in
@@ -832,17 +844,56 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         do {
                             let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))
                             DispatchQueue.main.async {
-                                // Success alert
-                                let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .default/*, handler: { _ in
-                                    let newTransaction = Transaction()
-                                    newTransaction.id = "\(paymentHash)"
-                                }*/))
-                                self.present(alert, animated: true)
+                                
+                                if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                                    
+                                    if thisPayment.status != .failed {
+                                        // Success alert
+                                        let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
+                                        alert.addAction(UIAlertAction(title: "Okay", style: .default, handler: { _ in
+                                            
+                                            if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                                                
+                                                let newTransaction = Transaction()
+                                                newTransaction.id = thisPayment.preimage ?? paymentHash
+                                                newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
+                                                newTransaction.received = 0
+                                                newTransaction.isLightning = true
+                                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                                newTransaction.confirmations = 0
+                                                newTransaction.height = 0
+                                                newTransaction.fee = 0
+                                                newTransaction.isBittr = false
+                                                
+                                                self.completedTransaction = newTransaction
+                                                
+                                                self.performSegue(withIdentifier: "SendToTransaction", sender: self)
+                                            }
+                                        }))
+                                        self.present(alert, animated: true)
+                                    } else {
+                                        // Payment came back failed.
+                                        let alert = UIAlertController(title: "Payment failed", message: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", preferredStyle: .alert)
+                                        alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                        self.present(alert, animated: true)
+                                    }
+                                } else {
+                                    // Success alert
+                                    let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
+                                    alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                    self.present(alert, animated: true)
+                                }
                                 
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 self.toTextField.text = nil
+                                
+                                self.invoiceLabel.text = nil
+                                self.toTextFieldHeight.constant = 0
+                                self.toTextField.text = nil
+                                self.amountTextField.text = nil
+                                self.toTextFieldTop.constant = 5
+                                self.invoiceLabelTop.constant = 10
                             }
                         } catch let error as NodeError {
                             let errorString = handleNodeError(error)

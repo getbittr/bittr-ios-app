@@ -132,6 +132,7 @@
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewController.swift; sourceTree = "<group>"; };
+		0565C47C2BA9851100CE89C6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		0577C3F82AFA28180047A3DC /* BittrService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrService.swift; sourceTree = "<group>"; };
 		0579B2702A0530F80007891F /* SendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendViewController.swift; sourceTree = "<group>"; };
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
@@ -372,6 +373,7 @@
 				05C3C08D29CCB55800C1E695 /* Assets.xcassets */,
 				05C3C08F29CCB55800C1E695 /* LaunchScreen.storyboard */,
 				05C3C09229CCB55800C1E695 /* Info.plist */,
+				0565C47C2BA9851100CE89C6 /* PrivacyInfo.xcprivacy */,
 			);
 			path = bittr;
 			sourceTree = "<group>";

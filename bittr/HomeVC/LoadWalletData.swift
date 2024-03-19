@@ -207,6 +207,9 @@ extension HomeViewController {
             }
         }
         
+        // TODO: Hide after testing
+        //newTxIds += [CacheManager.getTxoID() ?? ""]
+        
         print("TxIds being sent to Bittr: \(newTxIds.count)")
         
         if newTxIds.count == 0 {
@@ -220,9 +223,33 @@ extension HomeViewController {
                 
                 if bittrApiTransactions.count == 0 {
                     // There are no Bittr transactions.
+                    
+                    // Check if funding txo isn't a Bittr transaction.
+                    /*if newTxIds.contains(CacheManager.getTxoID() ?? "") {
+                        if let fundingTxo = LightningNodeService.shared.getPaymentDetails(paymentHash: CacheManager.getTxoID() ?? "") {
+                            let thisTransaction = Transaction()
+                            thisTransaction.isBittr = false
+                            thisTransaction.isLightning = true
+                            thisTransaction.id = fundingTxo.preimage ?? (CacheManager.getTxoID() ?? "")
+                            thisTransaction.sent = 0
+                            thisTransaction.received = Int(fundingTxo.amountMsat ?? 0)/1000
+                            thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                            thisTransaction.lnDescription = "Funding transaction"
+                            if let actualChannels = self.channels {
+                                thisTransaction.channelId = actualChannels[0].channelId
+                            }
+                            thisTransaction.isFundingTransaction = true
+                            self.newTransactions += [thisTransaction]
+                            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                        }
+                    }*/
+                    
                     return false
                 } else {
                     // There are Bittr transactions.
+                    
+                    //var didHandleFundingTxo = false
+                    
                     for eachTransaction in bittrApiTransactions {
                         
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
@@ -250,11 +277,33 @@ extension HomeViewController {
                             self.newTransactions += [thisTransaction]
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                             
+                            //didHandleFundingTxo = true
                             //self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "date":transactionTimestamp], forKey: eachTransaction.txId)
                         } else {
                             self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
                         }
                     }
+                    
+                    /*if newTxIds.contains(CacheManager.getTxoID() ?? "") && didHandleFundingTxo == false {
+                        // Funding Txo isn't a Bittr transaction.
+                        if let fundingTxo = LightningNodeService.shared.getPaymentDetails(paymentHash: CacheManager.getTxoID() ?? "") {
+                            let thisTransaction = Transaction()
+                            thisTransaction.isBittr = false
+                            thisTransaction.isLightning = true
+                            thisTransaction.id = fundingTxo.preimage ?? (CacheManager.getTxoID() ?? "")
+                            thisTransaction.sent = 0
+                            thisTransaction.received = Int(fundingTxo.amountMsat ?? 0)/1000
+                            thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                            thisTransaction.lnDescription = "Funding transaction"
+                            if let actualChannels = self.channels {
+                                thisTransaction.channelId = actualChannels[0].channelId
+                            }
+                            thisTransaction.isFundingTransaction = true
+                            self.newTransactions += [thisTransaction]
+                            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                        }
+                    }*/
+                    
                     return true
                 }
             } catch {

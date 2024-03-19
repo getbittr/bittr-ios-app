@@ -374,6 +374,7 @@ class LightningNodeService {
     
     func listPayments() async throws -> [PaymentDetails] {
         let payments = ldkNode.listPayments()
+        //print(payments)
         return payments
     }
     
@@ -435,6 +436,16 @@ class LightningNodeService {
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
         let paymentHash = try ldkNode.sendPayment(invoice: invoice)
         return paymentHash
+    }
+    
+    func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
+        
+        if let invoiceDetails = ldkNode.payment(paymentHash: paymentHash) {
+            //let invoiceAmountInt = Int(invoiceAmount)
+            return invoiceDetails
+        } else {
+            return nil
+        }
     }
     
     /*func getInvoiceHash(invoiceString:String) -> String {
