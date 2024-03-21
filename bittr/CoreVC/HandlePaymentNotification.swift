@@ -111,6 +111,17 @@ extension CoreViewController {
                         //completionHandler(.newData)
                         
                         DispatchQueue.main.async {
+                            
+                            let receivedTransaction = Transaction()
+                            receivedTransaction.received = Int(amountMsat)/1000
+                            receivedTransaction.sent = 0
+                            receivedTransaction.isLightning = true
+                            receivedTransaction.isBittr = false
+                            receivedTransaction.lnDescription = notificationId
+                            receivedTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                            
+                            self.receivedBittrTransaction = receivedTransaction
+                            
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0

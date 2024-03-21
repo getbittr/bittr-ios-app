@@ -26,6 +26,22 @@ extension HomeViewController {
                     self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000)
                     self.channels = actualLightningChannels
                 }
+                
+                if actualLightningChannels.count == 1 {
+                    // Set Bittr Channel.
+                    let thisChannel = Channel()
+                    thisChannel.id = actualLightningChannels[0].channelId
+                    thisChannel.received = Int(actualLightningChannels[0].outboundCapacityMsat)/1000
+                    thisChannel.size = Int(actualLightningChannels[0].channelValueSats)
+                    thisChannel.punishmentReserve = Int(actualLightningChannels[0].unspendablePunishmentReserve ?? 0)
+                    thisChannel.sendableMinimum = Int(actualLightningChannels[0].nextOutboundHtlcMinimumMsat)/1000
+                    thisChannel.receivableMaximum = Int(actualLightningChannels[0].inboundHtlcMaximumMsat ?? 0)/1000
+                    
+                    self.bittrChannel = thisChannel
+                    if let actualCoreVC = self.coreVC {
+                        actualCoreVC.bittrChannel = thisChannel
+                    }
+                }
             }
             
             if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
@@ -481,6 +497,11 @@ extension HomeViewController {
                                 
                                 CacheManager.updateCachedData(data: self.eurValue, key: "eurvalue")
                                 CacheManager.updateCachedData(data: self.chfValue, key: "chfvalue")
+                                
+                                if let actualCoreVC = self.coreVC {
+                                    actualCoreVC.eurValue = self.eurValue
+                                    actualCoreVC.chfValue = self.chfValue
+                                }
                                 
                                 self.didFetchConversion = true
                                 

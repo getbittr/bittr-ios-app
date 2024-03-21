@@ -89,6 +89,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var channels:[ChannelDetails]?
     var currentHeight:Int?
     
+    var bittrChannel:Channel?
+    
     var tappedTransaction = 0
     
     var lightningNodeService:LightningNodeService?
@@ -365,6 +367,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
                 actualSendVC.btcAmount = self.btcBalance.rounded() * 0.00000001
                 actualSendVC.btclnAmount = self.btclnBalance.rounded() * 0.00000001
+                actualSendVC.eurValue = self.eurValue
+                actualSendVC.chfValue = self.chfValue
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualSendVC.lightningNodeService = actualLightningNodeService
                 }

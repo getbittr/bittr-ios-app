@@ -112,6 +112,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var feeHigh:Float = 0.0
     var selectedFee = "medium"
     
+    var eurValue = 0.0
+    var chfValue = 0.0
+    
     var onchainOrLightning = "onchain"
     var selectedInput = "qr"
     
@@ -179,31 +182,31 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         /*let codeScanner = CodeScannerView(codeTypes: [.qr]) { result in
         }*/
         
-        fixQrScanner()
+        //fixQrScanner()
         
     }
     
     
-    func fixQrScanner() {
+    func fixQrScanner() -> Bool {
         
         captureSession = AVCaptureSession()
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
             self.scannerWorks = false
-            return
+            return false
         }
         let videoInput: AVCaptureDeviceInput
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
             self.scannerWorks = false
-            return
+            return false
         }
         
         if (captureSession.canAddInput(videoInput)) {
             captureSession.addInput(videoInput)
         } else {
-            failed()
-            return
+            //failed()
+            return false
         }
         
         let metadataOutput = AVCaptureMetadataOutput()
@@ -214,8 +217,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
             metadataOutput.metadataObjectTypes = [.qr]
         } else {
-            failed()
-            return
+            //failed()
+            return false
         }
         
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
@@ -225,9 +228,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         //captureSession.startRunning()
         self.scannerWorks = true
+        return true
     }
     
-    func failed() {
+    /*func failed() {
         let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "Okay", style: .default))
         present(ac, animated: true)
@@ -244,11 +248,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.availableButton.alpha = 1
         self.nextViewTop.constant = -30
         //self.nextView.alpha = 1
-    }
+    }*/
     
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         
-        captureSession.stopRunning()
+        if let actualCaptureSession = captureSession {
+            actualCaptureSession.stopRunning()
+        }
 
         if let metadataObject = metadataObjects.first {
             guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
@@ -382,7 +388,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 1
                 self.availableButton.alpha = 1
-                self.nextLabel.text = "Pay"
+                self.nextLabel.text = "Next"
                 self.nextViewTop.constant = -120
                 self.availableAmountTop.constant = -75
                 self.availableButtonTop.constant = -85
@@ -430,7 +436,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 1
                 self.availableButton.alpha = 1
-                self.nextLabel.text = "Pay"
+                self.nextLabel.text = "Next"
                 self.nextViewTop.constant = -120
                 self.availableAmountTop.constant = -75
                 self.availableButtonTop.constant = -85
@@ -571,14 +577,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
         } else {
             // Instant
-            let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel."]
+            let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel.","type":"lightningsendable"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
         
-        captureSession.stopRunning()
+        if let actualCaptureSession = captureSession {
+            actualCaptureSession.stopRunning()
+        }
         self.view.endEditing(true)
         
         if let actualString = UIPasteboard.general.string {
@@ -605,9 +613,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.selectedInput = "qr"
         self.view.endEditing(true)
         
-        // Open QR scanner.
-        if self.scannerWorks == true {
-            
+        if fixQrScanner() == true {
+            // Open QR scanner.
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 self.toLabel.alpha = 0
                 self.toView.alpha = 0
@@ -632,12 +639,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if (self.captureSession?.isRunning == false) {
                 self.captureSession.startRunning()
             }
+        } else {
+            let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "Okay", style: .default))
+            present(ac, animated: true)
         }
     }
     
     @IBAction func keyboardButtonTapped(_ sender: UIButton) {
         
-        captureSession.stopRunning()
+        if let actualCaptureSession = captureSession {
+            actualCaptureSession.stopRunning()
+        }
         
         self.selectedInput = "keyboard"
         
@@ -667,7 +680,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         self.view.endEditing(true)
         
-        if self.nextLabel.text == "Next" {
+        if self.nextLabel.text == "Next" && self.onchainOrLightning == "onchain" {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -803,7 +816,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     }
                 }
             }
-        } else if self.nextLabel.text == "Pay" {
+        } else if self.nextLabel.text == "Next" && self.onchainOrLightning == "lightning" {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -823,109 +836,117 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 // Invoice field was left empty.
             } else {
                 
-                /*let parsedInvoice = Bolt11Invoice.fromStr(s: invoiceText!)
-                if let invoiceValue = parsedInvoice.getValue() {
-                    if let thisInvoiceHash = invoiceValue.paymentHash() {
-                        let thisInvoiceHashHex = thisInvoiceHash.map {
-                            String(format: "%02x", $0)
-                        }.joined()
-                        let invoiceAmount = LightningNodeService.shared.getPaymentDetails(paymentHash: thisInvoiceHashHex)
-                    }
-                }*/
-                
-                let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to pay invoice \(invoiceText!)?", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in
-                    
-                    self.nextLabel.alpha = 0
-                    self.nextSpinner.startAnimating()
-                    
-                    Task {
-                        do {
-                            let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))
-                            DispatchQueue.main.async {
-                                
-                                if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                                    
-                                    if thisPayment.status != .failed {
-                                        // Success alert
-                                        let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .default, handler: { _ in
+                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText!).getValue() {
+                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                        let invoiceAmount = Int(invoiceAmountMilli)/1000
+                        
+                        var correctValue:CGFloat = self.eurValue
+                        var currencySymbol = "€"
+                        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                            correctValue = self.chfValue
+                            currencySymbol = "CHF"
+                        }
+                        
+                        var transactionValue = CGFloat(invoiceAmount)/100000000
+                        var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
+                        
+                        let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to pay \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) for this invoice?", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in
+                            
+                            self.nextLabel.alpha = 0
+                            self.nextSpinner.startAnimating()
+                            
+                            Task {
+                                do {
+                                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))
+                                    DispatchQueue.main.async {
+                                        
+                                        if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                                             
-                                            if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                                                
-                                                let newTransaction = Transaction()
-                                                newTransaction.id = thisPayment.preimage ?? paymentHash
-                                                newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
-                                                newTransaction.received = 0
-                                                newTransaction.isLightning = true
-                                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                                                newTransaction.confirmations = 0
-                                                newTransaction.height = 0
-                                                newTransaction.fee = 0
-                                                newTransaction.isBittr = false
-                                                
-                                                self.completedTransaction = newTransaction
-                                                
-                                                self.performSegue(withIdentifier: "SendToTransaction", sender: self)
+                                            if thisPayment.status != .failed {
+                                                // Success alert
+                                                let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
+                                                alert.addAction(UIAlertAction(title: "Okay", style: .default, handler: { _ in
+                                                    
+                                                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                                                        
+                                                        let newTransaction = Transaction()
+                                                        newTransaction.id = thisPayment.preimage ?? paymentHash
+                                                        newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
+                                                        newTransaction.received = 0
+                                                        newTransaction.isLightning = true
+                                                        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                                        newTransaction.confirmations = 0
+                                                        newTransaction.height = 0
+                                                        newTransaction.fee = 0
+                                                        newTransaction.isBittr = false
+                                                        
+                                                        self.completedTransaction = newTransaction
+                                                        
+                                                        self.performSegue(withIdentifier: "SendToTransaction", sender: self)
+                                                    }
+                                                }))
+                                                self.present(alert, animated: true)
+                                            } else {
+                                                // Payment came back failed.
+                                                let alert = UIAlertController(title: "Payment failed", message: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", preferredStyle: .alert)
+                                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                                self.present(alert, animated: true)
                                             }
-                                        }))
-                                        self.present(alert, animated: true)
-                                    } else {
-                                        // Payment came back failed.
-                                        let alert = UIAlertController(title: "Payment failed", message: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", preferredStyle: .alert)
+                                        } else {
+                                            // Success alert
+                                            let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
+                                            alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                            self.present(alert, animated: true)
+                                        }
+                                        
+                                        self.nextLabel.alpha = 1
+                                        self.nextSpinner.stopAnimating()
+                                        self.toTextField.text = nil
+                                        
+                                        self.invoiceLabel.text = nil
+                                        self.toTextFieldHeight.constant = 0
+                                        self.toTextField.text = nil
+                                        self.amountTextField.text = nil
+                                        self.toTextFieldTop.constant = 5
+                                        self.invoiceLabelTop.constant = 10
+                                    }
+                                } catch let error as NodeError {
+                                    let errorString = handleNodeError(error)
+                                    DispatchQueue.main.async {
+                                        // Error alert for NodeError
+                                        
+                                        self.nextLabel.alpha = 1
+                                        self.nextSpinner.stopAnimating()
+                                        
+                                        let alert = UIAlertController(title: "Payment Error", message: errorString.detail, preferredStyle: .alert)
                                         alert.addAction(UIAlertAction(title: "Okay", style: .default))
                                         self.present(alert, animated: true)
                                     }
-                                } else {
-                                    // Success alert
-                                    let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
-                                    alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                    self.present(alert, animated: true)
+                                } catch {
+                                    DispatchQueue.main.async {
+                                        // General error alert
+                                        
+                                        self.nextLabel.alpha = 1
+                                        self.nextSpinner.stopAnimating()
+                                        
+                                        let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
+                                        alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                        self.present(alert, animated: true)
+                                    }
                                 }
-                                
-                                self.nextLabel.alpha = 1
-                                self.nextSpinner.stopAnimating()
-                                self.toTextField.text = nil
-                                
-                                self.invoiceLabel.text = nil
-                                self.toTextFieldHeight.constant = 0
-                                self.toTextField.text = nil
-                                self.amountTextField.text = nil
-                                self.toTextFieldTop.constant = 5
-                                self.invoiceLabelTop.constant = 10
                             }
-                        } catch let error as NodeError {
-                            let errorString = handleNodeError(error)
-                            DispatchQueue.main.async {
-                                // Error alert for NodeError
-                                
-                                self.nextLabel.alpha = 1
-                                self.nextSpinner.stopAnimating()
-                                
-                                let alert = UIAlertController(title: "Payment Error", message: errorString.detail, preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                self.present(alert, animated: true)
-                            }
-                        } catch {
-                            DispatchQueue.main.async {
-                                // General error alert
-                                
-                                self.nextLabel.alpha = 1
-                                self.nextSpinner.stopAnimating()
-                                
-                                let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                self.present(alert, animated: true)
-                            }
-                        }
+                        }))
+                        self.present(alert, animated: true)
                     }
-                }))
-                self.present(alert, animated: true)
+                }
             }
         } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "onchain" {
             
-            captureSession.stopRunning()
+            if let actualCaptureSession = captureSession {
+                actualCaptureSession.stopRunning()
+            }
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
@@ -959,7 +980,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             }
         } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "lightning" {
             
-            captureSession.stopRunning()
+            if let actualCaptureSession = captureSession {
+                actualCaptureSession.stopRunning()
+            }
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 
@@ -972,7 +995,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.amountLabel.alpha = 0
                 self.availableButton.alpha = 1
                 self.scannerView.alpha = 0
-                self.nextLabel.text = "Pay"
+                self.nextLabel.text = "Next"
                 self.availableAmount.alpha = 1
                 self.availableAmountTop.constant = -75
                 self.availableButtonTop.constant = -85
@@ -1128,7 +1151,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.amountTextField.text = nil
         self.toTextFieldTop.constant = 5
         self.invoiceLabelTop.constant = 10
-        captureSession.stopRunning()
+        if let actualCaptureSession = captureSession {
+            actualCaptureSession.stopRunning()
+        }
         
         if sender.accessibilityIdentifier == "regular" {
             // Regular
@@ -1193,7 +1218,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.amountLabel.alpha = 0
                 self.availableButton.alpha = 1
                 self.scannerView.alpha = 0
-                self.nextLabel.text = "Pay"
+                self.nextLabel.text = "Next"
                 self.availableAmount.alpha = 1
                 self.availableAmountTop.constant = -75
                 self.availableButtonTop.constant = -85

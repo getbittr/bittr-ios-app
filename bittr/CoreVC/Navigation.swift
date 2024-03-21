@@ -68,6 +68,21 @@ extension CoreViewController {
             if let actualQuestionVC = questionVC {
                 actualQuestionVC.headerText = self.tappedQuestion
                 actualQuestionVC.answerText = self.tappedAnswer
+                if let actualBittrChannel = self.bittrChannel {
+                    actualQuestionVC.bittrChannel = actualBittrChannel
+                }
+                if let actualTappedType = self.tappedType {
+                    actualQuestionVC.questionType = actualTappedType
+                }
+            }
+        } else if segue.identifier == "CoreToLightning" {
+            let lightningPaymentVC = segue.destination as? LightningPaymentViewController
+            if let actualPaymentVC = lightningPaymentVC {
+                if let actualTransaction = self.receivedBittrTransaction {
+                    actualPaymentVC.receivedTransaction = actualTransaction
+                    actualPaymentVC.eurValue = self.eurValue
+                    actualPaymentVC.chfValue = self.chfValue
+                }
             }
         }
     }

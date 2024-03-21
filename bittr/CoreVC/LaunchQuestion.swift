@@ -15,6 +15,11 @@ extension CoreViewController {
             if let notificationQuestion = userInfo["question"] as? String, let notificationAnswer = userInfo["answer"] as? String {
                 self.tappedQuestion = notificationQuestion
                 self.tappedAnswer = notificationAnswer
+                if let notificationType = userInfo["type"] as? String {
+                    self.tappedType = notificationType
+                } else {
+                    self.tappedType = nil
+                }
                 self.performSegue(withIdentifier: "CoreToQuestion", sender: self)
             }
         }
