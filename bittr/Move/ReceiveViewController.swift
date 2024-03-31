@@ -403,7 +403,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         if self.createdInvoice != "" {
             UIPasteboard.general.string = self.createdInvoice
-            UIPasteboard.general.string = sender.accessibilityIdentifier
+            //UIPasteboard.general.string = sender.accessibilityIdentifier
             let alert = UIAlertController(title: "Copied", message: self.createdInvoice, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
             self.present(alert, animated: true)

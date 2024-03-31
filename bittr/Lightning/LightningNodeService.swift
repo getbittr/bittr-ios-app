@@ -330,7 +330,7 @@ class LightningNodeService {
     func start() async throws {
         
         // Step 4.
-        print("Did initiate: \(self.didInitiate)")
+        //print("Did initiate: \(self.didInitiate)")
         if self.didInitiate == true {
             try ldkNode.start()
         }

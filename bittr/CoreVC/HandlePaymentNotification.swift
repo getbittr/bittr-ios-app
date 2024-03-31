@@ -23,16 +23,34 @@ extension CoreViewController {
                 if self.didBecomeVisible == true {
                     // User has signed in.
                     
-                    self.pendingSpinner.startAnimating()
-                    self.pendingView.alpha = 1
-                    self.blackSignupBackground.alpha = 0.2
-                    
-                    self.varSpecialData = specialData
-                    self.facilitateNotificationPayout(specialData: specialData)
-                    self.needsToHandleNotification = false
+                    if self.wasNotified == false {
+                        
+                        let alert = UIAlertController(title: "Bittr payout", message: "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                            self.pendingLabel.text = "receiving payment"
+                            self.pendingSpinner.startAnimating()
+                            self.pendingView.alpha = 1
+                            self.blackSignupBackground.alpha = 0.2
+                            
+                            self.varSpecialData = specialData
+                            self.facilitateNotificationPayout(specialData: specialData)
+                            self.needsToHandleNotification = false
+                        }))
+                        self.present(alert, animated: true)
+                    } else {
+                        self.pendingLabel.text = "receiving payment"
+                        self.pendingSpinner.startAnimating()
+                        self.pendingView.alpha = 1
+                        self.blackSignupBackground.alpha = 0.2
+                        
+                        self.varSpecialData = specialData
+                        self.facilitateNotificationPayout(specialData: specialData)
+                        self.needsToHandleNotification = false
+                    }
                 } else {
                     // User hasn't signed in yet.
                     self.needsToHandleNotification = true
+                    self.wasNotified = true
                     self.lightningNotification = notification
                     
                     let alert = UIAlertController(title: "Bittr payout", message: "Please sign in and wait a moment to receive your Lightning payment.", preferredStyle: .alert)
@@ -50,21 +68,22 @@ extension CoreViewController {
     
     func facilitateNotificationPayout(specialData:[String:Any]) {
         
+        print("Did start payout process.")
+        
         // Extract required data from specialData
         if let notificationId = specialData["notification_id"] as? String {
             let bitcoinAmountString = specialData["bitcoin_amount"] as? String ?? "0"
             let bitcoinAmount = Double(bitcoinAmountString) ?? 0.0
             let amountMsat = UInt64(bitcoinAmount * 100_000_000_000)
             
-            
-            
             let pubkey = LightningNodeService.shared.nodeId()
+            print("Did get public key.")
 
-            
             // Call payoutLightning in an async context
             Task.init {
                 
                 let peers = try await LightningNodeService.shared.listPeers()
+                print("Did list peers.")
                 if peers.count == 0 {
                     DispatchQueue.main.async {
                         self.pendingSpinner.stopAnimating()
@@ -95,15 +114,18 @@ extension CoreViewController {
                         description: notificationId,
                         expirySecs: 3600
                     )
+                    print("Did create invoice.")
                     
                     DispatchQueue.main.async {
                         let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
                         let newTimestamp = Int(Date().timeIntervalSince1970)
                         CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                         CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
+                        print("Did cache invoice data.")
                     }
                     
                     let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                    print("Did sign message.")
                     
                     do {
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
@@ -149,7 +171,12 @@ extension CoreViewController {
             }
         } else {
             print("Required data not found in notification.")
-            //completionHandler(.noData)
+            self.pendingSpinner.stopAnimating()
+            self.pendingView.alpha = 0
+            self.blackSignupBackground.alpha = 0
+            let alert = UIAlertController(title: "Bittr payout", message: "The notification payload did not contain the data needed to complete your payout.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
         }
     }
     

@@ -53,6 +53,7 @@
 		05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */; };
 		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
 		05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */; };
+		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
 		05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C08429CCB55600C1E695 /* AppDelegate.swift */; };
@@ -214,6 +215,7 @@
 				05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */,
 				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
 				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
+				05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -494,6 +496,7 @@
 				05D80E012BA4174E00E2F093 /* BitcoinDevKit */,
 				05D80E042BA4178E00E2F093 /* LDKNode */,
 				05D80E072BA4203600E2F093 /* LightningDevKit */,
+				05BE46182BB9A83100555B9B /* SPConfetti */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -572,6 +575,7 @@
 				05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */,
 				05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */,
 				05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */,
+				05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -869,7 +873,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -907,7 +911,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -1056,6 +1060,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ivanvorobei/SPConfetti";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.2;
+			};
+		};
 		05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/twostraws/CodeScanner";
@@ -1091,6 +1103,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		05BE46182BB9A83100555B9B /* SPConfetti */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */;
+			productName = SPConfetti;
+		};
 		05D80DFE2BA4170800E2F093 /* CodeScanner */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */;

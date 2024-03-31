@@ -66,6 +66,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var calculatedProfit = 0
     var calculatedInvestments = 0
     var calculatedCurrentValue = 0
+    @IBOutlet weak var balanceDetailsButton: UIButton!
     
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
@@ -116,6 +117,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         sendButton.setTitle("", for: .normal)
         receiveButton.setTitle("", for: .normal)
         balanceButton.setTitle("", for: .normal)
+        balanceDetailsButton.setTitle("", for: .normal)
         
         optionDayView.layer.cornerRadius = 13
         optionWeekView.layer.cornerRadius = 13
@@ -531,6 +533,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         let notificationDict:[String: Any] = ["question":"what are satoshis?","answer":"Named after bitcoin founder Satoshi Nakamoto, one satoshi is 0.00000001 bitcoin. It's the smallest denominator of the currency.\n\nWhen using bitcoin for small payments, it's therefore easier to use satoshis."]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
+        
+        performSegue(withIdentifier: "HomeToMove", sender: self)
     }
     
 }

@@ -58,10 +58,12 @@ class CoreViewController: UIViewController {
     
     var didBecomeVisible = false
     var needsToHandleNotification = false
+    var wasNotified = false
     var lightningNotification:NSNotification?
     
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var pendingLabel: UILabel!
     var varSpecialData:[String: Any]?
     
     var homeVC:HomeViewController?

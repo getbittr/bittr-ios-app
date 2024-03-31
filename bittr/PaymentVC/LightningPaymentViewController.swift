@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SPConfetti
 
 class LightningPaymentViewController: UIViewController {
 
@@ -26,7 +27,7 @@ class LightningPaymentViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         downButton.setTitle("", for: .normal)
         descriptionButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
@@ -71,6 +72,11 @@ class LightningPaymentViewController: UIViewController {
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        SPConfettiConfiguration.particlesConfig.colors = [.red]
+        SPConfetti.startAnimating(.fullWidthToDown, particles: [.heart], duration: 2)
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {

@@ -35,6 +35,15 @@
         "revision" : "af536771022f99c0bf3e5af070014a3ca7f2405b",
         "version" : "0.0.121"
       }
+    },
+    {
+      "identity" : "spconfetti",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ivanvorobei/SPConfetti",
+      "state" : {
+        "revision" : "0896bbf9ec20eaf125598d0f36ee5f1049117e18",
+        "version" : "1.4.2"
+      }
     }
   ],
   "version" : 2

@@ -64,11 +64,13 @@ class MoveViewController: UIViewController {
         
         
         btcBalance.text = "\(numberFormatter.number(from: fetchedBtcString)!.decimalValue as NSNumber)"
-        btclnBalance.text = "\(numberFormatter.number(from: fetchedBtclnString)!.decimalValue as NSNumber)"
+        btcBalance.text = "\(CGFloat(Int(fetchedBtcBalance)) * 0.00000001)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+        //btclnBalance.text = "\(numberFormatter.number(from: fetchedBtclnString)!.decimalValue as NSNumber)"
+        btclnBalance.text = "\(CGFloat(Int(fetchedBtclnBalance)) * 0.00000001)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
         balanceLabel.text = "\(numberFormatter.number(from: fetchedTotalString)!.decimalValue as NSNumber) btc"
         
-        let correctBtcBalance = fetchedBtcBalance * 0.00000001
-        let correctBtclnBalance = fetchedBtclnBalance * 0.00000001
+        let correctBtcBalance:CGFloat = fetchedBtcBalance * 0.00000001
+        let correctBtclnBalance:CGFloat = fetchedBtclnBalance * 0.00000001
         var correctValue:CGFloat = self.eurValue
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
@@ -91,8 +93,8 @@ class MoveViewController: UIViewController {
         
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
-        btcBalance.text = "\(numberFormatter.number(from: "\(sender.value.rounded() * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
-        btclnBalance.text = "\(numberFormatter.number(from: "\((btcSlider.maximumValue - sender.value.rounded()) * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+        btcBalance.text = "\(numberFormatter.number(from: "\(sender.value.rounded() * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+        btclnBalance.text = "\(numberFormatter.number(from: "\((btcSlider.maximumValue - sender.value.rounded()) * 0.00000001)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
         
         var correctValue:CGFloat = self.eurValue
         var currencySymbol = "€"
@@ -111,9 +113,9 @@ class MoveViewController: UIViewController {
             self.presetAmount = 0
         }
         
-        debounce(seconds: 1) {
+        /*debounce(seconds: 1) {
             self.sendButtonTapped(self)
-        }
+        }*/
     }
     
     @IBAction func sliderTouchUpInside(_ sender: UISlider) {
@@ -128,12 +130,12 @@ class MoveViewController: UIViewController {
         performSegue(withIdentifier: "MoveToSend", sender: self)
     }
     
-    func debounce(seconds: TimeInterval, function: @escaping () -> Swift.Void ) {
+    /*func debounce(seconds: TimeInterval, function: @escaping () -> Swift.Void ) {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false, block: { _ in
             function()
         })
-    }
+    }*/
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
@@ -143,9 +145,9 @@ class MoveViewController: UIViewController {
             if let actualSendVC = sendVC {
                 actualSendVC.btcAmount = fetchedBtcBalance.rounded() * 0.00000001
                 actualSendVC.btclnAmount = fetchedBtclnBalance.rounded() * 0.00000001
-                if let actualPresetAmount = self.presetAmount {
+                /*if let actualPresetAmount = self.presetAmount {
                     actualSendVC.presetAmount = actualPresetAmount
-                }
+                }*/
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualSendVC.lightningNodeService = actualLightningNodeService
                 }

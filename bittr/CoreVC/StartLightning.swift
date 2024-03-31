@@ -17,7 +17,7 @@ extension CoreViewController {
         
         let startTask = Task {
             let taskResult = try await LightningNodeService.shared.start()
-            print("Reached a result.")
+            //print("Reached a result.")
             try Task.checkCancellation()
             //if !Task.isCancelled {
                 return taskResult

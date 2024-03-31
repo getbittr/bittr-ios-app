@@ -34,6 +34,14 @@ extension CoreViewController {
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
             self.didBecomeVisible = true
+            
+            if self.needsToHandleNotification == true {
+                
+                self.pendingLabel.text = "syncing wallet"
+                self.pendingSpinner.startAnimating()
+                self.pendingView.alpha = 1
+                self.blackSignupBackground.alpha = 0.2
+            }
         }
     }
     
