@@ -39,11 +39,11 @@ extension CoreViewController {
             self.view.layoutIfNeeded()
         } completion: { finished in
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.logoViewWidth.constant = 99
+                self.logoViewWidth.constant = 111
                 self.view.layoutIfNeeded()
             } completion: { finished in
                 UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                    self.logoViewWidth.constant = 94
+                    self.logoViewWidth.constant = 106
                     self.view.layoutIfNeeded()
                 } completion: { finished in
                     UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseInOut) {

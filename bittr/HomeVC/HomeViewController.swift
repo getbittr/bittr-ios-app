@@ -266,7 +266,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @objc func moveButtonTapped() {
         
-        //self.resetWallet()
+        if self.yourWalletLabel.text == "syncing" {
+            // Wallet isn't ready.
+            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
         
         if self.balanceWasFetched == true {
             performSegue(withIdentifier: "HomeToMove", sender: self)
@@ -348,6 +354,23 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualMoveVC.fetchedBtclnBalance = self.btclnBalance
                 actualMoveVC.eurValue = self.eurValue
                 actualMoveVC.chfValue = self.chfValue
+                
+                if let actualChannels = self.channels {
+                    if actualChannels.count > 0 {
+                        let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
+                        let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
+                        actualMoveVC.maximumSendableLNSats = outboundCapacitySats - punishmentReserveSats
+                        if actualMoveVC.maximumSendableLNSats! < 0 {
+                            actualMoveVC.maximumSendableLNSats = 0
+                        }
+                    }
+                }
+                
+                if let actualChannels = self.channels {
+                    if actualChannels.count > 0 {
+                        actualMoveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
+                    }
+                }
                 
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualMoveVC.lightningNodeService = actualLightningNodeService
@@ -536,6 +559,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
+        
+        if self.yourWalletLabel.text == "syncing" {
+            // Wallet isn't ready.
+            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
         
         performSegue(withIdentifier: "HomeToMove", sender: self)
     }

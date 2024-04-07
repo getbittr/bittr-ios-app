@@ -38,6 +38,21 @@ class MoveViewController: UIViewController {
     
     var lightningNodeService:LightningNodeService?
     
+    var maximumSendableLNSats:Int?
+    var maximumReceivableLNSats:Int?
+    
+    // Views
+    @IBOutlet weak var yellowCard: UIView!
+    @IBOutlet weak var viewTotal: UIView!
+    @IBOutlet weak var viewRegular: UIView!
+    @IBOutlet weak var viewInstant: UIView!
+    @IBOutlet weak var satsTotal: UILabel!
+    @IBOutlet weak var satsRegular: UILabel!
+    @IBOutlet weak var satsInstant: UILabel!
+    @IBOutlet weak var conversionTotal: UILabel!
+    @IBOutlet weak var conversionRegular: UILabel!
+    @IBOutlet weak var conversionInstant: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -83,6 +98,25 @@ class MoveViewController: UIViewController {
         conversionLabel.text = currencySymbol + " " + balanceValue
         btcEuro.text = currencySymbol + " " + btcBalanceValue
         btclnEuro.text = currencySymbol + " " + btclnBalanceValue
+        
+        viewTotal.layer.cornerRadius = 13
+        viewRegular.layer.cornerRadius = 13
+        viewInstant.layer.cornerRadius = 13
+        yellowCard.layer.cornerRadius = 20
+        
+        yellowCard.layer.shadowColor = UIColor.black.cgColor
+        yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        yellowCard.layer.shadowRadius = 10.0
+        yellowCard.layer.shadowOpacity = 0.1
+        
+        satsTotal.text = addSpacesToString(balanceValue: "\(Int(fetchedBtcBalance + fetchedBtclnBalance))") + " sats"
+        satsRegular.text = addSpacesToString(balanceValue: "\(Int(fetchedBtcBalance))") + " sats"
+        satsInstant.text = addSpacesToString(balanceValue: "\(Int(fetchedBtclnBalance))") + " sats"
+        
+        conversionTotal.text = currencySymbol + " " + balanceValue
+        conversionRegular.text = currencySymbol + " " + btcBalanceValue
+        conversionInstant.text = currencySymbol + " " + btclnBalanceValue
+        
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -145,14 +179,50 @@ class MoveViewController: UIViewController {
             if let actualSendVC = sendVC {
                 actualSendVC.btcAmount = fetchedBtcBalance.rounded() * 0.00000001
                 actualSendVC.btclnAmount = fetchedBtclnBalance.rounded() * 0.00000001
-                /*if let actualPresetAmount = self.presetAmount {
-                    actualSendVC.presetAmount = actualPresetAmount
-                }*/
+                
+                actualSendVC.eurValue = self.eurValue
+                actualSendVC.chfValue = self.chfValue
+                
+                actualSendVC.maximumSendableLNSats = self.maximumSendableLNSats
+                if actualSendVC.maximumSendableLNSats! < 0 {
+                    actualSendVC.maximumSendableLNSats = 0
+                }
+                
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualSendVC.lightningNodeService = actualLightningNodeService
                 }
             }
+        } else if segue.identifier == "MoveToReceive" {
+            
+            let receiveVC = segue.destination as? ReceiveViewController
+            if let actualReceiveVC = receiveVC {
+                actualReceiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
+            }
         }
+    }
+    
+    func addSpacesToString(balanceValue:String) -> String {
+        
+        var balanceValue = balanceValue
+        
+        switch balanceValue.count {
+        case 4:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+        case 5:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+        case 6:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+        case 7:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+        case 8:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+        case 9:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+        default:
+            balanceValue = balanceValue[0..<balanceValue.count]
+        }
+        
+        return balanceValue
     }
     
 }
