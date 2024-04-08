@@ -171,12 +171,24 @@ class LightningNodeService {
                 self.blockchain = blockchain
                 
                 print("Did initiate wallet and blockchain.")
+                DispatchQueue.main.async {
+                    let notificationDict:[String: Any] = ["action":"complete","type":"bdk"]
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
+                    let notificationDict2:[String: Any] = ["action":"start","type":"sync"]
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict2) as Notification)
+                }
                 
                 // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
                 try wallet.sync(blockchain: blockchain, progress: nil)
                 self.bdkWallet = wallet
                 
                 print("Did sync wallet.")
+                DispatchQueue.main.async {
+                    let notificationDict3:[String: Any] = ["action":"complete","type":"sync"]
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict3) as Notification)
+                    let notificationDict4:[String: Any] = ["action":"start","type":"final"]
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict4) as Notification)
+                }
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet

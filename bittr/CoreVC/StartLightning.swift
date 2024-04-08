@@ -14,6 +14,7 @@ extension CoreViewController {
     @objc func startLightning() {
         
         // Step 3.
+        self.startSync(type: "ldk")
         
         let startTask = Task {
             let taskResult = try await LightningNodeService.shared.start()
@@ -37,6 +38,8 @@ extension CoreViewController {
                 let result = try await startTask.value
                 timeoutTask.cancel()
                 print("Did start node.")
+                self.completeSync(type: "ldk")
+                self.startSync(type: "bdk")
                 DispatchQueue.global(qos: .background).async {
                     LightningNodeService.shared.startBDK()
                 }

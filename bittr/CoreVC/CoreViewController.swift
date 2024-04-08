@@ -49,6 +49,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
     @IBOutlet weak var blackSignupBackground: UIView!
+    @IBOutlet weak var blackSignupButton: UIButton!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
     //let keychain = KeychainSwift()
@@ -74,12 +75,28 @@ class CoreViewController: UIViewController {
     var tappedType:String?
     
     var didStartNode = false
+    var walletHasSynced = false
+    var syncStatus = "startnode"
     
     var receivedBittrTransaction:Transaction?
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
     var bittrChannel:Channel?
+    
+    // Syncing status
+    @IBOutlet weak var statusView: UIView!
+    @IBOutlet weak var spinnerConversion: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerLDK: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerBDK: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerSyncing: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerFinal: UIActivityIndicatorView!
+    @IBOutlet weak var checkmarkConversion: UIImageView!
+    @IBOutlet weak var checkmarkLDK: UIImageView!
+    @IBOutlet weak var checkmarkBDK: UIImageView!
+    @IBOutlet weak var checkmarkSyncing: UIImageView!
+    @IBOutlet weak var checkmarkFinal: UIImageView!
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -89,6 +106,7 @@ class CoreViewController: UIViewController {
         middleWhite.layer.cornerRadius = 13
         rightWhite.layer.cornerRadius = 13
         pendingView.layer.cornerRadius = 13
+        statusView.layer.cornerRadius = 13
         leftButton.setTitle("", for: .normal)
         middleButton.setTitle("", for: .normal)
         rightButton.setTitle("", for: .normal)
@@ -101,6 +119,7 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
         
         
         // Determine whether to show pin view or signup view.
@@ -112,6 +131,12 @@ class CoreViewController: UIViewController {
         } else {
             // No wallet exists yet. Go through signup.
         }
+    }
+    
+    @IBAction func blackSignupButtonTapped(_ sender: UIButton) {
+        self.blackSignupBackground.alpha = 0
+        self.statusView.alpha = 0
+        self.blackSignupButton.alpha = 0
     }
     
 }

@@ -27,6 +27,7 @@
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */; };
+		056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056911102BC3E16800BD047B /* SyncingStatus.swift */; };
 		0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0577C3F82AFA28180047A3DC /* BittrService.swift */; };
 		0579B2712A0530F80007891F /* SendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2702A0530F80007891F /* SendViewController.swift */; };
 		0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2722A0531470007891F /* ReceiveViewController.swift */; };
@@ -136,6 +137,7 @@
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewController.swift; sourceTree = "<group>"; };
 		0565C47C2BA9851100CE89C6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		056911102BC3E16800BD047B /* SyncingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncingStatus.swift; sourceTree = "<group>"; };
 		0577C3F82AFA28180047A3DC /* BittrService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrService.swift; sourceTree = "<group>"; };
 		0579B2702A0530F80007891F /* SendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendViewController.swift; sourceTree = "<group>"; };
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
@@ -294,6 +296,7 @@
 				05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */,
 				05A8BD812B750A8F002F0282 /* ResetApp.swift */,
 				05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */,
+				056911102BC3E16800BD047B /* SyncingStatus.swift */,
 			);
 			path = CoreVC;
 			sourceTree = "<group>";
@@ -647,6 +650,7 @@
 				05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */,
 				0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,
+				056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */,
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
 				051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */,
@@ -873,7 +877,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 66;
+				CURRENT_PROJECT_VERSION = 67;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
@@ -911,7 +915,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 66;
+				CURRENT_PROJECT_VERSION = 67;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;

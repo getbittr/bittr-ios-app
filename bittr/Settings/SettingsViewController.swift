@@ -135,6 +135,15 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             actionSheet.addAction(cancelAction)
             present(actionSheet, animated: true, completion: nil)
         } else if sender.accessibilityIdentifier == "wallets" {
+            if let actualCoreVC = self.coreVC {
+                if actualCoreVC.walletHasSynced == false {
+                    // Wallet isn't ready.
+                    let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                    self.present(alert, animated: true)
+                    return
+                }
+            }
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "openmovevc"), object: nil, userInfo: nil) as Notification)
         } else if sender.accessibilityIdentifier == "device" {
             self.performSegue(withIdentifier: "SettingsToDevice", sender: self)

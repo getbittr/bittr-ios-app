@@ -334,82 +334,80 @@ extension HomeViewController {
         
         // Step 13.
         
-        /*if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let satsBalance = userInfo["balance"] as? String {*/
         self.btcBalance = self.bdkBalance
-                var zeros = "0.00 000 00"
-                var numbers = "\(self.btcBalance)"
+        var zeros = "0.00 000 00"
+        var numbers = "\(self.btcBalance)"
+        
+        self.balanceWasFetched = true
+        
+        self.totalBalanceSats = self.btcBalance + self.btclnBalance
+        let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
+        
+        var bitcoinSignAlpha = 0.22
+        
+        switch totalBalanceSatsString.count {
+        case 1:
+            zeros = "0.00 000 00"
+            numbers = totalBalanceSatsString
+        case 2:
+            zeros = "0.00 000 0"
+            numbers = totalBalanceSatsString
+        case 3:
+            zeros = "0.00 000 "
+            numbers = totalBalanceSatsString
+        case 4:
+            zeros = "0.00 00"
+            numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4]
+        case 5:
+            zeros = "0.00 0"
+            numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5]
+        case 6:
+            zeros = "0.00 "
+            numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6]
+        case 7:
+            zeros = "0.0"
+            numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7]
+        case 8:
+            zeros = "0."
+            numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8]
+        default:
+            zeros = ""
+            numbers = "\(totalBalanceSats/100000000)"
+            bitcoinSignAlpha = 1
+        }
                 
-                //self.btcBalance = CGFloat(truncating: NumberFormatter().number(from: satsBalance)!)
-                self.balanceWasFetched = true
-                
-                /*if self.btcBalance == 0.0, self.btclnBalance == 0.0, self.bdkBalance != 0.0 {
-                    self.btcBalance = self.bdkBalance
-                }*/
-                self.totalBalanceSats = self.btcBalance + self.btclnBalance
-                let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
-                
-                var bitcoinSignAlpha = 0.22
-                
-                switch totalBalanceSatsString.count {
-                case 1:
-                    zeros = "0.00 000 00"
-                    numbers = totalBalanceSatsString
-                case 2:
-                    zeros = "0.00 000 0"
-                    numbers = totalBalanceSatsString
-                case 3:
-                    zeros = "0.00 000 "
-                    numbers = totalBalanceSatsString
-                case 4:
-                    zeros = "0.00 00"
-                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4]
-                case 5:
-                    zeros = "0.00 0"
-                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5]
-                case 6:
-                    zeros = "0.00 "
-                    numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6]
-                case 7:
-                    zeros = "0.0"
-                    numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7]
-                case 8:
-                    zeros = "0."
-                    numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8]
-                default:
-                    zeros = ""
-                    numbers = "\(totalBalanceSats/100000000)"
-                    bitcoinSignAlpha = 1
+        balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
+        //balanceLabelInvisible.alpha = 1
+        let font = balanceLabelInvisible.adjustedFont()
+        self.satsSign.font = font
+        let adjustedSize = Int(font.pointSize)
+        
+        balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+        
+        CacheManager.updateCachedData(data: balanceText, key: "balance")
+        
+        if let htmlData = balanceText.data(using: .unicode) {
+            do {
+                let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                balanceLabel.attributedText = attributedText
+                balanceLabel.alpha = 1
+                bitcoinSign.alpha = bitcoinSignAlpha
+                if bitcoinSignAlpha == 1 {
+                    satsSign.alpha = 0
+                    questionCircle.alpha = 0
+                } else {
+                    satsSign.alpha = 1
+                    //questionCircle.alpha = 0.4
                 }
                 
-                balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+                // Step 14.
+                CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
+                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false)
                 
-                CacheManager.updateCachedData(data: balanceText, key: "balance")
-                
-                if let htmlData = balanceText.data(using: .unicode) {
-                    do {
-                        let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                        balanceLabel.attributedText = attributedText
-                        balanceLabel.alpha = 1
-                        bitcoinSign.alpha = bitcoinSignAlpha
-                        if bitcoinSignAlpha == 1 {
-                            satsSign.alpha = 0
-                            questionCircle.alpha = 0
-                        } else {
-                            satsSign.alpha = 1
-                            questionCircle.alpha = 0.4
-                        }
-                        
-                        // Step 14.
-                        CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
-                        self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false)
-                        
-                    } catch let e as NSError {
-                        print("Couldn't fetch text: \(e.localizedDescription)")
-                    }
-                }
-            //}
-        //}
+            } catch let e as NSError {
+                print("Couldn't fetch text: \(e.localizedDescription)")
+            }
+        }
     }
     
     
@@ -468,6 +466,9 @@ extension HomeViewController {
         } else {
             
             print("Did start currency conversion.")
+            if let actualCoreVC = self.coreVC {
+                actualCoreVC.startSync(type: "conversion")
+            }
             
             var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
             
@@ -547,6 +548,10 @@ extension HomeViewController {
                                     //self.homeTableView.isUserInteractionEnabled = true
                                     self.tableSpinner.stopAnimating()
                                     self.homeTableView.alpha = 1
+                                    
+                                    if let actualCoreVC = self.coreVC {
+                                        actualCoreVC.completeSync(type: "conversion")
+                                    }
                                     
                                     // Step 16.
                                     self.calculateProfit(cachedData: cachedData)
@@ -639,6 +644,11 @@ extension HomeViewController {
             self.yourWalletLabel.text = "your wallet"
             self.yourWalletSpinner.stopAnimating()
             self.yourWalletLabelLeading.constant = -10
+            
+            if let actualCoreVC = self.coreVC {
+                actualCoreVC.walletHasSynced = true
+                actualCoreVC.completeSync(type: "final")
+            }
         }
         
         // Step 18
@@ -654,4 +664,22 @@ extension HomeViewController {
         }
     }
 
+}
+
+extension UILabel{
+    func adjustedFont()->UIFont {
+        guard let txt = text else {
+            return self.font
+        }
+        let attributes: [NSAttributedString.Key: Any] = [.font: self.font]
+        let attributedString = NSAttributedString(string: txt, attributes: attributes)
+        let drawingContext = NSStringDrawingContext()
+        drawingContext.minimumScaleFactor = self.minimumScaleFactor
+        attributedString.boundingRect(with: bounds.size,
+                                      options: [.usesLineFragmentOrigin,.usesFontLeading],
+                                      context: drawingContext)
+
+        let fontSize = font.pointSize * drawingContext.actualScaleFactor
+        return font.withSize(CGFloat(floor(Double(fontSize))))
+    }
 }

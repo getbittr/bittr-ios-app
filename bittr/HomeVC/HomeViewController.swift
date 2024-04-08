@@ -18,9 +18,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var numberViewSend: UIView!
     @IBOutlet weak var numberViewReceive: UIView!
     
+    @IBOutlet weak var balanceCard: UIView!
     @IBOutlet weak var homeTableView: UITableView!
     @IBOutlet weak var balanceView: UIView!
     @IBOutlet weak var balanceLabel: UILabel!
+    @IBOutlet weak var balanceLabelInvisible: UILabel!
     @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var headerView: UIView!
@@ -70,11 +72,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
-    let day:[CGFloat] = [25777, 26002, 25701, 25779, 25840, 25856, 25797, 25671, 25821, 25927, 25793]
-    let week:[CGFloat] = [26563, 25596, 26018, 26234, 26180, 26339, 25791, 25793]
-    let month:[CGFloat] = [25418, 27711, 27474, 26938, 25767, 25092, 25710, 26286, 26018, 26339, 25793]
-    let year:[CGFloat] = [28468, 28321, 18054, 23712, 19738, 21336, 15726, 16239, 22776, 18960, 27503, 25793]
-    let fiveYears:[CGFloat] = [6894, 5352, 3517, 9207, 8033, 8370, 15788, 50193, 29098, 56278, 35614, 20120, 25793]
+    let day:[CGFloat] = [64068, 64022, 64369, 63821, 64118, 64158, 64440, 64421]
+    let week:[CGFloat] = [66023, 64898, 60796, 60987, 63235, 62553, 63533, 64421]
+    let month:[CGFloat] = [62393, 65969, 65615, 62813, 62041, 58910, 64615, 64731, 64898, 63235, 64421]
+    let year:[CGFloat] = [25418, 25595, 24919, 28019, 26972, 23908, 26486, 33482, 38750, 40019, 39615, 57540, 64421]
+    let fiveYears:[CGFloat] = [9207, 8033, 8370, 15788, 50193, 29098, 56278, 35614, 20120, 25793, 26392, 64421]
     
     var client = Client()
     var articles:[String:Article]?
@@ -102,6 +104,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var coreVC:CoreViewController?
     
     @IBOutlet weak var balanceButton: UIButton!
+    @IBOutlet weak var syncingStatusButton: UIButton!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -118,6 +121,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         receiveButton.setTitle("", for: .normal)
         balanceButton.setTitle("", for: .normal)
         balanceDetailsButton.setTitle("", for: .normal)
+        syncingStatusButton.setTitle("", for: .normal)
         
         optionDayView.layer.cornerRadius = 13
         optionWeekView.layer.cornerRadius = 13
@@ -130,6 +134,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         monthButton.setTitle("", for: .normal)
         yearButton.setTitle("", for: .normal)
         fiveYearsButton.setTitle("", for: .normal)
+        
+        balanceCard.layer.cornerRadius = 13
+        balanceCard.layer.shadowColor = UIColor.black.cgColor
+        balanceCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        balanceCard.layer.shadowRadius = 10.0
+        balanceCard.layer.shadowOpacity = 0.1
         
         homeTableView.delegate = self
         homeTableView.dataSource = self
@@ -569,6 +579,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         performSegue(withIdentifier: "HomeToMove", sender: self)
+    }
+    
+    @IBAction func syncingStatusTapped(_ sender: UIButton) {
+        
+        if self.yourWalletLabel.text != "syncing" { return }
+        
+        if let actualCoreVC = self.coreVC {
+            actualCoreVC.blackSignupBackground.alpha = 0.2
+            actualCoreVC.statusView.alpha = 1
+            actualCoreVC.blackSignupButton.alpha = 1
+        }
     }
     
 }

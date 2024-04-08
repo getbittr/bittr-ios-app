@@ -22,8 +22,13 @@ extension HomeViewController {
                         balanceLabel.attributedText = attributedText
                         balanceLabel.alpha = 1
                         bitcoinSign.alpha = 0.22
+                        
+                        balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
+                        
+                        satsSign.font = balanceLabelInvisible.adjustedFont()
+                        
                         satsSign.alpha = 1
-                        questionCircle.alpha = 0.4
+                        //questionCircle.alpha = 0.4
                     } catch let e as NSError {
                         print("Couldn't fetch text: \(e.localizedDescription)")
                     }

@@ -9,7 +9,7 @@ import UIKit
 
 class GraphView: UIView {
 
-    var data:[CGFloat] = [25418, 27711, 27474, 26938, 25767, 25092, 25710, 26286, 26018, 26339, 25793] {
+    var data:[CGFloat] = [62393, 65969, 65615, 62813, 62041, 58910, 64615, 64731, 64898, 63235, 64421] {
         didSet {
             setNeedsDisplay()
         }
