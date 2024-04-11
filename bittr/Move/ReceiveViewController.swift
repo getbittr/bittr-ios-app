@@ -32,7 +32,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var qrCodeImage: UIImageView!
     @IBOutlet weak var copyAddressButton: UIButton!
     @IBOutlet weak var refreshButton: UIButton!
-    let addressViewModel = AddressViewModel()
+    //let addressViewModel = AddressViewModel()
     
     @IBOutlet weak var switchView: UIView!
     @IBOutlet weak var regularButton: UIButton!
@@ -110,14 +110,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.receivableLNLabel.text = "You can receive up to \(actualReceivableLN) satoshis."
         }
         
-        NotificationCenter.default.addObserver(self, selector: #selector(setNewAddress), name: NSNotification.Name(rawValue: "setnewaddress"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setNewAddress), name: NSNotification.Name(rawValue: "setnewaddress"), object: nil)
         
         addressCopy.alpha = 0
         qrCodeImage.alpha = 0
         addressLabel.text = ""
         addressSpinner.startAnimating()
         qrcodeSpinner.startAnimating()
-        getNewAddress()
+        getNewAddress(resetAddress: false)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -156,50 +156,63 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    func getNewAddress() {
-        Task {
-            //await addressViewModel.newFundingAddress()
-            do {
-                let address = try await LightningNodeService.shared.newFundingAddress()
-                DispatchQueue.main.async {
-                    self.addressLabel.text = address
-                    self.addressCopy.alpha = 1
-                    self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
-                    self.qrCodeImage.layer.magnificationFilter = .nearest
-                    self.qrCodeImage.alpha = 1
-                    self.addressSpinner.stopAnimating()
-                    self.qrcodeSpinner.stopAnimating()
-                }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. (\(errorString).) Please try again.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                        self.getNewAddress()
-                    }))
-                    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+    func getNewAddress(resetAddress:Bool) {
+        
+        if let cachedAddress = CacheManager.getLastAddress(), resetAddress == false {
+            print("Showing cached address.")
+            self.addressLabel.text = cachedAddress
+            self.addressCopy.alpha = 1
+            self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + cachedAddress)
+            self.qrCodeImage.layer.magnificationFilter = .nearest
+            self.qrCodeImage.alpha = 1
+            self.addressSpinner.stopAnimating()
+            self.qrcodeSpinner.stopAnimating()
+        } else {
+            print("Showing new address.")
+            Task {
+                do {
+                    let address = try await LightningNodeService.shared.newFundingAddress()
+                    DispatchQueue.main.async {
+                        CacheManager.storeLastAddress(newAddress: address)
+                        self.addressLabel.text = address
+                        self.addressCopy.alpha = 1
+                        self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
+                        self.qrCodeImage.layer.magnificationFilter = .nearest
+                        self.qrCodeImage.alpha = 1
                         self.addressSpinner.stopAnimating()
                         self.qrcodeSpinner.stopAnimating()
-                    }))
-                    self.present(alert, animated: true)
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                        self.getNewAddress()
-                    }))
-                    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
-                        self.addressSpinner.stopAnimating()
-                        self.qrcodeSpinner.stopAnimating()
-                    }))
-                    self.present(alert, animated: true)
+                    }
+                } catch let error as NodeError {
+                    let errorString = handleNodeError(error)
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. (\(errorString).) Please try again.", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                            self.getNewAddress(resetAddress: resetAddress)
+                        }))
+                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                            self.addressSpinner.stopAnimating()
+                            self.qrcodeSpinner.stopAnimating()
+                        }))
+                        self.present(alert, animated: true)
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                            self.getNewAddress(resetAddress: resetAddress)
+                        }))
+                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                            self.addressSpinner.stopAnimating()
+                            self.qrcodeSpinner.stopAnimating()
+                        }))
+                        self.present(alert, animated: true)
+                    }
                 }
             }
         }
     }
     
-    @objc func setNewAddress(notification:NSNotification) {
+    /*@objc func setNewAddress(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let newAddress = userInfo["address"] as? String {
@@ -212,7 +225,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 self.qrcodeSpinner.stopAnimating()
             }
         }
-    }
+    }*/
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
         
@@ -231,10 +244,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         qrcodeSpinner.startAnimating()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.getNewAddress()
+            self.getNewAddress(resetAddress:true)
         }
-        
-        //self.receivePayment(amountMsat: 10000000, description: "Hello", expirySecs: 3600)
     }
     
     func getInvoiceHash(invoiceString:String) -> String {

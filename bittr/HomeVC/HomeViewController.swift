@@ -54,6 +54,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var yourWalletLabel: UILabel!
     @IBOutlet weak var yourWalletLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var yourWalletSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var walletProblemImage: UIImageView!
     
     var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
     var setTransactions = [Transaction]()
@@ -100,6 +101,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var didStartReset = false
     var didFetchConversion = false
+    var couldNotFetchConversion = false
     
     var coreVC:CoreViewController?
     
@@ -179,7 +181,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @objc func setClient() {
         
-        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualDeviceDict = deviceDict {
             // Client exists in cache.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
@@ -369,7 +376,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
-                        actualMoveVC.maximumSendableLNSats = outboundCapacitySats - punishmentReserveSats
+                        actualMoveVC.maximumSendableLNSats = outboundCapacitySats
                         if actualMoveVC.maximumSendableLNSats! < 0 {
                             actualMoveVC.maximumSendableLNSats = 0
                         }
@@ -394,7 +401,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
-                        actualSendVC.maximumSendableLNSats = outboundCapacitySats - punishmentReserveSats
+                        actualSendVC.maximumSendableLNSats = outboundCapacitySats
                         if actualSendVC.maximumSendableLNSats! < 0 {
                             actualSendVC.maximumSendableLNSats = 0
                         }
@@ -512,6 +519,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.yourWalletLabel.text = "syncing"
         self.yourWalletLabelLeading.constant = 10
         self.yourWalletSpinner.startAnimating()
+        self.walletProblemImage.alpha = 0
+        self.couldNotFetchConversion = false
+        self.didFetchConversion = false
         
         LightningNodeService.shared.walletReset()
     }
@@ -583,12 +593,18 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
-        if self.yourWalletLabel.text != "syncing" { return }
-        
-        if let actualCoreVC = self.coreVC {
-            actualCoreVC.blackSignupBackground.alpha = 0.2
-            actualCoreVC.statusView.alpha = 1
-            actualCoreVC.blackSignupButton.alpha = 1
+        if self.yourWalletLabel.text != "syncing" {
+            if self.couldNotFetchConversion == true {
+                let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                self.present(alert, animated: true)
+            }
+        } else {
+            if let actualCoreVC = self.coreVC {
+                actualCoreVC.blackSignupBackground.alpha = 0.2
+                actualCoreVC.statusView.alpha = 1
+                actualCoreVC.blackSignupButton.alpha = 1
+            }
         }
     }
     

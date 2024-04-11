@@ -107,7 +107,13 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func getArticles() {
         
-        var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/articles")!,timeoutInterval: Double.infinity)
+        // TODO: Correct URL?
+        var envUrl = "https://getbittr.com/api/articles"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envUrl = "https://staging.getbittr.com/api/articles"
+        }
+        
+        var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data else {

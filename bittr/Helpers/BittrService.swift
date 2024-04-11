@@ -15,9 +15,15 @@ class BittrService {
     private let session = URLSession(configuration: .default)
     
     func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
+        
+        // TODO: Correct URL?
+        var envUrl:String = "https://getbittr.com/api/payout/lightning"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envUrl = "https://staging.getbittr.com/api/payout/lightning"
+        }
             
         //var urlComponents = URLComponents(string: "https://2489-81-20-241-228.ngrok-free.app/payout/lightning")!
-        var urlComponents = URLComponents(string: "https://staging.getbittr.com/api/payout/lightning")!
+        var urlComponents = URLComponents(string: envUrl)!
         urlComponents.queryItems = [
             URLQueryItem(name: "notification_id", value: notificationId),
             URLQueryItem(name: "invoice", value: invoice),
@@ -68,7 +74,13 @@ class BittrService {
             
             let lightningPubKey = LightningNodeService.shared.nodeId()
             
-            var urlComponents = URLComponents(url: baseURL.appendingPathComponent("transaction_info"), resolvingAgainstBaseURL: false)!
+            // TODO: Correct URL?
+            var envUrl = baseURL
+            if UserDefaults.standard.value(forKey: "envkey") as? Int != 0 {
+                envUrl = URL(string: "https://getbittr.com/api/")!
+            }
+            
+            var urlComponents = URLComponents(url: envUrl.appendingPathComponent("transaction_info"), resolvingAgainstBaseURL: false)!
             urlComponents.queryItems = [
                 URLQueryItem(name: "tx_ids", value: txIdsString),
                 URLQueryItem(name: "deposit_codes", value: depositCodesString),

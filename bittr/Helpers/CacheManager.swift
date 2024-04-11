@@ -13,22 +13,37 @@ class CacheManager: NSObject {
     static func deleteClientInfo() {
         
         let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "device")
-        defaults.removeObject(forKey: "cache")
-        defaults.removeObject(forKey: "pin")
-        defaults.removeObject(forKey: "mnemonic")
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            defaults.removeObject(forKey: "device")
+            defaults.removeObject(forKey: "cache")
+            defaults.removeObject(forKey: "pin")
+            defaults.removeObject(forKey: "mnemonic")
+        } else {
+            defaults.removeObject(forKey: "proddevice")
+            defaults.removeObject(forKey: "prodcache")
+            defaults.removeObject(forKey: "prodpin")
+            defaults.removeObject(forKey: "prodmnemonic")
+        }
     }
     
     static func deleteCache() {
         
         let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "cache")
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            defaults.removeObject(forKey: "cache")
+        } else {
+            defaults.removeObject(forKey: "prodcache")
+        }
     }
     
     static func deleteLightningTransactions() {
         
         let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "lightning")
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            defaults.removeObject(forKey: "lightning")
+        } else {
+            defaults.removeObject(forKey: "prodlightning")
+        }
     }
     
     static func emptyImage() {
@@ -112,7 +127,11 @@ class CacheManager: NSObject {
     
     static func addIban(clientID:String,iban:IbanEntity) {
         
-        let clientsDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         
         if let actualClientsDict = clientsDict {
             // At least one client already exists.
@@ -142,7 +161,7 @@ class CacheManager: NSObject {
                 }
                 updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
             }
-            UserDefaults.standard.set(updatedClientsDict, forKey: "device")
+            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         } else {
             // No clients have been added yet.
@@ -152,14 +171,19 @@ class CacheManager: NSObject {
             client.ibanEntities += [iban]
             
             let clientsDict:NSDictionary = [client.id:["order":client.order,"ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
-            UserDefaults.standard.set(clientsDict, forKey: "device")
+            UserDefaults.standard.set(clientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
     }
     
     static func addEmailToken(clientID:String, ibanID:String, emailToken:String) {
         
-        let clientsDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualClientsDict = clientsDict {
             
             let clients = self.parseDevice(deviceDict: actualClientsDict)
@@ -182,14 +206,19 @@ class CacheManager: NSObject {
                 }
                 updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
             }
-            UserDefaults.standard.set(updatedClientsDict, forKey: "device")
+            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
     }
     
     static func addBittrIban(clientID:String, ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
         
-        let clientsDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualClientsDict = clientsDict {
             
             let clients = self.parseDevice(deviceDict: actualClientsDict)
@@ -214,7 +243,7 @@ class CacheManager: NSObject {
                 }
                 updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
             }
-            UserDefaults.standard.set(updatedClientsDict, forKey: "device")
+            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
     }
@@ -336,30 +365,40 @@ class CacheManager: NSObject {
     
     static func storeLightningTransaction(thisTransaction:Transaction) {
         
+        var envKey = "prodlightning"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "lightning"
+        }
+        
         let defaults = UserDefaults.standard
-        let existingCache = defaults.value(forKey: "lightning") as? NSDictionary
+        let existingCache = defaults.value(forKey: envKey) as? NSDictionary
         
         if let actualExistingCache = existingCache {
             // A cache already exists.
             if let actualMutableCache = actualExistingCache.mutableCopy() as? NSMutableDictionary {
                 let transactionDict = self.parseTransactions(transactions: [thisTransaction])
                 actualMutableCache.setObject(transactionDict[0], forKey: thisTransaction.id as NSCopying)
-                defaults.set(actualMutableCache, forKey: "lightning")
+                defaults.set(actualMutableCache, forKey: envKey)
             }
         } else {
             // No cache exists yet.
             let newCache = NSMutableDictionary()
             let transactionDict = self.parseTransactions(transactions: [thisTransaction])
             newCache.setObject(transactionDict[0], forKey: thisTransaction.id as NSCopying)
-            defaults.set(newCache, forKey: "lightning")
+            defaults.set(newCache, forKey: envKey)
         }
     }
     
     
     static func getLightningTransactions() -> [Transaction]? {
         
+        var envKey = "prodlightning"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "lightning"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedData = defaults.value(forKey: "lightning") as? NSDictionary
+        let cachedData = defaults.value(forKey: envKey) as? NSDictionary
         
         if let actualExistingCache = cachedData {
             var allTransactions = [NSMutableDictionary]()
@@ -376,8 +415,13 @@ class CacheManager: NSObject {
     
     static func updateCachedData(data:Any, key:String) {
         
+        var envKey = "prodcache"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "cache"
+        }
+        
         let defaults = UserDefaults.standard
-        let existingCache = defaults.value(forKey: "cache") as? NSDictionary
+        let existingCache = defaults.value(forKey: envKey) as? NSDictionary
         
         if let actualExistingCache = existingCache {
             // Cache is available.
@@ -386,33 +430,33 @@ class CacheManager: NSObject {
                 if key == "balance" {
                     if let actualData = data as? String {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
-                        defaults.set(actualMutableCache, forKey: "cache")
+                        defaults.set(actualMutableCache, forKey: envKey)
                     }
                 } else if key == "transactions" {
                     if let actualData = data as? [Transaction] {
                         let actualDataDict = self.parseTransactions(transactions: actualData)
                         actualMutableCache.setObject(actualDataDict, forKey: key as NSCopying)
-                        defaults.set(actualMutableCache, forKey: "cache")
+                        defaults.set(actualMutableCache, forKey: envKey)
                     }
                 } else if key == "conversion" {
                     if let actualData = data as? String {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
-                        defaults.set(actualMutableCache, forKey: "cache")
+                        defaults.set(actualMutableCache, forKey: envKey)
                     }
                 } else if key == "eurvalue" {
                     if let actualData = data as? CGFloat {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
-                        defaults.set(actualMutableCache, forKey: "cache")
+                        defaults.set(actualMutableCache, forKey: envKey)
                     }
                 } else if key == "chfvalue" {
                     if let actualData = data as? CGFloat {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
-                        defaults.set(actualMutableCache, forKey: "cache")
+                        defaults.set(actualMutableCache, forKey: envKey)
                     }
                 } else if key == "satsbalance" {
                     if let actualData = data as? String {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
-                        defaults.set(actualMutableCache, forKey: "cache")
+                        defaults.set(actualMutableCache, forKey: envKey)
                     }
                 }
             }
@@ -423,38 +467,38 @@ class CacheManager: NSObject {
                 if let actualData = data as? String {
                     let newCache = NSMutableDictionary()
                     newCache.setObject(actualData, forKey: key as NSCopying)
-                    defaults.set(newCache, forKey: "cache")
+                    defaults.set(newCache, forKey: envKey)
                 }
             } else if key == "transactions" {
                 if let actualData = data as? [Transaction] {
                     let newCache = NSMutableDictionary()
                     let actualDataDict = self.parseTransactions(transactions: actualData)
                     newCache.setObject(actualDataDict, forKey: key as NSCopying)
-                    defaults.set(newCache, forKey: "cache")
+                    defaults.set(newCache, forKey: envKey)
                 }
             } else if key == "conversion" {
                 if let actualData = data as? String {
                     let newCache = NSMutableDictionary()
                     newCache.setObject(actualData, forKey: key as NSCopying)
-                    defaults.set(newCache, forKey: "cache")
+                    defaults.set(newCache, forKey: envKey)
                 }
             } else if key == "eurvalue" {
                 if let actualData = data as? CGFloat {
                     let newCache = NSMutableDictionary()
                     newCache.setObject(actualData, forKey: key as NSCopying)
-                    defaults.set(newCache, forKey: "cache")
+                    defaults.set(newCache, forKey: envKey)
                 }
             } else if key == "chfvalue" {
                 if let actualData = data as? CGFloat {
                     let newCache = NSMutableDictionary()
                     newCache.setObject(actualData, forKey: key as NSCopying)
-                    defaults.set(newCache, forKey: "cache")
+                    defaults.set(newCache, forKey: envKey)
                 }
             } else if key == "satsbalance" {
                 if let actualData = data as? String {
                     let newCache = NSMutableDictionary()
                     newCache.setObject(actualData, forKey: key as NSCopying)
-                    defaults.set(newCache, forKey: "cache")
+                    defaults.set(newCache, forKey: envKey)
                 }
             }
         }
@@ -464,8 +508,13 @@ class CacheManager: NSObject {
     
     static func getCachedData(key:String) -> Any? {
         
+        var envKey = "prodcache"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "cache"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedData = defaults.value(forKey: "cache") as? NSDictionary
+        let cachedData = defaults.value(forKey: envKey) as? NSDictionary
         
         if let actualCachedData = cachedData {
             
@@ -538,64 +587,84 @@ class CacheManager: NSObject {
     
     static func storeInvoiceTimestamp(hash:String, timestamp:Int) {
         
+        var envKey = "prodhashes"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "hashes"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedHashes = defaults.value(forKey: "hashes") as? NSDictionary
+        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedHashes = cachedHashes {
             // Hashes have been cached.
             if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
                 actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
-                defaults.set(actualMutableHashes, forKey: "hashes")
+                defaults.set(actualMutableHashes, forKey: envKey)
                 print("Timestamp cached.")
             }
         } else {
             // No hashes have been cached.
             let actualMutableHashes = NSMutableDictionary()
             actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
-            defaults.set(actualMutableHashes, forKey: "hashes")
+            defaults.set(actualMutableHashes, forKey: envKey)
             print("Timestamp cached.")
         }
     }
     
     static func storeInvoiceDescription(hash:String, desc:String) {
         
+        var envKey = "proddescriptions"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "descriptions"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedDescriptions = defaults.value(forKey: "descriptions") as? NSDictionary
+        let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedDescriptions = cachedDescriptions {
             // Descriptions have been cached.
             if let actualMutableDescriptions = actualCachedDescriptions.mutableCopy() as? NSMutableDictionary {
                 actualMutableDescriptions.setObject(desc, forKey: hash as NSCopying)
-                defaults.set(actualMutableDescriptions, forKey: "descriptions")
+                defaults.set(actualMutableDescriptions, forKey: envKey)
             }
         } else {
             // No descriptions have been cached.
             let actualMutableDescriptions = NSMutableDictionary()
             actualMutableDescriptions.setObject(desc, forKey: hash as NSCopying)
-            defaults.set(actualMutableDescriptions, forKey: "descriptions")
+            defaults.set(actualMutableDescriptions, forKey: envKey)
         }
     }
     
     static func storeTransactionNote(txid:String, note:String) {
         
+        var envKey = "prodtransactionnotes"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "transactionnotes"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedTransactionNotes = defaults.value(forKey: "transactionnotes") as? NSDictionary
+        let cachedTransactionNotes = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedNotes = cachedTransactionNotes {
             // Notes have been cached.
             if let actualMutableNotes = actualCachedNotes.mutableCopy() as? NSMutableDictionary {
                 actualMutableNotes.setObject(note, forKey: txid as NSCopying)
-                defaults.set(actualMutableNotes, forKey: "transactionnotes")
+                defaults.set(actualMutableNotes, forKey: envKey)
             }
         } else {
             // No notes have been cached.
             let actualMutableNotes = NSMutableDictionary()
             actualMutableNotes.setObject(note, forKey: txid as NSCopying)
-            defaults.set(actualMutableNotes, forKey: "transactionnotes")
+            defaults.set(actualMutableNotes, forKey: envKey)
         }
     }
     
     static func getInvoiceTimestamp(hash:String) -> Int {
         
+        var envKey = "prodhashes"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "hashes"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedHashes = defaults.value(forKey: "hashes") as? NSDictionary
+        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedHashes = cachedHashes {
             // Hashes have been cached.
             if let foundTimestamp = actualCachedHashes[hash] as? Int {
@@ -613,8 +682,13 @@ class CacheManager: NSObject {
     
     static func getInvoiceDescription(hash:String) -> String {
         
+        var envKey = "proddescriptions"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "descriptions"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedDescriptions = defaults.value(forKey: "descriptions") as? NSDictionary
+        let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedDescriptions = cachedDescriptions {
             // Descriptions have been cached.
             if let foundDescription = actualCachedDescriptions[hash] as? String {
@@ -630,8 +704,13 @@ class CacheManager: NSObject {
     
     static func getTransactionNote(txid:String) -> String {
         
+        var envKey = "prodtransactionnotes"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "transactionnotes"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedNotes = defaults.value(forKey: "transactionnotes") as? NSDictionary
+        let cachedNotes = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedNotes = cachedNotes {
             // Notes have been cached.
             if let foundNote = actualCachedNotes[txid] as? String {
@@ -646,14 +725,25 @@ class CacheManager: NSObject {
     }
     
     static func storeMnemonic(mnemonic:String) {
+        
+        var envKey = "prodmnemonic"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "mnemonic"
+        }
+        
         let defaults = UserDefaults.standard
-        defaults.set(mnemonic, forKey: "mnemonic")
+        defaults.set(mnemonic, forKey: envKey)
     }
     
     static func getMnemonic() -> String? {
         
+        var envKey = "prodmnemonic"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "mnemonic"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedMnemonic = defaults.value(forKey: "mnemonic") as? String
+        let cachedMnemonic = defaults.value(forKey: envKey) as? String
         
         if let actualCachedMnemonic = cachedMnemonic {
             return actualCachedMnemonic
@@ -663,14 +753,25 @@ class CacheManager: NSObject {
     }
     
     static func storePin(pin:String) {
+        
+        var envKey = "prodpin"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "pin"
+        }
+        
         let defaults = UserDefaults.standard
-        defaults.set(pin, forKey: "pin")
+        defaults.set(pin, forKey: envKey)
     }
     
     static func getPin() -> String? {
         
+        var envKey = "prodpin"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "pin"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedPin = defaults.value(forKey: "pin") as? String
+        let cachedPin = defaults.value(forKey: envKey) as? String
         
         if let actualCachedPin = cachedPin {
             return actualCachedPin
@@ -680,14 +781,25 @@ class CacheManager: NSObject {
     }
     
     static func storeTxoID(txoID:String) {
+        
+        var envKey = "prodtxoid"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "txoid"
+        }
+        
         let defaults = UserDefaults.standard
-        defaults.set(txoID, forKey: "txoid")
+        defaults.set(txoID, forKey: envKey)
     }
     
     static func getTxoID() -> String? {
         
+        var envKey = "prodtxoid"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "txoid"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedTxoID = defaults.value(forKey: "txoid") as? String
+        let cachedTxoID = defaults.value(forKey: envKey) as? String
         
         if let actualCachedTxoID = cachedTxoID {
             return actualCachedTxoID
@@ -698,27 +810,64 @@ class CacheManager: NSObject {
     
     static func updateSentToBittr(txids:[String]) {
         
+        var envKey = "prodsenttobittr"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "senttobittr"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedSentToBittr = defaults.value(forKey: "senttobittr") as? [String]
+        let cachedSentToBittr = defaults.value(forKey: envKey) as? [String]
         
         if var actualSentToBittr = cachedSentToBittr {
             // TxIDs were stored before.
             actualSentToBittr += txids
-            defaults.set(actualSentToBittr, forKey: "senttobittr")
+            defaults.set(actualSentToBittr, forKey: envKey)
         } else {
             // No TxIDs were stored before.
             let newSentToBittr:[String] = txids
-            defaults.setValue(newSentToBittr, forKey: "senttobittr")
+            defaults.setValue(newSentToBittr, forKey: envKey)
         }
     }
     
     static func getSentToBittr() -> [String]? {
         
+        var envKey = "prodsenttobittr"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "senttobittr"
+        }
+        
         let defaults = UserDefaults.standard
-        let cachedSentToBittr = defaults.value(forKey: "senttobittr") as? [String]
+        let cachedSentToBittr = defaults.value(forKey: envKey) as? [String]
         
         if let actualSentToBittr = cachedSentToBittr {
             return actualSentToBittr
+        } else {
+            return nil
+        }
+    }
+    
+    static func storeLastAddress(newAddress:String) {
+        
+        var envKey = "prodlastaddress"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "lastaddress"
+        }
+        
+        let defaults = UserDefaults.standard
+        defaults.set(newAddress, forKey: envKey)
+    }
+    
+    static func getLastAddress() -> String? {
+        
+        var envKey = "prodlastaddress"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "lastaddress"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedLastAddress = defaults.value(forKey: envKey) as? String
+        if let actualLastAddress = cachedLastAddress {
+            return actualLastAddress
         } else {
             return nil
         }

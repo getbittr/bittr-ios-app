@@ -235,7 +235,12 @@ class Transfer3ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualDeviceDict = deviceDict {
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
             for client in clients {

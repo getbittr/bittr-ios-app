@@ -93,7 +93,13 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     }
     
     @objc func resetClient() {
-        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualDeviceDict = deviceDict {
             // Client exists in cache.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)

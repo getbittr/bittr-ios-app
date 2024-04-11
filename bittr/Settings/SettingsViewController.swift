@@ -15,7 +15,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     var coreVC:CoreViewController?
     var tappedUrl:String?
     
-    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet details", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"Device details", "icon":"ipad.and.iphone", "id":"device"]]
+    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet and balance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"Device details", "icon":"ipad.and.iphone", "id":"device"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()

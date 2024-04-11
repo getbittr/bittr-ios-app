@@ -13,6 +13,9 @@ import LDKNodeFFI
 
 class CoreViewController: UIViewController {
 
+    // 0 is Dev. 1 is Prod. ALSO change the network in LightningNodeService.
+    var devEnvironment = 0
+    
     @IBOutlet weak var coin1: UIImageView!
     @IBOutlet weak var coin3: UIImageView!
     @IBOutlet weak var firstCoin: UIView!
@@ -100,6 +103,8 @@ class CoreViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        UserDefaults.standard.set(devEnvironment, forKey: "envkey")
         
         selectedView.layer.cornerRadius = 13
         leftWhite.layer.cornerRadius = 13

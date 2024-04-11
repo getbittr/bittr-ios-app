@@ -15,7 +15,6 @@ import LDKNodeFFI
 
 class LightningNodeService {
     private let ldkNode: LdkNode
-    //private let keychain = KeychainSwift()
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
     private var bdkWallet: BitcoinDevKit.Wallet?
@@ -27,6 +26,7 @@ class LightningNodeService {
     private var currentHeight = 0
     private var didInitiate = false
     
+    // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
         struct Singleton {
             static let instance = LightningNodeService(network: .testnet)
@@ -62,21 +62,11 @@ class LightningNodeService {
             mnemonicString = actualMnemonic
             print("Did find mnemonic.")
         } else {
-            // No mnemonic in storage. Check Keychain.
-            //keychain.synchronizable = true
-            /*if let storedMnemonic = keychain.get(mnemonicKey) {
-                // Mnemonic found in Keychain.
-                mnemonicString = storedMnemonic
-                print("Did find mnemonic in Keychain.")
-                CacheManager.storeMnemonic(mnemonic: mnemonicString)
-                keychain.delete(mnemonicKey)
-            } else {*/
-                // No mnemonic found in Keychain either. Create new mnemonic.
-                let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
-                mnemonicString = mnemonic.asString()
-                print("Did not find mnemonic. Creating a new one.")
-                CacheManager.storeMnemonic(mnemonic: mnemonicString)
-            //}
+            // Create new mnemonic.
+            let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
+            mnemonicString = mnemonic.asString()
+            print("Did not find mnemonic. Creating a new one.")
+            CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         
         self.varMnemonicString = mnemonicString
@@ -105,15 +95,6 @@ class LightningNodeService {
         self.ldkNode = ldkNode
         
         self.didInitiate = true
-        
-        /*Task {
-            do {
-                try await start()
-                print("Successful start.")
-            } catch {
-                print("Unsuccessful node start. \(error.localizedDescription)")
-            }
-        }*/
     }
     
     
@@ -130,10 +111,20 @@ class LightningNodeService {
                 let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
                 
                 // Create a BIP32 extended root key using the mnemonic and a nil password
-                let bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
+                var bip32ExtendedRootKey:DescriptorSecretKey
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
+                } else {
+                    bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
+                }
                 
                 // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
-                let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
+                var bip84ExternalDescriptor:Descriptor
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
+                } else {
+                    bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .bitcoin)
+                }
                 
                 let descriptor = bip84ExternalDescriptor.asString()
                 
@@ -155,14 +146,24 @@ class LightningNodeService {
                 }
                 
                 // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
-                let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
+                var bip84InternalDescriptor:Descriptor
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
+                } else {
+                    bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .bitcoin)
+                }
                 
                 // Set up the local SQLite database for the Bitcoin wallet using the provided file path
                 let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
                 let config = SqliteDbConfiguration(path: dbPath.path)
                 
                 // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
-                let wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
+                var wallet:Wallet
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
+                } else {
+                    wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, databaseConfig: .sqlite(config: config))
+                }
                 
                 // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
                 let electrum = ElectrumConfig(url: "ssl://electrum.blockstream.info:60002", socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
@@ -229,6 +230,7 @@ class LightningNodeService {
     
     func connectToLightningPeer() {
         
+        // TODO: Production nodeID and address?
         // Connect to Lightning peer.
         let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
         let address = "109.205.181.232:9735" // Extract this from your peer string
@@ -339,10 +341,14 @@ class LightningNodeService {
     }
     
     
+    /*func getEnvironment() -> Int {
+        return self.environment
+    }*/
+    
+    
     func start() async throws {
         
         // Step 4.
-        //print("Did initiate: \(self.didInitiate)")
         if self.didInitiate == true {
             try ldkNode.start()
         }
@@ -460,28 +466,5 @@ class LightningNodeService {
         }
     }
     
-    /*func getInvoiceHash(invoiceString:String) -> String {
-        
-        let result = Bolt11Invoice.fromStr(s: invoiceString)
-        //let result = Bolt11Invoice(stringLiteral: invoiceString)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return "empty"
-            }
-        } else if let error = result.getError() {
-            print("Failed to parse invoice: \(error)")
-            return "empty"
-        } else {
-            return "empty"
-        }
-    }*/
-
-
-
 }
 

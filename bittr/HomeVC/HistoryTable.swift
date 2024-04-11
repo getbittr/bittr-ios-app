@@ -39,6 +39,7 @@ extension HomeViewController {
             }*/
             
             // Set conversion
+            // TODO: Check for Production.
             var correctValue:CGFloat = self.eurValue
             var currencySymbol = "€"
             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {

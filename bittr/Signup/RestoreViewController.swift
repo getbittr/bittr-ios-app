@@ -181,6 +181,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         /*if keychain.get("") != nil {
             UserDefaults.standard.set(true, forKey: "deletestorage")
         }*/
+        
+        // TODO: Check this for Production.
         if CacheManager.getMnemonic() != "empty" {
             UserDefaults.standard.set(true, forKey: "deletestorage")
         }

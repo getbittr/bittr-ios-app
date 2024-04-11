@@ -23,7 +23,7 @@ extension HomeViewController {
             
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
                 for eachChannel in actualLightningChannels {
-                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000)
+                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000) + CGFloat(eachChannel.unspendablePunishmentReserve ?? 0)
                     self.channels = actualLightningChannels
                 }
                 
@@ -415,7 +415,7 @@ extension HomeViewController {
         
         // Step 15.
         
-        if self.didFetchConversion == true {
+        if self.didFetchConversion == true || self.couldNotFetchConversion == true {
             // Conversion rate was already fetched.
             print("Did start currency conversion with cached conversion rate.")
             
@@ -470,11 +470,27 @@ extension HomeViewController {
                 actualCoreVC.startSync(type: "conversion")
             }
             
-            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/price/btc")!,timeoutInterval: Double.infinity)
+            // TODO: Correct URL?
+            var envUrl = "https://getbittr.com/api/price/btc"
+            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                envUrl = "https://staging.getbittr.com/api/price/btc"
+            }
+            
+            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
             
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
                 guard let data = data else {
                     print("Conversion error:" + String(describing: error))
+                    
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                        
+                        self.couldNotFetchConversion = true
+                        self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                    }
+                    
                     return
                 }
                 
@@ -560,6 +576,15 @@ extension HomeViewController {
                         }
                     } catch let error as NSError {
                         print("Conversion error:" + error.localizedDescription)
+                        
+                        DispatchQueue.main.async {
+                            let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
+                            
+                            self.couldNotFetchConversion = true
+                            self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                        }
                     }
                 }
             }
@@ -643,7 +668,12 @@ extension HomeViewController {
         if cachedData == false {
             self.yourWalletLabel.text = "your wallet"
             self.yourWalletSpinner.stopAnimating()
-            self.yourWalletLabelLeading.constant = -10
+            
+            if self.couldNotFetchConversion == true {
+                self.walletProblemImage.alpha = 1
+            } else {
+                self.yourWalletLabelLeading.constant = -10
+            }
             
             if let actualCoreVC = self.coreVC {
                 actualCoreVC.walletHasSynced = true

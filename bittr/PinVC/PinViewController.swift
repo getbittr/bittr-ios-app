@@ -33,6 +33,19 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var pinTextField: UITextField!
     @IBOutlet weak var pinSpinner: UIActivityIndicatorView!
     
+    @IBOutlet weak var background1: UIView!
+    @IBOutlet weak var background2: UIView!
+    @IBOutlet weak var background3: UIView!
+    @IBOutlet weak var background4: UIView!
+    @IBOutlet weak var background5: UIView!
+    @IBOutlet weak var background6: UIView!
+    @IBOutlet weak var background7: UIView!
+    @IBOutlet weak var background8: UIView!
+    @IBOutlet weak var background9: UIView!
+    @IBOutlet weak var background0: UIView!
+    @IBOutlet weak var backgroundBackSpace: UIView!
+    var allBackgrounds:[UIView]?
+    
     var correctPin:String?
     
     var coreVC:CoreViewController?
@@ -60,26 +73,30 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         if CacheManager.getPin() != "empty" {
             self.correctPin = CacheManager.getPin()
-        } /*else {
-            // Migration away from Keychain.
-            let keychain = KeychainSwift()
-            keychain.synchronizable = true
-            if keychain.get("pin") != nil {
-                self.correctPin = keychain.get("pin")
-                CacheManager.storePin(pin: self.correctPin!)
-                keychain.delete("pin")
-            }
-        }*/
+        }
+        
+        allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
+        for eachBackground in allBackgrounds! {
+            eachBackground.layer.cornerRadius = 45
+        }
     }
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
         
         pinTextField.insertText(String(sender.tag))
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.allBackgrounds![sender.tag].alpha = 0
+        }
     }
     
     @IBAction func backspaceButtonTapped(_ sender: UIButton) {
         
         pinTextField.deleteBackward()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.allBackgrounds![sender.tag].alpha = 0
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -146,6 +163,18 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             self.present(secondAlert, animated: true)
         }))
         self.present(alert, animated: true)
+    }
+    
+    @IBAction func pinButtonTouchDown(_ sender: UIButton) {
+        
+        self.allBackgrounds![sender.tag].alpha = 0.1
+    }
+    
+    @IBAction func pinButtonCancel(_ sender: UIButton) {
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.allBackgrounds![sender.tag].alpha = 0
+        }
     }
     
 }

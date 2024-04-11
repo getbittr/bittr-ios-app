@@ -134,7 +134,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             self.nextButtonLabel.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
             
-            let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+            var envKey = "proddevice"
+            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                envKey = "device"
+            }
+            
+            let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
             if let actualDeviceDict = deviceDict {
                 // Client exists in cache.
                 let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
@@ -231,7 +236,14 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             }
             body += "--\(boundary)--\r\n";
             let postData = body.data(using: .utf8)
-            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email")!,timeoutInterval: Double.infinity)
+            
+            // TODO: Correct URL?
+            var envUrl = "https://getbittr.com/api/verify/email"
+            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                envUrl = "https://staging.getbittr.com/api/verify/email"
+            }
+            
+            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
             request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
             request.httpMethod = "POST"
             request.httpBody = postData

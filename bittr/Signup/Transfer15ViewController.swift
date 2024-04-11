@@ -31,7 +31,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     var counter = 0
     
-    var addressViewModel = AddressViewModel()
+    //var addressViewModel = AddressViewModel()
     var nodeIDViewModel = NodeIDViewModel()
     
     var setSender = ""
@@ -120,7 +120,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         print("Check 2FA started.")
         
-        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualDeviceDict = deviceDict {
             // Some device information exists.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
@@ -171,7 +176,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             body += "--\(boundary)--\r\n";
                             let postData = body.data(using: .utf8)
                             
-                            var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email/check2fa")!,timeoutInterval: Double.infinity)
+                            // TODO: Correct URL?
+                            var envUrl = "https://getbittr.com/api/verify/email/check2fa"
+                            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                                envUrl = "https://staging.getbittr.com/api/verify/email/check2fa"
+                            }
+                            
+                            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
                             request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
                             request.httpMethod = "POST"
                             request.httpBody = postData
@@ -226,7 +237,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func getAddress(page:String) {
         
-        let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         if let actualDeviceDict = deviceDict {
             // Some device information exists.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
@@ -244,7 +260,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             do {
                                 let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
                                 
-                                var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/sign/onchain")!,timeoutInterval: Double.infinity)
+                                // TODO: Correct URL?
+                                var envUrl = "https://getbittr.com/api/sign/onchain"
+                                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                                    envUrl = "https://staging.getbittr.com/api/sign/onchain"
+                                }
+                                
+                                var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
                                 request.addValue("application/json", forHTTPHeaderField: "Content-Type")
                                 request.httpMethod = "POST"
                                 request.httpBody = postData
@@ -343,7 +365,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 do {
                     let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
                     
-                    var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/customer")!,timeoutInterval: Double.infinity)
+                    // TODO: Correct URL?
+                    var envUrl = "https://getbittr.com/api/customer"
+                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                        envUrl = "https://staging.getbittr.com/api/customer"
+                    }
+                    
+                    var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
                     request.addValue("application/json", forHTTPHeaderField: "Content-Type")
                     request.httpMethod = "POST"
                     request.httpBody = postData
@@ -428,7 +456,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         if self.counter == 0 {
             
-            let deviceDict = UserDefaults.standard.value(forKey: "device") as? NSDictionary
+            var envKey = "proddevice"
+            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                envKey = "device"
+            }
+            
+            let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
             if let actualDeviceDict = deviceDict {
                 let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
                 for client in clients {
@@ -474,7 +507,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 }
                                 body += "--\(boundary)--\r\n";
                                 let postData = body.data(using: .utf8)
-                                var request = URLRequest(url: URL(string: "https://staging.getbittr.com/api/verify/email")!,timeoutInterval: Double.infinity)
+                                
+                                // TODO: Correct URL?
+                                var envUrl = "https://getbittr.com/api/verify/email"
+                                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                                    envUrl = "https://staging.getbittr.com/api/verify/email"
+                                }
+                                
+                                var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
                                 request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
                                 request.httpMethod = "POST"
                                 request.httpBody = postData
