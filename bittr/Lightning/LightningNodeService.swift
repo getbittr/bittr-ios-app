@@ -194,7 +194,7 @@ class LightningNodeService {
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet
                 self.bdkBalance = Int(try wallet.getBalance().confirmed)
-                print("Did fetch onchain balance from BDK. \(self.bdkBalance)")
+                print("Did fetch onchain balance from BDK.")
                 // print("transactions: \(balance)")
                 
                 // Retrieve a list of transaction details from the wallet, excluding raw transaction data
@@ -230,10 +230,13 @@ class LightningNodeService {
     
     func connectToLightningPeer() {
         
-        // TODO: Production nodeID and address?
+        // .testnet and .bitcoin
+        let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
+        let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]
+        
         // Connect to Lightning peer.
-        let nodeId = "026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326" // Extract this from your peer string
-        let address = "109.205.181.232:9735" // Extract this from your peer string
+        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
+        let address = addresses[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
         
         let connectTask = Task {
             do {
@@ -339,11 +342,6 @@ class LightningNodeService {
         let txId = try ldkNode.sendToOnchainAddress(address: address, amountMsat: amountMsat)
         return txId
     }
-    
-    
-    /*func getEnvironment() -> Int {
-        return self.environment
-    }*/
     
     
     func start() async throws {
