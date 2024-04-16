@@ -115,6 +115,8 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func confirmPinButtonTapped(_ sender: UIButton) {
         
+        //CacheManager.resetFailedPinAttempts()
+        
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
@@ -124,10 +126,19 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             return
         }
         
+        if CacheManager.getFailedPinAttempts() > 9 {
+            // Wrong pin has been entered 10 times.
+            let alert = UIAlertController(title: "Restore wallet", message: "You've entered an incorrect pin too many times. Please restore your wallet.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return
+        }
+        
         if let actualCorrectPin = self.correctPin {
             
             if actualCorrectPin == self.pinTextField.text {
                 // Correct pin.
+                CacheManager.resetFailedPinAttempts()
                 if let actualCoreVC = self.coreVC {
                     
                     self.pinSpinner.startAnimating()
@@ -137,6 +148,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
                 }
             } else {
                 // Wrong pin.
+                CacheManager.increaseFailedPinAttempts()
                 let alert = UIAlertController(title: "Incorrect PIN", message: "Please enter your correct pin. If you've forgotten it, please restore your wallet.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                 self.present(alert, animated: true)

@@ -873,4 +873,48 @@ class CacheManager: NSObject {
         }
     }
     
+    static func getFailedPinAttempts() -> Int {
+        
+        var envKey = "prodfailedattempts"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "failedattempts"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
+        if let actualCachedAttempts = cachedFailedAttempts {
+            return actualCachedAttempts
+        } else {
+            return 0
+        }
+    }
+    
+    static func increaseFailedPinAttempts() {
+        
+        var envKey = "prodfailedattempts"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "failedattempts"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
+        if var actualCachedAttempts = cachedFailedAttempts {
+            actualCachedAttempts += 1
+            defaults.set(actualCachedAttempts, forKey: envKey)
+        } else {
+            defaults.set(1, forKey: envKey)
+        }
+    }
+    
+    static func resetFailedPinAttempts() {
+        
+        var envKey = "prodfailedattempts"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "failedattempts"
+        }
+        
+        let defaults = UserDefaults.standard
+        defaults.set(0, forKey: envKey)
+    }
+    
 }
