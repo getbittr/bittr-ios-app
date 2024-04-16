@@ -37,6 +37,15 @@
       }
     },
     {
+      "identity" : "sentry-cocoa",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/getsentry/sentry-cocoa/",
+      "state" : {
+        "revision" : "ef4fec9dfb8dd5027b09a4a5c9362feafd118e1a",
+        "version" : "8.24.0"
+      }
+    },
+    {
       "identity" : "spconfetti",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ivanvorobei/SPConfetti",
