@@ -155,6 +155,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             }
         } else {
             // No pin found in storage.
+            print("No pin found in storage.")
         }
     }
     
