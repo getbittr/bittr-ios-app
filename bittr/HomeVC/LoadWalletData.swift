@@ -9,6 +9,7 @@ import UIKit
 import BitcoinDevKit
 import LDKNode
 import LDKNodeFFI
+import Sentry
 
 extension HomeViewController {
 
@@ -489,6 +490,9 @@ extension HomeViewController {
                         
                         self.couldNotFetchConversion = true
                         self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                        if let actualError = error {
+                            SentrySDK.capture(error: actualError)
+                        }
                     }
                     
                     return
@@ -584,6 +588,7 @@ extension HomeViewController {
                             
                             self.couldNotFetchConversion = true
                             self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                            SentrySDK.capture(error: error)
                         }
                     }
                 }

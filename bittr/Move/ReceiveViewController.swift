@@ -11,6 +11,7 @@ import CodeScanner
 import LDKNode
 import LDKNodeFFI
 import LightningDevKit
+import Sentry
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate {
 
@@ -194,6 +195,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                             self.qrcodeSpinner.stopAnimating()
                         }))
                         self.present(alert, animated: true)
+                        
+                        SentrySDK.capture(error: error)
                     }
                 } catch {
                     DispatchQueue.main.async {
@@ -206,6 +209,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                             self.qrcodeSpinner.stopAnimating()
                         }))
                         self.present(alert, animated: true)
+                        
+                        SentrySDK.capture(error: error)
                     }
                 }
             }
@@ -307,12 +312,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                     let alert = UIAlertController(title: "Error", message: errorString.detail, preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "OK", style: .default))
                     self.present(alert, animated: true)
+                    
+                    SentrySDK.capture(error: error)
                 }
             } catch {
                 DispatchQueue.main.async {
                     let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "OK", style: .default))
                     self.present(alert, animated: true)
+                    
+                    SentrySDK.capture(error: error)
                 }
             }
         }

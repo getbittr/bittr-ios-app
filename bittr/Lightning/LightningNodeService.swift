@@ -12,6 +12,7 @@ import BitcoinDevKit
 import bdkFFI
 //import LightningDevKit
 import LDKNodeFFI
+import Sentry
 
 class LightningNodeService {
     private let ldkNode: LdkNode
@@ -219,10 +220,12 @@ class LightningNodeService {
                 print("Some error occurred. \(error)")
                 let notificationDict:[String: Any] = ["message":"We can't seem to connect to the Blockchain. Please check your network."]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
+                SentrySDK.capture(error: error)
             } catch {
                 print("Some error occurred. \(error.localizedDescription)")
                 let notificationDict:[String: Any] = ["message":"\(error.localizedDescription)"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
+                SentrySDK.capture(error: error)
             }
         }
     }
@@ -258,14 +261,14 @@ class LightningNodeService {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer. Error message: \(errorString.title), \(errorString.detail)")
-                    //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    SentrySDK.capture(error: error)
                 }
                 return false
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: No error message.")
-                    //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    SentrySDK.capture(error: error)
                 }
                 return false
             }

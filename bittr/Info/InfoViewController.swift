@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class InfoViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -118,6 +119,11 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data else {
                 print("Articles request error: " + String(describing: error))
+                DispatchQueue.main.async {
+                    if let actualError = error {
+                        SentrySDK.capture(error: actualError)
+                    }
+                }
                 return
             }
             
@@ -185,6 +191,9 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                     }
                 } catch let error as NSError {
                     print("Articles request error: " + error.localizedDescription)
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error)
+                    }
                 }
             }
         }

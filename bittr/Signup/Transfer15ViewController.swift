@@ -8,6 +8,7 @@
 import UIKit
 import BitcoinDevKit
 import UserNotifications
+import Sentry
 
 class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
     
@@ -190,6 +191,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             let task = URLSession.shared.dataTask(with: request) { data, response, error in
                                 guard let data = data else {
                                     print(String(describing: error))
+                                    DispatchQueue.main.async {
+                                        if let actualError = error {
+                                            SentrySDK.capture(error: actualError)
+                                        }
+                                    }
                                     return
                                 }
                                 print(String(data: data, encoding: .utf8)!)
@@ -222,6 +228,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                         }
                                     } catch let error as NSError {
                                         print(error)
+                                        DispatchQueue.main.async {
+                                            SentrySDK.capture(error: error)
+                                        }
                                     }
                                 }
                             }
@@ -274,9 +283,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 let task = URLSession.shared.dataTask(with: request) { data, response, error in
                                     guard let data = data else {
                                         print(String(describing: error))
-                                        let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                                        self.present(alert, animated: true)
+                                        DispatchQueue.main.async {
+                                            let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
+                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                            self.present(alert, animated: true)
+                                            if let actualError = error {
+                                                SentrySDK.capture(error: actualError)
+                                            }
+                                        }
                                         return
                                   }
                                   
@@ -299,12 +313,18 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                             }
                                         } catch let error as NSError {
                                             print(error)
+                                            DispatchQueue.main.async {
+                                                SentrySDK.capture(error: error)
+                                            }
                                         }
                                     }
                                 }
                                 task.resume()
                             } catch let error as NSError {
                                 print(error)
+                                DispatchQueue.main.async {
+                                    SentrySDK.capture(error: error)
+                                }
                             }
                         }
                     }
@@ -383,6 +403,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
                                 alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                                 self.present(alert, animated: true)
+                                if let actualError = error {
+                                    SentrySDK.capture(error: actualError)
+                                }
                             }
                             return
                         }
@@ -436,15 +459,24 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 }
                             } catch let error as NSError {
                                 print(error)
+                                DispatchQueue.main.async {
+                                    SentrySDK.capture(error: error)
+                                }
                             }
                         }
                     }
                     task.resume()
                 } catch let error as NSError {
                     print(error)
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error)
+                    }
                 }
             } catch let error as NSError {
                 print(error)
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error)
+                }
             }
         }
         
@@ -525,6 +557,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                             let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
                                             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                                             self.present(alert, animated: true)
+                                            if let actualError = error {
+                                                SentrySDK.capture(error: actualError)
+                                            }
                                         }
                                         return
                                     }

@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import Sentry
 
 class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
 
@@ -223,12 +224,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorString)")
+                    SentrySDK.capture(error: error)
                 }
                 return false
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: No error message.")
+                    SentrySDK.capture(error: error)
                 }
                 return false
             }

@@ -208,31 +208,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             }
         }
         
-        
-        //LightningNodeService.init(network: LDKNode.Network.testnet)
-        /*Task {
-            do {
-                //try LightningNodeService.shared.stop()
-                
-                /*keychain.synchronizable = true
-                keychain.set(enteredMnemonic, forKey: "")*/
-                try await LightningNodeService.shared.start()
-                
-                /*do {
-                    try await LightningNodeService.shared.start()
-                    LightningNodeService.init(network: LDKNode.Network.testnet)
-                } catch let error as NodeError {
-                    print(error.localizedDescription)
-                } catch {
-                    print(error.localizedDescription)
-                }*/
-            } catch let error as NodeError {
-                print(error.localizedDescription)
-            } catch {
-                print(error.localizedDescription)
-            }
-        }*/
-        
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
         

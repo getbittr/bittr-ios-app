@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class Transfer1ViewController: UIViewController, UITextFieldDelegate {
 
@@ -254,6 +255,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                         let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                         self.present(alert, animated: true)
+                        if let actualError = error {
+                            SentrySDK.capture(error: actualError)
+                        }
                     }
                     return
                 }

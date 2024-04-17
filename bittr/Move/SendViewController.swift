@@ -12,6 +12,7 @@ import CodeScanner
 import AVFoundation
 import LDKNodeFFI
 import LightningDevKit
+import Sentry
 
 
 class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
@@ -802,16 +803,21 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                 let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error).", preferredStyle: .alert)
                                 alert.addAction(UIAlertAction(title: "Okay", style: .default))
                                 self.present(alert, animated: true)
+                                
+                                SentrySDK.capture(error: error)
                             }
                         } catch {
                             print("Error: \(error.localizedDescription)")
-                            
-                            self.nextLabel.alpha = 1
-                            self.nextSpinner.stopAnimating()
-                            
-                            let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                            self.present(alert, animated: true)
+                            DispatchQueue.main.async {
+                                self.nextLabel.alpha = 1
+                                self.nextSpinner.stopAnimating()
+                                
+                                let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
+                                self.present(alert, animated: true)
+                                
+                                SentrySDK.capture(error: error)
+                            }
                         }
                     }
                 }
@@ -923,6 +929,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                         let alert = UIAlertController(title: "Payment Error", message: errorString.detail, preferredStyle: .alert)
                                         alert.addAction(UIAlertAction(title: "Okay", style: .default))
                                         self.present(alert, animated: true)
+                                        
+                                        SentrySDK.capture(error: error)
                                     }
                                 } catch {
                                     DispatchQueue.main.async {
@@ -934,6 +942,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                         let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
                                         alert.addAction(UIAlertAction(title: "Okay", style: .default))
                                         self.present(alert, animated: true)
+                                        
+                                        SentrySDK.capture(error: error)
                                     }
                                 }
                             }
@@ -1117,6 +1127,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         }
                     } catch {
                         print("Transaction error: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            SentrySDK.capture(error: error)
+                        }
                     }
                 }
             } else {

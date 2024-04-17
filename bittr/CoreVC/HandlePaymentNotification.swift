@@ -9,6 +9,7 @@ import UIKit
 import LDKNode
 import LDKNodeFFI
 import LightningDevKit
+import Sentry
 
 extension CoreViewController {
     
@@ -155,6 +156,7 @@ extension CoreViewController {
                     } catch {
                         print("Error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
+                            SentrySDK.capture(error: error)
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
@@ -234,14 +236,14 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorString)")
-                    //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    SentrySDK.capture(error: error)
                 }
                 return false
             } catch {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: No error message.")
-                    //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    SentrySDK.capture(error: error)
                 }
                 return false
             }
