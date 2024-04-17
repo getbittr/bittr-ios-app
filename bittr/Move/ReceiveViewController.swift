@@ -73,6 +73,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var lnQRImage: UIImageView!
     var createdInvoice = ""
     
+    @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -362,13 +364,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             
             var viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
-            var centerViewBottomConstant:CGFloat = -200
+            var centerViewBottomConstant:CGFloat = 100
             if sender.accessibilityIdentifier == "regular" {
                 viewWidth = 0
                 centerViewBottomConstant = 0
             }
             self.centerViewRegularTrailing.constant = -viewWidth
-            self.centerViewBottom.constant = centerViewBottomConstant
+            //self.centerViewBottom.constant = centerViewBottomConstant
+            self.centerViewBothCenterY.constant = centerViewBottomConstant
             
             /*NSLayoutConstraint.deactivate([self.centerViewBottom])
             self.centerViewBottom = NSLayoutConstraint(item: self.centerViewBoth!, attribute: .bottom, relatedBy: .equal, toItem: bottomCenterView, attribute: .bottom, multiplier: 1, constant: 0)

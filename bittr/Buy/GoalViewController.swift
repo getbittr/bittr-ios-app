@@ -9,21 +9,21 @@ import UIKit
 
 class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    @IBOutlet weak var headerView: UIView!
+    /*@IBOutlet weak var headerView: UIView!
     
     @IBOutlet weak var euroView: UIView!
     @IBOutlet weak var amountView: UIView!
-    @IBOutlet weak var weekView: UIView!
+    @IBOutlet weak var weekView: UIView!*/
     @IBOutlet weak var downButton: UIButton!
     
-    @IBOutlet weak var euroTextField: UITextField!
+    /*@IBOutlet weak var euroTextField: UITextField!
     @IBOutlet weak var euroButton: UIButton!
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
     @IBOutlet weak var weekLabel: UILabel!
     @IBOutlet weak var weekButton: UIButton!
     @IBOutlet weak var saveView: UIView!
-    @IBOutlet weak var saveButton: UIButton!
+    @IBOutlet weak var saveButton: UIButton!*/
     
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
@@ -44,25 +44,25 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        headerView.layer.cornerRadius = 13
+        /*headerView.layer.cornerRadius = 13
         euroView.layer.cornerRadius = 13
         amountView.layer.cornerRadius = 13
         weekView.layer.cornerRadius = 13
-        saveView.layer.cornerRadius = 13
+        saveView.layer.cornerRadius = 13*/
         
         headerView2.layer.cornerRadius = 13
         
         downButton.setTitle("", for: .normal)
-        euroButton.setTitle("", for: .normal)
+        /*euroButton.setTitle("", for: .normal)
         amountButton.setTitle("", for: .normal)
         weekButton.setTitle("", for: .normal)
-        saveButton.setTitle("", for: .normal)
+        saveButton.setTitle("", for: .normal)*/
         addAnotherButton.setTitle("", for: .normal)
         
-        euroTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        /*euroTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         euroTextField.delegate = self
-        amountTextField.delegate = self
+        amountTextField.delegate = self*/
         
         ibanCollectionView.delegate = self
         ibanCollectionView.dataSource = self
@@ -82,6 +82,8 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     }
     
     func parseIbanEntities() {
+        
+        allIbanEntities = [IbanEntity]()
         
         for eachIbanEntity in self.client.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
@@ -121,18 +123,18 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         self.dismiss(animated: true, completion: nil)
     }
     
-    @objc func doneButtonTapped() {
+    /*@objc func doneButtonTapped() {
         self.view.endEditing(true)
-    }
+    }*/
     
-    override func viewWillAppear(_ animated: Bool) {
+    /*override func viewWillAppear(_ animated: Bool) {
         
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
         
-    }
+    }*/
     
-    @objc func keyboardWillDisappear() {
+    /*@objc func keyboardWillDisappear() {
         
         self.euroButton.alpha = 1
         self.amountButton.alpha = 1
@@ -142,9 +144,9 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         NSLayoutConstraint.activate([contentViewBottom])
         
         self.view.layoutIfNeeded()
-    }
+    }*/
     
-    @objc func keyboardWillAppear(_ notification:Notification) {
+    /*@objc func keyboardWillAppear(_ notification:Notification) {
         
         if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
             
@@ -156,9 +158,9 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
             
             self.view.layoutIfNeeded()
         }
-    }
+    }*/
     
-    func textFieldDidEndEditing(_ textField: UITextField) {
+    /*func textFieldDidEndEditing(_ textField: UITextField) {
         
         if self.amountTextField.text != "1" {
             if self.weekLabel.text == "day" {
@@ -181,21 +183,21 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
                 self.weekLabel.text = "year"
             }
         }
-    }
+    }*/
     
-    @IBAction func euroButtonTapped(_ sender: UIButton) {
+    /*@IBAction func euroButtonTapped(_ sender: UIButton) {
         
         self.euroTextField.becomeFirstResponder()
         self.euroButton.alpha = 0
-    }
+    }*/
     
-    @IBAction func amountButtonTapped(_ sender: UIButton) {
+    /*@IBAction func amountButtonTapped(_ sender: UIButton) {
         
         self.amountTextField.becomeFirstResponder()
         self.amountButton.alpha = 0
-    }
+    }*/
     
-    @IBAction func weekButtonTapped(_ sender: UIButton) {
+    /*@IBAction func weekButtonTapped(_ sender: UIButton) {
         
         var day = "day"
         var week = "week"
@@ -229,7 +231,7 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
         actionSheet.addAction(yearOption)
         actionSheet.addAction(cancelAction)
         present(actionSheet, animated: true, completion: nil)
-    }
+    }*/
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         
