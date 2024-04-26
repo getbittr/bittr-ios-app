@@ -266,7 +266,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(iban.emailToken.prefix(32)). IBAN: \(iban.yourIbanNumber)"
                             let parameters = ["message": message]
                             
-                            do {
+                            self.createClient(signature: "Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=", message: message, page: page, iban: iban)
+                            
+                            /*do {
                                 let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
                                 
                                 // TODO: Correct URL?
@@ -325,7 +327,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 DispatchQueue.main.async {
                                     SentrySDK.capture(error: error)
                                 }
-                            }
+                            }*/
                         }
                     }
                 }
@@ -334,7 +336,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     }
     
     
-    func createClient(address:String, signature:String, message:String, page:String, iban:IbanEntity) {
+    func createClient(/*address:String, */signature:String, message:String, page:String, iban:IbanEntity) {
         
         Task {
             
