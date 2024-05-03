@@ -170,7 +170,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
                 
                 if let actualCoreVC = self.coreVC {
-                    actualCoreVC.resetApp()
+                    actualCoreVC.resetApp(nodeIsRunning: false)
                 }
             }))
             self.present(secondAlert, animated: true)

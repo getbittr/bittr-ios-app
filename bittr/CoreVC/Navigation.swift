@@ -84,6 +84,11 @@ extension CoreViewController {
                     actualPaymentVC.chfValue = self.chfValue
                 }
             }
+        } else if segue.identifier == "CoreToSignup" {
+            let signupVC = segue.destination as? SignupViewController
+            if let actualSignupVC = signupVC {
+                actualSignupVC.coreVC = self
+            }
         }
     }
     

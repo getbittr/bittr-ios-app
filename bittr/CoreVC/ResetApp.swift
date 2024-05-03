@@ -12,21 +12,25 @@ import LDKNodeFFI
 extension CoreViewController {
     
     
-    func resetApp() {
+    func resetApp(nodeIsRunning:Bool) {
     
         do {
-            try LightningNodeService.shared.stop()
+            if nodeIsRunning == false {
+                //if let actualPin = CacheManager.getPin() {} else {
+                    try FileManager.default.deleteAllContentsInDocumentsDirectory()
+                //}
+            } else {
+                try LightningNodeService.shared.stop()
+                try LightningNodeService.shared.deleteDocuments()
+            }
             
-            //keychain.synchronizable = true
-            //keychain.delete("")
-            //keychain.delete("pin")
             CacheManager.deleteClientInfo()
             
-            do {
+            /*do {
                 try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
             } catch {
                 print(error.localizedDescription)
-            }
+            }*/
             
             let notificationDict:[String: Any] = ["page":"restore"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)

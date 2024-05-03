@@ -50,6 +50,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
     
     //let keychain = KeychainSwift()
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -191,21 +192,15 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         /*keychain.synchronizable = true
         keychain.set(enteredMnemonic, forKey: "")*/
         
-        do {
+        /*do {
             try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
         } catch {
             print(error.localizedDescription)
-        }
+        }*/
         
         
-        Task {
-            do {
-                try await LightningNodeService.shared.start()
-            } catch let error as NodeError {
-                print(error.localizedDescription)
-            } catch {
-                print(error.localizedDescription)
-            }
+        if let actualCoreVC = self.coreVC {
+            actualCoreVC.startLightning()
         }
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]

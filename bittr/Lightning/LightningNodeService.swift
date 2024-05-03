@@ -30,7 +30,7 @@ class LightningNodeService {
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
         struct Singleton {
-            static let instance = LightningNodeService(network: .testnet)
+            static let instance = LightningNodeService(network: .bitcoin)
         }
         return Singleton.instance
     }
@@ -40,6 +40,7 @@ class LightningNodeService {
         
         // Step 5.
         
+        // TODO: Remove?
         try? FileManager.deleteLDKNodeLogLatestFile()
         
         let config = Config(
@@ -50,8 +51,8 @@ class LightningNodeService {
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
+            trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
             logLevel: .debug
-//            ,trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326"]
         )
         
         let nodeBuilder = Builder.fromConfig(config: config)
@@ -167,7 +168,11 @@ class LightningNodeService {
                 }
                 
                 // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
-                let electrum = ElectrumConfig(url: "ssl://electrum.blockstream.info:60002", socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
+                var electrumUrl = "ssl://electrum.blockstream.info:50002"
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    electrumUrl = "ssl://electrum.blockstream.info:60002"
+                }
+                let electrum = ElectrumConfig(url: electrumUrl, socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
                 let blockchainConfig = BlockchainConfig.electrum(config: electrum)
                 let blockchain = try Blockchain(config: blockchainConfig)
                 self.blockchain = blockchain
@@ -467,5 +472,26 @@ class LightningNodeService {
         }
     }
     
+    func deleteDocuments() throws {
+        try FileManager.default.deleteAllContentsInDocumentsDirectory()
+    }
+    
+}
+
+extension FileManager {
+    
+    func deleteAllContentsInDocumentsDirectory() throws {
+        
+        if #available(iOS 16.0, *) {
+            let documentsURL = URL.documentsDirectory
+            let contents = try contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: [])
+            for fileURL in contents {
+                try removeItem(at: fileURL)
+            }
+        } else {
+            // Fallback on earlier versions
+            try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
+        }
+    }
 }
 

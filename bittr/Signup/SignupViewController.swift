@@ -11,6 +11,7 @@ class SignupViewController: UIViewController {
 
     @IBOutlet weak var signup1ContainerViewLeading: NSLayoutConstraint!
     var currentPage = 0
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,6 +113,16 @@ class SignupViewController: UIViewController {
         let notificationDict:[String: Any] = ["tag":sender.tag]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "SignupToRestore" {
+            let restoreVC = segue.destination as? RestoreViewController
+            if let actualRestoreVC = restoreVC {
+                actualRestoreVC.coreVC = self.coreVC
+            }
+        }
     }
     
 }

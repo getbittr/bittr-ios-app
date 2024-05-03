@@ -99,7 +99,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
                     
                     if let actualCoreVC = self.coreVC {
-                        actualCoreVC.resetApp()
+                        actualCoreVC.resetApp(nodeIsRunning: true)
                     }
                 }))
                 self.present(secondAlert, animated: true)

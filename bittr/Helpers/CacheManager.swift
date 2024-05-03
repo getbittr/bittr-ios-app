@@ -18,11 +18,13 @@ class CacheManager: NSObject {
             defaults.removeObject(forKey: "cache")
             defaults.removeObject(forKey: "pin")
             defaults.removeObject(forKey: "mnemonic")
+            defaults.removeObject(forKey: "lastaddress")
         } else {
             defaults.removeObject(forKey: "proddevice")
             defaults.removeObject(forKey: "prodcache")
             defaults.removeObject(forKey: "prodpin")
             defaults.removeObject(forKey: "prodmnemonic")
+            defaults.removeObject(forKey: "prodlastaddress")
         }
     }
     
