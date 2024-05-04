@@ -171,6 +171,9 @@ class TransactionViewController: UIViewController {
             self.confirmationsViewHeight.constant = 40
             self.confirmationsView.alpha = 1
             self.confirmationsAmount.text = "\(tappedTransaction.confirmations)"
+            if tappedTransaction.confirmations < 1 {
+                self.confirmationsAmount.text = "Unconfirmed"
+            }
             
             if tappedTransaction.received - tappedTransaction.sent < 0 {
                 // Outgoing transaction.

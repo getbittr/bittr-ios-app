@@ -43,10 +43,15 @@ class LightningNodeService {
         // TODO: Remove?
         try? FileManager.deleteLDKNodeLogLatestFile()
         
+        var correctListeningAddresses = ["0.0.0.0:9735"]
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            correctListeningAddresses = ["0.0.0.0:19735"]
+        }
+        
         let config = Config(
             storageDirPath: storageManager.getDocumentsDirectory(),
             network: network,
-            listeningAddresses: ["0.0.0.0:9735"],
+            listeningAddresses: correctListeningAddresses,
             defaultCltvExpiryDelta: UInt32(144),
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),

@@ -92,8 +92,21 @@ extension HomeViewController {
             
             if thisTransaction.isLightning == true {
                 actualCell.boltImage.alpha = 1
+                
+                actualCell.satsLabel.textColor = .black
+                actualCell.eurosLabel.textColor = .black
             } else {
                 actualCell.boltImage.alpha = 0
+                
+                if thisTransaction.confirmations < 1 {
+                    // Unconfirmed transaction.
+                    actualCell.satsLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
+                    actualCell.eurosLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
+                } else {
+                    // Confirmed transaction
+                    actualCell.satsLabel.textColor = .black
+                    actualCell.eurosLabel.textColor = .black
+                }
             }
             
             // Set button

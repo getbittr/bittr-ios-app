@@ -25,6 +25,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
+    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     
     @IBOutlet weak var addressLabel: UILabel!
     @IBOutlet weak var addressCopy: UIImageView!
@@ -129,6 +130,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        
+        let centerViewHeight = centerViewBoth.bounds.height
+        
+        if centerViewBoth.bounds.height + 40 > contentView.bounds.height {
+            
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 80)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.centerViewBothCenterY.constant = 0
+            self.view.layoutIfNeeded()
+        }
+    }
+    
     @objc func keyboardWillDisappear() {
         
         keyboardIsActive = false
@@ -218,21 +233,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             }
         }
     }
-    
-    /*@objc func setNewAddress(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let newAddress = userInfo["address"] as? String {
-                self.addressLabel.text = newAddress
-                self.addressCopy.alpha = 1
-                self.qrCodeImage.image = generateQRCode(from: "bitcoin:" + newAddress)
-                self.qrCodeImage.layer.magnificationFilter = .nearest
-                self.qrCodeImage.alpha = 1
-                self.addressSpinner.stopAnimating()
-                self.qrcodeSpinner.stopAnimating()
-            }
-        }
-    }*/
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
         

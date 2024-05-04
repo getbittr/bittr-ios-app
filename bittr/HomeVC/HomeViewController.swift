@@ -107,6 +107,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBOutlet weak var balanceButton: UIButton!
     @IBOutlet weak var syncingStatusButton: UIButton!
+    @IBOutlet weak var noTransactionsLabel: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -505,6 +506,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.btclnBalance = 0.0
         self.totalBalanceSats = 0.0
         
+        self.noTransactionsLabel.alpha = 0
         self.bittrProfitLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
         self.balanceLabel.alpha = 0
