@@ -108,6 +108,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var satsSlow: UILabel!
     @IBOutlet weak var eurosSlow: UILabel!
     
+    // Confirm view
+    @IBOutlet weak var yellowCard: UIView!
+    @IBOutlet weak var confirmToCard: UIView!
+    @IBOutlet weak var confirmAddressLabel: UILabel!
+    @IBOutlet weak var confirmAmountCard: UIView!
+    @IBOutlet weak var confirmAmountLabel: UILabel!
+    @IBOutlet weak var confirmEuroLabel: UILabel!
+    
     var feeLow:Float = 0.0
     var feeMedium:Float = 0.0
     var feeHigh:Float = 0.0
@@ -153,14 +161,52 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         sendView.layer.cornerRadius = 13
         switchView.layer.cornerRadius = 13
         scannerView.layer.cornerRadius = 13
+        yellowCard.layer.cornerRadius = 20
+        confirmToCard.layer.cornerRadius = 13
+        confirmAmountCard.layer.cornerRadius = 13
+        
+        yellowCard.layer.shadowColor = UIColor.black.cgColor
+        yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        yellowCard.layer.shadowRadius = 10.0
+        yellowCard.layer.shadowOpacity = 0.1
         
         fastView.layer.cornerRadius = 13
         mediumView.layer.cornerRadius = 13
         slowView.layer.cornerRadius = 13
         
+        fastView.layer.shadowColor = UIColor.black.cgColor
+        fastView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        fastView.layer.shadowRadius = 10.0
+        fastView.layer.shadowOpacity = 0.1
+        
+        mediumView.layer.shadowColor = UIColor.black.cgColor
+        mediumView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        mediumView.layer.shadowRadius = 10.0
+        mediumView.layer.shadowOpacity = 0.1
+        
+        slowView.layer.shadowColor = UIColor.black.cgColor
+        slowView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        slowView.layer.shadowRadius = 10.0
+        slowView.layer.shadowOpacity = 0.1
+        
         backgroundQR.layer.cornerRadius = 13
         backgroundPaste.layer.cornerRadius = 13
         backgroundKeyboard.layer.cornerRadius = 13
+        
+        backgroundQR.layer.shadowColor = UIColor.black.cgColor
+        backgroundQR.layer.shadowOffset = CGSize(width: 0, height: 7)
+        backgroundQR.layer.shadowRadius = 10.0
+        backgroundQR.layer.shadowOpacity = 0.1
+        
+        backgroundPaste.layer.shadowColor = UIColor.black.cgColor
+        backgroundPaste.layer.shadowOffset = CGSize(width: 0, height: 7)
+        backgroundPaste.layer.shadowRadius = 10.0
+        backgroundPaste.layer.shadowOpacity = 0.1
+        
+        backgroundKeyboard.layer.shadowColor = UIColor.black.cgColor
+        backgroundKeyboard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        backgroundKeyboard.layer.shadowRadius = 10.0
+        backgroundKeyboard.layer.shadowOpacity = 0.1
         
         toTextField.delegate = self
         amountTextField.delegate = self
@@ -169,21 +215,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
         self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
-        
-        /*if let actualPresetAmount = presetAmount {
-            
-            self.fromLabel.text = "My BTCLN wallet"
-            self.toTextField.text = "My BTC wallet"
-            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btclnAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
-            self.clipboardWidth.constant = 0
-            self.toTextFieldTrailing.constant = 0
-            self.amountTextField.text = String(actualPresetAmount)
-        }*/
-        
-        /*let codeScanner = CodeScannerView(codeTypes: [.qr]) { result in
-        }*/
-        
-        //fixQrScanner()
         
     }
     
@@ -232,25 +263,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         return true
     }
     
-    /*func failed() {
-        let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "Okay", style: .default))
-        present(ac, animated: true)
-        captureSession = nil
-        
-        self.scannerWorks = false
-        
-        self.scannerView.alpha = 0
-        self.toLabel.alpha = 1
-        self.toView.alpha = 1
-        self.amountLabel.alpha = 1
-        self.amountView.alpha = 1
-        self.availableAmount.alpha = 1
-        self.availableButton.alpha = 1
-        self.nextViewTop.constant = -30
-        //self.nextView.alpha = 1
-    }*/
-    
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         
         if let actualCaptureSession = captureSession {
@@ -266,21 +278,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     func found(code: String) {
-        print("Code: " + code)
         
-        /*if self.onchainOrLightning == "onchain", !code.contains("bitcoin") {
-            self.toTextField.text = nil
-            self.amountTextField.text = nil
-            let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "Okay", style: .default))
-            present(ac, animated: true)
-        } else if self.onchainOrLightning == "lightning", !code.lowercased().contains("ln") {
-            self.toTextField.text = nil
-            self.amountTextField.text = nil
-            let ac = UIAlertController(title: "No lightning address found.", message: "Please scan a lightning address QR code or input the address manually.", preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "Okay", style: .default))
-            present(ac, animated: true)
-         }*/ 
+        print("Code: " + code)
         
         // Check bitcoin or lightning in code to switch view if needed.
         var addressType = "onchain"
@@ -713,6 +712,21 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.nextLabel.alpha = 0
                 self.nextSpinner.startAnimating()
                 
+                var currencySymbol = "€"
+                var conversionRate:CGFloat = 0
+                var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
+                var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
+                conversionRate = eurAmount ?? 0.0
+                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                    currencySymbol = "CHF"
+                    conversionRate = chfAmount ?? 0.0
+                }
+                let labelActualAmount = CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)
+                
+                self.confirmAddressLabel.text = invoiceText
+                self.confirmAmountLabel.text = "\(self.amountTextField.text ?? "0") btc"
+                self.confirmEuroLabel.text = "\(Int(labelActualAmount*conversionRate)) \(currencySymbol)"
+                
                 self.fromConfirmation.text = self.fromLabel.text
                 self.toConfirmation.text = invoiceText
                 self.amountConfirmation.text = self.amountTextField.text
@@ -749,16 +763,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             self.feeMedium = medium.asSatPerVb()
                             self.feeHigh = high.asSatPerVb()
                             
-                            var currencySymbol = "€"
-                            var conversionRate:CGFloat = 0
-                            var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
-                            var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
-                            conversionRate = eurAmount ?? 0.0
-                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                                currencySymbol = "CHF"
-                                conversionRate = chfAmount ?? 0.0
-                            }
-                            
                             let fast1 = CGFloat(high.asSatPerVb()*Float(size))
                             var fastText = "\(CGFloat(Int(((fast1/100000000)*conversionRate)*100))/100)"
                             if fastText.count == 3 {
@@ -769,7 +773,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             if mediumText.count == 3 {
                                 mediumText = mediumText + "0"
                             }
-                            let slow1 = CGFloat(medium.asSatPerVb()*Float(size))
+                            let slow1 = CGFloat(low.asSatPerVb()*Float(size))
                             var slowText = "\(CGFloat(Int(((slow1/100000000)*conversionRate)*100))/100)"
                             if slowText.count == 3 {
                                 slowText = slowText + "0"

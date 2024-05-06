@@ -78,25 +78,21 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
         pinTextField.deleteBackward()
     }
     
-    @IBAction func backButtonTapped(_ sender: UIButton) {
+    func backButtonTapped() {
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+        let notificationDict:[String: Any] = ["page":"3"]
          NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
-    @IBAction func nextButtonTapped(_ sender: UIButton) {
+    func nextButtonTapped(enteredPin:String) {
         
         if let actualPreviousPin = self.previousPIN {
             
-            if actualPreviousPin == self.pinTextField.text {
-                let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+            if actualPreviousPin == enteredPin {
+                let notificationDict:[String: Any] = ["page":"5"]
                  NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                 
                 CacheManager.storePin(pin: actualPreviousPin)
-                /*let keychain = KeychainSwift()
-                keychain.synchronizable = true
-                keychain.set(actualPreviousPin, forKey: "pin")*/
                 
             } else {
                 let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
@@ -117,6 +113,16 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewCenterY.constant = 0
             self.view.layoutIfNeeded()
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "Signup6ToPin" {
+            if let actualPinVC = segue.destination as? PinViewController {
+                actualPinVC.embeddingView = "signup6"
+                actualPinVC.upperViewController = self
+            }
         }
     }
     

@@ -78,22 +78,19 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
         pinTextField.deleteBackward()
     }
     
-    @IBAction func backButtonTapped(_ sender: UIButton) {
+    func backButtonTapped() {
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+        let notificationDict:[String: Any] = ["page":"-3"]
          NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
-    @IBAction func nextButtonTapped(_ sender: UIButton) {
+    func nextButtonTapped(enteredPin:String) {
         
         if let actualPreviousPin = self.previousPIN {
             
-            if actualPreviousPin == self.pinTextField.text {
+            if actualPreviousPin == enteredPin {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                 
-                /*let keychain = KeychainSwift()
-                keychain.synchronizable = true
-                keychain.set(actualPreviousPin, forKey: "pin")*/
                 CacheManager.storePin(pin: actualPreviousPin)
                 
             } else {
@@ -115,6 +112,16 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewCenterY.constant = 0
             self.view.layoutIfNeeded()
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "Restore3ToPin" {
+            if let actualPinVC = segue.destination as? PinViewController {
+                actualPinVC.embeddingView = "restore3"
+                actualPinVC.upperViewController = self
+            }
         }
     }
     

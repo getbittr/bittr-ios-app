@@ -73,13 +73,13 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    @IBAction func nextButtonTapped(_ sender: UIButton) {
+    func nextButtonTapped(enteredPin:String) {
         
-        if pinTextField.text?.count ?? 0 > 3 {
-            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+        if enteredPin.count > 3 {
+            let notificationDict:[String: Any] = ["page":"4"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
             
-            let pinNotificationDict:[String: Any] = ["previouspin":self.pinTextField.text]
+            let pinNotificationDict:[String: Any] = ["previouspin":enteredPin]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "previouspin"), object: nil, userInfo: pinNotificationDict) as Notification)
         }
     }
@@ -95,6 +95,16 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewCenterY.constant = 0
             self.view.layoutIfNeeded()
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "Signup5ToPin" {
+            if let actualPinVC = segue.destination as? PinViewController {
+                actualPinVC.embeddingView = "signup5"
+                actualPinVC.upperViewController = self
+            }
         }
     }
     

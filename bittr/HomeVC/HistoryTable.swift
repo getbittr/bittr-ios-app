@@ -98,7 +98,7 @@ extension HomeViewController {
             } else {
                 actualCell.boltImage.alpha = 0
                 
-                if thisTransaction.confirmations < 1 {
+                if thisTransaction.confirmations < 1 && self.currentHeight != nil {
                     // Unconfirmed transaction.
                     actualCell.satsLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
                     actualCell.eurosLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
