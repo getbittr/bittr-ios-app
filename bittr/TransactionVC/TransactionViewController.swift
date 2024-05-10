@@ -132,8 +132,8 @@ class TransactionViewController: UIViewController {
             profitLabel.text = "\(Int((transactionValue*correctValue).rounded())-tappedTransaction.purchaseAmount) \(currencySymbol)"
             
             if (profitLabel.text ?? "").contains("-") {
-                self.profitView.backgroundColor = UIColor(red: 248/255, green: 245/255, blue: 229/255, alpha: 1)
-                self.profitLabel.textColor = UIColor(red: 152/255, green: 138/255, blue: 73/255, alpha: 1)
+                self.profitView.backgroundColor = UIColor(red: 255/255, green: 237/255, blue: 237/255, alpha: 1)
+                self.profitLabel.textColor = UIColor(red: 199/255, green: 142/255, blue: 142/255, alpha: 1)
             }
         } else {
             thenViewHeight.constant = 0

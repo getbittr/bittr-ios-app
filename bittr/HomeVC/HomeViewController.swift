@@ -13,6 +13,8 @@ import LDKNodeFFI
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {
 
+    @IBOutlet weak var backgroundColorView: UIView!
+    @IBOutlet weak var yellowCurve: UIImageView!
     @IBOutlet weak var numberViewLeft: UIView!
     @IBOutlet weak var numberViewMiddle: UIView!
     @IBOutlet weak var numberViewSend: UIView!
@@ -600,6 +602,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                 self.present(alert, animated: true)
+            } else {
+                self.balanceDetailsButtonTapped(self.balanceDetailsButton)
             }
         } else {
             if let actualCoreVC = self.coreVC {

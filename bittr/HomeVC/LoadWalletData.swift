@@ -344,7 +344,7 @@ extension HomeViewController {
         self.totalBalanceSats = self.btcBalance + self.btclnBalance
         let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
         
-        var bitcoinSignAlpha = 0.22
+        var bitcoinSignAlpha = 0.18
         
         switch totalBalanceSatsString.count {
         case 1:
@@ -383,7 +383,7 @@ extension HomeViewController {
         self.satsSign.font = font
         let adjustedSize = Int(font.pointSize)
         
-        balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+        balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
         
         CacheManager.updateCachedData(data: balanceText, key: "balance")
         
