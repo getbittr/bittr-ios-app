@@ -744,6 +744,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             
                             print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
                             
+                            // TODO: Add fee rate to different transactions? .feeRate vs .feeAbsolute
                             let address = try Address(address: actualAddress)
                             let script = address.scriptPubkey()
                             let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
@@ -1133,11 +1134,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         print("Transaction error: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             SentrySDK.capture(error: error)
+                            let alert = UIAlertController(title: "Error", message: "We're unable to complete your transaction. We're receiving the following error message: \(error.localizedDescription).", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
                         }
                     }
                 }
             } else {
                 print("Wallet or Blockchain instance not available.")
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: "Error", message: "We're unable to complete your transaction. Please close and reopen our app and try again.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                    self.present(alert, animated: true)
+                }
             }
         }))
         self.present(alert, animated: true)
