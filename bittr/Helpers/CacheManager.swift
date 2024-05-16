@@ -19,12 +19,14 @@ class CacheManager: NSObject {
             defaults.removeObject(forKey: "pin")
             defaults.removeObject(forKey: "mnemonic")
             defaults.removeObject(forKey: "lastaddress")
+            self.resetFailedPinAttempts()
         } else {
             defaults.removeObject(forKey: "proddevice")
             defaults.removeObject(forKey: "prodcache")
             defaults.removeObject(forKey: "prodpin")
             defaults.removeObject(forKey: "prodmnemonic")
             defaults.removeObject(forKey: "prodlastaddress")
+            self.resetFailedPinAttempts()
         }
     }
     

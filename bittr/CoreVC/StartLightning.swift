@@ -52,6 +52,7 @@ extension CoreViewController {
                 print("Can't start node. \(errorString.title): \(errorString.detail)")
                 timeoutTask.cancel()
                 if errorString.title == "AlreadyRunning" {
+                    self.completeSync(type: "ldk")
                     if self.didStartNode == false {
                         DispatchQueue.global(qos: .background).async {
                             LightningNodeService.shared.startBDK()

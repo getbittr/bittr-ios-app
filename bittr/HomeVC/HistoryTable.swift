@@ -69,9 +69,9 @@ extension HomeViewController {
                 if relativeGain < 0 {
                     // Loss.
                     actualCell.arrowImage.image = UIImage(systemName: "arrow.down")
-                    actualCell.arrowImage.tintColor = UIColor(red: 152/255, green: 138/255, blue: 73/255, alpha: 1)
-                    actualCell.gainLabel.textColor = UIColor(red: 152/255, green: 138/255, blue: 73/255, alpha: 1)
-                    actualCell.gainView.backgroundColor = UIColor(red: 248/255, green: 245/255, blue: 229/255, alpha: 1)
+                    actualCell.arrowImage.tintColor = UIColor(red: 199/255, green: 142/255, blue: 142/255, alpha: 1)
+                    actualCell.gainLabel.textColor = UIColor(red: 199/255, green: 142/255, blue: 142/255, alpha: 1)
+                    actualCell.gainView.backgroundColor = UIColor(red: 255/255, green: 237/255, blue: 237/255, alpha: 1)
                 } else {
                     // Profit.
                     actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
@@ -84,16 +84,25 @@ extension HomeViewController {
                 actualCell.bittrImage.alpha = 0
                 actualCell.gainView.alpha = 0
                 actualCell.gainLabel.text = ""
-                /*actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
-                actualCell.arrowImage.tintColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
-                actualCell.gainLabel.textColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
-                actualCell.gainView.backgroundColor = UIColor(red: 231/255, green: 248/255, blue: 229/255, alpha: 1)*/
             }
             
             if thisTransaction.isLightning == true {
                 actualCell.boltImage.alpha = 1
+                
+                actualCell.satsLabel.textColor = .black
+                actualCell.eurosLabel.textColor = .black
             } else {
                 actualCell.boltImage.alpha = 0
+                
+                if thisTransaction.confirmations < 1 && self.currentHeight != nil {
+                    // Unconfirmed transaction.
+                    actualCell.satsLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
+                    actualCell.eurosLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
+                } else {
+                    // Confirmed transaction
+                    actualCell.satsLabel.textColor = .black
+                    actualCell.eurosLabel.textColor = .black
+                }
             }
             
             // Set button

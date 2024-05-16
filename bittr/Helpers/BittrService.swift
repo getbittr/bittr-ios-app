@@ -10,7 +10,7 @@ import Foundation
 class BittrService {
 
     static let shared = BittrService()
-    private let baseURL = URL(string: "https://49cd-185-217-125-84.ngrok-free.app/")!
+    private let baseURL = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
     //private let baseURL = URL(string: "https://2489-81-20-241-228.ngrok-free.app/")!
     private let session = URLSession(configuration: .default)
     
@@ -19,7 +19,7 @@ class BittrService {
         // TODO: Correct URL?
         var envUrl:String = "https://getbittr.com/api/payout/lightning"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envUrl = "https://49cd-185-217-125-84.ngrok-free.app/payout/lightning"
+            envUrl = "https://model-arachnid-viable.ngrok-free.app/payout/lightning"
         }
             
         //var urlComponents = URLComponents(string: "https://2489-81-20-241-228.ngrok-free.app/payout/lightning")!

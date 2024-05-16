@@ -344,7 +344,7 @@ extension HomeViewController {
         self.totalBalanceSats = self.btcBalance + self.btclnBalance
         let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
         
-        var bitcoinSignAlpha = 0.22
+        var bitcoinSignAlpha = 0.18
         
         switch totalBalanceSatsString.count {
         case 1:
@@ -383,7 +383,7 @@ extension HomeViewController {
         self.satsSign.font = font
         let adjustedSize = Int(font.pointSize)
         
-        balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+        balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
         
         CacheManager.updateCachedData(data: balanceText, key: "balance")
         
@@ -462,6 +462,22 @@ extension HomeViewController {
             self.homeTableView.alpha = 1
             self.tableSpinner.stopAnimating()
             
+            if self.setTransactions.count == 0 {
+                let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">There are no transactions. Tap </span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">Buy</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\"> to get your first bitcoin.</span></center>"
+                
+                if let htmlData = noTransactionsHTML.data(using: .unicode) {
+                    do {
+                        let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                        self.noTransactionsLabel.attributedText = attributedText
+                        self.noTransactionsLabel.alpha = 1
+                    } catch let e as NSError {
+                        print("Couldn't fetch text: \(e.localizedDescription)")
+                    }
+                }
+            } else {
+                self.noTransactionsLabel.alpha = 0
+            }
+            
             // Step 16.
             self.calculateProfit(cachedData: cachedData)
         } else {
@@ -474,7 +490,7 @@ extension HomeViewController {
             // TODO: Correct URL?
             var envUrl = "https://getbittr.com/api/price/btc"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envUrl = "https://49cd-185-217-125-84.ngrok-free.app/price/btc"
+                envUrl = "https://model-arachnid-viable.ngrok-free.app/price/btc"
             }
             
             var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
@@ -568,6 +584,22 @@ extension HomeViewController {
                                     //self.homeTableView.isUserInteractionEnabled = true
                                     self.tableSpinner.stopAnimating()
                                     self.homeTableView.alpha = 1
+                                    
+                                    if self.setTransactions.count == 0 {
+                                        let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">There are no transactions. Tap </span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">Buy</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\"> to get your first bitcoin.</span></center>"
+                                        
+                                        if let htmlData = noTransactionsHTML.data(using: .unicode) {
+                                            do {
+                                                let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                                                self.noTransactionsLabel.attributedText = attributedText
+                                                self.noTransactionsLabel.alpha = 1
+                                            } catch let e as NSError {
+                                                print("Couldn't fetch text: \(e.localizedDescription)")
+                                            }
+                                        }
+                                    } else {
+                                        self.noTransactionsLabel.alpha = 0
+                                    }
                                     
                                     if let actualCoreVC = self.coreVC {
                                         actualCoreVC.completeSync(type: "conversion")
