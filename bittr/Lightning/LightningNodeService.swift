@@ -30,7 +30,7 @@ class LightningNodeService {
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
         struct Singleton {
-            static let instance = LightningNodeService(network: .bitcoin)
+            static let instance = LightningNodeService(network: .signet)
         }
         return Singleton.instance
     }
@@ -46,7 +46,7 @@ class LightningNodeService {
         let config = Config(
             storageDirPath: storageManager.getDocumentsDirectory(),
             network: network,
-            listeningAddresses: ["0.0.0.0:9735"],
+            listeningAddresses: ["0.0.0.0:19735"],
             defaultCltvExpiryDelta: UInt32(144),
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
@@ -115,7 +115,7 @@ class LightningNodeService {
                 // Create a BIP32 extended root key using the mnemonic and a nil password
                 var bip32ExtendedRootKey:DescriptorSecretKey
                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
+                    bip32ExtendedRootKey = DescriptorSecretKey(network: .signet, mnemonic: mnemonic, password: nil)
                 } else {
                     bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
                 }
@@ -123,7 +123,7 @@ class LightningNodeService {
                 // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
                 var bip84ExternalDescriptor:Descriptor
                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
+                    bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .signet)
                 } else {
                     bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .bitcoin)
                 }
@@ -150,7 +150,7 @@ class LightningNodeService {
                 // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
                 var bip84InternalDescriptor:Descriptor
                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
+                    bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .signet)
                 } else {
                     bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .bitcoin)
                 }
@@ -162,7 +162,7 @@ class LightningNodeService {
                 // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
                 var wallet:Wallet
                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
+                    wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .signet, databaseConfig: .sqlite(config: config))
                 } else {
                     wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, databaseConfig: .sqlite(config: config))
                 }

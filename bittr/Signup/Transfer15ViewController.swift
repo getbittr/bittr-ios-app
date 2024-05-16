@@ -180,7 +180,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             // TODO: Correct URL?
                             var envUrl = "https://getbittr.com/api/verify/email/check2fa"
                             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                envUrl = "https://staging.getbittr.com/api/verify/email/check2fa"
+                                envUrl = "https://49cd-185-217-125-84.ngrok-free.app/verify/email/check2fa"
                             }
                             
                             var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
@@ -274,7 +274,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 // TODO: Correct URL?
                                 var envUrl = "https://getbittr.com/api/sign/onchain"
                                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                    envUrl = "https://staging.getbittr.com/api/sign/onchain"
+                                    envUrl = "https://49cd-185-217-125-84.ngrok-free.app/sign/onchain"
                                 }
                                 
                                 var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
@@ -390,7 +390,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     // TODO: Correct URL?
                     var envUrl = "https://getbittr.com/api/customer"
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        envUrl = "https://staging.getbittr.com/api/customer"
+                        envUrl = "https://49cd-185-217-125-84.ngrok-free.app/customer"
                     }
                     
                     var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
@@ -545,7 +545,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 // TODO: Correct URL?
                                 var envUrl = "https://getbittr.com/api/verify/email"
                                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                    envUrl = "https://staging.getbittr.com/api/verify/email"
+                                    envUrl = "https://49cd-185-217-125-84.ngrok-free.app/verify/email"
                                 }
                                 
                                 var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)

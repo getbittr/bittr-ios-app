@@ -474,7 +474,7 @@ extension HomeViewController {
             // TODO: Correct URL?
             var envUrl = "https://getbittr.com/api/price/btc"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envUrl = "https://staging.getbittr.com/api/price/btc"
+                envUrl = "https://49cd-185-217-125-84.ngrok-free.app/price/btc"
             }
             
             var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)

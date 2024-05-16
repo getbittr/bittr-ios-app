@@ -14,7 +14,7 @@ import LDKNodeFFI
 class CoreViewController: UIViewController {
 
     // 0 is Dev. 1 is Prod. ALSO change the network in LightningNodeService.
-    var devEnvironment = 1
+    var devEnvironment = 0
     
     @IBOutlet weak var coin1: UIImageView!
     @IBOutlet weak var coin3: UIImageView!
