@@ -163,7 +163,12 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
                 let alert = UIAlertController(title: "Restore wallet", message: "You've entered an incorrect pin too many times. Please restore your wallet.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                    self.pinTextField.text = ""
+                    if let actualCoreVC = self.coreVC {
+                        actualCoreVC.resetApp(nodeIsRunning: false)
+                    }
+                }))
                 self.present(alert, animated: true)
                 return
             }
@@ -184,7 +189,9 @@ class PinViewController: UIViewController, UITextFieldDelegate {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
                     let alert = UIAlertController(title: "Incorrect PIN", message: "Please enter your correct pin. If you've forgotten it, please restore your wallet.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                        self.pinTextField.text = ""
+                    }))
                     self.present(alert, animated: true)
                 }
             } else {

@@ -56,7 +56,7 @@ class LightningNodeService {
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
-            trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
+            //trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
             logLevel: .debug
         )
         
@@ -479,6 +479,15 @@ class LightningNodeService {
     
     func deleteDocuments() throws {
         try FileManager.default.deleteAllContentsInDocumentsDirectory()
+    }
+    
+    func listenForEvents() {
+        
+        DispatchQueue.global(qos: .background).async {
+            let event = self.ldkNode.waitNextEvent()
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil, userInfo: ["event":event]) as Notification)
+            self.ldkNode.eventHandled()
+        }
     }
     
 }

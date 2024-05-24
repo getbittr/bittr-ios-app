@@ -34,6 +34,7 @@
 		057A01512A836B1900CA0747 /* BitcoinViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057A01502A836B1900CA0747 /* BitcoinViewModel.swift */; };
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
+		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
 		0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0595AB082B2EE7E900375498 /* WebsiteViewController.swift */; };
 		05980B522A46F76E001F312F /* IbanEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B512A46F76E001F312F /* IbanEntity.swift */; };
 		05980B542A46F7E4001F312F /* Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B532A46F7E4001F312F /* Client.swift */; };
@@ -82,7 +83,6 @@
 		05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0ED2A66852D00A1E771 /* Constants.swift */; };
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
-		05D80E052BA4178E00E2F093 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E042BA4178E00E2F093 /* LDKNode */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
@@ -216,7 +216,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				05D80E052BA4178E00E2F093 /* LDKNode in Frameworks */,
+				0589280B2C00933F00DDB850 /* LDKNode in Frameworks */,
 				05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */,
 				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
 				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
@@ -504,10 +504,10 @@
 			packageProductDependencies = (
 				05D80DFE2BA4170800E2F093 /* CodeScanner */,
 				05D80E012BA4174E00E2F093 /* BitcoinDevKit */,
-				05D80E042BA4178E00E2F093 /* LDKNode */,
 				05D80E072BA4203600E2F093 /* LightningDevKit */,
 				05BE46182BB9A83100555B9B /* SPConfetti */,
 				3C6A5FD226974C7A8EB518F5 /* Sentry */,
+				0589280A2C00933F00DDB850 /* LDKNode */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -584,10 +584,10 @@
 			packageReferences = (
 				05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */,
 				05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */,
-				05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */,
 				05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */,
 				05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */,
 				28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -919,7 +919,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -958,7 +958,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1093,6 +1093,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
+			requirement = {
+				branch = release/0.2;
+				kind = branch;
+			};
+		};
 		05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ivanvorobei/SPConfetti";
@@ -1114,15 +1122,7 @@
 			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 0.29.0;
-			};
-		};
-		05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
-			requirement = {
-				branch = main;
-				kind = branch;
+				version = 0.31.0;
 			};
 		};
 		05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {
@@ -1130,7 +1130,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-swift/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.0.121;
+				version = 0.0.123;
 			};
 		};
 		28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
@@ -1144,6 +1144,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0589280A2C00933F00DDB850 /* LDKNode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */;
+			productName = LDKNode;
+		};
 		05BE46182BB9A83100555B9B /* SPConfetti */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */;
@@ -1158,11 +1163,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */;
 			productName = BitcoinDevKit;
-		};
-		05D80E042BA4178E00E2F093 /* LDKNode */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */;
-			productName = LDKNode;
 		};
 		05D80E072BA4203600E2F093 /* LightningDevKit */ = {
 			isa = XCSwiftPackageProductDependency;
