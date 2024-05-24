@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
-        "branch" : "main",
-        "revision" : "71b1d3c5594b1901cb88b47defec4c6507fba6db"
+        "branch" : "release/0.2",
+        "revision" : "bb28b9410e1c758ed0682dbb72d281b632434c83"
       }
     },
     {

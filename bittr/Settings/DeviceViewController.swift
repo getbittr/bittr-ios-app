@@ -151,6 +151,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         Task {
             do {
                 let peers = try await LightningNodeService.shared.listPeers()
+                print(peers)
                 if peers.count == 1 {
                     if peers[0].isConnected == true {
                         print("Did successfully check peer connection.")
@@ -198,8 +199,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.peerButton.isUserInteractionEnabled = false
         
         // .testnet and .bitcoin
-        let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
-        let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]
+        let nodeIds = ["03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
+        let addresses = ["109.205.181.232:29735", "86.104.228.24:9735"]
         
         // Connect to Lightning peer.
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string

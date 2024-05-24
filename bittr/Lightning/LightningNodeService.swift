@@ -56,7 +56,7 @@ class LightningNodeService {
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
-            trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
+//            trustedPeers0conf: ["026d74bf2a035b803c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36@109.205.181.232:29735a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
             logLevel: .debug
         )
         
@@ -175,7 +175,7 @@ class LightningNodeService {
                 // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
                 var electrumUrl = "ssl://electrum.blockstream.info:50002"
                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    electrumUrl = "ssl://electrum.blockstream.info:60002"
+                    electrumUrl = "ssl://mempool.space:60602"
                 }
                 let electrum = ElectrumConfig(url: electrumUrl, socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
                 let blockchainConfig = BlockchainConfig.electrum(config: electrum)
@@ -244,8 +244,8 @@ class LightningNodeService {
     func connectToLightningPeer() {
         
         // .testnet and .bitcoin
-        let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
-        let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]
+        let nodeIds = ["03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
+        let addresses = ["109.205.181.232:29735", "86.104.228.24:9735"]
         
         // Connect to Lightning peer.
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
