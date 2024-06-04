@@ -30,16 +30,32 @@ extension HomeViewController {
                 if peers.count == 1 {
                     if peers[0].isConnected == true {
                         print("Did successfully check peer connection.")
+                        DispatchQueue.main.async {
+                            self.listenForEvents()
+                        }
                     } else {
                         print("Not connected to peer.")
+                        DispatchQueue.main.async {
+                            self.listenForEvents()
+                        }
                     }
                 } else {
                     print("Not connected to peer.")
+                    DispatchQueue.main.async {
+                        self.listenForEvents()
+                    }
                 }
             } catch {
                 print("Error listing peers: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.listenForEvents()
+                }
             }
         }
+    }
+    
+    func listenForEvents() {
+        LightningNodeService.shared.listenForEvents()
     }
     
     

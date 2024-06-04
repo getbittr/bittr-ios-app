@@ -125,6 +125,7 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
         
         
         // Determine whether to show pin view or signup view.

@@ -734,7 +734,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 if let actualBlockchain = LightningNodeService.shared.getBlockchain(), let actualWallet = LightningNodeService.shared.getWallet() {
                     
                     let actualAddress:String = self.toConfirmation.text!
-                    let actualAmount:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000)
+                    let actualAmount:Int = Int((CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000).rounded())
                     
                     Task {
                         do {
@@ -745,13 +745,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
                             
                             // TODO: Add fee rate to different transactions? .feeRate vs .feeAbsolute
-                            let address = try Address(address: actualAddress)
+                            var address = try Address(address: actualAddress)
+                            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                                address = try Address(address: actualAddress)
+                            }
                             let script = address.scriptPubkey()
                             let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
                             let details = try txBuilder.finish(wallet: actualWallet)
                             let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
                             let tx = details.psbt.extractTx()
-                            let size = tx.size()
+                            let size = tx.vsize()
 
                             print("Size: \(String(describing: size))")
                             print("High: \(high.asSatPerVb()*Float(size)), Medium: \(medium.asSatPerVb()*Float(size)), Low: \(low.asSatPerVb()*Float(size))")
@@ -1053,7 +1056,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             return
         }
         
-        let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to send \(self.amountConfirmation.text ?? "these") btc to \(self.toConfirmation.text ?? "this address")?", preferredStyle: .alert)
+        var feeSatoshis = (self.satsMedium.text ?? "no").replacingOccurrences(of: " sats", with: "")
+        if self.selectedFee == "low" {
+            feeSatoshis = (self.satsSlow.text ?? "no").replacingOccurrences(of: " sats", with: "")
+        } else if self.selectedFee == "high" {
+            feeSatoshis = (self.satsFast.text ?? "no").replacingOccurrences(of: " sats", with: "")
+        }
+        
+        let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to send \(self.amountConfirmation.text ?? "these") btc, with a fee of \(feeSatoshis) satoshis, to \(self.toConfirmation.text ?? "this address")?", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in 
             
@@ -1062,14 +1072,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
                 
-                let actualAmount:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000)
+                let actualAmount:Int = Int((CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000).rounded())
                 
                 // tb1qw2c3lxufxqe2x9s4rdzh65tpf4d7fssjgh8nv6
                 let actualAddress:String = self.toConfirmation.text!
                 
                 Task {
                     do {
-                        let address = try Address(address: actualAddress)
+                        var address = try Address(address: actualAddress)
+                        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                            address = try Address(address: actualAddress)
+                        }
                         let script = address.scriptPubkey()
                         var selectedVbyte:Float = self.feeMedium
                         if self.selectedFee == "low" {
@@ -1087,7 +1100,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             print("Successful transaction.")
-                            /*NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "resetwallet"), object: nil, userInfo: nil) as Notification)*/
                             self.sendLabel.alpha = 1
                             self.sendSpinner.stopAnimating()
                             
@@ -1274,21 +1286,49 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.selectedFee = "high"
+            
+            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+                
+                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "Okay", style: .default))
+                present(ac, animated: true)
+            }
         case "medium":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.selectedFee = "medium"
+            
+            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+                
+                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "Okay", style: .default))
+                present(ac, animated: true)
+            }
         case "slow":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.selectedFee = "low"
+            
+            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsSlow.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+                
+                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "Okay", style: .default))
+                present(ac, animated: true)
+            }
         default:
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
             self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
             self.selectedFee = "medium"
+            
+            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountConfirmation.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+                
+                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "Okay", style: .default))
+                present(ac, animated: true)
+            }
         }
     }
     

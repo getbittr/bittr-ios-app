@@ -481,6 +481,15 @@ class LightningNodeService {
         try FileManager.default.deleteAllContentsInDocumentsDirectory()
     }
     
+    func listenForEvents() {
+        
+        DispatchQueue.global(qos: .background).async {
+            let event = self.ldkNode.waitNextEvent()
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil, userInfo: ["event":event]) as Notification)
+            self.ldkNode.eventHandled()
+        }
+    }
+    
 }
 
 extension FileManager {
