@@ -93,7 +93,9 @@ extension CoreViewController {
                         alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
                             self.startLightning()
                         }))
-                        self.present(alert, animated: true)
+                        DispatchQueue.main.async {
+                            self.present(alert, animated: true)
+                        }
                     }
                 }
             } else {

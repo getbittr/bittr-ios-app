@@ -25,6 +25,10 @@ class LightningPaymentViewController: UIViewController {
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
+    @IBOutlet weak var explanationLabel: UILabel!
+    @IBOutlet weak var piggyImageHeight: NSLayoutConstraint!
+    @IBOutlet weak var idLabel: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -66,7 +70,17 @@ class LightningPaymentViewController: UIViewController {
             
             self.nowLabel.text = balanceValue + " " + currencySymbol
             
-            self.descriptionLabel.text = actualTransaction.lnDescription
+            if actualTransaction.isBittr == true {
+                
+                self.descriptionLabel.text = actualTransaction.lnDescription
+            } else {
+                
+                self.descriptionLabel.text = actualTransaction.id
+                self.explanationLabel.text = "You've received a new payment into your lightning channel!"
+                self.idLabel.text = "ID"
+                self.piggyImageHeight.constant = 0
+                self.view.layoutIfNeeded()
+            }
         }
     }
     
@@ -75,8 +89,13 @@ class LightningPaymentViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        SPConfettiConfiguration.particlesConfig.colors = [.red]
-        SPConfetti.startAnimating(.fullWidthToDown, particles: [.heart], duration: 2)
+        
+        if let actualTransaction = self.receivedTransaction {
+            if actualTransaction.isBittr == true {
+                SPConfettiConfiguration.particlesConfig.colors = [.red]
+                SPConfetti.startAnimating(.fullWidthToDown, particles: [.heart], duration: 2)
+            }
+        }
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
