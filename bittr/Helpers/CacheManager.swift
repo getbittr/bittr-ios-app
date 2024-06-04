@@ -921,4 +921,40 @@ class CacheManager: NSObject {
         defaults.set(0, forKey: envKey)
     }
     
+    static func didHandleEvent(event:String) {
+        
+        let defaults = UserDefaults.standard
+        let handledEvents = defaults.value(forKey: "handledevents") as? [String]
+        
+        if var actualHandledEvents = handledEvents {
+            // Events were stored before.
+            actualHandledEvents += [event]
+            defaults.set(actualHandledEvents, forKey: "handledevents")
+        } else {
+            // No events were stored before.
+            let newHandledEvents:[String] = [event]
+            defaults.setValue(newHandledEvents, forKey: "handledevents")
+        }
+    }
+    
+    static func hasHandledEvent(event:String) -> Bool {
+        
+        let defaults = UserDefaults.standard
+        let handledEvents = defaults.value(forKey: "handledevents") as? [String]
+        
+        if let actualHandledEvents = handledEvents {
+            // Events were stored before.
+            if actualHandledEvents.contains(event) {
+                // Event was handled before.
+                return true
+            } else {
+                // Event wasn't handled before.
+                return false
+            }
+        } else {
+            // No events were stored before.
+            return false
+        }
+    }
+    
 }

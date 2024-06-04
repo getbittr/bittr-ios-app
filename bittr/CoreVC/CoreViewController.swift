@@ -87,6 +87,8 @@ class CoreViewController: UIViewController {
     
     var bittrChannel:Channel?
     
+    var client = Client()
+    
     // Syncing status
     @IBOutlet weak var statusView: UIView!
     @IBOutlet weak var spinnerConversion: UIActivityIndicatorView!

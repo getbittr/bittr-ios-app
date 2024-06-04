@@ -113,25 +113,26 @@ extension CoreViewController {
                         self.present(alert, animated: true)
                     }
                 } else {
-                    let invoice = try await LightningNodeService.shared.receivePayment(
-                        amountMsat: amountMsat,
-                        description: notificationId,
-                        expirySecs: 3600
-                    )
-                    print("Did create invoice.")
-                    
-                    DispatchQueue.main.async {
-                        let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
-                        let newTimestamp = Int(Date().timeIntervalSince1970)
-                        CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
-                        CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
-                        print("Did cache invoice data.")
-                    }
-                    
-                    let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
-                    print("Did sign message.")
                     
                     do {
+                        let invoice = try await LightningNodeService.shared.receivePayment(
+                            amountMsat: amountMsat,
+                            description: notificationId,
+                            expirySecs: 3600
+                        )
+                        print("Did create invoice.")
+                        
+                        DispatchQueue.main.async {
+                            let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
+                            let newTimestamp = Int(Date().timeIntervalSince1970)
+                            CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                            CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
+                            print("Did cache invoice data.")
+                        }
+                        
+                        let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                        print("Did sign message.")
+                        
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         //completionHandler(.newData)
@@ -142,7 +143,7 @@ extension CoreViewController {
                             receivedTransaction.received = Int(amountMsat)/1000
                             receivedTransaction.sent = 0
                             receivedTransaction.isLightning = true
-                            receivedTransaction.isBittr = false
+                            receivedTransaction.isBittr = true
                             receivedTransaction.lnDescription = notificationId
                             receivedTransaction.timestamp = Int(Date().timeIntervalSince1970)
                             
@@ -277,6 +278,114 @@ extension CoreViewController {
                 // channelPending(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", formerTemporaryChannelId: "89797af9337335cd2400bdc1e37d1abefc114081fa7912e4e780b3d13254768d", counterpartyNodeId: "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12", fundingTxo: LDKNode.OutPoint(txid: "8a1127134c0729e4336ccf0a2ed0ee55f32dedfd875ce7ade23200923ebafb7b", vout: 0))
                 
                 // channelReady(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
+                
+                // paymentReceived(paymentHash: "3ca1c72b360d1d1124ff0e9dafcce7165b79c342d0f159ac431088b8c5487d6c", amountMsat: 30745000)
+                
+                // channelClosed(channelId: "df5d5b9b7d10c4e12bb01f50a8fcffc6112b612dcbecdbcf65bb3fea8b89ee32", userChannelId: "46771750509148822319613831140583118455", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
+                
+                if CacheManager.hasHandledEvent(event: "\(event)") {
+                    // Event has already been handled.
+                    print("Event was handled before.")
+                    return
+                } else if "\(event)".contains("paymentReceived") {
+                    
+                    if let actualSpecialData = self.varSpecialData {
+                        // This is a Bittr payment, which is being handled separately.
+                        CacheManager.didHandleEvent(event: "\(event)")
+                        return
+                    }
+                    
+                    let paymentHash = "\(event)".split(separator: ",")[0].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: "paymentReceived(paymentHash: ", with: "")
+                    print("Payment hash: \(paymentHash)")
+                    
+                    if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                        
+                        print("Payment details: \(paymentDetails)")
+                        
+                        let thisTransaction = Transaction()
+                        thisTransaction.isBittr = false
+                        thisTransaction.isLightning = true
+                        thisTransaction.id = paymentDetails.preimage ?? paymentHash
+                        thisTransaction.sent = 0
+                        thisTransaction.received = Int(paymentDetails.amountMsat ?? 0)/1000
+                        thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                        thisTransaction.confirmations = 0
+                        thisTransaction.height = 0
+                        thisTransaction.fee = 0
+                        
+                        self.receivedBittrTransaction = thisTransaction
+                        DispatchQueue.main.async {
+                            CacheManager.didHandleEvent(event: "\(event)")
+                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                        }
+                    }
+                } else if "\(event)".contains("channelClosed") {
+                    
+                    DispatchQueue.main.async {
+                        
+                        CacheManager.didHandleEvent(event: "\(event)")
+                        let notificationDict:[String: Any] = ["question":"closed lightning channel","answer":"We've been notified that your lightning channel has been closed.\n\nAny funds that were in this channel will be deposited into your bitcoin wallet.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+                    }
+                } else if "\(event)".contains("channelPending") {
+                    
+                    // channelPending(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", formerTemporaryChannelId: "89797af9337335cd2400bdc1e37d1abefc114081fa7912e4e780b3d13254768d", counterpartyNodeId: "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12", fundingTxo: LDKNode.OutPoint(txid: "8a1127134c0729e4336ccf0a2ed0ee55f32dedfd875ce7ade23200923ebafb7b", vout: 0))
+                    
+                    CacheManager.didHandleEvent(event: "\(event)")
+                    
+                    let fundingTxo = "\(event)".split(separator: ",")[4].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " fundingTxo: LDKNode.OutPoint(txid: ", with: "")
+                    var depositCodes = [String]()
+                    for eachIbanEntity in self.client.ibanEntities {
+                        if eachIbanEntity.yourUniqueCode != "" {
+                            depositCodes += [eachIbanEntity.yourUniqueCode]
+                        }
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        print("Did wait to start API call.")
+                    }
+                    
+                    Task {
+                        do {
+                            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [fundingTxo], depositCodes: depositCodes)
+                            print("Bittr transactions: \(bittrApiTransactions.count)")
+                            
+                            if bittrApiTransactions.count == 1 {
+                                for eachTransaction in bittrApiTransactions {
+                                    if eachTransaction.txId == fundingTxo {
+                                        
+                                        // This is the funding Txo.
+                                        let formatter = DateFormatter()
+                                        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                                        let transactionDate = formatter.date(from:eachTransaction.datetime)!
+                                        let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
+                                        
+                                        let thisTransaction = Transaction()
+                                        thisTransaction.isBittr = true
+                                        thisTransaction.isLightning = true
+                                        thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                        thisTransaction.currency = eachTransaction.currency
+                                        thisTransaction.id = eachTransaction.txId
+                                        thisTransaction.sent = 0
+                                        thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.bitcoinAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)*100000000)
+                                        thisTransaction.timestamp = transactionTimestamp
+                                        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachTransaction.txId)
+                                        thisTransaction.isFundingTransaction = true
+                                        
+                                        self.receivedBittrTransaction = thisTransaction
+                                        
+                                        DispatchQueue.main.async {
+                                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                                        }
+                                    }
+                                }
+                            }
+                        } catch {
+                            print("Bittr error: \(error.localizedDescription)")
+                        }
+                    }
+                }
+                
             } else {
                 print("No event.")
             }

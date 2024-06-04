@@ -195,6 +195,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
             
             self.client = clients[0]
+            if let actualCoreVC = self.coreVC {
+                actualCoreVC.client = clients[0]
+            }
         }
     }
     

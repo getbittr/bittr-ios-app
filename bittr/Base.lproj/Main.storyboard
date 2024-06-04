@@ -100,7 +100,7 @@
                                             <constraint firstAttribute="width" constant="24" id="PrY-na-VpP"/>
                                         </constraints>
                                     </imageView>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="buttonlearnblack" translatesAutoresizingMaskIntoConstraints="NO" id="MSg-p7-wqt">
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="buttonmagazineblack" translatesAutoresizingMaskIntoConstraints="NO" id="MSg-p7-wqt">
                                         <rect key="frame" x="185.66666666666666" y="23" width="22" height="22"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="22" id="TZZ-jU-PDP"/>
@@ -120,7 +120,7 @@
                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="buttonpigwhite" translatesAutoresizingMaskIntoConstraints="NO" id="azi-5J-0Za">
                                                 <rect key="frame" x="12" y="12.666666666666629" width="24" height="23"/>
                                             </imageView>
-                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="buttonlearnwhite" translatesAutoresizingMaskIntoConstraints="NO" id="8fp-J6-9SF">
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="buttonmagazinewhite" translatesAutoresizingMaskIntoConstraints="NO" id="8fp-J6-9SF">
                                                 <rect key="frame" x="113.66666666666667" y="14" width="20.333333333333329" height="22"/>
                                             </imageView>
                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="buttonsettingswhite" translatesAutoresizingMaskIntoConstraints="NO" id="Dd4-Jm-o6B">
@@ -2800,8 +2800,11 @@
                         <outlet property="descriptionButton" destination="eI2-Pt-9Ts" id="vF8-Zi-yQU"/>
                         <outlet property="descriptionLabel" destination="RKo-HK-B1b" id="mfs-Gl-EgL"/>
                         <outlet property="downButton" destination="xZb-mD-E22" id="yov-VF-fPF"/>
+                        <outlet property="explanationLabel" destination="N6q-EG-e4W" id="8PY-Pk-Y7K"/>
                         <outlet property="headerView" destination="9zN-sn-1VQ" id="fs9-lL-Yc7"/>
+                        <outlet property="idLabel" destination="4w8-dl-bdI" id="Vg2-TV-mya"/>
                         <outlet property="nowLabel" destination="xoe-f9-X6Z" id="7Gq-Xs-9W1"/>
+                        <outlet property="piggyImageHeight" destination="XWz-Sz-6tE" id="ueK-qj-Byj"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="vmo-6l-Vwq" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -11383,17 +11386,17 @@
             <objects>
                 <viewController id="FeK-Kj-SZT" customClass="PinViewController" customModule="bittr" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="wbY-OP-rFa">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="752"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <scrollView multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0lc-hv-OdJ">
-                                <rect key="frame" x="0.0" y="100" width="393" height="652"/>
+                                <rect key="frame" x="0.0" y="100" width="393" height="752"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gqH-Nt-Iss" userLabel="Content View">
-                                        <rect key="frame" x="0.0" y="0.0" width="393" height="652"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="393" height="752"/>
                                         <subviews>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mHZ-ww-5Sp" userLabel="Center View">
-                                                <rect key="frame" x="0.0" y="16" width="393" height="540"/>
+                                                <rect key="frame" x="0.0" y="66" width="393" height="540"/>
                                                 <subviews>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Enter your PIN code" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="d1R-uY-giA">
                                                         <rect key="frame" x="40" y="0.0" width="313" height="16"/>
@@ -12043,7 +12046,7 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="qQ6-Kh-Jsx"/>
+        <segue reference="Owf-uB-9LO"/>
         <segue reference="5tR-AB-SFA"/>
         <segue reference="Mkd-J2-qct"/>
         <segue reference="FO1-qU-083"/>
@@ -12060,8 +12063,8 @@
         <image name="bittrpiggy2" width="480" height="343"/>
         <image name="bittrtext" width="480" height="207"/>
         <image name="bolt.fill" catalog="system" width="100" height="128"/>
-        <image name="buttonlearnblack" width="22" height="24"/>
-        <image name="buttonlearnwhite" width="22" height="24"/>
+        <image name="buttonmagazineblack" width="20" height="24"/>
+        <image name="buttonmagazinewhite" width="20" height="24"/>
         <image name="buttonpigblack" width="24" height="23"/>
         <image name="buttonpigwhite" width="24" height="23"/>
         <image name="buttonsettingsblack" width="24" height="24"/>
