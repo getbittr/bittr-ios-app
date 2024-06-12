@@ -360,7 +360,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "HomeToGoal" {
-            let goalVC = segue.destination as? GoalViewController
+            let goalVC = segue.destination as? BuyViewController
             if let actualGoalVC = goalVC {
                 actualGoalVC.client = self.client
                 if let actualArticles = self.articles {

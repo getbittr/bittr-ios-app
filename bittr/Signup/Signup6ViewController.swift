@@ -40,6 +40,8 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
         if let actualPreviousPin = self.previousPIN {
             
             if actualPreviousPin == enteredPin {
+                
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "startlightning"), object: nil, userInfo: nil) as Notification)
                 let notificationDict:[String: Any] = ["page":"5"]
                  NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                 

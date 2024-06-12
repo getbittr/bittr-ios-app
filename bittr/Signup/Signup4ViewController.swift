@@ -130,8 +130,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             
             let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
              NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-            
-            //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
         }
     }
     

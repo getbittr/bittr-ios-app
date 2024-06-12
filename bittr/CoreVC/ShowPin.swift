@@ -51,7 +51,6 @@ extension CoreViewController {
         if let actualHomeVC = self.homeVC {
             actualHomeVC.fixGraphViewHeight()
         }
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "fixgraph"), object: nil, userInfo: nil) as Notification)
         
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
             
@@ -63,6 +62,11 @@ extension CoreViewController {
         } completion: { finished in
             self.signupContainerView.alpha = 0
             self.didBecomeVisible = true
+            
+            // Remove signup view from container.
+            if self.signupContainerView.subviews.count == 1 {
+                self.signupContainerView.subviews[0].removeFromSuperview()
+            }
         }
     }
     

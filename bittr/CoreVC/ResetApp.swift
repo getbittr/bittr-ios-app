@@ -13,6 +13,16 @@ extension CoreViewController {
     
     
     func resetApp(nodeIsRunning:Bool) {
+        
+        if self.signupContainerView.subviews.count == 0 {
+            // Add signup view to container.
+            let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+            let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
+            self.addChild(newChild)
+            newChild.view.frame.size = self.signupContainerView.frame.size
+            self.signupContainerView.addSubview(newChild.view)
+            newChild.didMove(toParent: self)
+        }
     
         do {
             if nodeIsRunning == false {

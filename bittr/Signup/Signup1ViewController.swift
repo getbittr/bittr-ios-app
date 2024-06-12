@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import BitcoinDevKit
 
 class Signup1ViewController: UIViewController {
 
@@ -48,7 +49,7 @@ class Signup1ViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(didReceiveMnemonic), name: NSNotification.Name(rawValue: "setwords"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(didReceiveMnemonic), name: NSNotification.Name(rawValue: "setwords"), object: nil)
     }
     
     
@@ -132,7 +133,24 @@ class Signup1ViewController: UIViewController {
         self.nextButtonSpinner.startAnimating()
         self.nextTapped = true
         
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "startlightning"), object: nil, userInfo: nil) as Notification)
+        var mnemonicString = ""
+        if let actualMnemonic = CacheManager.getMnemonic() {
+            // Mnemonic found in storage.
+            print("Did find mnemonic.")
+            mnemonicString = actualMnemonic
+        } else {
+            // Create new mnemonic.
+            print("Did not find mnemonic. Creating a new one.")
+            let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
+            mnemonicString = mnemonic.asString()
+            CacheManager.storeMnemonic(mnemonic: mnemonicString)
+        }
+        
+        // Send mnemonic to 3rd signup view.
+        let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
+        
+        self.didReceiveMnemonic()
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
