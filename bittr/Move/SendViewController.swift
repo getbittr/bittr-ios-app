@@ -129,6 +129,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     var completedTransaction:Transaction?
     
+    var homeVC:HomeViewController?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -874,7 +876,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             Task {
                                 do {
                                     let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))
-                                    DispatchQueue.main.async {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                                         
                                         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                                             
@@ -897,6 +899,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                                         newTransaction.isBittr = false
                                                         
                                                         self.completedTransaction = newTransaction
+                                                        
+                                                        if let actualHomeVC = self.homeVC {
+                                                            actualHomeVC.setTransactions += [newTransaction]
+                                                            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                                                                transaction1.timestamp > transaction2.timestamp
+                                                            }
+                                                            actualHomeVC.homeTableView.reloadData()
+                                                        }
                                                         
                                                         self.performSegue(withIdentifier: "SendToTransaction", sender: self)
                                                     }
@@ -1124,6 +1134,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                 newTransaction.isBittr = false
                                 
                                 self.completedTransaction = newTransaction
+                                
+                                if let actualHomeVC = self.homeVC {
+                                    actualHomeVC.setTransactions += [newTransaction]
+                                    actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                                        transaction1.timestamp > transaction2.timestamp
+                                    }
+                                    actualHomeVC.homeTableView.reloadData()
+                                }
                                 
                                 self.performSegue(withIdentifier: "SendToTransaction", sender: self)
                                 

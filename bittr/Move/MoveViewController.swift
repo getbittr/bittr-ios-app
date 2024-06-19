@@ -53,6 +53,8 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var conversionRegular: UILabel!
     @IBOutlet weak var conversionInstant: UILabel!
     
+    var homeVC:HomeViewController?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -190,6 +192,10 @@ class MoveViewController: UIViewController {
                 
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualSendVC.lightningNodeService = actualLightningNodeService
+                }
+                
+                if let actualHomeVC = self.homeVC {
+                    actualSendVC.homeVC = actualHomeVC
                 }
             }
         } else if segue.identifier == "MoveToReceive" {

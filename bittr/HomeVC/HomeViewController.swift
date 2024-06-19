@@ -377,6 +377,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualMoveVC.fetchedBtclnBalance = self.btclnBalance
                 actualMoveVC.eurValue = self.eurValue
                 actualMoveVC.chfValue = self.chfValue
+                actualMoveVC.homeVC = self
                 
                 if let actualChannels = self.channels {
                     if actualChannels.count > 0 {
@@ -420,6 +421,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 if let actualLightningNodeService = self.lightningNodeService {
                     actualSendVC.lightningNodeService = actualLightningNodeService
                 }
+                actualSendVC.homeVC = self
             }
         } else if segue.identifier == "HomeToReceive" {
             let receiveVC = segue.destination as? ReceiveViewController
