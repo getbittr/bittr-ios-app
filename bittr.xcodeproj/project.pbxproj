@@ -21,7 +21,7 @@
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		053190E429FD659B0072CE76 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
 		053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190E529FEE4DE0072CE76 /* ProfitViewController.swift */; };
-		053190E829FEE4EC0072CE76 /* GoalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190E729FEE4EC0072CE76 /* GoalViewController.swift */; };
+		053190E829FEE4EC0072CE76 /* BuyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190E729FEE4EC0072CE76 /* BuyViewController.swift */; };
 		053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190E929FEE4F80072CE76 /* MoveViewController.swift */; };
 		053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190EB29FEE5190072CE76 /* TransactionViewController.swift */; };
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
@@ -133,7 +133,7 @@
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
 		053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Regular.ttf"; sourceTree = "<group>"; };
 		053190E529FEE4DE0072CE76 /* ProfitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfitViewController.swift; sourceTree = "<group>"; };
-		053190E729FEE4EC0072CE76 /* GoalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalViewController.swift; sourceTree = "<group>"; };
+		053190E729FEE4EC0072CE76 /* BuyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyViewController.swift; sourceTree = "<group>"; };
 		053190E929FEE4F80072CE76 /* MoveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveViewController.swift; sourceTree = "<group>"; };
 		053190EB29FEE5190072CE76 /* TransactionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewController.swift; sourceTree = "<group>"; };
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
@@ -445,7 +445,7 @@
 		05E299582A39CB1200FA0AEE /* Buy */ = {
 			isa = PBXGroup;
 			children = (
-				053190E729FEE4EC0072CE76 /* GoalViewController.swift */,
+				053190E729FEE4EC0072CE76 /* BuyViewController.swift */,
 				05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */,
 				05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */,
 			);
@@ -659,7 +659,7 @@
 				05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */,
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
 				05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */,
-				053190E829FEE4EC0072CE76 /* GoalViewController.swift in Sources */,
+				053190E829FEE4EC0072CE76 /* BuyViewController.swift in Sources */,
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
@@ -904,7 +904,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 72;
+				CURRENT_PROJECT_VERSION = 74;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -943,7 +943,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 72;
+				CURRENT_PROJECT_VERSION = 74;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;

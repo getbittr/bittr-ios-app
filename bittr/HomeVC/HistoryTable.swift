@@ -32,14 +32,8 @@ extension HomeViewController {
                 plusSymbol = "-"
             }
             actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
-            /*if thisTransaction.received != 0 {
-                actualCell.satsLabel.text = "+ \(addSpacesToString(balanceValue: String(thisTransaction.received))) sats"
-            } else {
-                actualCell.satsLabel.text = "- \(addSpacesToString(balanceValue: String(thisTransaction.sent))) sats"
-            }*/
             
             // Set conversion
-            // TODO: Check for Production.
             var correctValue:CGFloat = self.eurValue
             var currencySymbol = "€"
             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
@@ -48,10 +42,6 @@ extension HomeViewController {
             }
             
             var transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
-            /*if transactionValue < 0 {
-                //transactionValue = CGFloat(thisTransaction.sent)/100000000
-                plusSymbol = "-"
-            }*/
             
             var balanceValue = String(Int((transactionValue*correctValue).rounded()))
             balanceValue = addSpacesToString(balanceValue: balanceValue).replacingOccurrences(of: "-", with: "")

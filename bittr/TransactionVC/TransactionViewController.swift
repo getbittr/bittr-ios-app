@@ -53,6 +53,8 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var feesView: UIView!
     @IBOutlet weak var feesAmount: UILabel!
     @IBOutlet weak var feesViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var questionCircle: UIImageView!
+    @IBOutlet weak var questionButton: UIButton!
     
     // Buttons
     @IBOutlet weak var transactionButton: UIButton!
@@ -69,6 +71,7 @@ class TransactionViewController: UIViewController {
         noteButton.setTitle("", for: .normal)
         transactionButton.setTitle("", for: .normal)
         descriptionButton.setTitle("", for: .normal)
+        questionButton.setTitle("", for: .normal)
         
         headerView.layer.cornerRadius = 13
         bodyView.layer.cornerRadius = 13
@@ -162,6 +165,14 @@ class TransactionViewController: UIViewController {
                 self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
                 NSLayoutConstraint.activate([self.descriptionViewHeight])
                 self.view.layoutIfNeeded()
+            }
+            
+            if tappedTransaction.isFundingTransaction {
+                self.feesViewHeight.constant = 40
+                self.feesView.alpha = 1
+                self.feesAmount.text = "10 000 sats"
+                self.questionCircle.alpha = 1
+                self.questionButton.alpha = 1
             }
         } else {
             // Onchain transaction
@@ -257,6 +268,12 @@ class TransactionViewController: UIViewController {
         let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
         self.present(alert, animated: true)
+    }
+    
+    @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
+        
+        let notificationDict:[String: Any] = ["question":"lightning channel fees","answer":"This is the first transaction of your new bitcoin lightning channel.\n\nThe opening and closing of a lightning channel incur mining fees, which we cover with a one-time upfront charge of 10 000 satoshis.\n\nAll additional transactions into and out of your lightning channel are free."]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
     }
     
 }

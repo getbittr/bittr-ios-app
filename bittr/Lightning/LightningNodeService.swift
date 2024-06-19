@@ -79,8 +79,8 @@ class LightningNodeService {
         self.varMnemonicString = mnemonicString
         
         // Step 6.
-        let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
+        //let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
+        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
         
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         

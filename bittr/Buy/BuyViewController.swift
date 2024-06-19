@@ -1,5 +1,5 @@
 //
-//  GoalViewController.swift
+//  BuyViewController.swift
 //  bittr
 //
 //  Created by Tom Melters on 30/04/2023.
@@ -7,23 +7,9 @@
 
 import UIKit
 
-class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    /*@IBOutlet weak var headerView: UIView!
-    
-    @IBOutlet weak var euroView: UIView!
-    @IBOutlet weak var amountView: UIView!
-    @IBOutlet weak var weekView: UIView!*/
     @IBOutlet weak var downButton: UIButton!
-    
-    /*@IBOutlet weak var euroTextField: UITextField!
-    @IBOutlet weak var euroButton: UIButton!
-    @IBOutlet weak var amountTextField: UITextField!
-    @IBOutlet weak var amountButton: UIButton!
-    @IBOutlet weak var weekLabel: UILabel!
-    @IBOutlet weak var weekButton: UIButton!
-    @IBOutlet weak var saveView: UIView!
-    @IBOutlet weak var saveButton: UIButton!*/
     
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
@@ -43,26 +29,11 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        /*headerView.layer.cornerRadius = 13
-        euroView.layer.cornerRadius = 13
-        amountView.layer.cornerRadius = 13
-        weekView.layer.cornerRadius = 13
-        saveView.layer.cornerRadius = 13*/
         
         headerView2.layer.cornerRadius = 13
         
         downButton.setTitle("", for: .normal)
-        /*euroButton.setTitle("", for: .normal)
-        amountButton.setTitle("", for: .normal)
-        weekButton.setTitle("", for: .normal)
-        saveButton.setTitle("", for: .normal)*/
         addAnotherButton.setTitle("", for: .normal)
-        
-        /*euroTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
-        amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
-        euroTextField.delegate = self
-        amountTextField.delegate = self*/
         
         ibanCollectionView.delegate = self
         ibanCollectionView.dataSource = self
@@ -122,116 +93,6 @@ class GoalViewController: UIViewController, UITextFieldDelegate, UICollectionVie
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true, completion: nil)
     }
-    
-    /*@objc func doneButtonTapped() {
-        self.view.endEditing(true)
-    }*/
-    
-    /*override func viewWillAppear(_ animated: Bool) {
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        
-    }*/
-    
-    /*@objc func keyboardWillDisappear() {
-        
-        self.euroButton.alpha = 1
-        self.amountButton.alpha = 1
-        
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
-        
-        self.view.layoutIfNeeded()
-    }*/
-    
-    /*@objc func keyboardWillAppear(_ notification:Notification) {
-        
-        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
-            
-            let keyboardHeight = keyboardSize.height
-            
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
-            
-            self.view.layoutIfNeeded()
-        }
-    }*/
-    
-    /*func textFieldDidEndEditing(_ textField: UITextField) {
-        
-        if self.amountTextField.text != "1" {
-            if self.weekLabel.text == "day" {
-                self.weekLabel.text = "days"
-            } else if self.weekLabel.text == "week" {
-                self.weekLabel.text = "weeks"
-            } else if self.weekLabel.text == "month" {
-                self.weekLabel.text = "months"
-            } else if self.weekLabel.text == "year" {
-                self.weekLabel.text = "years"
-            }
-        } else {
-            if self.weekLabel.text == "days" {
-                self.weekLabel.text = "day"
-            } else if self.weekLabel.text == "weeks" {
-                self.weekLabel.text = "week"
-            } else if self.weekLabel.text == "months" {
-                self.weekLabel.text = "month"
-            } else if self.weekLabel.text == "years" {
-                self.weekLabel.text = "year"
-            }
-        }
-    }*/
-    
-    /*@IBAction func euroButtonTapped(_ sender: UIButton) {
-        
-        self.euroTextField.becomeFirstResponder()
-        self.euroButton.alpha = 0
-    }*/
-    
-    /*@IBAction func amountButtonTapped(_ sender: UIButton) {
-        
-        self.amountTextField.becomeFirstResponder()
-        self.amountButton.alpha = 0
-    }*/
-    
-    /*@IBAction func weekButtonTapped(_ sender: UIButton) {
-        
-        var day = "day"
-        var week = "week"
-        var month = "month"
-        var year = "year"
-        
-        if self.amountTextField.text != "1" {
-            day = day + "s"
-            week = week + "s"
-            month = month + "s"
-            year = year + "s"
-        }
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let dayOption = UIAlertAction(title: day, style: .default) { (action) in
-            self.weekLabel.text = day
-        }
-        let weekOption = UIAlertAction(title: week, style: .default) { (action) in
-            self.weekLabel.text = week
-        }
-        let monthOption = UIAlertAction(title: month, style: .default) { (action) in
-            self.weekLabel.text = month
-        }
-        let yearOption = UIAlertAction(title: year, style: .default) { (action) in
-            self.weekLabel.text = year
-        }
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-        actionSheet.addAction(dayOption)
-        actionSheet.addAction(weekOption)
-        actionSheet.addAction(monthOption)
-        actionSheet.addAction(yearOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
-    }*/
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         

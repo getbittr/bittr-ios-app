@@ -34,6 +34,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var qrCodeImage: UIImageView!
     @IBOutlet weak var copyAddressButton: UIButton!
     @IBOutlet weak var refreshButton: UIButton!
+    @IBOutlet weak var qrCodeLogoView: UIView!
     //let addressViewModel = AddressViewModel()
     
     @IBOutlet weak var switchView: UIView!
@@ -72,6 +73,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var lnConfirmationDoneButton: UIButton!
     @IBOutlet weak var lnConfirmationDoneView: UIView!
     @IBOutlet weak var lnQRImage: UIImageView!
+    @IBOutlet weak var lnQRCodeLogoView: UIView!
     var createdInvoice = ""
     
     @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
@@ -113,8 +115,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         if let actualReceivableLN = maximumReceivableLNSats {
             self.receivableLNLabel.text = "You can receive up to \(actualReceivableLN) satoshis."
         }
-        
-        //NotificationCenter.default.addObserver(self, selector: #selector(setNewAddress), name: NSNotification.Name(rawValue: "setnewaddress"), object: nil)
         
         addressCopy.alpha = 0
         qrCodeImage.alpha = 0
@@ -183,6 +183,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + cachedAddress)
             self.qrCodeImage.layer.magnificationFilter = .nearest
             self.qrCodeImage.alpha = 1
+            self.qrCodeLogoView.alpha = 1
             self.addressSpinner.stopAnimating()
             self.qrcodeSpinner.stopAnimating()
         } else {
@@ -197,6 +198,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                         self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
                         self.qrCodeImage.layer.magnificationFilter = .nearest
                         self.qrCodeImage.alpha = 1
+                        self.qrCodeLogoView.alpha = 1
                         self.addressSpinner.stopAnimating()
                         self.qrcodeSpinner.stopAnimating()
                     }
@@ -246,6 +248,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         addressCopy.alpha = 0
         qrCodeImage.alpha = 0
+        qrCodeLogoView.alpha = 0
         addressLabel.text = ""
         addressSpinner.startAnimating()
         qrcodeSpinner.startAnimating()
@@ -295,6 +298,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                     self.lnInvoiceLabel.text = "\(invoice)"
                     self.lnQRImage.image = self.generateQRCode(from: "lightning:" + invoice)
                     self.lnQRImage.layer.magnificationFilter = .nearest
+                    self.lnQRCodeLogoView.alpha = 1
                     self.createdInvoice = invoice
                     
                     // Show confirmation view.
@@ -370,12 +374,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 centerViewBottomConstant = 0
             }
             self.centerViewRegularTrailing.constant = -viewWidth
-            //self.centerViewBottom.constant = centerViewBottomConstant
             self.centerViewBothCenterY.constant = centerViewBottomConstant
-            
-            /*NSLayoutConstraint.deactivate([self.centerViewBottom])
-            self.centerViewBottom = NSLayoutConstraint(item: self.centerViewBoth!, attribute: .bottom, relatedBy: .equal, toItem: bottomCenterView, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.centerViewBottom])*/
             
             self.view.layoutIfNeeded()
         }

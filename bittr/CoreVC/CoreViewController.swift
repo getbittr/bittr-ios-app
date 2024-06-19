@@ -132,12 +132,20 @@ class CoreViewController: UIViewController {
         
         // Determine whether to show pin view or signup view.
         if let actualPin = CacheManager.getPin() {
+            
             // Wallet exists. Launch pin.
             signupAlpha = 0
             blackSignupAlpha = 0
             
         } else {
+            
             // No wallet exists yet. Go through signup.
+            let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+            let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
+            self.addChild(newChild)
+            newChild.view.frame.size = self.signupContainerView.frame.size
+            self.signupContainerView.addSubview(newChild.view)
+            newChild.didMove(toParent: self)
         }
     }
     

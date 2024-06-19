@@ -78,7 +78,7 @@ class Signup7ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
