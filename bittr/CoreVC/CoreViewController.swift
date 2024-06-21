@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-//import KeychainSwift
 import BitcoinDevKit
 import LDKNodeFFI
 
@@ -16,6 +15,7 @@ class CoreViewController: UIViewController {
     // 0 is Dev. 1 is Prod. ALSO change the network in LightningNodeService.
     var devEnvironment = 0
     
+    // Startup animation elements
     @IBOutlet weak var coin1: UIImageView!
     @IBOutlet weak var coin3: UIImageView!
     @IBOutlet weak var firstCoin: UIView!
@@ -27,15 +27,19 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var logoViewCenterY: NSLayoutConstraint!
     @IBOutlet weak var logoView: UIView!
     var logoViewTop = NSLayoutConstraint()
+    
+    // Top screen views
     @IBOutlet weak var finalLogo: UIImageView!
     @IBOutlet weak var coverView: UIView!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var yellowcurve: UIImageView!
     
+    // Container view and constraints for HomeVC
     @IBOutlet weak var homeContainerView: UIView!
     @IBOutlet weak var homeContainerViewLeading: NSLayoutConstraint!
     @IBOutlet weak var homeContainerViewTrailing: NSLayoutConstraint!
     
+    // Menu bar elements
     @IBOutlet weak var menuBarView: UIView!
     @IBOutlet weak var selectedView: UIView!
     @IBOutlet weak var leftButton: UIButton!
@@ -43,53 +47,55 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var rightButton: UIButton!
     @IBOutlet weak var selectedViewCenterX: NSLayoutConstraint!
     @IBOutlet weak var menuBarViewHeight: NSLayoutConstraint!
-    
     @IBOutlet weak var leftWhite: UIView!
     @IBOutlet weak var middleWhite: UIView!
     @IBOutlet weak var rightWhite: UIView!
     
+    // Container views for PinVC and SignupVC
     @IBOutlet weak var pinContainerView: UIView!
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
     @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var blackSignupButton: UIButton!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
-    
-    //let keychain = KeychainSwift()
-    
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
     
+    // Variables for notification handling
     var didBecomeVisible = false
     var needsToHandleNotification = false
     var wasNotified = false
     var lightningNotification:NSNotification?
-    
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     @IBOutlet weak var pendingLabel: UILabel!
     var varSpecialData:[String: Any]?
+    var receivedBittrTransaction:Transaction?
     
+    // Connection to HomeVC
     var homeVC:HomeViewController?
     
-    // QuestionVC
+    // Elements for QuestionVC
     var tappedQuestion = ""
     var tappedAnswer = ""
     var tappedType:String?
     
+    // Syncing status
     var didStartNode = false
     var walletHasSynced = false
     var syncStatus = "startnode"
     
-    var receivedBittrTransaction:Transaction?
+    // Conversion rates
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
+    // Channel details
     var bittrChannel:Channel?
     
+    // Client details
     var client = Client()
     
-    // Syncing status
+    // Syncing status view
     @IBOutlet weak var statusView: UIView!
     @IBOutlet weak var spinnerConversion: UIActivityIndicatorView!
     @IBOutlet weak var spinnerLDK: UIActivityIndicatorView!
@@ -106,8 +112,10 @@ class CoreViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Save environment key for switching between Dev and Production.
         UserDefaults.standard.set(devEnvironment, forKey: "envkey")
         
+        // Set corner radii and button titles.
         selectedView.layer.cornerRadius = 13
         leftWhite.layer.cornerRadius = 13
         middleWhite.layer.cornerRadius = 13
@@ -129,16 +137,12 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
         
-        
         // Determine whether to show pin view or signup view.
         if let actualPin = CacheManager.getPin() {
-            
             // Wallet exists. Launch pin.
             signupAlpha = 0
             blackSignupAlpha = 0
-            
         } else {
-            
             // No wallet exists yet. Go through signup.
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
             let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")

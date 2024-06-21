@@ -9,6 +9,8 @@ import UIKit
 
 class SignupViewController: UIViewController {
 
+    // View that contains the container views of all signup views.
+    
     @IBOutlet weak var signup1ContainerViewLeading: NSLayoutConstraint!
     var currentPage = 0
     var coreVC:CoreViewController?
@@ -85,12 +87,13 @@ class SignupViewController: UIViewController {
                     leadingConstant = -viewWidth
                 }
                 
+                // Animate slide to next page.
                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                    
                     self.signup1ContainerViewLeading.constant = leadingConstant
                     self.view.layoutIfNeeded()
                 }
                 
+                // Individual page checks.
                 if pageNumber == "9" {
                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil, userInfo: nil) as Notification)
                 }
@@ -100,8 +103,8 @@ class SignupViewController: UIViewController {
     
     @objc func screenshotTaken() {
         
+        // User shouldn't screenshot their mnemonic.
         if currentPage == 3 {
-            
             let alert = UIAlertController(title: "Be careful!", message: "We'd highly recommend against screenshotting your recovery phrase.\n\nScreenshots can easily be accessed by others, who will have full access to your wallet.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
             self.present(alert, animated: true)
@@ -110,8 +113,8 @@ class SignupViewController: UIViewController {
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         
+        // Open article.
         let notificationDict:[String: Any] = ["tag":sender.tag]
-        
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }
     

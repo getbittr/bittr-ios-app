@@ -56,7 +56,6 @@
 		05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */; };
 		05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */; };
 		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
-		05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
@@ -166,7 +165,6 @@
 		05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTable.swift; sourceTree = "<group>"; };
 		05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressViewModel.swift; sourceTree = "<group>"; };
 		05A965C12A6FBE1F00265BE6 /* MondayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MondayError.swift; sourceTree = "<group>"; };
-		05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeIDViewModel.swift; sourceTree = "<group>"; };
 		05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer15ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -436,7 +434,6 @@
 				05D5D0ED2A66852D00A1E771 /* Constants.swift */,
 				05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */,
 				05A965C12A6FBE1F00265BE6 /* MondayError.swift */,
-				05A965C32A6FC58000265BE6 /* NodeIDViewModel.swift */,
 				057A01502A836B1900CA0747 /* BitcoinViewModel.swift */,
 			);
 			path = Lightning;
@@ -700,7 +697,6 @@
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
-				05A965C42A6FC58000265BE6 /* NodeIDViewModel.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
@@ -904,7 +900,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 74;
+				CURRENT_PROJECT_VERSION = 75;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -943,7 +939,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 74;
+				CURRENT_PROJECT_VERSION = 75;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;

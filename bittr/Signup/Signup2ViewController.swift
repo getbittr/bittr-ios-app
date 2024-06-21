@@ -9,6 +9,8 @@ import UIKit
 
 class Signup2ViewController: UIViewController {
 
+    // View for the user to confirm that they understand how to maintain a bitcoin wallet.
+    
     @IBOutlet weak var switchOne: UISwitch!
     @IBOutlet weak var switchTwo: UISwitch!
     @IBOutlet weak var cardView: UIView!
@@ -26,6 +28,7 @@ class Signup2ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         buttonView.layer.cornerRadius = 13
         nextButton.setTitle("", for: .normal)
         cardView.layer.cornerRadius = 13
@@ -36,6 +39,7 @@ class Signup2ViewController: UIViewController {
         imageContainer.layer.cornerRadius = 13
         articleButton.setTitle("", for: .normal)
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
     }
@@ -65,9 +69,12 @@ class Signup2ViewController: UIViewController {
     
     @IBAction func switchChanged(_ sender: UISwitch) {
         
+        // Make Next button clickable.
         if switchOne.isOn == true && switchTwo.isOn == true {
+            // Clickable. Both switches are on.
             self.buttonView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
+            // Not clickable.
             self.buttonView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
         }
     }
@@ -77,14 +84,13 @@ class Signup2ViewController: UIViewController {
         if switchOne.isOn == true && switchTwo.isOn == true {
             
             let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
-        
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }
     

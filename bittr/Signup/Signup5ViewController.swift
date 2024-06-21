@@ -9,24 +9,25 @@ import UIKit
 
 class Signup5ViewController: UIViewController, UITextFieldDelegate {
 
+    // View for user to set their new pin.
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
     }
-    
     
     func nextButtonTapped(enteredPin:String) {
         
+        // Check whether pin is more than 3 characters.
         if enteredPin.count > 3 {
+            // Move to next page.
             let notificationDict:[String: Any] = ["page":"4"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
             
+            // Send pin to Signup6VC.
             let pinNotificationDict:[String: Any] = ["previouspin":enteredPin]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "previouspin"), object: nil, userInfo: pinNotificationDict) as Notification)
         }
     }
-    
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         

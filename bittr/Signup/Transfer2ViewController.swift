@@ -9,6 +9,8 @@ import UIKit
 
 class Transfer2ViewController: UIViewController {
 
+    // Bittr signup successful. Show details for setting up bank transfer.
+    
     @IBOutlet weak var checkView: UIView!
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var nameView: UIView!
@@ -47,6 +49,7 @@ class Transfer2ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         checkView.layer.cornerRadius = 35
         ibanView.layer.cornerRadius = 13
         nameView.layer.cornerRadius = 13
@@ -58,11 +61,11 @@ class Transfer2ViewController: UIViewController {
         nextButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         screenshotButton.setTitle("", for: .normal)
-        
         ibanButton.setTitle("", for: .normal)
         nameButton.setTitle("", for: .normal)
         codeButton.setTitle("", for: .normal)
         
+        // Checkmark elements.
         let viewBorder = CAShapeLayer()
         viewBorder.strokeColor = UIColor.black.cgColor
         viewBorder.frame = checkView.bounds
@@ -71,8 +74,8 @@ class Transfer2ViewController: UIViewController {
         viewBorder.lineWidth = 2
         self.checkView.layer.addSublayer(viewBorder)
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
-        
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
@@ -124,6 +127,8 @@ class Transfer2ViewController: UIViewController {
     
     
     @objc func updateData(notification:NSNotification) {
+        
+        // Set data received from bittr API.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
                 self.currentClientID = clientID
@@ -225,6 +230,7 @@ class Transfer2ViewController: UIViewController {
     
     @IBAction func copyItem(_ sender: UIButton) {
         
+        // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
         let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))

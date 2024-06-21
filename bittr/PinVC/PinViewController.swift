@@ -19,6 +19,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     
+    // Buttons
     @IBOutlet weak var button1: UIButton!
     @IBOutlet weak var button2: UIButton!
     @IBOutlet weak var button3: UIButton!
@@ -33,6 +34,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var pinTextField: UITextField!
     @IBOutlet weak var pinSpinner: UIActivityIndicatorView!
     
+    // Button backgrounds
     @IBOutlet weak var background1: UIView!
     @IBOutlet weak var background2: UIView!
     @IBOutlet weak var background3: UIView!
@@ -46,8 +48,8 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var backgroundBackSpace: UIView!
     var allBackgrounds:[UIView]?
     
+    // Variables
     var correctPin:String?
-    
     var coreVC:CoreViewController?
     
     // Changing elements
@@ -61,6 +63,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Set elements according to superview.
         if self.embeddingView == "core" {
             self.topLabel.text = "Enter your PIN code"
             self.nextButtonLabel.text = "Confirm"
@@ -88,8 +91,8 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             self.restoreButtonView.alpha = 1
         }
         
+        // Corner radii and button titles.
         confirmPinView.layer.cornerRadius = 13
-        
         confirmPinButton.setTitle("", for: .normal)
         restoreWalletButton.setTitle("", for: .normal)
         button1.setTitle("", for: .normal)
@@ -106,10 +109,11 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         pinTextField.delegate = self
         
-        if CacheManager.getPin() != "empty" {
-            self.correctPin = CacheManager.getPin()
+        if let actualPin = CacheManager.getPin() {
+            self.correctPin = actualPin
         }
         
+        // Configure button backgrounds.
         allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
         for eachBackground in allBackgrounds! {
             eachBackground.layer.cornerRadius = 45
@@ -118,6 +122,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
         
+        // Update text field.
         pinTextField.insertText(String(sender.tag))
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -127,6 +132,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func backspaceButtonTapped(_ sender: UIButton) {
         
+        // Update text field.
         pinTextField.deleteBackward()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -151,6 +157,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBAction func confirmPinButtonTapped(_ sender: UIButton) {
         
         if self.embeddingView == "core" {
+            
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -267,11 +274,13 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {
         
+        // Show button feedback.
         self.allBackgrounds![sender.tag].alpha = 0.1
     }
     
     @IBAction func pinButtonCancel(_ sender: UIButton) {
         
+        // Hide button feedback.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
         }

@@ -597,7 +597,7 @@ extension HomeViewController {
             currencySymbol = "CHF"
         }
         
-        if self.setTransactions.count == 0 {
+        if self.setTransactions.count == 0 || bittrTransactionsCount == 0 {
             // There are no transactions.
             self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
             self.bittrProfitLabel.alpha = 1

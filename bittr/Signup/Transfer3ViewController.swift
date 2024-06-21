@@ -9,6 +9,7 @@ import UIKit
 
 class Transfer3ViewController: UIViewController {
 
+    // Views and buttons.
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
@@ -23,12 +24,12 @@ class Transfer3ViewController: UIViewController {
     var currentClientID = ""
     var currentIbanID = ""
     
+    // Articles.
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "bitcoin-lightning"
     var pageArticle1 = Article()
-    
     @IBOutlet weak var spinner2: UIActivityIndicatorView!
     @IBOutlet weak var article2Image: UIImageView!
     @IBOutlet weak var article2Title: UILabel!
@@ -46,20 +47,20 @@ class Transfer3ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         headerView.layer.cornerRadius = 13
         nextView.layer.cornerRadius = 13
         cardView.layer.cornerRadius = 13
         imageContainer.layer.cornerRadius = 13
         cardView2.layer.cornerRadius = 13
         imageContainer2.layer.cornerRadius = 13
-        
         nextButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         articleButton2.setTitle("", for: .normal)
         backButton.setTitle("", for: .normal)
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
-        
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles2), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
@@ -250,6 +251,7 @@ class Transfer3ViewController: UIViewController {
                             
                             let alert = UIAlertController(title: "Open your banking app", message: "\nCreate your (recurring) transfer to\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", preferredStyle: .alert)
                             alert.addAction(UIAlertAction(title: "Done", style: .cancel, handler: {_ in
+                                // Hide signup and proceed into wallet.
                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                             }))
                             self.present(alert, animated: true)

@@ -9,6 +9,7 @@ import UIKit
 
 class Restore2ViewController: UIViewController, UITextFieldDelegate {
 
+    // Set pin for restored wallet.
     
     override func viewDidLoad() {
         super.viewDidLoad()

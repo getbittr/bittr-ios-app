@@ -14,17 +14,15 @@ extension CoreViewController {
         // Step 2.
         
         if let actualHomeVC = self.homeVC {
-            actualHomeVC.fixGraphViewHeight()
+            //actualHomeVC.fixGraphViewHeight()
             actualHomeVC.setClient()
         }
         
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "fixgraph"), object: nil, userInfo: nil) as Notification)
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setclient"), object: nil, userInfo: nil) as Notification)
-        
+        // Start wallet.
         startLightning()
         
+        // Lower pin view.
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
-            
             NSLayoutConstraint.deactivate([self.pinBottom])
             self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.pinBottom])
@@ -36,7 +34,7 @@ extension CoreViewController {
             self.didBecomeVisible = true
             
             if self.needsToHandleNotification == true {
-                
+                // A notification will be handled after syncing the wallet.
                 self.pendingLabel.text = "syncing wallet"
                 self.pendingSpinner.startAnimating()
                 self.pendingView.alpha = 1
@@ -48,12 +46,12 @@ extension CoreViewController {
     
     @objc func hideSignup() {
         
-        if let actualHomeVC = self.homeVC {
+        /*if let actualHomeVC = self.homeVC {
             actualHomeVC.fixGraphViewHeight()
-        }
+        }*/
         
+        // Hide signup view.
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
-            
             NSLayoutConstraint.deactivate([self.signupBottom])
             self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.signupBottom])

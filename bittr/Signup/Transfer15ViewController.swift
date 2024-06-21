@@ -12,6 +12,8 @@ import Sentry
 
 class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
     
+    // User has received code in email. Send this code to the bittr API.
+    
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var codeTextField: UITextField!
@@ -32,31 +34,32 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     var counter = 0
     
-    var nodeIDViewModel = NodeIDViewModel()
-    
     var setSender = ""
     var start2Fa = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Corner radii and button titles.
         codeView.layer.cornerRadius = 13
         nextView.layer.cornerRadius = 13
-        
-        codeTextField.delegate = self
-        codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
-        
         codeButton.setTitle("", for: .normal)
         nextButton.setTitle("", for: .normal)
         resendButton.setTitle("", for: .normal)
         backgroundButton.setTitle("", for: .normal)
         backgroundButton2.setTitle("", for: .normal)
         
+        // Email code text field.
+        codeTextField.delegate = self
+        codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(updateClient), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
     }
     
     @objc func updateClient(notification:NSNotification) {
+        // Register client details.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let clientID = userInfo["client"] as? String {
                 self.currentClientID = clientID
@@ -81,12 +84,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         self.view.endEditing(true)
         
+        // Check whether code has been entered.
         updateButtonColor()
         if self.nextView.backgroundColor == UIColor.black {
             
             self.nextButtonLabel.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
             
+            // Check push notifications status.
             let current = UNUserNotificationCenter.current()
             current.getNotificationSettings { (settings) in
                 if settings.authorizationStatus == .notDetermined {
@@ -136,6 +141,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     for iban in client.ibanEntities {
                         if iban.id == self.currentIbanID {
                             
+                            // Send email and verification code to bittr API.
                             let parameters = [
                               [
                                 "key": "email_address",
@@ -169,6 +175,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             body += "--\(boundary)--\r\n";
                             let postData = body.data(using: .utf8)
                             
+                            // TODO: Public?
                             var envUrl = "https://getbittr.com/api/verify/email/check2fa"
                             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                                 envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email/check2fa"
@@ -189,7 +196,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     }
                                     return
                                 }
-                                print(String(data: data, encoding: .utf8)!)
+                                
+                                // Data has been received from bittr API.
+                                
+                                //print(String(data: data, encoding: .utf8)!)
                                 
                                 var dataDictionary:NSDictionary?
                                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
@@ -200,9 +210,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                             let emailToken = actualDataDict["token"]
                                             let errorMessage = actualDataDict["message"]
                                             if let actualEmailToken = emailToken as? String {
+                                                // Email address verified. Store email token in cache.
                                                 CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
                                                 
                                                 DispatchQueue.main.async {
+                                                    // Get wallet address.
                                                     self.getAddress(page: sender)
                                                 }
                                             } else if let actualErrorMessage = errorMessage as? String {
@@ -226,7 +238,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 }
                             }
                             task.resume()
-                            
                         }
                     }
                 }
@@ -251,73 +262,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     for iban in client.ibanEntities {
                         if iban.id == self.currentIbanID {
                             
-                            print(iban.emailToken)
-                            print(iban.yourIbanNumber)
-                            
                             let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(iban.emailToken.prefix(32)). IBAN: \(iban.yourIbanNumber)"
                             let parameters = ["message": message]
                             
-                            self.createClient(signature: "Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=", message: message, page: page, iban: iban)
-                            
-                            /*do {
-                                let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
-                                
-                                var envUrl = "https://getbittr.com/api/sign/onchain"
-                                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                    envUrl = "https://model-arachnid-viable.ngrok-free.app/sign/onchain"
-                                }
-                                
-                                var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-                                request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-                                request.httpMethod = "POST"
-                                request.httpBody = postData
-                                
-                                let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                                    guard let data = data else {
-                                        print(String(describing: error))
-                                        DispatchQueue.main.async {
-                                            let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
-                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                                            self.present(alert, animated: true)
-                                            if let actualError = error {
-                                                SentrySDK.capture(error: actualError)
-                                            }
-                                        }
-                                        return
-                                  }
-                                  
-                                    print(String(data: data, encoding: .utf8)!)
-                                    
-                                    var dataDictionary:NSDictionary?
-                                    if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                                        do {
-                                            dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                                            if let actualDataDict = dataDictionary {
-                                                let dataAddress = actualDataDict["address"]
-                                                let dataSignature = actualDataDict["signature"]
-                                                let dataMessage = actualDataDict["message"]
-                                                if let actualDataAddress = dataAddress as? String, let actualDataSignature = dataSignature as? String, let actualDataMessage = dataMessage as? String {
-                                                    //CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
-                                                    DispatchQueue.main.async {
-                                                        self.createClient(address: actualDataAddress, signature: actualDataSignature, message: actualDataMessage, page: page, iban: iban)
-                                                    }
-                                                }
-                                            }
-                                        } catch let error as NSError {
-                                            print(error)
-                                            DispatchQueue.main.async {
-                                                SentrySDK.capture(error: error)
-                                            }
-                                        }
-                                    }
-                                }
-                                task.resume()
-                            } catch let error as NSError {
-                                print(error)
-                                DispatchQueue.main.async {
-                                    SentrySDK.capture(error: error)
-                                }
-                            }*/
+                            self.createClient(message: message, page: page, iban: iban)
                         }
                     }
                 }
@@ -326,36 +274,29 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     }
     
     
-    func createClient(/*address:String, */signature:String, message:String, page:String, iban:IbanEntity) {
+    func createClient(message:String, page:String, iban:IbanEntity) {
         
         Task {
-            
             // Get real onchain address.
             let wallet = LightningNodeService.shared.getWallet()
             let firstAddress = try wallet?.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
             
-            // Get real signature.
-            let receivedSignature = try await nodeIDViewModel.signMessage(message: message)
-            
-            print("Received address: \(firstAddress ?? "")")
-            print("Received signature: \(receivedSignature)")
-            
             // Send to Bittr.
-            self.createBittrAccount(receivedAddress: firstAddress ?? "", receivedSignature: receivedSignature, message: message, page: page, iban: iban)
+            self.createBittrAccount(receivedAddress: firstAddress ?? "", message: message, page: page, iban: iban)
         }
     }
     
     
-    func createBittrAccount(receivedAddress:String, receivedSignature:String, message:String, page:String, iban:IbanEntity) {
+    func createBittrAccount(receivedAddress:String, message:String, page:String, iban:IbanEntity) {
         
         let lightningPubKey = LightningNodeService.shared.nodeId()
+        let xpub = LightningNodeService.shared.getXpub()
+        
         Task {
             do {
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: message)
-                print("Fetched signature: " + lightningSignature)
                 
-                let xpub = LightningNodeService.shared.getXpub()
-                
+                // TODO: Public?
                 var parameters: [String: Any] = [
                     "email": iban.yourEmail,
                     "email_token": iban.emailToken,
@@ -375,8 +316,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 ]
                 
                 do {
+                    // Send to bittr API for signup.
                     let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
                     
+                    // TODO: Public?
                     var envUrl = "https://getbittr.com/api/customer"
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                         envUrl = "https://model-arachnid-viable.ngrok-free.app/customer"
@@ -401,7 +344,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             return
                         }
                         
-                        print(String(data: data, encoding: .utf8)!)
+                        // Response has been received from bittr API.
+                        
+                        //print(String(data: data, encoding: .utf8)!)
                         
                         var dataDictionary:NSDictionary?
                         if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
@@ -414,9 +359,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                         let dataSwift = actualDataItems["swift"]
                                         if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
                                             DispatchQueue.main.async {
+                                                
+                                                // Signup successful.
+                                                // Add bittr details to cache.
                                                 CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
                                                 self.nextButtonActivityIndicator.stopAnimating()
                                                 self.nextButtonLabel.alpha = 1
+                                                // Move to next page.
                                                 let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
                                                  NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                                             }
@@ -470,12 +419,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
             }
         }
-        
-        
     }
     
     
     @IBAction func resendCodeButtonTapped(_ sender: UIButton) {
+        
+        // User can request a new email verification code every 30 seconds.
         
         if self.counter == 0 {
             
@@ -484,6 +433,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 envKey = "device"
             }
             
+            // Prompt bittr API to send new verification code to email address.
             let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
             if let actualDeviceDict = deviceDict {
                 let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
@@ -519,19 +469,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                         if paramType == "text" {
                                             let paramValue = param["value"] as! String
                                             body += "\r\n\r\n\(paramValue)\r\n"
-                                        } /*else {
-                                            let paramSrc = param["src"] as! String
-                                            let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
-                                            let fileContent = String(data: fileData, encoding: .utf8)!
-                                            body += "; filename=\"\(paramSrc)\"\r\n"
-                                                    + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
-                                        }*/
+                                        }
                                     }
                                 }
                                 body += "--\(boundary)--\r\n";
                                 let postData = body.data(using: .utf8)
                                 
-                                // TODO: Correct URL?
+                                // TODO: Public?
                                 var envUrl = "https://getbittr.com/api/verify/email"
                                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                                     envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
@@ -554,7 +498,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                         }
                                         return
                                     }
-                                    print(String(data: data, encoding: .utf8)!)
+                                    
+                                    // Response received from bittr API.
+                                    
+                                    //print(String(data: data, encoding: .utf8)!)
                                     
                                     DispatchQueue.main.async {
                                         let alert = UIAlertController(title: "We've resent our email!", message: "Check your Spam and Promotion folders to see if the code is there.\n\nPlease also check whether \(iban.yourEmail) is correct.", preferredStyle: .alert)
@@ -568,6 +515,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 }
                                 task.resume()
                                 
+                                // Restart counter.
                                 self.counter = 30
                                 Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateCounter), userInfo: nil, repeats: true)
                             }
@@ -576,6 +524,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
             }
         } else {
+            // Timer is still counting down.
             let alert = UIAlertController(title: "", message: "Please wait 30 seconds before requesting another verification code.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
             alert.addAction(UIAlertAction(title: "Change email", style: .default, handler: {_ in
@@ -598,7 +547,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     func updateButtonColor() {
         
         if self.codeTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines).count ?? 0 > 5 {
-            
             self.nextView.backgroundColor = UIColor.black
         } else {
             self.nextView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
