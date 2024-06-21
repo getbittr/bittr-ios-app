@@ -14,11 +14,12 @@ extension CoreViewController {
         firstCoin.layer.cornerRadius = firstCoin.bounds.height / 2
         secondCoin.layer.cornerRadius = firstCoin.bounds.height / 2
         
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
     }
     
     override func viewDidAppear(_ animated: Bool) {
         
+        // Set correct height constraint for menu bar.
         if #available(iOS 13.0, *) {
             if let window = UIApplication.shared.windows.first {
                 if window.safeAreaInsets.bottom == 0 {
@@ -33,6 +34,7 @@ extension CoreViewController {
             }
         }
         
+        // Start startup animation sequence.
         UIView.animate(withDuration: 0.6, delay: 0.3, options: .curveEaseInOut) {
             self.firstCoinCenterX.constant = -40
             self.firstCoinCenterY.constant = 40
@@ -78,7 +80,7 @@ extension CoreViewController {
                             self.menuBarView.alpha = 1
                             self.blackSignupBackground.alpha = 1
                             
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+                            //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
                             
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {

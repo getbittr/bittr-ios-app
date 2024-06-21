@@ -11,6 +11,8 @@ extension CoreViewController {
 
     @objc func launchQuestion(notification:NSNotification) {
         
+        // Launch QuestionVC.
+        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationQuestion = userInfo["question"] as? String, let notificationAnswer = userInfo["answer"] as? String {
                 self.tappedQuestion = notificationQuestion

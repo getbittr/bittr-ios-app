@@ -12,6 +12,7 @@ import LDKNode
 import LDKNodeFFI
 import LightningDevKit
 import Sentry
+import BitcoinDevKit
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate {
 
@@ -121,6 +122,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         addressLabel.text = ""
         addressSpinner.startAnimating()
         qrcodeSpinner.startAnimating()
+        
         getNewAddress(resetAddress: false)
     }
     
@@ -190,17 +192,32 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             print("Showing new address.")
             Task {
                 do {
-                    let address = try await LightningNodeService.shared.newFundingAddress()
-                    DispatchQueue.main.async {
-                        CacheManager.storeLastAddress(newAddress: address)
-                        self.addressLabel.text = address
-                        self.addressCopy.alpha = 1
-                        self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
-                        self.qrCodeImage.layer.magnificationFilter = .nearest
-                        self.qrCodeImage.alpha = 1
-                        self.qrCodeLogoView.alpha = 1
-                        self.addressSpinner.stopAnimating()
-                        self.qrcodeSpinner.stopAnimating()
+                    //let address = try await LightningNodeService.shared.newFundingAddress()
+                    let wallet = LightningNodeService.shared.getWallet()
+                    if let address = try wallet?.getAddress(addressIndex: .new).address.asString() {
+                        DispatchQueue.main.async {
+                            CacheManager.storeLastAddress(newAddress: address)
+                            self.addressLabel.text = address
+                            self.addressCopy.alpha = 1
+                            self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
+                            self.qrCodeImage.layer.magnificationFilter = .nearest
+                            self.qrCodeImage.alpha = 1
+                            self.qrCodeLogoView.alpha = 1
+                            self.addressSpinner.stopAnimating()
+                            self.qrcodeSpinner.stopAnimating()
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                                self.getNewAddress(resetAddress: resetAddress)
+                            }))
+                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                                self.addressSpinner.stopAnimating()
+                                self.qrcodeSpinner.stopAnimating()
+                            }))
+                            self.present(alert, animated: true)
+                        }
                     }
                 } catch let error as NodeError {
                     let errorString = handleNodeError(error)

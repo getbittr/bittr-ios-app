@@ -216,7 +216,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .decimal
-        self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+        self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
         
     }
     
@@ -368,7 +368,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
                 self.availableAmountTop.constant = 10
                 self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0
@@ -424,7 +424,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
                 self.availableAmountTop.constant = 10
                 self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0
@@ -522,7 +522,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         let btcOption = UIAlertAction(title: "My BTC wallet", style: .default) { (action) in
             self.fromLabel.text = "My BTC wallet"
             self.toTextField.text = ""
-            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)")!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)")!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             self.clipboardWidth.constant = 20
             self.toTextFieldTrailing.constant = -10
         }
@@ -533,12 +533,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.present(alert, animated: true)
             
             return
-            
-            /*self.fromLabel.text = "My BTCLN wallet"
-            self.toTextField.text = "My BTC wallet"
-            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btclnAmount)")!.decimalValue as NSNumber)"
-            self.clipboardWidth.constant = 0
-            self.toTextFieldTrailing.constant = 0*/
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         actionSheet.addAction(btcOption)
@@ -746,6 +740,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             
                             print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
                             
+                            self.feeLow = Float(Int(low.asSatPerVb()*10))/10
+                            self.feeMedium = Float(Int(medium.asSatPerVb()*10))/10
+                            self.feeHigh = Float(Int(high.asSatPerVb()*10))/10
+                            
+                            print("Adjusted - High: \(self.feeHigh), Medium: \(self.feeMedium), Low: \(self.feeLow)")
+                            
                             // TODO: Add fee rate to different transactions? .feeRate vs .feeAbsolute
                             var address = try Address(address: actualAddress, network: .bitcoin)
                             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -759,27 +759,23 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             let size = tx.vsize()
 
                             print("Size: \(String(describing: size))")
-                            print("High: \(high.asSatPerVb()*Float(size)), Medium: \(medium.asSatPerVb()*Float(size)), Low: \(low.asSatPerVb()*Float(size))")
+                            print("High: \(self.feeHigh*Float(size)), Medium: \(self.feeMedium*Float(size)), Low: \(self.feeLow*Float(size))")
                             
-                            self.satsFast.text = "\(Int(high.asSatPerVb()*Float(size))) sats"
-                            self.satsMedium.text = "\(Int(medium.asSatPerVb()*Float(size))) sats"
-                            self.satsSlow.text = "\(Int(low.asSatPerVb()*Float(size))) sats"
+                            self.satsFast.text = "\(Int(self.feeHigh*Float(size))) sats"
+                            self.satsMedium.text = "\(Int(self.feeMedium*Float(size))) sats"
+                            self.satsSlow.text = "\(Int(self.feeLow*Float(size))) sats"
                             
-                            self.feeLow = low.asSatPerVb()
-                            self.feeMedium = medium.asSatPerVb()
-                            self.feeHigh = high.asSatPerVb()
-                            
-                            let fast1 = CGFloat(high.asSatPerVb()*Float(size))
+                            let fast1 = CGFloat(self.feeHigh*Float(size))
                             var fastText = "\(CGFloat(Int(((fast1/100000000)*conversionRate)*100))/100)"
                             if fastText.count == 3 {
                                 fastText = fastText + "0"
                             }
-                            let medium1 = CGFloat(medium.asSatPerVb()*Float(size))
+                            let medium1 = CGFloat(self.feeMedium*Float(size))
                             var mediumText = "\(CGFloat(Int(((medium1/100000000)*conversionRate)*100))/100)"
                             if mediumText.count == 3 {
                                 mediumText = mediumText + "0"
                             }
-                            let slow1 = CGFloat(low.asSatPerVb()*Float(size))
+                            let slow1 = CGFloat(self.feeLow*Float(size))
                             var slowText = "\(CGFloat(Int(((slow1/100000000)*conversionRate)*100))/100)"
                             if slowText.count == 3 {
                                 slowText = slowText + "0"
@@ -998,7 +994,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
                 self.availableAmountTop.constant = 10
                 self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0
@@ -1244,7 +1240,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "")
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
                 self.availableAmountTop.constant = 10
                 self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0

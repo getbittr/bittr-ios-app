@@ -12,9 +12,7 @@ extension CoreViewController {
     @objc func updateSync(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            
             if let notificationAction = userInfo["action"] as? String, let notificationType = userInfo["type"] as? String {
-                
                 if notificationAction == "start" {
                     self.startSync(type: notificationType)
                 } else {

@@ -9,7 +9,7 @@ import UIKit
 
 class BlurEffectViewLight: UIVisualEffectView {
 
-    var animator = UIViewPropertyAnimator(duration: 1, curve: .linear)
+    /*var animator = UIViewPropertyAnimator(duration: 1, curve: .linear)
     
     override func didMoveToSuperview() {
         guard let superview = superview else { return }
@@ -17,10 +17,10 @@ class BlurEffectViewLight: UIVisualEffectView {
         frame = superview.bounds //Or setup constraints instead
         setupBlur()
         
-        NotificationCenter.default.addObserver(self, selector: #selector(setupBlur), name: NSNotification.Name(rawValue: "setupblur"), object: nil)
-    }
+        //NotificationCenter.default.addObserver(self, selector: #selector(setupBlur), name: NSNotification.Name(rawValue: "setupblur"), object: nil)
+    }*/
     
-    @objc private func setupBlur() {
+    /*@objc private func setupBlur() {
         animator.stopAnimation(true)
         effect = nil
 
@@ -32,6 +32,6 @@ class BlurEffectViewLight: UIVisualEffectView {
     
     deinit {
         animator.stopAnimation(true)
-    }
+    }*/
 
 }

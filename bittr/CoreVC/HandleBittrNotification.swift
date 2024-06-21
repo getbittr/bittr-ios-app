@@ -11,6 +11,8 @@ extension CoreViewController {
 
     @objc func handleBittrNotification(notification:NSNotification) {
         
+        // Show to the user information that was received from a Bittr push notification.
+        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationData = userInfo["bittr_notification"] as? [String: Any] {
                 

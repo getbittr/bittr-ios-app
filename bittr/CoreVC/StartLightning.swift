@@ -16,23 +16,22 @@ extension CoreViewController {
         // Step 3.
         self.startSync(type: "ldk")
         
+        // Start Lightning node.
         let startTask = Task {
             let taskResult = try await LightningNodeService.shared.start()
-            //print("Reached a result.")
             try Task.checkCancellation()
-            //if !Task.isCancelled {
-                return taskResult
-            //}
+            return taskResult
         }
         
+        // Time out Lightning node start after 10 seconds.
         let timeoutTask = Task {
             try await Task.sleep(nanoseconds: UInt64(10) * NSEC_PER_SEC)
             startTask.cancel()
             print("Could not start node within 10 seconds.")
-            //DispatchQueue.main.async {
             self.stopLightning(notification: nil, stopNode: true)
         }
         
+        // Start Bitcoin Dev Kit after successful Lightning node start.
         Task.init {
             do {
                 let result = try await startTask.value
@@ -44,9 +43,6 @@ extension CoreViewController {
                     LightningNodeService.shared.startBDK()
                 }
                 self.didStartNode = true
-                /*DispatchQueue.main.async {
-                    LightningNodeService.shared.startBDK()
-                }*/
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 print("Can't start node. \(errorString.title): \(errorString.detail)")
@@ -72,58 +68,47 @@ extension CoreViewController {
     
     @objc func stopLightning(notification:NSNotification?, stopNode:Bool) {
         
-        //DispatchQueue.main.async {
-            if let actualNotification = notification {
-                
+        if let actualNotification = notification {
+            
+            do {
+                try LightningNodeService.shared.stop()
+                print("Node stopped.")
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                print("Can't stop node. \(errorString.title): \(errorString.detail)")
+            } catch {
+                print("Can't stop node. \(error.localizedDescription)")
+            }
+            
+            if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
+                if let notificationMessage = userInfo["message"] as? String {
+                    let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                        self.startLightning()
+                    }))
+                    DispatchQueue.main.async {
+                        self.present(alert, animated: true)
+                    }
+                }
+            }
+        } else {
+            let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
                 do {
-                    //DispatchQueue.global(qos: .background).async {
-                        try LightningNodeService.shared.stop()
-                        print("Node stopped.")
-                    //}
+                    self.startLightning()
                 } catch let error as NodeError {
                     let errorString = handleNodeError(error)
                     print("Can't stop node. \(errorString.title): \(errorString.detail)")
-                } catch {
-                    print("Can't stop node. \(error.localizedDescription)")
-                }
-                
-                if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
-                    if let notificationMessage = userInfo["message"] as? String {
-                        let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                            self.startLightning()
-                        }))
-                        DispatchQueue.main.async {
-                            self.present(alert, animated: true)
-                        }
-                    }
-                }
-            } else {
-                let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                    do {
-                        //DispatchQueue.global(qos: .background).async {
-                        if stopNode == true {
-                            //try LightningNodeService.shared.stop()
-                            //print("Node stopped.")
-                            self.startLightning()
-                        } else {
-                            self.startLightning()
-                        }
-                    } catch let error as NodeError {
-                        let errorString = handleNodeError(error)
-                        print("Can't stop node. \(errorString.title): \(errorString.detail)")
-                        if errorString.title == "NotRunning" {
-                            self.startLightning()
-                        }
-                    } catch {
-                        print("Can't stop node. \(error.localizedDescription)")
+                    if errorString.title == "NotRunning" {
                         self.startLightning()
                     }
-                }))
-                self.present(alert, animated: true)
-            }
-        //}
+                } catch {
+                    print("Can't stop node. \(error.localizedDescription)")
+                    self.startLightning()
+                }
+            }))
+            self.present(alert, animated: true)
+        }
     }
 
 }

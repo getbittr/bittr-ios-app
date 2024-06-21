@@ -61,7 +61,6 @@ extension CoreViewController {
             } else {
                 // No special key, so this is a normal notification.
                 print("No special key found in notification.")
-                //completionHandler(.noData)
             }
         }
     }
@@ -69,8 +68,9 @@ extension CoreViewController {
     
     func facilitateNotificationPayout(specialData:[String:Any]) {
         
+        // TODO: Public?
         let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
-        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
+        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         print("Did start payout process.")
         
@@ -123,11 +123,12 @@ extension CoreViewController {
                         print("Did create invoice.")
                         
                         DispatchQueue.main.async {
-                            let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
-                            let newTimestamp = Int(Date().timeIntervalSince1970)
-                            CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
-                            CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
-                            print("Did cache invoice data.")
+                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice) {
+                                let newTimestamp = Int(Date().timeIntervalSince1970)
+                                CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                                CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
+                                print("Did cache invoice data.")
+                            }
                         }
                         
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
@@ -135,7 +136,6 @@ extension CoreViewController {
                         
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
-                        //completionHandler(.newData)
                         
                         DispatchQueue.main.async {
                             
@@ -186,10 +186,9 @@ extension CoreViewController {
         }
     }
     
-    func getInvoiceHash(invoiceString:String) -> String {
+    func getInvoiceHash(invoiceString:String) -> String? {
         
         let result = Bolt11Invoice.fromStr(s: invoiceString)
-        //let result = Bolt11Invoice(stringLiteral: invoiceString)
         if result.isOk() {
             if let invoice = result.getValue() {
                 print("Invoice parsed successfully: \(invoice)")
@@ -197,25 +196,26 @@ extension CoreViewController {
                 let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
                 return hexString
             } else {
-                return "empty"
+                return nil
             }
         } else if let error = result.getError() {
             print("Failed to parse invoice: \(error)")
-            return "empty"
+            return nil
         } else {
-            return "empty"
+            return nil
         }
     }
     
     func reconnectToPeer() {
         
+        // TODO: Public?
         // .testnet and .bitcoin
         let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
         let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]
         
         // Connect to Lightning peer.
-        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
-        let address = addresses[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
+        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
+        let address = addresses[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         let connectTask = Task {
             do {
@@ -231,7 +231,6 @@ extension CoreViewController {
                 }
                 print("Did connect to peer.")
                 return true
-                //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
@@ -275,6 +274,8 @@ extension CoreViewController {
             if let event = userInfo["event"] as? LDKNode.Event {
                 print("Event found. \(event)")
                 
+                // Examples of receivable event notifications:
+                
                 // channelPending(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", formerTemporaryChannelId: "89797af9337335cd2400bdc1e37d1abefc114081fa7912e4e780b3d13254768d", counterpartyNodeId: "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12", fundingTxo: LDKNode.OutPoint(txid: "8a1127134c0729e4336ccf0a2ed0ee55f32dedfd875ce7ade23200923ebafb7b", vout: 0))
                 
                 // channelReady(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
@@ -296,11 +297,11 @@ extension CoreViewController {
                     }
                     
                     let paymentHash = "\(event)".split(separator: ",")[0].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: "paymentReceived(paymentHash: ", with: "")
-                    print("Payment hash: \(paymentHash)")
+                    print("Did extract payment hash.")
                     
                     if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
-                        print("Payment details: \(paymentDetails)")
+                        print("Did receive payment details.")
                         
                         let thisTransaction = Transaction()
                         thisTransaction.isBittr = false
@@ -316,6 +317,15 @@ extension CoreViewController {
                         self.receivedBittrTransaction = thisTransaction
                         DispatchQueue.main.async {
                             CacheManager.didHandleEvent(event: "\(event)")
+                            
+                            if let actualHomeVC = self.homeVC {
+                                actualHomeVC.setTransactions += [thisTransaction]
+                                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                                    transaction1.timestamp > transaction2.timestamp
+                                }
+                                actualHomeVC.homeTableView.reloadData()
+                            }
+                            
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     }
@@ -328,8 +338,6 @@ extension CoreViewController {
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
                     }
                 } else if "\(event)".contains("channelPending") {
-                    
-                    // channelPending(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", formerTemporaryChannelId: "89797af9337335cd2400bdc1e37d1abefc114081fa7912e4e780b3d13254768d", counterpartyNodeId: "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12", fundingTxo: LDKNode.OutPoint(txid: "8a1127134c0729e4336ccf0a2ed0ee55f32dedfd875ce7ade23200923ebafb7b", vout: 0))
                     
                     CacheManager.didHandleEvent(event: "\(event)")
                     
@@ -374,6 +382,14 @@ extension CoreViewController {
                                             self.receivedBittrTransaction = thisTransaction
                                             
                                             DispatchQueue.main.async {
+                                                if let actualHomeVC = self.homeVC {
+                                                    actualHomeVC.setTransactions += [thisTransaction]
+                                                    actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                                                        transaction1.timestamp > transaction2.timestamp
+                                                    }
+                                                    actualHomeVC.homeTableView.reloadData()
+                                                }
+                                                
                                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                                             }
                                         }

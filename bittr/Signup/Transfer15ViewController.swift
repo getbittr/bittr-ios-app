@@ -259,65 +259,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             
                             self.createClient(signature: "Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=", message: message, page: page, iban: iban)
                             
-                            /*do {
-                                let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
-                                
-                                var envUrl = "https://getbittr.com/api/sign/onchain"
-                                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                    envUrl = "https://staging.getbittr.com/api/sign/onchain"
-                                }
-                                
-                                var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-                                request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-                                request.httpMethod = "POST"
-                                request.httpBody = postData
-                                
-                                let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                                    guard let data = data else {
-                                        print(String(describing: error))
-                                        DispatchQueue.main.async {
-                                            let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
-                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                                            self.present(alert, animated: true)
-                                            if let actualError = error {
-                                                SentrySDK.capture(error: actualError)
-                                            }
-                                        }
-                                        return
-                                  }
-                                  
-                                    print(String(data: data, encoding: .utf8)!)
-                                    
-                                    var dataDictionary:NSDictionary?
-                                    if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                                        do {
-                                            dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                                            if let actualDataDict = dataDictionary {
-                                                let dataAddress = actualDataDict["address"]
-                                                let dataSignature = actualDataDict["signature"]
-                                                let dataMessage = actualDataDict["message"]
-                                                if let actualDataAddress = dataAddress as? String, let actualDataSignature = dataSignature as? String, let actualDataMessage = dataMessage as? String {
-                                                    //CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
-                                                    DispatchQueue.main.async {
-                                                        self.createClient(address: actualDataAddress, signature: actualDataSignature, message: actualDataMessage, page: page, iban: iban)
-                                                    }
-                                                }
-                                            }
-                                        } catch let error as NSError {
-                                            print(error)
-                                            DispatchQueue.main.async {
-                                                SentrySDK.capture(error: error)
-                                            }
-                                        }
-                                    }
-                                }
-                                task.resume()
-                            } catch let error as NSError {
-                                print(error)
-                                DispatchQueue.main.async {
-                                    SentrySDK.capture(error: error)
-                                }
-                            }*/
                         }
                     }
                 }

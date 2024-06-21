@@ -43,6 +43,19 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         mnemonicField1.delegate = self
         mnemonicField2.delegate = self
         mnemonicField3.delegate = self
+        
+        mnemonicField1.attributedPlaceholder = NSAttributedString(
+            string: "Enter word",
+            attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
+        )
+        mnemonicField2.attributedPlaceholder = NSAttributedString(
+            string: "Enter word",
+            attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
+        )
+        mnemonicField3.attributedPlaceholder = NSAttributedString(
+            string: "Enter word",
+            attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
+        )
     }
     
     override func viewWillAppear(_ animated: Bool) {
