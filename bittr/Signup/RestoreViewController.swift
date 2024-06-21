@@ -6,12 +6,14 @@
 //
 
 import UIKit
-//import KeychainSwift
 import LDKNode
 import LDKNodeFFI
 
 class RestoreViewController: UIViewController, UITextFieldDelegate {
 
+    // Restore an existing wallet.
+    
+    // Views and buttons.
     @IBOutlet weak var mnemonicView: UIView!
     @IBOutlet weak var restoreView: UIView!
     @IBOutlet weak var restoreButton: UIButton!
@@ -19,6 +21,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
     
+    // Text fields.
     @IBOutlet weak var mnemonic1: UITextField!
     @IBOutlet weak var mnemonic2: UITextField!
     @IBOutlet weak var mnemonic3: UITextField!
@@ -40,6 +43,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var backgroundButton2: UIButton!
     @IBOutlet weak var backButton: UIButton!
     
+    // Articles
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
@@ -49,23 +53,23 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var restoreButtonText: UILabel!
     @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
     
-    //let keychain = KeychainSwift()
     var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         mnemonicView.layer.cornerRadius = 13
         restoreView.layer.cornerRadius = 13
         cardView.layer.cornerRadius = 13
         imageContainer.layer.cornerRadius = 13
-        
         restoreButton.setTitle("", for: .normal)
         backgroundButton.setTitle("", for: .normal)
         backgroundButton2.setTitle("", for: .normal)
         backButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         
+        // Text fields.
         mnemonic1.delegate = self
         mnemonic2.delegate = self
         mnemonic3.delegate = self
@@ -79,6 +83,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         mnemonic11.delegate = self
         mnemonic12.delegate = self
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
     }
@@ -162,52 +167,35 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text]
         
         var enteredMnemonic = ""
+        var handledWords = 0
         
         for eachWord in enteredWords {
             if let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String {
                 if enteredMnemonic == "" {
                     enteredMnemonic = actualWord
+                    handledWords += 1
                 } else {
                     enteredMnemonic = "\(enteredMnemonic) \(actualWord)"
+                    handledWords += 1
+                    if handledWords == 12 {
+                        // Store restorable mnemonic in cache.
+                        CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
+                        
+                        // Start wallet.
+                        if let actualCoreVC = self.coreVC {
+                            actualCoreVC.startLightning()
+                        }
+                        
+                        // Proceed to next page.
+                        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                        
+                        self.restoreButtonSpinner.stopAnimating()
+                        self.restoreButtonText.alpha = 1
+                    }
                 }
-            } else {
-                
             }
         }
-        
-        /*let defaults = UserDefaults.standard
-        defaults.set(enteredMnemonic, forKey: "newmnemonic")
-        defaults.synchronize()*/
-        
-        /*if keychain.get("") != nil {
-            UserDefaults.standard.set(true, forKey: "deletestorage")
-        }*/
-        
-        // TODO: Check this for Production.
-        if CacheManager.getMnemonic() != "empty" {
-            UserDefaults.standard.set(true, forKey: "deletestorage")
-        }
-        
-        CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
-        /*keychain.synchronizable = true
-        keychain.set(enteredMnemonic, forKey: "")*/
-        
-        /*do {
-            try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
-        } catch {
-            print(error.localizedDescription)
-        }*/
-        
-        
-        if let actualCoreVC = self.coreVC {
-            actualCoreVC.startLightning()
-        }
-        
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-        
-        self.restoreButtonSpinner.stopAnimating()
-        self.restoreButtonText.alpha = 1
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {

@@ -10,6 +10,8 @@ import Sentry
 
 class Transfer1ViewController: UIViewController, UITextFieldDelegate {
 
+    // Enter iban and email for bittr signup.
+    
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var ibanTextField: UITextField!
     @IBOutlet weak var ibanButton: UIButton!
@@ -48,6 +50,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         ibanView.layer.cornerRadius = 13
         emailView.layer.cornerRadius = 13
         nextView.layer.cornerRadius = 13
@@ -61,9 +64,11 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         skipButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         
+        // Text fields.
         ibanTextField.delegate = self
         emailTextField.delegate = self
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
@@ -115,12 +120,14 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func ibanButtonTapped(_ sender: UIButton) {
         
+        // Launch IBAN text field.
         self.ibanTextField.becomeFirstResponder()
         self.ibanButton.alpha = 0
     }
     
     @IBAction func emailButtonTapped(_ sender: UIButton) {
         
+        // Launch email text field.
         self.emailTextField.becomeFirstResponder()
         self.emailButton.alpha = 0
     }
@@ -140,6 +147,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 envKey = "device"
             }
             
+            // Store new client details in cache.
             let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
             if let actualDeviceDict = deviceDict {
                 // Client exists in cache.
@@ -198,7 +206,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 self.currentIbanID = newIbanEntity.id
             }
             
-            
+            // Send email to bittr API for email verification. Bittr will send email.
             let parameters = [
               [
                 "key": "email",
@@ -226,19 +234,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                     if paramType == "text" {
                         let paramValue = param["value"] as! String
                         body += "\r\n\r\n\(paramValue)\r\n"
-                    } /*else {
-                        let paramSrc = param["src"] as! String
-                        let fileData = try NSData(contentsOfFile:paramSrc, options:[]) as Data
-                        let fileContent = String(data: fileData, encoding: .utf8)!
-                        body += "; filename=\"\(paramSrc)\"\r\n"
-                                + "Content-Type: \"content-type header\"\r\n\r\n\(fileContent)\r\n"
-                    }*/
+                    }
                 }
             }
             body += "--\(boundary)--\r\n";
             let postData = body.data(using: .utf8)
             
-            // TODO: Correct URL?
+            // TODO: Public?
             var envUrl = "https://getbittr.com/api/verify/email"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                 envUrl = "https://staging.getbittr.com/api/verify/email"
@@ -261,11 +263,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                     }
                     return
                 }
-                print(String(data: data, encoding: .utf8)!)
+                // Response received from Bittr API.
                 
                 DispatchQueue.main.async {
+                    // Send details to next signup page.
                     let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier, "client":self.currentClientID, "iban":self.currentIbanID]
-                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                    // Move to next page.
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                     self.nextButtonActivityIndicator.stopAnimating()
                     self.nextButtonLabel.alpha = 1
                 }
@@ -277,6 +281,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
+        // User indicates they don't have an IBAN.
         self.view.endEditing(true)
         
         let alert = UIAlertController(title: "We're sorry!", message: "Buying bitcoin with bittr is only available to IBAN holders.\n\nYou can still use your wallet to send and receive bitcoin from other sellers.", preferredStyle: .alert)

@@ -9,6 +9,8 @@ import UIKit
 
 class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
+    // View to double check that the user has properly recorded their mnemonic.
+    
     @IBOutlet weak var mnemonicView1: UIView!
     @IBOutlet weak var mnemonicView2: UIView!
     @IBOutlet weak var mnemonicView3: UIView!
@@ -18,6 +20,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var backgroundButton2: UIButton!
     
+    // Mnemonic text fields.
     @IBOutlet weak var mnemonicField1: UITextField!
     @IBOutlet weak var mnemonicField2: UITextField!
     @IBOutlet weak var mnemonicField3: UITextField!
@@ -26,11 +29,13 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     
+    // Three checkable mnemonic words.
     var checkWords = [String]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Corner radii and button titles.
         mnemonicView1.layer.cornerRadius = 13
         mnemonicView2.layer.cornerRadius = 13
         mnemonicView3.layer.cornerRadius = 13
@@ -40,6 +45,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         backgroundButton.setTitle("", for: .normal)
         backgroundButton2.setTitle("", for: .normal)
         
+        // Text field elements.
         mnemonicField1.delegate = self
         mnemonicField2.delegate = self
         mnemonicField3.delegate = self
@@ -60,6 +66,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     override func viewWillAppear(_ animated: Bool) {
         
+        // Set notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setcheckwords"), object: nil)
@@ -99,6 +106,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         
+        // Make Next button clickable or unclickable.
         if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {

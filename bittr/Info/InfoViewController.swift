@@ -158,36 +158,6 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 self.articlesCollectionView.reloadData()
                             }
                         }
-                        /*if let actualDataItems = actualDataDict["data"] as? NSDictionary {
-                            let dataOurIban = actualDataItems["iban"]
-                            let dataCode = actualDataItems["deposit_code"]
-                            let dataSwift = actualDataItems["swift"]
-                            if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
-                                CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
-                                DispatchQueue.main.async {
-                                    
-                                    self.nextButtonActivityIndicator.stopAnimating()
-                                    self.nextButtonLabel.alpha = 1
-                                    let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
-                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                }
-                            }
-                        } else if let actualApiMessage = actualDataDict["message"] as? String {
-                            // Some message has been received.
-                            DispatchQueue.main.async {
-                                if actualApiMessage == "Unable to create customer account (invalid iban)" {
-                                    self.nextButtonActivityIndicator.stopAnimating()
-                                    self.nextButtonLabel.alpha = 1
-                                    self.codeTextField.text = nil
-                                    let alert = UIAlertController(title: "Oops!", message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
-                                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
-                                        let notificationDict:[String: Any] = ["page":"6"]
-                                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                    }))
-                                    self.present(alert, animated: true)
-                                }
-                            }
-                        }*/
                     }
                 } catch let error as NSError {
                     print("Articles request error: " + error.localizedDescription)

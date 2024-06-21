@@ -10,11 +10,14 @@ import UIKit
 
 class Signup6ViewController: UIViewController, UITextFieldDelegate {
 
+    // View for user to confirm their new pin.
+    
     var previousPIN:String?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Set notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setPreviousPin), name: NSNotification.Name(rawValue: "previouspin"), object: nil)
     }
     
@@ -37,17 +40,22 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
     
     func nextButtonTapped(enteredPin:String) {
         
+        // Check whether the confirmed pin is correct.
+        
         if let actualPreviousPin = self.previousPIN {
-            
             if actualPreviousPin == enteredPin {
-                
+                // Pin is correct.
+                // Start wallet.
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "startlightning"), object: nil, userInfo: nil) as Notification)
+                // Move to next page.
                 let notificationDict:[String: Any] = ["page":"5"]
                  NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                 
+                // Store pin in cache.
                 CacheManager.storePin(pin: actualPreviousPin)
                 
             } else {
+                // Pin is incorrect.
                 let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                 self.present(alert, animated: true)

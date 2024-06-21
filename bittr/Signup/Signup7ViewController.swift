@@ -9,14 +9,17 @@ import UIKit
 
 class Signup7ViewController: UIViewController {
 
+    // Confirmation of created wallet. Sign up with bittr or skip directly to wallet.
+    
     @IBOutlet weak var checkView: UIView!
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var skipButton: UIButton!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
-    @IBOutlet weak var articleButton: UIButton!
     
+    // Article elements.
+    @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
@@ -26,6 +29,7 @@ class Signup7ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Corner radii and button items.
         checkView.layer.cornerRadius = 35
         saveView.layer.cornerRadius = 13
         cardView.layer.cornerRadius = 13
@@ -34,6 +38,7 @@ class Signup7ViewController: UIViewController {
         skipButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         
+        // Check view elements.
         let viewBorder = CAShapeLayer()
         viewBorder.strokeColor = UIColor.black.cgColor
         viewBorder.frame = checkView.bounds
@@ -42,6 +47,7 @@ class Signup7ViewController: UIViewController {
         viewBorder.lineWidth = 2
         self.checkView.layer.addSublayer(viewBorder)
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
     }
@@ -72,11 +78,13 @@ class Signup7ViewController: UIViewController {
     
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
+        // Close sign up and proceed into wallet.
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
+        // Proceed to bittr signup.
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }

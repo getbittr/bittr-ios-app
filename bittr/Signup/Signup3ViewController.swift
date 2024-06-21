@@ -9,6 +9,8 @@ import UIKit
 
 class Signup3ViewController: UIViewController {
 
+    // View showing the user their mnemonic.
+    
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var cardView: UIView!
@@ -22,12 +24,14 @@ class Signup3ViewController: UIViewController {
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
     @IBOutlet weak var articleButton: UIButton!
     
+    // Article elements.
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
     
+    // Mnemonic word labels.
     @IBOutlet weak var word1: UILabel!
     @IBOutlet weak var word2: UILabel!
     @IBOutlet weak var word3: UILabel!
@@ -44,6 +48,7 @@ class Signup3ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         saveView.layer.cornerRadius = 13
         nextButton.setTitle("", for: .normal)
         cardView.layer.cornerRadius = 13
@@ -55,6 +60,7 @@ class Signup3ViewController: UIViewController {
         mnemonicView.layer.cornerRadius = 13
         articleButton.setTitle("", for: .normal)
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
@@ -81,6 +87,7 @@ class Signup3ViewController: UIViewController {
                 self.word11.text = individualWords[10]
                 self.word12.text = individualWords[11]
                 
+                // Send checkable words to Signup4VC.
                 let checkWords:[String] = [self.word2.text!, self.word7.text!, self.word9.text!]
                 let notificationDict = ["words":checkWords]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setcheckwords"), object: nil, userInfo: notificationDict) as Notification)
@@ -114,13 +121,14 @@ class Signup3ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
     override func viewDidAppear(_ animated: Bool) {
         
         let centerViewHeight = centerView.bounds.height
         
+        // Make sure view is scrollable for smaller phone screens.
         if centerView.bounds.height + 40 > contentView.bounds.height {
             
             NSLayoutConstraint.deactivate([self.contentViewHeight])

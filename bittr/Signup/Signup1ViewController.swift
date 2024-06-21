@@ -10,6 +10,8 @@ import BitcoinDevKit
 
 class Signup1ViewController: UIViewController {
 
+    // Create or Restore wallet view. First view new users see.
+    
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var buttonView: UIView!
     @IBOutlet weak var nextButton: UIButton!
@@ -33,6 +35,7 @@ class Signup1ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Corner radii and button titles.
         headerView.layer.cornerRadius = 13
         buttonView.layer.cornerRadius = 13
         restoreView.layer.cornerRadius = 13
@@ -49,27 +52,12 @@ class Signup1ViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        //NotificationCenter.default.addObserver(self, selector: #selector(didReceiveMnemonic), name: NSNotification.Name(rawValue: "setwords"), object: nil)
-    }
-    
-    
-    @objc func didReceiveMnemonic() {
-        
-        // Step 7.
-        
-        self.createWalletLabel.alpha = 1
-        self.nextButtonSpinner.stopAnimating()
-        
-        if nextTapped == true {
-            let notificationDict:[String: Any] = ["page":"0"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-            nextTapped = false
-        }
     }
     
     
     @objc func setSignupArticles(notification:NSNotification) {
         
+        // Set article image.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualArticle = userInfo[pageArticle1Slug] as? Article {
                 self.pageArticle1 = actualArticle
@@ -99,11 +87,6 @@ class Signup1ViewController: UIViewController {
     
 
     @IBAction func restoreButtonClicked(_ sender: UIButton) {
-        
-        /*let alert = UIAlertController(title: "Oops!", message: "It's currently not possible to restore another wallet into our app. Please contact us if you have questions.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-        self.present(alert, animated: true)
-        return*/
         
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
@@ -151,6 +134,18 @@ class Signup1ViewController: UIViewController {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
         
         self.didReceiveMnemonic()
+    }
+    
+    func didReceiveMnemonic() {
+        
+        self.createWalletLabel.alpha = 1
+        self.nextButtonSpinner.stopAnimating()
+        
+        if nextTapped == true {
+            let notificationDict:[String: Any] = ["page":"0"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            nextTapped = false
+        }
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
