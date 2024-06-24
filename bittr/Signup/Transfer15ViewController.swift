@@ -103,7 +103,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         }))
                         self.present(alert, animated: true)
                     }
-                } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == "empty" {
+                } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
                     // Notifications preference has been set but token hasn't been cached.
                     self.askForPushNotifications(sender: sender.accessibilityIdentifier!)
                 } else {
@@ -312,7 +312,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "xpub_addr_type": "bech32",
                     "xpub_path": "m/0/x",
                     "skip_xpub_usage_check": "true",
-                    "ios_device_token": CacheManager.getRegistrationToken()
+                    "ios_device_token": CacheManager.getRegistrationToken() ?? ""
                 ]
                 
                 do {

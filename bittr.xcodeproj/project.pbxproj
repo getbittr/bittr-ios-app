@@ -69,7 +69,6 @@
 		05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */; };
 		05C3C0B829CCC75600C1E695 /* Montserrat-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C0B729CCC75600C1E695 /* Montserrat-Regular.ttf */; };
 		05C3C0BA29CCC76100C1E695 /* Montserrat-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C0B929CCC76100C1E695 /* Montserrat-Bold.ttf */; };
-		05C3C0BC29CE75FA00C1E695 /* BlurEffectViewLight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */; };
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
 		05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */; };
@@ -179,7 +178,6 @@
 		05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreViewController.swift; sourceTree = "<group>"; };
 		05C3C0B729CCC75600C1E695 /* Montserrat-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Montserrat-Regular.ttf"; sourceTree = "<group>"; };
 		05C3C0B929CCC76100C1E695 /* Montserrat-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Montserrat-Bold.ttf"; sourceTree = "<group>"; };
-		05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurEffectViewLight.swift; sourceTree = "<group>"; };
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningPaymentViewController.swift; sourceTree = "<group>"; };
@@ -408,7 +406,6 @@
 		05C3C0B429CCBFDD00C1E695 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				05C3C0BB29CE75FA00C1E695 /* BlurEffectViewLight.swift */,
 				05980B552A46F892001F312F /* Device.swift */,
 				05980B532A46F7E4001F312F /* Client.swift */,
 				05980B512A46F76E001F312F /* IbanEntity.swift */,
@@ -694,7 +691,6 @@
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
-				05C3C0BC29CE75FA00C1E695 /* BlurEffectViewLight.swift in Sources */,
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */,
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
