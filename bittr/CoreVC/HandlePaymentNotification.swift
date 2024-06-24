@@ -306,7 +306,7 @@ extension CoreViewController {
                         let thisTransaction = Transaction()
                         thisTransaction.isBittr = false
                         thisTransaction.isLightning = true
-                        thisTransaction.id = paymentDetails.preimage ?? paymentHash
+                        thisTransaction.id = paymentDetails.id
                         thisTransaction.sent = 0
                         thisTransaction.received = Int(paymentDetails.amountMsat ?? 0)/1000
                         thisTransaction.timestamp = Int(Date().timeIntervalSince1970)

@@ -14,37 +14,24 @@ extension HomeViewController {
         
         // Set cached balance.
         if let cachedBalance = CacheManager.getCachedData(key: "balance") as? String {
-            if cachedBalance != "empty" {
                 
-                if let htmlData = cachedBalance.data(using: .unicode) {
-                    do {
-                        let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                        balanceLabel.attributedText = attributedText
-                        balanceLabel.alpha = 1
-                        bitcoinSign.alpha = 0.18
-                        
-                        balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
-                        
-                        satsSign.font = balanceLabelInvisible.adjustedFont()
-                        
-                        satsSign.alpha = 1
-                        //questionCircle.alpha = 0.4
-                    } catch let e as NSError {
-                        print("Couldn't fetch text: \(e.localizedDescription)")
-                    }
+            if let htmlData = cachedBalance.data(using: .unicode) {
+                do {
+                    let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                    balanceLabel.attributedText = attributedText
+                    balanceLabel.alpha = 1
+                    bitcoinSign.alpha = 0.18
+                    
+                    balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
+                    
+                    satsLabel.font = balanceLabelInvisible.adjustedFont()
+                    
+                    satsLabel.alpha = 1
+                } catch let e as NSError {
+                    print("Couldn't fetch text: \(e.localizedDescription)")
                 }
             }
         }
-        
-        // Set cached conversion.
-        /*if let cachedConversion = CacheManager.getCachedData(key: "conversion") as? String {
-            if cachedConversion != "empty" {
-                
-                self.conversionLabel.text = cachedConversion
-                self.balanceSpinner.stopAnimating()
-                self.conversionLabel.alpha = 1
-            }
-        }*/
         
         // Set cached Eur Value.
         if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
@@ -62,26 +49,19 @@ extension HomeViewController {
             self.setTransactions = cachedTransactions
             self.newTransactions = cachedTransactions
             self.lastCachedTransactions = cachedTransactions
-            
-            /*self.homeTableView.reloadData()
-            self.tableSpinner.stopAnimating()
-            self.homeTableView.alpha = 1
-            self.homeTableView.isUserInteractionEnabled = false*/
         }
         
         // Set conversion.
         if let actualCachedBalance = CacheManager.getCachedData(key: "satsbalance") as? String {
-            if actualCachedBalance != "empty" {
                 
-                self.bittrTransactions = NSMutableDictionary()
-                for eachTransaction in self.lastCachedTransactions {
-                    if eachTransaction.isBittr == true {
-                        self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
-                    }
+            self.bittrTransactions = NSMutableDictionary()
+            for eachTransaction in self.lastCachedTransactions {
+                if eachTransaction.isBittr == true {
+                    self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
                 }
-                
-                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: actualCachedBalance)!)/100000000, cachedData: true)
             }
+            
+            self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: actualCachedBalance)!)/100000000, cachedData: true)
         }
     }
 

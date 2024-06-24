@@ -12,5 +12,5 @@ class Client: NSObject {
     var id = ""
     var order = 0
     var ibanEntities = [IbanEntity]()
-    var didSetPin = false
+    
 }

@@ -14,7 +14,6 @@ extension CoreViewController {
         // Step 2.
         
         if let actualHomeVC = self.homeVC {
-            //actualHomeVC.fixGraphViewHeight()
             actualHomeVC.setClient()
         }
         
@@ -45,10 +44,6 @@ extension CoreViewController {
     
     
     @objc func hideSignup() {
-        
-        /*if let actualHomeVC = self.homeVC {
-            actualHomeVC.fixGraphViewHeight()
-        }*/
         
         // Hide signup view.
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {

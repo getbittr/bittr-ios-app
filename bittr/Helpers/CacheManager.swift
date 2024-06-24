@@ -526,7 +526,7 @@ class CacheManager: NSObject {
                 if let cachedBalance = actualCachedData[key] as? String {
                     return cachedBalance
                 } else {
-                    return "empty"
+                    return nil
                 }
             } else if key == "transactions" {
                 if let cachedTransactions = actualCachedData[key] as? [NSDictionary] {
@@ -535,25 +535,25 @@ class CacheManager: NSObject {
                     
                     return parsedTransactions
                 } else {
-                    return "empty"
+                    return nil
                 }
             } else if key == "conversion" {
                 if let cachedConversion = actualCachedData[key] as? String {
                     return cachedConversion
                 } else {
-                    return "empty"
+                    return nil
                 }
             } else if key == "eurvalue" {
                 if let cachedEurValue = actualCachedData[key] as? CGFloat {
                     return cachedEurValue
                 } else {
-                    return "empty"
+                    return nil
                 }
             } else if key == "chfvalue" {
                 if let cachedChfValue = actualCachedData[key] as? CGFloat {
                     return cachedChfValue
                 } else {
-                    return "empty"
+                    return nil
                 }
             } else if key == "satsbalance" {
                 if let cachedSatsBalance = actualCachedData[key] as? String {
@@ -562,11 +562,11 @@ class CacheManager: NSObject {
                     return nil
                 }
             } else {
-                return "empty"
+                return nil
             }
         } else {
             // No data has been cached yet.
-            return "empty"
+            return nil
         }
     }
     
@@ -577,7 +577,7 @@ class CacheManager: NSObject {
         defaults.set(token, forKey: "notificationstoken")
     }
     
-    static func getRegistrationToken() -> String {
+    static func getRegistrationToken() -> String? {
         
         let defaults = UserDefaults.standard
         let cachedToken = defaults.value(forKey: "notificationstoken") as? String
@@ -585,7 +585,7 @@ class CacheManager: NSObject {
         if let actualCachedToken = cachedToken {
             return actualCachedToken
         } else {
-            return "empty"
+            return nil
         }
     }
     

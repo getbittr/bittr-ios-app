@@ -45,10 +45,6 @@ extension HomeViewController {
                 }
             }
             
-            if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
-                self.lightningNodeService = actualLightningNodeService
-            }
-            
             if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
                 self.bdkBalance = CGFloat(actualBdkBalance)
             }
@@ -72,9 +68,9 @@ extension HomeViewController {
                 }
                 if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                     for eachPayment in receivedPayments {
-                        if eachPayment.preimage != nil {
-                            if !self.cachedLightningIds.contains(eachPayment.preimage!) {
-                                txIds += [eachPayment.preimage ?? "Lightning transaction"]
+                        if eachPayment.id != nil {
+                            if !self.cachedLightningIds.contains(eachPayment.id) {
+                                txIds += [eachPayment.id ?? "Lightning transaction"]
                             }
                         }
                     }
@@ -123,7 +119,7 @@ extension HomeViewController {
                         if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                             
                             for eachPayment in receivedPayments {
-                                if !self.cachedLightningIds.contains(eachPayment.preimage ?? "Lightning transaction") {
+                                if !self.cachedLightningIds.contains(eachPayment.id ?? "Lightning transaction") {
                                     let thisTransaction = Transaction()
                                     if eachPayment.direction == .inbound {
                                         thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
@@ -131,9 +127,9 @@ extension HomeViewController {
                                         thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
                                     }
                                     thisTransaction.isLightning = true
-                                    thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.hash)
-                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.hash)
-                                    thisTransaction.id = eachPayment.preimage ?? "Lightning transaction"
+                                    thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.id)
+                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.id)
+                                    thisTransaction.id = eachPayment.id ?? "Lightning transaction"
                                     thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
                                     if let actualChannels = self.channels {
                                         thisTransaction.channelId = actualChannels[0].channelId
@@ -159,22 +155,10 @@ extension HomeViewController {
                         
                         CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
                         
-                        // Step 11.
-                        /*let bitcoinViewModel = BitcoinViewModel()
-                        Task {
-                            print("Will fetch onchain balance.")
-                            await bitcoinViewModel.getTotalOnchainBalanceSats()
-                        }*/
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "settotalsats"), object: nil, userInfo: nil) as Notification)
                     }
                 }
             } else {
-                // Step 11.
-                /*let bitcoinViewModel = BitcoinViewModel()
-                Task {
-                    print("Will fetch onchain balance.")
-                    await bitcoinViewModel.getTotalOnchainBalanceSats()
-                }*/
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "settotalsats"), object: nil, userInfo: nil) as Notification)
             }
         }
@@ -324,7 +308,7 @@ extension HomeViewController {
         balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
         //balanceLabelInvisible.alpha = 1
         let font = balanceLabelInvisible.adjustedFont()
-        self.satsSign.font = font
+        self.satsLabel.font = font
         let adjustedSize = Int(font.pointSize)
         
         balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
@@ -338,11 +322,9 @@ extension HomeViewController {
                 balanceLabel.alpha = 1
                 bitcoinSign.alpha = bitcoinSignAlpha
                 if bitcoinSignAlpha == 1 {
-                    satsSign.alpha = 0
-                    questionCircle.alpha = 0
+                    satsLabel.alpha = 0
                 } else {
-                    satsSign.alpha = 1
-                    //questionCircle.alpha = 0.4
+                    satsLabel.alpha = 1
                 }
                 
                 // Step 14.
@@ -647,13 +629,13 @@ extension HomeViewController {
         }
         
         if cachedData == false {
-            self.yourWalletLabel.text = "your wallet"
-            self.yourWalletSpinner.stopAnimating()
+            self.headerLabel.text = "your wallet"
+            self.headerSpinner.stopAnimating()
             
             if self.couldNotFetchConversion == true {
-                self.walletProblemImage.alpha = 1
+                self.headerProblemImage.alpha = 1
             } else {
-                self.yourWalletLabelLeading.constant = -10
+                self.headerLabelLeading.constant = -10
             }
             
             if let actualCoreVC = self.coreVC {

@@ -68,8 +68,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var presetAmount:Double?
     var maximumSendableLNSats:Int?
     
-    var lightningNodeService:LightningNodeService?
-    
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var switchView: UIView!
     @IBOutlet weak var regularView: UIView!
@@ -884,7 +882,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                                                     if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                                                         
                                                         let newTransaction = Transaction()
-                                                        newTransaction.id = thisPayment.preimage ?? paymentHash
+                                                        newTransaction.id = thisPayment.id
                                                         newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
                                                         newTransaction.received = 0
                                                         newTransaction.isLightning = true

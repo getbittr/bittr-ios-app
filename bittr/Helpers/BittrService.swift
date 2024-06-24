@@ -11,18 +11,16 @@ class BittrService {
 
     static let shared = BittrService()
     private let baseURL = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
-    //private let baseURL = URL(string: "https://2489-81-20-241-228.ngrok-free.app/")!
     private let session = URLSession(configuration: .default)
     
     func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
         
-        // TODO: Correct URL?
+        // TODO: Public?
         var envUrl:String = "https://getbittr.com/api/payout/lightning"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envUrl = "https://model-arachnid-viable.ngrok-free.app/payout/lightning"
         }
-            
-        //var urlComponents = URLComponents(string: "https://2489-81-20-241-228.ngrok-free.app/payout/lightning")!
+        
         var urlComponents = URLComponents(string: envUrl)!
         urlComponents.queryItems = [
             URLQueryItem(name: "notification_id", value: notificationId),
@@ -64,8 +62,6 @@ class BittrService {
         let depositCodesString = depositCodes.joined(separator: ",")
         let messageString =  depositCodesString + txIdsString
         
-        //print("messageString: \(messageString)")
-        
         let lightningSignature: String
         
         do {
@@ -74,8 +70,8 @@ class BittrService {
             
             let lightningPubKey = LightningNodeService.shared.nodeId()
             
-            // TODO: Correct URL?
-            var envUrl = baseURL
+            // TODO: Public?
+            var envUrl = URL(string: "https://staging.getbittr.com/api/")!
             if UserDefaults.standard.value(forKey: "envkey") as? Int != 0 {
                 envUrl = URL(string: "https://getbittr.com/api/")!
             }
