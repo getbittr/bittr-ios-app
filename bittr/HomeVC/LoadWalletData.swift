@@ -159,22 +159,10 @@ extension HomeViewController {
                         
                         CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
                         
-                        // Step 11.
-                        /*let bitcoinViewModel = BitcoinViewModel()
-                        Task {
-                            print("Will fetch onchain balance.")
-                            await bitcoinViewModel.getTotalOnchainBalanceSats()
-                        }*/
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "settotalsats"), object: nil, userInfo: nil) as Notification)
                     }
                 }
             } else {
-                // Step 11.
-                /*let bitcoinViewModel = BitcoinViewModel()
-                Task {
-                    print("Will fetch onchain balance.")
-                    await bitcoinViewModel.getTotalOnchainBalanceSats()
-                }*/
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "settotalsats"), object: nil, userInfo: nil) as Notification)
             }
         }

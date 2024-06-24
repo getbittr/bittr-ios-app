@@ -31,7 +31,6 @@
 		0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0577C3F82AFA28180047A3DC /* BittrService.swift */; };
 		0579B2712A0530F80007891F /* SendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2702A0530F80007891F /* SendViewController.swift */; };
 		0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2722A0531470007891F /* ReceiveViewController.swift */; };
-		057A01512A836B1900CA0747 /* BitcoinViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057A01502A836B1900CA0747 /* BitcoinViewModel.swift */; };
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
@@ -54,7 +53,6 @@
 		05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD892B750FAF002F0282 /* LoadWalletData.swift */; };
 		05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */; };
 		05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */; };
-		05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */; };
 		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */; };
@@ -143,7 +141,6 @@
 		0577C3F82AFA28180047A3DC /* BittrService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrService.swift; sourceTree = "<group>"; };
 		0579B2702A0530F80007891F /* SendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendViewController.swift; sourceTree = "<group>"; };
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
-		057A01502A836B1900CA0747 /* BitcoinViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinViewModel.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		0595AB082B2EE7E900375498 /* WebsiteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteViewController.swift; sourceTree = "<group>"; };
@@ -163,7 +160,6 @@
 		05A8BD892B750FAF002F0282 /* LoadWalletData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadWalletData.swift; sourceTree = "<group>"; };
 		05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchAndPrint.swift; sourceTree = "<group>"; };
 		05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTable.swift; sourceTree = "<group>"; };
-		05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressViewModel.swift; sourceTree = "<group>"; };
 		05A965C12A6FBE1F00265BE6 /* MondayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MondayError.swift; sourceTree = "<group>"; };
 		05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer15ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
@@ -432,9 +428,7 @@
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
 				05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */,
 				05D5D0ED2A66852D00A1E771 /* Constants.swift */,
-				05A965BF2A6FBDDA00265BE6 /* AddressViewModel.swift */,
 				05A965C12A6FBE1F00265BE6 /* MondayError.swift */,
-				057A01502A836B1900CA0747 /* BitcoinViewModel.swift */,
 			);
 			path = Lightning;
 			sourceTree = "<group>";
@@ -671,7 +665,6 @@
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
 				05A2241329E6E56500F9861F /* GraphView.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
-				05A965C02A6FBDDA00265BE6 /* AddressViewModel.swift in Sources */,
 				0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,
 				056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */,
@@ -717,7 +710,6 @@
 				053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */,
 				05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */,
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
-				057A01512A836B1900CA0747 /* BitcoinViewModel.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,

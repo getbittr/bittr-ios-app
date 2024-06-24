@@ -36,7 +36,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var copyAddressButton: UIButton!
     @IBOutlet weak var refreshButton: UIButton!
     @IBOutlet weak var qrCodeLogoView: UIView!
-    //let addressViewModel = AddressViewModel()
     
     @IBOutlet weak var switchView: UIView!
     @IBOutlet weak var regularButton: UIButton!

@@ -8,9 +8,7 @@
 import Foundation
 import LDKNode
 import BitcoinDevKit
-//import KeychainSwift
 import bdkFFI
-//import LightningDevKit
 import LDKNodeFFI
 import Sentry
 
@@ -38,11 +36,9 @@ class LightningNodeService {
     
     init(network: LDKNode.Network) {
         
-        // Step 5.
-        
-        // TODO: Remove?
         try? FileManager.deleteLDKNodeLogLatestFile()
         
+        // TODO: Public?
         var correctListeningAddresses = ["0.0.0.0:9735"]
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             correctListeningAddresses = ["0.0.0.0:19735"]
@@ -56,13 +52,14 @@ class LightningNodeService {
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
+            // TODO: Public?
             //trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
             logLevel: .debug
         )
         
         let nodeBuilder = Builder.fromConfig(config: config)
         
-        // For now, the mnemonic can only be set once before the first-ever startup of the ldkNode. It cannot be changed later on.
+        // Check if mnenomic has already been created.
         var mnemonicString = ""
         if let actualMnemonic = CacheManager.getMnemonic() {
             // Mnemonic found in storage.
@@ -77,10 +74,6 @@ class LightningNodeService {
         }
         
         self.varMnemonicString = mnemonicString
-        
-        // Step 6.
-        //let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
         
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
@@ -172,6 +165,7 @@ class LightningNodeService {
                     wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, databaseConfig: .sqlite(config: config))
                 }
                 
+                // TODO: Public?
                 // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
                 var electrumUrl = "ssl://electrum.blockstream.info:50002"
                 if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -206,17 +200,12 @@ class LightningNodeService {
                 // Get the confirmed balance from the wallet
                 self.bdkBalance = Int(try wallet.getBalance().confirmed)
                 print("Did fetch onchain balance from BDK.")
-                // print("transactions: \(balance)")
                 
                 // Retrieve a list of transaction details from the wallet, excluding raw transaction data
                 walletTransactions = try wallet.listTransactions(includeRaw: false)
                 
                 // Print the balance and the list of wallet transactions
                 print("Did fetch BDK transactions.")
-                
-                // Uncomment the following lines to get a new address from the wallet
-                // let new_address = try wallet.getAddress(addressIndex: AddressIndex.new)
-                // print("new_address: \(new_address.address.asString())")
                 
                 let actualWalletTransactions = walletTransactions ?? [TransactionDetails]()
                 self.varWalletTransactions = actualWalletTransactions
@@ -243,6 +232,7 @@ class LightningNodeService {
     
     func connectToLightningPeer() {
         
+        // TODO: Public?
         // .testnet and .bitcoin
         let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
         let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]
@@ -265,7 +255,6 @@ class LightningNodeService {
                 }
                 print("Did connect to peer.")
                 return true
-                //self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
@@ -329,7 +318,6 @@ class LightningNodeService {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
                 print("Channels: \(channels.count)")
-                //print("Channels: \(channels)")
                 if channels.count > 0 {
                     if let channelTxoID = channels[0].fundingTxo?.txid as? String {
                         CacheManager.storeTxoID(txoID: channelTxoID)
@@ -337,10 +325,9 @@ class LightningNodeService {
                 }
                 
                 let payments = try await LightningNodeService.shared.listPayments()
-                print("Payments: \(payments.count)")
                 
                 var transactionsNotificationDict = [AnyHashable:Any]()
-                transactionsNotificationDict = ["transactions":actualWalletTransactions,"lightningnodeservice":self,"channels":channels, "payments":payments, "bdkbalance":bdkBalance, "currentheight":self.currentHeight]
+                transactionsNotificationDict = ["transactions":actualWalletTransactions/*,"lightningnodeservice":self*/,"channels":channels, "payments":payments, "bdkbalance":bdkBalance, "currentheight":self.currentHeight]
                 
                 // Step 9.
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
@@ -351,20 +338,18 @@ class LightningNodeService {
     }
     
     
-    func sendToOnchainAddress(address: LDKNode.Address, amountMsat: UInt64) throws -> Txid {
+    /*func sendToOnchainAddress(address: LDKNode.Address, amountMsat: UInt64) throws -> Txid {
         let txId = try ldkNode.sendToOnchainAddress(address: address, amountMsat: amountMsat)
         return txId
-    }
+    }*/
     
     
     func start() async throws {
         
-        // Step 4.
         if self.didInitiate == true {
             try ldkNode.start()
         }
     }
-    
     
     func stop() throws {
         try ldkNode.stop()
@@ -375,15 +360,15 @@ class LightningNodeService {
         return nodeID
     }
     
-    func newFundingAddress() async throws -> String {
+    /*func newFundingAddress() async throws -> String {
         let fundingAddress = try ldkNode.newOnchainAddress()
         return fundingAddress
-    }
+    }*/
     
-    func getTotalOnchainBalanceSats() async throws -> UInt64 {
+    /*func getTotalOnchainBalanceSats() async throws -> UInt64 {
         let balance = try ldkNode.totalOnchainBalanceSats()
         return balance
-    }
+    }*/
     
     func signMessage(message: String) async throws -> String {
         guard let data = message.data(using: .utf8) else {
@@ -403,7 +388,6 @@ class LightningNodeService {
     
     func listPayments() async throws -> [PaymentDetails] {
         let payments = ldkNode.listPayments()
-        //print(payments)
         return payments
     }
     
@@ -451,6 +435,9 @@ class LightningNodeService {
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
                     }
                 }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                print("Error getting transactions. \(errorString.title): \(errorString.detail)")
             } catch {
                 print("Error getting transactions. \(error.localizedDescription)")
             }
