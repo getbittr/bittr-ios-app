@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/twostraws/CodeScanner",
       "state" : {
-        "revision" : "944a6a1ca030dbd890e647a678e718fc2115d35c",
-        "version" : "2.4.1"
+        "revision" : "34da57fb63b47add20de8a85da58191523ccce57",
+        "version" : "2.5.0"
       }
     },
     {
@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
-        "branch" : "release/0.2",
-        "revision" : "bb28b9410e1c758ed0682dbb72d281b632434c83"
+        "branch" : "main",
+        "revision" : "bd9bd683201c1597d8930ac4118fa950cedfd56c"
       }
     },
     {
@@ -41,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/getsentry/sentry-cocoa/",
       "state" : {
-        "revision" : "7fc7ca43967e2980d8691a8e017c118a84133aac",
-        "version" : "8.26.0"
+        "revision" : "08862789e1cbba7a9561bed69832a9306f339cd3",
+        "version" : "8.29.1"
       }
     },
     {

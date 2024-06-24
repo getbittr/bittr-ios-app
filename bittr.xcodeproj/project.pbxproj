@@ -1077,7 +1077,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
 			requirement = {
-				branch = release/0.2;
+				branch = main;
 				kind = branch;
 			};
 		};
