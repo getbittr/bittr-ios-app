@@ -68,8 +68,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var presetAmount:Double?
     var maximumSendableLNSats:Int?
     
-    var lightningNodeService:LightningNodeService?
-    
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var switchView: UIView!
     @IBOutlet weak var regularView: UIView!

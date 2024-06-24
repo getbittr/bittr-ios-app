@@ -36,8 +36,6 @@ class MoveViewController: UIViewController {
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
-    var lightningNodeService:LightningNodeService?
-    
     var maximumSendableLNSats:Int?
     var maximumReceivableLNSats:Int?
     
@@ -188,10 +186,6 @@ class MoveViewController: UIViewController {
                 actualSendVC.maximumSendableLNSats = self.maximumSendableLNSats
                 if actualSendVC.maximumSendableLNSats! < 0 {
                     actualSendVC.maximumSendableLNSats = 0
-                }
-                
-                if let actualLightningNodeService = self.lightningNodeService {
-                    actualSendVC.lightningNodeService = actualLightningNodeService
                 }
                 
                 if let actualHomeVC = self.homeVC {

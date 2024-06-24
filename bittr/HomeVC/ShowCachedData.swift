@@ -24,10 +24,9 @@ extension HomeViewController {
                     
                     balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
                     
-                    satsSign.font = balanceLabelInvisible.adjustedFont()
+                    satsLabel.font = balanceLabelInvisible.adjustedFont()
                     
-                    satsSign.alpha = 1
-                    //questionCircle.alpha = 0.4
+                    satsLabel.alpha = 1
                 } catch let e as NSError {
                     print("Couldn't fetch text: \(e.localizedDescription)")
                 }

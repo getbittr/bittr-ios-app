@@ -12,79 +12,69 @@ import UserNotifications
 import LDKNodeFFI
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {
-
+    
+    // Home table view
+    @IBOutlet weak var homeTableView: UITableView!
+    @IBOutlet weak var tableSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var noTransactionsLabel: UILabel!
+    
+    // Table view header elements
+    @IBOutlet weak var balanceView: UIView!
     @IBOutlet weak var backgroundColorView: UIView!
     @IBOutlet weak var yellowCurve: UIImageView!
-    @IBOutlet weak var numberViewLeft: UIView!
-    @IBOutlet weak var numberViewMiddle: UIView!
-    @IBOutlet weak var numberViewSend: UIView!
-    @IBOutlet weak var numberViewReceive: UIView!
     
+    // Header: Balance card
     @IBOutlet weak var balanceCard: UIView!
-    @IBOutlet weak var homeTableView: UITableView!
-    @IBOutlet weak var balanceView: UIView!
-    @IBOutlet weak var balanceLabel: UILabel!
+    @IBOutlet weak var balanceCardTop: NSLayoutConstraint!
     @IBOutlet weak var balanceLabelInvisible: UILabel!
-    @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var conversionLabel: UILabel!
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var headerViewTop: NSLayoutConstraint!
     @IBOutlet weak var bitcoinSign: UIImageView!
-    @IBOutlet weak var satsSign: UILabel!
-    @IBOutlet weak var questionCircle: UIImageView!
+    @IBOutlet weak var balanceLabel: UILabel!
+    @IBOutlet weak var satsLabel: UILabel!
+    @IBOutlet weak var conversionLabel: UILabel!
+    @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var balanceCardButton: UIButton!
+    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
-    @IBOutlet weak var profitButton: UIButton!
-    @IBOutlet weak var goalButton: UIButton!
+    // Header: Balance card header view
+    @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var headerProblemImage: UIImageView!
+    @IBOutlet weak var headerLabel: UILabel!
+    @IBOutlet weak var headerLabelLeading: NSLayoutConstraint!
+    @IBOutlet weak var headerViewButton: UIButton!
+    
+    // Header: Lower buttons
+    @IBOutlet weak var sendButtonView: UIView!
+    @IBOutlet weak var receiveButtonView: UIView!
+    @IBOutlet weak var buyButtonView: UIView!
+    @IBOutlet weak var profitButtonView: UIView!
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var receiveButton: UIButton!
+    @IBOutlet weak var buyButton: UIButton!
+    @IBOutlet weak var profitButton: UIButton!
+    @IBOutlet weak var bittrProfitLabel: UILabel!
+    @IBOutlet weak var bittrProfitSpinner: UIActivityIndicatorView!
+    var calculatedProfit = 0
+    var calculatedInvestments = 0
+    var calculatedCurrentValue = 0
     
-    @IBOutlet weak var graphView: GraphView!
-    @IBOutlet weak var optionDayView: UIView!
-    @IBOutlet weak var optionWeekView: UIView!
-    @IBOutlet weak var optionMonthView: UIView!
-    @IBOutlet weak var optionYearView: UIView!
-    @IBOutlet weak var optionFiveYearsView: UIView!
-    @IBOutlet weak var dayButton: UIButton!
-    @IBOutlet weak var weekButton: UIButton!
-    @IBOutlet weak var monthButton: UIButton!
-    @IBOutlet weak var yearButton: UIButton!
-    @IBOutlet weak var fiveYearsButton: UIButton!
-    @IBOutlet weak var graphViewHeight: NSLayoutConstraint!
-    
-    @IBOutlet weak var tableSpinner: UIActivityIndicatorView!
-    
-    @IBOutlet weak var yourWalletLabel: UILabel!
-    @IBOutlet weak var yourWalletLabelLeading: NSLayoutConstraint!
-    @IBOutlet weak var yourWalletSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var walletProblemImage: UIImageView!
-    
-    var transactions = [["amount":"3 700", "euros":"30", "day":"Apr 17", "gain":"0 %"],["amount":"3 900", "euros":"30", "day":"Apr 10", "gain":"7 %"],["amount":"3 950", "euros":"30", "day":"Apr 3", "gain":"8 %"],["amount":"4 100", "euros":"30", "day":"Mar 27", "gain":"13 %"],["amount":"4 100", "euros":"30", "day":"Mar 20", "gain":"13 %"],["amount":"4 200", "euros":"30", "day":"Mar 13", "gain":"17 %"]]
+    // Transactions
     var setTransactions = [Transaction]()
     var newTransactions = [Transaction]()
     var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary()
     var cachedLightningIds = [String]()
+    var tappedTransaction = 0
     
-    @IBOutlet weak var bittrProfitLabel: UILabel!
-    @IBOutlet weak var bittrProfitSpinner: UIActivityIndicatorView!
-    var calculatedProfit = 0
-    var calculatedInvestments = 0
-    var calculatedCurrentValue = 0
-    @IBOutlet weak var balanceDetailsButton: UIButton!
-    
-    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
-    
-    let day:[CGFloat] = [64068, 64022, 64369, 63821, 64118, 64158, 64440, 64421]
-    let week:[CGFloat] = [66023, 64898, 60796, 60987, 63235, 62553, 63533, 64421]
-    let month:[CGFloat] = [62393, 65969, 65615, 62813, 62041, 58910, 64615, 64731, 64898, 63235, 64421]
-    let year:[CGFloat] = [25418, 25595, 24919, 28019, 26972, 23908, 26486, 33482, 38750, 40019, 39615, 57540, 64421]
-    let fiveYears:[CGFloat] = [9207, 8033, 8370, 15788, 50193, 29098, 56278, 35614, 20120, 25793, 26392, 64421]
-    
+    // Client details
     var client = Client()
+    
+    // Articles
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     
+    // Balance calculations
     var bdkBalance:CGFloat = 0.0
     var btcBalance:CGFloat = 0.0
     var btclnBalance:CGFloat = 0.0
@@ -94,62 +84,46 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var chfValue:CGFloat = 0.0
     var channels:[ChannelDetails]?
     var currentHeight:Int?
-    
     var bittrChannel:Channel?
     
-    var tappedTransaction = 0
-    
-    var lightningNodeService:LightningNodeService?
-    
+    // Booleans
     var didStartReset = false
     var didFetchConversion = false
     var couldNotFetchConversion = false
     
+    // Cove View Controller
     var coreVC:CoreViewController?
-    
-    @IBOutlet weak var balanceButton: UIButton!
-    @IBOutlet weak var syncingStatusButton: UIButton!
-    @IBOutlet weak var noTransactionsLabel: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        numberViewLeft.layer.cornerRadius = 13
-        numberViewMiddle.layer.cornerRadius = 13
-        numberViewSend.layer.cornerRadius = 13
-        numberViewReceive.layer.cornerRadius = 13
+        // Corner radii
+        profitButtonView.layer.cornerRadius = 13
+        buyButtonView.layer.cornerRadius = 13
+        sendButtonView.layer.cornerRadius = 13
+        receiveButtonView.layer.cornerRadius = 13
         headerView.layer.cornerRadius = 13
+        balanceCard.layer.cornerRadius = 13
         
+        // Button titles
         profitButton.setTitle("", for: .normal)
-        goalButton.setTitle("", for: .normal)
+        buyButton.setTitle("", for: .normal)
         sendButton.setTitle("", for: .normal)
         receiveButton.setTitle("", for: .normal)
-        balanceButton.setTitle("", for: .normal)
-        balanceDetailsButton.setTitle("", for: .normal)
-        syncingStatusButton.setTitle("", for: .normal)
+        balanceCardButton.setTitle("", for: .normal)
+        headerViewButton.setTitle("", for: .normal)
         
-        optionDayView.layer.cornerRadius = 13
-        optionWeekView.layer.cornerRadius = 13
-        optionMonthView.layer.cornerRadius = 13
-        optionYearView.layer.cornerRadius = 13
-        optionFiveYearsView.layer.cornerRadius = 13
-        
-        dayButton.setTitle("", for: .normal)
-        weekButton.setTitle("", for: .normal)
-        monthButton.setTitle("", for: .normal)
-        yearButton.setTitle("", for: .normal)
-        fiveYearsButton.setTitle("", for: .normal)
-        
-        balanceCard.layer.cornerRadius = 13
+        // Balance card shadow
         balanceCard.layer.shadowColor = UIColor.black.cgColor
         balanceCard.layer.shadowOffset = CGSize(width: 0, height: 7)
         balanceCard.layer.shadowRadius = 10.0
         balanceCard.layer.shadowOpacity = 0.1
         
+        // Table view
         homeTableView.delegate = self
         homeTableView.dataSource = self
         
-        //NotificationCenter.default.addObserver(self, selector: #selector(fixGraphViewHeight), name: NSNotification.Name(rawValue: "fixgraph"), object: nil)
+        // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "setclient"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
@@ -160,6 +134,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(moveButtonTapped), name: NSNotification.Name(rawValue: "openmovevc"), object: nil)
         
+        // Show cached data upon app startup.
         showCachedData()
     }
     
@@ -221,6 +196,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     override func viewDidLayoutSubviews() {
         
+        // Set correct top constraint and table insets.
         var bottomInset:CGFloat = 80
         var headerViewTopConstant:CGFloat = 90
         if #available(iOS 13.0, *) {
@@ -239,8 +215,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         homeTableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
-        headerViewTop.constant = headerViewTopConstant
+        balanceCardTop.constant = headerViewTopConstant
         
+        // Set header view.
         if let newHeaderView = homeTableView.tableHeaderView {
             let height = newHeaderView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
             var headerFrame = newHeaderView.frame
@@ -283,13 +260,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         performSegue(withIdentifier: "HomeToProfit", sender: self)
     }
     
-    @IBAction func goalButtonTapped(_ sender: UIButton) {
+    @IBAction func buyButtonTapped(_ sender: UIButton) {
         performSegue(withIdentifier: "HomeToGoal", sender: self)
     }
     
     @objc func moveButtonTapped() {
         
-        if self.yourWalletLabel.text == "syncing" {
+        // Balance Card tapped.
+        
+        if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
@@ -304,7 +283,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        if self.yourWalletLabel.text == "syncing" {
+        if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
@@ -327,7 +306,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
         
-        if self.yourWalletLabel.text == "syncing" {
+        if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
@@ -354,8 +333,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         performSegue(withIdentifier: "HomeToTransaction", sender: self)
     }
-    
-    @objc func fixGraphViewHeight() {}
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
@@ -395,10 +372,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         actualMoveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
                 }
-                
-                if let actualLightningNodeService = self.lightningNodeService {
-                    actualMoveVC.lightningNodeService = actualLightningNodeService
-                }
             }
         } else if segue.identifier == "HomeToSend" {
             let sendVC = segue.destination as? SendViewController
@@ -418,9 +391,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualSendVC.btclnAmount = self.btclnBalance.rounded() * 0.00000001
                 actualSendVC.eurValue = self.eurValue
                 actualSendVC.chfValue = self.chfValue
-                if let actualLightningNodeService = self.lightningNodeService {
-                    actualSendVC.lightningNodeService = actualLightningNodeService
-                }
                 actualSendVC.homeVC = self
             }
         } else if segue.identifier == "HomeToReceive" {
@@ -450,56 +420,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    @IBAction func graphButtonTapped(_ sender: UIButton) {
-        
-        switch sender.accessibilityIdentifier {
-        case "d":
-            self.graphView.data = self.day;
-            self.optionDayView.backgroundColor = .white;
-            self.optionWeekView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionMonthView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionYearView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionFiveYearsView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-        case "w":
-            self.graphView.data = self.week;
-            self.optionDayView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionWeekView.backgroundColor = .white;
-            self.optionMonthView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionYearView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionFiveYearsView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-        case "m":
-            self.graphView.data = self.month;
-            self.optionDayView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionWeekView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionMonthView.backgroundColor = .white;
-            self.optionYearView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionFiveYearsView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-        case "y":
-            self.graphView.data = self.year;
-            self.optionDayView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionWeekView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionMonthView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionYearView.backgroundColor = .white;
-            self.optionFiveYearsView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-        case "5y":
-            self.graphView.data = self.fiveYears;
-            self.optionDayView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionWeekView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionMonthView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionYearView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionFiveYearsView.backgroundColor = .white
-        default:
-            self.graphView.data = self.month;
-            self.optionDayView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionWeekView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionMonthView.backgroundColor = .white;
-            self.optionYearView.backgroundColor = UIColor(white: 1, alpha: 0.7);
-            self.optionFiveYearsView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-        }
-        
-    }
-    
-    
     @objc func resetWallet() {
         
         print("Reset wallet.")
@@ -518,17 +438,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.bittrProfitSpinner.startAnimating()
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
-        self.satsSign.alpha = 0
-        self.questionCircle.alpha = 0
+        self.satsLabel.alpha = 0
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         self.homeTableView.reloadData()
         self.tableSpinner.startAnimating()
         
-        self.yourWalletLabel.text = "syncing"
-        self.yourWalletLabelLeading.constant = 10
-        self.yourWalletSpinner.startAnimating()
-        self.walletProblemImage.alpha = 0
+        self.headerLabel.text = "syncing"
+        self.headerLabelLeading.constant = 10
+        self.headerSpinner.startAnimating()
+        self.headerProblemImage.alpha = 0
         self.couldNotFetchConversion = false
         self.didFetchConversion = false
         
@@ -537,7 +456,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         
-        if scrollView.contentOffset.y < -200, self.didStartReset == false, self.yourWalletLabel.text != "syncing" {
+        // Reload wallet when pulling down the view.
+        
+        if scrollView.contentOffset.y < -200, self.didStartReset == false, self.headerLabel.text != "syncing" {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -581,15 +502,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    @IBAction func balanceButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["question":"what are satoshis?","answer":"Named after bitcoin founder Satoshi Nakamoto, one satoshi is 0.00000001 bitcoin. It's the smallest denominator of the currency.\n\nWhen using bitcoin for small payments, it's therefore easier to use satoshis."]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
-    }
-    
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
         
-        if self.yourWalletLabel.text == "syncing" {
+        if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
@@ -602,13 +517,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
-        if self.yourWalletLabel.text != "syncing" {
+        if self.headerLabel.text != "syncing" {
             if self.couldNotFetchConversion == true {
                 let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             } else {
-                self.balanceDetailsButtonTapped(self.balanceDetailsButton)
+                self.balanceDetailsButtonTapped(self.balanceCardButton)
             }
         } else {
             if let actualCoreVC = self.coreVC {

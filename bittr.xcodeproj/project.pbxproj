@@ -42,7 +42,6 @@
 		05A21FBB2BE0BB5B000F32A2 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		05A21FBC2BE0BB5B000F32A2 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241029E6C98100F9861F /* HomeViewController.swift */; };
-		05A2241329E6E56500F9861F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241229E6E56500F9861F /* GraphView.swift */; };
 		05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD762B750446002F0282 /* IntroAnimation.swift */; };
 		05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD792B750567002F0282 /* Navigation.swift */; };
 		05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7B2B750838002F0282 /* ShowPin.swift */; };
@@ -148,7 +147,6 @@
 		05980B552A46F892001F312F /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		05980B572A46F8DA001F312F /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		05A2241029E6C98100F9861F /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
-		05A2241229E6E56500F9861F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
 		05A8BD762B750446002F0282 /* IntroAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroAnimation.swift; sourceTree = "<group>"; };
 		05A8BD792B750567002F0282 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 		05A8BD7B2B750838002F0282 /* ShowPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowPin.swift; sourceTree = "<group>"; };
@@ -272,7 +270,6 @@
 			isa = PBXGroup;
 			children = (
 				05A2241029E6C98100F9861F /* HomeViewController.swift */,
-				05A2241229E6E56500F9861F /* GraphView.swift */,
 				05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */,
 				05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */,
 				05A8BD872B750F82002F0282 /* ShowCachedData.swift */,
@@ -660,7 +657,6 @@
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
 				05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */,
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
-				05A2241329E6E56500F9861F /* GraphView.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
 				0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,

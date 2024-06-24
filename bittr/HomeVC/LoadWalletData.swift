@@ -45,10 +45,6 @@ extension HomeViewController {
                 }
             }
             
-            if let actualLightningNodeService = userInfo["lightningnodeservice"] as? LightningNodeService {
-                self.lightningNodeService = actualLightningNodeService
-            }
-            
             if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
                 self.bdkBalance = CGFloat(actualBdkBalance)
             }
@@ -312,7 +308,7 @@ extension HomeViewController {
         balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
         //balanceLabelInvisible.alpha = 1
         let font = balanceLabelInvisible.adjustedFont()
-        self.satsSign.font = font
+        self.satsLabel.font = font
         let adjustedSize = Int(font.pointSize)
         
         balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
@@ -326,11 +322,9 @@ extension HomeViewController {
                 balanceLabel.alpha = 1
                 bitcoinSign.alpha = bitcoinSignAlpha
                 if bitcoinSignAlpha == 1 {
-                    satsSign.alpha = 0
-                    questionCircle.alpha = 0
+                    satsLabel.alpha = 0
                 } else {
-                    satsSign.alpha = 1
-                    //questionCircle.alpha = 0.4
+                    satsLabel.alpha = 1
                 }
                 
                 // Step 14.
@@ -635,13 +629,13 @@ extension HomeViewController {
         }
         
         if cachedData == false {
-            self.yourWalletLabel.text = "your wallet"
-            self.yourWalletSpinner.stopAnimating()
+            self.headerLabel.text = "your wallet"
+            self.headerSpinner.stopAnimating()
             
             if self.couldNotFetchConversion == true {
-                self.walletProblemImage.alpha = 1
+                self.headerProblemImage.alpha = 1
             } else {
-                self.yourWalletLabelLeading.constant = -10
+                self.headerLabelLeading.constant = -10
             }
             
             if let actualCoreVC = self.coreVC {
