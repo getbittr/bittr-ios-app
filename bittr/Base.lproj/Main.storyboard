@@ -2600,92 +2600,6 @@
                                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" verticalCompressionResistancePriority="751" text="0.09 521 948 btc" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="16" translatesAutoresizingMaskIntoConstraints="NO" id="UW1-Wq-5yh" userLabel="Balance Label">
-                                                        <rect key="frame" x="122.66666666666667" y="169.99999999999997" width="147.66666666666663" height="20"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="mN9-Tl-JQt"/>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="tmo-Vz-jsi"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="20"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="252" verticalCompressionResistancePriority="751" text="€ 2 625" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" translatesAutoresizingMaskIntoConstraints="NO" id="Z8s-Tq-bcC" userLabel="Conversion Label">
-                                                        <rect key="frame" x="167.33333333333334" y="194.99999999999997" width="58.333333333333343" height="18"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="GfY-BD-IGi"/>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="LdJ-Ie-0Jr"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="18"/>
-                                                        <color key="textColor" white="0.0" alpha="0.40292823239999997" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <slider opaque="NO" alpha="0.0" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.072556469999999998" minValue="0.0" maxValue="0.10000000000000001" translatesAutoresizingMaskIntoConstraints="NO" id="mex-9B-cJE">
-                                                        <rect key="frame" x="68" y="237.99999999999997" width="257" height="31.000000000000028"/>
-                                                        <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <connections>
-                                                            <action selector="sliderTouchUpInside:" destination="Ymy-bc-1p0" eventType="touchUpInside" id="5ER-ZM-GE8"/>
-                                                            <action selector="sliderValueHasChanged:" destination="Ymy-bc-1p0" eventType="valueChanged" id="vWL-d8-r7z"/>
-                                                        </connections>
-                                                    </slider>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="BTC" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="2PH-5I-VuS">
-                                                        <rect key="frame" x="58.333333333333336" y="278" width="23.666666666666664" height="13"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="pMS-Ep-F2j"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="13"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="0.07255647" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7QY-cw-zXK" userLabel="BTC Balance">
-                                                        <rect key="frame" x="37.333333333333336" y="298" width="65.666666666666657" height="13"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="E42-SU-lsP"/>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="IBu-pH-q1T"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Regular" family="Gilroy-Regular" pointSize="13"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 2000" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="fJJ-h4-tMn" userLabel="BTC Euro">
-                                                        <rect key="frame" x="49" y="316" width="42.333333333333343" height="13"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="hvs-fc-Um2"/>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="plk-La-1z7"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Regular" family="Gilroy-Regular" pointSize="13"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="BTCLN" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xC1-xp-NxB" userLabel="BTCLN">
-                                                        <rect key="frame" x="303.66666666666669" y="278" width="38.666666666666686" height="13"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="dyw-9i-72e"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="13"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="0.02266301" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WO1-40-yFz" userLabel="BTCLN Balance">
-                                                        <rect key="frame" x="290.66666666666669" y="298" width="65" height="13"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="rsQ-uL-RpS"/>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="xFd-ew-QIb"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Regular" family="Gilroy-Regular" pointSize="13"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 625" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Njp-Cu-NcC" userLabel="BTCLN Euro">
-                                                        <rect key="frame" x="307.33333333333331" y="316" width="31.333333333333314" height="13"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="2Ju-Hr-JS5"/>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="jLS-K7-og6"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Regular" family="Gilroy-Regular" pointSize="13"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="2uj-3e-vge" userLabel="Yellow Card">
                                                         <rect key="frame" x="36.666666666666657" y="112.99999999999999" width="320" height="188.66666666666663"/>
                                                         <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
@@ -2981,44 +2895,24 @@
                                                     <constraint firstAttribute="trailing" secondItem="OaM-Ox-s6N" secondAttribute="trailing" id="1oQ-7u-4hF"/>
                                                     <constraint firstItem="kjg-5O-noo" firstAttribute="top" secondItem="qqy-g8-5Cb" secondAttribute="bottom" constant="10" id="3ze-Sp-vZf"/>
                                                     <constraint firstItem="sck-MY-2sN" firstAttribute="top" secondItem="nf6-yY-lRl" secondAttribute="top" id="5cH-fD-XO2"/>
-                                                    <constraint firstItem="fJJ-h4-tMn" firstAttribute="top" secondItem="7QY-cw-zXK" secondAttribute="bottom" constant="5" id="5jP-Pn-ej2"/>
                                                     <constraint firstItem="IjN-nT-JVg" firstAttribute="trailing" secondItem="qqy-g8-5Cb" secondAttribute="trailing" id="8aX-em-H7Q"/>
-                                                    <constraint firstItem="2PH-5I-VuS" firstAttribute="top" secondItem="mex-9B-cJE" secondAttribute="bottom" constant="10" id="DJR-t8-DcR"/>
                                                     <constraint firstItem="2uj-3e-vge" firstAttribute="leading" secondItem="qqy-g8-5Cb" secondAttribute="leading" constant="-10" id="EZd-yz-NB6"/>
-                                                    <constraint firstItem="7QY-cw-zXK" firstAttribute="top" secondItem="2PH-5I-VuS" secondAttribute="bottom" constant="7" id="Epe-kX-JwP"/>
                                                     <constraint firstItem="kjg-5O-noo" firstAttribute="leading" secondItem="qqy-g8-5Cb" secondAttribute="leading" id="GpF-0u-5ZK"/>
-                                                    <constraint firstItem="fJJ-h4-tMn" firstAttribute="centerX" secondItem="7QY-cw-zXK" secondAttribute="centerX" id="Gys-QW-WxO"/>
                                                     <constraint firstItem="6RS-rR-xGy" firstAttribute="centerX" secondItem="nf6-yY-lRl" secondAttribute="centerX" id="HVm-VH-EMD"/>
-                                                    <constraint firstItem="Z8s-Tq-bcC" firstAttribute="top" secondItem="UW1-Wq-5yh" secondAttribute="bottom" constant="5" id="JJB-aS-3V2"/>
-                                                    <constraint firstItem="mex-9B-cJE" firstAttribute="top" secondItem="Z8s-Tq-bcC" secondAttribute="bottom" constant="25" id="Myb-TG-waa"/>
-                                                    <constraint firstItem="mex-9B-cJE" firstAttribute="leading" secondItem="nf6-yY-lRl" secondAttribute="leading" constant="70" id="PZU-t3-NVi"/>
                                                     <constraint firstItem="OaM-Ox-s6N" firstAttribute="leading" secondItem="nf6-yY-lRl" secondAttribute="leading" id="Rxr-eh-Md5"/>
-                                                    <constraint firstItem="2PH-5I-VuS" firstAttribute="centerX" secondItem="7QY-cw-zXK" secondAttribute="centerX" id="SBh-gm-lEc"/>
                                                     <constraint firstItem="2uj-3e-vge" firstAttribute="top" secondItem="qqy-g8-5Cb" secondAttribute="top" constant="-10" id="XPz-y2-l8T"/>
                                                     <constraint firstItem="6RS-rR-xGy" firstAttribute="top" secondItem="sck-MY-2sN" secondAttribute="bottom" constant="25" id="XZn-BJ-6qr"/>
-                                                    <constraint firstItem="Z8s-Tq-bcC" firstAttribute="centerX" secondItem="nf6-yY-lRl" secondAttribute="centerX" id="Z5b-dV-Ent"/>
                                                     <constraint firstItem="IjN-nT-JVg" firstAttribute="top" secondItem="kjg-5O-noo" secondAttribute="top" id="a1y-Sk-Rb2"/>
                                                     <constraint firstItem="2uj-3e-vge" firstAttribute="trailing" secondItem="qqy-g8-5Cb" secondAttribute="trailing" constant="10" id="aBf-ZS-cSL"/>
-                                                    <constraint firstItem="WO1-40-yFz" firstAttribute="top" secondItem="xC1-xp-NxB" secondAttribute="bottom" constant="7" id="aRv-Hk-EjX"/>
                                                     <constraint firstItem="6RS-rR-xGy" firstAttribute="leading" secondItem="nf6-yY-lRl" secondAttribute="leading" constant="40" id="fr6-Pg-SED"/>
                                                     <constraint firstItem="2uj-3e-vge" firstAttribute="bottom" secondItem="kjg-5O-noo" secondAttribute="bottom" constant="10" id="gAt-f7-qiJ"/>
                                                     <constraint firstItem="qqy-g8-5Cb" firstAttribute="top" secondItem="6RS-rR-xGy" secondAttribute="bottom" constant="40" id="gbs-q8-4bJ"/>
-                                                    <constraint firstItem="UW1-Wq-5yh" firstAttribute="centerX" secondItem="nf6-yY-lRl" secondAttribute="centerX" id="hty-IV-Exb"/>
                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="100" id="jMv-UZ-uWG"/>
-                                                    <constraint firstItem="Z8s-Tq-bcC" firstAttribute="top" secondItem="UW1-Wq-5yh" secondAttribute="bottom" constant="5" id="jv3-pS-r85"/>
-                                                    <constraint firstItem="UW1-Wq-5yh" firstAttribute="top" secondItem="6RS-rR-xGy" secondAttribute="bottom" constant="87" id="lRl-BI-GY2"/>
-                                                    <constraint firstItem="Njp-Cu-NcC" firstAttribute="top" secondItem="WO1-40-yFz" secondAttribute="bottom" constant="5" id="mxi-Qz-SEq"/>
-                                                    <constraint firstItem="xC1-xp-NxB" firstAttribute="centerX" secondItem="WO1-40-yFz" secondAttribute="centerX" id="nxC-zk-dGn"/>
-                                                    <constraint firstItem="xC1-xp-NxB" firstAttribute="top" secondItem="mex-9B-cJE" secondAttribute="bottom" constant="10" id="pHQ-iN-cZF"/>
                                                     <constraint firstItem="sck-MY-2sN" firstAttribute="centerX" secondItem="nf6-yY-lRl" secondAttribute="centerX" id="pVa-ak-IBh"/>
                                                     <constraint firstAttribute="trailing" secondItem="6RS-rR-xGy" secondAttribute="trailing" constant="40" id="rdQ-OX-Vo2"/>
-                                                    <constraint firstItem="Njp-Cu-NcC" firstAttribute="centerX" secondItem="WO1-40-yFz" secondAttribute="centerX" id="s1t-Xp-Fpe"/>
-                                                    <constraint firstItem="7QY-cw-zXK" firstAttribute="centerX" secondItem="mex-9B-cJE" secondAttribute="leading" id="t7q-fA-ovb"/>
                                                     <constraint firstAttribute="bottom" secondItem="OaM-Ox-s6N" secondAttribute="bottom" id="tFT-0R-MMR"/>
-                                                    <constraint firstAttribute="trailing" secondItem="mex-9B-cJE" secondAttribute="trailing" constant="70" id="tKk-jk-suU"/>
                                                     <constraint firstItem="qqy-g8-5Cb" firstAttribute="centerX" secondItem="nf6-yY-lRl" secondAttribute="centerX" id="uvf-uQ-3MZ"/>
                                                     <constraint firstItem="OaM-Ox-s6N" firstAttribute="top" secondItem="kjg-5O-noo" secondAttribute="bottom" constant="45" id="vGu-6r-CtN"/>
-                                                    <constraint firstItem="WO1-40-yFz" firstAttribute="centerX" secondItem="mex-9B-cJE" secondAttribute="trailing" id="x25-NN-lr2"/>
                                                 </constraints>
                                             </view>
                                         </subviews>
@@ -3077,14 +2971,7 @@
                     </view>
                     <navigationItem key="navigationItem" id="TCI-mF-hIj"/>
                     <connections>
-                        <outlet property="balanceLabel" destination="UW1-Wq-5yh" id="kUD-cE-MaK"/>
-                        <outlet property="btcBalance" destination="7QY-cw-zXK" id="sI6-dg-rJq"/>
-                        <outlet property="btcEuro" destination="fJJ-h4-tMn" id="gSs-dS-eMA"/>
-                        <outlet property="btcSlider" destination="mex-9B-cJE" id="mMg-bd-8T6"/>
-                        <outlet property="btclnBalance" destination="WO1-40-yFz" id="yFQ-qo-2VX"/>
-                        <outlet property="btclnEuro" destination="Njp-Cu-NcC" id="gqE-Oh-leL"/>
                         <outlet property="conversionInstant" destination="cZH-YL-73N" id="Wi5-0V-lhC"/>
-                        <outlet property="conversionLabel" destination="Z8s-Tq-bcC" id="hUs-Dj-mYY"/>
                         <outlet property="conversionRegular" destination="yt2-Mv-hUP" id="dlN-jf-c10"/>
                         <outlet property="conversionTotal" destination="FQf-Tz-wKP" id="65f-JW-WA2"/>
                         <outlet property="downButton" destination="kw6-8V-6GB" id="WTn-2k-UXB"/>
