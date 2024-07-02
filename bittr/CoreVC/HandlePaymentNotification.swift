@@ -134,6 +134,8 @@ extension CoreViewController {
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         print("Did sign message.")
                         
+                        // TODO: Hide after testing.
+                        print(lightningSignature)
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         

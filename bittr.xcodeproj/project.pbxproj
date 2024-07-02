@@ -82,6 +82,9 @@
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
+		05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */; };
+		05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5F2C33E043004AE14F /* SendOnchain.swift */; };
+		05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB612C33E1CD004AE14F /* SendLightning.swift */; };
 		05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC22B88009E00AAA342 /* QuestionViewController.swift */; };
 		05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */; };
 		05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */; };
@@ -188,6 +191,9 @@
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05E743502A3581F9007755A2 /* RestoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewController.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
+		05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeScanner.swift; sourceTree = "<group>"; };
+		05F1FB5F2C33E043004AE14F /* SendOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendOnchain.swift; sourceTree = "<group>"; };
+		05F1FB612C33E1CD004AE14F /* SendLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLightning.swift; sourceTree = "<group>"; };
 		05F31CC22B88009E00AAA342 /* QuestionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionViewController.swift; sourceTree = "<group>"; };
 		05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchQuestion.swift; sourceTree = "<group>"; };
 		05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleBittrNotification.swift; sourceTree = "<group>"; };
@@ -261,6 +267,9 @@
 			children = (
 				053190E929FEE4F80072CE76 /* MoveViewController.swift */,
 				0579B2702A0530F80007891F /* SendViewController.swift */,
+				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
+				05F1FB5F2C33E043004AE14F /* SendOnchain.swift */,
+				05F1FB612C33E1CD004AE14F /* SendLightning.swift */,
 				0579B2722A0531470007891F /* ReceiveViewController.swift */,
 			);
 			path = Move;
@@ -654,11 +663,13 @@
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
 				05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */,
+				05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
 				05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */,
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
 				0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */,
+				05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,
 				056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */,
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
@@ -699,6 +710,7 @@
 				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,
 				05980B542A46F7E4001F312F /* Client.swift in Sources */,
 				05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */,
+				05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */,
 				053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */,
 				05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */,
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
