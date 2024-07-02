@@ -38,9 +38,7 @@ extension SendViewController {
                 }
             }
         } else {
-            let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "Okay", style: .default))
-            present(ac, animated: true)
+            self.showErrorMessage(alertTitle: "Scanning not supported", alertMessage: "Your device does not support scanning a code from an item. Please use a device with a camera.", alertButton: "Okay")
         }
     }
     
@@ -114,12 +112,10 @@ extension SendViewController {
         }
         
         if !code.contains("bitcoin") && !code.lowercased().contains("ln") {
-             // No valid address.
-             self.toTextField.text = nil
-             self.amountTextField.text = nil
-             let ac = UIAlertController(title: "No address found.", message: "Please scan a bitcoin or lightning address QR code or input the address manually.", preferredStyle: .alert)
-             ac.addAction(UIAlertAction(title: "Okay", style: .default))
-             present(ac, animated: true)
+            // No valid address.
+            self.toTextField.text = nil
+            self.amountTextField.text = nil
+            self.showErrorMessage(alertTitle: "No address found.", alertMessage: "Please scan a bitcoin or lightning address QR code or input the address manually.", alertButton: "Okay")
          } else {
              // Valid address
              let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
@@ -149,9 +145,7 @@ extension SendViewController {
              } else {
                  self.toTextField.text = nil
                  self.amountTextField.text = nil
-                 let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
-                 ac.addAction(UIAlertAction(title: "Okay", style: .default))
-                 present(ac, animated: true)
+                 self.showErrorMessage(alertTitle: "No bitcoin address found.", alertMessage: "Please scan a bitcoin address QR code or input the address manually.", alertButton: "Okay")
              }
         }
         

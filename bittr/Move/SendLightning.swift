@@ -91,27 +91,17 @@ extension SendViewController {
                                                 self.present(alert, animated: true)
                                             } else {
                                                 // Payment came back failed.
-                                                let alert = UIAlertController(title: "Payment failed", message: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                                self.present(alert, animated: true)
+                                                self.showErrorMessage(alertTitle: "Payment failed", alertMessage: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", alertButton: "Okay")
                                             }
                                         } else {
                                             // Success alert
-                                            let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
-                                            alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                            self.present(alert, animated: true)
+                                            self.showErrorMessage(alertTitle: "Payment successful", alertMessage: "Payment hash: \(paymentHash)", alertButton: "Okay")
                                         }
                                         
                                         self.nextLabel.alpha = 1
                                         self.nextSpinner.stopAnimating()
-                                        self.toTextField.text = nil
                                         
-                                        self.invoiceLabel.text = nil
-                                        self.toTextFieldHeight.constant = 0
-                                        self.toTextField.text = nil
-                                        self.amountTextField.text = nil
-                                        self.toTextFieldTop.constant = 5
-                                        self.invoiceLabelTop.constant = 10
+                                        self.resetFields()
                                     }
                                 } catch let error as NodeError {
                                     let errorString = handleNodeError(error)
@@ -121,9 +111,7 @@ extension SendViewController {
                                         self.nextLabel.alpha = 1
                                         self.nextSpinner.stopAnimating()
                                         
-                                        let alert = UIAlertController(title: "Payment Error", message: errorString.detail, preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                        self.present(alert, animated: true)
+                                        self.showErrorMessage(alertTitle: "Payment Error", alertMessage: errorString.detail, alertButton: "Okay")
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -134,9 +122,7 @@ extension SendViewController {
                                         self.nextLabel.alpha = 1
                                         self.nextSpinner.stopAnimating()
                                         
-                                        let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                        self.present(alert, animated: true)
+                                        self.showErrorMessage(alertTitle: "Unexpected Error", alertMessage: error.localizedDescription, alertButton: "Okay")
                                         
                                         SentrySDK.capture(error: error)
                                     }

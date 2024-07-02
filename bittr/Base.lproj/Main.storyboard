@@ -3097,7 +3097,7 @@
                                                                     </label>
                                                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="x6e-Uj-Ogw" userLabel="Regular Button">
                                                                         <rect key="frame" x="0.0" y="0.0" width="97.666666666666671" height="45"/>
-                                                                        <accessibility key="accessibilityConfiguration" identifier="regular"/>
+                                                                        <accessibility key="accessibilityConfiguration" identifier="onchain"/>
                                                                         <state key="normal" title="Button"/>
                                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                                         <connections>
@@ -3139,7 +3139,7 @@
                                                                     </label>
                                                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Hdf-11-vf6">
                                                                         <rect key="frame" x="0.0" y="0.0" width="112" height="45"/>
-                                                                        <accessibility key="accessibilityConfiguration" identifier="instant"/>
+                                                                        <accessibility key="accessibilityConfiguration" identifier="lightning"/>
                                                                         <state key="normal" title="Button"/>
                                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                                         <connections>

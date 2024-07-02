@@ -32,11 +32,8 @@ extension SendViewController {
                 // Fields are left empty or the amount if set to zero.
                 
             } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
-                
                 // Insufficient funds available.
-                let alert = UIAlertController(title: "Oops!", message: "Make sure the amount of BTC you wish to send is within your spendable balance.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "Make sure the amount of BTC you wish to send is within your spendable balance.", alertButton: "Okay")
             } else {
             
                 self.nextLabel.alpha = 0
@@ -135,9 +132,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error).", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                self.present(alert, animated: true)
+                                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error).", alertButton: "Okay")
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -147,9 +142,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                let alert = UIAlertController(title: "Oops!", message: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .default))
-                                self.present(alert, animated: true)
+                                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", alertButton: "Okay")
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -173,9 +166,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
-                ac.addAction(UIAlertAction(title: "Okay", style: .default))
-                present(ac, animated: true)
+                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
             }
         case "medium":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -185,9 +176,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
-                ac.addAction(UIAlertAction(title: "Okay", style: .default))
-                present(ac, animated: true)
+                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
             }
         case "slow":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -197,9 +186,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsSlow.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
-                ac.addAction(UIAlertAction(title: "Okay", style: .default))
-                present(ac, animated: true)
+                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
             }
         default:
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -209,9 +196,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                let ac = UIAlertController(title: "High fee rate", message: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", preferredStyle: .alert)
-                ac.addAction(UIAlertAction(title: "Okay", style: .default))
-                present(ac, animated: true)
+                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
             }
         }
     }
@@ -298,12 +283,9 @@ extension SendViewController {
                                 
                                 self.performSegue(withIdentifier: "SendToTransaction", sender: self)
                                 
-                                self.invoiceLabel.text = nil
-                                self.toTextFieldHeight.constant = 0
-                                self.toTextField.text = nil
-                                self.amountTextField.text = nil
-                                self.toTextFieldTop.constant = 5
-                                self.invoiceLabelTop.constant = 10
+                                self.resetFields()
+                                
+                                // Slide back to leftmost scroll view.
                                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                                     NSLayoutConstraint.deactivate([self.scrollViewTrailing])
                                     self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
@@ -315,23 +297,22 @@ extension SendViewController {
                         }
                     } catch {
                         print("Transaction error: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error)
-                            let alert = UIAlertController(title: "Error", message: "We're unable to complete your transaction. We're receiving the following error message: \(error.localizedDescription).", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                            self.present(alert, animated: true)
-                        }
+                        self.showErrorMessage(alertTitle: "Error", alertMessage: "We're unable to complete your transaction. We're receiving the following error message: \(error.localizedDescription).", alertButton: "Okay")
                     }
                 }
             } else {
                 print("Wallet or Blockchain instance not available.")
-                DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Error", message: "We're unable to complete your transaction. Please close and reopen our app and try again.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                    self.present(alert, animated: true)
-                }
+                self.showErrorMessage(alertTitle: "Error", alertMessage: "We're unable to complete your transaction. Please close and reopen our app and try again.", alertButton: "Okay")
             }
         }))
         self.present(alert, animated: true)
+    }
+    
+    func showErrorMessage(alertTitle:String, alertMessage:String, alertButton:String) {
+        DispatchQueue.main.async {
+            let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+        }
     }
 }

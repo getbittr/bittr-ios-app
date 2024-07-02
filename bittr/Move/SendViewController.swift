@@ -395,11 +395,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
+        // Show new transaction in TransactionVC.
         if segue.identifier == "SendToTransaction" {
             let transactionVC = segue.destination as? TransactionViewController
             if let actualTransactionVC = transactionVC {
                 if let actualCompletedTransaction = self.completedTransaction {
-                    
                     actualTransactionVC.tappedTransaction = actualCompletedTransaction
                     actualTransactionVC.eurValue = (CacheManager.getCachedData(key: "eurvalue") as? CGFloat)!
                     actualTransactionVC.chfValue = (CacheManager.getCachedData(key: "chfvalue") as? CGFloat)!
@@ -411,93 +411,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
-        self.invoiceLabel.text = nil
-        self.toTextFieldHeight.constant = 0
-        self.toTextField.text = nil
-        self.amountTextField.text = nil
-        self.toTextFieldTop.constant = 5
-        self.invoiceLabelTop.constant = 10
-        if let actualCaptureSession = captureSession {
-            actualCaptureSession.stopRunning()
-        }
+        // Reset fields.
+        self.resetFields()
         
-        if sender.accessibilityIdentifier == "regular" {
-            // Regular
-            self.onchainOrLightning = "onchain"
-            
-            self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
-            self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                
-                self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
-                self.toLabel.text = "Address"
-                self.toTextField.placeholder = "Enter address"
-                
-                self.toLabel.alpha = 1
-                self.toView.alpha = 1
-                self.pasteButton.alpha = 1
-                self.amountView.alpha = 1
-                self.amountLabel.alpha = 1
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                //self.nextView.alpha = 1
-                self.scannerView.alpha = 0
-                //self.nextViewTop.constant = -30
-                self.nextLabel.text = "Next"
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.setSendAllLabel(forView: "onchain")
-                self.availableAmountTop.constant = 10
-                self.availableButtonTop.constant = 0
-                self.availableAmountCenterX.constant = 0
-                self.questionCircle.alpha = 0
-                
-                self.view.layoutIfNeeded()
-            }
-        } else {
-            // Instant
-            self.onchainOrLightning = "lightning"
-            
-            self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                
-                self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
-                self.toLabel.text = "Invoice"
-                self.toTextField.placeholder = "Enter invoice"
-                
-                self.toLabel.alpha = 1
-                self.toView.alpha = 1
-                self.pasteButton.alpha = 1
-                self.amountView.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableButton.alpha = 1
-                self.scannerView.alpha = 0
-                self.nextLabel.text = "Next"
-                self.availableAmount.alpha = 1
-                self.availableAmountTop.constant = -75
-                self.availableButtonTop.constant = -85
-                self.availableAmountCenterX.constant = -10
-                self.questionCircle.alpha = 1
-                
-                if let actualMaxAmount = self.maximumSendableLNSats {
-                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                } else {
-                    self.availableAmount.text = "You can send 0 satoshis."
-                }
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.view.layoutIfNeeded()
-            }
-        }
+        // Switch view.
+        self.onchainOrLightning = sender.accessibilityIdentifier ?? self.onchainOrLightning
+        self.hideScannerView(forView: self.onchainOrLightning)
     }
     
     @IBAction func feeButtonTapped(_ sender: UIButton) {

@@ -9,6 +9,15 @@ import UIKit
 
 extension SendViewController {
     
+    func resetFields() {
+        self.invoiceLabel.text = nil
+        self.toTextFieldHeight.constant = 0
+        self.toTextField.text = nil
+        self.amountTextField.text = nil
+        self.toTextFieldTop.constant = 5
+        self.invoiceLabelTop.constant = 10
+    }
+    
     func hideScannerView(forView:String) {
         
         if let actualCaptureSession = captureSession {
@@ -24,15 +33,22 @@ extension SendViewController {
         self.setSendAllLabel(forView: forView)
         self.availableAmount.alpha = 1
         
+        if forView == "onchain" {
+            self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
+            self.toLabel.text = "Address"
+            self.toTextField.placeholder = "Enter address"
+        } else {
+            self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
+            self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
+            self.toLabel.text = "Invoice"
+            self.toTextField.placeholder = "Enter invoice"
+        }
+        
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             if forView == "onchain" {
-                
-                self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
-                self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-                self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
-                self.toLabel.text = "Address"
-                self.toTextField.placeholder = "Enter address"
-                
                 self.amountView.alpha = 1
                 self.amountLabel.alpha = 1
                 self.availableAmountTop.constant = 10
@@ -40,13 +56,6 @@ extension SendViewController {
                 self.availableAmountCenterX.constant = 0
                 self.questionCircle.alpha = 0
             } else {
-                
-                self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-                self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
-                self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
-                self.toLabel.text = "Invoice"
-                self.toTextField.placeholder = "Enter invoice"
-                
                 self.amountView.alpha = 0
                 self.amountLabel.alpha = 0
                 self.availableAmountTop.constant = -75
