@@ -113,6 +113,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var btcAmount:Double = 0.0
     var btclnAmount:Double = 0.0
     var maximumSendableLNSats:Int?
+    var maximumSendableOnchainBtc:Double?
     var feeLow:Float = 0.0
     var feeMedium:Float = 0.0
     var feeHigh:Float = 0.0
@@ -194,9 +195,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if forView == "onchain" {
             // Set "Send all" for onchain transactions.
-            let numberFormatter = NumberFormatter()
-            numberFormatter.numberStyle = .decimal
-            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
+                let numberFormatter = NumberFormatter()
+                numberFormatter.numberStyle = .decimal
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            } else {
+                self.maximumSendableOnchainBtc = self.getMaximumSendableSats()
+                let numberFormatter = NumberFormatter()
+                numberFormatter.numberStyle = .decimal
+                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            }
         } else {
             // Set "Send all" for lightning payments.
             if let actualMaxAmount = self.maximumSendableLNSats {
@@ -273,7 +281,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             // Regular
             let numberFormatter = NumberFormatter()
             numberFormatter.numberStyle = .decimal
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)"
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
         } else {
             // Instant
             let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel.","type":"lightningsendable"]

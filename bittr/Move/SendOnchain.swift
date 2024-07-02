@@ -132,7 +132,12 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error).", alertButton: "Okay")
+                                if "\(error)".contains("InsufficientFunds") {
+                                    let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
+                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. \(condensedMessage).", alertButton: "Okay")
+                                } else {
+                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error).", alertButton: "Okay")
+                                }
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -313,6 +318,40 @@ extension SendViewController {
             let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
             self.present(alert, animated: true)
+        }
+    }
+    
+    func getMaximumSendableSats() -> Double? {
+        
+        if let actualWallet = LightningNodeService.shared.getWallet() {
+            do {
+                let actualAddress:String = try actualWallet.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
+                let actualAmount:Int = Int(try actualWallet.getBalance().spendable)
+                var address = try Address(address: actualAddress, network: .bitcoin)
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    address = try Address(address: actualAddress, network: .testnet)
+                }
+                let script = address.scriptPubkey()
+                let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
+                let details = try txBuilder.finish(wallet: actualWallet)
+                let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
+                
+                return nil
+            } catch let error as BdkError {
+                if "\(error)".contains("InsufficientFunds") {
+                    let satsReservation:Double = CGFloat(truncating: NumberFormatter().number(from: String("\(error)".split(separator: " ")[7])) ?? 0) * 0.00000001
+                    let requiredCorrection:Double = self.btcAmount - satsReservation
+                    let spendableBtcAmount = self.btcAmount + requiredCorrection
+                    
+                    return spendableBtcAmount
+                } else {
+                    return nil
+                }
+            } catch {
+                return nil
+            }
+        } else {
+            return nil
         }
     }
 }
