@@ -110,9 +110,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var slowButton: UIButton!
     
     // Variables
-    var btcAmount = 0.07255647
-    var btclnAmount = 0.02266301
-    var presetAmount:Double?
+    var btcAmount:Double = 0.0
+    var btclnAmount:Double = 0.0
     var maximumSendableLNSats:Int?
     var feeLow:Float = 0.0
     var feeMedium:Float = 0.0
@@ -181,7 +180,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         amountTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
-        setSendAllLabel()
+        self.setSendAllLabel(forView: "onchain")
     }
     
     func setShadows(forView:UIView) {
@@ -191,28 +190,29 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         forView.layer.shadowOpacity = 0.1
     }
     
-    func setSendAllLabel() {
+    func setSendAllLabel(forView:String) {
         
-        // Set "Send all" for onchain transactions.
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .decimal
-        self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        
-        if (captureSession?.isRunning == false) {
-            DispatchQueue.global(qos: .background).async {
-                self.captureSession.startRunning()
+        if forView == "onchain" {
+            // Set "Send all" for onchain transactions.
+            let numberFormatter = NumberFormatter()
+            numberFormatter.numberStyle = .decimal
+            self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+        } else {
+            // Set "Send all" for lightning payments.
+            if let actualMaxAmount = self.maximumSendableLNSats {
+                self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+            } else {
+                self.availableAmount.text = "You can send 0 satoshis."
             }
         }
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+    }
+    
     override func viewWillDisappear(_ animated: Bool) {
-        
         if (captureSession?.isRunning == true) {
             captureSession.stopRunning()
         }
@@ -312,36 +312,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.selectedInput = "qr"
         self.view.endEditing(true)
         
-        if fixQrScanner() == true {
-            // Open QR scanner.
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.toLabel.alpha = 0
-                self.toView.alpha = 0
-                self.pasteButton.alpha = 0
-                self.amountView.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableAmount.alpha = 0
-                self.availableButton.alpha = 0
-                self.scannerView.alpha = 1
-                self.nextLabel.text = "Manual input"
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.scannerView, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.view.layoutIfNeeded()
-            }
-            
-            if (self.captureSession?.isRunning == false) {
-                DispatchQueue.global(qos: .background).async {
-                    self.captureSession.startRunning()
-                }
-            }
-        } else {
-            let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "Okay", style: .default))
-            present(ac, animated: true)
-        }
+        self.showScannerView()
     }
     
     @IBAction func keyboardButtonTapped(_ sender: UIButton) {
@@ -383,69 +354,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             // Confirm lightning payment.
             self.confirmLightningTransaction()
         } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "onchain" {
-            
-            if let actualCaptureSession = captureSession {
-                actualCaptureSession.stopRunning()
-            }
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                
-                self.toLabel.alpha = 1
-                self.toView.alpha = 1
-                self.pasteButton.alpha = 1
-                self.amountView.alpha = 1
-                self.amountLabel.alpha = 1
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                self.scannerView.alpha = 0
-                self.nextLabel.text = "Next"
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.setSendAllLabel()
-                self.availableAmountTop.constant = 10
-                self.availableButtonTop.constant = 0
-                self.availableAmountCenterX.constant = 0
-                self.questionCircle.alpha = 0
-                
-                self.view.layoutIfNeeded()
-            }
+            // Hide QR scanner, show onchain.
+            self.hideScannerView(forView: "onchain")
         } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "lightning" {
-            
-            if let actualCaptureSession = captureSession {
-                actualCaptureSession.stopRunning()
-            }
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                
-                self.toLabel.alpha = 1
-                self.toView.alpha = 1
-                self.pasteButton.alpha = 1
-                self.amountView.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableButton.alpha = 1
-                self.scannerView.alpha = 0
-                self.nextLabel.text = "Next"
-                self.availableAmount.alpha = 1
-                self.availableAmountTop.constant = -75
-                self.availableButtonTop.constant = -85
-                self.availableAmountCenterX.constant = -10
-                self.questionCircle.alpha = 1
-                
-                if let actualMaxAmount = self.maximumSendableLNSats {
-                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                } else {
-                    self.availableAmount.text = "You can send 0 satoshis."
-                }
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.view.layoutIfNeeded()
-            }
+            // Hide QR scanner, show lightning.
+            self.hideScannerView(forView: "lightning")
         }
     }
     
@@ -537,7 +450,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
                 NSLayoutConstraint.activate([self.nextViewTop])
                 
-                self.setSendAllLabel()
+                self.setSendAllLabel(forView: "onchain")
                 self.availableAmountTop.constant = 10
                 self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0

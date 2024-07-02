@@ -10,6 +10,40 @@ import AVFoundation
 
 extension SendViewController {
     
+    func showScannerView() {
+        
+        if fixQrScanner() == true {
+            // Open QR scanner.
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.toLabel.alpha = 0
+                self.toView.alpha = 0
+                self.pasteButton.alpha = 0
+                self.amountView.alpha = 0
+                self.amountLabel.alpha = 0
+                self.availableAmount.alpha = 0
+                self.availableButton.alpha = 0
+                self.scannerView.alpha = 1
+                self.nextLabel.text = "Manual input"
+                
+                NSLayoutConstraint.deactivate([self.nextViewTop])
+                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.scannerView, attribute: .bottom, multiplier: 1, constant: 30)
+                NSLayoutConstraint.activate([self.nextViewTop])
+                
+                self.view.layoutIfNeeded()
+            }
+            
+            if (self.captureSession?.isRunning == false) {
+                DispatchQueue.global(qos: .background).async {
+                    self.captureSession.startRunning()
+                }
+            }
+        } else {
+            let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "Okay", style: .default))
+            present(ac, animated: true)
+        }
+    }
+    
     func fixQrScanner() -> Bool {
         
         captureSession = AVCaptureSession()
@@ -72,11 +106,11 @@ extension SendViewController {
         // Check bitcoin or lightning in code to switch view if needed.
         var addressType = "onchain"
         if code.lowercased().contains("bitcoin") && code.lowercased().contains("ln") {
-            addressType = ""
+            addressType = self.onchainOrLightning
         } else if code.lowercased().contains("ln") || code.contains("lightning") {
             addressType = "lightning"
         } else if !code.contains("bitcoin") && !code.lowercased().contains("ln") {
-            addressType = ""
+            addressType = self.onchainOrLightning
         }
         
         if !code.contains("bitcoin") && !code.lowercased().contains("ln") {
@@ -87,150 +121,42 @@ extension SendViewController {
              ac.addAction(UIAlertAction(title: "Okay", style: .default))
              present(ac, animated: true)
          } else {
-             
-            let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
-            let components = address.components(separatedBy: "?")
-            if let bitcoinAddress = components.first {
-                // Success.
-                self.toTextField.alpha = 0
-                self.invoiceLabel.text = bitcoinAddress
-                self.invoiceLabel.alpha = 1
-                self.invoiceLabelTop.constant = 20
-                
-                if components.count > 1 {
-                    if components[1].contains("amount") {
-                        //let bitcoinAmount = components[1].replacingOccurrences(of: "amount=", with: "")
-                        
-                        let amountString = components[1].components(separatedBy: "&")
-                        
-                        let numberFormatter = NumberFormatter()
-                        numberFormatter.numberStyle = .decimal
-                        let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)) ?? 0).decimalValue as NSNumber
-                        
-                        self.amountTextField.text = "\(bitcoinAmount)"
-                    } else {
-                        self.amountTextField.text = nil
-                    }
-                } else {
-                    self.amountTextField.text = nil
-                }
-            } else {
-                self.toTextField.text = nil
-                self.amountTextField.text = nil
-                let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
-                ac.addAction(UIAlertAction(title: "Okay", style: .default))
-                present(ac, animated: true)
-            }
+             // Valid address
+             let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
+             let components = address.components(separatedBy: "?")
+             if let bitcoinAddress = components.first {
+                 // Success.
+                 self.toTextField.alpha = 0
+                 self.invoiceLabel.text = bitcoinAddress
+                 self.invoiceLabel.alpha = 1
+                 self.invoiceLabelTop.constant = 20
+                 
+                 if components.count > 1 {
+                     if components[1].contains("amount") {
+                         let amountString = components[1].components(separatedBy: "&")
+                         
+                         let numberFormatter = NumberFormatter()
+                         numberFormatter.numberStyle = .decimal
+                         let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)) ?? 0).decimalValue as NSNumber
+                         
+                         self.amountTextField.text = "\(bitcoinAmount)"
+                     } else {
+                         self.amountTextField.text = nil
+                     }
+                 } else {
+                     self.amountTextField.text = nil
+                 }
+             } else {
+                 self.toTextField.text = nil
+                 self.amountTextField.text = nil
+                 let ac = UIAlertController(title: "No bitcoin address found.", message: "Please scan a bitcoin address QR code or input the address manually.", preferredStyle: .alert)
+                 ac.addAction(UIAlertAction(title: "Okay", style: .default))
+                 present(ac, animated: true)
+             }
         }
         
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            
-            self.scannerView.alpha = 0
-            self.toLabel.alpha = 1
-            self.toView.alpha = 1
-            
-            if addressType == "onchain" {
-                
-                self.onchainOrLightning = "onchain"
-                self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
-                self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-                self.topLabel.text = "Send bitcoin from your bitcoin wallet to another bitcoin wallet. Scan a QR code or input manually."
-                self.toLabel.text = "Address"
-                self.toTextField.placeholder = "Enter address"
-                
-                self.pasteButton.alpha = 1
-                self.amountLabel.alpha = 1
-                self.amountView.alpha = 1
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                self.nextLabel.text = "Next"
-                //self.nextViewTop.constant = -30
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.setSendAllLabel()
-                self.availableAmountTop.constant = 10
-                self.availableButtonTop.constant = 0
-                self.availableAmountCenterX.constant = 0
-                self.questionCircle.alpha = 0
-                
-            } else if addressType == "lightning" {
-                
-                self.onchainOrLightning = "lightning"
-                self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-                self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
-                self.topLabel.text = "Send bitcoin from your bitcoin lightning wallet to another bitcoin lightning wallet."
-                self.toLabel.text = "Invoice"
-                self.toTextField.placeholder = "Enter invoice"
-                
-                self.pasteButton.alpha = 1
-                self.amountView.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                self.nextLabel.text = "Next"
-                self.nextViewTop.constant = -120
-                self.availableAmountTop.constant = -75
-                self.availableButtonTop.constant = -85
-                self.availableAmountCenterX.constant = -10
-                self.questionCircle.alpha = 1
-                
-                if let actualMaxAmount = self.maximumSendableLNSats {
-                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                } else {
-                    self.availableAmount.text = "You can send 0 satoshis."
-                }
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-            } else if addressType == "" && self.onchainOrLightning == "onchain" {
-                
-                self.pasteButton.alpha = 1
-                self.amountLabel.alpha = 1
-                self.amountView.alpha = 1
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                self.nextLabel.text = "Next"
-                //self.nextViewTop.constant = -30
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.setSendAllLabel()
-                self.availableAmountTop.constant = 10
-                self.availableButtonTop.constant = 0
-                self.availableAmountCenterX.constant = 0
-                self.questionCircle.alpha = 0
-            } else if addressType == "" && self.onchainOrLightning == "lightning" {
-                
-                self.pasteButton.alpha = 1
-                self.amountView.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableAmount.alpha = 1
-                self.availableButton.alpha = 1
-                self.nextLabel.text = "Next"
-                self.nextViewTop.constant = -120
-                self.availableAmountTop.constant = -75
-                self.availableButtonTop.constant = -85
-                self.availableAmountCenterX.constant = -10
-                self.questionCircle.alpha = 1
-                
-                if let actualMaxAmount = self.maximumSendableLNSats {
-                    self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
-                } else {
-                    self.availableAmount.text = "You can send 0 satoshis."
-                }
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-            }
-            
-            self.view.layoutIfNeeded()
-        }
+        self.onchainOrLightning = addressType
+        
+        self.hideScannerView(forView: self.onchainOrLightning)
     }
 }

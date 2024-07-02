@@ -85,6 +85,7 @@
 		05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */; };
 		05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5F2C33E043004AE14F /* SendOnchain.swift */; };
 		05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB612C33E1CD004AE14F /* SendLightning.swift */; };
+		05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB632C341852004AE14F /* SendSwitch.swift */; };
 		05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC22B88009E00AAA342 /* QuestionViewController.swift */; };
 		05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */; };
 		05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */; };
@@ -194,6 +195,7 @@
 		05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeScanner.swift; sourceTree = "<group>"; };
 		05F1FB5F2C33E043004AE14F /* SendOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendOnchain.swift; sourceTree = "<group>"; };
 		05F1FB612C33E1CD004AE14F /* SendLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLightning.swift; sourceTree = "<group>"; };
+		05F1FB632C341852004AE14F /* SendSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendSwitch.swift; sourceTree = "<group>"; };
 		05F31CC22B88009E00AAA342 /* QuestionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionViewController.swift; sourceTree = "<group>"; };
 		05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchQuestion.swift; sourceTree = "<group>"; };
 		05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleBittrNotification.swift; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
 				05F1FB5F2C33E043004AE14F /* SendOnchain.swift */,
 				05F1FB612C33E1CD004AE14F /* SendLightning.swift */,
+				05F1FB632C341852004AE14F /* SendSwitch.swift */,
 				0579B2722A0531470007891F /* ReceiveViewController.swift */,
 			);
 			path = Move;
@@ -720,6 +723,7 @@
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
 				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
 				05980B562A46F892001F312F /* Device.swift in Sources */,
+				05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
