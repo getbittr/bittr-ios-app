@@ -4077,6 +4077,7 @@
                         <outlet property="sendSpinner" destination="aQ0-vj-b4K" id="2c7-VY-0py"/>
                         <outlet property="sendView" destination="mdQ-Gs-M0x" id="7ks-Z3-tHO"/>
                         <outlet property="slowButton" destination="ghM-MQ-bvU" id="mt6-Pw-UjD"/>
+                        <outlet property="slowTimeLabel" destination="Af7-9P-QfO" id="1Li-nc-h93"/>
                         <outlet property="slowView" destination="EdH-Ty-Bef" id="yFL-IF-9Rz"/>
                         <outlet property="switchView" destination="IPV-WY-kh1" id="qfX-Za-XTD"/>
                         <outlet property="toLabel" destination="g6Z-wf-8ZE" id="Mn9-ad-yc6"/>

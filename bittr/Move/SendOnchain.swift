@@ -87,6 +87,27 @@ extension SendViewController {
                             print("Size: \(String(describing: size))")
                             print("High: \(self.feeHigh*Float(size)), Medium: \(self.feeMedium*Float(size)), Low: \(self.feeLow*Float(size))")
                             
+                            let lowestSats:Float = self.feeLow*Float(size)
+                            let availableSatsForFee:Float = Float((self.btcAmount*100000000) - Double(actualAmount))
+                            if lowestSats > availableSatsForFee {
+                                // There aren't enough sats available to pay for the cheapest fee.
+                                let availableSatsPerVb:Float = availableSatsForFee / Float(size)
+                                self.feeLow = Float(Int(availableSatsPerVb * 10))/10
+                                self.slowTimeLabel.text = "Slow"
+                                
+                                self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                                self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                                self.slowView.backgroundColor = UIColor(white: 1, alpha: 1)
+                                self.selectedFee = "low"
+                            } else {
+                                self.slowTimeLabel.text = "1 day"
+                                
+                                self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                                self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
+                                self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                                self.selectedFee = "medium"
+                            }
+                            
                             self.satsFast.text = "\(Int(self.feeHigh*Float(size))) sats"
                             self.satsMedium.text = "\(Int(self.feeMedium*Float(size))) sats"
                             self.satsSlow.text = "\(Int(self.feeLow*Float(size))) sats"
@@ -162,26 +183,37 @@ extension SendViewController {
     func switchFeeSelection(tappedFee:String) {
         // Switch selected fee rate.
         
+        let actualAmount:Int = Int((CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000).rounded())
+        let availableBalance:Int = Int(self.btcAmount*100000000)
+        
         switch tappedFee {
         case "fast":
-            self.fastView.backgroundColor = UIColor(white: 1, alpha: 1)
-            self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.selectedFee = "high"
+            let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!))
             
-            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: actualAmount, availableBalance: availableBalance) {
+                self.fastView.backgroundColor = UIColor(white: 1, alpha: 1)
+                self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                self.selectedFee = "high"
                 
-                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+                    
+                    self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                }
             }
         case "medium":
-            self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
-            self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.selectedFee = "medium"
+            let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!))
             
-            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: actualAmount, availableBalance: availableBalance) {
+                self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
+                self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+                self.selectedFee = "medium"
                 
-                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
+                    
+                    self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                }
             }
         case "slow":
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -207,8 +239,39 @@ extension SendViewController {
     }
     
     
+    func checkFeeAvailability(feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
+        
+        if feeInSats + actualAmount > availableBalance {
+            let alert = UIAlertController(title: "Balance", message: "\nYour available balance (\(availableBalance) sats) is insufficient to cover this fee.\n\nLower your transaction amount from \(actualAmount) to \(availableBalance-feeInSats) sats to select this fee.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return false
+        } else {
+            return true
+        }
+    }
+    
+    
     func confirmSendOnchain() {
         // Send onchain transaction.
+        // Check whether selected fee is appropriate.
+        
+        if self.slowTimeLabel.text == "Slow" && self.selectedFee == "low" {
+            // Selected fee is very low.
+            let alert = UIAlertController(title: "Low fee", message: "The fee you've selected is very low. Your transaction may take long to (or never) be confirmed.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Change fee", style: .cancel, handler: {_ in
+                return
+            }))
+            alert.addAction(UIAlertAction(title: "Continue", style: .default, handler: {_ in
+                self.proceedWithOnchainConfirmation()
+            }))
+            self.present(alert, animated: true)
+        } else {
+            self.proceedWithOnchainConfirmation()
+        }
+    }
+    
+    func proceedWithOnchainConfirmation() {
         
         var feeSatoshis = (self.satsMedium.text ?? "no").replacingOccurrences(of: " sats", with: "")
         if self.selectedFee == "low" {
@@ -342,8 +405,11 @@ extension SendViewController {
                     let satsReservation:Double = CGFloat(truncating: NumberFormatter().number(from: String("\(error)".split(separator: " ")[7])) ?? 0) * 0.00000001
                     let requiredCorrection:Double = self.btcAmount - satsReservation
                     let spendableBtcAmount = self.btcAmount + requiredCorrection
-                    
-                    return spendableBtcAmount
+                    if spendableBtcAmount < 0 {
+                        return 0
+                    } else {
+                        return spendableBtcAmount
+                    }
                 } else {
                     return nil
                 }

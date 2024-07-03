@@ -108,6 +108,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var fastButton: UIButton!
     @IBOutlet weak var mediumButton: UIButton!
     @IBOutlet weak var slowButton: UIButton!
+    @IBOutlet weak var slowTimeLabel: UILabel!
     
     // Variables
     var btcAmount:Double = 0.0
@@ -124,7 +125,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var selectedInput = "qr"
     var completedTransaction:Transaction?
     var homeVC:HomeViewController?
-    
     
     override func viewDidLoad() {
         super.viewDidLoad()
