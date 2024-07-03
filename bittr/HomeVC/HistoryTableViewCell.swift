@@ -36,12 +36,6 @@ class HistoryTableViewCell: UITableViewCell {
         cardView.layer.shadowRadius = 12.0
         cardView.layer.shadowOpacity = 0.05
     }
-
-    override func setSelected(_ selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
-    }
     
     func updateBoltTrailing(position:String) {
         
@@ -59,8 +53,6 @@ class HistoryTableViewCell: UITableViewCell {
             self.boltImageTrailing = NSLayoutConstraint(item: self.boltImage, attribute: .trailing, relatedBy: .equal, toItem: self.cardView, attribute: .trailing, multiplier: 1, constant: -15)
             NSLayoutConstraint.activate([self.boltImageTrailing])
         }
-        
-        //self.cardView.layoutIfNeeded()
     }
 
 }

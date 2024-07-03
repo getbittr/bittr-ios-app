@@ -14,6 +14,7 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var headerView: UIView!
     
+    // Views
     @IBOutlet weak var amountView: UIView!
     @IBOutlet weak var toView: UIView!
     @IBOutlet weak var idView: UIView!

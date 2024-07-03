@@ -42,7 +42,6 @@ extension HomeViewController {
             }
             
             var transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
-            
             var balanceValue = String(Int((transactionValue*correctValue).rounded()))
             balanceValue = addSpacesToString(balanceValue: balanceValue).replacingOccurrences(of: "-", with: "")
             
@@ -78,7 +77,6 @@ extension HomeViewController {
             
             if thisTransaction.isLightning == true {
                 actualCell.boltImage.alpha = 1
-                
                 actualCell.satsLabel.textColor = .black
                 actualCell.eurosLabel.textColor = .black
             } else {
