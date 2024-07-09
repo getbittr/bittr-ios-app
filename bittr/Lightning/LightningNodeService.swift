@@ -474,6 +474,7 @@ class LightningNodeService {
             let event = self.ldkNode.waitNextEvent()
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil, userInfo: ["event":event]) as Notification)
             self.ldkNode.eventHandled()
+            self.listenForEvents()
         }
     }
     
