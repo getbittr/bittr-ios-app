@@ -254,7 +254,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     @IBAction func channelsButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["question":"lightning channels","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+        let notificationDict:[String: Any] = ["question":"lightning channels","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.","type":"lightningexplanation"]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
     }
     
