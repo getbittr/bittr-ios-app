@@ -12,6 +12,7 @@ class MoveViewController: UIViewController {
     // Elements
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var channelButton: UIButton!
     
     // Send and Receive buttons
     @IBOutlet weak var leftCard: UIView! // Send Button View
@@ -49,6 +50,7 @@ class MoveViewController: UIViewController {
         downButton.setTitle("", for: .normal)
         receiveButton.setTitle("", for: .normal)
         sendButton.setTitle("", for: .normal)
+        channelButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
         leftCard.layer.cornerRadius = 13
         rightCard.layer.cornerRadius = 13
@@ -150,6 +152,19 @@ class MoveViewController: UIViewController {
         }
         
         return balanceValue
+    }
+    
+    @IBAction func channelButtonTapped(_ sender: UIButton) {
+        
+        if self.satsInstant.text?.replacingOccurrences(of: "sats", with: "").replacingOccurrences(of: " ", with: "") == "0" {
+            // There is no Lightning channel.
+            let notificationDict:[String: Any] = ["question":"lightning channels","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+        } else {
+            // There's a Lightning channel.
+            let notificationDict:[String: Any] = ["question":"lightning channel","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.","type":"lightningexplanation"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+        }
     }
     
 }

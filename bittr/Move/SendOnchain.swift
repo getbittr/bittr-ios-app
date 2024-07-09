@@ -242,7 +242,7 @@ extension SendViewController {
     func checkFeeAvailability(feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
         
         if feeInSats + actualAmount > availableBalance {
-            let alert = UIAlertController(title: "Balance", message: "\nYour available balance (\(availableBalance) sats) is insufficient to cover this fee.\n\nLower your transaction amount from \(actualAmount) to \(availableBalance-feeInSats) sats to select this fee.", preferredStyle: .alert)
+            let alert = UIAlertController(title: "Balance", message: "Your available balance (\(availableBalance) sats) is insufficient to cover this fee.\n\nLower your transaction amount from \(actualAmount) to \(availableBalance-feeInSats) sats to select this fee.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return false
