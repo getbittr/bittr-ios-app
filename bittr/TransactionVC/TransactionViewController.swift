@@ -132,8 +132,14 @@ class TransactionViewController: UIViewController {
             profitViewHeight.constant = 40
             thenView.alpha = 1
             profitView.alpha = 1
-            valueThenLabel.text = "\(tappedTransaction.purchaseAmount) \(currencySymbol)"
-            profitLabel.text = "\(Int((transactionValue*correctValue).rounded())-tappedTransaction.purchaseAmount) \(currencySymbol)"
+            if tappedTransaction.purchaseAmount == 0 {
+                // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
+                self.valueThenLabel.text = self.valueNowLabel.text
+                self.profitLabel.text = "0 \(currencySymbol)"
+            } else {
+                self.valueThenLabel.text = "\(self.tappedTransaction.purchaseAmount) \(currencySymbol)"
+                self.profitLabel.text = "\(Int((transactionValue*correctValue).rounded())-self.tappedTransaction.purchaseAmount) \(currencySymbol)"
+            }
             
             if (profitLabel.text ?? "").contains("-") {
                 self.profitView.backgroundColor = UIColor(red: 255/255, green: 237/255, blue: 237/255, alpha: 1)

@@ -132,7 +132,6 @@ extension SendViewController {
                             self.eurosMedium.text = mediumText + " " + currencySymbol
                             self.eurosSlow.text = slowText + " " + currencySymbol
                             
-                            
                             DispatchQueue.main.async {
                                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                                     
@@ -190,7 +189,7 @@ extension SendViewController {
         case "fast":
             let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!))
             
-            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: actualAmount, availableBalance: availableBalance) {
+            if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: actualAmount, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = UIColor(white: 1, alpha: 1)
                 self.mediumView.backgroundColor = UIColor(white: 1, alpha: 0.7)
                 self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -204,7 +203,7 @@ extension SendViewController {
         case "medium":
             let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!))
             
-            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: actualAmount, availableBalance: availableBalance) {
+            if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: actualAmount, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
                 self.mediumView.backgroundColor = UIColor(white: 1, alpha: 1)
                 self.slowView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -239,10 +238,29 @@ extension SendViewController {
     }
     
     
-    func checkFeeAvailability(feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
+    func checkFeeAvailability(tappedFee:String, feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
         
         if feeInSats + actualAmount > availableBalance {
-            let alert = UIAlertController(title: "Balance", message: "Your available balance (\(availableBalance) sats) is insufficient to cover this fee.\n\nLower your transaction amount from \(actualAmount) to \(availableBalance-feeInSats) sats to select this fee.", preferredStyle: .alert)
+            let alert = UIAlertController(title: "Balance", message: "Your available balance (\(availableBalance) sats) is insufficient to cover this fee.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Update amount", style: .default, handler: { _ in
+                self.amountTextField.text = "\(CGFloat(availableBalance-feeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                
+                var currencySymbol = "€"
+                var conversionRate:CGFloat = 0
+                var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
+                var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
+                conversionRate = eurAmount ?? 0.0
+                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                    currencySymbol = "CHF"
+                    conversionRate = chfAmount ?? 0.0
+                }
+                let labelActualAmount = CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)
+                
+                self.confirmAmountLabel.text = "\(self.amountTextField.text ?? "0") btc"
+                self.confirmEuroLabel.text = "\(Int(labelActualAmount*conversionRate)) \(currencySymbol)"
+                
+                self.switchFeeSelection(tappedFee:tappedFee)
+            }))
             alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return false

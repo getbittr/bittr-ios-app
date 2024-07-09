@@ -254,10 +254,10 @@
                                 </constraints>
                             </view>
                             <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="YFi-PA-AqV" userLabel="Syncing Status View">
-                                <rect key="frame" x="55.666666666666657" y="364" width="282" height="149"/>
+                                <rect key="frame" x="60.666666666666657" y="364" width="272" height="149"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aRw-c8-cW6" userLabel="Conversion View">
-                                        <rect key="frame" x="30" y="21" width="173" height="14"/>
+                                        <rect key="frame" x="20" y="21" width="173" height="14"/>
                                         <subviews>
                                             <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="wLN-F6-6r7" userLabel="Spinner Conversion">
                                                 <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
@@ -297,7 +297,7 @@
                                         </constraints>
                                     </view>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="vWd-DR-ogj" userLabel="LDK View">
-                                        <rect key="frame" x="30.000000000000014" y="45" width="158.66666666666669" height="14"/>
+                                        <rect key="frame" x="20.000000000000014" y="45" width="158.66666666666669" height="14"/>
                                         <subviews>
                                             <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="19W-kF-Ob2" userLabel="Spinner LDK">
                                                 <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
@@ -377,7 +377,7 @@
                                         </constraints>
                                     </view>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="PVx-gE-6jL" userLabel="Syncing View">
-                                        <rect key="frame" x="30.000000000000007" y="93" width="102.33333333333334" height="14"/>
+                                        <rect key="frame" x="20.000000000000007" y="93" width="102.33333333333334" height="14"/>
                                         <subviews>
                                             <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="F92-n4-Rlb" userLabel="Spinner Syncing">
                                                 <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
@@ -417,7 +417,7 @@
                                         </constraints>
                                     </view>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="yzm-sS-sRH" userLabel="Final View">
-                                        <rect key="frame" x="30.000000000000014" y="117" width="140.66666666666669" height="14"/>
+                                        <rect key="frame" x="20.000000000000014" y="117" width="140.66666666666669" height="14"/>
                                         <subviews>
                                             <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="lgz-o2-UPv" userLabel="Spinner Final">
                                                 <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
@@ -459,19 +459,19 @@
                                 </subviews>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
-                                    <constraint firstItem="yzm-sS-sRH" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="30" id="0nA-yA-YbI"/>
+                                    <constraint firstItem="yzm-sS-sRH" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="20" id="0nA-yA-YbI"/>
                                     <constraint firstAttribute="bottom" secondItem="yzm-sS-sRH" secondAttribute="bottom" constant="18" id="18U-e5-kcS"/>
                                     <constraint firstItem="vWd-DR-ogj" firstAttribute="top" secondItem="aRw-c8-cW6" secondAttribute="bottom" constant="10" id="FKu-fH-hYX"/>
                                     <constraint firstItem="aRw-c8-cW6" firstAttribute="top" secondItem="YFi-PA-AqV" secondAttribute="top" constant="21" id="LvH-3i-b9w"/>
-                                    <constraint firstItem="vWd-DR-ogj" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="30" id="Yw2-HC-wBr"/>
+                                    <constraint firstItem="vWd-DR-ogj" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="20" id="Yw2-HC-wBr"/>
                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="100" id="auw-Iz-O5Q"/>
                                     <constraint firstItem="yzm-sS-sRH" firstAttribute="top" secondItem="PVx-gE-6jL" secondAttribute="bottom" constant="10" id="d8U-VG-Nhc"/>
                                     <constraint firstItem="PVx-gE-6jL" firstAttribute="top" secondItem="owH-Cf-uqt" secondAttribute="bottom" constant="10" id="lYy-MA-cFL"/>
-                                    <constraint firstItem="aRw-c8-cW6" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="30" id="njv-11-usp"/>
-                                    <constraint firstItem="PVx-gE-6jL" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="30" id="op7-PJ-ww0"/>
+                                    <constraint firstItem="aRw-c8-cW6" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="20" id="njv-11-usp"/>
+                                    <constraint firstItem="PVx-gE-6jL" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="20" id="op7-PJ-ww0"/>
                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="100" id="pme-Zm-MkU"/>
                                     <constraint firstItem="owH-Cf-uqt" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="30" id="s7f-rC-gBw"/>
-                                    <constraint firstAttribute="trailing" secondItem="owH-Cf-uqt" secondAttribute="trailing" constant="30" id="tIm-eq-L4M"/>
+                                    <constraint firstAttribute="trailing" secondItem="owH-Cf-uqt" secondAttribute="trailing" constant="20" id="tIm-eq-L4M"/>
                                     <constraint firstItem="owH-Cf-uqt" firstAttribute="top" secondItem="vWd-DR-ogj" secondAttribute="bottom" constant="10" id="xHD-lJ-uV2"/>
                                 </constraints>
                             </view>

@@ -52,6 +52,10 @@ extension HomeViewController {
                 actualCell.updateBoltTrailing(position: "left")
                 actualCell.bittrImage.alpha = 1
                 actualCell.gainView.alpha = 1
+                if thisTransaction.purchaseAmount == 0 {
+                    // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
+                    thisTransaction.purchaseAmount = Int((transactionValue*correctValue).rounded())
+                }
                 let relativeGain:Int = Int((CGFloat(Int((transactionValue*correctValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
                 actualCell.gainLabel.text = "\(relativeGain) %"
                 
