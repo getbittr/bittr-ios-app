@@ -63,7 +63,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var newTransactions = [Transaction]()
     var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
-    var bittrTransactions = NSMutableDictionary()
+    var bittrTransactions = NSMutableDictionary() // Key is the txID, Value is purchaseAmount and currency.
     var cachedLightningIds = [String]()
     var tappedTransaction = 0
     
@@ -75,9 +75,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var allImages:[String:UIImage]?
     
     // Balance calculations
-    var bdkBalance:CGFloat = 0.0
-    var btcBalance:CGFloat = 0.0
-    var btclnBalance:CGFloat = 0.0
+    var bdkBalance:CGFloat = 0.0 // in satoshis
+    var btcBalance:CGFloat = 0.0 // in satoshis
+    var btclnBalance:CGFloat = 0.0 // in satoshis
     var totalBalanceSats:CGFloat = 0.0
     var balanceWasFetched = false
     var eurValue:CGFloat = 0.0
@@ -129,7 +129,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setTotalSats), name: NSNotification.Name(rawValue: "settotalsats"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(moveButtonTapped), name: NSNotification.Name(rawValue: "openmovevc"), object: nil)

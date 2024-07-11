@@ -146,12 +146,22 @@ extension CoreViewController {
                             receivedTransaction.isBittr = true
                             receivedTransaction.lnDescription = notificationId
                             receivedTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                            receivedTransaction.id = payoutResponse.preImage ?? "Unavailable"
                             
                             self.receivedBittrTransaction = receivedTransaction
                             
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
+                            
+                            if let actualHomeVC = self.homeVC {
+                                actualHomeVC.setTransactions += [receivedTransaction]
+                                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                                    transaction1.timestamp > transaction2.timestamp
+                                }
+                                actualHomeVC.homeTableView.reloadData()
+                            }
+                            
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     } catch {

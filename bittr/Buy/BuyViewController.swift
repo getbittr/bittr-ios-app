@@ -14,31 +14,34 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
-    
     @IBOutlet weak var headerView2: UIView!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     @IBOutlet weak var addAnotherView: UIView!
     @IBOutlet weak var addAnotherButton: UIButton!
     @IBOutlet weak var emptyLabel: UILabel!
     
+    // Client details
     var client = Client()
+    var allIbanEntities = [IbanEntity]()
+    
+    // Articles
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
-    
-    var allIbanEntities = [IbanEntity]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Corner radii and button titles.
         headerView2.layer.cornerRadius = 13
-        
+        addAnotherView.layer.cornerRadius = 13
         downButton.setTitle("", for: .normal)
         addAnotherButton.setTitle("", for: .normal)
         
+        // Collection view.
         ibanCollectionView.delegate = self
         ibanCollectionView.dataSource = self
         
-        addAnotherView.layer.cornerRadius = 13
+        // Button border.
         let viewBorder = CAShapeLayer()
         viewBorder.strokeColor = UIColor.black.cgColor
         viewBorder.frame = addAnotherView.bounds
@@ -47,8 +50,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         viewBorder.lineWidth = 1
         addAnotherView.layer.addSublayer(viewBorder)
         
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         
+        // Parse IBAN entities.
         self.parseIbanEntities()
     }
     
@@ -77,7 +82,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // Client exists in cache.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
             self.client = clients[0]
-            //self.ibanCollectionView.reloadData()
             self.parseIbanEntities()
         }
     }
@@ -95,7 +99,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
-        
         self.dismiss(animated: true)
     }
     
@@ -128,13 +131,13 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
-        if /*self.client.ibanEntities.count*/ self.allIbanEntities.count > 0 {
+        if self.allIbanEntities.count > 0 {
             self.emptyLabel.alpha = 0
             return self.allIbanEntities.count
+        } else {
+            self.emptyLabel.alpha = 1
+            return 0
         }
-        
-        self.emptyLabel.alpha = 1
-        return 0
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
