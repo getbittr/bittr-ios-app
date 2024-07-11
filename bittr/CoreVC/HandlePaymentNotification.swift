@@ -306,8 +306,8 @@ extension CoreViewController {
                         return
                     }
                     
-                    let paymentHash = "\(event)".split(separator: ",")[0].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: "paymentReceived(paymentHash: ", with: "")
-                    print("Did extract payment hash.")
+                    let paymentHash = "\(event)".split(separator: ",")[1].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " paymentHash: ", with: "")
+                    print("Did extract payment hash: \(paymentHash).")
                     
                     if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
