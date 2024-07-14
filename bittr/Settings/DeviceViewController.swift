@@ -197,6 +197,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.peerSpinner.startAnimating()
         self.peerButton.isUserInteractionEnabled = false
         
+        // TODO: Public?
         // .testnet and .bitcoin
         let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
         let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]

@@ -17,7 +17,6 @@ class SettingsTableViewCell: UITableViewCell {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        // Initialization code
         
         settingsCardView.layer.cornerRadius = 13
         settingsCardView.layer.shadowColor = UIColor.black.cgColor
@@ -28,12 +27,6 @@ class SettingsTableViewCell: UITableViewCell {
         settingsButton.setTitle("", for: .normal)
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
-    }
-
-    override func setSelected(_ selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
     }
     
     @objc func changeCurrency(notification:NSNotification) {
