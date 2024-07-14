@@ -160,6 +160,9 @@ extension CoreViewController {
                                     transaction1.timestamp > transaction2.timestamp
                                 }
                                 actualHomeVC.homeTableView.reloadData()
+                                
+                                actualHomeVC.btclnBalance += CGFloat(receivedTransaction.received)
+                                actualHomeVC.setTotalSats(updateTableAfterConversion: false)
                             }
                             
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
@@ -334,6 +337,9 @@ extension CoreViewController {
                                     transaction1.timestamp > transaction2.timestamp
                                 }
                                 actualHomeVC.homeTableView.reloadData()
+                                
+                                actualHomeVC.btclnBalance += CGFloat(thisTransaction.received)
+                                actualHomeVC.setTotalSats(updateTableAfterConversion: false)
                             }
                             
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
@@ -398,6 +404,9 @@ extension CoreViewController {
                                                         transaction1.timestamp > transaction2.timestamp
                                                     }
                                                     actualHomeVC.homeTableView.reloadData()
+                                                    
+                                                    actualHomeVC.btclnBalance += CGFloat(thisTransaction.received)
+                                                    actualHomeVC.setTotalSats(updateTableAfterConversion: false)
                                                 }
                                                 
                                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)

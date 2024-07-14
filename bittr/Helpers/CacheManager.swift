@@ -19,6 +19,7 @@ class CacheManager: NSObject {
             defaults.removeObject(forKey: "pin")
             defaults.removeObject(forKey: "mnemonic")
             defaults.removeObject(forKey: "lastaddress")
+            defaults.removeObject(forKey: "lightning")
             self.resetFailedPinAttempts()
         } else {
             defaults.removeObject(forKey: "proddevice")
@@ -26,6 +27,7 @@ class CacheManager: NSObject {
             defaults.removeObject(forKey: "prodpin")
             defaults.removeObject(forKey: "prodmnemonic")
             defaults.removeObject(forKey: "prodlastaddress")
+            defaults.removeObject(forKey: "prodlightning")
             self.resetFailedPinAttempts()
         }
     }

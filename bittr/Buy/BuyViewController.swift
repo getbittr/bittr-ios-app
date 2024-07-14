@@ -52,6 +52,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
         
         // Parse IBAN entities.
         self.parseIbanEntities()

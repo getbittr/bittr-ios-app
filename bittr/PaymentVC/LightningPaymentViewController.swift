@@ -73,6 +73,9 @@ class LightningPaymentViewController: UIViewController {
             if actualTransaction.isBittr == true {
                 
                 self.descriptionLabel.text = actualTransaction.lnDescription
+                if actualTransaction.lnDescription == "" {
+                    self.descriptionLabel.text = "Channel funding transaction"
+                }
             } else {
                 
                 self.descriptionLabel.text = actualTransaction.id

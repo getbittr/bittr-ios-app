@@ -125,7 +125,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "setclient"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
@@ -143,7 +143,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         
-        self.setConversion(btcValue: self.btcBalance/100000000, cachedData: false)
+        self.setConversion(btcValue: self.btcBalance/100000000, cachedData: false, updateTableAfterConversion: true)
     }
     
     

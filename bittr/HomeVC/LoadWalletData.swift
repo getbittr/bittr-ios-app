@@ -32,18 +32,7 @@ extension HomeViewController {
                 // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
                 if actualLightningChannels.count == 1 {
                     // Set Bittr Channel.
-                    let thisChannel = Channel()
-                    thisChannel.id = actualLightningChannels[0].channelId
-                    thisChannel.received = Int(actualLightningChannels[0].outboundCapacityMsat)/1000
-                    thisChannel.size = Int(actualLightningChannels[0].channelValueSats)
-                    thisChannel.punishmentReserve = Int(actualLightningChannels[0].unspendablePunishmentReserve ?? 0)
-                    thisChannel.sendableMinimum = Int(actualLightningChannels[0].nextOutboundHtlcMinimumMsat)/1000
-                    thisChannel.receivableMaximum = Int(actualLightningChannels[0].inboundHtlcMaximumMsat ?? 0)/1000
-                    
-                    self.bittrChannel = thisChannel
-                    if let actualCoreVC = self.coreVC {
-                        actualCoreVC.bittrChannel = thisChannel
-                    }
+                    self.setBittrChannel(withChannel: actualLightningChannels[0])
                 }
             }
             
@@ -167,13 +156,29 @@ extension HomeViewController {
                         CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
                         
                         // Start balance calculation.
-                        self.setTotalSats()
+                        self.setTotalSats(updateTableAfterConversion: true)
                     }
                 }
             } else {
                 // Start balance calculation.
-                self.setTotalSats()
+                self.setTotalSats(updateTableAfterConversion: true)
             }
+        }
+    }
+    
+    
+    func setBittrChannel(withChannel:ChannelDetails) {
+        let thisChannel = Channel()
+        thisChannel.id = withChannel.channelId
+        thisChannel.received = Int(withChannel.outboundCapacityMsat)/1000
+        thisChannel.size = Int(withChannel.channelValueSats)
+        thisChannel.punishmentReserve = Int(withChannel.unspendablePunishmentReserve ?? 0)
+        thisChannel.sendableMinimum = Int(withChannel.nextOutboundHtlcMinimumMsat)/1000
+        thisChannel.receivableMaximum = Int(withChannel.inboundHtlcMaximumMsat ?? 0)/1000
+        
+        self.bittrChannel = thisChannel
+        if let actualCoreVC = self.coreVC {
+            actualCoreVC.bittrChannel = thisChannel
         }
     }
     
@@ -279,7 +284,7 @@ extension HomeViewController {
     }
     
     
-    func setTotalSats() {
+    func setTotalSats(updateTableAfterConversion:Bool) {
         
         // Calculate total balance
         self.btcBalance = self.bdkBalance
@@ -353,7 +358,7 @@ extension HomeViewController {
                 CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
                 
                 // Convert bitcoin balance to EUR / CHF.
-                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false)
+                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
                 
             } catch let e as NSError {
                 print("Couldn't fetch text: \(e.localizedDescription)")
@@ -362,7 +367,7 @@ extension HomeViewController {
     }
     
     
-    func setConversion(btcValue:CGFloat, cachedData:Bool) {
+    func setConversion(btcValue:CGFloat, cachedData:Bool, updateTableAfterConversion:Bool) {
         
         if self.didFetchConversion == true || self.couldNotFetchConversion == true {
             // Conversion rate was already fetched.
@@ -381,9 +386,23 @@ extension HomeViewController {
                 self.setTransactions = self.newTransactions
             }
             
-            self.updateTableAfterConversion()
-            
-            self.calculateProfit(cachedData: cachedData)
+            if updateTableAfterConversion {
+                self.updateTableAfterConversion()
+                self.calculateProfit(cachedData: cachedData)
+            } else {
+                Task {
+                    do {
+                        let refreshedChannels = try await LightningNodeService.shared.listChannels()
+                        print("Channels: \(refreshedChannels.count)")
+                        if refreshedChannels.count > 0 {
+                            self.channels = refreshedChannels
+                            self.setBittrChannel(withChannel: refreshedChannels[0])
+                        }
+                    } catch {
+                        print("Error listing channels: \(error.localizedDescription)")
+                    }
+                }
+            }
         } else {
             // Conversion rate hasn't yet been fetched.
             print("Did start currency conversion.")
@@ -411,7 +430,7 @@ extension HomeViewController {
                         self.present(alert, animated: true)
                         
                         self.couldNotFetchConversion = true
-                        self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                        self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)
                         }
@@ -465,13 +484,27 @@ extension HomeViewController {
                                         self.setTransactions = self.newTransactions
                                     }
                                     
-                                    self.updateTableAfterConversion()
+                                    if updateTableAfterConversion {
+                                        self.updateTableAfterConversion()
+                                        self.calculateProfit(cachedData: cachedData)
+                                    } else {
+                                        Task {
+                                            do {
+                                                let refreshedChannels = try await LightningNodeService.shared.listChannels()
+                                                print("Channels: \(refreshedChannels.count)")
+                                                if refreshedChannels.count > 0 {
+                                                    self.channels = refreshedChannels
+                                                    self.setBittrChannel(withChannel: refreshedChannels[0])
+                                                }
+                                            } catch {
+                                                print("Error listing channels: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    }
                                     
                                     if let actualCoreVC = self.coreVC {
                                         actualCoreVC.completeSync(type: "conversion")
                                     }
-                                    
-                                    self.calculateProfit(cachedData: cachedData)
                                 }
                             }
                         }
@@ -484,7 +517,7 @@ extension HomeViewController {
                             self.present(alert, animated: true)
                             
                             self.couldNotFetchConversion = true
-                            self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                            self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                             SentrySDK.capture(error: error)
                         }
                     }

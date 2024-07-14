@@ -61,7 +61,7 @@ extension HomeViewController {
                 }
             }
             
-            self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: actualCachedBalance)!)/100000000, cachedData: true)
+            self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: actualCachedBalance)!)/100000000, cachedData: true, updateTableAfterConversion: true)
         }
     }
 

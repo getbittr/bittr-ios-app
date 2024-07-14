@@ -155,6 +155,8 @@ class Transfer2ViewController: UIViewController {
                                         self.ibanButton.accessibilityIdentifier = iban.ourIbanNumber
                                         self.nameButton.accessibilityIdentifier = iban.ourName
                                         self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
+                                        
+                                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatebuypage"), object: nil, userInfo: nil) as Notification)
                                     }
                                 }
                             }
