@@ -386,7 +386,7 @@
 				05A8BD862B750F56002F0282 /* PaymentVC */,
 				05E299582A39CB1200FA0AEE /* Buy */,
 				0579B26F2A0530DB0007891F /* Move */,
-				05F8DC5829F2B436008052B5 /* Info */,
+				05F8DC5829F2B436008052B5 /* Articles */,
 				05F8DC5929F2B449008052B5 /* Settings */,
 				05F31CC12B88008E00AAA342 /* QuestionVC */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
@@ -463,7 +463,7 @@
 			path = QuestionVC;
 			sourceTree = "<group>";
 		};
-		05F8DC5829F2B436008052B5 /* Info */ = {
+		05F8DC5829F2B436008052B5 /* Articles */ = {
 			isa = PBXGroup;
 			children = (
 				05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */,
@@ -473,7 +473,7 @@
 				057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */,
 				057E6E8A2A14DDBC00B37026 /* Article.swift */,
 			);
-			path = Info;
+			path = Articles;
 			sourceTree = "<group>";
 		};
 		05F8DC5929F2B449008052B5 /* Settings */ = {

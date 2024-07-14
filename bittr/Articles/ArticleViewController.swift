@@ -9,31 +9,36 @@ import UIKit
 
 class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
+    // UI elements
     @IBOutlet weak var oneArticleTableView: UITableView!
     @IBOutlet weak var oneArticleHeaderView: UIView!
     @IBOutlet weak var oneArticleImage: UIImageView!
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var imageSpinner: UIActivityIndicatorView!
     
+    // Article and image
     var article:Article?
     var headerImage:UIImage?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Sort text
         if article?.category == "faq" {
             article?.text.sort(by: { text1, text2 in
                 (text1["order"] as! Int) < (text2["order"] as! Int)
             })
         }
 
+        // Table view
         oneArticleTableView.delegate = self
         oneArticleTableView.dataSource = self
-        
         oneArticleTableView.rowHeight = UITableView.automaticDimension
         
+        // Button titles
         downButton.setTitle("", for: .normal)
         
+        // Set image
         if let actualHeaderImage = headerImage {
             oneArticleImage.image = actualHeaderImage
         } else {
@@ -42,6 +47,7 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
             }
         }
         
+        // Download image if needed
         if oneArticleImage.image == nil {
             
             self.imageSpinner.startAnimating()
@@ -99,7 +105,6 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
         return self.article?.text.count ?? 1
     }
     
@@ -118,12 +123,10 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        
         return UITableView.automaticDimension
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
-        
         self.dismiss(animated: true)
     }
     

@@ -18,14 +18,8 @@ class ArticleTableViewCell: UITableViewCell {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        // Initialization code
         
         cardView.layer.cornerRadius = 13
-        /*cardView.layer.shadowColor = UIColor.black.cgColor
-        cardView.layer.shadowOffset = CGSize(width: 0, height: 10)
-        cardView.layer.shadowRadius = 15.0
-        cardView.layer.shadowOpacity = 0.1*/
-        
         cardView.layer.shadowColor = UIColor.black.cgColor
         cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
         cardView.layer.shadowRadius = 12.0
@@ -34,12 +28,6 @@ class ArticleTableViewCell: UITableViewCell {
         imageContainer.layer.cornerRadius = 13
         
         articleButton.setTitle("", for: .normal)
-    }
-
-    override func setSelected(_ selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-        // Configure the view for the selected state
     }
 
 }

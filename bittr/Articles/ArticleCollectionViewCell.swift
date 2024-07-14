@@ -23,10 +23,6 @@ class ArticleCollectionViewCell: UICollectionViewCell {
         articleBlackView.alpha = 0.3
         articleBlackView.layer.cornerRadius = 13
         articleCardView.layer.cornerRadius = 13
-        /*articleCardView.layer.shadowColor = UIColor.black.cgColor
-        articleCardView.layer.shadowOffset = CGSize(width: 0, height: 10)
-        articleCardView.layer.shadowRadius = 15.0
-        articleCardView.layer.shadowOpacity = 0.1*/
         articleCardView.layer.shadowColor = UIColor.black.cgColor
         articleCardView.layer.shadowOffset = CGSize(width: 0, height: 8)
         articleCardView.layer.shadowRadius = 12.0
