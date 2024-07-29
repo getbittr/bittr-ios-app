@@ -24,6 +24,7 @@ class LightningNodeService {
     private var varMnemonicString = ""
     private var currentHeight = 0
     private var didInitiate = false
+    private var didProceedBeyondPeerConnection = false
     
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
@@ -232,6 +233,8 @@ class LightningNodeService {
     
     func connectToLightningPeer() {
         
+        self.didProceedBeyondPeerConnection = false
+        
         // TODO: Public?
         // .testnet and .bitcoin
         let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
@@ -281,18 +284,27 @@ class LightningNodeService {
                 try LightningNodeService.shared.ldkNode.disconnect(nodeId: nodeId)
                 DispatchQueue.main.async {
                     print("Did disconnect from peer.")
-                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    if !self.didProceedBeyondPeerConnection {
+                        self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        self.didProceedBeyondPeerConnection = true
+                    }
                 }
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     print("Can't disconnect from peer: \(errorString)")
-                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    if !self.didProceedBeyondPeerConnection {
+                        self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        self.didProceedBeyondPeerConnection = true
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {
                     print("Can't disconnect from peer: No error message.")
-                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    if !self.didProceedBeyondPeerConnection {
+                        self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        self.didProceedBeyondPeerConnection = true
+                    }
                 }
             }
         }
@@ -302,10 +314,16 @@ class LightningNodeService {
             timeoutTask.cancel()
             if result == true {
                 // Could connect to peer.
-                self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                if !self.didProceedBeyondPeerConnection {
+                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    self.didProceedBeyondPeerConnection = true
+                }
             } else {
                 // Couldn't connect to peer.
-                self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                if !self.didProceedBeyondPeerConnection {
+                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    self.didProceedBeyondPeerConnection = true
+                }
             }
         }
     }

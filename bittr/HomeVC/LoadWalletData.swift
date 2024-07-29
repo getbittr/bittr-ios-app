@@ -387,11 +387,10 @@ extension HomeViewController {
             self.balanceSpinner.stopAnimating()
             self.conversionLabel.alpha = 1
             
-            if cachedData == false {
-                self.setTransactions = self.newTransactions
-            }
-            
             if updateTableAfterConversion {
+                if cachedData == false {
+                    self.setTransactions = self.newTransactions
+                }
                 self.updateTableAfterConversion()
                 self.calculateProfit(cachedData: cachedData)
             }/* else {
@@ -485,11 +484,10 @@ extension HomeViewController {
                                     self.balanceSpinner.stopAnimating()
                                     self.conversionLabel.alpha = 1
                                     
-                                    if cachedData == false {
-                                        self.setTransactions = self.newTransactions
-                                    }
-                                    
                                     if updateTableAfterConversion {
+                                        if cachedData == false {
+                                            self.setTransactions = self.newTransactions
+                                        }
                                         self.updateTableAfterConversion()
                                         self.calculateProfit(cachedData: cachedData)
                                     }/* else {
