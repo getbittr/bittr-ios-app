@@ -154,17 +154,7 @@ extension CoreViewController {
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
                             
-                            if let actualHomeVC = self.homeVC {
-                                actualHomeVC.setTransactions += [receivedTransaction]
-                                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                                    transaction1.timestamp > transaction2.timestamp
-                                }
-                                actualHomeVC.homeTableView.reloadData()
-                                
-                                actualHomeVC.btclnBalance += CGFloat(receivedTransaction.received)
-                                actualHomeVC.setTotalSats(updateTableAfterConversion: false)
-                            }
-                            
+                            self.addNewTransactionToHomeVC(newTransaction: receivedTransaction)
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     } catch {
@@ -330,18 +320,7 @@ extension CoreViewController {
                         self.receivedBittrTransaction = thisTransaction
                         DispatchQueue.main.async {
                             CacheManager.didHandleEvent(event: "\(event)")
-                            
-                            if let actualHomeVC = self.homeVC {
-                                actualHomeVC.setTransactions += [thisTransaction]
-                                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                                    transaction1.timestamp > transaction2.timestamp
-                                }
-                                actualHomeVC.homeTableView.reloadData()
-                                
-                                actualHomeVC.btclnBalance += CGFloat(thisTransaction.received)
-                                actualHomeVC.setTotalSats(updateTableAfterConversion: false)
-                            }
-                            
+                            self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     }
@@ -398,17 +377,7 @@ extension CoreViewController {
                                             self.receivedBittrTransaction = thisTransaction
                                             
                                             DispatchQueue.main.async {
-                                                if let actualHomeVC = self.homeVC {
-                                                    actualHomeVC.setTransactions += [thisTransaction]
-                                                    actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                                                        transaction1.timestamp > transaction2.timestamp
-                                                    }
-                                                    actualHomeVC.homeTableView.reloadData()
-                                                    
-                                                    actualHomeVC.btclnBalance += CGFloat(thisTransaction.received)
-                                                    actualHomeVC.setTotalSats(updateTableAfterConversion: false)
-                                                }
-                                                
+                                                self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
                                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                                             }
                                         }
@@ -424,6 +393,27 @@ extension CoreViewController {
             } else {
                 print("No event.")
             }
+        }
+    }
+    
+    func addNewTransactionToHomeVC(newTransaction:Transaction) {
+        
+        if let actualHomeVC = self.homeVC {
+            
+            // Add payment to HomeVC transactions table.
+            actualHomeVC.setTransactions += [newTransaction]
+            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                transaction1.timestamp > transaction2.timestamp
+            }
+            actualHomeVC.homeTableView.reloadData()
+            
+            // Update HomeVC balance.
+            actualHomeVC.btclnBalance += CGFloat(newTransaction.received)
+            actualHomeVC.setTotalSats(updateTableAfterConversion: false)
+            
+            // Add payment to channel details.
+            actualHomeVC.bittrChannel?.received += newTransaction.received
+            actualHomeVC.coreVC?.bittrChannel?.received += newTransaction.received
         }
     }
 

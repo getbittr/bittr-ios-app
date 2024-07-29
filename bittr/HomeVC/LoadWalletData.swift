@@ -43,11 +43,10 @@ extension HomeViewController {
             
             // Set transactions.
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
-                print("Received: \(receivedTransactions.count)")
                 
                 self.newTransactions.removeAll()
                 
-                // Add cached Lightning payments.
+                // Add cached Lightning payments to array.
                 let cachedLightningTransactions = CacheManager.getLightningTransactions()
                 if let actualCachedLightningTransactions = cachedLightningTransactions {
                     self.newTransactions += actualCachedLightningTransactions
@@ -56,10 +55,13 @@ extension HomeViewController {
                     }
                 }
                 
+                // Collect transaction IDs to be checked with Bittr API.
                 var txIds = [String]()
+                // Add all onchain transaction IDs.
                 for eachTransaction in receivedTransactions {
                     txIds += [eachTransaction.txid]
                 }
+                // Add all Lightning payment IDs that haven't yet been cached.
                 if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                     for eachPayment in receivedPayments {
                         if eachPayment.preimage != nil {
@@ -69,6 +71,7 @@ extension HomeViewController {
                         }
                     }
                 }
+                // Add funding transaction ID.
                 if let cachedFundingTxo = CacheManager.getTxoID() {
                     txIds += [cachedFundingTxo]
                 }
@@ -110,6 +113,7 @@ extension HomeViewController {
                                 thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
                             }
                             
+                            // Add all onchain transactions to array.
                             self.newTransactions += [thisTransaction]
                         }
                         
@@ -140,6 +144,7 @@ extension HomeViewController {
                                     }
                                     
                                     if eachPayment.status == .succeeded {
+                                        // Add new Lightning payments to array.
                                         self.newTransactions += [thisTransaction]
                                         CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                                     }
@@ -389,7 +394,7 @@ extension HomeViewController {
             if updateTableAfterConversion {
                 self.updateTableAfterConversion()
                 self.calculateProfit(cachedData: cachedData)
-            } else {
+            }/* else {
                 Task {
                     do {
                         let refreshedChannels = try await LightningNodeService.shared.listChannels()
@@ -402,7 +407,7 @@ extension HomeViewController {
                         print("Error listing channels: \(error.localizedDescription)")
                     }
                 }
-            }
+            }*/
         } else {
             // Conversion rate hasn't yet been fetched.
             print("Did start currency conversion.")
@@ -487,7 +492,7 @@ extension HomeViewController {
                                     if updateTableAfterConversion {
                                         self.updateTableAfterConversion()
                                         self.calculateProfit(cachedData: cachedData)
-                                    } else {
+                                    }/* else {
                                         Task {
                                             do {
                                                 let refreshedChannels = try await LightningNodeService.shared.listChannels()
@@ -500,7 +505,7 @@ extension HomeViewController {
                                                 print("Error listing channels: \(error.localizedDescription)")
                                             }
                                         }
-                                    }
+                                    }*/
                                     
                                     if let actualCoreVC = self.coreVC {
                                         actualCoreVC.completeSync(type: "conversion")
