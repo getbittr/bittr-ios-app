@@ -78,7 +78,7 @@ extension HomeViewController {
                 
                 Task {
                     // Check whether transactions were Bittr purchases.
-                    await fetchTransactionData(txIds:txIds)
+                    await fetchTransactionData(txIds:txIds, sendAll: false)
                     
                     DispatchQueue.main.async {
                         
@@ -188,7 +188,7 @@ extension HomeViewController {
     }
     
     
-    func fetchTransactionData(txIds:[String]) async -> Bool {
+    func fetchTransactionData(txIds:[String], sendAll:Bool) async -> Bool {
         
         // Check if transactions were Bittr purchases with the Bittr API.
         
@@ -210,22 +210,34 @@ extension HomeViewController {
             }
         }
         
-        // Collect the txIDs that have not been checked against the Bittr API before.
+        // Create array of transaction IDs to send to Bittr.
         var newTxIds = [String]()
-        for eachTxId in txIds {
-            if !cachedBittrTransactionIDs.contains(eachTxId) {
-                if !self.cachedLightningIds.contains(eachTxId) {
-                    if let previouslySentToBittr = CacheManager.getSentToBittr() {
-                        if !previouslySentToBittr.contains(eachTxId) {
+        var newTransactionsWereFound = false
+        
+        if sendAll {
+            // Send all transaction IDs to Bittr again.
+            for eachTransaction in self.setTransactions {
+                newTxIds += [eachTransaction.id]
+            }
+        } else {
+            // Only send new transaction IDs to Bittr.
+            
+            // Collect the txIDs that have not been checked against the Bittr API before.
+            for eachTxId in txIds {
+                if !cachedBittrTransactionIDs.contains(eachTxId) {
+                    if !self.cachedLightningIds.contains(eachTxId) {
+                        if let previouslySentToBittr = CacheManager.getSentToBittr() {
+                            if !previouslySentToBittr.contains(eachTxId) {
+                                newTxIds += [eachTxId]
+                            }
+                        } else {
                             newTxIds += [eachTxId]
                         }
-                    } else {
+                    }
+                } else if eachTxId == CacheManager.getTxoID() ?? "" {
+                    if !self.cachedLightningIds.contains(eachTxId) {
                         newTxIds += [eachTxId]
                     }
-                }
-            } else if eachTxId == CacheManager.getTxoID() ?? "" {
-                if !self.cachedLightningIds.contains(eachTxId) {
-                    newTxIds += [eachTxId]
                 }
             }
         }
@@ -234,6 +246,9 @@ extension HomeViewController {
         
         if newTxIds.count == 0 {
             // No new txIDs need to be checked with the Bittr API.
+            return false
+        } else if depositCodes.count == 0 {
+            // There are no deposit codes registered to this device.
             return false
         } else {
             // Some new txIDs need to be checked with the Bittr API.
@@ -276,10 +291,35 @@ extension HomeViewController {
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                         } else {
                             self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
+                            
+                            if sendAll {
+                                // Check transactions that were previously not recognized.
+                                for eachExistingTransaction in self.setTransactions {
+                                    if eachExistingTransaction.id == eachTransaction.txId, eachExistingTransaction.isBittr == false {
+                                        newTransactionsWereFound = true
+                                        eachExistingTransaction.isBittr = true
+                                        eachExistingTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                        eachExistingTransaction.currency = eachTransaction.currency
+                                        if eachExistingTransaction.isLightning {
+                                            CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     
-                    return true
+                    if sendAll {
+                        if newTransactionsWereFound {
+                            CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
+                            self.homeTableView.reloadData()
+                            return true
+                        } else {
+                            return false
+                        }
+                    } else {
+                        return true
+                    }
                 }
             } catch {
                 print("Bittr error: \(error.localizedDescription)")

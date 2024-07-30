@@ -134,6 +134,14 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                     actualWebsiteVC.tappedUrl = actualTappedUrl
                 }
             }
+        } else if segue.identifier == "SettingsToDevice" {
+            if let deviceVC = segue.destination as? DeviceViewController {
+                if let actualCoreVC = self.coreVC {
+                    if let actualHomeVC = actualCoreVC.homeVC {
+                        deviceVC.homeVC = actualHomeVC
+                    }
+                }
+            }
         }
     }
     

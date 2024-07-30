@@ -28,10 +28,19 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var peerSpinner: UIActivityIndicatorView!
     @IBOutlet weak var peerLabel: UILabel!
     
+    // Bittr transactions
+    @IBOutlet weak var transactionsView: UIView!
+    @IBOutlet weak var transactionsButton: UIButton!
+    @IBOutlet weak var transactionsLabel: UILabel!
+    @IBOutlet weak var transactionsSpinner: UIActivityIndicatorView!
+    
     // Channels
     @IBOutlet weak var channelsView: UIView!
     @IBOutlet weak var channelsLabel: UILabel!
     @IBOutlet weak var channelsButton: UIButton!
+    
+    // Other VCs
+    var homeVC:HomeViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,12 +50,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         keyButton.setTitle("", for: .normal)
         imagesButton.setTitle("", for: .normal)
         peerButton.setTitle("", for: .normal)
+        transactionsButton.setTitle("", for: .normal)
         channelsButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
         tokenView.layer.cornerRadius = 13
         keyView.layer.cornerRadius = 13
         imagesView.layer.cornerRadius = 13
         peerView.layer.cornerRadius = 13
+        transactionsView.layer.cornerRadius = 13
         channelsView.layer.cornerRadius = 13
         
         NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
@@ -54,7 +65,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         Task {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
-                print("Channels: \(channels)")
+                print("Channels: \(channels.count)")
                 self.channelsLabel.text = "\(channels.count)"
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
@@ -188,6 +199,38 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             }
+        }
+    }
+    
+    @IBAction func transactionsButtonTapped(_ sender: UIButton) {
+        
+        if let actualHomeVC = self.homeVC {
+            let alert = UIAlertController(title: "Bittr transactions", message: "Would you like to fetch additional information about your Bittr purchases?", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Check", style: .default, handler: { _ in
+                self.transactionsLabel.alpha = 0
+                self.transactionsSpinner.startAnimating()
+                Task {
+                    if await actualHomeVC.fetchTransactionData(txIds: [String](), sendAll: true) == true {
+                        DispatchQueue.main.async {
+                            self.transactionsLabel.alpha = 1
+                            self.transactionsSpinner.stopAnimating()
+                            let alert = UIAlertController(title: "Bittr transactions", message: "New information has been received. Your transactions have been refreshed.", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.transactionsLabel.alpha = 1
+                            self.transactionsSpinner.stopAnimating()
+                            let alert = UIAlertController(title: "Bittr transactions", message: "No new information is available.", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
+                        }
+                    }
+                }
+            }))
+            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
         }
     }
     
