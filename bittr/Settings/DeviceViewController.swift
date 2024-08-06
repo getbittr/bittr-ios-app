@@ -34,6 +34,12 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var transactionsLabel: UILabel!
     @IBOutlet weak var transactionsSpinner: UIActivityIndicatorView!
     
+    // Bittr notification
+    @IBOutlet weak var notificationView: UIView!
+    @IBOutlet weak var notificationLabel: UILabel!
+    @IBOutlet weak var notificationButton: UIButton!
+    @IBOutlet weak var notificationSpinner: UIActivityIndicatorView!
+    
     // Channels
     @IBOutlet weak var channelsView: UIView!
     @IBOutlet weak var channelsLabel: UILabel!
@@ -51,6 +57,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         imagesButton.setTitle("", for: .normal)
         peerButton.setTitle("", for: .normal)
         transactionsButton.setTitle("", for: .normal)
+        notificationButton.setTitle("", for: .normal)
         channelsButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
         tokenView.layer.cornerRadius = 13
@@ -58,6 +65,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         imagesView.layer.cornerRadius = 13
         peerView.layer.cornerRadius = 13
         transactionsView.layer.cornerRadius = 13
+        notificationView.layer.cornerRadius = 13
         channelsView.layer.cornerRadius = 13
         
         NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
@@ -232,6 +240,34 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
+    }
+    
+    @IBAction func notificationButtonTapped(_ sender: UIButton) {
+        
+        if let actualHomeVC = self.homeVC {
+            if let actualCoreVC = actualHomeVC.coreVC {
+                if let actualSpecialData = actualCoreVC.varSpecialData {
+                    actualCoreVC.pendingLabel.text = "receiving payment"
+                    actualCoreVC.pendingSpinner.startAnimating()
+                    actualCoreVC.pendingView.alpha = 1
+                    actualCoreVC.blackSignupBackground.alpha = 0.2
+                    actualCoreVC.facilitateNotificationPayout(specialData: actualSpecialData)
+                    self.dismiss(animated: true)
+                } else {
+                    self.showNotificationAlert()
+                }
+            } else {
+                self.showNotificationAlert()
+            }
+        } else {
+            self.showNotificationAlert()
+        }
+    }
+    
+    func showNotificationAlert() {
+        let alert = UIAlertController(title: "Bittr notification", message: "There is no notification available for handling.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
     }
     
     func reconnectToPeer() {
