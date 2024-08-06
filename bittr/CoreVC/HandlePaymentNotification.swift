@@ -25,7 +25,10 @@ extension CoreViewController {
                     // User has signed in.
                     
                     if self.wasNotified == false {
+                        // App was open when notification came in.
                         
+                        self.varSpecialData = specialData
+                        CacheManager.storeLatestNotification(specialData: specialData)
                         let alert = UIAlertController(title: "Bittr payout", message: "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
                             self.pendingLabel.text = "receiving payment"
@@ -33,12 +36,12 @@ extension CoreViewController {
                             self.pendingView.alpha = 1
                             self.blackSignupBackground.alpha = 0.2
                             
-                            self.varSpecialData = specialData
                             self.facilitateNotificationPayout(specialData: specialData)
                             self.needsToHandleNotification = false
                         }))
                         self.present(alert, animated: true)
                     } else {
+                        // App was closed when notification came in and was subsequently opened.
                         self.pendingLabel.text = "receiving payment"
                         self.pendingSpinner.startAnimating()
                         self.pendingView.alpha = 1

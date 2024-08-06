@@ -254,7 +254,17 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                     actualCoreVC.facilitateNotificationPayout(specialData: actualSpecialData)
                     self.dismiss(animated: true)
                 } else {
-                    self.showNotificationAlert()
+                    if let actualSpecialData = CacheManager.getLatestNotification() {
+                        actualCoreVC.varSpecialData = actualSpecialData
+                        actualCoreVC.pendingLabel.text = "receiving payment"
+                        actualCoreVC.pendingSpinner.startAnimating()
+                        actualCoreVC.pendingView.alpha = 1
+                        actualCoreVC.blackSignupBackground.alpha = 0.2
+                        actualCoreVC.facilitateNotificationPayout(specialData: actualSpecialData)
+                        self.dismiss(animated: true)
+                    } else {
+                        self.showNotificationAlert()
+                    }
                 }
             } else {
                 self.showNotificationAlert()

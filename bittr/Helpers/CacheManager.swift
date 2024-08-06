@@ -959,4 +959,20 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storeLatestNotification(specialData:[String: Any]) {
+        let defaults = UserDefaults.standard
+        defaults.set(specialData, forKey: "lastbittrpayoutnotification")
+    }
+    
+    static func getLatestNotification() -> [String: Any]? {
+        let defaults = UserDefaults.standard
+        let latestNotification = defaults.value(forKey: "lastbittrpayoutnotification") as? [String: Any]
+        
+        if let actualLatestNotification = latestNotification {
+            return actualLatestNotification
+        } else {
+            return nil
+        }
+    }
+    
 }
