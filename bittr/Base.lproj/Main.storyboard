@@ -7054,13 +7054,13 @@
                                 </connections>
                             </containerView>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="lZH-Xf-cDb" userLabel="Signup5 Container View">
-                                <rect key="frame" x="1572" y="100" width="393" height="752"/>
+                                <rect key="frame" x="1572" y="0.0" width="393" height="852"/>
                                 <connections>
                                     <segue destination="6ah-6H-lmk" kind="embed" id="3sm-km-Sci"/>
                                 </connections>
                             </containerView>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="TFR-oX-MMk" userLabel="Signup6 Container View">
-                                <rect key="frame" x="1965" y="100" width="393" height="752"/>
+                                <rect key="frame" x="1965" y="0.0" width="393" height="852"/>
                                 <connections>
                                     <segue destination="BwZ-11-QeI" kind="embed" id="8rE-Bj-8Nh"/>
                                 </connections>
@@ -7102,13 +7102,13 @@
                                 </connections>
                             </containerView>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="7pP-k3-D9a" userLabel="Restore2 Container View">
-                                <rect key="frame" x="-786" y="100" width="393" height="752"/>
+                                <rect key="frame" x="-786" y="0.0" width="393" height="852"/>
                                 <connections>
                                     <segue destination="34l-Dc-A1M" kind="embed" id="ubZ-nS-x7H"/>
                                 </connections>
                             </containerView>
                             <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Xfu-wS-HSw" userLabel="Restore3 Container View">
-                                <rect key="frame" x="-1179" y="100" width="393" height="752"/>
+                                <rect key="frame" x="-1179" y="0.0" width="393" height="852"/>
                                 <connections>
                                     <segue destination="hDe-sa-R5p" kind="embed" id="5XJ-Re-g7v"/>
                                 </connections>
@@ -7141,9 +7141,9 @@
                             <constraint firstItem="LoZ-xP-Oft" firstAttribute="bottom" secondItem="Reg-wM-AQY" secondAttribute="bottom" id="TVG-7O-Nxn"/>
                             <constraint firstItem="Reg-wM-AQY" firstAttribute="leading" secondItem="W0K-Yn-arQ" secondAttribute="leading" id="U4M-3s-hp4"/>
                             <constraint firstItem="d1u-yd-fuF" firstAttribute="top" secondItem="Reg-wM-AQY" secondAttribute="top" id="Uhd-p3-AdG"/>
-                            <constraint firstItem="7pP-k3-D9a" firstAttribute="top" secondItem="sT6-bj-OBb" secondAttribute="top" id="WqA-6g-Wxl"/>
+                            <constraint firstItem="7pP-k3-D9a" firstAttribute="top" secondItem="W0K-Yn-arQ" secondAttribute="top" id="WqA-6g-Wxl"/>
                             <constraint firstItem="0zq-AP-EXR" firstAttribute="top" secondItem="Reg-wM-AQY" secondAttribute="top" id="XHB-rE-PKv"/>
-                            <constraint firstItem="TFR-oX-MMk" firstAttribute="top" secondItem="Reg-wM-AQY" secondAttribute="top" id="XbZ-4F-wle"/>
+                            <constraint firstItem="TFR-oX-MMk" firstAttribute="top" secondItem="W0K-Yn-arQ" secondAttribute="top" id="XbZ-4F-wle"/>
                             <constraint firstItem="sT6-bj-OBb" firstAttribute="width" secondItem="Reg-wM-AQY" secondAttribute="width" id="ZIs-EJ-BO7"/>
                             <constraint firstItem="DDe-q1-iU7" firstAttribute="width" secondItem="Reg-wM-AQY" secondAttribute="width" id="alT-aG-saG"/>
                             <constraint firstItem="LoZ-xP-Oft" firstAttribute="leading" secondItem="8dl-DW-3vs" secondAttribute="trailing" id="bpu-pF-7lk"/>
@@ -7171,7 +7171,7 @@
                             <constraint firstItem="Xfu-wS-HSw" firstAttribute="top" secondItem="7pP-k3-D9a" secondAttribute="top" id="x1a-Ca-U7v"/>
                             <constraint firstItem="0zq-AP-EXR" firstAttribute="width" secondItem="Reg-wM-AQY" secondAttribute="width" id="x8P-NB-YB4"/>
                             <constraint firstItem="lZH-Xf-cDb" firstAttribute="leading" secondItem="0zq-AP-EXR" secondAttribute="trailing" id="xaY-J7-UFv"/>
-                            <constraint firstItem="lZH-Xf-cDb" firstAttribute="top" secondItem="Reg-wM-AQY" secondAttribute="top" id="xtF-J9-Bqu"/>
+                            <constraint firstItem="lZH-Xf-cDb" firstAttribute="top" secondItem="W0K-Yn-arQ" secondAttribute="top" id="xtF-J9-Bqu"/>
                             <constraint firstItem="8dl-DW-3vs" firstAttribute="leading" secondItem="d1u-yd-fuF" secondAttribute="trailing" id="zd2-Eb-2hQ"/>
                         </constraints>
                     </view>
@@ -11135,17 +11135,17 @@
             <objects>
                 <viewController id="FeK-Kj-SZT" customClass="PinViewController" customModule="bittr" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="wbY-OP-rFa">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="752"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <scrollView multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0lc-hv-OdJ">
-                                <rect key="frame" x="0.0" y="100" width="393" height="752"/>
+                                <rect key="frame" x="0.0" y="100" width="393" height="652"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gqH-Nt-Iss" userLabel="Content View">
-                                        <rect key="frame" x="0.0" y="0.0" width="393" height="752"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="393" height="652"/>
                                         <subviews>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mHZ-ww-5Sp" userLabel="Center View">
-                                                <rect key="frame" x="0.0" y="66" width="393" height="540"/>
+                                                <rect key="frame" x="0.0" y="16" width="393" height="540"/>
                                                 <subviews>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Enter your PIN code" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="d1R-uY-giA">
                                                         <rect key="frame" x="40" y="0.0" width="313" height="16"/>
@@ -11795,7 +11795,7 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="Owf-uB-9LO"/>
+        <segue reference="qQ6-Kh-Jsx"/>
         <segue reference="5tR-AB-SFA"/>
         <segue reference="Mkd-J2-qct"/>
         <segue reference="FO1-qU-083"/>
