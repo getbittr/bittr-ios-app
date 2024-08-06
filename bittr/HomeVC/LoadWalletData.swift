@@ -32,18 +32,7 @@ extension HomeViewController {
                 // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
                 if actualLightningChannels.count == 1 {
                     // Set Bittr Channel.
-                    let thisChannel = Channel()
-                    thisChannel.id = actualLightningChannels[0].channelId
-                    thisChannel.received = Int(actualLightningChannels[0].outboundCapacityMsat)/1000
-                    thisChannel.size = Int(actualLightningChannels[0].channelValueSats)
-                    thisChannel.punishmentReserve = Int(actualLightningChannels[0].unspendablePunishmentReserve ?? 0)
-                    thisChannel.sendableMinimum = Int(actualLightningChannels[0].nextOutboundHtlcMinimumMsat)/1000
-                    thisChannel.receivableMaximum = Int(actualLightningChannels[0].inboundHtlcMaximumMsat ?? 0)/1000
-                    
-                    self.bittrChannel = thisChannel
-                    if let actualCoreVC = self.coreVC {
-                        actualCoreVC.bittrChannel = thisChannel
-                    }
+                    self.setBittrChannel(withChannel: actualLightningChannels[0])
                 }
             }
             
@@ -54,11 +43,10 @@ extension HomeViewController {
             
             // Set transactions.
             if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
-                print("Received: \(receivedTransactions.count)")
                 
                 self.newTransactions.removeAll()
                 
-                // Add cached Lightning payments.
+                // Add cached Lightning payments to array.
                 let cachedLightningTransactions = CacheManager.getLightningTransactions()
                 if let actualCachedLightningTransactions = cachedLightningTransactions {
                     self.newTransactions += actualCachedLightningTransactions
@@ -67,10 +55,13 @@ extension HomeViewController {
                     }
                 }
                 
+                // Collect transaction IDs to be checked with Bittr API.
                 var txIds = [String]()
+                // Add all onchain transaction IDs.
                 for eachTransaction in receivedTransactions {
                     txIds += [eachTransaction.txid]
                 }
+                // Add all Lightning payment IDs that haven't yet been cached.
                 if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                     for eachPayment in receivedPayments {
                         if eachPayment.id != nil {
@@ -80,13 +71,14 @@ extension HomeViewController {
                         }
                     }
                 }
+                // Add funding transaction ID.
                 if let cachedFundingTxo = CacheManager.getTxoID() {
                     txIds += [cachedFundingTxo]
                 }
                 
                 Task {
                     // Check whether transactions were Bittr purchases.
-                    await fetchTransactionData(txIds:txIds)
+                    await fetchTransactionData(txIds:txIds, sendAll: false)
                     
                     DispatchQueue.main.async {
                         
@@ -121,6 +113,7 @@ extension HomeViewController {
                                 thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
                             }
                             
+                            // Add all onchain transactions to array.
                             self.newTransactions += [thisTransaction]
                         }
                         
@@ -151,6 +144,7 @@ extension HomeViewController {
                                     }
                                     
                                     if eachPayment.status == .succeeded {
+                                        // Add new Lightning payments to array.
                                         self.newTransactions += [thisTransaction]
                                         CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                                     }
@@ -167,18 +161,34 @@ extension HomeViewController {
                         CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
                         
                         // Start balance calculation.
-                        self.setTotalSats()
+                        self.setTotalSats(updateTableAfterConversion: true)
                     }
                 }
             } else {
                 // Start balance calculation.
-                self.setTotalSats()
+                self.setTotalSats(updateTableAfterConversion: true)
             }
         }
     }
     
     
-    func fetchTransactionData(txIds:[String]) async -> Bool {
+    func setBittrChannel(withChannel:ChannelDetails) {
+        let thisChannel = Channel()
+        thisChannel.id = withChannel.channelId
+        thisChannel.received = Int(withChannel.outboundCapacityMsat)/1000
+        thisChannel.size = Int(withChannel.channelValueSats)
+        thisChannel.punishmentReserve = Int(withChannel.unspendablePunishmentReserve ?? 0)
+        thisChannel.sendableMinimum = Int(withChannel.nextOutboundHtlcMinimumMsat)/1000
+        thisChannel.receivableMaximum = Int(withChannel.inboundHtlcMaximumMsat ?? 0)/1000
+        
+        self.bittrChannel = thisChannel
+        if let actualCoreVC = self.coreVC {
+            actualCoreVC.bittrChannel = thisChannel
+        }
+    }
+    
+    
+    func fetchTransactionData(txIds:[String], sendAll:Bool) async -> Bool {
         
         // Check if transactions were Bittr purchases with the Bittr API.
         
@@ -200,22 +210,34 @@ extension HomeViewController {
             }
         }
         
-        // Collect the txIDs that have not been checked against the Bittr API before.
+        // Create array of transaction IDs to send to Bittr.
         var newTxIds = [String]()
-        for eachTxId in txIds {
-            if !cachedBittrTransactionIDs.contains(eachTxId) {
-                if !self.cachedLightningIds.contains(eachTxId) {
-                    if let previouslySentToBittr = CacheManager.getSentToBittr() {
-                        if !previouslySentToBittr.contains(eachTxId) {
+        var newTransactionsWereFound = false
+        
+        if sendAll {
+            // Send all transaction IDs to Bittr again.
+            for eachTransaction in self.setTransactions {
+                newTxIds += [eachTransaction.id]
+            }
+        } else {
+            // Only send new transaction IDs to Bittr.
+            
+            // Collect the txIDs that have not been checked against the Bittr API before.
+            for eachTxId in txIds {
+                if !cachedBittrTransactionIDs.contains(eachTxId) {
+                    if !self.cachedLightningIds.contains(eachTxId) {
+                        if let previouslySentToBittr = CacheManager.getSentToBittr() {
+                            if !previouslySentToBittr.contains(eachTxId) {
+                                newTxIds += [eachTxId]
+                            }
+                        } else {
                             newTxIds += [eachTxId]
                         }
-                    } else {
+                    }
+                } else if eachTxId == CacheManager.getTxoID() ?? "" {
+                    if !self.cachedLightningIds.contains(eachTxId) {
                         newTxIds += [eachTxId]
                     }
-                }
-            } else if eachTxId == CacheManager.getTxoID() ?? "" {
-                if !self.cachedLightningIds.contains(eachTxId) {
-                    newTxIds += [eachTxId]
                 }
             }
         }
@@ -224,6 +246,9 @@ extension HomeViewController {
         
         if newTxIds.count == 0 {
             // No new txIDs need to be checked with the Bittr API.
+            return false
+        } else if depositCodes.count == 0 {
+            // There are no deposit codes registered to this device.
             return false
         } else {
             // Some new txIDs need to be checked with the Bittr API.
@@ -266,10 +291,35 @@ extension HomeViewController {
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                         } else {
                             self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency], forKey: eachTransaction.txId)
+                            
+                            if sendAll {
+                                // Check transactions that were previously not recognized.
+                                for eachExistingTransaction in self.setTransactions {
+                                    if eachExistingTransaction.id == eachTransaction.txId, eachExistingTransaction.isBittr == false {
+                                        newTransactionsWereFound = true
+                                        eachExistingTransaction.isBittr = true
+                                        eachExistingTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                        eachExistingTransaction.currency = eachTransaction.currency
+                                        if eachExistingTransaction.isLightning {
+                                            CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     
-                    return true
+                    if sendAll {
+                        if newTransactionsWereFound {
+                            CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
+                            self.homeTableView.reloadData()
+                            return true
+                        } else {
+                            return false
+                        }
+                    } else {
+                        return true
+                    }
                 }
             } catch {
                 print("Bittr error: \(error.localizedDescription)")
@@ -279,7 +329,7 @@ extension HomeViewController {
     }
     
     
-    func setTotalSats() {
+    func setTotalSats(updateTableAfterConversion:Bool) {
         
         // Calculate total balance
         self.btcBalance = self.bdkBalance
@@ -353,7 +403,7 @@ extension HomeViewController {
                 CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
                 
                 // Convert bitcoin balance to EUR / CHF.
-                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false)
+                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
                 
             } catch let e as NSError {
                 print("Couldn't fetch text: \(e.localizedDescription)")
@@ -362,7 +412,7 @@ extension HomeViewController {
     }
     
     
-    func setConversion(btcValue:CGFloat, cachedData:Bool) {
+    func setConversion(btcValue:CGFloat, cachedData:Bool, updateTableAfterConversion:Bool) {
         
         if self.didFetchConversion == true || self.couldNotFetchConversion == true {
             // Conversion rate was already fetched.
@@ -377,13 +427,26 @@ extension HomeViewController {
             self.balanceSpinner.stopAnimating()
             self.conversionLabel.alpha = 1
             
-            if cachedData == false {
-                self.setTransactions = self.newTransactions
-            }
-            
-            self.updateTableAfterConversion()
-            
-            self.calculateProfit(cachedData: cachedData)
+            if updateTableAfterConversion {
+                if cachedData == false {
+                    self.setTransactions = self.newTransactions
+                }
+                self.updateTableAfterConversion()
+                self.calculateProfit(cachedData: cachedData)
+            }/* else {
+                Task {
+                    do {
+                        let refreshedChannels = try await LightningNodeService.shared.listChannels()
+                        print("Channels: \(refreshedChannels.count)")
+                        if refreshedChannels.count > 0 {
+                            self.channels = refreshedChannels
+                            self.setBittrChannel(withChannel: refreshedChannels[0])
+                        }
+                    } catch {
+                        print("Error listing channels: \(error.localizedDescription)")
+                    }
+                }
+            }*/
         } else {
             // Conversion rate hasn't yet been fetched.
             print("Did start currency conversion.")
@@ -411,7 +474,7 @@ extension HomeViewController {
                         self.present(alert, animated: true)
                         
                         self.couldNotFetchConversion = true
-                        self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                        self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)
                         }
@@ -461,17 +524,30 @@ extension HomeViewController {
                                     self.balanceSpinner.stopAnimating()
                                     self.conversionLabel.alpha = 1
                                     
-                                    if cachedData == false {
-                                        self.setTransactions = self.newTransactions
-                                    }
-                                    
-                                    self.updateTableAfterConversion()
+                                    if updateTableAfterConversion {
+                                        if cachedData == false {
+                                            self.setTransactions = self.newTransactions
+                                        }
+                                        self.updateTableAfterConversion()
+                                        self.calculateProfit(cachedData: cachedData)
+                                    }/* else {
+                                        Task {
+                                            do {
+                                                let refreshedChannels = try await LightningNodeService.shared.listChannels()
+                                                print("Channels: \(refreshedChannels.count)")
+                                                if refreshedChannels.count > 0 {
+                                                    self.channels = refreshedChannels
+                                                    self.setBittrChannel(withChannel: refreshedChannels[0])
+                                                }
+                                            } catch {
+                                                print("Error listing channels: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    }*/
                                     
                                     if let actualCoreVC = self.coreVC {
                                         actualCoreVC.completeSync(type: "conversion")
                                     }
-                                    
-                                    self.calculateProfit(cachedData: cachedData)
                                 }
                             }
                         }
@@ -484,7 +560,7 @@ extension HomeViewController {
                             self.present(alert, animated: true)
                             
                             self.couldNotFetchConversion = true
-                            self.setConversion(btcValue: btcValue, cachedData: cachedData)
+                            self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                             SentrySDK.capture(error: error)
                         }
                     }

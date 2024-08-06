@@ -34,6 +34,8 @@
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
+		05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */; };
+		05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */; };
 		0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0595AB082B2EE7E900375498 /* WebsiteViewController.swift */; };
 		05980B522A46F76E001F312F /* IbanEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B512A46F76E001F312F /* IbanEntity.swift */; };
 		05980B542A46F7E4001F312F /* Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B532A46F7E4001F312F /* Client.swift */; };
@@ -58,7 +60,6 @@
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
 		05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C08429CCB55600C1E695 /* AppDelegate.swift */; };
 		05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C08629CCB55600C1E695 /* SceneDelegate.swift */; };
-		05C3C08929CCB55600C1E695 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C08829CCB55600C1E695 /* ViewController.swift */; };
 		05C3C08C29CCB55600C1E695 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C08A29CCB55600C1E695 /* Main.storyboard */; };
 		05C3C08E29CCB55800C1E695 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C08D29CCB55800C1E695 /* Assets.xcassets */; };
 		05C3C09129CCB55800C1E695 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C08F29CCB55800C1E695 /* LaunchScreen.storyboard */; };
@@ -145,6 +146,8 @@
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
+		05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveLightning.swift; sourceTree = "<group>"; };
 		0595AB082B2EE7E900375498 /* WebsiteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteViewController.swift; sourceTree = "<group>"; };
 		05980B512A46F76E001F312F /* IbanEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanEntity.swift; sourceTree = "<group>"; };
 		05980B532A46F7E4001F312F /* Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Client.swift; sourceTree = "<group>"; };
@@ -167,7 +170,6 @@
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		05C3C08429CCB55600C1E695 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		05C3C08629CCB55600C1E695 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		05C3C08829CCB55600C1E695 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		05C3C08B29CCB55600C1E695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		05C3C08D29CCB55800C1E695 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		05C3C09029CCB55800C1E695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -274,6 +276,8 @@
 				05F1FB612C33E1CD004AE14F /* SendLightning.swift */,
 				05F1FB632C341852004AE14F /* SendSwitch.swift */,
 				0579B2722A0531470007891F /* ReceiveViewController.swift */,
+				05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */,
+				05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */,
 			);
 			path = Move;
 			sourceTree = "<group>";
@@ -380,12 +384,11 @@
 				05A8BD862B750F56002F0282 /* PaymentVC */,
 				05E299582A39CB1200FA0AEE /* Buy */,
 				0579B26F2A0530DB0007891F /* Move */,
-				05F8DC5829F2B436008052B5 /* Info */,
+				05F8DC5829F2B436008052B5 /* Articles */,
 				05F8DC5929F2B449008052B5 /* Settings */,
 				05F31CC12B88008E00AAA342 /* QuestionVC */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
 				05C3C08629CCB55600C1E695 /* SceneDelegate.swift */,
-				05C3C08829CCB55600C1E695 /* ViewController.swift */,
 				05C3C08A29CCB55600C1E695 /* Main.storyboard */,
 				05C3C08D29CCB55800C1E695 /* Assets.xcassets */,
 				05C3C08F29CCB55800C1E695 /* LaunchScreen.storyboard */,
@@ -457,7 +460,7 @@
 			path = QuestionVC;
 			sourceTree = "<group>";
 		};
-		05F8DC5829F2B436008052B5 /* Info */ = {
+		05F8DC5829F2B436008052B5 /* Articles */ = {
 			isa = PBXGroup;
 			children = (
 				05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */,
@@ -467,7 +470,7 @@
 				057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */,
 				057E6E8A2A14DDBC00B37026 /* Article.swift */,
 			);
-			path = Info;
+			path = Articles;
 			sourceTree = "<group>";
 		};
 		05F8DC5929F2B449008052B5 /* Settings */ = {
@@ -652,7 +655,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				05C3C08929CCB55600C1E695 /* ViewController.swift in Sources */,
 				05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */,
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
 				05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */,
@@ -687,6 +689,7 @@
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
+				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
@@ -699,6 +702,7 @@
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
+				05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
@@ -900,7 +904,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 77;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -939,7 +943,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 77;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;

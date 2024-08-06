@@ -10,11 +10,13 @@ import WebKit
 
 class WebsiteViewController: UIViewController, WKUIDelegate {
 
+    // UI elements
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var safariButton: UIButton!
     @IBOutlet weak var websiteView: UIView!
     @IBOutlet weak var webSpinner: UIActivityIndicatorView!
     
+    // Variables
     var tappedUrl:String?
     var webView = WKWebView()
     

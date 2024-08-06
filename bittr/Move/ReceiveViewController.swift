@@ -16,71 +16,77 @@ import BitcoinDevKit
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate {
 
+    // General
     @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var qrView: UIView!
-    @IBOutlet weak var addressView: UIView!
-    @IBOutlet weak var refreshView: UIView!
-    @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
-    @IBOutlet weak var contentView: UIView!
+    
+    // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
-    @IBOutlet weak var contentBackgroundButton: UIButton!
-    @IBOutlet weak var backgroundButton: UIButton!
+    @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var contentView: UIView!
+    @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var centerViewBoth: UIView!
+    @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
+    @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var contentBackgroundButton: UIButton!
     
-    @IBOutlet weak var addressLabel: UILabel!
-    @IBOutlet weak var addressCopy: UIImageView!
-    @IBOutlet weak var addressSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var qrcodeSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var qrCodeImage: UIImageView!
-    @IBOutlet weak var copyAddressButton: UIButton!
-    @IBOutlet weak var refreshButton: UIButton!
-    @IBOutlet weak var qrCodeLogoView: UIView!
-    
+    // Main - Switch view
     @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var regularButton: UIButton!
-    @IBOutlet weak var instantButton: UIButton!
-    @IBOutlet weak var centerViewRegularTrailing: NSLayoutConstraint!
     @IBOutlet weak var regularView: UIView!
     @IBOutlet weak var instantView: UIView!
+    @IBOutlet weak var regularButton: UIButton!
+    @IBOutlet weak var instantButton: UIButton!
     
+    // Main - Regular view
+    @IBOutlet weak var centerViewRegular: UIView!
+    @IBOutlet weak var centerViewRegularTrailing: NSLayoutConstraint!
+    @IBOutlet weak var qrView: UIView!
+    @IBOutlet weak var qrCodeImage: UIImageView!
+    @IBOutlet weak var qrCodeLogoView: UIView!
+    @IBOutlet weak var qrCodeSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var addressView: UIView!
+    @IBOutlet weak var addressSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var addressLabel: UILabel!
+    @IBOutlet weak var addressCopy: UIImageView!
+    @IBOutlet weak var copyAddressButton: UIButton!
+    @IBOutlet weak var refreshView: UIView!
+    @IBOutlet weak var refreshButton: UIButton!
+    
+    // Main - Instant view
+    @IBOutlet weak var centerViewInstant: UIView!
+    @IBOutlet weak var receivableLNLabel: UILabel!
+    @IBOutlet weak var receivableButton: UIButton!
+    @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var amountView: UIView!
-    @IBOutlet weak var descriptionView: UIView!
-    @IBOutlet weak var createView: UIView!
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
+    @IBOutlet weak var descriptionView: UIView!
     @IBOutlet weak var descriptionTextField: UITextField!
     @IBOutlet weak var descriptionButton: UIButton!
+    @IBOutlet weak var createView: UIView!
     @IBOutlet weak var invoiceButton: UIButton!
-    @IBOutlet weak var receivableButton: UIButton!
     
-    var keyboardIsActive = false
-    var maximumReceivableLNSats:Int?
-    @IBOutlet weak var receivableLNLabel: UILabel!
-    
-    // Lightning invoice confirmation
-    @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
-    @IBOutlet weak var centerViewRegular: UIView!
-    @IBOutlet weak var centerViewInstant: UIView!
-    @IBOutlet weak var centerViewBoth: UIView!
-    
-    @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
+    // Confirm invoice view
     @IBOutlet weak var lnConfirmationHeaderView: UIView!
     @IBOutlet weak var lnConfirmationQRView: UIView!
+    @IBOutlet weak var lnQRImage: UIImageView!
+    @IBOutlet weak var lnQRCodeLogoView: UIView!
     @IBOutlet weak var lnConfirmationAddressView: UIView!
     @IBOutlet weak var lnInvoiceLabel: UILabel!
     @IBOutlet weak var copyInvoiceButton: UIButton!
-    @IBOutlet weak var lnConfirmationDoneButton: UIButton!
     @IBOutlet weak var lnConfirmationDoneView: UIView!
-    @IBOutlet weak var lnQRImage: UIImageView!
-    @IBOutlet weak var lnQRCodeLogoView: UIView!
-    var createdInvoice = ""
+    @IBOutlet weak var lnConfirmationDoneButton: UIButton!
     
-    @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
+    // Variables
+    var keyboardIsActive = false
+    var maximumReceivableLNSats:Int?
+    var createdInvoice = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Button titles
         downButton.setTitle("", for: .normal)
         copyAddressButton.setTitle("", for: .normal)
         refreshButton.setTitle("", for: .normal)
@@ -95,6 +101,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         lnConfirmationDoneButton.setTitle("", for: .normal)
         receivableButton.setTitle("", for: .normal)
         
+        // Corner radii
         headerView.layer.cornerRadius = 13
         qrView.layer.cornerRadius = 13
         addressView.layer.cornerRadius = 13
@@ -108,35 +115,33 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         lnConfirmationAddressView.layer.cornerRadius = 13
         lnConfirmationDoneView.layer.cornerRadius = 13
         
+        // Text field delegates
         amountTextField.delegate = self
         descriptionTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
+        // Receivable sats label
         if let actualReceivableLN = maximumReceivableLNSats {
             self.receivableLNLabel.text = "You can receive up to \(actualReceivableLN) satoshis."
         }
         
+        // Create QR code
         addressCopy.alpha = 0
         qrCodeImage.alpha = 0
         addressLabel.text = ""
         addressSpinner.startAnimating()
-        qrcodeSpinner.startAnimating()
-        
+        qrCodeSpinner.startAnimating()
         getNewAddress(resetAddress: false)
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        
         let centerViewHeight = centerViewBoth.bounds.height
-        
         if centerViewBoth.bounds.height + 40 > contentView.bounds.height {
-            
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 80)
             NSLayoutConstraint.activate([self.contentViewHeight])
@@ -175,83 +180,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    func getNewAddress(resetAddress:Bool) {
-        
-        if let cachedAddress = CacheManager.getLastAddress(), resetAddress == false {
-            print("Showing cached address.")
-            self.addressLabel.text = cachedAddress
-            self.addressCopy.alpha = 1
-            self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + cachedAddress)
-            self.qrCodeImage.layer.magnificationFilter = .nearest
-            self.qrCodeImage.alpha = 1
-            self.qrCodeLogoView.alpha = 1
-            self.addressSpinner.stopAnimating()
-            self.qrcodeSpinner.stopAnimating()
-        } else {
-            print("Showing new address.")
-            Task {
-                do {
-                    //let address = try await LightningNodeService.shared.newFundingAddress()
-                    let wallet = LightningNodeService.shared.getWallet()
-                    if let address = try wallet?.getAddress(addressIndex: .new).address.asString() {
-                        DispatchQueue.main.async {
-                            CacheManager.storeLastAddress(newAddress: address)
-                            self.addressLabel.text = address
-                            self.addressCopy.alpha = 1
-                            self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
-                            self.qrCodeImage.layer.magnificationFilter = .nearest
-                            self.qrCodeImage.alpha = 1
-                            self.qrCodeLogoView.alpha = 1
-                            self.addressSpinner.stopAnimating()
-                            self.qrcodeSpinner.stopAnimating()
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                                self.getNewAddress(resetAddress: resetAddress)
-                            }))
-                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
-                                self.addressSpinner.stopAnimating()
-                                self.qrcodeSpinner.stopAnimating()
-                            }))
-                            self.present(alert, animated: true)
-                        }
-                    }
-                } catch let error as NodeError {
-                    let errorString = handleNodeError(error)
-                    DispatchQueue.main.async {
-                        let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. (\(errorString).) Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                            self.getNewAddress(resetAddress: resetAddress)
-                        }))
-                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
-                            self.addressSpinner.stopAnimating()
-                            self.qrcodeSpinner.stopAnimating()
-                        }))
-                        self.present(alert, animated: true)
-                        
-                        SentrySDK.capture(error: error)
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
-                            self.getNewAddress(resetAddress: resetAddress)
-                        }))
-                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
-                            self.addressSpinner.stopAnimating()
-                            self.qrcodeSpinner.stopAnimating()
-                        }))
-                        self.present(alert, animated: true)
-                        
-                        SentrySDK.capture(error: error)
-                    }
-                }
-            }
-        }
-    }
-    
     @IBAction func copyAddressTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.addressLabel.text
@@ -267,85 +195,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         qrCodeLogoView.alpha = 0
         addressLabel.text = ""
         addressSpinner.startAnimating()
-        qrcodeSpinner.startAnimating()
+        qrCodeSpinner.startAnimating()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.getNewAddress(resetAddress:true)
-        }
-    }
-    
-    func getInvoiceHash(invoiceString:String) -> String {
-        let result = Bolt11Invoice.fromStr(s: invoiceString)
-        //let result = Bolt11Invoice(stringLiteral: invoiceString)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return "empty"
-            }
-        } else if let error = result.getError() {
-            print("Failed to parse invoice: \(error)")
-            return "empty"
-        } else {
-            return "empty"
-        }
-    }
-    
-    func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) {
-        Task {
-            do {
-                let invoice = try await LightningNodeService.shared.receivePayment(
-                    amountMsat: amountMsat,
-                    description: description,
-                    expirySecs: expirySecs
-                )
-                DispatchQueue.main.async {
-                    
-                    let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
-                    let newTimestamp = Int(Date().timeIntervalSince1970)
-                    CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
-                    if let actualInvoiceText = self.descriptionTextField.text {
-                        CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: actualInvoiceText)
-                    }
-                    
-                    self.lnInvoiceLabel.text = "\(invoice)"
-                    self.lnQRImage.image = self.generateQRCode(from: "lightning:" + invoice)
-                    self.lnQRImage.layer.magnificationFilter = .nearest
-                    self.lnQRCodeLogoView.alpha = 1
-                    self.createdInvoice = invoice
-                    
-                    // Show confirmation view.
-                    UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                        NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-                        self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
-                        NSLayoutConstraint.activate([self.scrollViewTrailing])
-                        self.view.layoutIfNeeded()
-                    }
-                    
-                    self.amountTextField.text = nil
-                    self.descriptionTextField.text = nil
-                }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Error", message: errorString.detail, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                    
-                    SentrySDK.capture(error: error)
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                    
-                    SentrySDK.capture(error: error)
-                }
-            }
         }
     }
 
@@ -428,7 +281,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.view.endEditing(true)
         } else {
             
-            if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == ""/* || self.descriptionTextField.text == nil || self.descriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == ""*/ {
+            if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
                 // Some field was left empty.
             } else {
                 let actualAmount = (Int(self.amountTextField.text!) ?? 0) * 1000

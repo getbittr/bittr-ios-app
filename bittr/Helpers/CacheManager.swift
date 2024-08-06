@@ -19,6 +19,7 @@ class CacheManager: NSObject {
             defaults.removeObject(forKey: "pin")
             defaults.removeObject(forKey: "mnemonic")
             defaults.removeObject(forKey: "lastaddress")
+            defaults.removeObject(forKey: "lightning")
             self.resetFailedPinAttempts()
         } else {
             defaults.removeObject(forKey: "proddevice")
@@ -26,6 +27,7 @@ class CacheManager: NSObject {
             defaults.removeObject(forKey: "prodpin")
             defaults.removeObject(forKey: "prodmnemonic")
             defaults.removeObject(forKey: "prodlastaddress")
+            defaults.removeObject(forKey: "prodlightning")
             self.resetFailedPinAttempts()
         }
     }
@@ -954,6 +956,22 @@ class CacheManager: NSObject {
         } else {
             // No events were stored before.
             return false
+        }
+    }
+    
+    static func storeLatestNotification(specialData:[String: Any]) {
+        let defaults = UserDefaults.standard
+        defaults.set(specialData, forKey: "lastbittrpayoutnotification")
+    }
+    
+    static func getLatestNotification() -> [String: Any]? {
+        let defaults = UserDefaults.standard
+        let latestNotification = defaults.value(forKey: "lastbittrpayoutnotification") as? [String: Any]
+        
+        if let actualLatestNotification = latestNotification {
+            return actualLatestNotification
+        } else {
+            return nil
         }
     }
     

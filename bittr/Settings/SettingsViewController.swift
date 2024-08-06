@@ -9,17 +9,19 @@ import UIKit
 
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
+    // UI elements
     @IBOutlet weak var settingsTableView: UITableView!
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
     
+    // Variables
     var coreVC:CoreViewController?
     var tappedUrl:String?
-    
-    let settings = [/*["label":"Share feedback", "icon":"iconfeedback", "id":"feedback"],*/["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet and balance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"Device details", "icon":"ipad.and.iphone", "id":"device"]]
+    let settings = [["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet and balance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"Device details", "icon":"ipad.and.iphone", "id":"device"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Table view
         settingsTableView.delegate = self
         settingsTableView.dataSource = self
     }
@@ -38,7 +40,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         if let actualCell = cell {
             
             actualCell.layer.zPosition = CGFloat(indexPath.row)
-            //actualCell.settingsCardImage.image = UIImage(named: self.settings[indexPath.row]["icon"] ?? "iconterms")
             actualCell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
             actualCell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
             actualCell.settingsCardLabel.text = self.settings[indexPath.row]["label"] ?? "Unnamed"
@@ -64,30 +65,12 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         if sender.accessibilityIdentifier == "privacy" {
             self.tappedUrl = "https://getbittr.com/privacy-policy"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
-            
-            /*let website:String = "https://getbittr.com/privacy-policy"
-            let websiteUrl:NSURL? = NSURL(string: website)
-            if websiteUrl != nil {
-                UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
-            }*/
         } else if sender.accessibilityIdentifier == "terms" {
             self.tappedUrl = "https://getbittr.com/terms-and-conditions"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
-            
-            /*let website:String = "https://getbittr.com/terms-and-conditions"
-            let websiteUrl:NSURL? = NSURL(string: website)
-            if websiteUrl != nil {
-                UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
-            }*/
         } else if sender.accessibilityIdentifier == "support" {
             self.tappedUrl = "https://getbittr.com/support"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
-            
-            /*let website:String = "https://getbittr.com/support"
-            let websiteUrl:NSURL? = NSURL(string: website)
-            if websiteUrl != nil {
-                UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
-            }*/
         } else if sender.accessibilityIdentifier == "restore" {
             
             let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
@@ -113,25 +96,15 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 let notificationDict:[String: Any] = ["currency":"€"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
             }
-            /*let usdOption = UIAlertAction(title: "USD $", style: .default) { (action) in
-                let notificationDict:[String: Any] = ["currency":"$"]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
-            }*/
             let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
                 
                 UserDefaults.standard.set("CHF", forKey: "currency")
                 let notificationDict:[String: Any] = ["currency":"CHF"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
             }
-            /*let gbpOption = UIAlertAction(title: "GBP £", style: .default) { (action) in
-                let notificationDict:[String: Any] = ["currency":"£"]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
-            }*/
             let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
             actionSheet.addAction(eurOption)
-            //actionSheet.addAction(usdOption)
             actionSheet.addAction(chfOption)
-            //actionSheet.addAction(gbpOption)
             actionSheet.addAction(cancelAction)
             present(actionSheet, animated: true, completion: nil)
         } else if sender.accessibilityIdentifier == "wallets" {
@@ -159,6 +132,14 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 if let actualTappedUrl = self.tappedUrl {
                     
                     actualWebsiteVC.tappedUrl = actualTappedUrl
+                }
+            }
+        } else if segue.identifier == "SettingsToDevice" {
+            if let deviceVC = segue.destination as? DeviceViewController {
+                if let actualCoreVC = self.coreVC {
+                    if let actualHomeVC = actualCoreVC.homeVC {
+                        deviceVC.homeVC = actualHomeVC
+                    }
                 }
             }
         }
