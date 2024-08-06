@@ -21,6 +21,8 @@ extension CoreViewController {
             if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
                 print("Received special data: \(specialData)")
                 
+                CacheManager.storeLatestNotification(specialData: specialData)
+                
                 if self.didBecomeVisible == true {
                     // User has signed in.
                     
@@ -28,7 +30,6 @@ extension CoreViewController {
                         // App was open when notification came in.
                         
                         self.varSpecialData = specialData
-                        CacheManager.storeLatestNotification(specialData: specialData)
                         let alert = UIAlertController(title: "Bittr payout", message: "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
                             self.pendingLabel.text = "receiving payment"
