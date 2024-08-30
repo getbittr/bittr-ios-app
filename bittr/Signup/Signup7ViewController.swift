@@ -11,14 +11,22 @@ class Signup7ViewController: UIViewController {
 
     // Confirmation of created wallet. Sign up with bittr or skip directly to wallet.
     
+    // Checkmark
     @IBOutlet weak var checkView: UIView!
+    @IBOutlet weak var checkmarkImage: UIImageView!
+    
+    // Top labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var skipButton: UIButton!
+    @IBOutlet weak var skipLabel: UILabel!
+    
+    // Article
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
-    
-    // Article elements.
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
@@ -40,7 +48,7 @@ class Signup7ViewController: UIViewController {
         
         // Check view elements.
         let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = UIColor.black.cgColor
+        viewBorder.strokeColor = Colors.getColor(color: "black").cgColor
         viewBorder.frame = checkView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
@@ -50,6 +58,8 @@ class Signup7ViewController: UIViewController {
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -94,6 +104,23 @@ class Signup7ViewController: UIViewController {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.checkmarkImage.tintColor = Colors.getColor(color: "black")
+        self.topLabelOne.textColor = Colors.getColor(color: "black")
+        self.topLabelTwo.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.skipLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.skipLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+
     }
     
 }

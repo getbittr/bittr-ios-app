@@ -11,7 +11,10 @@ class Signup3ViewController: UIViewController {
 
     // View showing the user their mnemonic.
     
-    @IBOutlet weak var headerView: UIView!
+    // Labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var nextButton: UIButton!
@@ -64,6 +67,8 @@ class Signup3ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func setWords(notification:NSNotification) {
@@ -144,6 +149,15 @@ class Signup3ViewController: UIViewController {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+        
+        self.topLabelOne.textColor = Colors.getColor(color: "black")
+        self.topLabelTwo.textColor = Colors.getColor(color: "black")
     }
 
 }

@@ -82,6 +82,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     // Onchain confirm scroll
     @IBOutlet weak var confirmHeaderView: UIView!
+    @IBOutlet weak var confirmTopLabel: UILabel!
     @IBOutlet weak var yellowCard: UIView!
     @IBOutlet weak var confirmToCard: UIView!
     @IBOutlet weak var confirmAmountCard: UIView!
@@ -96,6 +97,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var sendLabel: UILabel!
     
     // Onchain confirm scroll - Fees
+    @IBOutlet weak var feesTopLabel: UILabel!
     @IBOutlet weak var fastView: UIView!
     @IBOutlet weak var mediumView: UIView!
     @IBOutlet weak var slowView: UIView!
@@ -180,6 +182,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         toTextField.delegate = self
         amountTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        
+        self.changeColors()
         
         self.setSendAllLabel(forView: "onchain")
     }
@@ -430,6 +434,26 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func feeButtonTapped(_ sender: UIButton) {
         self.switchFeeSelection(tappedFee: sender.accessibilityIdentifier!)
     }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        self.topLabel.textColor = Colors.getColor(color: "black")
+        self.toLabel.textColor = Colors.getColor(color: "black")
+        self.amountLabel.textColor = Colors.getColor(color: "black")
+        self.availableAmount.textColor = Colors.getColor(color: "black")
+        self.questionCircle.tintColor = Colors.getColor(color: "black")
+        
+        self.confirmTopLabel.textColor = Colors.getColor(color: "black")
+        self.yellowCard.backgroundColor = Colors.getColor(color: "cardbackground")
+        self.confirmToCard.backgroundColor = Colors.getColor(color: "whiteorlightblue")
+        self.confirmAmountCard.backgroundColor = Colors.getColor(color: "whiteorlightblue")
+        self.confirmAddressLabel.textColor = Colors.getColor(color: "black")
+        self.confirmAmountLabel.textColor = Colors.getColor(color: "black")
+        self.confirmEuroLabel.textColor = Colors.getColor(color: "black")
+        self.feesTopLabel.textColor = Colors.getColor(color: "black")
+    }
+    
 }
 
 extension UITextField {

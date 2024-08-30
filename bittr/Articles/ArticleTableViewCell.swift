@@ -28,6 +28,16 @@ class ArticleTableViewCell: UITableViewCell {
         imageContainer.layer.cornerRadius = 13
         
         articleButton.setTitle("", for: .normal)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.changeColors()
+    }
+    
+    @objc func changeColors() {
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.titleLabel.textColor = Colors.getColor(color: "black")
     }
 
 }

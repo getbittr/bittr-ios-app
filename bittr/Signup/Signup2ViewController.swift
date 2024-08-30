@@ -11,14 +11,22 @@ class Signup2ViewController: UIViewController {
 
     // View for the user to confirm that they understand how to maintain a bitcoin wallet.
     
+    @IBOutlet weak var topLabel: UILabel!
+    
+    // Switches
     @IBOutlet weak var switchOne: UISwitch!
     @IBOutlet weak var switchTwo: UISwitch!
+    @IBOutlet weak var labelOne: UILabel!
+    @IBOutlet weak var labelTwo: UILabel!
+    
+    // Next button and article
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var buttonView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    
+    // Article
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
-    
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
@@ -42,6 +50,8 @@ class Signup2ViewController: UIViewController {
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -92,6 +102,16 @@ class Signup2ViewController: UIViewController {
         
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        self.topLabel.textColor = Colors.getColor(color: "black")
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+        
+        self.labelOne.textColor = Colors.getColor(color: "black")
+        self.labelTwo.textColor = Colors.getColor(color: "black")
     }
     
 }

@@ -55,9 +55,7 @@ extension CoreViewController {
                         self.signupContainerView.alpha = self.signupAlpha
                         if self.signupAlpha == 0 {
                             self.pinContainerView.alpha = 1
-                            //self.homeContainerView.alpha = 1
-                            //self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
-                            //self.menuBarView.alpha = 1
+                            self.topBar.alpha = 1
                         }
                         self.view.layoutIfNeeded()
                     } completion: { finished in
@@ -74,13 +72,10 @@ extension CoreViewController {
                             self.blackCoin.alpha = 0
                             self.firstCoin.alpha = 0
                             self.coverView.alpha = 0
-                            self.topBar.alpha = 1
-                            self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
                             self.homeContainerView.alpha = 1
                             self.menuBarView.alpha = 1
                             self.blackSignupBackground.alpha = 1
-                            
-                            //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+                            self.changeColors()
                             
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {

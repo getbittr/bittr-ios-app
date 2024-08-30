@@ -69,6 +69,7 @@ extension CoreViewController {
                 actualQuestionVC.headerText = self.tappedQuestion
                 actualQuestionVC.answerText = self.tappedAnswer
                 if let actualBittrChannel = self.bittrChannel {
+                    //print("Bittr channel 72: \(actualBittrChannel.received)")
                     actualQuestionVC.bittrChannel = actualBittrChannel
                 }
                 if let actualTappedType = self.tappedType {

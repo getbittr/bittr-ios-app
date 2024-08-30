@@ -41,6 +41,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
     @IBOutlet weak var centerViewRegularTrailing: NSLayoutConstraint!
+    @IBOutlet weak var subtitleRegular: UILabel!
     @IBOutlet weak var qrView: UIView!
     @IBOutlet weak var qrCodeImage: UIImageView!
     @IBOutlet weak var qrCodeLogoView: UIView!
@@ -55,12 +56,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     // Main - Instant view
     @IBOutlet weak var centerViewInstant: UIView!
+    @IBOutlet weak var subtitleInstant: UILabel!
     @IBOutlet weak var receivableLNLabel: UILabel!
     @IBOutlet weak var receivableButton: UIButton!
+    @IBOutlet weak var questionCircle: UIImageView!
     @IBOutlet weak var backgroundButton: UIButton!
+    @IBOutlet weak var amountLabel: UILabel!
     @IBOutlet weak var amountView: UIView!
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
+    @IBOutlet weak var descriptionLabel: UILabel!
     @IBOutlet weak var descriptionView: UIView!
     @IBOutlet weak var descriptionTextField: UITextField!
     @IBOutlet weak var descriptionButton: UIButton!
@@ -69,6 +74,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     // Confirm invoice view
     @IBOutlet weak var lnConfirmationHeaderView: UIView!
+    @IBOutlet weak var lnConfirmationLabel: UILabel!
     @IBOutlet weak var lnConfirmationQRView: UIView!
     @IBOutlet weak var lnQRImage: UIImageView!
     @IBOutlet weak var lnQRCodeLogoView: UIView!
@@ -132,6 +138,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         addressSpinner.startAnimating()
         qrCodeSpinner.startAnimating()
         getNewAddress(resetAddress: false)
+        
+        self.changeColors()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -316,6 +324,21 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"There's a limit to the amount of satoshis you can receive per invoice.\n\nYour bitcoin lightning channel has a size, ten times the amount of your first Bittr purchase. If the size is 10,000 sats and you've already purchased 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the channel size. If you need more, you can create multiple invoices.\n\nWhen the channel is full, we empty the channel funds into your bitcoin wallet so that you have space again.","type":"lightningreceivable"]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        
+        self.subtitleRegular.textColor = Colors.getColor(color: "black")
+        self.subtitleInstant.textColor = Colors.getColor(color: "black")
+        
+        self.amountLabel.textColor = Colors.getColor(color: "black")
+        self.descriptionLabel.textColor = Colors.getColor(color: "black")
+        self.receivableLNLabel.textColor = Colors.getColor(color: "black")
+        self.questionCircle.tintColor = Colors.getColor(color: "black")
+        
+        self.lnConfirmationLabel.textColor = Colors.getColor(color: "black")
     }
     
 }

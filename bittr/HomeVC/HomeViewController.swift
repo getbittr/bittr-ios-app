@@ -21,6 +21,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Table view header elements
     @IBOutlet weak var balanceView: UIView!
     @IBOutlet weak var backgroundColorView: UIView!
+    @IBOutlet weak var backgroundColorTopView: UIView!
     @IBOutlet weak var yellowCurve: UIImageView!
     
     // Header: Balance card
@@ -54,6 +55,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var profitButton: UIButton!
     @IBOutlet weak var bittrProfitLabel: UILabel!
     @IBOutlet weak var bittrProfitSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var sendLabel: UILabel!
+    @IBOutlet weak var receiveLabel: UILabel!
+    @IBOutlet weak var buyLabel: UILabel!
+    @IBOutlet weak var profitLabel: UILabel!
     var calculatedProfit = 0
     var calculatedInvestments = 0
     var calculatedCurrentValue = 0
@@ -123,6 +128,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         homeTableView.delegate = self
         homeTableView.dataSource = self
         
+        // Check if dark mode is on.
+        self.changeColors()
+        
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
@@ -132,6 +140,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(moveButtonTapped), name: NSNotification.Name(rawValue: "openmovevc"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         // Show cached data upon app startup.
         showCachedData()
@@ -530,6 +539,45 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualCoreVC.statusView.alpha = 1
                 actualCoreVC.blackSignupButton.alpha = 1
             }
+        }
+    }
+    
+    @objc func changeColors() {
+        
+        self.headerView.backgroundColor = Colors.getColor(color: "headerview")
+        self.headerLabel.textColor = Colors.getColor(color: "black")
+        self.headerSpinner.color = Colors.getColor(color: "black")
+        
+        self.sendButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
+        self.receiveButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
+        self.buyButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
+        self.profitButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
+        self.sendLabel.textColor = Colors.getColor(color: "black")
+        self.receiveLabel.textColor = Colors.getColor(color: "black")
+        self.buyLabel.textColor = Colors.getColor(color: "black")
+        self.profitLabel.textColor = Colors.getColor(color: "black")
+        self.bittrProfitLabel.textColor = Colors.getColor(color: "black")
+        self.backgroundColorView.backgroundColor = Colors.getColor(color: "yellow")
+        self.backgroundColorTopView.backgroundColor = Colors.getColor(color: "yellow")
+        self.balanceCard.backgroundColor = Colors.getColor(color: "yellow")
+        self.conversionLabel.textColor = Colors.getColor(color: "transparentblack")
+        
+        self.tableSpinner.color = Colors.getColor(color: "black")
+        self.bittrProfitSpinner.color = Colors.getColor(color: "black")
+        self.balanceSpinner.color = Colors.getColor(color: "black")
+        
+        self.satsLabel.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.yellowCurve.image = UIImage(named: "yellowcurvedark")
+            self.bitcoinSign.image = UIImage(named: "gilroybitcoinwhite")
+        } else {
+            self.yellowCurve.image = UIImage(named: "yellowcurve")
+            self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
+        }
+        
+        if self.balanceLabel.alpha == 1 {
+            self.setTotalSats(updateTableAfterConversion: false)
         }
     }
     

@@ -38,6 +38,8 @@ class LightningPaymentViewController: UIViewController {
         bodyView.layer.cornerRadius = 13
         dateView.layer.cornerRadius = 7
         
+        self.changeColors()
+        
         if let actualTransaction = self.receivedTransaction {
             
             let transactionDate = Date(timeIntervalSince1970: Double(actualTransaction.timestamp))
@@ -134,6 +136,20 @@ class LightningPaymentViewController: UIViewController {
         }
         
         return balanceValue
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        
+        self.bodyView.backgroundColor = Colors.getColor(color: "cardbackground")
+        self.dateView.backgroundColor = Colors.getColor(color: "dateview")
+        self.dateLabel.textColor = Colors.getColor(color: "black")
+        self.amountLabel.textColor = Colors.getColor(color: "black")
+        self.descriptionLabel.textColor = Colors.getColor(color: "black")
+        self.nowLabel.textColor = Colors.getColor(color: "black")
+        self.explanationLabel.textColor = Colors.getColor(color: "black")
+        self.idLabel.textColor = Colors.getColor(color: "black")
     }
     
 }

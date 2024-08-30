@@ -88,6 +88,8 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
             }
             downloadPicTask.resume()
         }
+        
+        self.changeColors()
     }
     
     override func viewDidLayoutSubviews() {
@@ -128,6 +130,13 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true)
+    }
+    
+    func changeColors() {
+        
+        if CacheManager.darkModeIsOn() {
+            self.view.backgroundColor = Colors.getColor(color: "grey")
+        }
     }
     
 }

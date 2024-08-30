@@ -62,15 +62,15 @@ extension HomeViewController {
                 if relativeGain < 0 {
                     // Loss.
                     actualCell.arrowImage.image = UIImage(systemName: "arrow.down")
-                    actualCell.arrowImage.tintColor = UIColor(red: 199/255, green: 142/255, blue: 142/255, alpha: 1)
-                    actualCell.gainLabel.textColor = UIColor(red: 199/255, green: 142/255, blue: 142/255, alpha: 1)
-                    actualCell.gainView.backgroundColor = UIColor(red: 255/255, green: 237/255, blue: 237/255, alpha: 1)
+                    actualCell.gainView.backgroundColor = Colors.getColor(color: "lossbackground")
+                    actualCell.arrowImage.tintColor = Colors.getColor(color: "losstext")
+                    actualCell.gainLabel.textColor = Colors.getColor(color: "losstext")
                 } else {
                     // Profit.
                     actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
-                    actualCell.arrowImage.tintColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
-                    actualCell.gainLabel.textColor = UIColor(red: 81/255, green: 152/255, blue: 73/255, alpha: 1)
-                    actualCell.gainView.backgroundColor = UIColor(red: 231/255, green: 248/255, blue: 229/255, alpha: 1)
+                    actualCell.gainView.backgroundColor = Colors.getColor(color: "profitbackground")
+                    actualCell.arrowImage.tintColor = Colors.getColor(color: "profittext")
+                    actualCell.gainLabel.textColor = Colors.getColor(color: "profittext")
                 }
             } else {
                 actualCell.updateBoltTrailing(position: "right")
@@ -81,19 +81,19 @@ extension HomeViewController {
             
             if thisTransaction.isLightning == true {
                 actualCell.boltImage.alpha = 1
-                actualCell.satsLabel.textColor = .black
-                actualCell.eurosLabel.textColor = .black
+                actualCell.satsLabel.textColor = Colors.getColor(color: "black")
+                actualCell.eurosLabel.textColor = Colors.getColor(color: "black")
             } else {
                 actualCell.boltImage.alpha = 0
                 
                 if thisTransaction.confirmations < 1 && self.currentHeight != nil {
                     // Unconfirmed transaction.
-                    actualCell.satsLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
-                    actualCell.eurosLabel.textColor = UIColor(red: 177/255, green: 177/255, blue: 177/255, alpha: 1)
+                    actualCell.satsLabel.textColor = Colors.getColor(color: "unconfirmed")
+                    actualCell.eurosLabel.textColor = Colors.getColor(color: "unconfirmed")
                 } else {
                     // Confirmed transaction
-                    actualCell.satsLabel.textColor = .black
-                    actualCell.eurosLabel.textColor = .black
+                    actualCell.satsLabel.textColor = Colors.getColor(color: "black")
+                    actualCell.eurosLabel.textColor = Colors.getColor(color: "black")
                 }
             }
             

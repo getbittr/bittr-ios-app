@@ -25,6 +25,8 @@ class RegisterIbanViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(downButtonTapped), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func nextPageTapped(notification:NSNotification) {
@@ -91,6 +93,11 @@ class RegisterIbanViewController: UIViewController {
                 actualTransfer3VC.allImages = self.allImages
             }
         }
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
     }
     
 }

@@ -9,6 +9,8 @@ import UIKit
 
 class QuestionViewController: UIViewController {
 
+    @IBOutlet weak var finalLogo: UIImageView!
+    @IBOutlet weak var bittrText: UIImageView!
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
@@ -49,6 +51,8 @@ class QuestionViewController: UIViewController {
             self.headerLabel.text = actualHeader
             self.answerLabel.text = actualAnswer
         }
+        
+        self.changeColors()
         
         if let actualType = questionType {
             if actualType == "lightningreceivable" {
@@ -123,6 +127,22 @@ class QuestionViewController: UIViewController {
         self.view.layoutIfNeeded()
         
         self.channelView.alpha = 1
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        self.answerLabel.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            // Dark mode is on.
+            self.bittrText.image = UIImage(named: "bittrtextwhite")
+            self.finalLogo.image = UIImage(named: "logodarkmode80")
+        } else {
+            // Dark mode is off.
+            self.bittrText.image = UIImage(named: "bittrtext")
+            self.finalLogo.image = UIImage(named: "logo80")
+        }
     }
     
 }

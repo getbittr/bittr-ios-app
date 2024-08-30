@@ -182,7 +182,9 @@ extension HomeViewController {
         thisChannel.receivableMaximum = Int(withChannel.inboundHtlcMaximumMsat ?? 0)/1000
         
         self.bittrChannel = thisChannel
+        //print("Bittr channel 185: \(thisChannel.received)")
         if let actualCoreVC = self.coreVC {
+            //print("Bittr channel 187: \(thisChannel.received)")
             actualCoreVC.bittrChannel = thisChannel
         }
     }
@@ -341,6 +343,9 @@ extension HomeViewController {
         var zeros = "0.00 000 00"
         var numbers = "\(self.btcBalance)"
         var bitcoinSignAlpha = 0.18
+        if CacheManager.darkModeIsOn() {
+            bitcoinSignAlpha = 0.3
+        }
         
         switch totalBalanceSatsString.count {
         case 1:
@@ -380,7 +385,14 @@ extension HomeViewController {
         let adjustedSize = Int(font.pointSize)
         
         // Set HTML balance text.
-        balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(201, 154, 0); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(0, 0, 0); line-height: 0.5\">\(numbers)</span></center>"
+        var transparentColor = "201, 154, 0"
+        var fillColor = "0, 0, 0"
+        if CacheManager.darkModeIsOn() {
+            //113/255, green: 143/255, blue: 179/255
+            transparentColor = "150, 177, 204"
+            fillColor = "255, 255, 255"
+        }
+        balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)</span></center>"
         
         // Store HTML balance text to cache.
         CacheManager.updateCachedData(data: balanceText, key: "balance")

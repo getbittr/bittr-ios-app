@@ -11,11 +11,14 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     // View to double check that the user has properly recorded their mnemonic.
     
+    @IBOutlet weak var topLabel: UILabel!
+    
     @IBOutlet weak var mnemonicView1: UIView!
     @IBOutlet weak var mnemonicView2: UIView!
     @IBOutlet weak var mnemonicView3: UIView!
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var backLabel: UILabel!
     @IBOutlet weak var backButton: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var backgroundButton2: UIButton!
@@ -62,6 +65,8 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             string: "Enter word",
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
+        
+        self.changeColors()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -165,6 +170,15 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
         
         self.view.endEditing(true)
+    }
+    
+    func changeColors() {
+        self.topLabel.textColor = Colors.getColor(color: "black")
+        if CacheManager.darkModeIsOn() {
+            self.backLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.backLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
     }
     
 }

@@ -19,6 +19,20 @@ class PinViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     
+    // Number labels
+    @IBOutlet weak var label1: UILabel!
+    @IBOutlet weak var label2: UILabel!
+    @IBOutlet weak var label3: UILabel!
+    @IBOutlet weak var label4: UILabel!
+    @IBOutlet weak var label5: UILabel!
+    @IBOutlet weak var label6: UILabel!
+    @IBOutlet weak var label7: UILabel!
+    @IBOutlet weak var label8: UILabel!
+    @IBOutlet weak var label9: UILabel!
+    @IBOutlet weak var label0: UILabel!
+    @IBOutlet weak var imageBackspace: UIImageView!
+    var allLabels = [UILabel]()
+    
     // Buttons
     @IBOutlet weak var button1: UIButton!
     @IBOutlet weak var button2: UIButton!
@@ -118,6 +132,12 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         for eachBackground in allBackgrounds! {
             eachBackground.layer.cornerRadius = 45
         }
+        
+        self.allLabels = [self.label1, self.label2, self.label3, self.label4, self.label5, self.label6, self.label7, self.label8, self.label9, self.label0]
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.changeColors()
     }
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
@@ -284,6 +304,23 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
         }
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellow")
+        self.topLabel.textColor = Colors.getColor(color: "black")
+        if CacheManager.darkModeIsOn() {
+            self.restoreButtonLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.restoreButtonLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
+        for eachLabel in self.allLabels {
+            eachLabel.textColor = Colors.getColor(color: "black")
+        }
+        self.imageBackspace.tintColor = Colors.getColor(color: "black")
+        self.confirmPinView.backgroundColor = Colors.getColor(color: "blackbutton")
+        self.pinTextField.textColor = Colors.getColor(color: "blackbutton")
     }
     
 }

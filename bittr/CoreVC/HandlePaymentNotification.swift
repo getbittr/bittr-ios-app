@@ -416,8 +416,12 @@ extension CoreViewController {
             actualHomeVC.setTotalSats(updateTableAfterConversion: false)
             
             // Add payment to channel details.
-            actualHomeVC.bittrChannel?.received += newTransaction.received
+            //print("Bittr channel 419: \(actualHomeVC.bittrChannel?.received)")
+            //actualHomeVC.bittrChannel?.received += newTransaction.received
+            //print("Bittr channel 421: \(actualHomeVC.bittrChannel?.received)")
+            //print("Bittr channel 422: \(actualHomeVC.coreVC?.bittrChannel?.received)")
             actualHomeVC.coreVC?.bittrChannel?.received += newTransaction.received
+            //print("Bittr channel 424: \(actualHomeVC.coreVC?.bittrChannel?.received)")
         }
     }
 

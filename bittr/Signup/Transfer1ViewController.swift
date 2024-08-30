@@ -12,17 +12,28 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
 
     // Enter iban and email for bittr signup.
     
+    // Labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    @IBOutlet weak var topLabelThree: UILabel!
+    
+    // IBAN
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var ibanTextField: UITextField!
     @IBOutlet weak var ibanButton: UIButton!
+    
+    // Email
     @IBOutlet weak var emailView: UIView!
     @IBOutlet weak var emailTextField: UITextField!
     @IBOutlet weak var emailButton: UIButton!
+    
+    // Next
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var skipButton: UIButton!
+    @IBOutlet weak var ibanLabel: UILabel!
     @IBOutlet weak var articleButton: UIButton!
     
     @IBOutlet weak var scrollView: UIScrollView!
@@ -93,6 +104,8 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 self.articleImage.image = actualImage
             }
         }
+        
+        self.changeColors()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -374,5 +387,22 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabelOne.textColor = Colors.getColor(color: "black")
+        self.topLabelTwo.textColor = Colors.getColor(color: "black")
+        self.topLabelThree.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.ibanLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.ibanLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+
     }
 }

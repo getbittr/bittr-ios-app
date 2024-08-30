@@ -13,13 +13,25 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
 
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    
+    // Token view
     @IBOutlet weak var tokenView: UIView!
+    @IBOutlet weak var tokenLabel: UILabel!
+    @IBOutlet weak var tokenRightLabel: UILabel!
+    
+    // Public key view
     @IBOutlet weak var keyView: UIView!
+    @IBOutlet weak var keyLabel: UILabel!
+    @IBOutlet weak var keyRightLabel: UILabel!
     @IBOutlet weak var tokenButton: UIButton!
     @IBOutlet weak var keyButton: UIButton!
     
+    @IBOutlet weak var subheaderLabel: UILabel!
+    
     // Images
     @IBOutlet weak var imagesView: UIView!
+    @IBOutlet weak var imagesLeftLabel: UILabel!
+    @IBOutlet weak var imagesRightLabel: UILabel!
     @IBOutlet weak var imagesButton: UIButton!
     
     // Peer
@@ -27,15 +39,18 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var peerButton: UIButton!
     @IBOutlet weak var peerSpinner: UIActivityIndicatorView!
     @IBOutlet weak var peerLabel: UILabel!
+    @IBOutlet weak var peerLeftLabel: UILabel!
     
     // Bittr transactions
     @IBOutlet weak var transactionsView: UIView!
     @IBOutlet weak var transactionsButton: UIButton!
     @IBOutlet weak var transactionsLabel: UILabel!
+    @IBOutlet weak var transactionsLeftLabel: UILabel!
     @IBOutlet weak var transactionsSpinner: UIActivityIndicatorView!
     
     // Bittr notification
     @IBOutlet weak var notificationView: UIView!
+    @IBOutlet weak var notificationsLeftLabel: UILabel!
     @IBOutlet weak var notificationLabel: UILabel!
     @IBOutlet weak var notificationButton: UIButton!
     @IBOutlet weak var notificationSpinner: UIActivityIndicatorView!
@@ -43,7 +58,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     // Channels
     @IBOutlet weak var channelsView: UIView!
     @IBOutlet weak var channelsLabel: UILabel!
+    @IBOutlet weak var channelsLeftLabel: UILabel!
     @IBOutlet weak var channelsButton: UIButton!
+    @IBOutlet weak var questionCircle: UIImageView!
+    
+    // Dark mode
+    @IBOutlet weak var darkModeView: UIView!
+    @IBOutlet weak var darkModeSwitch: UISwitch!
+    @IBOutlet weak var darkModeLabel: UILabel!
     
     // Other VCs
     var homeVC:HomeViewController?
@@ -67,8 +89,16 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         transactionsView.layer.cornerRadius = 13
         notificationView.layer.cornerRadius = 13
         channelsView.layer.cornerRadius = 13
+        darkModeView.layer.cornerRadius = 13
         
         NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        if CacheManager.darkModeIsOn() {
+            self.darkModeSwitch.setOn(true, animated: false)
+        }
+        
+        self.changeColors()
         
         Task {
             do {
@@ -345,6 +375,53 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         let notificationDict:[String: Any] = ["question":"lightning channels","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.","type":"lightningexplanation"]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    @IBAction func darkModeSwitched(_ sender: UISwitch) {
+        if sender.isOn {
+            // Dark mode has been switched on.
+            CacheManager.updateDarkMode(isOn: true)
+        } else {
+            // Dark mode has been switched off.
+            CacheManager.updateDarkMode(isOn: false)
+        }
+        
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        
+        self.darkModeView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.tokenView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.keyView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.peerView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.transactionsView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.notificationView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.channelsView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        self.imagesView.backgroundColor = Colors.getColor(color: "lighterbutton")
+        
+        self.subheaderLabel.textColor = Colors.getColor(color: "black")
+        
+        self.darkModeLabel.textColor = Colors.getColor(color: "black")
+        self.tokenLabel.textColor = Colors.getColor(color: "black")
+        self.tokenRightLabel.textColor = Colors.getColor(color: "black")
+        self.keyLabel.textColor = Colors.getColor(color: "black")
+        self.keyRightLabel.textColor = Colors.getColor(color: "black")
+        self.peerLeftLabel.textColor = Colors.getColor(color: "black")
+        self.peerLabel.textColor = Colors.getColor(color: "black")
+        self.transactionsLeftLabel.textColor = Colors.getColor(color: "black")
+        self.transactionsLabel.textColor = Colors.getColor(color: "black")
+        self.notificationsLeftLabel.textColor = Colors.getColor(color: "black")
+        self.notificationLabel.textColor = Colors.getColor(color: "black")
+        self.channelsLeftLabel.textColor = Colors.getColor(color: "black")
+        self.channelsLabel.textColor = Colors.getColor(color: "black")
+        self.imagesLeftLabel.textColor = Colors.getColor(color: "black")
+        self.imagesRightLabel.textColor = Colors.getColor(color: "black")
+        
+        self.questionCircle.tintColor = Colors.getColor(color: "black")
+        
     }
     
 }

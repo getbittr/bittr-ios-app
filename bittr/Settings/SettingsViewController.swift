@@ -12,6 +12,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     // UI elements
     @IBOutlet weak var settingsTableView: UITableView!
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var appVersion: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
@@ -24,6 +25,10 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         // Table view
         settingsTableView.delegate = self
         settingsTableView.dataSource = self
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.changeColors()
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -143,6 +148,11 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
             }
         }
+    }
+    
+    @objc func changeColors() {
+        
+        self.appVersion.textColor = Colors.getColor(color: "appversion")
     }
     
 }

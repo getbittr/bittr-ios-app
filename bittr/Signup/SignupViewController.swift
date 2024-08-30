@@ -20,7 +20,9 @@ class SignupViewController: UIViewController {
 
         NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(screenshotTaken), name: UIApplication.userDidTakeScreenshotNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
 
+        self.changeColors()
     }
     
     @objc func nextPageTapped(notification:NSNotification) {
@@ -126,6 +128,11 @@ class SignupViewController: UIViewController {
                 actualRestoreVC.coreVC = self.coreVC
             }
         }
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
     }
     
 }

@@ -33,6 +33,9 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var coverView: UIView!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var yellowcurve: UIImageView!
+    @IBOutlet weak var lowerTopBar: UIView!
+    @IBOutlet weak var lowerYellowcurve: UIImageView!
+    @IBOutlet weak var bittrText: UIImageView!
     
     // Container view and constraints for HomeVC
     @IBOutlet weak var homeContainerView: UIView!
@@ -50,6 +53,9 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var leftWhite: UIView!
     @IBOutlet weak var middleWhite: UIView!
     @IBOutlet weak var rightWhite: UIView!
+    @IBOutlet weak var leftImageUnselected: UIImageView!
+    @IBOutlet weak var middleImageUnselected: UIImageView!
+    @IBOutlet weak var rightImageUnselected: UIImageView!
     
     // Container views for PinVC and SignupVC
     @IBOutlet weak var pinContainerView: UIView!
@@ -112,6 +118,9 @@ class CoreViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // TODO: Hide after testing
+        CacheManager.updateDarkMode(isOn: true)
+        
         // Save environment key for switching between Dev and Production.
         UserDefaults.standard.set(devEnvironment, forKey: "envkey")
         
@@ -136,6 +145,7 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         // Determine whether to show pin view or signup view.
         if let actualPin = CacheManager.getPin() {
@@ -157,6 +167,37 @@ class CoreViewController: UIViewController {
         self.blackSignupBackground.alpha = 0
         self.statusView.alpha = 0
         self.blackSignupButton.alpha = 0
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "grey")
+        self.leftWhite.backgroundColor = Colors.getColor(color: "grey")
+        self.middleWhite.backgroundColor = Colors.getColor(color: "grey")
+        self.rightWhite.backgroundColor = Colors.getColor(color: "grey")
+        
+        self.lowerTopBar.backgroundColor = Colors.getColor(color: "yellow")
+        self.topBar.backgroundColor = Colors.getColor(color: "transparentyellow")
+        
+        if CacheManager.darkModeIsOn() {
+            // Dark mode is on.
+            self.leftImageUnselected.image = UIImage(named: "buttonpigwhite")
+            self.middleImageUnselected.image = UIImage(named: "buttonmagazinewhite")
+            self.rightImageUnselected.image = UIImage(named: "buttonsettingswhite")
+            self.yellowcurve.image = UIImage(named: "yellowcurvedark")
+            self.lowerYellowcurve.image = UIImage(named: "yellowcurvedark")
+            self.bittrText.image = UIImage(named: "bittrtextwhite")
+            self.finalLogo.image = UIImage(named: "logodarkmode80")
+        } else {
+            // Dark mode is off.
+            self.leftImageUnselected.image = UIImage(named: "buttonpigblack")
+            self.middleImageUnselected.image = UIImage(named: "buttonmagazineblack")
+            self.rightImageUnselected.image = UIImage(named: "buttonsettingsblack")
+            self.lowerYellowcurve.image = UIImage(named: "yellowcurve")
+            self.yellowcurve.image = UIImage(named: "yellowcurve")
+            self.bittrText.image = UIImage(named: "bittrtext")
+            self.finalLogo.image = UIImage(named: "logo80")
+        }
     }
     
 }

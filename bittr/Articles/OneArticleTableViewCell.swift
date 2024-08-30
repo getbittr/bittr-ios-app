@@ -35,7 +35,12 @@ class OneArticleTableViewCell: UITableViewCell {
         
         let newCellText = cellText.replacingOccurrences(of: "<strong>", with: "").replacingOccurrences(of: "&lt;", with: "<").replacingOccurrences(of: "&gt;", with: ">")
         
-        let htmlText = newCellText.replacingOccurrences(of: "<title>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 26; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<intro>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<header>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 20; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<normal>", with: "<span style=\"font-family: 'Gilroy-Regular', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(0, 0, 0)\">").replacingOccurrences(of: "<subtitle>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 12; color: rgb(0, 0, 0)\">")
+        var textColor = "0, 0, 0"
+        if CacheManager.darkModeIsOn() {
+            textColor = "1, 1, 1"
+        }
+        
+        let htmlText = newCellText.replacingOccurrences(of: "<title>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 26; color: rgb(\(textColor))\">").replacingOccurrences(of: "<intro>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(\(textColor))\">").replacingOccurrences(of: "<header>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 20; color: rgb(\(textColor))\">").replacingOccurrences(of: "<normal>", with: "<span style=\"font-family: 'Gilroy-Regular', '-apple-system'; line-height: 1.2; font-size: 18; color: rgb(\(textColor))\">").replacingOccurrences(of: "<subtitle>", with: "<span style=\"font-family: 'Gilroy-Bold', '-apple-system'; line-height: 1.2; font-size: 12; color: rgb(\(textColor))\">")
         
         if let htmlData = htmlText.data(using: .unicode) {
             
@@ -43,6 +48,7 @@ class OneArticleTableViewCell: UITableViewCell {
                 let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                 
                 self.cellTextLabel.attributedText = attributedText
+                self.cellTextLabel.textColor = Colors.getColor(color: "black")
             } catch let e as NSError {
                 print("Couldn't fetch text: \(e.localizedDescription)")
             }

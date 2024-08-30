@@ -13,12 +13,15 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var channelButton: UIButton!
+    @IBOutlet weak var subtitleLabel: UILabel!
     
     // Send and Receive buttons
     @IBOutlet weak var leftCard: UIView! // Send Button View
     @IBOutlet weak var rightCard: UIView! // Receive Button View
     @IBOutlet weak var receiveButton: UIButton!
     @IBOutlet weak var sendButton: UIButton!
+    @IBOutlet weak var sendLabel: UILabel!
+    @IBOutlet weak var receiveLabel: UILabel!
     
     // Values
     var fetchedBtcBalance:CGFloat = 0.0
@@ -39,6 +42,7 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var conversionTotal: UILabel!
     @IBOutlet weak var conversionRegular: UILabel!
     @IBOutlet weak var conversionInstant: UILabel!
+    @IBOutlet weak var questionMark: UIImageView!
     
     // Home View Controller
     var homeVC:HomeViewController?
@@ -86,6 +90,7 @@ class MoveViewController: UIViewController {
         conversionRegular.text = currencySymbol + " " + btcBalanceValue
         conversionInstant.text = currencySymbol + " " + btclnBalanceValue
         
+        self.changeColors()
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -165,6 +170,32 @@ class MoveViewController: UIViewController {
             let notificationDict:[String: Any] = ["question":"lightning channel","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.","type":"lightningexplanation"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
+    }
+    
+    func changeColors() {
+        
+        self.subtitleLabel.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.view.backgroundColor = Colors.getColor(color: "grey")
+            self.viewTotal.backgroundColor = Colors.getColor(color: "yellow")
+            self.viewInstant.backgroundColor = Colors.getColor(color: "yellow")
+            self.viewRegular.backgroundColor = Colors.getColor(color: "yellow")
+            self.yellowCard.backgroundColor = Colors.getColor(color: "cardview")
+            
+            self.leftCard.backgroundColor = Colors.getColor(color: "cardview")
+            self.rightCard.backgroundColor = Colors.getColor(color: "cardview")
+        }
+        
+        self.conversionTotal.textColor = Colors.getColor(color: "black")
+        self.conversionInstant.textColor = Colors.getColor(color: "black")
+        self.conversionRegular.textColor = Colors.getColor(color: "black")
+        self.satsTotal.textColor = Colors.getColor(color: "black")
+        self.satsRegular.textColor = Colors.getColor(color: "black")
+        self.satsInstant.textColor = Colors.getColor(color: "black")
+        self.questionMark.tintColor = Colors.getColor(color: "black")
+        self.sendLabel.textColor = Colors.getColor(color: "black")
+        self.receiveLabel.textColor = Colors.getColor(color: "black")
     }
     
 }

@@ -11,7 +11,14 @@ class Transfer2ViewController: UIViewController {
 
     // Bittr signup successful. Show details for setting up bank transfer.
     
+    // Checkmark
     @IBOutlet weak var checkView: UIView!
+    @IBOutlet weak var checkmarkImage: UIImageView!
+    
+    // Top labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var nameView: UIView!
     @IBOutlet weak var codeView: UIView!
@@ -67,7 +74,7 @@ class Transfer2ViewController: UIViewController {
         
         // Checkmark elements.
         let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = UIColor.black.cgColor
+        viewBorder.strokeColor = Colors.getColor(color: "black").cgColor
         viewBorder.frame = checkView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
@@ -100,6 +107,8 @@ class Transfer2ViewController: UIViewController {
                 self.articleImage.image = actualImage
             }
         }
+        
+        self.changeColors()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -237,6 +246,18 @@ class Transfer2ViewController: UIViewController {
         let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
         self.present(alert, animated: true)
+    }
+    
+    func changeColors() {
+        
+        self.checkmarkImage.tintColor = Colors.getColor(color: "black")
+        
+        self.topLabelOne.textColor = Colors.getColor(color: "black")
+        self.topLabelTwo.textColor = Colors.getColor(color: "black")
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+
     }
     
 }

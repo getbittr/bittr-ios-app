@@ -14,12 +14,16 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     // User has received code in email. Send this code to the bittr API.
     
+    @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var codeTextField: UITextField!
     @IBOutlet weak var codeButton: UIButton!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var resendButton: UIButton!
+    @IBOutlet weak var resendLabel: UILabel!
+    
+    // Scroll view and background buttons
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
@@ -56,6 +60,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(updateClient), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func updateClient(notification:NSNotification) {
@@ -646,6 +652,18 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
             }
         }
+    }
+    
+    func changeColors() {
+        
+        self.topLabel.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.resendLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.resendLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
+
     }
     
 }

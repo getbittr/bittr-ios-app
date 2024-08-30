@@ -14,9 +14,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     // Restore an existing wallet.
     
     // Views and buttons.
+    @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var mnemonicView: UIView!
     @IBOutlet weak var restoreView: UIView!
     @IBOutlet weak var restoreButton: UIButton!
+    @IBOutlet weak var cancelLabel: UILabel!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
@@ -86,6 +88,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -215,6 +219,21 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabel.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.cancelLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.cancelLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+
     }
     
 }

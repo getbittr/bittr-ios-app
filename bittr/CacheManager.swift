@@ -975,4 +975,17 @@ class CacheManager: NSObject {
         }
     }
     
+    static func updateDarkMode(isOn:Bool) {
+        UserDefaults.standard.set(isOn, forKey: "darkmode")
+    }
+    
+    static func darkModeIsOn() -> Bool {
+        
+        if let darkModeStatus = UserDefaults.standard.value(forKey: "darkmode") as? Bool {
+            return darkModeStatus
+        } else {
+            return false
+        }
+    }
+    
 }

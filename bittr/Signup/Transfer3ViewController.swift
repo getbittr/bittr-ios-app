@@ -20,6 +20,12 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var articleButton2: UIButton!
     @IBOutlet weak var backButton: UIButton!
+    @IBOutlet weak var backLabel: UILabel!
+    
+    // Labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    @IBOutlet weak var topLabelThree: UILabel!
     
     var currentClientID = ""
     var currentIbanID = ""
@@ -104,6 +110,8 @@ class Transfer3ViewController: UIViewController {
                 self.article2Image.image = actualImage2
             }
         }
+        
+        self.changeColors()
     }
     
     
@@ -273,6 +281,25 @@ class Transfer3ViewController: UIViewController {
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
          NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabelOne.textColor = Colors.getColor(color: "black")
+        self.topLabelTwo.textColor = Colors.getColor(color: "black")
+        self.topLabelThree.textColor = Colors.getColor(color: "black")
+        
+        if CacheManager.darkModeIsOn() {
+            self.backLabel.textColor = Colors.getColor(color: "black")
+        } else {
+            self.backLabel.textColor = Colors.getColor(color: "transparentblack")
+        }
+        
+        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        self.articleTitle.textColor = Colors.getColor(color: "black")
+        self.cardView2.backgroundColor = Colors.getColor(color: "cardview")
+        self.article2Title.textColor = Colors.getColor(color: "black")
+
     }
     
 }

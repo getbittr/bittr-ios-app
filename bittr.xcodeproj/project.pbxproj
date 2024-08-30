@@ -15,6 +15,7 @@
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
 		051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */; };
+		051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051DDEF82C6B185C0002CF2D /* Colors.swift */; };
 		052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */; };
 		052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052DC6922AA853B700CD59B0 /* Transaction.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
@@ -127,6 +128,7 @@
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
 		051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore3ViewController.swift; sourceTree = "<group>"; };
+		051DDEF82C6B185C0002CF2D /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollectionViewCell.swift; sourceTree = "<group>"; };
 		052DC6922AA853B700CD59B0 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
@@ -387,6 +389,8 @@
 				05F8DC5829F2B436008052B5 /* Articles */,
 				05F8DC5929F2B449008052B5 /* Settings */,
 				05F31CC12B88008E00AAA342 /* QuestionVC */,
+				05980B572A46F8DA001F312F /* CacheManager.swift */,
+				051DDEF82C6B185C0002CF2D /* Colors.swift */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
 				05C3C08629CCB55600C1E695 /* SceneDelegate.swift */,
 				05C3C08A29CCB55600C1E695 /* Main.storyboard */,
@@ -421,7 +425,6 @@
 				05980B552A46F892001F312F /* Device.swift */,
 				05980B532A46F7E4001F312F /* Client.swift */,
 				05980B512A46F76E001F312F /* IbanEntity.swift */,
-				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				052DC6922AA853B700CD59B0 /* Transaction.swift */,
@@ -682,6 +685,7 @@
 				05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */,
 				05F418EE2BAC1DF0005CFAD0 /* Channel.swift in Sources */,
 				05F8DC5B29F2B45F008052B5 /* InfoViewController.swift in Sources */,
+				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
@@ -904,7 +908,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 77;
+				CURRENT_PROJECT_VERSION = 78;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -943,7 +947,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 77;
+				CURRENT_PROJECT_VERSION = 78;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;

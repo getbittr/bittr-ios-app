@@ -23,6 +23,18 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var profitView: UIView!
     @IBOutlet weak var descriptionView: UIView!
     
+    // Titles
+    @IBOutlet weak var amountTitle: UILabel!
+    @IBOutlet weak var typeTitle: UILabel!
+    @IBOutlet weak var idTitle: UILabel!
+    @IBOutlet weak var confirmationsTitle: UILabel!
+    @IBOutlet weak var feesTitle: UILabel!
+    @IBOutlet weak var descriptionTitle: UILabel!
+    @IBOutlet weak var valueNowTitle: UILabel!
+    @IBOutlet weak var valueThenTitle: UILabel!
+    @IBOutlet weak var profitTitle: UILabel!
+    @IBOutlet weak var noteTitle: UILabel!
+    
     // Labels
     @IBOutlet weak var dateLabel: UILabel!
     @IBOutlet weak var amountLabel: UILabel!
@@ -211,6 +223,7 @@ class TransactionViewController: UIViewController {
             self.view.layoutIfNeeded()
         }
         
+        self.changeColors()
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -281,6 +294,70 @@ class TransactionViewController: UIViewController {
         
         let notificationDict:[String: Any] = ["question":"lightning channel fees","answer":"This is the first transaction of your new bitcoin lightning channel.\n\nThe opening and closing of a lightning channel incur mining fees, which we cover with a one-time upfront charge of 10 000 satoshis.\n\nAll additional transactions into and out of your lightning channel are free."]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        // Card
+        if CacheManager.darkModeIsOn() {
+            self.view.backgroundColor = Colors.getColor(color: "grey")
+            self.bodyView.backgroundColor = Colors.getColor(color: "cardview")
+        }
+        
+        // Date
+        self.dateView.backgroundColor = Colors.getColor(color: "dateview")
+        self.dateLabel.textColor = Colors.getColor(color: "black")
+        
+        // Amount
+        self.amountTitle.textColor = Colors.getColor(color: "black")
+        self.amountLabel.textColor = Colors.getColor(color: "black")
+        
+        // Type
+        self.typeTitle.textColor = Colors.getColor(color: "black")
+        self.typeLabel.textColor = Colors.getColor(color: "black")
+        self.boltImage.tintColor = Colors.getColor(color: "black")
+        
+        // ID
+        self.idTitle.textColor = Colors.getColor(color: "black")
+        self.idLabel.textColor = Colors.getColor(color: "black")
+        
+        // Description
+        self.descriptionTitle.textColor = Colors.getColor(color: "black")
+        self.descriptionLabel.textColor = Colors.getColor(color: "black")
+        
+        // Fees
+        self.feesTitle.textColor = Colors.getColor(color: "black")
+        self.feesAmount.textColor = Colors.getColor(color: "black")
+        self.questionCircle.tintColor = Colors.getColor(color: "black")
+        
+        // Confirmations
+        self.confirmationsTitle.textColor = Colors.getColor(color: "black")
+        self.confirmationsAmount.textColor = Colors.getColor(color: "black")
+        
+        // Current value
+        self.valueNowTitle.textColor = Colors.getColor(color: "black")
+        self.valueNowLabel.textColor = Colors.getColor(color: "black")
+        
+        // Purchase value
+        self.valueThenTitle.textColor = Colors.getColor(color: "black")
+        self.valueThenLabel.textColor = Colors.getColor(color: "black")
+        
+        // Profit
+        self.profitTitle.textColor = Colors.getColor(color: "black")
+        if (self.profitLabel.text ?? "").contains("-") {
+            self.profitView.backgroundColor = Colors.getColor(color: "lossbackground")
+            self.profitLabel.textColor = Colors.getColor(color: "losstext")
+        } else {
+            self.profitView.backgroundColor = Colors.getColor(color: "profitbackground")
+            self.profitLabel.textColor = Colors.getColor(color: "profittext")
+        }
+        
+        // Note
+        self.noteTitle.textColor = Colors.getColor(color: "black")
+        self.noteLabel.textColor = Colors.getColor(color: "black")
+        if CacheManager.darkModeIsOn() {
+            self.noteImage.tintColor = Colors.getColor(color: "black")
+        }
     }
     
 }

@@ -19,6 +19,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var addAnotherView: UIView!
     @IBOutlet weak var addAnotherButton: UIButton!
     @IBOutlet weak var emptyLabel: UILabel!
+    @IBOutlet weak var subtitleLabel: UILabel!
+    @IBOutlet weak var addAnotherLabel: UILabel!
     
     // Client details
     var client = Client()
@@ -43,7 +45,11 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Button border.
         let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = UIColor.black.cgColor
+        if CacheManager.darkModeIsOn() {
+            viewBorder.strokeColor = UIColor.white.cgColor
+        } else {
+            viewBorder.strokeColor = UIColor.black.cgColor
+        }
         viewBorder.frame = addAnotherView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: addAnotherView.bounds, cornerRadius: 13).cgPath
@@ -53,6 +59,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
+        
+        self.changeColors()
         
         // Parse IBAN entities.
         self.parseIbanEntities()
@@ -170,5 +178,12 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
         self.present(alert, animated: true)
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        self.subtitleLabel.textColor = Colors.getColor(color: "black")
+        self.addAnotherLabel.textColor = Colors.getColor(color: "black")
     }
 }
