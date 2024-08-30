@@ -118,9 +118,6 @@ class CoreViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // TODO: Hide after testing
-        CacheManager.updateDarkMode(isOn: true)
-        
         // Save environment key for switching between Dev and Production.
         UserDefaults.standard.set(devEnvironment, forKey: "envkey")
         
