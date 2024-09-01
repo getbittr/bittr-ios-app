@@ -70,7 +70,7 @@ extension CoreViewController {
         
         if let actualNotification = notification {
             
-            do {
+            /*do {
                 try LightningNodeService.shared.stop()
                 print("Node stopped.")
             } catch let error as NodeError {
@@ -78,7 +78,7 @@ extension CoreViewController {
                 print("Can't stop node. \(errorString.title): \(errorString.detail)")
             } catch {
                 print("Can't stop node. \(error.localizedDescription)")
-            }
+            }*/
             
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {

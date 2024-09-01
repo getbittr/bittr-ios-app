@@ -13,7 +13,8 @@ import LDKNodeFFI
 import Sentry
 
 class LightningNodeService {
-    private let ldkNode: LdkNode
+    private var ldkNode: LdkNode?
+    private var network: LDKNode.Network
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
     private var bdkWallet: BitcoinDevKit.Wallet?
@@ -23,7 +24,6 @@ class LightningNodeService {
     private var varWalletTransactions = [TransactionDetails]()
     private var varMnemonicString = ""
     private var currentHeight = 0
-    private var didInitiate = false
     private var didProceedBeyondPeerConnection = false
     
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
@@ -36,6 +36,10 @@ class LightningNodeService {
     
     
     init(network: LDKNode.Network) {
+        self.network = network
+    }
+    
+    func start() async throws {
         
         try? FileManager.deleteLDKNodeLogLatestFile()
         
@@ -91,13 +95,10 @@ class LightningNodeService {
             nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
         }
         
-        let ldkNode = try! nodeBuilder.build()
-        
+        let ldkNode = try nodeBuilder.build()
+        try ldkNode.start()
         self.ldkNode = ldkNode
-        
-        self.didInitiate = true
     }
-    
     
     func startBDK() {
         
@@ -281,7 +282,7 @@ class LightningNodeService {
             connectTask.cancel()
             print("Connecting to peer takes too long.")
             do {
-                try LightningNodeService.shared.ldkNode.disconnect(nodeId: nodeId)
+                try LightningNodeService.shared.ldkNode?.disconnect(nodeId: nodeId)
                 DispatchQueue.main.async {
                     print("Did disconnect from peer.")
                     if !self.didProceedBeyondPeerConnection {
@@ -361,20 +362,12 @@ class LightningNodeService {
         return txId
     }*/
     
-    
-    func start() async throws {
-        
-        if self.didInitiate == true {
-            try ldkNode.start()
-        }
-    }
-    
     func stop() throws {
-        try ldkNode.stop()
+        try ldkNode!.stop()
     }
     
     func nodeId() -> String {
-        let nodeID = ldkNode.nodeId()
+        let nodeID = ldkNode!.nodeId()
         return nodeID
     }
     
@@ -394,28 +387,28 @@ class LightningNodeService {
         }
         
         let bytes = [UInt8](data)
-        let signedMessage = try ldkNode.signMessage(msg: bytes)
+        let signedMessage = try ldkNode!.signMessage(msg: bytes)
         
         return signedMessage
     }
     
     func listPeers() async throws -> [PeerDetails] {
-        let peers = ldkNode.listPeers()
+        let peers = ldkNode!.listPeers()
         return peers
     }
     
     func listPayments() async throws -> [PaymentDetails] {
-        let payments = ldkNode.listPayments()
+        let payments = ldkNode!.listPayments()
         return payments
     }
     
     func listChannels() async throws -> [LDKNode.ChannelDetails] {
-        let channels = ldkNode.listChannels()
+        let channels = ldkNode!.listChannels()
         return channels
     }
     
     func connect(nodeId: PublicKey, address: String, persist: Bool) async throws {
-        try ldkNode.connect(
+        try ldkNode!.connect(
             nodeId: nodeId,
             address: address,
             persist: persist
@@ -423,7 +416,7 @@ class LightningNodeService {
     }
     
     func syncWallets() throws {
-        try ldkNode.syncWallets()
+        try ldkNode!.syncWallets()
     }
     
     func getWallet() -> BitcoinDevKit.Wallet? {
@@ -463,18 +456,18 @@ class LightningNodeService {
     }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
-        let invoice = try ldkNode.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
+        let invoice = try ldkNode!.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
         return invoice
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try ldkNode.sendPayment(invoice: invoice)
+        let paymentHash = try ldkNode!.sendPayment(invoice: invoice)
         return paymentHash
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
         
-        if let invoiceDetails = ldkNode.payment(paymentHash: paymentHash) {
+        if let invoiceDetails = ldkNode!.payment(paymentHash: paymentHash) {
             //let invoiceAmountInt = Int(invoiceAmount)
             return invoiceDetails
         } else {
@@ -489,9 +482,9 @@ class LightningNodeService {
     func listenForEvents() {
         
         DispatchQueue.global(qos: .background).async {
-            let event = self.ldkNode.waitNextEvent()
+            let event = self.ldkNode!.waitNextEvent()
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil, userInfo: ["event":event]) as Notification)
-            self.ldkNode.eventHandled()
+            self.ldkNode!.eventHandled()
             self.listenForEvents()
         }
     }
