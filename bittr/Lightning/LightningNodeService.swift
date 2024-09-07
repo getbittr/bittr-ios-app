@@ -13,7 +13,7 @@ import LDKNodeFFI
 import Sentry
 
 class LightningNodeService {
-    public var ldkNode: LdkNode?
+    public var ldkNode: Node?
     private var network: LDKNode.Network
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
@@ -51,15 +51,24 @@ class LightningNodeService {
         
         let config = Config(
             storageDirPath: storageManager.getDocumentsDirectory(),
+            logDirPath: storageManager.getDocumentsDirectory(),
             network: network,
             listeningAddresses: correctListeningAddresses,
             defaultCltvExpiryDelta: UInt32(144),
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
-            // TODO: Public?
-            //trustedPeers0conf: ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
-            logLevel: .debug
+            // TODO: Public? // Signet and Bitcoin node.
+            trustedPeers0conf: ["03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
+            probingLiquidityLimitMultiplier: UInt64(3),
+            logLevel: .debug,
+            anchorChannelsConfig: AnchorChannelsConfig(
+                    trustedPeersNoReserve: [
+                        PublicKey("03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36"),
+                        PublicKey("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12")
+                    ],
+                    perChannelReserveSats: UInt64(1000) // Set an appropriate value
+                )
         )
         
         let nodeBuilder = Builder.fromConfig(config: config)
@@ -361,12 +370,6 @@ class LightningNodeService {
         }
     }
     
-    
-    /*func sendToOnchainAddress(address: LDKNode.Address, amountMsat: UInt64) throws -> Txid {
-        let txId = try ldkNode.sendToOnchainAddress(address: address, amountMsat: amountMsat)
-        return txId
-    }*/
-    
     func stop() throws {
         try ldkNode!.stop()
     }
@@ -375,16 +378,6 @@ class LightningNodeService {
         let nodeID = ldkNode!.nodeId()
         return nodeID
     }
-    
-    /*func newFundingAddress() async throws -> String {
-        let fundingAddress = try ldkNode.newOnchainAddress()
-        return fundingAddress
-    }*/
-    
-    /*func getTotalOnchainBalanceSats() async throws -> UInt64 {
-        let balance = try ldkNode.totalOnchainBalanceSats()
-        return balance
-    }*/
     
     func signMessage(message: String) async throws -> String {
         guard let data = message.data(using: .utf8) else {
@@ -461,18 +454,18 @@ class LightningNodeService {
     }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
-        let invoice = try ldkNode!.receivePayment(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
+        let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
         return invoice
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.sendPayment(invoice: invoice)
+        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice)
         return paymentHash
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
         
-        if let invoiceDetails = ldkNode!.payment(paymentHash: paymentHash) {
+        if let invoiceDetails = ldkNode!.payment(paymentId: paymentHash) {
             //let invoiceAmountInt = Int(invoiceAmount)
             return invoiceDetails
         } else {

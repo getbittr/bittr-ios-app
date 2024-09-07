@@ -85,7 +85,7 @@ extension CoreViewController {
                     let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
                         if let actualNode = LightningNodeService.shared.ldkNode {
-                            if actualNode.isRunning() {
+                            if actualNode.status().isRunning {
                                 print("Node is running.")
                                 LightningNodeService.shared.startBDK()
                             } else {

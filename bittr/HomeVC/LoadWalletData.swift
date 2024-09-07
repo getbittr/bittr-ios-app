@@ -64,10 +64,8 @@ extension HomeViewController {
                 // Add all Lightning payment IDs that haven't yet been cached.
                 if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                     for eachPayment in receivedPayments {
-                        if eachPayment.preimage != nil {
-                            if !self.cachedLightningIds.contains(eachPayment.preimage!) {
-                                txIds += [eachPayment.preimage ?? "Lightning transaction"]
-                            }
+                        if !self.cachedLightningIds.contains(eachPayment.id) {
+                            txIds += [eachPayment.id]
                         }
                     }
                 }
@@ -121,7 +119,7 @@ extension HomeViewController {
                         if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                             
                             for eachPayment in receivedPayments {
-                                if !self.cachedLightningIds.contains(eachPayment.preimage ?? "Lightning transaction") {
+                                if !self.cachedLightningIds.contains(eachPayment.id) {
                                     let thisTransaction = Transaction()
                                     if eachPayment.direction == .inbound {
                                         thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
@@ -129,9 +127,9 @@ extension HomeViewController {
                                         thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
                                     }
                                     thisTransaction.isLightning = true
-                                    thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.hash)
-                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.hash)
-                                    thisTransaction.id = eachPayment.preimage ?? "Lightning transaction"
+                                    thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.id)
+                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.id)
+                                    thisTransaction.id = eachPayment.id
                                     thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
                                     if let actualChannels = self.channels {
                                         thisTransaction.channelId = actualChannels[0].channelId

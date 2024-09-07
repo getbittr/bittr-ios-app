@@ -303,8 +303,8 @@ extension CoreViewController {
                         return
                     }
                     
-                    let paymentHash = "\(event)".split(separator: ",")[0].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: "paymentReceived(paymentHash: ", with: "")
-                    print("Did extract payment hash.")
+                    let paymentHash = "\(event)".split(separator: ",")[1].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " paymentHash: ", with: "")
+                    print("Did extract payment hash. \(paymentHash)")
                     
                     if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
@@ -313,7 +313,7 @@ extension CoreViewController {
                         let thisTransaction = Transaction()
                         thisTransaction.isBittr = false
                         thisTransaction.isLightning = true
-                        thisTransaction.id = paymentDetails.preimage ?? paymentHash
+                        thisTransaction.id = paymentDetails.id
                         thisTransaction.sent = 0
                         thisTransaction.received = Int(paymentDetails.amountMsat ?? 0)/1000
                         thisTransaction.timestamp = Int(Date().timeIntervalSince1970)

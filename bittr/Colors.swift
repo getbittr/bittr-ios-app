@@ -70,7 +70,7 @@ class Colors: NSObject {
             else {return self.returnColor(color:"black", opacity: 0.5)}
         case "appversion":
             if darkModeIsOn {return self.returnColor(color:"white", opacity: 0.5)}
-            else {return self.returnColor(color:"white", opacity: 0.25)}
+            else {return self.returnColor(color:"black", opacity: 0.25)}
         case "blackbutton":
             if darkModeIsOn {return self.returnColor(color: "darkblue", opacity: 1.0)}
             else {return UIColor.black}
