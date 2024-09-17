@@ -295,10 +295,10 @@ class Transfer3ViewController: UIViewController {
             self.backLabel.textColor = Colors.getColor(color: "transparentblack")
         }
         
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        /*self.cardView.backgroundColor = Colors.getColor(color: "cardview")
         self.articleTitle.textColor = Colors.getColor(color: "black")
         self.cardView2.backgroundColor = Colors.getColor(color: "cardview")
-        self.article2Title.textColor = Colors.getColor(color: "black")
+        self.article2Title.textColor = Colors.getColor(color: "black")*/
 
     }
     

@@ -67,9 +67,11 @@ class ProfitViewController: UIViewController {
         self.currentLabel.textColor = Colors.getColor(color: "black")
         self.profitLabel.textColor = Colors.getColor(color: "black")
         
-        self.investedView.backgroundColor = Colors.getColor(color: "cardview")
-        self.currentValueView.backgroundColor = Colors.getColor(color: "cardview")
-        self.profitView.backgroundColor = Colors.getColor(color: "cardview")
+        if CacheManager.darkModeIsOn() {
+            self.investedView.backgroundColor = Colors.getColor(color: "cardview")
+            self.currentValueView.backgroundColor = Colors.getColor(color: "cardview")
+            self.profitView.backgroundColor = Colors.getColor(color: "cardview")
+        }
     }
 
 }

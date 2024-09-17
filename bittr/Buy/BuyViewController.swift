@@ -16,11 +16,18 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var headerView2: UIView!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
+    
+    // Add another
     @IBOutlet weak var addAnotherView: UIView!
     @IBOutlet weak var addAnotherButton: UIButton!
     @IBOutlet weak var emptyLabel: UILabel!
     @IBOutlet weak var subtitleLabel: UILabel!
     @IBOutlet weak var addAnotherLabel: UILabel!
+    @IBOutlet weak var addAnotherViewTop: NSLayoutConstraint!
+    
+    // Continue view
+    @IBOutlet weak var continueView: UIView!
+    @IBOutlet weak var continueButton: UIButton!
     
     // Client details
     var client = Client()
@@ -36,6 +43,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Corner radii and button titles.
         headerView2.layer.cornerRadius = 13
         addAnotherView.layer.cornerRadius = 13
+        continueView.layer.cornerRadius = 13
+        continueButton.setTitle("", for: .normal)
         downButton.setTitle("", for: .normal)
         addAnotherButton.setTitle("", for: .normal)
         
@@ -142,9 +151,21 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         if self.allIbanEntities.count > 0 {
             self.emptyLabel.alpha = 0
+            self.continueView.alpha = 0
+            self.addAnotherView.alpha = 1
+            self.addAnotherButton.alpha = 1
+            self.addAnotherViewTop.constant = 40
+            self.view.layoutIfNeeded()
+            
             return self.allIbanEntities.count
         } else {
             self.emptyLabel.alpha = 1
+            self.continueView.alpha = 1
+            self.addAnotherView.alpha = 0
+            self.addAnotherButton.alpha = 0
+            self.addAnotherViewTop.constant = -100
+            self.view.layoutIfNeeded()
+            
             return 0
         }
     }
@@ -152,6 +173,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         return CGSize(width: 335, height: 285)
+    }
+    
+    @IBAction func continueButtonTapped(_ sender: UIButton) {
+        self.performSegue(withIdentifier: "GoalToRegister", sender: self)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

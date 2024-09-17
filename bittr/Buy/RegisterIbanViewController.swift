@@ -12,7 +12,7 @@ class RegisterIbanViewController: UIViewController {
     @IBOutlet weak var downButton: UIButton!
     var currentPage = 0
     
-    @IBOutlet weak var transfer1ContainerViewLeading: NSLayoutConstraint!
+    @IBOutlet weak var signup7ContainerViewLeading: NSLayoutConstraint!
     
     var currentClientID = ""
     var articles:[String:Article]?
@@ -38,6 +38,9 @@ class RegisterIbanViewController: UIViewController {
                 var leadingConstant:CGFloat = 0
                 
                 switch pageNumber {
+                case "6":
+                    leadingConstant = -1 * viewWidth
+                    currentPage = 8
                 case "7":
                     leadingConstant = -1 * viewWidth
                     currentPage = 9
@@ -53,7 +56,7 @@ class RegisterIbanViewController: UIViewController {
                 
                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                     
-                    self.transfer1ContainerViewLeading.constant = leadingConstant
+                    self.signup7ContainerViewLeading.constant = leadingConstant
                     self.view.layoutIfNeeded()
                 }
             }
@@ -67,7 +70,12 @@ class RegisterIbanViewController: UIViewController {
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
-        if segue.identifier == "RegisterToTransfer1" {
+        if segue.identifier == "RegisterToSignup7" {
+            
+            if let signup7VC = segue.destination as? Signup7ViewController {
+                signup7VC.embeddedInBuyVC = true
+            }
+        } else if segue.identifier == "RegisterToTransfer1" {
             
             let transfer1VC = segue.destination as? Transfer1ViewController
             if let actualTransfer1VC = transfer1VC {

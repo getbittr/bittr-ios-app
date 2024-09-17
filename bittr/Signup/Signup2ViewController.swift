@@ -107,8 +107,8 @@ class Signup2ViewController: UIViewController {
     func changeColors() {
         self.topLabel.textColor = Colors.getColor(color: "black")
         
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.articleTitle.textColor = Colors.getColor(color: "black")
+        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        //self.articleTitle.textColor = Colors.getColor(color: "black")
         
         self.labelOne.textColor = Colors.getColor(color: "black")
         self.labelTwo.textColor = Colors.getColor(color: "black")

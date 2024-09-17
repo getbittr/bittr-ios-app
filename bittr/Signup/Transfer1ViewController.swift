@@ -400,9 +400,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         } else {
             self.ibanLabel.textColor = Colors.getColor(color: "transparentblack")
         }
-        
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.articleTitle.textColor = Colors.getColor(color: "black")
-
     }
+    
 }

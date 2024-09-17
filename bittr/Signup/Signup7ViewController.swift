@@ -18,9 +18,13 @@ class Signup7ViewController: UIViewController {
     // Top labels
     @IBOutlet weak var topLabelOne: UILabel!
     @IBOutlet weak var topLabelTwo: UILabel!
+    @IBOutlet weak var topLabelTwoTop: NSLayoutConstraint!
     
-    @IBOutlet weak var saveView: UIView!
-    @IBOutlet weak var nextButton: UIButton!
+    // Selection
+    @IBOutlet weak var partnerView: UIView!
+    @IBOutlet weak var partnerButton: UIButton!
+    @IBOutlet weak var continueView: UIView!
+    @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var skipButton: UIButton!
     @IBOutlet weak var skipLabel: UILabel!
     
@@ -33,27 +37,32 @@ class Signup7ViewController: UIViewController {
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
+    var embeddedInBuyVC = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Corner radii and button items.
-        checkView.layer.cornerRadius = 35
-        saveView.layer.cornerRadius = 13
+        // Corner radii.
+        checkView.layer.cornerRadius = 25
+        partnerView.layer.cornerRadius = 13
+        continueView.layer.cornerRadius = 13
         cardView.layer.cornerRadius = 13
         imageContainer.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
+        
+        // Button titles
+        partnerButton.setTitle("", for: .normal)
+        continueButton.setTitle("", for: .normal)
         skipButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         
         // Check view elements.
-        let viewBorder = CAShapeLayer()
+        /*let viewBorder = CAShapeLayer()
         viewBorder.strokeColor = Colors.getColor(color: "black").cgColor
         viewBorder.frame = checkView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
         viewBorder.lineWidth = 2
-        self.checkView.layer.addSublayer(viewBorder)
+        self.checkView.layer.addSublayer(viewBorder)*/
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
@@ -92,6 +101,9 @@ class Signup7ViewController: UIViewController {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
     }
     
+    @IBAction func partnerButtonTapped(_ sender: UIButton) {
+    }
+    
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         // Proceed to bittr signup.
@@ -108,7 +120,6 @@ class Signup7ViewController: UIViewController {
     
     func changeColors() {
         
-        self.checkmarkImage.tintColor = Colors.getColor(color: "black")
         self.topLabelOne.textColor = Colors.getColor(color: "black")
         self.topLabelTwo.textColor = Colors.getColor(color: "black")
         
@@ -117,10 +128,18 @@ class Signup7ViewController: UIViewController {
         } else {
             self.skipLabel.textColor = Colors.getColor(color: "transparentblack")
         }
-        
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.articleTitle.textColor = Colors.getColor(color: "black")
-
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        if self.embeddedInBuyVC == true {
+            self.checkView.alpha = 0
+            self.topLabelOne.alpha = 0
+            self.topLabelTwo.font = UIFont(name: "Gilroy-Bold", size: 16)
+            self.topLabelTwoTop.constant = -86
+            self.skipLabel.alpha = 0
+            self.skipButton.alpha = 0
+            self.view.layoutIfNeeded()
+        }
     }
     
 }

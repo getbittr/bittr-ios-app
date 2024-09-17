@@ -170,8 +170,8 @@ class Signup1ViewController: UIViewController {
             self.restoreLabel.textColor = Colors.getColor(color: "transparentblack")
         }
         
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.articleTitle.textColor = Colors.getColor(color: "black")
+        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        //self.articleTitle.textColor = Colors.getColor(color: "black")
     }
     
 }

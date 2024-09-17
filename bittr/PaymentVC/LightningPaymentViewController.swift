@@ -16,9 +16,22 @@ class LightningPaymentViewController: UIViewController {
     @IBOutlet weak var bodyView: UIView!
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var dateLabel: UILabel!
+    
+    // Amount
+    @IBOutlet weak var amountLeftLabel: UILabel!
     @IBOutlet weak var amountLabel: UILabel!
+    
+    // Type
+    @IBOutlet weak var typeLeftLabel: UILabel!
+    @IBOutlet weak var typeLabel: UILabel!
+    @IBOutlet weak var lightningBolt: UIImageView!
+    
+    // Description
     @IBOutlet weak var descriptionLabel: UILabel!
     @IBOutlet weak var descriptionButton: UIButton!
+    
+    // Now
+    @IBOutlet weak var nowLeftLabel: UILabel!
     @IBOutlet weak var nowLabel: UILabel!
     
     var receivedTransaction:Transaction?
@@ -142,14 +155,27 @@ class LightningPaymentViewController: UIViewController {
         
         self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
         
-        self.bodyView.backgroundColor = Colors.getColor(color: "cardbackground")
+        if CacheManager.darkModeIsOn() {
+            self.bodyView.backgroundColor = Colors.getColor(color: "cardview")
+        }
+        
+        self.explanationLabel.textColor = Colors.getColor(color: "black")
+        
         self.dateView.backgroundColor = Colors.getColor(color: "dateview")
         self.dateLabel.textColor = Colors.getColor(color: "black")
+        
+        self.amountLeftLabel.textColor = Colors.getColor(color: "black")
         self.amountLabel.textColor = Colors.getColor(color: "black")
-        self.descriptionLabel.textColor = Colors.getColor(color: "black")
-        self.nowLabel.textColor = Colors.getColor(color: "black")
-        self.explanationLabel.textColor = Colors.getColor(color: "black")
+        
+        self.typeLeftLabel.textColor = Colors.getColor(color: "black")
+        self.typeLabel.textColor = Colors.getColor(color: "black")
+        self.lightningBolt.tintColor = Colors.getColor(color: "black")
+        
         self.idLabel.textColor = Colors.getColor(color: "black")
+        self.descriptionLabel.textColor = Colors.getColor(color: "black")
+        
+        self.nowLabel.textColor = Colors.getColor(color: "black")
+        self.nowLeftLabel.textColor = Colors.getColor(color: "black")
     }
     
 }

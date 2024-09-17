@@ -153,8 +153,8 @@ class Signup3ViewController: UIViewController {
     
     func changeColors() {
         
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.articleTitle.textColor = Colors.getColor(color: "black")
+        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
+        //self.articleTitle.textColor = Colors.getColor(color: "black")
         
         self.topLabelOne.textColor = Colors.getColor(color: "black")
         self.topLabelTwo.textColor = Colors.getColor(color: "black")
