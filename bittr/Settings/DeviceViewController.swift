@@ -184,7 +184,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             // Copy the invoice to the clipboard
             CacheManager.emptyImage()
             let alert = UIAlertController(title: "Cache emptied", message: "Any cached images have been removed.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }))
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
@@ -205,7 +205,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                         print("Did successfully check peer connection.")
                         
                         let alert = UIAlertController(title: "Bittr peer", message: "You're connected to Bittr.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                         self.present(alert, animated: true)
                     } else {
                         print("Not connected to peer.")
@@ -253,7 +253,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                             self.transactionsLabel.alpha = 1
                             self.transactionsSpinner.stopAnimating()
                             let alert = UIAlertController(title: "Bittr transactions", message: "New information has been received. Your transactions have been refreshed.", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                         }
                     } else {
@@ -261,7 +261,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                             self.transactionsLabel.alpha = 1
                             self.transactionsSpinner.stopAnimating()
                             let alert = UIAlertController(title: "Bittr transactions", message: "No new information is available.", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                         }
                     }
@@ -306,7 +306,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     func showNotificationAlert() {
         let alert = UIAlertController(title: "Bittr notification", message: "There is no notification available for handling.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     

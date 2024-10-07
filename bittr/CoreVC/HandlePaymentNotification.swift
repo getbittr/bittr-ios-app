@@ -31,7 +31,7 @@ extension CoreViewController {
                         
                         self.varSpecialData = specialData
                         let alert = UIAlertController(title: "Bittr payout", message: "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                             self.pendingLabel.text = "receiving payment"
                             self.pendingSpinner.startAnimating()
                             self.pendingView.alpha = 1
@@ -59,7 +59,7 @@ extension CoreViewController {
                     self.lightningNotification = notification
                     
                     let alert = UIAlertController(title: "Bittr payout", message: "Please sign in and wait a moment to receive your Lightning payment.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                     self.present(alert, animated: true)
                 }
             } else {

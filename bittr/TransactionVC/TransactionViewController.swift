@@ -9,10 +9,12 @@ import UIKit
 
 class TransactionViewController: UIViewController {
 
+    // Header view
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var bodyView: UIView!
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     // Views
     @IBOutlet weak var amountView: UIView!
@@ -80,12 +82,14 @@ class TransactionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Button titles
         downButton.setTitle("", for: .normal)
         noteButton.setTitle("", for: .normal)
         transactionButton.setTitle("", for: .normal)
         descriptionButton.setTitle("", for: .normal)
         questionButton.setTitle("", for: .normal)
         
+        // Corner radii
         headerView.layer.cornerRadius = 13
         bodyView.layer.cornerRadius = 13
         dateView.layer.cornerRadius = 7
@@ -96,7 +100,10 @@ class TransactionViewController: UIViewController {
         nowView.layer.cornerRadius = 7
         profitView.layer.cornerRadius = 7
         
+        // Language
+        self.setWords()
         
+        // Transaction data
         let transactionDate = Date(timeIntervalSince1970: Double(tappedTransaction.timestamp))
         let dateFormatter = DateFormatter()
         dateFormatter.timeZone = TimeZone.current
@@ -278,7 +285,7 @@ class TransactionViewController: UIViewController {
         
         UIPasteboard.general.string = self.tappedTransaction.id
         let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.id, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     
@@ -286,7 +293,7 @@ class TransactionViewController: UIViewController {
         
         UIPasteboard.general.string = self.tappedTransaction.lnDescription
         let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     

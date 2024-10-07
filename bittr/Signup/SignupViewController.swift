@@ -30,8 +30,8 @@ class SignupViewController: UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
@@ -108,7 +108,7 @@ class SignupViewController: UIViewController {
         // User shouldn't screenshot their mnemonic.
         if currentPage == 3 {
             let alert = UIAlertController(title: "Be careful!", message: "We'd highly recommend against screenshotting your recovery phrase.\n\nScreenshots can easily be accessed by others, who will have full access to your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
     }

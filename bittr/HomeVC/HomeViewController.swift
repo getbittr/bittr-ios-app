@@ -130,6 +130,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Check if dark mode is on.
         self.changeColors()
+        self.setWords()
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
@@ -279,7 +280,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
@@ -294,15 +295,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
@@ -317,15 +318,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
@@ -452,7 +453,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.tableSpinner.startAnimating()
         
-        self.headerLabel.text = "syncing"
+        self.headerLabel.text = Language.getWord(withID: "syncing")
         self.headerLabelLeading.constant = 10
         self.headerSpinner.startAnimating()
         self.headerProblemImage.alpha = 0
@@ -470,8 +471,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
                 return
             }
@@ -515,7 +516,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if self.headerLabel.text == "syncing" {
             // Wallet isn't ready.
             let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
         }
@@ -528,7 +529,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if self.headerLabel.text != "syncing" {
             if self.couldNotFetchConversion == true {
                 let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)

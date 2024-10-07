@@ -79,29 +79,29 @@ class PinViewController: UIViewController, UITextFieldDelegate {
 
         // Set elements according to superview.
         if self.embeddingView == "core" {
-            self.topLabel.text = "Enter your PIN code"
-            self.nextButtonLabel.text = "Confirm"
-            self.restoreButtonLabel.text = "Restore wallet"
+            self.topLabel.text = Language.getWord(withID: "enteryourpincode")
+            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+            self.restoreButtonLabel.text = Language.getWord(withID: "restorewallet")
             self.restoreButtonView.alpha = 1
         } else if self.embeddingView == "signup5" {
-            self.topLabel.text = "Set a PIN code for secure access to your wallet"
-            self.nextButtonLabel.text = "Next"
+            self.topLabel.text = Language.getWord(withID: "setapin")
+            self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
         } else if self.embeddingView == "signup6" {
-            self.topLabel.text = "Confirm your PIN code"
-            self.nextButtonLabel.text = "Confirm"
-            self.restoreButtonLabel.text = "Back"
+            self.topLabel.text = Language.getWord(withID: "confirmyourpin")
+            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+            self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1
         } else if self.embeddingView == "restore2" {
-            self.topLabel.text = "Set a PIN code for secure access to your wallet"
-            self.nextButtonLabel.text = "Next"
+            self.topLabel.text = Language.getWord(withID: "setapin")
+            self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
         } else if self.embeddingView == "restore3" {
-            self.topLabel.text = "Confirm your PIN code"
-            self.nextButtonLabel.text = "Confirm"
-            self.restoreButtonLabel.text = "Back"
+            self.topLabel.text = Language.getWord(withID: "confirmyourpin")
+            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+            self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1
         }
         
@@ -181,8 +181,8 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
                 return
             }
@@ -190,7 +190,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
                 let alert = UIAlertController(title: "Restore wallet", message: "You've entered an incorrect pin too many times. Please restore your wallet.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                     self.pinTextField.text = ""
                     if let actualCoreVC = self.coreVC {
                         actualCoreVC.resetApp(nodeIsRunning: false)
@@ -216,7 +216,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
                     let alert = UIAlertController(title: "Incorrect PIN", message: "Please enter your correct pin. If you've forgotten it, please restore your wallet.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                         self.pinTextField.text = ""
                     }))
                     self.present(alert, animated: true)

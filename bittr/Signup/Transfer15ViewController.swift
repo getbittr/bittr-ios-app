@@ -104,7 +104,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     // Notifications preference hasn't been set yet.
                     DispatchQueue.main.async {
                         let alert = UIAlertController(title: "Receive notifications", message: "\nTo send you bitcoin lightning payments, we need to notify you to open the Bittr app.\n\nPlease select your preference in the next alert.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
                             self.askForPushNotifications(sender: sender.accessibilityIdentifier!)
                         }))
                         self.present(alert, animated: true)
@@ -229,7 +229,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                         self.nextButtonActivityIndicator.stopAnimating()
                                                         self.nextButtonLabel.alpha = 1
                                                         let alert = UIAlertController(title: "Oops!", message: "Please enter the correct verification code.", preferredStyle: .alert)
-                                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                                         self.present(alert, animated: true)
                                                     }
                                                 }
@@ -341,7 +341,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             DispatchQueue.main.async {
                                 print(String(describing: error))
                                 let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                 self.present(alert, animated: true)
                                 if let actualError = error {
                                     SentrySDK.capture(error: actualError)
@@ -384,7 +384,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
                                                 let alert = UIAlertController(title: "Oops!", message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
                                                     let notificationDict:[String: Any] = ["page":"6"]
                                                      NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                                                 }))
@@ -394,7 +394,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
                                                 let alert = UIAlertController(title: "Oops!", message: "Something went wrong. (\(actualApiMessage).) Please try again later.", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: {_ in
+                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
                                                     let notificationDict:[String: Any] = ["page":"6"]
                                                      NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                                                 }))
@@ -496,7 +496,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                         print(String(describing: error))
                                         DispatchQueue.main.async {
                                             let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
-                                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                             self.present(alert, animated: true)
                                             if let actualError = error {
                                                 SentrySDK.capture(error: actualError)
@@ -511,7 +511,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     
                                     DispatchQueue.main.async {
                                         let alert = UIAlertController(title: "We've resent our email!", message: "Check your Spam and Promotion folders to see if the code is there.\n\nPlease also check whether \(iban.yourEmail) is correct.", preferredStyle: .alert)
-                                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                         alert.addAction(UIAlertAction(title: "Change email", style: .default, handler: {_ in
                                             let notificationDict:[String: Any] = ["page":"6"]
                                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
@@ -532,7 +532,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         } else {
             // Timer is still counting down.
             let alert = UIAlertController(title: "", message: "Please wait 30 seconds before requesting another verification code.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             alert.addAction(UIAlertAction(title: "Change email", style: .default, handler: {_ in
                 let notificationDict:[String: Any] = ["page":"6"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)

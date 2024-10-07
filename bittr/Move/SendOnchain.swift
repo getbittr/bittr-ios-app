@@ -33,7 +33,7 @@ extension SendViewController {
                 
             } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
                 // Insufficient funds available.
-                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "Make sure the amount of BTC you wish to send is within your spendable balance.", alertButton: "Okay")
+                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "Make sure the amount of BTC you wish to send is within your spendable balance.", alertButton: Language.getWord(withID: "okay"))
             } else {
             
                 self.nextLabel.alpha = 0
@@ -154,9 +154,9 @@ extension SendViewController {
                                 
                                 if "\(error)".contains("InsufficientFunds") {
                                     let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
-                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. \(condensedMessage).", alertButton: "Okay")
+                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. \(condensedMessage).", alertButton: Language.getWord(withID: "okay"))
                                 } else {
-                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error).", alertButton: "Okay")
+                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error).", alertButton: Language.getWord(withID: "okay"))
                                 }
                                 
                                 SentrySDK.capture(error: error)
@@ -167,7 +167,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", alertButton: "Okay")
+                                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", alertButton: Language.getWord(withID: "okay"))
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -197,7 +197,7 @@ extension SendViewController {
                 
                 if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                     
-                    self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                    self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: Language.getWord(withID: "okay"))
                 }
             }
         case "medium":
@@ -211,7 +211,7 @@ extension SendViewController {
                 
                 if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                     
-                    self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                    self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: Language.getWord(withID: "okay"))
                 }
             }
         case "slow":
@@ -232,7 +232,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: "Okay")
+                self.showErrorMessage(alertTitle: "High fee rate", alertMessage: "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.", alertButton: Language.getWord(withID: "okay"))
             }
         }
     }
@@ -338,7 +338,7 @@ extension SendViewController {
                             self.sendSpinner.stopAnimating()
                             
                             let successAlert = UIAlertController(title: "Success", message: "Your transaction has been sent and will show up in your wallet shortly.", preferredStyle: .alert)
-                            successAlert.addAction(UIAlertAction(title: "Okay", style: .default, handler: {_ in
+                            successAlert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default, handler: {_ in
                                 
                                 let newTransaction = Transaction()
                                 newTransaction.id = "\(txid)"
@@ -383,12 +383,12 @@ extension SendViewController {
                         }
                     } catch {
                         print("Transaction error: \(error.localizedDescription)")
-                        self.showErrorMessage(alertTitle: "Error", alertMessage: "We're unable to complete your transaction. We're receiving the following error message: \(error.localizedDescription).", alertButton: "Okay")
+                        self.showErrorMessage(alertTitle: "Error", alertMessage: "We're unable to complete your transaction. We're receiving the following error message: \(error.localizedDescription).", alertButton: Language.getWord(withID: "okay"))
                     }
                 }
             } else {
                 print("Wallet or Blockchain instance not available.")
-                self.showErrorMessage(alertTitle: "Error", alertMessage: "We're unable to complete your transaction. Please close and reopen our app and try again.", alertButton: "Okay")
+                self.showErrorMessage(alertTitle: "Error", alertMessage: "We're unable to complete your transaction. Please close and reopen our app and try again.", alertButton: Language.getWord(withID: "okay"))
             }
         }))
         self.present(alert, animated: true)

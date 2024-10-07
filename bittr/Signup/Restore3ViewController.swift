@@ -48,7 +48,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
                 
             } else {
                 let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             }
         }

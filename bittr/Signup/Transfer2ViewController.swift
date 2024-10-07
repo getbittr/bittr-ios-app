@@ -230,11 +230,11 @@ class Transfer2ViewController: UIViewController {
         
         if error == nil {
             let alert = UIAlertController(title: "Saved", message: "We've added the screenshot to your Photo Library.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         } else {
             let alert = UIAlertController(title: "Oops", message: "We couldn't save your screenshot. Try taking a screenshot manually.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
     }
@@ -244,7 +244,7 @@ class Transfer2ViewController: UIViewController {
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
         let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     

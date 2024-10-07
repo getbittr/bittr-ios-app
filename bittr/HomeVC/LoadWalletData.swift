@@ -481,7 +481,7 @@ extension HomeViewController {
                     
                     DispatchQueue.main.async {
                         let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                         self.present(alert, animated: true)
                         
                         self.couldNotFetchConversion = true
@@ -567,7 +567,7 @@ extension HomeViewController {
                         
                         DispatchQueue.main.async {
                             let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                             
                             self.couldNotFetchConversion = true
@@ -607,7 +607,7 @@ extension HomeViewController {
         self.tableSpinner.stopAnimating()
         
         if self.setTransactions.count == 0 {
-            let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">There are no transactions. Tap </span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">Buy</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\"> to get your first bitcoin.</span></center>"
+            let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID: "notransactions1"))</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID: "buy"))</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID:"notransactions2"))</span></center>"
             
             if let htmlData = noTransactionsHTML.data(using: .unicode) {
                 do {
@@ -698,7 +698,7 @@ extension HomeViewController {
         }
         
         if cachedData == false {
-            self.headerLabel.text = "your wallet"
+            self.headerLabel.text = Language.getWord(withID: "yourwallet")
             self.headerSpinner.stopAnimating()
             
             if self.couldNotFetchConversion == true {

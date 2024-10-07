@@ -23,7 +23,7 @@ extension SendViewController {
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
                 self.scannerView.alpha = 1
-                self.nextLabel.text = "Manual input"
+                self.nextLabel.text = Language.getWord(withID: "manualinput")
                 
                 NSLayoutConstraint.deactivate([self.nextViewTop])
                 self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.scannerView, attribute: .bottom, multiplier: 1, constant: 30)
@@ -38,7 +38,7 @@ extension SendViewController {
                 }
             }
         } else {
-            self.showErrorMessage(alertTitle: "Scanning not supported", alertMessage: "Your device does not support scanning a code from an item. Please use a device with a camera.", alertButton: "Okay")
+            self.showErrorMessage(alertTitle: "Scanning not supported", alertMessage: "Your device does not support scanning a code from an item. Please use a device with a camera.", alertButton: Language.getWord(withID: "okay"))
         }
     }
     
@@ -115,7 +115,7 @@ extension SendViewController {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showErrorMessage(alertTitle: "No address found.", alertMessage: "Please scan a bitcoin or lightning address QR code or input the address manually.", alertButton: "Okay")
+            self.showErrorMessage(alertTitle: "No address found.", alertMessage: "Please scan a bitcoin or lightning address QR code or input the address manually.", alertButton: Language.getWord(withID: "okay"))
          } else {
              // Valid address
              let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
@@ -145,7 +145,7 @@ extension SendViewController {
              } else {
                  self.toTextField.text = nil
                  self.amountTextField.text = nil
-                 self.showErrorMessage(alertTitle: "No bitcoin address found.", alertMessage: "Please scan a bitcoin address QR code or input the address manually.", alertButton: "Okay")
+                 self.showErrorMessage(alertTitle: "No bitcoin address found.", alertMessage: "Please scan a bitcoin address QR code or input the address manually.", alertButton: Language.getWord(withID: "okay"))
              }
         }
         

@@ -80,8 +80,8 @@ extension CoreViewController {
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {
                                 // User not connected to internet.
-                                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                                let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                 self.present(alert, animated: true)
                             }
                         }

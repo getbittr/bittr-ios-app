@@ -192,7 +192,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         UIPasteboard.general.string = self.addressLabel.text
         let alert = UIAlertController(title: "Copied", message: self.addressLabel.text, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     
@@ -304,7 +304,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             UIPasteboard.general.string = self.createdInvoice
             //UIPasteboard.general.string = sender.accessibilityIdentifier
             let alert = UIAlertController(title: "Copied", message: self.createdInvoice, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
     }

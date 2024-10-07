@@ -988,4 +988,13 @@ class CacheManager: NSObject {
         }
     }
     
+    static func getLanguage() -> String {
+        
+        if let selectedLanguage = UserDefaults.standard.value(forKey: "language") as? String {
+            return selectedLanguage
+        } else {
+            return "en_US"
+        }
+    }
+    
 }

@@ -12,6 +12,7 @@ class MoveViewController: UIViewController {
     // Elements
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var channelButton: UIButton!
     @IBOutlet weak var subtitleLabel: UILabel!
     
@@ -43,6 +44,10 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var conversionRegular: UILabel!
     @IBOutlet weak var conversionInstant: UILabel!
     @IBOutlet weak var questionMark: UIImageView!
+    
+    // Labels
+    @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelInstant: UILabel!
     
     // Home View Controller
     var homeVC:HomeViewController?
@@ -163,11 +168,11 @@ class MoveViewController: UIViewController {
         
         if self.satsInstant.text?.replacingOccurrences(of: "sats", with: "").replacingOccurrences(of: " ", with: "") == "0" {
             // There is no Lightning channel.
-            let notificationDict:[String: Any] = ["question":"lightning channels","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannels"),"answer":Language.getWord(withID: "lightningexplanation1")]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         } else {
             // There's a Lightning channel.
-            let notificationDict:[String: Any] = ["question":"lightning channel","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.","type":"lightningexplanation"]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation2"),"type":"lightningexplanation"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
     }

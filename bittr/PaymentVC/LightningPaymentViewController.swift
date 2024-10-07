@@ -122,7 +122,7 @@ class LightningPaymentViewController: UIViewController {
             
             UIPasteboard.general.string = actualTransaction.lnDescription
             let alert = UIAlertController(title: "Copied", message: actualTransaction.lnDescription, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
     }

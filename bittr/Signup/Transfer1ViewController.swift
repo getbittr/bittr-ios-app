@@ -268,7 +268,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                     print(String(describing: error))
                     DispatchQueue.main.async {
                         let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                         self.present(alert, animated: true)
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)

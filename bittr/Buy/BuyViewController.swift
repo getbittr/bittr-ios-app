@@ -201,7 +201,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         UIPasteboard.general.string = sender.accessibilityIdentifier
         let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     

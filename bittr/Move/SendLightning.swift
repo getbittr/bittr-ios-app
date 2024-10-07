@@ -60,7 +60,7 @@ extension SendViewController {
                                             if thisPayment.status != .failed {
                                                 // Success alert
                                                 let alert = UIAlertController(title: "Payment successful", message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: "Okay", style: .default, handler: { _ in
+                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default, handler: { _ in
                                                     
                                                     if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                                                         
@@ -91,11 +91,11 @@ extension SendViewController {
                                                 self.present(alert, animated: true)
                                             } else {
                                                 // Payment came back failed.
-                                                self.showErrorMessage(alertTitle: "Payment failed", alertMessage: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", alertButton: "Okay")
+                                                self.showErrorMessage(alertTitle: "Payment failed", alertMessage: "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.", alertButton: Language.getWord(withID: "okay"))
                                             }
                                         } else {
                                             // Success alert
-                                            self.showErrorMessage(alertTitle: "Payment successful", alertMessage: "Payment hash: \(paymentHash)", alertButton: "Okay")
+                                            self.showErrorMessage(alertTitle: "Payment successful", alertMessage: "Payment hash: \(paymentHash)", alertButton: Language.getWord(withID: "okay"))
                                         }
                                         
                                         self.nextLabel.alpha = 1
@@ -111,7 +111,7 @@ extension SendViewController {
                                         self.nextLabel.alpha = 1
                                         self.nextSpinner.stopAnimating()
                                         
-                                        self.showErrorMessage(alertTitle: "Payment Error", alertMessage: errorString.detail, alertButton: "Okay")
+                                        self.showErrorMessage(alertTitle: "Payment Error", alertMessage: errorString.detail, alertButton: Language.getWord(withID: "okay"))
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -122,7 +122,7 @@ extension SendViewController {
                                         self.nextLabel.alpha = 1
                                         self.nextSpinner.stopAnimating()
                                         
-                                        self.showErrorMessage(alertTitle: "Unexpected Error", alertMessage: error.localizedDescription, alertButton: "Okay")
+                                        self.showErrorMessage(alertTitle: "Unexpected Error", alertMessage: error.localizedDescription, alertButton: Language.getWord(withID: "okay"))
                                         
                                         SentrySDK.capture(error: error)
                                     }

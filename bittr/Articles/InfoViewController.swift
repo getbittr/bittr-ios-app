@@ -17,6 +17,8 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var newsHeader: UIView!
     @IBOutlet weak var faqHeader: UIView!
     @IBOutlet weak var noArticles: UILabel!
+    @IBOutlet weak var newsLabel: UILabel!
+    @IBOutlet weak var questionsLabel: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
@@ -52,6 +54,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(launchArticle), name: NSNotification.Name(rawValue: "launcharticle"), object: nil)
         
         // Download articles.
+        self.setWords()
         self.getArticles()
     }
     

@@ -29,6 +29,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerBackgroundButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     // Main scroll - Switch view
     @IBOutlet weak var switchView: UIView!
@@ -36,6 +37,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var instantView: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
+    @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelInstant: UILabel!
     
     // Main scroll - Items
     @IBOutlet weak var topLabel: UILabel! // Explain items
@@ -82,6 +85,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     // Onchain confirm scroll
     @IBOutlet weak var confirmHeaderView: UIView!
+    @IBOutlet weak var confirmHeaderLabel: UILabel!
     @IBOutlet weak var confirmTopLabel: UILabel!
     @IBOutlet weak var yellowCard: UIView!
     @IBOutlet weak var confirmToCard: UIView!
@@ -95,6 +99,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var sendSpinner: UIActivityIndicatorView!
     @IBOutlet weak var sendLabel: UILabel!
+    @IBOutlet weak var labelAddress: UILabel!
+    @IBOutlet weak var labelAmount: UILabel!
+    @IBOutlet weak var labelEdit: UILabel!
     
     // Onchain confirm scroll - Fees
     @IBOutlet weak var feesTopLabel: UILabel!
@@ -183,8 +190,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         amountTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
+        // Set colors and language
         self.changeColors()
-        
+        self.setWords()
         self.setSendAllLabel(forView: "onchain")
     }
     
@@ -202,19 +210,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")): \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             } else {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats()
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")): \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             }
         } else {
             // Set "Send all" for lightning payments.
             if let actualMaxAmount = self.maximumSendableLNSats {
-                self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) \(actualMaxAmount) satoshis."
             } else {
-                self.availableAmount.text = "You can send 0 satoshis."
+                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) 0 satoshis."
             }
         }
     }
@@ -288,7 +296,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
         } else {
             // Instant
-            let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel.","type":"lightningsendable"]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "limitlightninganswer"),"type":"lightningsendable"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
@@ -388,8 +396,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
+            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return false
         } else {
