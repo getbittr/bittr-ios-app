@@ -11,8 +11,10 @@ class Transfer3ViewController: UIViewController {
 
     // Views and buttons.
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var cardView2: UIView!
@@ -112,6 +114,7 @@ class Transfer3ViewController: UIViewController {
         }
         
         self.changeColors()
+        self.setWords()
     }
     
     
@@ -300,6 +303,17 @@ class Transfer3ViewController: UIViewController {
         self.cardView2.backgroundColor = Colors.getColor(color: "cardview")
         self.article2Title.textColor = Colors.getColor(color: "black")*/
 
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "finaldetails")
+        self.topLabelOne.text = Language.getWord(withID: "bittrinstructions")
+        self.topLabelTwo.text = Language.getWord(withID: "bittrinstructions2")
+        self.topLabelThree.text = Language.getWord(withID: "bittrinstructions3")
+        self.nextLabel.text = Language.getWord(withID: "letsgo")
+        self.backLabel.text = Language.getWord(withID: "back")
+        
     }
     
 }

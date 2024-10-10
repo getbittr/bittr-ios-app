@@ -1660,6 +1660,7 @@
                         <outlet property="currentValueView" destination="0Rt-xb-uFJ" id="Hg6-6h-kHF"/>
                         <outlet property="divestedView" destination="u2D-lT-7zn" id="oAl-rc-5XY"/>
                         <outlet property="downButton" destination="vxf-dC-Qic" id="dRk-Sz-1Vg"/>
+                        <outlet property="headerLabel" destination="06Q-aD-GEJ" id="em6-Fi-iEv"/>
                         <outlet property="headerView" destination="dtg-TH-Vtw" id="Zuc-qW-9Eh"/>
                         <outlet property="investedLabel" destination="FoI-Kt-yRS" id="5DE-k7-aV7"/>
                         <outlet property="investedView" destination="QDG-HU-4du" id="3sC-pH-jSD"/>
@@ -1998,6 +1999,11 @@
                                                                     <outlet property="labelYourIban" destination="qfL-du-jmJ" id="Xhf-T9-Cky"/>
                                                                     <outlet property="nameButton" destination="xTD-Zh-UQp" id="9EH-va-mQV"/>
                                                                     <outlet property="nameView" destination="ZYH-uF-oeJ" id="6Nm-Aw-4Zd"/>
+                                                                    <outlet property="titleOurIBAN" destination="rxf-2I-k7i" id="w0t-rm-hq6"/>
+                                                                    <outlet property="titleOurName" destination="yV6-g6-Tb6" id="uQ1-Bt-BNh"/>
+                                                                    <outlet property="titleYourCode" destination="RtL-nK-Qei" id="esl-49-vbM"/>
+                                                                    <outlet property="titleYourEmail" destination="8HA-fi-IoU" id="VPR-vY-bB7"/>
+                                                                    <outlet property="titleYourIBAN" destination="aOe-XW-GhA" id="TDL-m5-c8x"/>
                                                                     <outlet property="yourIbanView" destination="aJq-w3-xHl" id="Dfq-vi-vcO"/>
                                                                 </connections>
                                                             </collectionViewCell>
@@ -2160,6 +2166,7 @@
                         <outlet property="continueView" destination="eaV-Jh-HXB" id="1xG-kN-cPs"/>
                         <outlet property="downButton" destination="OBK-1g-tJQ" id="gqg-ev-4Wf"/>
                         <outlet property="emptyLabel" destination="jXY-YD-wE2" id="ZyE-7k-0oC"/>
+                        <outlet property="headerLabel" destination="kFZ-Az-Zi4" id="ZmY-7J-ydC"/>
                         <outlet property="headerView2" destination="Foe-ik-AhY" id="jq2-8n-RhX"/>
                         <outlet property="ibanCollectionView" destination="hTZ-oO-qDM" id="z0R-6t-hUm"/>
                         <outlet property="scrollView" destination="tfa-S2-Kgu" id="pKr-9D-8p3"/>
@@ -10025,11 +10032,16 @@
                         <outlet property="nameButton" destination="PZa-BN-7Tq" id="td0-iB-JOu"/>
                         <outlet property="nameView" destination="uZw-Hm-vUe" id="AtR-ZL-zdU"/>
                         <outlet property="nextButton" destination="lZg-Qh-EuM" id="Ays-QA-72k"/>
+                        <outlet property="nextLabel" destination="y7Q-u8-Gg0" id="OFK-7K-Hgj"/>
                         <outlet property="nextView" destination="ixf-ko-nuY" id="RkT-xU-JwT"/>
                         <outlet property="ourIbanLabel" destination="fWC-7Z-5V6" id="4Oa-iw-Q9a"/>
                         <outlet property="screenshotButton" destination="IOG-XX-U8j" id="31Z-UV-4VN"/>
+                        <outlet property="screenshotLabel" destination="yOO-b0-4Cq" id="gKd-7w-aZR"/>
                         <outlet property="screenshotView" destination="hT8-4g-zCJ" id="iKY-xP-hCr"/>
                         <outlet property="spinner1" destination="HoG-rh-3o4" id="CKN-x4-W2d"/>
+                        <outlet property="titleOurIBAN" destination="YWT-gb-DEc" id="Tk5-hi-4S5"/>
+                        <outlet property="titleOurName" destination="L1m-WW-ixg" id="90p-qc-X1X"/>
+                        <outlet property="titleYourCode" destination="q87-MZ-bbU" id="dDE-Vr-ASX"/>
                         <outlet property="topLabelOne" destination="Cam-tW-kv6" id="piN-10-q3Q"/>
                         <outlet property="topLabelTwo" destination="QGp-MK-LEs" id="vql-pV-KBM"/>
                         <outlet property="yourCodeLabel" destination="07U-Pv-154" id="4HW-8A-UaG"/>
@@ -10369,10 +10381,12 @@
                         <outlet property="centerViewCenterY" destination="SN4-so-WXW" id="kwN-47-89m"/>
                         <outlet property="contentView" destination="KQf-Xd-X6I" id="7g1-Gr-apK"/>
                         <outlet property="contentViewHeight" destination="Etp-bw-ioK" id="NSU-VO-5NR"/>
+                        <outlet property="headerLabel" destination="Juy-aE-mMI" id="SkY-Wg-FLL"/>
                         <outlet property="headerView" destination="V9J-Ty-Qv6" id="3bm-pU-mis"/>
                         <outlet property="imageContainer" destination="ou8-0u-af6" id="vEl-ut-Ktl"/>
                         <outlet property="imageContainer2" destination="Q9K-1K-LRP" id="poV-cN-VNP"/>
                         <outlet property="nextButton" destination="LeR-8i-Mj8" id="CVz-ei-yce"/>
+                        <outlet property="nextLabel" destination="AZa-Ag-CcY" id="Pz4-es-fzQ"/>
                         <outlet property="nextView" destination="T4e-xX-2qX" id="aH4-pa-dKb"/>
                         <outlet property="spinner1" destination="VTj-pb-YC0" id="agS-BI-jSy"/>
                         <outlet property="spinner2" destination="gD7-cN-csv" id="3V8-gS-g1o"/>

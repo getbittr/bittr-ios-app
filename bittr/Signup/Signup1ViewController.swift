@@ -61,6 +61,7 @@ class Signup1ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
+        self.setWords()
     }
     
     
@@ -172,6 +173,11 @@ class Signup1ViewController: UIViewController {
         
         //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
         //self.articleTitle.textColor = Colors.getColor(color: "black")
+    }
+    
+    func setWords() {
+        
+        
     }
     
 }

@@ -15,6 +15,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var headerView2: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
     // Add another
@@ -69,7 +70,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
         
+        // Set colors and language.
         self.changeColors()
+        self.setWords()
         
         // Parse IBAN entities.
         self.parseIbanEntities()
@@ -210,5 +213,13 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
         self.subtitleLabel.textColor = Colors.getColor(color: "black")
         self.addAnotherLabel.textColor = Colors.getColor(color: "black")
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "buy bitcoin")
+        self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
+        self.emptyLabel.text = Language.getWord(withID: "buyempty")
+        self.addAnotherLabel.text = "+  " + Language.getWord(withID: "addanother")
     }
 }

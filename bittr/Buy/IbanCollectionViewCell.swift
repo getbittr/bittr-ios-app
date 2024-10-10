@@ -9,6 +9,7 @@ import UIKit
 
 class IbanCollectionViewCell: UICollectionViewCell {
     
+    // Views
     @IBOutlet weak var cardBackgroundView: UIView!
     @IBOutlet weak var yourIbanView: UIView!
     @IBOutlet weak var ibanView: UIView!
@@ -16,12 +17,21 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var emailView: UIView!
     
+    // Dynamic labels
     @IBOutlet weak var labelYourEmail: UILabel!
     @IBOutlet weak var labelYourIban: UILabel!
     @IBOutlet weak var labelOurIban: UILabel!
     @IBOutlet weak var labelOurName: UILabel!
     @IBOutlet weak var labelYourCode: UILabel!
     
+    // Static labels
+    @IBOutlet weak var titleYourEmail: UILabel!
+    @IBOutlet weak var titleYourIBAN: UILabel!
+    @IBOutlet weak var titleOurIBAN: UILabel!
+    @IBOutlet weak var titleOurName: UILabel!
+    @IBOutlet weak var titleYourCode: UILabel!
+    
+    // Buttons
     @IBOutlet weak var ibanButton: UIButton!
     @IBOutlet weak var nameButton: UIButton!
     @IBOutlet weak var codeButton: UIButton!
@@ -45,6 +55,7 @@ class IbanCollectionViewCell: UICollectionViewCell {
         codeButton.setTitle("", for: .normal)
         
         self.changeColors()
+        self.setWords()
     }
     
     func changeColors() {
@@ -61,5 +72,15 @@ class IbanCollectionViewCell: UICollectionViewCell {
         nameView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
         codeView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
         emailView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
+    }
+    
+    func setWords() {
+        
+        self.titleYourEmail.text = Language.getWord(withID: "youremail")
+        self.titleYourIBAN.text = Language.getWord(withID: "youriban")
+        self.titleOurIBAN.text = Language.getWord(withID: "ouriban")
+        self.titleOurName.text = Language.getWord(withID: "ourname")
+        self.titleYourCode.text = Language.getWord(withID: "yourcode")
+
     }
 }

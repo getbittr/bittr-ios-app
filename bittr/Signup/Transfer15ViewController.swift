@@ -62,6 +62,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
         
         self.changeColors()
+        self.setWords()
     }
     
     @objc func updateClient(notification:NSNotification) {
@@ -664,6 +665,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             self.resendLabel.textColor = Colors.getColor(color: "transparentblack")
         }
 
+    }
+    
+    func setWords() {
+        
+        self.topLabel.text = Language.getWord(withID: "youvegotmail")
+        self.codeTextField.placeholder = Language.getWord(withID: "entercode")
+        self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+        self.resendLabel.text = Language.getWord(withID: "resendcode")
     }
     
 }

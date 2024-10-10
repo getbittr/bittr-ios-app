@@ -26,6 +26,7 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
@@ -33,12 +34,16 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var screenshotView: UIView!
     @IBOutlet weak var screenshotButton: UIButton!
+    @IBOutlet weak var screenshotLabel: UILabel!
     
     var currentClientID = ""
     var currentIbanID = ""
     
     @IBOutlet weak var ourIbanLabel: UILabel!
     @IBOutlet weak var yourCodeLabel: UILabel!
+    @IBOutlet weak var titleOurIBAN: UILabel!
+    @IBOutlet weak var titleOurName: UILabel!
+    @IBOutlet weak var titleYourCode: UILabel!
     
     @IBOutlet weak var ibanButton: UIButton!
     @IBOutlet weak var nameButton: UIButton!
@@ -109,6 +114,7 @@ class Transfer2ViewController: UIViewController {
         }
         
         self.changeColors()
+        self.setWords()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -258,6 +264,17 @@ class Transfer2ViewController: UIViewController {
         //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
         //self.articleTitle.textColor = Colors.getColor(color: "black")
 
+    }
+    
+    func setWords() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "readyfortransfer")
+        self.topLabelTwo.text = Language.getWord(withID: "personaldetails")
+        self.titleOurIBAN.text = Language.getWord(withID: "ouriban")
+        self.titleOurName.text = Language.getWord(withID: "ourname")
+        self.titleYourCode.text = Language.getWord(withID: "yourcode")
+        self.screenshotLabel.text = Language.getWord(withID: "screenshot")
+        self.nextLabel.text = Language.getWord(withID: "finaldetails")
     }
     
 }

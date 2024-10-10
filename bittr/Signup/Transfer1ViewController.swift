@@ -106,6 +106,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         }
         
         self.changeColors()
+        self.setWords()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -400,6 +401,18 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         } else {
             self.ibanLabel.textColor = Colors.getColor(color: "transparentblack")
         }
+    }
+    
+    func setWords() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "bittrinstructions4")
+        self.topLabelTwo.text = Language.getWord(withID: "whatsyouriban")
+        self.topLabelThree.text = Language.getWord(withID: "whatsyouremail")
+        self.ibanTextField.placeholder = Language.getWord(withID: "enteriban")
+        self.emailTextField.placeholder = Language.getWord(withID: "enteremail")
+        self.nextButtonLabel.text = Language.getWord(withID: "verify")
+        self.ibanLabel.text = Language.getWord(withID: "noiban")
+        
     }
     
 }

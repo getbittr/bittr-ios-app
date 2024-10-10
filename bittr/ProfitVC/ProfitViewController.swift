@@ -9,10 +9,13 @@ import UIKit
 
 class ProfitViewController: UIViewController {
 
+    // General
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var subtitleLabel: UILabel!
     
+    // Views
     @IBOutlet weak var investedView: UIView!
     @IBOutlet weak var divestedView: UIView!
     @IBOutlet weak var currentValueView: UIView!
@@ -21,6 +24,7 @@ class ProfitViewController: UIViewController {
     @IBOutlet weak var currentLabel: UILabel!
     @IBOutlet weak var profitLabel: UILabel!
     
+    // Variables
     var totalProfit = 0
     var totalInvestments = 0
     var totalValue = 0
@@ -49,6 +53,7 @@ class ProfitViewController: UIViewController {
         self.totalProfitLabel.text = "\(currencySymbol) \(self.totalProfit)"
         
         self.changeColors()
+        self.setWords()
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -72,6 +77,16 @@ class ProfitViewController: UIViewController {
             self.currentValueView.backgroundColor = Colors.getColor(color: "cardview")
             self.profitView.backgroundColor = Colors.getColor(color: "cardview")
         }
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "yourprofits")
+        self.subtitleLabel.text = Language.getWord(withID: "profitsubtitle")
+        self.investedLabel.text = "⬇️  " + Language.getWord(withID: "totalinvestment")
+        self.currentLabel.text = "💰  " + Language.getWord(withID: "currentvalue")
+        self.profitLabel.text = "🌱  " + Language.getWord(withID: "totalprofit")
+        
     }
 
 }
