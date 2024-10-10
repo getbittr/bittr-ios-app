@@ -27,7 +27,7 @@ extension HomeViewController {
                 for eachChannel in actualLightningChannels {
                     self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000) + CGFloat(eachChannel.unspendablePunishmentReserve ?? 0)
                     self.channels = actualLightningChannels
-                    print(eachChannel)
+                    //print(eachChannel)
                 }
                 
                 // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.

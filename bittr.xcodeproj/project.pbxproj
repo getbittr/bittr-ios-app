@@ -33,6 +33,7 @@
 		053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190E929FEE4F80072CE76 /* MoveViewController.swift */; };
 		053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190EB29FEE5190072CE76 /* TransactionViewController.swift */; };
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
+		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */; };
 		056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056911102BC3E16800BD047B /* SyncingStatus.swift */; };
@@ -237,6 +238,7 @@
 				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
 				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
 				05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */,
+				0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */,
 				3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -532,6 +534,7 @@
 				05BE46182BB9A83100555B9B /* SPConfetti */,
 				3C6A5FD226974C7A8EB518F5 /* Sentry */,
 				0589280A2C00933F00DDB850 /* LDKNode */,
+				0554035C2CB7EA04006F27CA /* LNURLDecoder */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -612,6 +615,7 @@
 				05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */,
 				28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */,
+				0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -1125,6 +1129,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FlorianHubl/LNURLDecoder";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
@@ -1176,6 +1188,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0554035C2CB7EA04006F27CA /* LNURLDecoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */;
+			productName = LNURLDecoder;
+		};
 		0589280A2C00933F00DDB850 /* LDKNode */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */;

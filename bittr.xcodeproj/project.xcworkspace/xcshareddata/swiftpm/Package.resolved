@@ -1,4 +1,5 @@
 {
+  "originHash" : "c72cd796b236e0a78dee3065a4a1b90a570ddb5a6bc630c622d207c3dfacee0f",
   "pins" : [
     {
       "identity" : "bdk-swift",
@@ -37,6 +38,15 @@
       }
     },
     {
+      "identity" : "lnurldecoder",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/LNURLDecoder",
+      "state" : {
+        "branch" : "main",
+        "revision" : "bfdfd5434571f8910ffd7cdb9e46759dd33ecbbd"
+      }
+    },
+    {
       "identity" : "sentry-cocoa",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/getsentry/sentry-cocoa/",
@@ -55,5 +65,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import LNURLDecoder
 
 extension SendViewController {
     
@@ -116,7 +117,47 @@ extension SendViewController {
             self.toTextField.text = nil
             self.amountTextField.text = nil
             self.showErrorMessage(alertTitle: "No address found.", alertMessage: "Please scan a bitcoin or lightning address QR code or input the address manually.", alertButton: Language.getWord(withID: "okay"))
-         } else {
+        } else if code.lowercased().contains("lnurl") {
+            // Valid LNURL code.
+            do {
+                let url = try LNURLDecoder.decode(lnurl: code)
+                print("Decoded url: \(url)")
+                
+                let actualUrl = URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!
+                print("Actual URL: \(actualUrl)")
+                
+                var request = URLRequest(url: actualUrl, timeoutInterval: Double.infinity)
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                request.httpMethod = "GET"
+                
+                let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                    
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("Status code: \(httpResponse.statusCode)")
+                        print("Headers: \(httpResponse.allHeaderFields)")
+                    }
+                        
+                    if let error = error {
+                        print("Error: \(error.localizedDescription)")
+                    }
+                    
+                    guard let data = data else {
+                        print("No data received. Error: \(error ?? "no error"). Response: \(String(describing: response)).")
+                        return
+                    }
+                    
+                    // Response has been received.
+                    print("Data received: \(String(data:data, encoding:.utf8)!)")
+                    // {"tag":"withdrawRequest","callback":"https://spiritedlizard2.lnbits.com/withdraw/api/v1/lnurl/cb/eKbrKxF2PAi8wNX65ab4HM","k1":"9YxWRdFQFSQngwM2EmuNoh","minWithdrawable":10000,"maxWithdrawable":10000,"defaultDescription":"vouchers","webhook_url":null,"webhook_headers":null,"webhook_body":null}
+                    
+                    
+                }
+                task.resume()
+                
+            } catch {
+                print("Couldn't decode LNURL. Message: \(error.localizedDescription)")
+            }
+        } else {
              // Valid address
              let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
              let components = address.components(separatedBy: "?")
