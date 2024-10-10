@@ -158,7 +158,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                     // Copy the invoice to the clipboard
                     UIPasteboard.general.string = notificationToken
                 }))
-                alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             }
         }
@@ -173,7 +173,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             // Copy the invoice to the clipboard
             UIPasteboard.general.string = lightningKey
         }))
-        alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     
@@ -214,7 +214,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                         alert.addAction(UIAlertAction(title: "Connect", style: .default, handler: { _ in
                             self.reconnectToPeer()
                         }))
-                        alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                         self.present(alert, animated: true)
                     }
                 } else {
@@ -224,7 +224,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                     alert.addAction(UIAlertAction(title: "Connect", style: .default, handler: { _ in
                         self.reconnectToPeer()
                     }))
-                    alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                     self.present(alert, animated: true)
                 }
             } catch {
@@ -234,7 +234,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 alert.addAction(UIAlertAction(title: "Connect", style: .default, handler: { _ in
                     self.reconnectToPeer()
                 }))
-                alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             }
         }
@@ -267,7 +267,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                     }
                 }
             }))
-            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
     }

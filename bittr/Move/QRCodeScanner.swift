@@ -39,7 +39,7 @@ extension SendViewController {
                 }
             }
         } else {
-            self.showErrorMessage(alertTitle: "Scanning not supported", alertMessage: "Your device does not support scanning a code from an item. Please use a device with a camera.", alertButton: Language.getWord(withID: "okay"))
+            self.showErrorMessage(alertTitle: Language.getWord(withID: "scanningnotsupported"), alertMessage: Language.getWord(withID: "scanningnotavailable"), alertButton: Language.getWord(withID: "okay"))
         }
     }
     
@@ -116,7 +116,7 @@ extension SendViewController {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showErrorMessage(alertTitle: "No address found.", alertMessage: "Please scan a bitcoin or lightning address QR code or input the address manually.", alertButton: Language.getWord(withID: "okay"))
+            self.showErrorMessage(alertTitle: Language.getWord(withID: "noaddressfound"), alertMessage: Language.getWord(withID: "pleasescan"), alertButton: Language.getWord(withID: "okay"))
         } else if code.lowercased().contains("lnurl") {
             // Valid LNURL code.
             do {
@@ -186,7 +186,7 @@ extension SendViewController {
              } else {
                  self.toTextField.text = nil
                  self.amountTextField.text = nil
-                 self.showErrorMessage(alertTitle: "No bitcoin address found.", alertMessage: "Please scan a bitcoin address QR code or input the address manually.", alertButton: Language.getWord(withID: "okay"))
+                 self.showErrorMessage(alertTitle: Language.getWord(withID: "nobitcoinaddressfound"), alertMessage: Language.getWord(withID: "pleasescan2"), alertButton: Language.getWord(withID: "okay"))
              }
         }
         

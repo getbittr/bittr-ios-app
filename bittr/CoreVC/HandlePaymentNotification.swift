@@ -98,7 +98,7 @@ extension CoreViewController {
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
                         let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
                         }))
@@ -110,7 +110,7 @@ extension CoreViewController {
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
                         let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
                         }))
@@ -176,7 +176,7 @@ extension CoreViewController {
                                     }
                                 }))
                             }
-                            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                         }
                     }
@@ -188,7 +188,7 @@ extension CoreViewController {
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
             let alert = UIAlertController(title: "Bittr payout", message: "The notification payload did not contain the data needed to complete your payout.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
     }

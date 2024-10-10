@@ -472,7 +472,7 @@ extension UITextField {
         toolbar.barStyle = .default
         toolbar.items = [
                 UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: self, action: nil),
-                UIBarButtonItem(title: "Done", style: .done, target: target, action: returnaction)
+                UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: target, action: returnaction)
             ]
         toolbar.sizeToFit()
         self.inputAccessoryView = toolbar
