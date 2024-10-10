@@ -33,7 +33,7 @@ extension SendViewController {
                 
             } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
                 // Insufficient funds available.
-                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "Make sure the amount of BTC you wish to send is within your spendable balance.", alertButton: Language.getWord(withID: "okay"))
+                self.showErrorMessage(alertTitle: Language.getWord(withID: "oops"), alertMessage: "Make sure the amount of BTC you wish to send is within your spendable balance.", alertButton: Language.getWord(withID: "okay"))
             } else {
             
                 self.nextLabel.alpha = 0
@@ -154,7 +154,7 @@ extension SendViewController {
                                 
                                 if "\(error)".contains("InsufficientFunds") {
                                     let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
-                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. \(condensedMessage).", alertButton: Language.getWord(withID: "okay"))
+                                    self.showErrorMessage(alertTitle: Language.getWord(withID: "oops"), alertMessage: "We couldn't proceed to the next step. \(condensedMessage).", alertButton: Language.getWord(withID: "okay"))
                                 } else {
                                     self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error).", alertButton: Language.getWord(withID: "okay"))
                                 }
@@ -167,7 +167,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                self.showErrorMessage(alertTitle: "Oops!", alertMessage: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", alertButton: Language.getWord(withID: "okay"))
+                                self.showErrorMessage(alertTitle: Language.getWord(withID: "oops"), alertMessage: "We couldn't proceed to the next step. Error: \(error.localizedDescription).", alertButton: Language.getWord(withID: "okay"))
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -299,7 +299,7 @@ extension SendViewController {
         }
         
         let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to send \(self.amountTextField.text ?? "these") btc, with a fee of \(feeSatoshis) satoshis, to \(self.confirmAddressLabel.text ?? "this address")?", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in
             
             self.sendLabel.alpha = 0

@@ -243,7 +243,7 @@ class Transfer2ViewController: UIViewController {
         
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }

@@ -34,6 +34,7 @@
 		053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190EB29FEE5190072CE76 /* TransactionViewController.swift */; };
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
 		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
+		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */; };
 		056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056911102BC3E16800BD047B /* SyncingStatus.swift */; };
@@ -154,6 +155,7 @@
 		053190E929FEE4F80072CE76 /* MoveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveViewController.swift; sourceTree = "<group>"; };
 		053190EB29FEE5190072CE76 /* TransactionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewController.swift; sourceTree = "<group>"; };
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
+		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewController.swift; sourceTree = "<group>"; };
 		0565C47C2BA9851100CE89C6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -298,6 +300,7 @@
 				0579B2722A0531470007891F /* ReceiveViewController.swift */,
 				05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */,
 				05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */,
+				0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */,
 			);
 			path = Move;
 			sourceTree = "<group>";
@@ -693,6 +696,7 @@
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
 				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
 				05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */,
+				0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */,
 				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,

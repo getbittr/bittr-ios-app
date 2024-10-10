@@ -55,16 +55,16 @@ extension ReceiveViewController {
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Error", message: errorString.detail, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    let alert = UIAlertController(title: Language.getWord(withID: "error"), message: errorString.detail, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default))
                     self.present(alert, animated: true)
                     
                     SentrySDK.capture(error: error)
                 }
             } catch {
                 DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    let alert = UIAlertController(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default))
                     self.present(alert, animated: true)
                     
                     SentrySDK.capture(error: error)

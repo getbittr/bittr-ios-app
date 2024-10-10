@@ -48,11 +48,11 @@ extension ReceiveViewController {
                         }
                     } else {
                         DispatchQueue.main.async {
-                            let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "addressfail"), preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                                 self.getNewAddress(resetAddress: resetAddress)
                             }))
-                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
                                 self.addressSpinner.stopAnimating()
                                 self.qrCodeSpinner.stopAnimating()
                             }))
@@ -62,11 +62,11 @@ extension ReceiveViewController {
                 } catch let error as NodeError {
                     let errorString = handleNodeError(error)
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. (\(errorString).) Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "addressfail2")). (\(errorString).) \(Language.getWord(withID: "pleasetryagain")).", preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                             self.getNewAddress(resetAddress: resetAddress)
                         }))
-                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
                             self.addressSpinner.stopAnimating()
                             self.qrCodeSpinner.stopAnimating()
                         }))
@@ -76,11 +76,11 @@ extension ReceiveViewController {
                     }
                 } catch {
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: "Oops!", message: "We couldn't fetch a wallet address. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "addressfail"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                             self.getNewAddress(resetAddress: resetAddress)
                         }))
-                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {_ in
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
                             self.addressSpinner.stopAnimating()
                             self.qrCodeSpinner.stopAnimating()
                         }))

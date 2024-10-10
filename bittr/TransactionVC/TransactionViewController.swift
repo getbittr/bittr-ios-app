@@ -253,7 +253,7 @@ class TransactionViewController: UIViewController {
                 self.noteImage.alpha = 0
             }
         }))
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     
@@ -284,7 +284,7 @@ class TransactionViewController: UIViewController {
     @IBAction func idButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.id
-        let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.id, preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.id, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
@@ -292,7 +292,7 @@ class TransactionViewController: UIViewController {
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lnDescription
-        let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }

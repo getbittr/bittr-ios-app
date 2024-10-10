@@ -228,7 +228,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                     DispatchQueue.main.async {
                                                         self.nextButtonActivityIndicator.stopAnimating()
                                                         self.nextButtonLabel.alpha = 1
-                                                        let alert = UIAlertController(title: "Oops!", message: "Please enter the correct verification code.", preferredStyle: .alert)
+                                                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "Please enter the correct verification code.", preferredStyle: .alert)
                                                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                                         self.present(alert, animated: true)
                                                     }
@@ -340,7 +340,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         guard let data = data else {
                             DispatchQueue.main.async {
                                 print(String(describing: error))
-                                let alert = UIAlertController(title: "Oops!", message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
+                                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "Something went wrong creating your account. Please try again.", preferredStyle: .alert)
                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                 self.present(alert, animated: true)
                                 if let actualError = error {
@@ -383,7 +383,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 self.nextButtonActivityIndicator.stopAnimating()
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
-                                                let alert = UIAlertController(title: "Oops!", message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
+                                                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.", preferredStyle: .alert)
                                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
                                                     let notificationDict:[String: Any] = ["page":"6"]
                                                      NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
@@ -393,7 +393,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 self.nextButtonActivityIndicator.stopAnimating()
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
-                                                let alert = UIAlertController(title: "Oops!", message: "Something went wrong. (\(actualApiMessage).) Please try again later.", preferredStyle: .alert)
+                                                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "Something went wrong. (\(actualApiMessage).) Please try again later.", preferredStyle: .alert)
                                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
                                                     let notificationDict:[String: Any] = ["page":"6"]
                                                      NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
@@ -495,7 +495,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     guard let data = data else {
                                         print(String(describing: error))
                                         DispatchQueue.main.async {
-                                            let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
+                                            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
                                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                                             self.present(alert, animated: true)
                                             if let actualError = error {

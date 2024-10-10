@@ -200,7 +200,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func copyItem(_ sender: UIButton) {
         
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }

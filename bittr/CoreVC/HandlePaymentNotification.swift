@@ -99,7 +99,7 @@ extension CoreViewController {
                         self.blackSignupBackground.alpha = 0
                         let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
-                        alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
                         }))
                         self.present(alert, animated: true)
@@ -111,7 +111,7 @@ extension CoreViewController {
                         self.blackSignupBackground.alpha = 0
                         let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
-                        alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
                         }))
                         self.present(alert, animated: true)
@@ -170,7 +170,7 @@ extension CoreViewController {
                             self.blackSignupBackground.alpha = 0
                             let alert = UIAlertController(title: "Bittr payout", message: "\(error.localizedDescription)", preferredStyle: .alert)
                             if error.localizedDescription.contains("try again") {
-                                alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                                     if let actualSpecialData = self.varSpecialData {
                                         self.facilitateNotificationPayout(specialData: actualSpecialData)
                                     }

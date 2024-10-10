@@ -85,7 +85,27 @@ class Language: NSObject {
             "limitlightninganswer": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel.",
             "checkyourconnection": "Check your connection",
             "trytoconnect": "You don't seem to be connected to the internet. Please try to connect.",
-            "okay": "Okay"
+            "okay": "Okay",
+            "receivebitcoin": "receive bitcoin",
+            "thisisanaddress": "This is an address to your bitcoin wallet.",
+            "createaninvoice": "Create a Lightning invoice to receive bitcoin instantly to your Lightning wallet.",
+            "amountinsatoshis": "Amount (in satoshis)",
+            "youcanreceive": "You can receive up to",
+            "enterdescription": "Enter description",
+            "createinvoice": "Create invoice",
+            "lightninginvoice": "lightning invoice",
+            "thisisyourinvoice": "This is your Lightning invoice.",
+            "done": "Done",
+            "copied": "Copied",
+            "theresalimit": "There's a limit to the amount of satoshis you can receive per invoice.\n\nYour bitcoin lightning channel has a size, ten times the amount of your first Bittr purchase. If the size is 10,000 sats and you've already purchased 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the channel size. If you need more, you can create multiple invoices.\n\nWhen the channel is full, we empty the channel funds into your bitcoin wallet so that you have space again.",
+            "oops": "Oops!",
+            "addressfail": "We couldn't fetch a wallet address. Please try again.",
+            "tryagain": "Try again",
+            "addressfail2": "We couldn't fetch a wallet address",
+            "pleasetryagain": "Please try again",
+            "cancel": "Cancel",
+            "unexpectederror": "Unexpected error",
+            "error": "Error"
         ]
         
         if let foundWord = allWords[withID] {

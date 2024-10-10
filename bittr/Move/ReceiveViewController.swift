@@ -29,6 +29,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
     @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Main - Switch view
@@ -37,6 +38,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var instantView: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
+    @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelInstant: UILabel!
     
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
@@ -70,10 +73,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var descriptionTextField: UITextField!
     @IBOutlet weak var descriptionButton: UIButton!
     @IBOutlet weak var createView: UIView!
+    @IBOutlet weak var createInvoiceLabel: UILabel!
     @IBOutlet weak var invoiceButton: UIButton!
     
     // Confirm invoice view
     @IBOutlet weak var lnConfirmationHeaderView: UIView!
+    @IBOutlet weak var lnHeaderLabel: UILabel!
     @IBOutlet weak var lnConfirmationLabel: UILabel!
     @IBOutlet weak var lnConfirmationQRView: UIView!
     @IBOutlet weak var lnQRImage: UIImageView!
@@ -83,6 +88,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var copyInvoiceButton: UIButton!
     @IBOutlet weak var lnConfirmationDoneView: UIView!
     @IBOutlet weak var lnConfirmationDoneButton: UIButton!
+    @IBOutlet weak var lnDoneLabel: UILabel!
     
     // Variables
     var keyboardIsActive = false
@@ -128,7 +134,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         // Receivable sats label
         if let actualReceivableLN = maximumReceivableLNSats {
-            self.receivableLNLabel.text = "You can receive up to \(actualReceivableLN) satoshis."
+            self.receivableLNLabel.text = "\(Language.getWord(withID: "youcanreceive")) \(actualReceivableLN) satoshis."
         }
         
         // Create QR code
@@ -139,6 +145,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         qrCodeSpinner.startAnimating()
         getNewAddress(resetAddress: false)
         
+        // Set colors and language.
+        self.setWords()
         self.changeColors()
     }
     
@@ -191,7 +199,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBAction func copyAddressTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.addressLabel.text
-        let alert = UIAlertController(title: "Copied", message: self.addressLabel.text, preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: Language.getWord(withID: "copied")), message: self.addressLabel.text, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
@@ -303,7 +311,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         if self.createdInvoice != "" {
             UIPasteboard.general.string = self.createdInvoice
             //UIPasteboard.general.string = sender.accessibilityIdentifier
-            let alert = UIAlertController(title: "Copied", message: self.createdInvoice, preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: self.createdInvoice, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
@@ -322,7 +330,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func receivableButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"There's a limit to the amount of satoshis you can receive per invoice.\n\nYour bitcoin lightning channel has a size, ten times the amount of your first Bittr purchase. If the size is 10,000 sats and you've already purchased 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the channel size. If you need more, you can create multiple invoices.\n\nWhen the channel is full, we empty the channel funds into your bitcoin wallet so that you have space again.","type":"lightningreceivable"]
+        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "theresalimit"),"type":"lightningreceivable"]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
     }
     

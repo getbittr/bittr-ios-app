@@ -81,11 +81,11 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         } else if sender.accessibilityIdentifier == "restore" {
             
             let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
             alert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
                 
                 let secondAlert = UIAlertController(title: "Restore wallet", message: "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.", preferredStyle: .alert)
-                secondAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                 secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
                     
                     if let actualCoreVC = self.coreVC {
@@ -109,7 +109,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 let notificationDict:[String: Any] = ["currency":"CHF"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
             }
-            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+            let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
             actionSheet.addAction(eurOption)
             actionSheet.addAction(chfOption)
             actionSheet.addAction(cancelAction)

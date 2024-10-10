@@ -44,7 +44,7 @@ extension SendViewController {
                         var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
                         
                         let alert = UIAlertController(title: "Send transaction", message: "Are you sure you want to pay \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) for this invoice?", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: "Confirm", style: .default, handler: {_ in
                             
                             self.nextLabel.alpha = 0

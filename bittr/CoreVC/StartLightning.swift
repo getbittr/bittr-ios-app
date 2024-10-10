@@ -82,8 +82,8 @@ extension CoreViewController {
             
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {
-                    let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+                    let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                         if let actualNode = LightningNodeService.shared.ldkNode {
                             if actualNode.status().isRunning {
                                 print("Node is running.")
@@ -103,8 +103,8 @@ extension CoreViewController {
                 }
             }
         } else {
-            let alert = UIAlertController(title: "Oops!", message: "We can't connect to your wallet. Please try again or check your connection.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: {_ in
+            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "We can't connect to your wallet. Please try again or check your connection.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                 do {
                     self.startLightning()
                 } catch let error as NodeError {

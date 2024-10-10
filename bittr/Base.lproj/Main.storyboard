@@ -1200,7 +1200,7 @@
                                                         <view contentMode="scaleToFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="sVK-Sk-MNX" userLabel="Labels View">
                                                             <rect key="frame" x="82.333333333333329" y="12.333333333333336" width="195.33333333333337" height="35"/>
                                                             <subviews>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
                                                                     <rect key="frame" x="0.0" y="0.0" width="87.666666666666671" height="16"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Omc-6m-9MB"/>
@@ -1209,7 +1209,7 @@
                                                                     <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
                                                                     <rect key="frame" x="0.0" y="21" width="39.333333333333336" height="14"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="StM-Ll-Dhj"/>
@@ -2426,7 +2426,7 @@
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="6Bb-vk-7Mv" userLabel="Description View">
                                                                 <rect key="frame" x="10" y="139.99999999999994" width="323" height="52"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4w8-dl-bdI">
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4w8-dl-bdI">
                                                                         <rect key="frame" x="15" y="14" width="74" height="14"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="S3F-Le-G8Q"/>
@@ -2436,8 +2436,8 @@
                                                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="This is a very long and detailed description with lots of words." textAlignment="right" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="RKo-HK-B1b" userLabel="Description Text">
-                                                                        <rect key="frame" x="106.66666666666663" y="14" width="201.33333333333337" height="28"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="This is a very long and detailed description with lots of words." textAlignment="right" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="RKo-HK-B1b" userLabel="Description Text">
+                                                                        <rect key="frame" x="106.66666666666664" y="14" width="201.33333333333337" height="28"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="rkb-Rw-xLZ"/>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="sgL-fJ-dqR"/>
@@ -5003,22 +5003,28 @@
                         <outlet property="contentViewHeight" destination="UGv-qv-YIf" id="I65-n8-ehl"/>
                         <outlet property="copyAddressButton" destination="8bo-4y-pL4" id="7zt-cL-ECH"/>
                         <outlet property="copyInvoiceButton" destination="BZs-9I-FZ3" id="H1i-Hn-h2m"/>
+                        <outlet property="createInvoiceLabel" destination="3pu-uI-ZWI" id="hHH-W8-quL"/>
                         <outlet property="createView" destination="1PD-wF-vG9" id="o06-Ow-Izi"/>
                         <outlet property="descriptionButton" destination="m7G-bw-JGp" id="PT8-ej-G2c"/>
                         <outlet property="descriptionLabel" destination="ggq-mY-QzH" id="CfO-3G-5Q4"/>
                         <outlet property="descriptionTextField" destination="JnL-Ys-QQJ" id="jYa-2k-vyc"/>
                         <outlet property="descriptionView" destination="iYD-Or-QJL" id="k1q-Hf-Qy0"/>
                         <outlet property="downButton" destination="frs-eQ-jDJ" id="Mol-Rp-f98"/>
+                        <outlet property="headerLabel" destination="nXk-bc-X47" id="eB8-MY-X5F"/>
                         <outlet property="headerView" destination="bCt-bM-Gtd" id="CRd-kD-IV3"/>
                         <outlet property="instantButton" destination="mea-yp-nly" id="LEf-hM-r39"/>
                         <outlet property="instantView" destination="xkL-lM-bhx" id="2fG-Ie-Geg"/>
                         <outlet property="invoiceButton" destination="g7k-hp-MGA" id="BgF-ix-9j8"/>
+                        <outlet property="labelInstant" destination="TbH-0Q-1n7" id="5Ne-l9-LXH"/>
+                        <outlet property="labelRegular" destination="qwL-M1-Pi6" id="dPs-UF-DLo"/>
                         <outlet property="lnConfirmationAddressView" destination="K6l-qr-r4Q" id="jWo-Ds-N80"/>
                         <outlet property="lnConfirmationDoneButton" destination="nBX-0L-dIA" id="nkP-gg-OFt"/>
                         <outlet property="lnConfirmationDoneView" destination="GqE-lc-47K" id="f6T-Zc-kfM"/>
                         <outlet property="lnConfirmationHeaderView" destination="Z8A-jo-cpu" id="G3M-ns-GHF"/>
                         <outlet property="lnConfirmationLabel" destination="Npe-cT-R8V" id="G4g-3h-ot6"/>
                         <outlet property="lnConfirmationQRView" destination="Dut-46-HAv" id="LbU-DZ-mAo"/>
+                        <outlet property="lnDoneLabel" destination="Npe-cT-R8V" id="4rA-ls-Q30"/>
+                        <outlet property="lnHeaderLabel" destination="MfT-3q-YAd" id="FWC-Hr-Gl0"/>
                         <outlet property="lnInvoiceLabel" destination="EkP-hV-z9r" id="Ztv-oS-jhh"/>
                         <outlet property="lnQRCodeLogoView" destination="qWz-GU-3p4" id="iPk-01-ZCs"/>
                         <outlet property="lnQRImage" destination="Gax-dY-p7V" id="ofg-xs-EaR"/>

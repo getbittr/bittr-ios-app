@@ -528,7 +528,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerLabel.text != "syncing" {
             if self.couldNotFetchConversion == true {
-                let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
+                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             } else {
