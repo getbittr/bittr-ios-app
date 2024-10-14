@@ -12,6 +12,7 @@ class LightningPaymentViewController: UIViewController {
 
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     @IBOutlet weak var bodyView: UIView!
     @IBOutlet weak var dateView: UIView!
@@ -52,6 +53,7 @@ class LightningPaymentViewController: UIViewController {
         dateView.layer.cornerRadius = 7
         
         self.changeColors()
+        self.setWords()
         
         if let actualTransaction = self.receivedTransaction {
             
@@ -89,13 +91,13 @@ class LightningPaymentViewController: UIViewController {
                 
                 self.descriptionLabel.text = actualTransaction.lnDescription
                 if actualTransaction.lnDescription == "" {
-                    self.descriptionLabel.text = "Channel funding transaction"
+                    self.descriptionLabel.text = Language.getWord(withID: "fundingtx")
                 }
             } else {
                 
                 self.descriptionLabel.text = actualTransaction.id
-                self.explanationLabel.text = "You've received a new payment into your lightning channel!"
-                self.idLabel.text = "ID"
+                self.explanationLabel.text = Language.getWord(withID: "newpayment")
+                self.idLabel.text = Language.getWord(withID: "id")
                 self.piggyImageHeight.constant = 0
                 self.view.layoutIfNeeded()
             }
@@ -176,6 +178,17 @@ class LightningPaymentViewController: UIViewController {
         
         self.nowLabel.textColor = Colors.getColor(color: "black")
         self.nowLeftLabel.textColor = Colors.getColor(color: "black")
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "success2")
+        self.explanationLabel.text = Language.getWord(withID: "goodjob")
+        self.amountLeftLabel.text = Language.getWord(withID: "amount")
+        self.typeLeftLabel.text = Language.getWord(withID: "type")
+        self.idLabel.text = Language.getWord(withID: "description")
+        self.nowLeftLabel.text = Language.getWord(withID: "currentvalue")
+        self.typeLabel.text = Language.getWord(withID: "instant")
     }
     
 }

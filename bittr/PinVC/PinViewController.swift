@@ -189,7 +189,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
-                let alert = UIAlertController(title: "Restore wallet", message: "You've entered an incorrect pin too many times. Please restore your wallet.", preferredStyle: .alert)
+                let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                     self.pinTextField.text = ""
                     if let actualCoreVC = self.coreVC {
@@ -215,7 +215,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
                 } else {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
-                    let alert = UIAlertController(title: "Incorrect PIN", message: "Please enter your correct pin. If you've forgotten it, please restore your wallet.", preferredStyle: .alert)
+                    let alert = UIAlertController(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                         self.pinTextField.text = ""
                     }))
@@ -256,13 +256,13 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         if self.embeddingView == "core" {
             
-            let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
                 
-                let secondAlert = UIAlertController(title: "Restore wallet", message: "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.", preferredStyle: .alert)
+                let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
                 secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
                     
                     if let actualCoreVC = self.coreVC {
                         actualCoreVC.resetApp(nodeIsRunning: false)

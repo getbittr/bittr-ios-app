@@ -235,11 +235,11 @@ class Transfer2ViewController: UIViewController {
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         
         if error == nil {
-            let alert = UIAlertController(title: "Saved", message: "We've added the screenshot to your Photo Library.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "saved"), message: Language.getWord(withID: "screenshot2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         } else {
-            let alert = UIAlertController(title: "Oops", message: "We couldn't save your screenshot. Try taking a screenshot manually.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "screenshot3"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }

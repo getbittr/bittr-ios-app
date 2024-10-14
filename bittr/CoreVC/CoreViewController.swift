@@ -90,6 +90,11 @@ class CoreViewController: UIViewController {
     var didStartNode = false
     var walletHasSynced = false
     var syncStatus = "startnode"
+    @IBOutlet weak var statusConversion: UILabel!
+    @IBOutlet weak var statusLightning: UILabel!
+    @IBOutlet weak var statusBlockchain: UILabel!
+    @IBOutlet weak var statusSyncing: UILabel!
+    @IBOutlet weak var statusFinal: UILabel!
     
     // Conversion rates
     var eurValue:CGFloat = 0.0
@@ -144,6 +149,8 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
+        self.setWords()
+        
         // Determine whether to show pin view or signup view.
         if let actualPin = CacheManager.getPin() {
             // Wallet exists. Launch pin.
@@ -195,6 +202,15 @@ class CoreViewController: UIViewController {
             self.bittrText.image = UIImage(named: "bittrtext")
             self.finalLogo.image = UIImage(named: "logo80")
         }
+    }
+    
+    func setWords() {
+        
+        self.statusConversion.text = Language.getWord(withID: "fetchconversionrates")
+        self.statusLightning.text = Language.getWord(withID: "startlightningnode")
+        self.statusBlockchain.text = Language.getWord(withID: "initiatewallet")
+        self.statusSyncing.text = Language.getWord(withID: "syncwallet")
+        self.statusFinal.text = Language.getWord(withID: "finalcalculations")
     }
     
 }

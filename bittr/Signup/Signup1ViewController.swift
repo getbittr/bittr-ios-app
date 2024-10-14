@@ -13,6 +13,7 @@ class Signup1ViewController: UIViewController {
     // Create or Restore wallet view. First view new users see.
     
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var topLabel: UILabel!
     
     // Next button
@@ -170,14 +171,14 @@ class Signup1ViewController: UIViewController {
         } else {
             self.restoreLabel.textColor = Colors.getColor(color: "transparentblack")
         }
-        
-        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        //self.articleTitle.textColor = Colors.getColor(color: "black")
     }
     
     func setWords() {
         
-        
+        self.headerLabel.text = Language.getWord(withID: "welcome")
+        self.topLabel.text = Language.getWord(withID: "createyourownwallet")
+        self.createWalletLabel.text = Language.getWord(withID: "createwallet")
+        self.restoreLabel.text = Language.getWord(withID: "restorewallet")
     }
     
 }

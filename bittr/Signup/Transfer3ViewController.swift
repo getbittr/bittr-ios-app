@@ -260,7 +260,7 @@ class Transfer3ViewController: UIViewController {
                     for iban in client.ibanEntities {
                         if iban.id == self.currentIbanID {
                             
-                            let alert = UIAlertController(title: "Open your banking app", message: "\nCreate your (recurring) transfer to\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", preferredStyle: .alert)
+                            let alert = UIAlertController(title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", preferredStyle: .alert)
                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "done"), style: .cancel, handler: {_ in
                                 // Hide signup and proceed into wallet.
                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)

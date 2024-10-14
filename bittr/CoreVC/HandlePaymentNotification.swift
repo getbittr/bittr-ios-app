@@ -30,9 +30,9 @@ extension CoreViewController {
                         // App was open when notification came in.
                         
                         self.varSpecialData = specialData
-                        let alert = UIAlertController(title: "Bittr payout", message: "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.", preferredStyle: .alert)
+                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
-                            self.pendingLabel.text = "receiving payment"
+                            self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                             self.pendingSpinner.startAnimating()
                             self.pendingView.alpha = 1
                             self.blackSignupBackground.alpha = 0.2
@@ -43,7 +43,7 @@ extension CoreViewController {
                         self.present(alert, animated: true)
                     } else {
                         // App was closed when notification came in and was subsequently opened.
-                        self.pendingLabel.text = "receiving payment"
+                        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                         self.pendingSpinner.startAnimating()
                         self.pendingView.alpha = 1
                         self.blackSignupBackground.alpha = 0.2
@@ -58,7 +58,7 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    let alert = UIAlertController(title: "Bittr payout", message: "Please sign in and wait a moment to receive your Lightning payment.", preferredStyle: .alert)
+                    let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                     self.present(alert, animated: true)
                 }
@@ -97,7 +97,7 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
+                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
@@ -109,7 +109,7 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
+                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
@@ -168,7 +168,7 @@ extension CoreViewController {
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
-                            let alert = UIAlertController(title: "Bittr payout", message: "\(error.localizedDescription)", preferredStyle: .alert)
+                            let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", preferredStyle: .alert)
                             if error.localizedDescription.contains("try again") {
                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                                     if let actualSpecialData = self.varSpecialData {
@@ -187,7 +187,7 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            let alert = UIAlertController(title: "Bittr payout", message: "The notification payload did not contain the data needed to complete your payout.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
         }
@@ -333,7 +333,7 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         
                         CacheManager.didHandleEvent(event: "\(event)")
-                        let notificationDict:[String: Any] = ["question":"closed lightning channel","answer":"We've been notified that your lightning channel has been closed.\n\nAny funds that were in this channel will be deposited into your bitcoin wallet.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+                        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "closedlightningchannel"),"answer":Language.getWord(withID: "closedlightningchannel2")]
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
                     }
                 } else if "\(event)".contains("channelPending") {

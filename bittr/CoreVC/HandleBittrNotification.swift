@@ -17,7 +17,7 @@ extension CoreViewController {
             if let notificationData = userInfo["bittr_notification"] as? [String: Any] {
                 
                 let headerText = notificationData["header_text"] as? String ?? "oops"
-                let bodyText = notificationData["body_text"] as? String ?? "Something went wrong processing the notification we sent to you. Please reach out if you have any questions."
+                let bodyText = notificationData["body_text"] as? String ?? Language.getWord(withID: "bittrnotificationfail")
                 
                 let notificationDict:[String: Any] = ["question":headerText,"answer":bodyText]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)

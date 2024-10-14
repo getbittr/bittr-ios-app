@@ -176,7 +176,7 @@ class TransactionViewController: UIViewController {
         if tappedTransaction.isLightning == true {
             // Lightning transaction.
             
-            self.typeLabel.text = "Instant"
+            self.typeLabel.text = Language.getWord(withID: "instant")
             self.boltImage.alpha = 0.8
             self.confirmationsViewHeight.constant = 0
             self.confirmationsView.alpha = 0
@@ -203,13 +203,13 @@ class TransactionViewController: UIViewController {
         } else {
             // Onchain transaction
             
-            self.typeLabel.text = "Regular"
+            self.typeLabel.text = Language.getWord(withID: "regular")
             self.boltImage.alpha = 0
             self.confirmationsViewHeight.constant = 40
             self.confirmationsView.alpha = 1
             self.confirmationsAmount.text = "\(tappedTransaction.confirmations)"
             if tappedTransaction.confirmations < 1 {
-                self.confirmationsAmount.text = "Unconfirmed"
+                self.confirmationsAmount.text = Language.getWord(withID: "unconfirmed")
             }
             
             if tappedTransaction.received - tappedTransaction.sent < 0 {
@@ -239,11 +239,11 @@ class TransactionViewController: UIViewController {
     
     @IBAction func noteButtonTapped(_ sender: UIButton) {
         
-        let alert = UIAlertController(title: "Add a note", message: "", preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "addanote"), message: "", preferredStyle: .alert)
         alert.addTextField { (textField) in
             textField.text = "\(self.noteLabel.text ?? "")"
         }
-        alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { (save) in
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "save"), style: .default, handler: { (save) in
             
             let noteText = alert.textFields![0].text!
             if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
@@ -299,7 +299,7 @@ class TransactionViewController: UIViewController {
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["question":"lightning channel fees","answer":"This is the first transaction of your new bitcoin lightning channel.\n\nThe opening and closing of a lightning channel incur mining fees, which we cover with a one-time upfront charge of 10 000 satoshis.\n\nAll additional transactions into and out of your lightning channel are free."]
+        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannelfees"),"answer":Language.getWord(withID: "lightningchannelfees2")]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
     }
     

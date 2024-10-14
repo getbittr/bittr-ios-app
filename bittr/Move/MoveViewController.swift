@@ -172,7 +172,7 @@ class MoveViewController: UIViewController {
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         } else {
             // There's a Lightning channel.
-            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation2"),"type":"lightningexplanation"]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation1"),"type":"lightningexplanation"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
     }

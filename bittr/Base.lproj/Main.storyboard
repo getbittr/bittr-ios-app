@@ -672,6 +672,11 @@
                         <outlet property="spinnerFinal" destination="lgz-o2-UPv" id="dBr-MP-7Yh"/>
                         <outlet property="spinnerLDK" destination="19W-kF-Ob2" id="iRU-Vv-wdP"/>
                         <outlet property="spinnerSyncing" destination="F92-n4-Rlb" id="v2Y-S3-smy"/>
+                        <outlet property="statusBlockchain" destination="8o1-Lo-hMA" id="xSq-kP-u5Q"/>
+                        <outlet property="statusConversion" destination="MMy-9P-SqI" id="wF3-V1-ZTg"/>
+                        <outlet property="statusFinal" destination="Q6h-cc-V1w" id="KkI-Pc-HmT"/>
+                        <outlet property="statusLightning" destination="0rS-GJ-ypl" id="hGF-Pe-kGq"/>
+                        <outlet property="statusSyncing" destination="LyL-nn-ECr" id="HLH-ys-T2E"/>
                         <outlet property="statusView" destination="YFi-PA-AqV" id="Dxh-nJ-LYn"/>
                         <outlet property="topBar" destination="edE-8u-X4I" id="sVx-cy-Vjl"/>
                         <outlet property="yellowcurve" destination="G8a-ZZ-ovL" id="SgG-9j-u6o"/>
@@ -1200,7 +1205,7 @@
                                                         <view contentMode="scaleToFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="sVK-Sk-MNX" userLabel="Labels View">
                                                             <rect key="frame" x="82.333333333333329" y="12.333333333333336" width="195.33333333333337" height="35"/>
                                                             <subviews>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="97L-nn-l0P">
                                                                     <rect key="frame" x="0.0" y="0.0" width="87.666666666666671" height="16"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Omc-6m-9MB"/>
@@ -1209,7 +1214,7 @@
                                                                     <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                     <nil key="highlightedColor"/>
                                                                 </label>
-                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
+                                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xRz-e9-LZI">
                                                                     <rect key="frame" x="0.0" y="21" width="39.333333333333336" height="14"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="StM-Ll-Dhj"/>
@@ -2615,6 +2620,7 @@
                         <outlet property="descriptionLabel" destination="RKo-HK-B1b" id="mfs-Gl-EgL"/>
                         <outlet property="downButton" destination="xZb-mD-E22" id="yov-VF-fPF"/>
                         <outlet property="explanationLabel" destination="N6q-EG-e4W" id="8PY-Pk-Y7K"/>
+                        <outlet property="headerLabel" destination="JD9-hO-bNx" id="Pwb-Kb-Ndn"/>
                         <outlet property="headerView" destination="9zN-sn-1VQ" id="fs9-lL-Yc7"/>
                         <outlet property="idLabel" destination="4w8-dl-bdI" id="Vg2-TV-mya"/>
                         <outlet property="lightningBolt" destination="orR-to-CUp" id="oWd-3Y-aAo"/>
@@ -7154,6 +7160,7 @@
                         <outlet property="darkModeSwitch" destination="9g1-RS-Bb9" id="g4G-Ob-Pr9"/>
                         <outlet property="darkModeView" destination="4wc-3C-Zml" id="6LH-L9-fMO"/>
                         <outlet property="downButton" destination="Y3E-eK-Xo7" id="SeA-Sh-aQq"/>
+                        <outlet property="headerLabel" destination="kdY-gG-KuG" id="0TG-Pj-UAF"/>
                         <outlet property="headerView" destination="0wT-Uz-5bj" id="wfw-cx-LjB"/>
                         <outlet property="imagesButton" destination="CPi-WZ-y3G" id="YvC-cQ-5q6"/>
                         <outlet property="imagesLeftLabel" destination="HWl-LW-9Kl" id="0qc-G3-Fex"/>
@@ -7597,6 +7604,7 @@
                         <outlet property="buttonView" destination="XLe-2c-RaP" id="YNy-Y3-23W"/>
                         <outlet property="cardView" destination="rcs-je-r1w" id="UJE-QA-apH"/>
                         <outlet property="createWalletLabel" destination="2g0-x2-Xyc" id="0Jy-O9-78o"/>
+                        <outlet property="headerLabel" destination="C3o-gR-TDd" id="O1x-u5-Jef"/>
                         <outlet property="headerView" destination="fIw-RO-ZOF" id="nBs-jM-6KN"/>
                         <outlet property="imageContainer" destination="NSI-rf-BXI" id="qPY-tU-5TG"/>
                         <outlet property="nextButton" destination="P17-iD-Tds" id="mve-Zm-7Nc"/>
@@ -7870,6 +7878,7 @@
                         <outlet property="labelOne" destination="pup-0P-FDU" id="xei-Xn-F4s"/>
                         <outlet property="labelTwo" destination="uM1-Ye-PEn" id="Yde-g9-k1f"/>
                         <outlet property="nextButton" destination="gyr-Zu-M98" id="1gS-9c-pvG"/>
+                        <outlet property="nextLabel" destination="QWT-yj-vjJ" id="y8T-bw-T81"/>
                         <outlet property="spinner1" destination="k82-sv-BNv" id="jur-rq-4l8"/>
                         <outlet property="switchOne" destination="Z2R-mr-jnj" id="1Xv-F6-dJ2"/>
                         <outlet property="switchTwo" destination="Yf4-ti-nqh" id="Hda-Bx-BgK"/>
@@ -8540,6 +8549,7 @@
                         <outlet property="imageContainer" destination="cjP-5K-yaF" id="vVX-ep-TUP"/>
                         <outlet property="mnemonicView" destination="mMP-qK-0Lv" id="klP-yn-J5c"/>
                         <outlet property="nextButton" destination="ijw-ZR-W2c" id="d7v-BT-0dO"/>
+                        <outlet property="nextLabel" destination="bm6-w5-CXh" id="sS4-al-GDQ"/>
                         <outlet property="saveView" destination="JgN-Uc-0Zk" id="S9q-39-Ce6"/>
                         <outlet property="scrollView" destination="D20-Dd-pdc" id="asV-zc-6e4"/>
                         <outlet property="spinner1" destination="uf1-M4-wET" id="gJu-Zy-swU"/>
@@ -8859,6 +8869,7 @@
                         <outlet property="mnemonicView2" destination="8Bj-JX-BnN" id="mzz-1B-CC9"/>
                         <outlet property="mnemonicView3" destination="f10-Hd-aUM" id="ig7-af-sZ7"/>
                         <outlet property="nextButton" destination="bSJ-eh-fzY" id="YmE-Dr-S0Q"/>
+                        <outlet property="nextLabel" destination="c4J-hT-51G" id="BA0-41-9vB"/>
                         <outlet property="saveView" destination="cKu-Bl-DG7" id="bTI-f2-YNv"/>
                         <outlet property="scrollView" destination="ffd-36-BhM" id="kgF-KD-dSu"/>
                         <outlet property="topLabel" destination="RaS-KK-BtB" id="yEn-7Y-ZpJ"/>
@@ -9238,6 +9249,7 @@
                         <outlet property="checkView" destination="F0F-8M-LK9" id="ziY-Ka-Hsj"/>
                         <outlet property="checkmarkImage" destination="CHu-Oo-NXX" id="N3O-eT-da7"/>
                         <outlet property="continueButton" destination="b9x-IJ-CJg" id="5yd-4G-haE"/>
+                        <outlet property="continueLabel" destination="EuA-Ea-OCM" id="iUn-nZ-lNk"/>
                         <outlet property="continueView" destination="E7r-gY-uuM" id="y5s-Jp-A2F"/>
                         <outlet property="imageContainer" destination="JUa-10-jhm" id="u0b-Iy-2P8"/>
                         <outlet property="partnerButton" destination="sQQ-YV-TCl" id="yN9-6k-UUu"/>

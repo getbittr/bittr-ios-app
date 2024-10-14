@@ -82,7 +82,7 @@ extension CoreViewController {
             
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {
-                    let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "We can't connect to your wallet. Please try again or check your connection. Error: \(notificationMessage)", preferredStyle: .alert)
+                    let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(notificationMessage)", preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                         if let actualNode = LightningNodeService.shared.ldkNode {
                             if actualNode.status().isRunning {
@@ -103,7 +103,7 @@ extension CoreViewController {
                 }
             }
         } else {
-            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "We can't connect to your wallet. Please try again or check your connection.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
                 do {
                     self.startLightning()

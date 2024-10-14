@@ -23,6 +23,7 @@ class Signup2ViewController: UIViewController {
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var buttonView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     
     // Article
     @IBOutlet weak var imageContainer: UIView!
@@ -52,6 +53,7 @@ class Signup2ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
+        self.setWords()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -105,13 +107,18 @@ class Signup2ViewController: UIViewController {
     }
     
     func changeColors() {
+        
         self.topLabel.textColor = Colors.getColor(color: "black")
-        
-        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        //self.articleTitle.textColor = Colors.getColor(color: "black")
-        
         self.labelOne.textColor = Colors.getColor(color: "black")
         self.labelTwo.textColor = Colors.getColor(color: "black")
+    }
+    
+    func setWords() {
+        
+        self.topLabel.text = Language.getWord(withID: "checkandconfirm")
+        self.labelOne.text = Language.getWord(withID: "checkandconfirm1")
+        self.labelTwo.text = Language.getWord(withID: "checkandconfirm2")
+        self.nextLabel.text = Language.getWord(withID: "iunderstand")
     }
     
 }

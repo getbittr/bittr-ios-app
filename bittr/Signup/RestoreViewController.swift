@@ -85,11 +85,23 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         mnemonic11.delegate = self
         mnemonic12.delegate = self
         
+        self.setTextFields(theseFields: [mnemonic1, mnemonic2, mnemonic3, mnemonic4, mnemonic5, mnemonic6, mnemonic7, mnemonic8, mnemonic9, mnemonic10, mnemonic11, mnemonic12])
+        
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
+        self.setWords()
+    }
+    
+    func setTextFields(theseFields:[UITextField]) {
+        for eachField in theseFields {
+            eachField.attributedPlaceholder = NSAttributedString(
+                string: Language.getWord(withID: "enterword"),
+                attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
+            )
+        }
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -230,10 +242,14 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         } else {
             self.cancelLabel.textColor = Colors.getColor(color: "transparentblack")
         }
-        
-        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        //self.articleTitle.textColor = Colors.getColor(color: "black")
 
+    }
+    
+    func setWords() {
+        
+        self.topLabel.text = Language.getWord(withID: "enterrecoveryphrase")
+        self.restoreButtonText.text = Language.getWord(withID: "restorewallet")
+        self.cancelLabel.text = Language.getWord(withID: "cancel")
     }
     
 }

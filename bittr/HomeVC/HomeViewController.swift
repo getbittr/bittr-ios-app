@@ -277,9 +277,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Balance Card tapped.
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
@@ -292,9 +292,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
@@ -315,9 +315,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
@@ -513,9 +513,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
             self.present(alert, animated: true)
             return
@@ -526,9 +526,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text != "syncing" {
+        if self.headerLabel.text != Language.getWord(withID: "syncing") {
             if self.couldNotFetchConversion == true {
-                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
+                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             } else {

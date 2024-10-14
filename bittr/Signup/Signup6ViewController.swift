@@ -56,7 +56,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 
             } else {
                 // Pin is incorrect.
-                let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
+                let alert = UIAlertController(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                 self.present(alert, animated: true)
             }

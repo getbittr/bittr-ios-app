@@ -18,6 +18,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var mnemonicView3: UIView!
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var backLabel: UILabel!
     @IBOutlet weak var backButton: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
@@ -54,19 +55,20 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         mnemonicField3.delegate = self
         
         mnemonicField1.attributedPlaceholder = NSAttributedString(
-            string: "Enter word",
+            string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         mnemonicField2.attributedPlaceholder = NSAttributedString(
-            string: "Enter word",
+            string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         mnemonicField3.attributedPlaceholder = NSAttributedString(
-            string: "Enter word",
+            string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         
         self.changeColors()
+        self.setWords()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -179,6 +181,16 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         } else {
             self.backLabel.textColor = Colors.getColor(color: "transparentblack")
         }
+    }
+    
+    func setWords() {
+        
+        self.topLabel.text = Language.getWord(withID: "confirmrecoveryphrase")
+        self.mnemonicField1.placeholder = Language.getWord(withID: "enterword")
+        self.mnemonicField2.placeholder = Language.getWord(withID: "enterword")
+        self.mnemonicField3.placeholder = Language.getWord(withID: "enterword")
+        self.nextLabel.text = Language.getWord(withID: "confirm")
+        self.backLabel.text = Language.getWord(withID: "back")
     }
     
 }

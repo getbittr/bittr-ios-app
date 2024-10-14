@@ -367,16 +367,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        if self.nextLabel.text == "Next" && self.onchainOrLightning == "onchain" {
+        if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "onchain" {
             // Check onchain transaction.
             self.checkSendOnchain()
-        } else if self.nextLabel.text == "Next" && self.onchainOrLightning == "lightning" {
+        } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
             // Confirm lightning payment.
             self.confirmLightningTransaction()
-        } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "onchain" {
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
             // Hide QR scanner, show onchain.
             self.hideScannerView(forView: "onchain")
-        } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "lightning" {
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "lightning" {
             // Hide QR scanner, show lightning.
             self.hideScannerView(forView: "lightning")
         }

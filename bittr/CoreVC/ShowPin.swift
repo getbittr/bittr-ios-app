@@ -34,7 +34,7 @@ extension CoreViewController {
             
             if self.needsToHandleNotification == true {
                 // A notification will be handled after syncing the wallet.
-                self.pendingLabel.text = "syncing wallet"
+                self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
                 self.pendingSpinner.startAnimating()
                 self.pendingView.alpha = 1
                 self.blackSignupBackground.alpha = 0.2

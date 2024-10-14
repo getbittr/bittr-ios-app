@@ -18,6 +18,7 @@ class Signup3ViewController: UIViewController {
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var mnemonicView: UIView!
     @IBOutlet weak var centerView: UIView!
@@ -69,6 +70,7 @@ class Signup3ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
         
         self.changeColors()
+        self.setWords2()
     }
     
     @objc func setWords(notification:NSNotification) {
@@ -153,11 +155,15 @@ class Signup3ViewController: UIViewController {
     
     func changeColors() {
         
-        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        //self.articleTitle.textColor = Colors.getColor(color: "black")
-        
         self.topLabelOne.textColor = Colors.getColor(color: "black")
         self.topLabelTwo.textColor = Colors.getColor(color: "black")
+    }
+    
+    func setWords2() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "recoveryphrase")
+        self.topLabelTwo.text = Language.getWord(withID: "recoveryphrase2")
+        self.nextLabel.text = Language.getWord(withID: "next")
     }
 
 }

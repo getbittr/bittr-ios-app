@@ -268,7 +268,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 guard let data = data else {
                     print(String(describing: error))
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
+                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
                         self.present(alert, animated: true)
                         if let actualError = error {
@@ -298,8 +298,8 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
         
-        let alert = UIAlertController(title: "We're sorry!", message: "Buying bitcoin with bittr is only available to IBAN holders.\n\nYou can still use your wallet to send and receive bitcoin from other sellers.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Go to wallet", style: .cancel, handler: {_ in
+        let alert = UIAlertController(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "gotowallet"), style: .cancel, handler: {_ in
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
         }))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .default, handler: nil))

@@ -24,6 +24,7 @@ class Signup7ViewController: UIViewController {
     @IBOutlet weak var partnerView: UIView!
     @IBOutlet weak var partnerButton: UIButton!
     @IBOutlet weak var continueView: UIView!
+    @IBOutlet weak var continueLabel: UILabel!
     @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var skipButton: UIButton!
     @IBOutlet weak var skipLabel: UILabel!
@@ -69,6 +70,7 @@ class Signup7ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
+        self.setWords()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -140,6 +142,14 @@ class Signup7ViewController: UIViewController {
             self.skipButton.alpha = 0
             self.view.layoutIfNeeded()
         }
+    }
+    
+    func setWords() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "walletisready")
+        self.topLabelTwo.text = Language.getWord(withID: "firstbitcoin")
+        self.continueLabel.text = Language.getWord(withID: "next")
+        self.skipLabel.text = Language.getWord(withID: "skip")
     }
     
 }
