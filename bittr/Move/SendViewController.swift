@@ -372,7 +372,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.checkSendOnchain()
         } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
             // Confirm lightning payment.
-            self.confirmLightningTransaction()
+            self.confirmLightningTransaction(lnurlinvoice: nil)
         } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
             // Hide QR scanner, show onchain.
             self.hideScannerView(forView: "onchain")

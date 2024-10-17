@@ -35,6 +35,7 @@
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
 		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
 		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
+		055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055403682CC14FC0006F27CA /* SendLNURL.swift */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */; };
 		056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056911102BC3E16800BD047B /* SyncingStatus.swift */; };
@@ -156,6 +157,7 @@
 		053190EB29FEE5190072CE76 /* TransactionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewController.swift; sourceTree = "<group>"; };
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
 		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
+		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewController.swift; sourceTree = "<group>"; };
 		0565C47C2BA9851100CE89C6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -294,6 +296,7 @@
 				0579B2702A0530F80007891F /* SendViewController.swift */,
 				052171312CB430B8006C5663 /* SendVCLanguage.swift */,
 				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
+				055403682CC14FC0006F27CA /* SendLNURL.swift */,
 				05F1FB5F2C33E043004AE14F /* SendOnchain.swift */,
 				05F1FB612C33E1CD004AE14F /* SendLightning.swift */,
 				05F1FB632C341852004AE14F /* SendSwitch.swift */,
@@ -721,6 +724,7 @@
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
 				05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */,
+				055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,

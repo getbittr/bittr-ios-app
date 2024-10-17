@@ -16,12 +16,15 @@ import Sentry
 
 extension SendViewController {
     
-    func confirmLightningTransaction() {
+    func confirmLightningTransaction(lnurlinvoice:String?) {
         
         if self.checkInternetConnection() {
             var invoiceText = self.toTextField.text
             if self.selectedInput != "keyboard" {
                 invoiceText = self.invoiceLabel.text
+            }
+            if lnurlinvoice != nil {
+                invoiceText = lnurlinvoice!
             }
             
             // Pay lightning invoice.

@@ -282,7 +282,11 @@ class Language: NSObject {
             "startlightningnode": "start lightning node",
             "initiatewallet": "initiate wallet and blockchain",
             "syncwallet": "sync wallet",
-            "finalcalculations": "final calculations"
+            "finalcalculations": "final calculations",
+            "payrequest": "Pay request",
+            "payrequest1": "You can pay between",
+            "payrequest2": "and",
+            "payrequest3": "satoshis. How many satoshis would you like to pay?"
         ]
         
         if let foundWord = allWords[withID] {
