@@ -25,6 +25,14 @@ extension SendViewController {
                 invoiceText = self.invoiceLabel.text
             }
             
+            if invoiceText != nil {
+                if invoiceText!.lowercased().contains("lnurl") {
+                    // LNURL.
+                    self.confirmLightningTransaction(lnurlinvoice: invoiceText!)
+                    return
+                }
+            }
+            
             let formatter = NumberFormatter()
             formatter.decimalSeparator = "."
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) == 0  {

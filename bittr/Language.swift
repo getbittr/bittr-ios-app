@@ -292,6 +292,7 @@ class Language: NSObject {
             "withdrawrequest2": "satoshis. How many satoshis would you like to withdraw?",
             "lnurlpayment": "Copy this invoice and go to Send to make your instant payment.",
             "lnurlfail1": "We could not complete this withdraw request. Error:",
+            "lnurlfail2": "We could not complete your pay request. Error:",
             "lnurlscannerlabel": "Scan a QR code to perform an LNURL pay or withdraw request."
         ]
         

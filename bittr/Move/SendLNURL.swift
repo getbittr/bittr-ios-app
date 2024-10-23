@@ -161,6 +161,12 @@ extension UIViewController {
                                     self.present(alert, animated: true)
                                 }
                             }
+                        } else if let receivedStatus = actualDataDict["status"] as? String, let receivedDetail = actualDataDict["detail"] as? String {
+                            DispatchQueue.main.async {
+                                let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(receivedDetail)", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                                self.present(alert, animated: true)
+                            }
                         }
                     }
                 } catch {
@@ -169,6 +175,7 @@ extension UIViewController {
             }
             
             // {"pr":"lnbc100n1pn3zxhxpp5fmfnccd92qx5e0dnm5ycavywwzgm956cnv29k6cfcdewazmg9swqhp5rn75jx56ah3q0a5dng3aqguxnyyck9638h7rmu39ce2v2nqpdnhscqzzsxqyz5vqsp52whelmgxqldxgnaj9w6p6fp8pe9excjuel9ddsfy32jy6swly5gq9qxpqysgqxpz5j6x6ypvh32acj905u7sa2sz0xwq7s6rxx96u6g7v4axamuu9qnz8uxrax3g9rt5fcw9km89208p47u9rxq9h9jja8hdvlttchfqq5nf4qv","successAction":null,"routes":[],"verify":null}
+            // {"detail":"Unable to connect to https://api.getalby.com.","status":"pending"}
         }
         task.resume()
     }

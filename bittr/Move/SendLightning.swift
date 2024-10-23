@@ -32,7 +32,12 @@ extension SendViewController {
                 // Invoice field was left empty.
             } else {
                 
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText!).getValue() {
+                if invoiceText!.lowercased().contains("lnurl") {
+                    // LNURL code.
+                    self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: ""), sendVC: self)
+                    
+                } else if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText!).getValue() {
+                    // Lightning invoice.
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         
