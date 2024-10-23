@@ -193,25 +193,6 @@ extension CoreViewController {
         }
     }
     
-    func getInvoiceHash(invoiceString:String) -> String? {
-        
-        let result = Bolt11Invoice.fromStr(s: invoiceString)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return nil
-            }
-        } else if let error = result.getError() {
-            print("Failed to parse invoice: \(error)")
-            return nil
-        } else {
-            return nil
-        }
-    }
     
     func reconnectToPeer() {
         

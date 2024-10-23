@@ -7,10 +7,17 @@
 
 import LNURLDecoder
 import UIKit
+import CoreImage.CIFilterBuiltins
+import CodeScanner
+import LDKNode
+import LDKNodeFFI
+import LightningDevKit
+import Sentry
+import BitcoinDevKit
 
-extension SendViewController {
+extension UIViewController {
     
-    func handleLNURL(code:String) {
+    func handleLNURL(code:String, sendVC:SendViewController?) {
         
         do {
             let url = try LNURLDecoder.decode(lnurl: code)
@@ -63,11 +70,29 @@ extension SendViewController {
                                                     
                                                     let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
                                                     
-                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText)
+                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC)
                                                 }))
                                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                                                 self.present(alert, animated: true)
                                             }
+                                        }
+                                    }
+                                } else if receivedTag == "withdrawRequest" {
+                                    if let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
+                                        
+                                        DispatchQueue.main.async {
+                                            let alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1")) \(minWithdrawable/1000) \(Language.getWord(withID: "payrequest2")) \(maxWithdrawable/1000) \(Language.getWord(withID: "withdrawrequest2"))", preferredStyle: .alert)
+                                            alert.addTextField { (textField) in
+                                                textField.keyboardType = .numberPad
+                                            }
+                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
+                                                
+                                                let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
+                                                
+                                                self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
+                                            }))
+                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                                            self.present(alert, animated: true)
                                         }
                                     }
                                 }
@@ -89,7 +114,7 @@ extension SendViewController {
         }
     }
     
-    func sendPayRequest(callbackURL:String, amount:Int) {
+    func sendPayRequest(callbackURL:String, amount:Int, sendVC:SendViewController?) {
         
         let actualUrl = URL(string: "\(callbackURL)?amount=\(amount)".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!
         print("Actual URL: \(actualUrl)")
@@ -126,7 +151,15 @@ extension SendViewController {
                             // Invoice received.
                             print("Invoice: \(receivedInvoice)")
                             DispatchQueue.main.async {
-                                self.confirmLightningTransaction(lnurlinvoice: receivedInvoice)
+                                if sendVC != nil {
+                                    sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice)
+                                } else {
+                                    let alert = UIAlertController(title: Language.getWord(withID: "invoice"), message: "\(Language.getWord(withID:"lnurlpayment"))\n\n\(receivedInvoice)", preferredStyle: .alert)
+                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "copy"), style: .cancel, handler: { _ in
+                                        UIPasteboard.general.string = receivedInvoice
+                                    }))
+                                    self.present(alert, animated: true)
+                                }
                             }
                         }
                     }
@@ -138,5 +171,119 @@ extension SendViewController {
             // {"pr":"lnbc100n1pn3zxhxpp5fmfnccd92qx5e0dnm5ycavywwzgm956cnv29k6cfcdewazmg9swqhp5rn75jx56ah3q0a5dng3aqguxnyyck9638h7rmu39ce2v2nqpdnhscqzzsxqyz5vqsp52whelmgxqldxgnaj9w6p6fp8pe9excjuel9ddsfy32jy6swly5gq9qxpqysgqxpz5j6x6ypvh32acj905u7sa2sz0xwq7s6rxx96u6g7v4axamuu9qnz8uxrax3g9rt5fcw9km89208p47u9rxq9h9jja8hdvlttchfqq5nf4qv","successAction":null,"routes":[],"verify":null}
         }
         task.resume()
+    }
+    
+    func sendWithdrawRequest(callbackURL:String, amount:Int, k1:String) {
+        
+        Task {
+            do {
+                let invoice = try await LightningNodeService.shared.receivePayment(
+                    amountMsat: UInt64(amount),
+                    description: "",
+                    expirySecs: 3600
+                )
+                
+                DispatchQueue.main.async {
+                    
+                    let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
+                    let newTimestamp = Int(Date().timeIntervalSince1970)
+                    if let actualInvoiceHash = invoiceHash {
+                        CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)
+                    }
+                    
+                    let actualUrl = URL(string: "\(callbackURL)?k1=\(k1)&pr=\(invoice)".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!
+                    print("Actual URL: \(actualUrl)")
+                    
+                    var request = URLRequest(url: actualUrl, timeoutInterval: Double.infinity)
+                    request.setValue("application/json", forHTTPHeaderField: "Accept")
+                    request.httpMethod = "GET"
+                    
+                    let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
+                        
+                        if let httpResponse = response as? HTTPURLResponse {
+                            print("Status code: \(httpResponse.statusCode)")
+                            print("Headers: \(httpResponse.allHeaderFields)")
+                        }
+                        
+                        if let error = dataError {
+                            print("Error: \(error.localizedDescription)")
+                        }
+                        
+                        guard let data = data else {
+                            print("No data received. Error: \(dataError ?? "no error"). Response: \(String(describing: response)).")
+                            return
+                        }
+                        
+                        // Response has been received.
+                        print("Data received: \(String(data:data, encoding:.utf8)!)")
+                        
+                        // {"status":"OK"}
+                        // {"status":"ERROR","reason":"LNURL already being processed."}
+                        
+                        var dataDictionary:NSDictionary?
+                        if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                            do {
+                                dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                                if let actualDataDict = dataDictionary {
+                                    if let receivedStatus = actualDataDict["status"] as? String {
+                                        // Response received.
+                                        if receivedStatus == "OK" {
+                                            // Successful withdrawal.
+                                        } else if receivedStatus == "ERROR" {
+                                            // There was a problem.
+                                            if let receivedReason = actualDataDict["reason"] as? String {
+                                                DispatchQueue.main.async {
+                                                    
+                                                    let alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(receivedReason)", preferredStyle: .alert)
+                                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                                                    self.present(alert, animated: true)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch {
+                                print("Error: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                    task.resume()
+                }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: Language.getWord(withID: "error"), message: errorString.detail, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default))
+                    self.present(alert, animated: true)
+                    SentrySDK.capture(error: error)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    let alert = UIAlertController(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default))
+                    self.present(alert, animated: true)
+                    SentrySDK.capture(error: error)
+                }
+            }
+        }
+    }
+    
+    func getInvoiceHash(invoiceString:String) -> String? {
+        let result = Bolt11Invoice.fromStr(s: invoiceString)
+        if result.isOk() {
+            if let invoice = result.getValue() {
+                print("Invoice parsed successfully: \(invoice)")
+                let paymentHash:[UInt8] = invoice.paymentHash()!
+                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
+                return hexString
+            } else {
+                return nil
+            }
+        } else if let error = result.getError() {
+            print("Failed to parse invoice: \(error)")
+            return nil
+        } else {
+            return nil
+        }
     }
 }

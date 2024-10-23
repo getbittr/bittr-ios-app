@@ -428,7 +428,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: Language.getWord(withID: "devicedetails2"))
+        self.headerLabel.text = Language.getWord(withID: "devicedetails2")
         self.subheaderLabel.text = Language.getWord(withID: "accessdetails")
         self.darkModeLabel.text = "🌙  " + Language.getWord(withID: "darkmode")
         self.tokenLabel.text = "📱  " + Language.getWord(withID: "devicetoken")

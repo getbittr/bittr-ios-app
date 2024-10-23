@@ -119,7 +119,7 @@ extension SendViewController {
             self.showErrorMessage(alertTitle: Language.getWord(withID: "noaddressfound"), alertMessage: Language.getWord(withID: "pleasescan"), alertButton: Language.getWord(withID: "okay"))
         } else if code.lowercased().contains("lnurl") {
             // Valid LNURL code.
-            self.handleLNURL(code: code)
+            self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: ""), sendVC: self)
         } else {
              // Valid address
              let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")

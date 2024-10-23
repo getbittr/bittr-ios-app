@@ -13,8 +13,9 @@ import LDKNodeFFI
 import LightningDevKit
 import Sentry
 import BitcoinDevKit
+import AVFoundation
 
-class ReceiveViewController: UIViewController, UITextFieldDelegate {
+class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
 
     // General
     @IBOutlet weak var downButton: UIButton!
@@ -75,6 +76,19 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var createView: UIView!
     @IBOutlet weak var createInvoiceLabel: UILabel!
     @IBOutlet weak var invoiceButton: UIButton!
+    @IBOutlet weak var lnurlQrView: UIView!
+    @IBOutlet weak var scanQrButton: UIButton!
+    
+    // QR Scanner
+    @IBOutlet weak var qrScannerView: UIView!
+    @IBOutlet weak var scannerView: UIView!
+    @IBOutlet weak var qrScannerBackgroundButton: UIButton!
+    @IBOutlet weak var qrScannerLabel: UILabel!
+    @IBOutlet weak var qrScannerCloseView: UIView!
+    @IBOutlet weak var qrScannerCloseLabel: UILabel!
+    var captureSession: AVCaptureSession!
+    var previewLayer: AVCaptureVideoPreviewLayer!
+    var scannerWorks = false
     
     // Confirm invoice view
     @IBOutlet weak var lnConfirmationHeaderView: UIView!
@@ -112,6 +126,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         copyInvoiceButton.setTitle("", for: .normal)
         lnConfirmationDoneButton.setTitle("", for: .normal)
         receivableButton.setTitle("", for: .normal)
+        scanQrButton.setTitle("", for: .normal)
+        qrScannerBackgroundButton.setTitle("", for: .normal)
         
         // Corner radii
         headerView.layer.cornerRadius = 13
@@ -126,6 +142,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         lnConfirmationQRView.layer.cornerRadius = 13
         lnConfirmationAddressView.layer.cornerRadius = 13
         lnConfirmationDoneView.layer.cornerRadius = 13
+        lnurlQrView.layer.cornerRadius = 13
+        scannerView.layer.cornerRadius = 13
+        qrScannerCloseView.layer.cornerRadius = 13
         
         // Text field delegates
         amountTextField.delegate = self
@@ -163,6 +182,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewBothCenterY.constant = 0
             self.view.layoutIfNeeded()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if (captureSession?.isRunning == true) {
+            captureSession.stopRunning()
         }
     }
     
@@ -288,6 +313,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
+        self.qrScannerView.alpha = 0
+        
+        if let actualCaptureSession = captureSession {
+            actualCaptureSession.stopRunning()
+        }
+        
         self.view.endEditing(true)
     }
     
@@ -347,6 +378,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.questionCircle.tintColor = Colors.getColor(color: "black")
         
         self.lnConfirmationLabel.textColor = Colors.getColor(color: "black")
+    }
+    
+    @IBAction func scanQrButtonTapped(_ sender: UIButton) {
+        
+        self.qrScannerView.alpha = 1
+        self.showScannerView()
     }
     
 }

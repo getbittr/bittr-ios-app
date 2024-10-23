@@ -24,6 +24,8 @@ extension ReceiveViewController {
         self.lnHeaderLabel.text = Language.getWord(withID: "lightninginvoice")
         self.lnConfirmationLabel.text = Language.getWord(withID: "thisisyourinvoice")
         self.lnDoneLabel.text = Language.getWord(withID: "done")
+        self.qrScannerLabel.text = Language.getWord(withID: "lnurlscannerlabel")
+        self.qrScannerCloseLabel.text = Language.getWord(withID: "close")
         
     }
 }

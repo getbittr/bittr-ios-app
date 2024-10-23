@@ -203,7 +203,7 @@ class Language: NSObject {
             "cachedimages": "Cached images",
             "empty": "Empty",
             "goodjob": "Good job, you've just put new satoshis in your bitcoin piggy bank via the Lightning Network!",
-            "newpayment": "You've received a new payment into your lightning channel!",
+            "newpayment": "You've received a new payment!",
             "fundingtx": "Channel funding transaction",
             "questionvc1": "There's a limit to the amount of satoshis you can receive per invoice.\n\nThe size of your bitcoin lightning channel is",
             "questionvc2": "satoshis. You've already purchased",
@@ -286,7 +286,13 @@ class Language: NSObject {
             "payrequest": "Pay request",
             "payrequest1": "You can pay between",
             "payrequest2": "and",
-            "payrequest3": "satoshis. How many satoshis would you like to pay?"
+            "payrequest3": "satoshis. How many satoshis would you like to pay?",
+            "withdrawrequest": "Withdraw request",
+            "withdrawrequest1": "You can withdraw between",
+            "withdrawrequest2": "satoshis. How many satoshis would you like to withdraw?",
+            "lnurlpayment": "Copy this invoice and go to Send to make your instant payment.",
+            "lnurlfail1": "We could not complete this withdraw request. Error:",
+            "lnurlscannerlabel": "Scan a QR code to perform an LNURL pay or withdraw request."
         ]
         
         if let foundWord = allWords[withID] {
