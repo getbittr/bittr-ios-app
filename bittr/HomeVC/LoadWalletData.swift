@@ -65,9 +65,19 @@ extension HomeViewController {
                 // Add all Lightning payment IDs that haven't yet been cached.
                 if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                     for eachPayment in receivedPayments {
-                        if !self.cachedLightningIds.contains(eachPayment.id) {
-                            txIds += [eachPayment.id]
+                        if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
+                            txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
                         }
+                        /*switch eachPayment.kind {
+                        case .bolt11(_,let paymentPreimage,_):
+                            if let actualPreimage = paymentPreimage {
+                                if !self.cachedLightningIds.contains(actualPreimage) { // eachPayment.id
+                                   txIds += [actualPreimage] // eachPayment.id
+                               }
+                            }
+                        default:
+                            print("No preimage available.")
+                        }*/
                     }
                 }
                 // Add funding transaction ID.
@@ -120,7 +130,7 @@ extension HomeViewController {
                         if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
                             
                             for eachPayment in receivedPayments {
-                                if !self.cachedLightningIds.contains(eachPayment.id) {
+                                if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
                                     let thisTransaction = Transaction()
                                     if eachPayment.direction == .inbound {
                                         thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
@@ -130,7 +140,7 @@ extension HomeViewController {
                                     thisTransaction.isLightning = true
                                     thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.id)
                                     thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.id)
-                                    thisTransaction.id = eachPayment.id
+                                    thisTransaction.id = eachPayment.kind.preimageAsString ?? eachPayment.id
                                     thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
                                     if let actualChannels = self.channels {
                                         thisTransaction.channelId = actualChannels[0].channelId
@@ -146,6 +156,17 @@ extension HomeViewController {
                                         // Add new Lightning payments to array.
                                         self.newTransactions += [thisTransaction]
                                         CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                                    }
+                                }
+                                
+                                if eachPayment.kind.preimageAsString != nil {
+                                    if self.cachedLightningIds.contains(eachPayment.kind.preimageAsString!), self.cachedLightningIds.contains(eachPayment.id) {
+                                        // Transaction duplicates.
+                                        for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
+                                            if eachTransaction.id == eachPayment.id {
+                                                self.newTransactions.remove(at: index)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -242,6 +263,8 @@ extension HomeViewController {
                 }
             }
         }
+        
+        //newTxIds = ["aa7706e68a39d7b45d47ea96a684d0c6d032717db0ba6fc43d5044f52ef72803", "8785f725675af84d3b2115753004d4386a3d12c1bf8257519baea3eeee276fea"]
         
         print("TxIds being sent to Bittr: \(newTxIds.count)")
         
@@ -742,5 +765,24 @@ extension UILabel{
 
         let fontSize = font.pointSize * drawingContext.actualScaleFactor
         return font.withSize(CGFloat(floor(Double(fontSize))))
+    }
+}
+
+extension PaymentKind {
+    var preimageAsString: String? {
+        switch self {
+        case .onchain:
+            return nil
+        case .bolt11(_, let preimage, _):
+            return preimage
+        case .bolt11Jit(_, let preimage, _, _):
+            return preimage
+        case .spontaneous(_, let preimage):
+            return preimage
+        case .bolt12Offer(hash: _, let preimage, secret: _, offerId: _):
+            return preimage
+        case .bolt12Refund(hash: _, let preimage, secret: _):
+            return preimage
+        }
     }
 }

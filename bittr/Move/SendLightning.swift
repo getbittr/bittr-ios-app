@@ -58,6 +58,8 @@ extension SendViewController {
                             self.nextLabel.alpha = 0
                             self.nextSpinner.startAnimating()
                             
+                            print("Invoice text: " + String(invoiceText!.replacingOccurrences(of: " ", with: "")))
+                            
                             Task {
                                 do {
                                     let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))

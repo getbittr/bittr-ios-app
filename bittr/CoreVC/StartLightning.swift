@@ -45,7 +45,7 @@ extension CoreViewController {
                 self.didStartNode = true
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
-                print("Can't start node. \(errorString.title): \(errorString.detail)")
+                print("48 Can't start node. \(errorString.title): \(errorString.detail)")
                 timeoutTask.cancel()
                 if errorString.title == "AlreadyRunning" {
                     self.completeSync(type: "ldk")
@@ -59,7 +59,7 @@ extension CoreViewController {
                     self.stopLightning(notification: nil, stopNode: false)
                 }
             } catch {
-                print("Can't start node. \(error.localizedDescription)")
+                print("62 Can't start node. \(error.localizedDescription)")
                 timeoutTask.cancel()
                 self.stopLightning(notification: nil, stopNode: false)
             }
