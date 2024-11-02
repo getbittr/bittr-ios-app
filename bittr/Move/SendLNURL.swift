@@ -20,7 +20,16 @@ extension UIViewController {
     func handleLNURL(code:String, sendVC:SendViewController?) {
         
         do {
-            let url = try LNURLDecoder.decode(lnurl: code)
+            
+            var url = ""
+            if self.isValidEmail(code) {
+                // This is an LNURL email.
+                let urlDomain = String(code.split(separator: "@")[1])
+                let urlUsername = String(code.split(separator: "@")[0])
+                url = "https://\(urlDomain)/.well-known/lnurlp/\(urlUsername)"
+            } else {
+                url = try LNURLDecoder.decode(lnurl: code)
+            }
             print("Decoded url: \(url)")
             
             let actualUrl = URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!
@@ -38,7 +47,7 @@ extension UIViewController {
                 }
                     
                 if let error = dataError {
-                    print("Error: \(error.localizedDescription)")
+                    print("Error 50: \(error.localizedDescription)")
                 }
                 
                 guard let data = data else {
@@ -99,7 +108,7 @@ extension UIViewController {
                             }
                         }
                     } catch {
-                        print("Error: \(error.localizedDescription)")
+                        print("Error 111: \(error.localizedDescription)")
                     }
                 }
                 // {"tag":"withdrawRequest","callback":"https://spiritedlizard2.lnbits.com/withdraw/api/v1/lnurl/cb/eKbrKxF2PAi8wNX65ab4HM","k1":"9YxWRdFQFSQngwM2EmuNoh","minWithdrawable":10000,"maxWithdrawable":10000,"defaultDescription":"vouchers","webhook_url":null,"webhook_headers":null,"webhook_body":null}

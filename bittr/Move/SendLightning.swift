@@ -32,9 +32,9 @@ extension SendViewController {
                 // Invoice field was left empty.
             } else {
                 
-                if invoiceText!.lowercased().contains("lnurl") {
+                if invoiceText!.lowercased().contains("lnurl") || self.isValidEmail(invoiceText!.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)) {
                     // LNURL code.
-                    self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: ""), sendVC: self)
+                    self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self)
                     
                 } else if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText!).getValue() {
                     // Lightning invoice.

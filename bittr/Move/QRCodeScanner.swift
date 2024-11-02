@@ -117,9 +117,9 @@ extension SendViewController {
             self.toTextField.text = nil
             self.amountTextField.text = nil
             self.showErrorMessage(alertTitle: Language.getWord(withID: "noaddressfound"), alertMessage: Language.getWord(withID: "pleasescan"), alertButton: Language.getWord(withID: "okay"))
-        } else if code.lowercased().contains("lnurl") {
+        } else if code.lowercased().contains("lnurl") || self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
             // Valid LNURL code.
-            self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: ""), sendVC: self)
+            self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self)
         } else {
              // Valid address
              let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
