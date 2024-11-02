@@ -48,10 +48,16 @@ extension SendViewController {
                             currencySymbol = "CHF"
                         }
                         
+                        // Calculate maximum total routing fees.
+                        let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
+                        let (tryPaymentHash, tryRecipientOnion, tryRouteParams) = invoicePaymentResult.getValue()!
+                        let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
+                        let maximumRoutingFeesSat:Int = maximumRoutingFeesMsat/1000
+                        
                         var transactionValue = CGFloat(invoiceAmount)/100000000
                         var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
                         
-                        let alert = UIAlertController(title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?", preferredStyle: .alert)
+                        let alert = UIAlertController(title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: {_ in
                             
@@ -82,8 +88,16 @@ extension SendViewController {
                                                         newTransaction.timestamp = Int(Date().timeIntervalSince1970)
                                                         newTransaction.confirmations = 0
                                                         newTransaction.height = 0
-                                                        newTransaction.fee = 0
                                                         newTransaction.isBittr = false
+                                                        
+                                                        if Int(thisPayment.amountMsat ?? 0)/1000 > invoiceAmount {
+                                                            // Fees were incurred.
+                                                            let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - invoiceAmount
+                                                            CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
+                                                            newTransaction.fee = feesIncurred
+                                                        } else {
+                                                            newTransaction.fee = 0
+                                                        }
                                                         
                                                         self.completedTransaction = newTransaction
                                                         

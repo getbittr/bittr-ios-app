@@ -662,6 +662,31 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storePaymentFees(hash:String, fees:Int) {
+        
+        var envKey = "prodlightningfees"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "lightningfees"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
+        if let actualCachedHashes = cachedHashes {
+            // Hashes have been cached.
+            if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
+                actualMutableHashes.setObject(fees, forKey: hash as NSCopying)
+                defaults.set(actualMutableHashes, forKey: envKey)
+                print("Lightning fees cached.")
+            }
+        } else {
+            // No hashes have been cached.
+            let actualMutableHashes = NSMutableDictionary()
+            actualMutableHashes.setObject(fees, forKey: hash as NSCopying)
+            defaults.set(actualMutableHashes, forKey: envKey)
+            print("Lightning fees cached.")
+        }
+    }
+    
     static func getInvoiceTimestamp(hash:String) -> Int {
         
         var envKey = "prodhashes"
@@ -705,6 +730,28 @@ class CacheManager: NSObject {
         } else {
             // No descriptions have been cached.
             return ""
+        }
+    }
+    
+    static func getLightningFees(hash:String) -> Int {
+        
+        var envKey = "prodlightningfees"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "lightningfees"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedFees = defaults.value(forKey: envKey) as? NSDictionary
+        if let actualCachedFees = cachedFees {
+            // Descriptions have been cached.
+            if let foundFees = actualCachedFees[hash] as? Int {
+                return foundFees
+            } else {
+                return 0
+            }
+        } else {
+            // No fees have been cached.
+            return 0
         }
     }
     

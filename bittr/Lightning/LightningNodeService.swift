@@ -371,7 +371,9 @@ class LightningNodeService {
     }
     
     func stop() throws {
-        try ldkNode!.stop()
+        if let actualLdkNode = ldkNode {
+            try actualLdkNode.stop()
+        }
     }
     
     func nodeId() -> String {

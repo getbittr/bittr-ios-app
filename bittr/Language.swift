@@ -137,6 +137,7 @@ class Language: NSObject {
             "transactionerror2": "We're unable to complete your transaction. Please close and reopen our app and try again.",
             "lightningconfirmation": "Are you sure you want to pay",
             "lightningconfirmation2": "for this invoice",
+            "lightningconfirmation3": "This payment may incur fees of up to",
             "paymentsuccessful": "Payment successful",
             "paymentfailed": "Payment failed",
             "paymentfailed2": "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.",

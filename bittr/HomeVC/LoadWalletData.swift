@@ -136,6 +136,7 @@ extension HomeViewController {
                                         thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
                                     } else {
                                         thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
+                                        thisTransaction.fee = CacheManager.getLightningFees(hash: eachPayment.id)
                                     }
                                     thisTransaction.isLightning = true
                                     thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.id)

@@ -183,6 +183,13 @@ class TransactionViewController: UIViewController {
             self.feesViewHeight.constant = 0
             self.feesView.alpha = 0
             
+            if transactionValue < 0 {
+                // Outbound Lightning payment.
+                self.feesViewHeight.constant = 40
+                self.feesView.alpha = 1
+                self.feesAmount.text = "\(tappedTransaction.fee) sats"
+            }
+            
             if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
                 self.descriptionLabel.text = self.tappedTransaction.lnDescription
             } else {
