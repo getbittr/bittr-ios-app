@@ -71,18 +71,24 @@ extension UIViewController {
                                         if let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
                                             
                                             DispatchQueue.main.async {
-                                                let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1")) \(minSendable/1000) \(Language.getWord(withID: "payrequest2")) \(maxSendable/1000) \(Language.getWord(withID: "payrequest3"))", preferredStyle: .alert)
-                                                alert.addTextField { (textField) in
-                                                    textField.keyboardType = .numberPad
+                                                if minSendable == maxSendable {
+                                                    // Min and max are the same.
+                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC)
+                                                } else {
+                                                    // Min and max are different. Choose amount.
+                                                    let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1")) \(minSendable/1000) \(Language.getWord(withID: "payrequest2")) \(maxSendable/1000) \(Language.getWord(withID: "payrequest3"))", preferredStyle: .alert)
+                                                    alert.addTextField { (textField) in
+                                                        textField.keyboardType = .numberPad
+                                                    }
+                                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
+                                                        
+                                                        let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
+                                                        
+                                                        self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC)
+                                                    }))
+                                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                                                    self.present(alert, animated: true)
                                                 }
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                                    
-                                                    let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
-                                                    
-                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC)
-                                                }))
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                                self.present(alert, animated: true)
                                             }
                                         }
                                     }
@@ -90,14 +96,23 @@ extension UIViewController {
                                     if let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
                                         
                                         DispatchQueue.main.async {
-                                            let alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1")) \(minWithdrawable/1000) \(Language.getWord(withID: "payrequest2")) \(maxWithdrawable/1000) \(Language.getWord(withID: "withdrawrequest2"))", preferredStyle: .alert)
-                                            alert.addTextField { (textField) in
-                                                textField.keyboardType = .numberPad
+                                            var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1")) \(minWithdrawable/1000) \(Language.getWord(withID: "payrequest2")) \(maxWithdrawable/1000) \(Language.getWord(withID: "withdrawrequest2"))", preferredStyle: .alert)
+                                            if minWithdrawable == maxWithdrawable {
+                                                // Min and max are the same.
+                                                alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3")) \(minWithdrawable/1000) satoshis?", preferredStyle: .alert)
+                                            } else {
+                                                // Min and max aren't the same. Choose amount.
+                                                alert.addTextField { (textField) in
+                                                    textField.keyboardType = .numberPad
+                                                }
                                             }
                                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
                                                 
-                                                let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
-                                                
+                                                var amountText = minWithdrawable
+                                                if minWithdrawable != maxWithdrawable {
+                                                    // Min and max aren't the same.
+                                                    amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
+                                                }
                                                 self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
                                             }))
                                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))

@@ -368,6 +368,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     func changeColors() {
         
         self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        self.qrScannerView.backgroundColor = Colors.getColor(color: "yellowandgrey")
         
         self.subtitleRegular.textColor = Colors.getColor(color: "black")
         self.subtitleInstant.textColor = Colors.getColor(color: "black")
@@ -378,6 +379,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.questionCircle.tintColor = Colors.getColor(color: "black")
         
         self.lnConfirmationLabel.textColor = Colors.getColor(color: "black")
+        self.qrScannerLabel.textColor = Colors.getColor(color: "black")
     }
     
     @IBAction func scanQrButtonTapped(_ sender: UIButton) {

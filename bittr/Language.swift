@@ -291,6 +291,7 @@ class Language: NSObject {
             "withdrawrequest": "Withdraw request",
             "withdrawrequest1": "You can withdraw between",
             "withdrawrequest2": "satoshis. How many satoshis would you like to withdraw?",
+            "withdrawrequest3": "Are you sure you'd like to withdraw",
             "lnurlpayment": "Copy this invoice and go to Send to make your instant payment.",
             "lnurlfail1": "We could not complete this withdraw request. Error:",
             "lnurlfail2": "We could not complete your pay request. Error:",

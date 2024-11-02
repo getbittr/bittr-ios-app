@@ -217,7 +217,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "buy bitcoin")
+        self.headerLabel.text = Language.getWord(withID: "buybitcoin")
         self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
         self.emptyLabel.text = Language.getWord(withID: "buyempty")
         self.addAnotherLabel.text = "+  " + Language.getWord(withID: "addanother")
