@@ -104,6 +104,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var lnConfirmationDoneButton: UIButton!
     @IBOutlet weak var lnDoneLabel: UILabel!
     
+    // LNURL spinner
+    @IBOutlet weak var spinnerView: UIView!
+    @IBOutlet weak var spinnerBox: UIView!
+    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
+    
     // Variables
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -145,6 +150,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         lnurlQrView.layer.cornerRadius = 13
         scannerView.layer.cornerRadius = 13
         qrScannerCloseView.layer.cornerRadius = 13
+        spinnerBox.layer.cornerRadius = 13
         
         // Text field delegates
         amountTextField.delegate = self

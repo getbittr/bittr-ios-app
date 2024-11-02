@@ -119,6 +119,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var slowButton: UIButton!
     @IBOutlet weak var slowTimeLabel: UILabel!
     
+    // Spinner view
+    @IBOutlet weak var spinnerView: UIView!
+    @IBOutlet weak var spinnerBox: UIView!
+    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
+    
     // Variables
     var btcAmount:Double = 0.0
     var btclnAmount:Double = 0.0
@@ -175,6 +180,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         backgroundQR.layer.cornerRadius = 13
         backgroundPaste.layer.cornerRadius = 13
         backgroundKeyboard.layer.cornerRadius = 13
+        spinnerBox.layer.cornerRadius = 13
         
         // Shadows
         setShadows(forView: yellowCard)

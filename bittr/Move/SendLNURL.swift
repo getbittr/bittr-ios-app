@@ -17,9 +17,16 @@ import BitcoinDevKit
 
 extension UIViewController {
     
-    func handleLNURL(code:String, sendVC:SendViewController?) {
+    func handleLNURL(code:String, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
         
         do {
+            
+            if sendVC != nil {
+                sendVC!.startLNURLSpinner()
+            }
+            if receiveVC != nil {
+                receiveVC!.startLNURLSpinner()
+            }
             
             var url = ""
             if self.isValidEmail(code) {
@@ -41,13 +48,25 @@ extension UIViewController {
             
             let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
                 
+                if sendVC != nil {
+                    sendVC!.stopLNURLSpinner()
+                }
+                if receiveVC != nil {
+                    receiveVC!.stopLNURLSpinner()
+                }
+                
                 if let httpResponse = response as? HTTPURLResponse {
                     print("Status code: \(httpResponse.statusCode)")
                     print("Headers: \(httpResponse.allHeaderFields)")
                 }
-                    
+                
                 if let error = dataError {
                     print("Error 50: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                    }
                 }
                 
                 guard let data = data else {
@@ -73,7 +92,7 @@ extension UIViewController {
                                             DispatchQueue.main.async {
                                                 if minSendable == maxSendable {
                                                     // Min and max are the same.
-                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC)
+                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC)
                                                 } else {
                                                     // Min and max are different. Choose amount.
                                                     let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1")) \(minSendable/1000) \(Language.getWord(withID: "payrequest2")) \(maxSendable/1000) \(Language.getWord(withID: "payrequest3"))", preferredStyle: .alert)
@@ -84,7 +103,7 @@ extension UIViewController {
                                                         
                                                         let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
                                                         
-                                                        self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC)
+                                                        self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC, receiveVC: receiveVC)
                                                     }))
                                                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                                                     self.present(alert, animated: true)
@@ -113,17 +132,28 @@ extension UIViewController {
                                                     // Min and max aren't the same.
                                                     amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
                                                 }
-                                                self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
+                                                self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
                                             }))
                                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                                             self.present(alert, animated: true)
                                         }
+                                    }
+                                } else {
+                                    DispatchQueue.main.async {
+                                        let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), preferredStyle: .alert)
+                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                                        self.present(alert, animated: true)
                                     }
                                 }
                             }
                         }
                     } catch {
                         print("Error 111: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
+                        }
                     }
                 }
                 // {"tag":"withdrawRequest","callback":"https://spiritedlizard2.lnbits.com/withdraw/api/v1/lnurl/cb/eKbrKxF2PAi8wNX65ab4HM","k1":"9YxWRdFQFSQngwM2EmuNoh","minWithdrawable":10000,"maxWithdrawable":10000,"defaultDescription":"vouchers","webhook_url":null,"webhook_headers":null,"webhook_body":null}
@@ -135,10 +165,28 @@ extension UIViewController {
             
         } catch {
             print("Couldn't decode LNURL. Message: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                self.present(alert, animated: true)
+            }
+            if sendVC != nil {
+                sendVC!.stopLNURLSpinner()
+            }
+            if receiveVC != nil {
+                receiveVC!.stopLNURLSpinner()
+            }
         }
     }
     
-    func sendPayRequest(callbackURL:String, amount:Int, sendVC:SendViewController?) {
+    func sendPayRequest(callbackURL:String, amount:Int, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+        
+        if sendVC != nil {
+            sendVC!.startLNURLSpinner()
+        }
+        if receiveVC != nil {
+            receiveVC!.startLNURLSpinner()
+        }
         
         let actualUrl = URL(string: "\(callbackURL)?amount=\(amount)".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!
         print("Actual URL: \(actualUrl)")
@@ -148,6 +196,13 @@ extension UIViewController {
         request.httpMethod = "GET"
         
         let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
+            
+            if sendVC != nil {
+                sendVC!.stopLNURLSpinner()
+            }
+            if receiveVC != nil {
+                receiveVC!.stopLNURLSpinner()
+            }
             
             if let httpResponse = response as? HTTPURLResponse {
                 print("Status code: \(httpResponse.statusCode)")
@@ -195,6 +250,11 @@ extension UIViewController {
                     }
                 } catch {
                     print("Error: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                        self.present(alert, animated: true)
+                    }
                 }
             }
             
@@ -204,10 +264,18 @@ extension UIViewController {
         task.resume()
     }
     
-    func sendWithdrawRequest(callbackURL:String, amount:Int, k1:String) {
+    func sendWithdrawRequest(callbackURL:String, amount:Int, k1:String, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
         
         Task {
             do {
+                
+                if sendVC != nil {
+                    sendVC!.startLNURLSpinner()
+                }
+                if receiveVC != nil {
+                    receiveVC!.startLNURLSpinner()
+                }
+                
                 let invoice = try await LightningNodeService.shared.receivePayment(
                     amountMsat: UInt64(amount),
                     description: "",
@@ -231,6 +299,13 @@ extension UIViewController {
                     
                     let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
                         
+                        if sendVC != nil {
+                            sendVC!.stopLNURLSpinner()
+                        }
+                        if receiveVC != nil {
+                            receiveVC!.stopLNURLSpinner()
+                        }
+                        
                         if let httpResponse = response as? HTTPURLResponse {
                             print("Status code: \(httpResponse.statusCode)")
                             print("Headers: \(httpResponse.allHeaderFields)")
@@ -238,6 +313,11 @@ extension UIViewController {
                         
                         if let error = dataError {
                             print("Error: \(error.localizedDescription)")
+                            DispatchQueue.main.async {
+                                let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                                self.present(alert, animated: true)
+                            }
                         }
                         
                         guard let data = data else {
@@ -275,6 +355,11 @@ extension UIViewController {
                                 }
                             } catch {
                                 print("Error: \(error.localizedDescription)")
+                                DispatchQueue.main.async {
+                                    let alert = UIAlertController(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), preferredStyle: .alert)
+                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+                                    self.present(alert, animated: true)
+                                }
                             }
                         }
                     }
@@ -283,6 +368,12 @@ extension UIViewController {
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
+                    if sendVC != nil {
+                        sendVC!.stopLNURLSpinner()
+                    }
+                    if receiveVC != nil {
+                        receiveVC!.stopLNURLSpinner()
+                    }
                     let alert = UIAlertController(title: Language.getWord(withID: "error"), message: errorString.detail, preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default))
                     self.present(alert, animated: true)
@@ -290,6 +381,12 @@ extension UIViewController {
                 }
             } catch {
                 DispatchQueue.main.async {
+                    if sendVC != nil {
+                        sendVC!.stopLNURLSpinner()
+                    }
+                    if receiveVC != nil {
+                        receiveVC!.stopLNURLSpinner()
+                    }
                     let alert = UIAlertController(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, preferredStyle: .alert)
                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default))
                     self.present(alert, animated: true)
@@ -315,6 +412,40 @@ extension UIViewController {
             return nil
         } else {
             return nil
+        }
+    }
+}
+
+extension SendViewController {
+    
+    func startLNURLSpinner() {
+        DispatchQueue.main.async {
+            self.spinnerView.alpha = 1
+            self.lnurlSpinner.startAnimating()
+        }
+    }
+    
+    func stopLNURLSpinner() {
+        DispatchQueue.main.async {
+            self.spinnerView.alpha = 0
+            self.lnurlSpinner.stopAnimating()
+        }
+    }
+}
+
+extension ReceiveViewController {
+    
+    func startLNURLSpinner() {
+        DispatchQueue.main.async {
+            self.spinnerView.alpha = 1
+            self.lnurlSpinner.startAnimating()
+        }
+    }
+    
+    func stopLNURLSpinner() {
+        DispatchQueue.main.async {
+            self.spinnerView.alpha = 0
+            self.lnurlSpinner.stopAnimating()
         }
     }
 }

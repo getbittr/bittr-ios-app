@@ -295,7 +295,10 @@ class Language: NSObject {
             "lnurlpayment": "Copy this invoice and go to Send to make your instant payment.",
             "lnurlfail1": "We could not complete this withdraw request. Error:",
             "lnurlfail2": "We could not complete your pay request. Error:",
-            "lnurlscannerlabel": "Scan a QR code to perform an LNURL pay or withdraw request."
+            "lnurlscannerlabel": "Scan a QR code to perform an LNURL pay or withdraw request.",
+            "lnurl": "LNURL status",
+            "lnurlfail3": "We received an error while handling this request. Please try again.",
+            "lnurlfail4": "We currently only support LNURL pay and withdraw requests."
         ]
         
         if let foundWord = allWords[withID] {
