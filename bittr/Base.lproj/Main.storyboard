@@ -5248,6 +5248,7 @@
                         <outlet property="subtitleInstant" destination="xEF-VG-e9I" id="Wg9-ha-JIo"/>
                         <outlet property="subtitleRegular" destination="kb3-Px-a8a" id="L57-me-2HT"/>
                         <outlet property="switchView" destination="9ST-hi-ZXW" id="E9S-G9-hJv"/>
+                        <segue destination="EgO-Th-Xdr" kind="show" identifier="ReceiveToTransaction" id="ZiD-Cf-wZ5"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="a6L-Vr-AOi" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -6691,7 +6692,7 @@
                                             </tableViewCell>
                                         </prototypes>
                                     </tableView>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="App version 0.1.84" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PiH-5g-WTt" userLabel="App Version">
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="App version 0.1.85" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PiH-5g-WTt" userLabel="App Version">
                                         <rect key="frame" x="131.33333333333331" y="90" width="130.33333333333331" height="16"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="8Ka-oc-Bpq"/>
@@ -12280,7 +12281,7 @@
         <segue reference="FcF-su-Uc9"/>
         <segue reference="ANA-Kn-Mbn"/>
         <segue reference="XuS-yl-jOM"/>
-        <segue reference="5NJ-vU-Ume"/>
+        <segue reference="ZiD-Cf-wZ5"/>
         <segue reference="xNF-pP-akb"/>
         <segue reference="aIy-e9-0Ba"/>
     </inferredMetricsTieBreakers>

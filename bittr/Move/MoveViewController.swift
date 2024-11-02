@@ -136,6 +136,7 @@ class MoveViewController: UIViewController {
             let receiveVC = segue.destination as? ReceiveViewController
             if let actualReceiveVC = receiveVC {
                 actualReceiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
+                actualReceiveVC.homeVC = self.homeVC
             }
         }
     }

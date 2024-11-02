@@ -378,7 +378,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.checkSendOnchain()
         } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
             // Confirm lightning payment.
-            self.confirmLightningTransaction(lnurlinvoice: nil)
+            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
         } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
             // Hide QR scanner, show onchain.
             self.hideScannerView(forView: "onchain")
@@ -395,19 +395,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.scrollViewTrailing])
             self.view.layoutIfNeeded()
-        }
-    }
-    
-    func checkInternetConnection() -> Bool {
-        // Check internet connection.
-        if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
-            return false
-        } else {
-            return true
         }
     }
     
@@ -482,5 +469,21 @@ extension UITextField {
             ]
         toolbar.sizeToFit()
         self.inputAccessoryView = toolbar
+    }
+}
+
+extension UIViewController {
+    
+    func checkInternetConnection() -> Bool {
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+            return false
+        } else {
+            return true
+        }
     }
 }

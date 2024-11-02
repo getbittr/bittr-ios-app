@@ -113,6 +113,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
     var createdInvoice = ""
+    var homeVC:HomeViewController?
+    var completedTransaction:Transaction?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -392,6 +394,21 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         self.qrScannerView.alpha = 1
         self.showScannerView()
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        // Show new transaction in TransactionVC.
+        if segue.identifier == "ReceiveToTransaction" {
+            let transactionVC = segue.destination as? TransactionViewController
+            if let actualTransactionVC = transactionVC {
+                if let actualCompletedTransaction = self.completedTransaction {
+                    actualTransactionVC.tappedTransaction = actualCompletedTransaction
+                    actualTransactionVC.eurValue = (CacheManager.getCachedData(key: "eurvalue") as? CGFloat)!
+                    actualTransactionVC.chfValue = (CacheManager.getCachedData(key: "chfvalue") as? CGFloat)!
+                }
+            }
+        }
     }
     
 }

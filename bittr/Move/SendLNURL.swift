@@ -231,7 +231,9 @@ extension UIViewController {
                             print("Invoice: \(receivedInvoice)")
                             DispatchQueue.main.async {
                                 if sendVC != nil {
-                                    sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice)
+                                    sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, sendVC: sendVC, receiveVC: receiveVC)
+                                } else if receiveVC != nil {
+                                    receiveVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, sendVC: sendVC, receiveVC: receiveVC)
                                 } else {
                                     let alert = UIAlertController(title: Language.getWord(withID: "invoice"), message: "\(Language.getWord(withID:"lnurlpayment"))\n\n\(receivedInvoice)", preferredStyle: .alert)
                                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "copy"), style: .cancel, handler: { _ in

@@ -28,7 +28,7 @@ extension SendViewController {
             if invoiceText != nil {
                 if invoiceText!.lowercased().contains("lnurl") {
                     // LNURL.
-                    self.confirmLightningTransaction(lnurlinvoice: invoiceText!)
+                    self.confirmLightningTransaction(lnurlinvoice: invoiceText!, sendVC: self, receiveVC: nil)
                     return
                 }
             }
@@ -402,14 +402,6 @@ extension SendViewController {
         self.present(alert, animated: true)
     }
     
-    func showErrorMessage(alertTitle:String, alertMessage:String, alertButton:String) {
-        DispatchQueue.main.async {
-            let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
-            self.present(alert, animated: true)
-        }
-    }
-    
     func getMaximumSendableSats() -> Double? {
         
         if let actualWallet = LightningNodeService.shared.getWallet() {
@@ -444,6 +436,17 @@ extension SendViewController {
             }
         } else {
             return nil
+        }
+    }
+}
+
+extension UIViewController {
+    
+    func showErrorMessage(alertTitle:String, alertMessage:String, alertButton:String) {
+        DispatchQueue.main.async {
+            let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
+            self.present(alert, animated: true)
         }
     }
 }

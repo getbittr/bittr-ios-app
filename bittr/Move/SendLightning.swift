@@ -14,14 +14,14 @@ import LDKNodeFFI
 import LightningDevKit
 import Sentry
 
-extension SendViewController {
+extension UIViewController {
     
-    func confirmLightningTransaction(lnurlinvoice:String?) {
+    func confirmLightningTransaction(lnurlinvoice:String?, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
         
         if self.checkInternetConnection() {
-            var invoiceText = self.toTextField.text
-            if self.selectedInput != "keyboard" {
-                invoiceText = self.invoiceLabel.text
+            var invoiceText = sendVC?.toTextField.text
+            if sendVC?.selectedInput != "keyboard" {
+                invoiceText = sendVC?.invoiceLabel.text
             }
             if lnurlinvoice != nil {
                 invoiceText = lnurlinvoice!
@@ -34,17 +34,17 @@ extension SendViewController {
                 
                 if invoiceText!.lowercased().contains("lnurl") || self.isValidEmail(invoiceText!.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)) {
                     // LNURL code.
-                    self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
+                    self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: sendVC, receiveVC: nil)
                     
                 } else if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText!).getValue() {
                     // Lightning invoice.
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         
-                        var correctValue:CGFloat = self.eurValue
+                        var correctValue:CGFloat = CGFloat(sendVC?.eurValue ?? receiveVC?.homeVC?.eurValue ?? 0)
                         var currencySymbol = "€"
                         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                            correctValue = self.chfValue
+                            correctValue = CGFloat(sendVC?.chfValue ?? receiveVC?.homeVC?.eurValue ?? 0)
                             currencySymbol = "CHF"
                         }
                         
@@ -61,8 +61,8 @@ extension SendViewController {
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: {_ in
                             
-                            self.nextLabel.alpha = 0
-                            self.nextSpinner.startAnimating()
+                            sendVC?.nextLabel.alpha = 0
+                            sendVC?.nextSpinner.startAnimating()
                             
                             print("Invoice text: " + String(invoiceText!.replacingOccurrences(of: " ", with: "")))
                             
@@ -99,9 +99,16 @@ extension SendViewController {
                                                             newTransaction.fee = 0
                                                         }
                                                         
-                                                        self.completedTransaction = newTransaction
+                                                        sendVC?.completedTransaction = newTransaction
+                                                        receiveVC?.completedTransaction = newTransaction
                                                         
-                                                        if let actualHomeVC = self.homeVC {
+                                                        if let actualHomeVC = sendVC?.homeVC {
+                                                            actualHomeVC.setTransactions += [newTransaction]
+                                                            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                                                                transaction1.timestamp > transaction2.timestamp
+                                                            }
+                                                            actualHomeVC.homeTableView.reloadData()
+                                                        } else if let actualHomeVC = receiveVC?.homeVC {
                                                             actualHomeVC.setTransactions += [newTransaction]
                                                             actualHomeVC.setTransactions.sort { transaction1, transaction2 in
                                                                 transaction1.timestamp > transaction2.timestamp
@@ -109,7 +116,8 @@ extension SendViewController {
                                                             actualHomeVC.homeTableView.reloadData()
                                                         }
                                                         
-                                                        self.performSegue(withIdentifier: "SendToTransaction", sender: self)
+                                                        sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
+                                                        receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
                                                     }
                                                 }))
                                                 self.present(alert, animated: true)
@@ -122,18 +130,18 @@ extension SendViewController {
                                             self.showErrorMessage(alertTitle: Language.getWord(withID: "paymentsuccessful"), alertMessage: "Payment hash: \(paymentHash)", alertButton: Language.getWord(withID: "okay"))
                                         }
                                         
-                                        self.nextLabel.alpha = 1
-                                        self.nextSpinner.stopAnimating()
+                                        sendVC?.nextLabel.alpha = 1
+                                        sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.resetFields()
+                                        sendVC?.resetFields()
                                     }
                                 } catch let error as NodeError {
                                     let errorString = handleNodeError(error)
                                     DispatchQueue.main.async {
                                         // Error alert for NodeError
                                         
-                                        self.nextLabel.alpha = 1
-                                        self.nextSpinner.stopAnimating()
+                                        sendVC?.nextLabel.alpha = 1
+                                        sendVC?.nextSpinner.stopAnimating()
                                         
                                         self.showErrorMessage(alertTitle: Language.getWord(withID: "paymentfailed"), alertMessage: errorString.detail, alertButton: Language.getWord(withID: "okay"))
                                         
@@ -143,8 +151,8 @@ extension SendViewController {
                                     DispatchQueue.main.async {
                                         // General error alert
                                         
-                                        self.nextLabel.alpha = 1
-                                        self.nextSpinner.stopAnimating()
+                                        sendVC?.nextLabel.alpha = 1
+                                        sendVC?.nextSpinner.stopAnimating()
                                         
                                         self.showErrorMessage(alertTitle: Language.getWord(withID: "unexpectederror"), alertMessage: error.localizedDescription, alertButton: Language.getWord(withID: "okay"))
                                         

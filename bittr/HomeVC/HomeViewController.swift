@@ -405,7 +405,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } else if segue.identifier == "HomeToReceive" {
             let receiveVC = segue.destination as? ReceiveViewController
             if let actualReceiveVC = receiveVC {
-                
+                actualReceiveVC.homeVC = self
                 if let actualChannels = self.channels {
                     if actualChannels.count > 0 {
                         actualReceiveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
