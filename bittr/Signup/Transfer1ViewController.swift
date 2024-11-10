@@ -57,6 +57,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

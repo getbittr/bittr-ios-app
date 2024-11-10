@@ -496,8 +496,8 @@
 		05F8DC5829F2B436008052B5 /* Articles */ = {
 			isa = PBXGroup;
 			children = (
-				0521712B2CB41D32006C5663 /* InfoVCLanguage.swift */,
 				05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */,
+				0521712B2CB41D32006C5663 /* InfoVCLanguage.swift */,
 				05F8DC5E29F2E212008052B5 /* ArticleTableViewCell.swift */,
 				052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */,
 				053190ED29FEE7C90072CE76 /* ArticleViewController.swift */,

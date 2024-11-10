@@ -34,6 +34,7 @@ class Signup3ViewController: UIViewController {
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
+    var coreVC:CoreViewController?
     
     // Mnemonic word labels.
     @IBOutlet weak var word1: UILabel!

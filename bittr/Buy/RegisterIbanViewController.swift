@@ -17,6 +17,7 @@ class RegisterIbanViewController: UIViewController {
     var currentClientID = ""
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -74,6 +75,7 @@ class RegisterIbanViewController: UIViewController {
             
             if let signup7VC = segue.destination as? Signup7ViewController {
                 signup7VC.embeddedInBuyVC = true
+                signup7VC.coreVC = self.coreVC
             }
         } else if segue.identifier == "RegisterToTransfer1" {
             
@@ -83,6 +85,7 @@ class RegisterIbanViewController: UIViewController {
                 actualTransfer1VC.currentClientID = self.currentClientID
                 actualTransfer1VC.articles = self.articles
                 actualTransfer1VC.allImages = self.allImages
+                actualTransfer1VC.coreVC = self.coreVC
             }
         } else if segue.identifier == "RegisterToTransfer2" {
             
@@ -91,6 +94,7 @@ class RegisterIbanViewController: UIViewController {
                 
                 actualTransfer2VC.articles = self.articles
                 actualTransfer2VC.allImages = self.allImages
+                actualTransfer2VC.coreVC = self.coreVC
             }
         } else if segue.identifier == "RegisterToTransfer3" {
             
@@ -99,6 +103,7 @@ class RegisterIbanViewController: UIViewController {
                 
                 actualTransfer3VC.articles = self.articles
                 actualTransfer3VC.allImages = self.allImages
+                actualTransfer3VC.coreVC = self.coreVC
             }
         }
     }

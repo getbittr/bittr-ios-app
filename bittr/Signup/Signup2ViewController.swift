@@ -33,6 +33,7 @@ class Signup2ViewController: UIViewController {
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "what-is-a-bitcoin-wallet"
     var pageArticle1 = Article()
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

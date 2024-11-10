@@ -39,6 +39,7 @@ class Signup7ViewController: UIViewController {
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
     var embeddedInBuyVC = false
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,46 +57,13 @@ class Signup7ViewController: UIViewController {
         skipButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         
-        // Check view elements.
-        /*let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = Colors.getColor(color: "black").cgColor
-        viewBorder.frame = checkView.bounds
-        viewBorder.fillColor = nil
-        viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
-        viewBorder.lineWidth = 2
-        self.checkView.layer.addSublayer(viewBorder)*/
-        
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
         self.setWords()
     }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
-        }
-    }
-    
     
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
@@ -141,6 +109,28 @@ class Signup7ViewController: UIViewController {
             self.skipLabel.alpha = 0
             self.skipButton.alpha = 0
             self.view.layoutIfNeeded()
+        }
+        
+        self.updateArticle()
+    }
+    
+    @objc func updateArticle() {
+        if self.coreVC != nil {
+            if self.coreVC!.allArticles != nil {
+                if let thisArticle = self.coreVC!.allArticles![pageArticle1Slug] {
+                    
+                    self.pageArticle1 = thisArticle
+                    self.articleTitle.text = self.pageArticle1.title
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                    
+                    if let imageData = CacheManager.getImage(key: self.pageArticle1.image) {
+                        self.spinner1.stopAnimating()
+                        self.articleImage.image = UIImage(data: imageData)
+                    } else {
+                        
+                    }
+                }
+            }
         }
     }
     

@@ -37,6 +37,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     // Articles
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -189,6 +190,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             let registerVC = segue.destination as? RegisterIbanViewController
             if let actualRegisterVC = registerVC {
                 
+                actualRegisterVC.coreVC = self.coreVC
                 actualRegisterVC.currentClientID = self.client.id
                 if let actualArticles = self.articles {
                     actualRegisterVC.articles = actualArticles

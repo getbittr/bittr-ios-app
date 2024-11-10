@@ -39,6 +39,7 @@ class Signup1ViewController: UIViewController {
     @IBOutlet weak var createWalletLabel: UILabel!
     
     var nextTapped = false
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

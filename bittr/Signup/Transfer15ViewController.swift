@@ -40,6 +40,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     var setSender = ""
     var start2Fa = false
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

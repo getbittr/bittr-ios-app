@@ -13,6 +13,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
     // Confirm new pin for restored wallet.
     
     var previousPIN:String?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

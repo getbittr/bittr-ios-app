@@ -104,9 +104,13 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         Task {
             do {
-                let channels = try await LightningNodeService.shared.listChannels()
-                print("Channels: \(channels.count)")
-                self.channelsLabel.text = "\(channels.count)"
+                if LightningNodeService.shared.ldkNode != nil {
+                    let channels = try await LightningNodeService.shared.listChannels()
+                    print("Channels: \(channels.count)")
+                    self.channelsLabel.text = "\(channels.count)"
+                } else {
+                    self.channelsLabel.text = "Syncing"
+                }
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
                 self.channelsLabel.text = "0"

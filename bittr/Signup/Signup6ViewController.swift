@@ -11,6 +11,7 @@ import UIKit
 class Signup6ViewController: UIViewController, UITextFieldDelegate {
 
     // View for user to confirm their new pin.
+    var coreVC:CoreViewController?
     
     var previousPIN:String?
     

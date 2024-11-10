@@ -57,6 +57,7 @@ class Transfer2ViewController: UIViewController {
     
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

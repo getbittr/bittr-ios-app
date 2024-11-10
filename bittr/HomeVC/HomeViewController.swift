@@ -349,6 +349,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let goalVC = segue.destination as? BuyViewController
             if let actualGoalVC = goalVC {
                 actualGoalVC.client = self.client
+                actualGoalVC.coreVC = self.coreVC
                 if let actualArticles = self.articles {
                     actualGoalVC.articles = actualArticles
                 }

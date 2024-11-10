@@ -78,8 +78,15 @@ class CoreViewController: UIViewController {
     var varSpecialData:[String: Any]?
     var receivedBittrTransaction:Transaction?
     
-    // Connection to HomeVC
+    // Connection to VCs
     var homeVC:HomeViewController?
+    var infoVC:InfoViewController?
+    var settingsVC:SettingsViewController?
+    var signupVC:SignupViewController?
+    
+    // Articles
+    var allArticles:[String:Article]?
+    var allImages:[String:Data]?
     
     // Elements for QuestionVC
     var tappedQuestion = ""
