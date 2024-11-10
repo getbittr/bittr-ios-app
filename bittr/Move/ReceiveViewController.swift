@@ -230,11 +230,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
-        
         UIPasteboard.general.string = self.addressLabel.text
-        let alert = UIAlertController(title: Language.getWord(withID: Language.getWord(withID: "copied")), message: self.addressLabel.text, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), self.addressLabel.text ?? "", Language.getWord(withID: "okay"))
     }
     
     @IBAction func refreshButtonTapped(_ sender: UIButton) {
@@ -349,10 +346,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         if self.createdInvoice != "" {
             UIPasteboard.general.string = self.createdInvoice
-            //UIPasteboard.general.string = sender.accessibilityIdentifier
-            let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: self.createdInvoice, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "copied"), self.createdInvoice, Language.getWord(withID: "okay"))
         }
     }
     

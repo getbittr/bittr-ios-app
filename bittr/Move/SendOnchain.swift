@@ -41,7 +41,7 @@ extension SendViewController {
                 
             } else if CGFloat(truncating: formatter.number(from: self.amountTextField.text?.replacingOccurrences(of: ",", with: ".") ?? "0.0")!) > self.btcAmount {
                 // Insufficient funds available.
-                self.showErrorMessage(alertTitle: Language.getWord(withID: "oops"), alertMessage: Language.getWord(withID: "spendablebalance"), alertButton: Language.getWord(withID: "okay"))
+                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "spendablebalance"), Language.getWord(withID: "okay"))
             } else {
             
                 self.nextLabel.alpha = 0
@@ -162,9 +162,9 @@ extension SendViewController {
                                 
                                 if "\(error)".contains("InsufficientFunds") {
                                     let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
-                                    self.showErrorMessage(alertTitle: Language.getWord(withID: "oops"), alertMessage: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", alertButton: Language.getWord(withID: "okay"))
+                                    self.showAlert(Language.getWord(withID: "oops"), "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", Language.getWord(withID: "okay"))
                                 } else {
-                                    self.showErrorMessage(alertTitle: "Oops!", alertMessage: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", alertButton: Language.getWord(withID: "okay"))
+                                    self.showAlert(Language.getWord(withID: "oops"), "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", Language.getWord(withID: "okay"))
                                 }
                                 
                                 SentrySDK.capture(error: error)
@@ -175,7 +175,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                self.showErrorMessage(alertTitle: Language.getWord(withID: "oops"), alertMessage: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", alertButton: Language.getWord(withID: "okay"))
+                                self.showAlert(Language.getWord(withID: "oops"), "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", Language.getWord(withID: "okay"))
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -205,7 +205,7 @@ extension SendViewController {
                 
                 if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                     
-                    self.showErrorMessage(alertTitle: Language.getWord(withID: "highfeerate"), alertMessage: Language.getWord(withID: "highfeerate2"), alertButton: Language.getWord(withID: "okay"))
+                    self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
                 }
             }
         case "medium":
@@ -219,7 +219,7 @@ extension SendViewController {
                 
                 if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                     
-                    self.showErrorMessage(alertTitle: Language.getWord(withID: "highfeerate"), alertMessage: Language.getWord(withID: "highfeerate2"), alertButton: Language.getWord(withID: "okay"))
+                    self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
                 }
             }
         case "slow":
@@ -230,7 +230,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsSlow.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                self.showErrorMessage(alertTitle: Language.getWord(withID: "highfeerate"), alertMessage: Language.getWord(withID: "highfeerate2"), alertButton: Language.getWord(withID: "okay"))
+                self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
             }
         default:
             self.fastView.backgroundColor = UIColor(white: 1, alpha: 0.7)
@@ -240,7 +240,7 @@ extension SendViewController {
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)) / (CGFloat(truncating: NumberFormatter().number(from: ((self.amountTextField.text!).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)))!)*100000000) > 0.1 {
                 
-                self.showErrorMessage(alertTitle: Language.getWord(withID: "highfeerate"), alertMessage: Language.getWord(withID: "highfeerate2"), alertButton: Language.getWord(withID: "okay"))
+                self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
             }
         }
     }
@@ -391,12 +391,12 @@ extension SendViewController {
                         }
                     } catch {
                         print("Transaction error: \(error.localizedDescription)")
-                        self.showErrorMessage(alertTitle: Language.getWord(withID: "error"), alertMessage: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", alertButton: Language.getWord(withID: "okay"))
+                        self.showAlert(Language.getWord(withID: "error"), "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", Language.getWord(withID: "okay"))
                     }
                 }
             } else {
                 print("Wallet or Blockchain instance not available.")
-                self.showErrorMessage(alertTitle: Language.getWord(withID: "error"), alertMessage: Language.getWord(withID: "transactionerror2"), alertButton: Language.getWord(withID: "okay"))
+                self.showAlert(Language.getWord(withID: "error"), Language.getWord(withID: "transactionerror2"), Language.getWord(withID: "okay"))
             }
         }))
         self.present(alert, animated: true)
@@ -442,7 +442,7 @@ extension SendViewController {
 
 extension UIViewController {
     
-    func showErrorMessage(alertTitle:String, alertMessage:String, alertButton:String) {
+    func showAlert(_ alertTitle:String, _ alertMessage:String, _ alertButton:String) {
         DispatchQueue.main.async {
             let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))

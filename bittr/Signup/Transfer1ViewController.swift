@@ -269,9 +269,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 guard let data = data else {
                     print(String(describing: error))
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                        self.present(alert, animated: true)
+                        self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "bittrsignupfail4"), Language.getWord(withID: "okay"))
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)
                         }

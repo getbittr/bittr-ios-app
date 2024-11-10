@@ -39,7 +39,7 @@ extension SendViewController {
                 }
             }
         } else {
-            self.showErrorMessage(alertTitle: Language.getWord(withID: "scanningnotsupported"), alertMessage: Language.getWord(withID: "scanningnotavailable"), alertButton: Language.getWord(withID: "okay"))
+            self.showAlert(Language.getWord(withID: "scanningnotsupported"), Language.getWord(withID: "scanningnotavailable"), Language.getWord(withID: "okay"))
         }
     }
     
@@ -116,7 +116,7 @@ extension SendViewController {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showErrorMessage(alertTitle: Language.getWord(withID: "noaddressfound"), alertMessage: Language.getWord(withID: "pleasescan"), alertButton: Language.getWord(withID: "okay"))
+            self.showAlert(Language.getWord(withID: "noaddressfound"), Language.getWord(withID: "pleasescan"), Language.getWord(withID: "okay"))
         } else if code.lowercased().contains("lnurl") || self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
             // Valid LNURL code.
             self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
@@ -149,7 +149,7 @@ extension SendViewController {
              } else {
                  self.toTextField.text = nil
                  self.amountTextField.text = nil
-                 self.showErrorMessage(alertTitle: Language.getWord(withID: "nobitcoinaddressfound"), alertMessage: Language.getWord(withID: "pleasescan2"), alertButton: Language.getWord(withID: "okay"))
+                 self.showAlert(Language.getWord(withID: "nobitcoinaddressfound"), Language.getWord(withID: "pleasescan2"), Language.getWord(withID: "okay"))
              }
         }
         

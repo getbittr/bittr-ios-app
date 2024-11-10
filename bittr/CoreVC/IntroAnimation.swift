@@ -10,11 +10,8 @@ import UIKit
 extension CoreViewController {
 
     override func viewDidLayoutSubviews() {
-        
         firstCoin.layer.cornerRadius = firstCoin.bounds.height / 2
         secondCoin.layer.cornerRadius = firstCoin.bounds.height / 2
-        
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -80,9 +77,7 @@ extension CoreViewController {
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {
                                 // User not connected to internet.
-                                let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                                self.present(alert, animated: true)
+                                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
                             }
                         }
                     }

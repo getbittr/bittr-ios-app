@@ -291,17 +291,13 @@ class TransactionViewController: UIViewController {
     @IBAction func idButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.id
-        let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.id, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), self.tappedTransaction.id, Language.getWord(withID: "okay"))
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lnDescription
-        let alert = UIAlertController(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), self.tappedTransaction.lnDescription, Language.getWord(withID: "okay"))
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {

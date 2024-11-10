@@ -80,11 +80,6 @@ extension CoreViewController {
                     lightningPaymentVC.chfValue = self.chfValue
                 }
             }
-        } else if segue.identifier == "CoreToSignup" {
-            if let signupVC = segue.destination as? SignupViewController {
-                signupVC.coreVC = self
-                self.signupVC = signupVC
-            }
         }
     }
     

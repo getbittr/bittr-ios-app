@@ -189,9 +189,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "remove"), style: .default, handler: { _ in
             // Copy the invoice to the clipboard
             CacheManager.emptyImage()
-            let alert = UIAlertController(title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "cacheemptied"), Language.getWord(withID: "cachedimages2"), Language.getWord(withID: "okay"))
         }))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
@@ -209,10 +207,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 if peers.count == 1 {
                     if peers[0].isConnected == true {
                         print("Did successfully check peer connection.")
-                        
-                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                        self.present(alert, animated: true)
+                        self.showAlert(Language.getWord(withID: "bittrpeer"), Language.getWord(withID: "bittrpeer2"), Language.getWord(withID: "okay"))
                     } else {
                         print("Not connected to peer.")
                         
@@ -258,9 +253,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                         DispatchQueue.main.async {
                             self.transactionsLabel.alpha = 1
                             self.transactionsSpinner.stopAnimating()
-                            let alert = UIAlertController(title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions3"), preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                            self.present(alert, animated: true)
+                            self.showAlert(Language.getWord(withID: "bittrtransactions"), Language.getWord(withID: "bittrtransactions3"), Language.getWord(withID: "okay"))
                         }
                     } else {
                         DispatchQueue.main.async {
@@ -311,9 +304,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     }
     
     func showNotificationAlert() {
-        let alert = UIAlertController(title: Language.getWord(withID: "bittrnotification"), message: Language.getWord(withID: "bittrnotification2"), preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "bittrnotification"), Language.getWord(withID: "bittrnotification2"), Language.getWord(withID: "okay"))
     }
     
     func reconnectToPeer() {

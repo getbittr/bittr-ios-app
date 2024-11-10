@@ -230,9 +230,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                     DispatchQueue.main.async {
                                                         self.nextButtonActivityIndicator.stopAnimating()
                                                         self.nextButtonLabel.alpha = 1
-                                                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), preferredStyle: .alert)
-                                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                                                        self.present(alert, animated: true)
+                                                        self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "verificationfail"), Language.getWord(withID: "okay"))
                                                     }
                                                 }
                                             }
@@ -342,9 +340,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         guard let data = data else {
                             DispatchQueue.main.async {
                                 print(String(describing: error))
-                                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                                self.present(alert, animated: true)
+                                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "bittrsignupfail"), Language.getWord(withID: "okay"))
                                 if let actualError = error {
                                     SentrySDK.capture(error: actualError)
                                 }
@@ -497,9 +493,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     guard let data = data else {
                                         print(String(describing: error))
                                         DispatchQueue.main.async {
-                                            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), preferredStyle: .alert)
-                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                                            self.present(alert, animated: true)
+                                            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "bittrsignupfail4"), Language.getWord(withID: "okay"))
                                             if let actualError = error {
                                                 SentrySDK.capture(error: actualError)
                                             }

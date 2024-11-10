@@ -279,9 +279,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -294,17 +292,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -317,17 +311,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -472,9 +462,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                let alert = UIAlertController(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
                 return
             }
             
@@ -516,9 +504,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerLabel.text == Language.getWord(withID: "syncing") {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -529,9 +515,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerLabel.text != Language.getWord(withID: "syncing") {
             if self.couldNotFetchConversion == true {
-                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }

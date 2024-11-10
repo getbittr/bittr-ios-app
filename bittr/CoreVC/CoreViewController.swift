@@ -159,17 +159,21 @@ class CoreViewController: UIViewController {
         self.setWords()
         
         // Determine whether to show pin view or signup view.
-        if let actualPin = CacheManager.getPin() {
+        if CacheManager.getPin() != nil {
             // Wallet exists. Launch pin.
-            signupAlpha = 0
-            blackSignupAlpha = 0
+            self.signupAlpha = 0
+            self.blackSignupAlpha = 0
+            // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
+            
         } else {
-            // No wallet exists yet. Go through signup.
+            // No wallet exists yet. Load SignupVC ahead of intro animation completion.
+            
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
             let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
             self.addChild(newChild)
             newChild.view.frame.size = self.signupContainerView.frame.size
             self.signupContainerView.addSubview(newChild.view)
+            (newChild as! SignupViewController).coreVC = self
             newChild.didMove(toParent: self)
         }
     }

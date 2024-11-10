@@ -504,9 +504,7 @@ extension HomeViewController {
                     print("Conversion error:" + String(describing: error))
                     
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                        self.present(alert, animated: true)
+                        self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
                         
                         self.couldNotFetchConversion = true
                         self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
@@ -590,9 +588,7 @@ extension HomeViewController {
                         print("Conversion error:" + error.localizedDescription)
                         
                         DispatchQueue.main.async {
-                            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                            self.present(alert, animated: true)
+                            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
                             
                             self.couldNotFetchConversion = true
                             self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
