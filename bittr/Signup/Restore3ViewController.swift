@@ -45,6 +45,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             if actualPreviousPin == enteredPin {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                 
+                self.coreVC?.setClient()
                 CacheManager.storePin(pin: actualPreviousPin)
                 
             } else {

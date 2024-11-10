@@ -66,9 +66,7 @@ class LightningNodeService {
                     trustedPeersNoReserve: [
                         PublicKey("03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36"),
                         PublicKey("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12")
-                    ],
-                    perChannelReserveSats: UInt64(1000) // Set an appropriate value
-                )
+                    ], perChannelReserveSats: UInt64(1000))
         )
         
         let nodeBuilder = Builder.fromConfig(config: config)
@@ -76,14 +74,13 @@ class LightningNodeService {
         // Check if mnenomic has already been created.
         var mnemonicString = ""
         if let actualMnemonic = CacheManager.getMnemonic() {
-            // Mnemonic found in storage.
-            mnemonicString = actualMnemonic
+            // Existing wallet.
             print("Did find mnemonic.")
+            mnemonicString = actualMnemonic
         } else {
-            // Create new mnemonic.
-            let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
-            mnemonicString = mnemonic.asString()
+            // New wallet.
             print("Did not find mnemonic. Creating a new one.")
+            mnemonicString = BitcoinDevKit.Mnemonic.init(wordCount: .words12).asString()
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         
@@ -139,21 +136,17 @@ class LightningNodeService {
                         bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .bitcoin)
                     }
                     
+                    // Get XPUB.
                     let descriptor = bip84ExternalDescriptor.asString()
-                    
                     let components = descriptor.components(separatedBy: "]")
-                    
                     if components.count > 1 {
-                        
                         let xpubPart = components[1].split(separator: "/").first
-                        
                         if let xpub = xpubPart {
                             print("Did get XPUB.")
                             self.xpub = String(xpub)
                         } else {
                             print("Error: Could not extract XPUB")
                         }
-                        
                     } else {
                         print("Error: Descriptor format not recognized")
                     }
@@ -200,7 +193,6 @@ class LightningNodeService {
                 }
                 
                 print("Will sync wallet.")
-                
                 // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
                 try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
                 
@@ -215,20 +207,19 @@ class LightningNodeService {
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet
                 self.bdkBalance = Int(try self.bdkWallet!.getBalance().confirmed)
-                print("Did fetch onchain balance from BDK.")
+                print("Did fetch onchain balance.")
                 
                 // Retrieve a list of transaction details from the wallet, excluding raw transaction data
                 walletTransactions = try self.bdkWallet!.listTransactions(includeRaw: false)
-                
-                // Print the balance and the list of wallet transactions
-                print("Did fetch BDK transactions.")
-                
+                print("Did fetch onchain transactions.")
                 let actualWalletTransactions = walletTransactions ?? [TransactionDetails]()
                 self.varWalletTransactions = actualWalletTransactions
                 
+                // Get current height.
                 let fetchedCurrentHeight = try self.blockchain!.getHeight()
                 self.currentHeight = Int(fetchedCurrentHeight)
                 
+                // Proceed to next step.
                 self.connectToLightningPeer()
                 
             } catch let error as BdkError {
@@ -346,23 +337,24 @@ class LightningNodeService {
     
     func getChannelsAndPayments(actualWalletTransactions:[TransactionDetails]) {
         
-        // Get Lightning channels.
         Task {
             do {
+                // Get channels.
                 let channels = try await LightningNodeService.shared.listChannels()
                 print("Channels: \(channels.count)")
+                
+                // Register funding transaction ID.
                 if channels.count > 0 {
                     if let channelTxoID = channels[0].fundingTxo?.txid as? String {
                         CacheManager.storeTxoID(txoID: channelTxoID)
                     }
                 }
                 
+                // Get payments.
                 let payments = try await LightningNodeService.shared.listPayments()
                 
-                var transactionsNotificationDict = [AnyHashable:Any]()
-                transactionsNotificationDict = ["transactions":actualWalletTransactions/*,"lightningnodeservice":self*/,"channels":channels, "payments":payments, "bdkbalance":bdkBalance, "currentheight":self.currentHeight]
-                
-                // Step 9.
+                // Send notification with all details.
+                let transactionsNotificationDict:[AnyHashable:Any] = ["transactions":actualWalletTransactions, "channels":channels, "payments":payments, "bdkbalance":self.bdkBalance, "currentheight":self.currentHeight]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")

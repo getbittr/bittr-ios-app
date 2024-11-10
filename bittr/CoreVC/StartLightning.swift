@@ -11,9 +11,9 @@ import LDKNodeFFI
 
 extension CoreViewController {
 
-    @objc func startLightning() {
+    func startLightning() {
         
-        // Step 3.
+        // Update syncing progress.
         self.startSync(type: "ldk")
         
         // Start Lightning node.
@@ -23,11 +23,11 @@ extension CoreViewController {
             return taskResult
         }
         
-        // Time out Lightning node start after 10 seconds.
+        // Time out Lightning node start after 15 seconds.
         let timeoutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(10) * NSEC_PER_SEC)
+            try await Task.sleep(nanoseconds: UInt64(15) * NSEC_PER_SEC)
             startTask.cancel()
-            print("Could not start node within 10 seconds.")
+            print("Could not start node within 15 seconds.")
             self.stopLightning(notification: nil, stopNode: true)
         }
         
@@ -69,16 +69,6 @@ extension CoreViewController {
     @objc func stopLightning(notification:NSNotification?, stopNode:Bool) {
         
         if let actualNotification = notification {
-            
-            /*do {
-                try LightningNodeService.shared.stop()
-                print("Node stopped.")
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                print("Can't stop node. \(errorString.title): \(errorString.detail)")
-            } catch {
-                print("Can't stop node. \(error.localizedDescription)")
-            }*/
             
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {

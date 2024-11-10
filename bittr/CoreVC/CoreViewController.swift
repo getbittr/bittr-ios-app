@@ -103,7 +103,11 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
     
-    // Conversion rates
+    // Wallet details.
+    var currentHeight:Int?
+    var lightningChannels:[ChannelDetails]?
+    var lightningBalanceInSats:Int = 0
+    var onchainBalanceInSats:Int = 0
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
@@ -147,7 +151,6 @@ class CoreViewController: UIViewController {
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)

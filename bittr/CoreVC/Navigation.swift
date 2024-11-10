@@ -65,9 +65,7 @@ extension CoreViewController {
             if let questionVC = segue.destination as? QuestionViewController {
                 questionVC.headerText = self.tappedQuestion
                 questionVC.answerText = self.tappedAnswer
-                if let actualBittrChannel = self.bittrChannel {
-                    questionVC.bittrChannel = actualBittrChannel
-                }
+                questionVC.coreVC = self
                 if let actualTappedType = self.tappedType {
                     questionVC.questionType = actualTappedType
                 }

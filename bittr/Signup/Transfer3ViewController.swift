@@ -265,6 +265,7 @@ class Transfer3ViewController: UIViewController {
                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "done"), style: .cancel, handler: {_ in
                                 // Hide signup and proceed into wallet.
                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+                                self.coreVC?.setClient()
                             }))
                             self.present(alert, animated: true)
                         }

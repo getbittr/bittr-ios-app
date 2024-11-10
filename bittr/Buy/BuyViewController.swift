@@ -31,7 +31,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var continueButton: UIButton!
     
     // Client details
-    var client = Client()
     var allIbanEntities = [IbanEntity]()
     
     // Articles
@@ -69,7 +68,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
         
         // Set colors and language.
         self.changeColors()
@@ -83,7 +81,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         allIbanEntities = [IbanEntity]()
         
-        for eachIbanEntity in self.client.ibanEntities {
+        if self.coreVC == nil {return}
+        for eachIbanEntity in self.coreVC!.client.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
                 self.allIbanEntities += [eachIbanEntity]
             }
@@ -103,7 +102,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if let actualDeviceDict = deviceDict {
             // Client exists in cache.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            self.client = clients[0]
+            self.coreVC?.client = clients[0]
             self.parseIbanEntities()
         }
     }
@@ -191,7 +190,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             if let actualRegisterVC = registerVC {
                 
                 actualRegisterVC.coreVC = self.coreVC
-                actualRegisterVC.currentClientID = self.client.id
+                actualRegisterVC.currentClientID = self.coreVC!.client.id
                 if let actualArticles = self.articles {
                     actualRegisterVC.articles = actualArticles
                 }

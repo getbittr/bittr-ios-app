@@ -86,7 +86,7 @@ extension HomeViewController {
             } else {
                 actualCell.boltImage.alpha = 0
                 
-                if thisTransaction.confirmations < 1 && self.currentHeight != nil {
+                if thisTransaction.confirmations < 1 && self.coreVC?.currentHeight != nil {
                     // Unconfirmed transaction.
                     actualCell.satsLabel.textColor = Colors.getColor(color: "unconfirmed")
                     actualCell.eurosLabel.textColor = Colors.getColor(color: "unconfirmed")

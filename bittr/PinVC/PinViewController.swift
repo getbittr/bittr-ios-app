@@ -199,15 +199,11 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             }
             
             if let actualCorrectPin = self.correctPin {
-                
                 if actualCorrectPin == self.pinTextField.text {
                     // Correct pin.
                     CacheManager.resetFailedPinAttempts()
                     if let actualCoreVC = self.coreVC {
-                        
                         self.pinSpinner.startAnimating()
-                        
-                        // Step 1.
                         actualCoreVC.correctPin(spinner:self.pinSpinner)
                     }
                 } else {

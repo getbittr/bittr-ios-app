@@ -47,7 +47,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
             if actualPreviousPin == enteredPin {
                 // Pin is correct.
                 // Start wallet.
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "startlightning"), object: nil, userInfo: nil) as Notification)
+                self.coreVC?.startLightning()
                 // Move to next page.
                 let notificationDict:[String: Any] = ["page":"5"]
                  NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)

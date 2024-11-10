@@ -29,8 +29,7 @@ class QuestionViewController: UIViewController {
     var headerText:String?
     var answerText:String?
     var questionType:String?
-    
-    var bittrChannel:Channel?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,7 +55,7 @@ class QuestionViewController: UIViewController {
         
         if let actualType = questionType {
             if actualType == "lightningreceivable" {
-                if let actualChannel = bittrChannel {
+                if let actualChannel = self.coreVC?.bittrChannel {
                     
                     self.setChannelChart()
                     
@@ -66,7 +65,7 @@ class QuestionViewController: UIViewController {
                     self.answerLabel.text = Language.getWord(withID: "lightningexplanation1")
                 }
             } else if actualType == "lightningsendable" {
-                if let actualChannel = bittrChannel {
+                if let actualChannel = self.coreVC?.bittrChannel {
                     
                     self.setChannelChart()
                     
@@ -76,7 +75,7 @@ class QuestionViewController: UIViewController {
                     self.answerLabel.text = Language.getWord(withID: "questionvc13")
                 }
             } else if actualType == "lightningexplanation" {
-                if let actualChannel = bittrChannel {
+                if let actualChannel = self.coreVC?.bittrChannel {
                     
                     self.setChannelChart()
                     
@@ -116,6 +115,7 @@ class QuestionViewController: UIViewController {
     
     func setChannelChart() {
         
+        let bittrChannel = self.coreVC?.bittrChannel
         self.yourBalanceLabel.text = "\(addSpacesToString(balanceValue: "\(bittrChannel!.received+bittrChannel!.punishmentReserve)"))"
         self.receiveLimitLabel.text = "\(addSpacesToString(balanceValue: "\(bittrChannel!.size - bittrChannel!.received - bittrChannel!.punishmentReserve)"))"
         self.totalLabel.text = "\(addSpacesToString(balanceValue: "\(bittrChannel!.size)")) \(Language.getWord(withID: "total")), \(addSpacesToString(balanceValue: "\(bittrChannel!.punishmentReserve)")) \(Language.getWord(withID: "reserve"))"

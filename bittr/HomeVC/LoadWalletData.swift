@@ -19,15 +19,17 @@ extension HomeViewController {
             
             // Set current blockchain height.
             if let actualCurrentHeight = userInfo["currentheight"] as? Int {
-                self.currentHeight = actualCurrentHeight
+                self.coreVC?.currentHeight = actualCurrentHeight
             }
             
             // Set Lightning channels.
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
+                self.coreVC?.lightningChannels = actualLightningChannels
+                
+                // Calculate lightning balance by adding up the values of each channel.
+                self.coreVC!.lightningBalanceInSats = 0
                 for eachChannel in actualLightningChannels {
-                    self.btclnBalance += CGFloat(eachChannel.outboundCapacityMsat / 1000) + CGFloat(eachChannel.unspendablePunishmentReserve ?? 0)
-                    self.channels = actualLightningChannels
-                    //print(eachChannel)
+                    self.coreVC!.lightningBalanceInSats += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
                 }
                 
                 // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
@@ -39,7 +41,7 @@ extension HomeViewController {
             
             // Set onchain balance.
             if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
-                self.bdkBalance = CGFloat(actualBdkBalance)
+                self.coreVC?.onchainBalanceInSats = actualBdkBalance
             }
             
             // Set transactions.
@@ -104,7 +106,7 @@ extension HomeViewController {
                             if let confirmationTime = eachTransaction.confirmationTime {
                                 thisTransaction.height = Int(confirmationTime.height)
                                 thisTransaction.timestamp = Int(confirmationTime.timestamp)
-                                if let actualCurrentHeight = self.currentHeight {
+                                if let actualCurrentHeight = self.coreVC?.currentHeight {
                                     thisTransaction.confirmations = actualCurrentHeight - thisTransaction.height
                                 }
                             } else {
@@ -143,7 +145,7 @@ extension HomeViewController {
                                     thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.id)
                                     thisTransaction.id = eachPayment.kind.preimageAsString ?? eachPayment.id
                                     thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
-                                    if let actualChannels = self.channels {
+                                    if let actualChannels = self.coreVC?.lightningChannels {
                                         thisTransaction.channelId = actualChannels[0].channelId
                                     }
                                     
@@ -194,6 +196,7 @@ extension HomeViewController {
     
     
     func setBittrChannel(withChannel:ChannelDetails) {
+        
         let thisChannel = Channel()
         thisChannel.id = withChannel.channelId
         thisChannel.received = Int(withChannel.outboundCapacityMsat)/1000
@@ -202,12 +205,7 @@ extension HomeViewController {
         thisChannel.sendableMinimum = Int(withChannel.nextOutboundHtlcMinimumMsat)/1000
         thisChannel.receivableMaximum = Int(withChannel.inboundHtlcMaximumMsat ?? 0)/1000
         
-        self.bittrChannel = thisChannel
-        //print("Bittr channel 185: \(thisChannel.received)")
-        if let actualCoreVC = self.coreVC {
-            //print("Bittr channel 187: \(thisChannel.received)")
-            actualCoreVC.bittrChannel = thisChannel
-        }
+        self.coreVC?.bittrChannel = thisChannel
     }
     
     
@@ -217,7 +215,7 @@ extension HomeViewController {
         
         // Get this user's unique Bittr codes.
         var depositCodes = [String]()
-        for eachIbanEntity in self.client.ibanEntities {
+        for eachIbanEntity in self.coreVC!.client.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
                 depositCodes += [eachIbanEntity.yourUniqueCode]
             }
@@ -244,7 +242,6 @@ extension HomeViewController {
             }
         } else {
             // Only send new transaction IDs to Bittr.
-            
             // Collect the txIDs that have not been checked against the Bittr API before.
             for eachTxId in txIds {
                 if !cachedBittrTransactionIDs.contains(eachTxId) {
@@ -264,8 +261,6 @@ extension HomeViewController {
                 }
             }
         }
-        
-        //newTxIds = ["aa7706e68a39d7b45d47ea96a684d0c6d032717db0ba6fc43d5044f52ef72803", "8785f725675af84d3b2115753004d4386a3d12c1bf8257519baea3eeee276fea"]
         
         print("TxIds being sent to Bittr: \(newTxIds.count)")
         
@@ -308,7 +303,7 @@ extension HomeViewController {
                             thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.bitcoinAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)*100000000)
                             thisTransaction.timestamp = transactionTimestamp
                             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachTransaction.txId)
-                            if let actualChannels = self.channels {
+                            if let actualChannels = self.coreVC?.lightningChannels {
                                 thisTransaction.channelId = actualChannels[0].channelId
                             }
                             thisTransaction.isFundingTransaction = true
@@ -356,19 +351,22 @@ extension HomeViewController {
     
     func setTotalSats(updateTableAfterConversion:Bool) {
         
-        // Calculate total balance
-        self.btcBalance = self.bdkBalance
-        self.totalBalanceSats = self.btcBalance + self.btclnBalance
-        let totalBalanceSatsString = "\(Int(self.totalBalanceSats))"
-        self.balanceWasFetched = true
+        if self.coreVC == nil { return }
         
-        // Create balance representation with bold satoshis.
-        var zeros = "0.00 000 00"
-        var numbers = "\(self.btcBalance)"
+        // Update bitcoin sign alpha.
         var bitcoinSignAlpha = 0.18
         if CacheManager.darkModeIsOn() {
             bitcoinSignAlpha = 0.3
         }
+        
+        // Calculate total balance
+        let totalBalanceSats = self.coreVC!.onchainBalanceInSats + self.coreVC!.lightningBalanceInSats
+        let totalBalanceSatsString = "\(totalBalanceSats)"
+        self.balanceWasFetched = true
+        
+        // Create balance representation with bold satoshis.
+        var zeros = "0.00 000 00"
+        var numbers = totalBalanceSatsString
         
         switch totalBalanceSatsString.count {
         case 1:
@@ -397,7 +395,7 @@ extension HomeViewController {
             numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8]
         default:
             zeros = ""
-            numbers = "\(totalBalanceSats/100000000)"
+            numbers = "\(CGFloat(totalBalanceSats)/100000000)"
             bitcoinSignAlpha = 1
         }
         
@@ -415,12 +413,12 @@ extension HomeViewController {
             transparentColor = "150, 177, 204"
             fillColor = "255, 255, 255"
         }
-        balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)</span></center>"
+        self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)</span></center>"
         
         // Store HTML balance text to cache.
-        CacheManager.updateCachedData(data: balanceText, key: "balance")
+        CacheManager.updateCachedData(data: self.balanceText, key: "balance")
         
-        if let htmlData = balanceText.data(using: .unicode) {
+        if let htmlData = self.balanceText.data(using: .unicode) {
             do {
                 let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                 balanceLabel.attributedText = attributedText
@@ -437,8 +435,8 @@ extension HomeViewController {
                 // Store satoshis balance string to cache.
                 CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
                 
-                // Convert bitcoin balance to EUR / CHF.
-                self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: totalBalanceSatsString)!)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
+                // Convert balance to EUR / CHF.
+                self.setConversion(btcValue: CGFloat(totalBalanceSats)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
                 
             } catch let e as NSError {
                 print("Couldn't fetch text: \(e.localizedDescription)")
@@ -468,20 +466,7 @@ extension HomeViewController {
                 }
                 self.updateTableAfterConversion()
                 self.calculateProfit(cachedData: cachedData)
-            }/* else {
-                Task {
-                    do {
-                        let refreshedChannels = try await LightningNodeService.shared.listChannels()
-                        print("Channels: \(refreshedChannels.count)")
-                        if refreshedChannels.count > 0 {
-                            self.channels = refreshedChannels
-                            self.setBittrChannel(withChannel: refreshedChannels[0])
-                        }
-                    } catch {
-                        print("Error listing channels: \(error.localizedDescription)")
-                    }
-                }
-            }*/
+            }
         } else {
             // Conversion rate hasn't yet been fetched.
             print("Did start currency conversion.")
@@ -563,20 +548,7 @@ extension HomeViewController {
                                         }
                                         self.updateTableAfterConversion()
                                         self.calculateProfit(cachedData: cachedData)
-                                    }/* else {
-                                        Task {
-                                            do {
-                                                let refreshedChannels = try await LightningNodeService.shared.listChannels()
-                                                print("Channels: \(refreshedChannels.count)")
-                                                if refreshedChannels.count > 0 {
-                                                    self.channels = refreshedChannels
-                                                    self.setBittrChannel(withChannel: refreshedChannels[0])
-                                                }
-                                            } catch {
-                                                print("Error listing channels: \(error.localizedDescription)")
-                                            }
-                                        }
-                                    }*/
+                                    }
                                     
                                     if let actualCoreVC = self.coreVC {
                                         actualCoreVC.completeSync(type: "conversion")

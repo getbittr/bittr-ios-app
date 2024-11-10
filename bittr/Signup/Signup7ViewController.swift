@@ -69,6 +69,7 @@ class Signup7ViewController: UIViewController {
         
         // Close sign up and proceed into wallet.
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+        self.coreVC?.setClient()
     }
     
     @IBAction func partnerButtonTapped(_ sender: UIButton) {
