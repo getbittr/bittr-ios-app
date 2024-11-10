@@ -41,10 +41,10 @@ extension UIViewController {
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         
-                        var correctValue:CGFloat = CGFloat(sendVC?.eurValue ?? receiveVC?.homeVC?.eurValue ?? 0)
+                        var correctValue:CGFloat = CGFloat(sendVC?.eurValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
                         var currencySymbol = "€"
                         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                            correctValue = CGFloat(sendVC?.chfValue ?? receiveVC?.homeVC?.eurValue ?? 0)
+                            correctValue = CGFloat(sendVC?.chfValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
                             currencySymbol = "CHF"
                         }
                         

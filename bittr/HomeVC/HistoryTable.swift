@@ -34,10 +34,10 @@ extension HomeViewController {
             actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
             
             // Set conversion
-            var correctValue:CGFloat = self.eurValue
+            var correctValue:CGFloat = self.coreVC!.eurValue
             var currencySymbol = "€"
             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.chfValue
+                correctValue = self.coreVC!.chfValue
                 currencySymbol = "CHF"
             }
             

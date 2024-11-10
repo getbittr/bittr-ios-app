@@ -44,152 +44,140 @@ extension HomeViewController {
                 self.coreVC?.onchainBalanceInSats = actualBdkBalance
             }
             
-            // Set transactions.
-            if let receivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
-                
-                self.newTransactions.removeAll()
-                
-                // Add cached Lightning payments to array.
-                let cachedLightningTransactions = CacheManager.getLightningTransactions()
-                if let actualCachedLightningTransactions = cachedLightningTransactions {
-                    self.newTransactions += actualCachedLightningTransactions
-                    for eachTransaction in actualCachedLightningTransactions {
-                        self.cachedLightningIds += [eachTransaction.id]
-                    }
-                }
-                
-                // Collect transaction IDs to be checked with Bittr API.
-                var txIds = [String]()
+            // Collect transaction IDs to be checked with Bittr API.
+            var txIds = [String]()
+            
+            // Set onchain transactions.
+            var receivedTransactions = [TransactionDetails]()
+            if let actualReceivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
+                receivedTransactions = actualReceivedTransactions
                 // Add all onchain transaction IDs.
-                for eachTransaction in receivedTransactions {
+                for eachTransaction in actualReceivedTransactions {
                     txIds += [eachTransaction.txid]
                 }
-                // Add all Lightning payment IDs that haven't yet been cached.
-                if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
-                    for eachPayment in receivedPayments {
-                        if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
-                            txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
-                        }
-                        /*switch eachPayment.kind {
-                        case .bolt11(_,let paymentPreimage,_):
-                            if let actualPreimage = paymentPreimage {
-                                if !self.cachedLightningIds.contains(actualPreimage) { // eachPayment.id
-                                   txIds += [actualPreimage] // eachPayment.id
-                               }
-                            }
-                        default:
-                            print("No preimage available.")
-                        }*/
+            }
+                
+            // Add cached Lightning payments to array.
+            self.newTransactions.removeAll()
+            if let cachedLightningTransactions = CacheManager.getLightningTransactions() {
+                self.newTransactions += cachedLightningTransactions
+                for eachTransaction in cachedLightningTransactions {
+                    self.cachedLightningIds += [eachTransaction.id]
+                }
+            }
+                
+            // Add all Lightning payment IDs that haven't yet been cached.
+            var receivedPayments = [PaymentDetails]()
+            if let actualReceivedPayments = userInfo["payments"] as? [PaymentDetails] {
+                receivedPayments = actualReceivedPayments
+                // Add all lightning payment IDs.
+                for eachPayment in actualReceivedPayments {
+                    if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
+                        txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
                     }
                 }
-                // Add funding transaction ID.
-                if let cachedFundingTxo = CacheManager.getTxoID() {
-                    txIds += [cachedFundingTxo]
-                }
+            }
                 
-                Task {
-                    // Check whether transactions were Bittr purchases.
-                    await fetchTransactionData(txIds:txIds, sendAll: false)
+            // Add funding transaction ID.
+            if let cachedFundingTxo = CacheManager.getTxoID() {
+                txIds += [cachedFundingTxo]
+            }
+                
+            Task {
+                // Check whether transactions were Bittr purchases.
+                await fetchTransactionData(txIds:txIds, sendAll: false)
+                
+                DispatchQueue.main.async {
                     
-                    DispatchQueue.main.async {
+                    // Create onchain transaction entities.
+                    for eachTransaction in receivedTransactions {
                         
-                        // Create onchain transaction entities.
-                        for eachTransaction in receivedTransactions {
+                        let thisTransaction = Transaction()
+                        thisTransaction.id = eachTransaction.txid
+                        thisTransaction.note = CacheManager.getTransactionNote(txid: eachTransaction.txid)
+                        thisTransaction.fee = Int(eachTransaction.fee!)
+                        thisTransaction.received = Int(eachTransaction.received)
+                        thisTransaction.sent = Int(eachTransaction.sent)
+                        thisTransaction.isLightning = false
+                        if let confirmationTime = eachTransaction.confirmationTime {
+                            thisTransaction.height = Int(confirmationTime.height)
+                            thisTransaction.timestamp = Int(confirmationTime.timestamp)
+                            if let actualCurrentHeight = self.coreVC?.currentHeight {
+                                thisTransaction.confirmations = actualCurrentHeight - thisTransaction.height
+                            }
+                        } else {
+                            // Handle the case where confirmationTime is nil.
+                            thisTransaction.height = 0
+                            thisTransaction.confirmations = 0
+                            let currentTimestamp = Int(Date().timeIntervalSince1970)
+                            thisTransaction.timestamp = currentTimestamp
+                        }
+                        if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
+                            thisTransaction.isBittr = true
+                            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                            thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
+                        }
+                        
+                        // Add all onchain transactions to array.
+                        self.newTransactions += [thisTransaction]
+                    }
+                    
+                    // Create lightning transaction entities.
+                    for eachPayment in receivedPayments {
+                        if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
                             
                             let thisTransaction = Transaction()
-                            thisTransaction.id = eachTransaction.txid
-                            thisTransaction.note = CacheManager.getTransactionNote(txid: eachTransaction.txid)
-                            thisTransaction.fee = Int(eachTransaction.fee!)
-                            thisTransaction.received = Int(eachTransaction.received)
-                            thisTransaction.sent = Int(eachTransaction.sent)
-                            thisTransaction.isLightning = false
-                            if let confirmationTime = eachTransaction.confirmationTime {
-                                thisTransaction.height = Int(confirmationTime.height)
-                                thisTransaction.timestamp = Int(confirmationTime.timestamp)
-                                if let actualCurrentHeight = self.coreVC?.currentHeight {
-                                    thisTransaction.confirmations = actualCurrentHeight - thisTransaction.height
-                                }
+                            if eachPayment.direction == .inbound {
+                                thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
                             } else {
-                                // Handle the case where confirmationTime is nil.
-                                // For example, set a default value or leave it unassigned.
-                                let defaultValue = 0
-                                thisTransaction.height = defaultValue // Replace defaultValue with an appropriate value
-                                thisTransaction.confirmations = 0
-                                let currentTimestamp = Int(Date().timeIntervalSince1970)
-                                thisTransaction.timestamp = currentTimestamp // Replace defaultValue with an appropriate value
+                                thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
+                                thisTransaction.fee = CacheManager.getLightningFees(hash: eachPayment.id)
                             }
+                            thisTransaction.isLightning = true
+                            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.id)
+                            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.id)
+                            thisTransaction.id = eachPayment.kind.preimageAsString ?? eachPayment.id
+                            thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
+                            if let actualChannels = self.coreVC?.lightningChannels {
+                                thisTransaction.channelId = actualChannels[0].channelId
+                            }
+                            
                             if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
                                 thisTransaction.isBittr = true
                                 thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
                                 thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
                             }
                             
-                            // Add all onchain transactions to array.
-                            self.newTransactions += [thisTransaction]
+                            if eachPayment.status == .succeeded {
+                                // Add new Lightning payments to array.
+                                self.newTransactions += [thisTransaction]
+                                CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                            }
                         }
                         
-                        // Create lightning transaction entities.
-                        if let receivedPayments = userInfo["payments"] as? [PaymentDetails] {
-                            
-                            for eachPayment in receivedPayments {
-                                if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
-                                    let thisTransaction = Transaction()
-                                    if eachPayment.direction == .inbound {
-                                        thisTransaction.received = Int(eachPayment.amountMsat ?? 0)/1000
-                                    } else {
-                                        thisTransaction.sent = Int(eachPayment.amountMsat ?? 0)/1000
-                                        thisTransaction.fee = CacheManager.getLightningFees(hash: eachPayment.id)
-                                    }
-                                    thisTransaction.isLightning = true
-                                    thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: eachPayment.id)
-                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachPayment.id)
-                                    thisTransaction.id = eachPayment.kind.preimageAsString ?? eachPayment.id
-                                    thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
-                                    if let actualChannels = self.coreVC?.lightningChannels {
-                                        thisTransaction.channelId = actualChannels[0].channelId
-                                    }
-                                    
-                                    if (self.bittrTransactions.allKeys as! [String]).contains(thisTransaction.id) {
-                                        thisTransaction.isBittr = true
-                                        thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.bittrTransactions[thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
-                                        thisTransaction.currency = (self.bittrTransactions[thisTransaction.id] as! [String:Any])["currency"] as! String
-                                    }
-                                    
-                                    if eachPayment.status == .succeeded {
-                                        // Add new Lightning payments to array.
-                                        self.newTransactions += [thisTransaction]
-                                        CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
-                                    }
-                                }
-                                
-                                if eachPayment.kind.preimageAsString != nil {
-                                    if self.cachedLightningIds.contains(eachPayment.kind.preimageAsString!), self.cachedLightningIds.contains(eachPayment.id) {
-                                        // Transaction duplicates.
-                                        for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
-                                            if eachTransaction.id == eachPayment.id {
-                                                self.newTransactions.remove(at: index)
-                                            }
-                                        }
+                        if eachPayment.kind.preimageAsString != nil {
+                            if self.cachedLightningIds.contains(eachPayment.kind.preimageAsString!), self.cachedLightningIds.contains(eachPayment.id) {
+                                // Transaction duplicates.
+                                for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
+                                    if eachTransaction.id == eachPayment.id {
+                                        self.newTransactions.remove(at: index)
                                     }
                                 }
                             }
                         }
-                        
-                        // Sort all transactions by date/time.
-                        self.newTransactions.sort { transaction1, transaction2 in
-                            transaction1.timestamp > transaction2.timestamp
-                        }
-                        
-                        // Store transactions in cache.
-                        CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
-                        
-                        // Start balance calculation.
-                        self.setTotalSats(updateTableAfterConversion: true)
                     }
+                    
+                    // Sort all transactions by date/time.
+                    self.newTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    
+                    // Store transactions in cache.
+                    CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
+                    
+                    // Start balance calculation.
+                    self.setTotalSats(updateTableAfterConversion: true)
                 }
-            } else {
-                // Start balance calculation.
-                self.setTotalSats(updateTableAfterConversion: true)
             }
         }
     }
@@ -400,8 +388,8 @@ extension HomeViewController {
         }
         
         // Set text to invisible label to calculate font size for HTML text.
-        balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
-        let font = balanceLabelInvisible.adjustedFont()
+        self.balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
+        let font = self.balanceLabelInvisible.adjustedFont()
         self.satsLabel.font = font
         let adjustedSize = Int(font.pointSize)
         
@@ -518,18 +506,12 @@ extension HomeViewController {
                                 }
                                 
                                 // Set updated conversion rates for EUR and CHF.
-                                self.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
-                                self.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
+                                self.coreVC?.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
+                                self.coreVC?.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
                                 
                                 // Store updated conversion rates in cache.
-                                CacheManager.updateCachedData(data: self.eurValue, key: "eurvalue")
-                                CacheManager.updateCachedData(data: self.chfValue, key: "chfvalue")
-                                
-                                // Share updated conversion rates with the Core View Controller.
-                                if let actualCoreVC = self.coreVC {
-                                    actualCoreVC.eurValue = self.eurValue
-                                    actualCoreVC.chfValue = self.chfValue
-                                }
+                                CacheManager.updateCachedData(data: self.coreVC!.eurValue, key: "eurvalue")
+                                CacheManager.updateCachedData(data: self.coreVC!.chfValue, key: "chfvalue")
                                 
                                 self.didFetchConversion = true
                                 
@@ -575,11 +557,13 @@ extension HomeViewController {
     
     func updateConversionLabel(btcValue:CGFloat) -> String {
         
+        if self.coreVC == nil { return "" }
+        
         // Use preferred currency.
-        var correctValue:CGFloat = self.eurValue
+        var correctValue:CGFloat = self.coreVC!.eurValue
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.chfValue
+            correctValue = self.coreVC!.chfValue
             currencySymbol = "CHF"
         }
         
@@ -633,10 +617,10 @@ extension HomeViewController {
         var accumulatedCurrentValue = 0
         
         // Get preferred currency.
-        var correctValue:CGFloat = self.eurValue
+        var correctValue:CGFloat = self.coreVC!.eurValue
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.chfValue
+            correctValue = self.coreVC!.chfValue
             currencySymbol = "CHF"
         }
         
@@ -653,14 +637,14 @@ extension HomeViewController {
             for eachTransaction in self.setTransactions {
                 
                 if eachTransaction.isBittr == true {
-                    
-                    handledTransactions += 1
                     let transactionValue = CGFloat(eachTransaction.received)/100000000
                     let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
                     
                     accumulatedProfit += transactionProfit
                     accumulatedInvestments += eachTransaction.purchaseAmount
                     accumulatedCurrentValue += Int((transactionValue*correctValue).rounded())
+                    
+                    handledTransactions += 1
                     
                     if bittrTransactionsCount == handledTransactions {
                         // We're done counting.
@@ -674,7 +658,6 @@ extension HomeViewController {
                         self.calculatedCurrentValue = accumulatedCurrentValue
                     }
                 } else {
-                    
                     if bittrTransactionsCount == handledTransactions {
                         
                         self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"

@@ -78,8 +78,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     // Balance calculations
     var balanceWasFetched = false
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
     
     // Booleans
     var didStartReset = false
@@ -320,8 +318,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let actualMoveVC = moveVC {
                 actualMoveVC.fetchedBtcBalance = CGFloat(self.coreVC!.onchainBalanceInSats)
                 actualMoveVC.fetchedBtclnBalance = CGFloat(self.coreVC!.lightningBalanceInSats)
-                actualMoveVC.eurValue = self.eurValue
-                actualMoveVC.chfValue = self.chfValue
+                actualMoveVC.eurValue = self.coreVC!.eurValue
+                actualMoveVC.chfValue = self.coreVC!.chfValue
                 actualMoveVC.homeVC = self
                 
                 if let actualChannels = self.coreVC?.lightningChannels {
@@ -357,8 +355,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
                 actualSendVC.btcAmount = CGFloat(self.coreVC!.onchainBalanceInSats).rounded() * 0.00000001
                 actualSendVC.btclnAmount = CGFloat(self.coreVC!.lightningBalanceInSats).rounded() * 0.00000001
-                actualSendVC.eurValue = self.eurValue
-                actualSendVC.chfValue = self.chfValue
+                actualSendVC.eurValue = self.coreVC!.eurValue
+                actualSendVC.chfValue = self.coreVC!.chfValue
                 actualSendVC.homeVC = self
             }
         } else if segue.identifier == "HomeToReceive" {
@@ -375,8 +373,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let transactionVC = segue.destination as? TransactionViewController
             if let actualTransactionVC = transactionVC {
                 actualTransactionVC.tappedTransaction = self.setTransactions[self.tappedTransaction]
-                actualTransactionVC.eurValue = self.eurValue
-                actualTransactionVC.chfValue = self.chfValue
+                actualTransactionVC.eurValue = self.coreVC!.eurValue
+                actualTransactionVC.chfValue = self.coreVC!.chfValue
             }
         } else if segue.identifier == "HomeToProfit" {
             let profitVC = segue.destination as? ProfitViewController

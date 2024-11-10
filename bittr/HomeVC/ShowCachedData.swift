@@ -25,9 +25,9 @@ extension HomeViewController {
                         bitcoinSign.alpha = 0.3
                     }
                     
-                    balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
+                    self.balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
                     
-                    satsLabel.font = balanceLabelInvisible.adjustedFont()
+                    satsLabel.font = self.balanceLabelInvisible.adjustedFont()
                     
                     satsLabel.alpha = 1
                 } catch let e as NSError {
@@ -38,12 +38,12 @@ extension HomeViewController {
         
         // Set cached Eur Value.
         if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
-            self.eurValue = cachedEurValue
+            self.coreVC?.eurValue = cachedEurValue
         }
         
         // Set cached Chf Value.
         if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
-            self.chfValue = cachedChfValue
+            self.coreVC?.chfValue = cachedChfValue
         }
         
         // Set cached transactions.
