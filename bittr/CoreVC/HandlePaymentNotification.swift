@@ -336,28 +336,11 @@ extension CoreViewController {
                                 if bittrApiTransactions.count == 1 {
                                     for eachTransaction in bittrApiTransactions {
                                         if eachTransaction.txId == fundingTxo {
-                                            
-                                            // This is the funding Txo.
-                                            let formatter = DateFormatter()
-                                            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
-                                            let transactionDate = formatter.date(from:eachTransaction.datetime)!
-                                            let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
-                                            
-                                            let thisTransaction = Transaction()
-                                            thisTransaction.isBittr = true
-                                            thisTransaction.isLightning = true
-                                            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
-                                            thisTransaction.currency = eachTransaction.currency
-                                            thisTransaction.id = eachTransaction.txId
-                                            thisTransaction.sent = 0
-                                            thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.bitcoinAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)*100000000)
-                                            thisTransaction.timestamp = transactionTimestamp
-                                            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachTransaction.txId)
-                                            thisTransaction.isFundingTransaction = true
-                                            
-                                            self.receivedBittrTransaction = thisTransaction
-                                            
                                             DispatchQueue.main.async {
+                                                
+                                                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                                
+                                                self.receivedBittrTransaction = thisTransaction
                                                 self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
                                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                                             }
