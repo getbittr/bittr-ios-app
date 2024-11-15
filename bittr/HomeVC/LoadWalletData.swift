@@ -15,16 +15,23 @@ extension HomeViewController {
 
     @objc func loadWalletData(notification:NSNotification) {
         
+        // Extract notification data.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+            
+            // Ensure CoreVC availability.
+            if self.coreVC == nil {
+                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "walletconnectfail2"), Language.getWord(withID: "okay"))
+                return
+            }
             
             // Set current blockchain height.
             if let actualCurrentHeight = userInfo["currentheight"] as? Int {
-                self.coreVC?.currentHeight = actualCurrentHeight
+                self.coreVC!.currentHeight = actualCurrentHeight
             }
             
             // Set Lightning channels.
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
-                self.coreVC?.lightningChannels = actualLightningChannels
+                self.coreVC!.lightningChannels = actualLightningChannels
                 
                 // Calculate lightning balance by adding up the values of each channel.
                 self.coreVC!.lightningBalanceInSats = 0
@@ -41,7 +48,7 @@ extension HomeViewController {
             
             // Set onchain balance.
             if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
-                self.coreVC?.onchainBalanceInSats = actualBdkBalance
+                self.coreVC!.onchainBalanceInSats = actualBdkBalance
             }
             
             // Collect transaction IDs to be checked with Bittr API.
@@ -88,46 +95,52 @@ extension HomeViewController {
                 await self.fetchTransactionData(txIds:txIds, sendAll: false)
                 
                 DispatchQueue.main.async {
-                    
-                    // Create onchain transaction entities.
-                    for eachTransaction in receivedTransactions {
-                        let thisTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
-                        self.newTransactions += [thisTransaction]
-                    }
-                    
-                    // Create lightning transaction entities.
-                    for eachPayment in receivedPayments {
-                        if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), eachPayment.status == .succeeded {
-                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
-                            self.newTransactions += [thisTransaction]
-                            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
-                        }
-                        
-                        if eachPayment.kind.preimageAsString != nil {
-                            if self.cachedLightningIds.contains(eachPayment.kind.preimageAsString!), self.cachedLightningIds.contains(eachPayment.id) {
-                                // Transaction duplicates.
-                                for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
-                                    if eachTransaction.id == eachPayment.id {
-                                        self.newTransactions.remove(at: index)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Sort all transactions by date/time.
-                    self.newTransactions.sort { transaction1, transaction2 in
-                        transaction1.timestamp > transaction2.timestamp
-                    }
-                    
-                    // Store transactions in cache.
-                    CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
-                    
-                    // Start balance calculation.
-                    self.setTotalSats(updateTableAfterConversion: true)
+                    self.updateTransactionHistory(receivedTransactions: receivedTransactions, receivedPayments: receivedPayments)
                 }
             }
         }
+    }
+    
+    
+    func updateTransactionHistory(receivedTransactions:[TransactionDetails], receivedPayments:[PaymentDetails]) {
+        
+        // Create onchain transaction entities.
+        for eachTransaction in receivedTransactions {
+            let thisTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+            self.newTransactions += [thisTransaction]
+        }
+        
+        // Create lightning transaction entities.
+        for eachPayment in receivedPayments {
+            // Add succeeded new payments to table.
+            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), eachPayment.status == .succeeded {
+                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                self.newTransactions += [thisTransaction]
+                CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+            }
+            
+            // Make sure there are no duplicate transactions.
+            if eachPayment.kind.preimageAsString != nil {
+                if self.cachedLightningIds.contains(eachPayment.kind.preimageAsString!), self.cachedLightningIds.contains(eachPayment.id) {
+                    for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
+                        if eachTransaction.id == eachPayment.id {
+                            self.newTransactions.remove(at: index)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Sort all transactions by date/time.
+        self.newTransactions.sort { transaction1, transaction2 in
+            transaction1.timestamp > transaction2.timestamp
+        }
+        
+        // Store transactions in cache.
+        CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
+        
+        // Start balance calculation.
+        self.setTotalSats(updateTableAfterConversion: true)
     }
     
     
@@ -271,7 +284,10 @@ extension HomeViewController {
     
     func setTotalSats(updateTableAfterConversion:Bool) {
         
-        if self.coreVC == nil { return }
+        if self.coreVC == nil {
+            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "walletconnectfail2"), Language.getWord(withID: "okay"))
+            return
+        }
         
         // Update bitcoin sign alpha.
         var bitcoinSignAlpha = 0.18
@@ -329,7 +345,6 @@ extension HomeViewController {
         var transparentColor = "201, 154, 0"
         var fillColor = "0, 0, 0"
         if CacheManager.darkModeIsOn() {
-            //113/255, green: 143/255, blue: 179/255
             transparentColor = "150, 177, 204"
             fillColor = "255, 255, 255"
         }
@@ -367,6 +382,11 @@ extension HomeViewController {
     
     func setConversion(btcValue:CGFloat, cachedData:Bool, updateTableAfterConversion:Bool) {
         
+        if self.coreVC == nil {
+            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "walletconnectfail2"), Language.getWord(withID: "okay"))
+            return
+        }
+        
         if self.didFetchConversion == true || self.couldNotFetchConversion == true {
             // Conversion rate was already fetched.
             print("Did start currency conversion with cached conversion rate.")
@@ -391,9 +411,7 @@ extension HomeViewController {
             // Conversion rate hasn't yet been fetched.
             print("Did start currency conversion.")
             
-            if let actualCoreVC = self.coreVC {
-                actualCoreVC.startSync(type: "conversion")
-            }
+            self.coreVC!.startSync(type: "conversion")
             
             // TODO: Public?
             var envUrl = "https://getbittr.com/api/price/btc"
@@ -402,22 +420,19 @@ extension HomeViewController {
             }
             
             // Get currency conversion rate from Bittr API.
-            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-            
+            let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
                 guard let data = data else {
                     print("Conversion error:" + String(describing: error))
                     
                     DispatchQueue.main.async {
                         self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
-                        
                         self.couldNotFetchConversion = true
                         self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)
                         }
                     }
-                    
                     return
                 }
                 
@@ -429,17 +444,12 @@ extension HomeViewController {
                         if let actualDataDict = dataDictionary {
                             if var actualEurValue = actualDataDict["btc_eur"] as? String, var actualChfValue = actualDataDict["btc_chf"] as? String {
                                 
-                                if actualEurValue.contains("."), Locale.current.decimalSeparator == "," {
-                                    actualEurValue = actualEurValue.replacingOccurrences(of: ".", with: ",")
-                                    actualChfValue = actualChfValue.replacingOccurrences(of: ".", with: ",")
-                                } else if actualEurValue.contains(","), Locale.current.decimalSeparator == "." {
-                                    actualEurValue = actualEurValue.replacingOccurrences(of: ",", with: ".")
-                                    actualChfValue = actualChfValue.replacingOccurrences(of: ",", with: ".")
-                                }
+                                actualEurValue = actualEurValue.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
+                                actualChfValue = actualChfValue.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
                                 
                                 // Set updated conversion rates for EUR and CHF.
-                                self.coreVC?.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
-                                self.coreVC?.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
+                                self.coreVC!.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
+                                self.coreVC!.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
                                 
                                 // Store updated conversion rates in cache.
                                 CacheManager.updateCachedData(data: self.coreVC!.eurValue, key: "eurvalue")
@@ -464,9 +474,8 @@ extension HomeViewController {
                                         self.calculateProfit(cachedData: cachedData)
                                     }
                                     
-                                    if let actualCoreVC = self.coreVC {
-                                        actualCoreVC.completeSync(type: "conversion")
-                                    }
+                                    // Complete sync.
+                                    self.coreVC!.completeSync(type: "conversion")
                                 }
                             }
                         }
@@ -486,6 +495,7 @@ extension HomeViewController {
             task.resume()
         }
     }
+    
     
     func updateConversionLabel(btcValue:CGFloat) -> String {
         
@@ -507,6 +517,7 @@ extension HomeViewController {
         
         return self.conversionLabel.text ?? ""
     }
+    
     
     func updateTableAfterConversion() {
         
@@ -531,9 +542,14 @@ extension HomeViewController {
         }
     }
     
+    
     func calculateProfit(cachedData:Bool) {
         
         print("Did start calculating profit.")
+        if self.coreVC == nil {
+            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "walletconnectfail2"), Language.getWord(withID: "okay"))
+            return
+        }
         
         self.didStartReset = false
         
@@ -558,16 +574,10 @@ extension HomeViewController {
         
         if self.setTransactions.count == 0 || bittrTransactionsCount == 0 {
             // There are no transactions.
-            self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
-            self.bittrProfitLabel.alpha = 1
-            self.bittrProfitSpinner.stopAnimating()
-            
-            self.calculatedProfit = accumulatedProfit
-            self.calculatedInvestments = accumulatedInvestments
-            self.calculatedCurrentValue = accumulatedCurrentValue
+            self.showProfitLabel(currencySymbol: currencySymbol, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
         } else {
+            // There are transactions.
             for eachTransaction in self.setTransactions {
-                
                 if eachTransaction.isBittr == true {
                     let transactionValue = CGFloat(eachTransaction.received)/100000000
                     let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
@@ -580,25 +590,11 @@ extension HomeViewController {
                     
                     if bittrTransactionsCount == handledTransactions {
                         // We're done counting.
-                        
-                        self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
-                        self.bittrProfitLabel.alpha = 1
-                        self.bittrProfitSpinner.stopAnimating()
-                        
-                        self.calculatedProfit = accumulatedProfit
-                        self.calculatedInvestments = accumulatedInvestments
-                        self.calculatedCurrentValue = accumulatedCurrentValue
+                        self.showProfitLabel(currencySymbol: currencySymbol, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
                     }
                 } else {
                     if bittrTransactionsCount == handledTransactions {
-                        
-                        self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
-                        self.bittrProfitLabel.alpha = 1
-                        self.bittrProfitSpinner.stopAnimating()
-                        
-                        self.calculatedProfit = accumulatedProfit
-                        self.calculatedInvestments = accumulatedInvestments
-                        self.calculatedCurrentValue = accumulatedCurrentValue
+                        self.showProfitLabel(currencySymbol: currencySymbol, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
                     }
                 }
             }
@@ -614,22 +610,27 @@ extension HomeViewController {
                 self.headerLabelLeading.constant = -10
             }
             
-            if let actualCoreVC = self.coreVC {
-                actualCoreVC.walletHasSynced = true
-                actualCoreVC.completeSync(type: "final")
-            }
-        }
-        
-        if cachedData == false {
-            if let actualCoreVC = self.coreVC {
-                if actualCoreVC.needsToHandleNotification == true, let actualNotification = actualCoreVC.lightningNotification {
-                    actualCoreVC.handlePaymentNotification(notification: actualNotification)
-                }
+            self.coreVC!.walletHasSynced = true
+            self.coreVC!.completeSync(type: "final")
+            if self.coreVC!.needsToHandleNotification == true, let actualNotification = self.coreVC!.lightningNotification {
+                self.coreVC!.handlePaymentNotification(notification: actualNotification)
             }
             self.fetchAndPrintPeers()
         } else {
             print("Did calculate cached profits.")
         }
+    }
+    
+    
+    func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
+        
+        self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
+        self.bittrProfitLabel.alpha = 1
+        self.bittrProfitSpinner.stopAnimating()
+        
+        self.calculatedProfit = accumulatedProfit
+        self.calculatedInvestments = accumulatedInvestments
+        self.calculatedCurrentValue = accumulatedCurrentValue
     }
 
 }

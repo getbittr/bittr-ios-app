@@ -225,6 +225,7 @@ class Language: NSObject {
             "reserve": "reserve",
             "total": "total",
             "walletconnectfail": "We can't connect to your wallet. Please try again or check your connection.",
+            "walletconnectfail2": "We couldn't load your new transactions. Please close and reopen this app to try again.",
             "bittrpayout": "Bittr payout",
             "newbittrpayment": "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.",
             "receivingpayment": "receiving payment",
