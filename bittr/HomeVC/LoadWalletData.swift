@@ -251,7 +251,7 @@ extension HomeViewController {
                                     if eachExistingTransaction.id == eachTransaction.txId, eachExistingTransaction.isBittr == false {
                                         newTransactionsWereFound = true
                                         eachExistingTransaction.isBittr = true
-                                        eachExistingTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+                                        eachExistingTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).fixDecimals())!))
                                         eachExistingTransaction.currency = eachTransaction.currency
                                         if eachExistingTransaction.isLightning {
                                             CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
@@ -444,8 +444,8 @@ extension HomeViewController {
                         if let actualDataDict = dataDictionary {
                             if var actualEurValue = actualDataDict["btc_eur"] as? String, var actualChfValue = actualDataDict["btc_chf"] as? String {
                                 
-                                actualEurValue = actualEurValue.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
-                                actualChfValue = actualChfValue.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
+                                actualEurValue = actualEurValue.fixDecimals()
+                                actualChfValue = actualChfValue.fixDecimals()
                                 
                                 // Set updated conversion rates for EUR and CHF.
                                 self.coreVC!.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
@@ -725,7 +725,7 @@ extension UIViewController {
             // Bittr funding transaction.
             thisTransaction.id = bittrTransaction!.txId
             thisTransaction.sent = 0
-            thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (bittrTransaction!.bitcoinAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)*100000000)
+            thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (bittrTransaction!.bitcoinAmount).fixDecimals())!)*100000000)
             thisTransaction.isLightning = true
             thisTransaction.isFundingTransaction = true
             
@@ -736,7 +736,7 @@ extension UIViewController {
             thisTransaction.timestamp = transactionTimestamp
             
             thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (bittrTransaction!.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (bittrTransaction!.purchaseAmount).fixDecimals())!))
             thisTransaction.currency = bittrTransaction!.currency
             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: bittrTransaction!.txId)
             if let actualChannels = coreVC?.lightningChannels {
@@ -747,7 +747,7 @@ extension UIViewController {
         // Check if transaction is Bittr.
         if (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id), bittrTransaction == nil {
             thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
+            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).fixDecimals())!))
             thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
         }
         

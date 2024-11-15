@@ -55,10 +55,10 @@ class Language: NSObject {
             "devicedetails": "Device details",
             "devicedetails2": "device details",
             "appversion": "App version",
-            "enteryourpincode": "Enter your PIN code",
+            "enteryourpincode": "Enter your PIN",
             "confirm": "Confirm",
-            "setapin": "Set a PIN code for secure access to your wallet",
-            "confirmyourpin": "Confirm your PIN code",
+            "setapin": "Set a PIN for secure access to your wallet",
+            "confirmyourpin": "Confirm your PIN",
             "back": "Back",
             "next": "Next",
             "balance": "balance",
@@ -235,8 +235,8 @@ class Language: NSObject {
             "closedlightningchannel": "closed lightning channel",
             "closedlightningchannel2": "We've been notified that your lightning channel has been closed.\n\nAny funds that were in this channel will be deposited into your bitcoin wallet.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.",
             "bittrnotificationfail": "Something went wrong processing the notification we sent to you. Please reach out if you have any questions.",
-            "pinlock": "You've entered an incorrect pin too many times. Please restore your wallet.",
-            "incorrectpin2": "Please enter your correct pin. If you've forgotten it, please restore your wallet.",
+            "pinlock": "You've entered an incorrect PIN too many times. Please restore your wallet.",
+            "incorrectpin2": "Please enter your correct PIN. If you've forgotten it, please restore your wallet.",
             "restorewallet2": "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.",
             "restore": "Restore",
             "restorewallet3": "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.",
@@ -299,7 +299,10 @@ class Language: NSObject {
             "lnurlscannerlabel": "Scan a QR code to perform an LNURL pay or withdraw request.",
             "lnurl": "LNURL status",
             "lnurlfail3": "We received an error while handling this request. Please try again.",
-            "lnurlfail4": "We currently only support LNURL pay and withdraw requests."
+            "lnurlfail4": "We currently only support LNURL pay and withdraw requests.",
+            "sendvcscan": "Scan",
+            "sendvcpaste": "Paste",
+            "sendvctype": "Type"
         ]
         
         if let foundWord = allWords[withID] {

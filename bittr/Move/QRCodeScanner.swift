@@ -16,10 +16,11 @@ extension SendViewController {
         if fixQrScanner() == true {
             // Open QR scanner.
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.addressStack.alpha = 0
                 self.toLabel.alpha = 0
                 self.toView.alpha = 0
                 self.pasteButton.alpha = 0
-                self.amountView.alpha = 0
+                self.amountStack.alpha = 0
                 self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
@@ -126,10 +127,7 @@ extension SendViewController {
              let components = address.components(separatedBy: "?")
              if let bitcoinAddress = components.first {
                  // Success.
-                 self.toTextField.alpha = 0
-                 self.invoiceLabel.text = bitcoinAddress
-                 self.invoiceLabel.alpha = 1
-                 self.invoiceLabelTop.constant = 20
+                 self.toTextField.text = bitcoinAddress
                  
                  if components.count > 1 {
                      if components[1].contains("amount") {
@@ -137,7 +135,7 @@ extension SendViewController {
                          
                          let numberFormatter = NumberFormatter()
                          numberFormatter.numberStyle = .decimal
-                         let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)) ?? 0).decimalValue as NSNumber
+                         let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
                          
                          self.amountTextField.text = "\(bitcoinAmount)"
                      } else {

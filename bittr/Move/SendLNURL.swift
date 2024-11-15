@@ -99,7 +99,7 @@ extension UIViewController {
                                                     }
                                                     alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
                                                         
-                                                        let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
+                                                        let amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").fixDecimals())!)) * 1000
                                                         
                                                         self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC, receiveVC: receiveVC)
                                                     }))
@@ -128,7 +128,7 @@ extension UIViewController {
                                                 var amountText = minWithdrawable
                                                 if minWithdrawable != maxWithdrawable {
                                                     // Min and max aren't the same.
-                                                    amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)) * 1000
+                                                    amountText = Int(CGFloat(truncating: NumberFormatter().number(from: (alert.textFields![0].text ?? "0").fixDecimals())!)) * 1000
                                                 }
                                                 self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
                                             }))

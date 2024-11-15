@@ -46,20 +46,25 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var amountLabel: UILabel! // Amount
     
     // Main scroll - To view
+    @IBOutlet weak var addressStack: UIView!
     @IBOutlet weak var toView: UIView! // Background
     @IBOutlet weak var toTextField: UITextField! // Text field
-    @IBOutlet weak var toTextFieldTop: NSLayoutConstraint! // 5 when closed, 15 when open.
-    @IBOutlet weak var toTextFieldHeight: NSLayoutConstraint! // 0 when closed, 25 when open.
-    @IBOutlet weak var invoiceLabel: UILabel! // Text label
-    @IBOutlet weak var invoiceLabelTop: NSLayoutConstraint! // 10 when closed, 20 when open.
+    @IBOutlet weak var toButton: UIButton!
     @IBOutlet weak var backgroundQR: UIView!
     @IBOutlet weak var backgroundPaste: UIView!
     @IBOutlet weak var backgroundKeyboard: UIView!
     @IBOutlet weak var qrButton: UIButton!
     @IBOutlet weak var pasteButton: UIButton!
     @IBOutlet weak var keyboardButton: UIButton!
+    @IBOutlet weak var stackLabelQR: UILabel!
+    @IBOutlet weak var stackLabelPaste: UILabel!
+    @IBOutlet weak var stackLabelType: UILabel!
     
     // Main scroll - Amount view
+    @IBOutlet weak var amountStack: UIView!
+    @IBOutlet weak var btcView: UIView!
+    @IBOutlet weak var btcLabel: UILabel!
+    @IBOutlet weak var btcButton: UIButton!
     @IBOutlet weak var amountView: UIView! // Background
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
@@ -135,10 +140,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var eurValue = 0.0
     var chfValue = 0.0
     var selectedFee = "medium"
+    var selectedCurrency = "bitcoin"
     var onchainOrLightning = "onchain"
-    var selectedInput = "qr"
     var completedTransaction:Transaction?
     var homeVC:HomeViewController?
+    var onchainAmountInSatoshis:Int = 0
+    var onchainAmountInBTC:CGFloat = 0.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -160,11 +167,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         slowButton.setTitle("", for: .normal)
         qrButton.setTitle("", for: .normal)
         keyboardButton.setTitle("", for: .normal)
+        toButton.setTitle("", for: .normal)
+        btcButton.setTitle("", for: .normal)
         
         // Corner radii
         headerView.layer.cornerRadius = 13
-        toView.layer.cornerRadius = 13
-        amountView.layer.cornerRadius = 13
+        toView.layer.cornerRadius = 8
+        amountView.layer.cornerRadius = 8
         nextView.layer.cornerRadius = 13
         confirmHeaderView.layer.cornerRadius = 13
         editView.layer.cornerRadius = 13
@@ -172,15 +181,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         switchView.layer.cornerRadius = 13
         scannerView.layer.cornerRadius = 13
         yellowCard.layer.cornerRadius = 20
-        confirmToCard.layer.cornerRadius = 13
-        confirmAmountCard.layer.cornerRadius = 13
-        fastView.layer.cornerRadius = 13
-        mediumView.layer.cornerRadius = 13
-        slowView.layer.cornerRadius = 13
-        backgroundQR.layer.cornerRadius = 13
-        backgroundPaste.layer.cornerRadius = 13
-        backgroundKeyboard.layer.cornerRadius = 13
+        confirmToCard.layer.cornerRadius = 8
+        confirmAmountCard.layer.cornerRadius = 8
+        fastView.layer.cornerRadius = 8
+        mediumView.layer.cornerRadius = 8
+        slowView.layer.cornerRadius = 8
+        backgroundQR.layer.cornerRadius = 8
+        backgroundPaste.layer.cornerRadius = 8
+        backgroundKeyboard.layer.cornerRadius = 8
         spinnerBox.layer.cornerRadius = 13
+        btcView.layer.cornerRadius = 8
         
         // Shadows
         setShadows(forView: yellowCard)
@@ -190,6 +200,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         setShadows(forView: backgroundQR)
         setShadows(forView: backgroundPaste)
         setShadows(forView: backgroundKeyboard)
+        setShadows(forView: btcView)
         
         // Text fields
         toTextField.delegate = self
@@ -216,12 +227,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "\(Language.getWord(withID:"sendall")): \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             } else {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats()
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "\(Language.getWord(withID:"sendall")): \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             }
         } else {
             // Set "Send all" for lightning payments.
@@ -247,11 +258,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @objc func keyboardWillDisappear() {
         
         self.amountButton.alpha = 1
-        if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
-            self.toTextFieldHeight.constant = 0
-            self.toTextField.alpha = 0
-            self.toTextFieldTop.constant = 5
-        }
+        self.toButton.alpha = 1
         
         NSLayoutConstraint.deactivate([contentViewBottom])
         contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
@@ -288,6 +295,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.amountButton.alpha = 0
     }
     
+    @IBAction func toButtonTapped(_ sender: UIButton) {
+        self.toTextField.becomeFirstResponder()
+        self.toButton.alpha = 0
+    }
+    
     @objc func doneButtonTapped() {
         self.amountTextField.resignFirstResponder()
         self.amountButton.alpha = 1
@@ -299,7 +311,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             // Regular
             let numberFormatter = NumberFormatter()
             numberFormatter.numberStyle = .decimal
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            self.btcLabel.text = "BTC"
+            self.selectedCurrency = "bitcoin"
         } else {
             // Instant
             let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "limitlightninganswer"),"type":"lightningsendable"]
@@ -313,31 +327,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             actualCaptureSession.stopRunning()
         }
         self.view.endEditing(true)
-        
         if let actualString = UIPasteboard.general.string {
-            
-            self.selectedInput = "paste"
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                
-                self.toTextField.alpha = 0
-                self.toTextFieldHeight.constant = 0
-                self.invoiceLabel.text = actualString
-                self.invoiceLabel.alpha = 1
-                self.invoiceLabelTop.constant = 20
-                self.toTextFieldTop.constant = 5
-                
-                self.view.layoutIfNeeded()
-            }
+            self.toTextField.text = actualString
         }
-        
     }
     
     @IBAction func qrButtonTapped(_ sender: UIButton) {
-        
-        self.selectedInput = "qr"
         self.view.endEditing(true)
-        
         self.showScannerView()
     }
     
@@ -346,23 +342,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if let actualCaptureSession = captureSession {
             actualCaptureSession.stopRunning()
         }
-        
-        self.selectedInput = "keyboard"
-        
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            
-            if let pastedText = self.invoiceLabel.text {
-                self.toTextField.text = pastedText
-            }
-            
-            self.toTextField.alpha = 1
-            self.toTextFieldHeight.constant = 25
-            self.invoiceLabel.text = nil
-            self.invoiceLabel.alpha = 0
-            self.toTextFieldTop.constant = 15
-            self.invoiceLabelTop.constant = 10
-        }
-        
         self.toTextField.becomeFirstResponder()
     }
     
@@ -436,6 +415,37 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.switchFeeSelection(tappedFee: sender.accessibilityIdentifier!)
     }
     
+    @IBAction func btcButtonTapped(_ sender: UIButton) {
+        
+        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let btcOption = UIAlertAction(title: "BTC", style: .default) { (action) in
+            
+            self.btcLabel.text = "BTC"
+            self.selectedCurrency = "bitcoin"
+        }
+        let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
+            
+            self.btcLabel.text = "Sats"
+            self.selectedCurrency = "satoshis"
+        }
+        var currency = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            currency = "CHF"
+        }
+        let currencyOption = UIAlertAction(title: currency, style: .default) { (action) in
+            
+            self.btcLabel.text = currency
+            self.selectedCurrency = "currency"
+        }
+
+        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
+        actionSheet.addAction(btcOption)
+        actionSheet.addAction(satsOption)
+        actionSheet.addAction(currencyOption)
+        actionSheet.addAction(cancelAction)
+        present(actionSheet, animated: true, completion: nil)
+    }
+    
     func changeColors() {
         
         self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
@@ -483,5 +493,12 @@ extension UIViewController {
         } else {
             return true
         }
+    }
+}
+
+extension String {
+    
+    func fixDecimals() -> String {
+        return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }
 }

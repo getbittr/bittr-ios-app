@@ -20,9 +20,6 @@ extension UIViewController {
         
         if self.checkInternetConnection() {
             var invoiceText = sendVC?.toTextField.text
-            if sendVC?.selectedInput != "keyboard" {
-                invoiceText = sendVC?.invoiceLabel.text
-            }
             if lnurlinvoice != nil {
                 invoiceText = lnurlinvoice!
             }

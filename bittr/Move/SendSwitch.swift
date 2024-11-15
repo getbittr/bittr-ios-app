@@ -10,12 +10,8 @@ import UIKit
 extension SendViewController {
     
     func resetFields() {
-        self.invoiceLabel.text = nil
-        self.toTextFieldHeight.constant = 0
         self.toTextField.text = nil
         self.amountTextField.text = nil
-        self.toTextFieldTop.constant = 5
-        self.invoiceLabelTop.constant = 10
     }
     
     func hideScannerView(forView:String) {
@@ -25,6 +21,7 @@ extension SendViewController {
         }
         
         self.scannerView.alpha = 0
+        self.addressStack.alpha = 1
         self.toLabel.alpha = 1
         self.toView.alpha = 1
         self.pasteButton.alpha = 1
@@ -49,14 +46,14 @@ extension SendViewController {
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             if forView == "onchain" {
-                self.amountView.alpha = 1
+                self.amountStack.alpha = 1
                 self.amountLabel.alpha = 1
                 self.availableAmountTop.constant = 10
                 self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0
                 self.questionCircle.alpha = 0
             } else {
-                self.amountView.alpha = 0
+                self.amountStack.alpha = 0
                 self.amountLabel.alpha = 0
                 self.availableAmountTop.constant = -75
                 self.availableButtonTop.constant = -85
