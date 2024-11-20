@@ -35,12 +35,15 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     // Main - Switch view
     @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var regularView: UIView!
-    @IBOutlet weak var instantView: UIView!
+    @IBOutlet weak var switchSelectionView: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
     @IBOutlet weak var labelRegular: UILabel!
     @IBOutlet weak var labelInstant: UILabel!
+    @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
+    @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
+    @IBOutlet weak var switchSelectionLeading: NSLayoutConstraint!
+    @IBOutlet weak var switchSelectionTrailing: NSLayoutConstraint!
     
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
@@ -153,6 +156,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         scannerView.layer.cornerRadius = 13
         qrScannerCloseView.layer.cornerRadius = 13
         spinnerBox.layer.cornerRadius = 13
+        switchSelectionView.layer.cornerRadius = 8
         
         // Text field delegates
         amountTextField.delegate = self
@@ -171,6 +175,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         addressSpinner.startAnimating()
         qrCodeSpinner.startAnimating()
         getNewAddress(resetAddress: false)
+        
+        // Selection view
+        self.switchSelectionView.layer.shadowColor = UIColor.black.cgColor
+        self.switchSelectionView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.switchSelectionView.layer.shadowRadius = 10.0
+        self.switchSelectionView.layer.shadowOpacity = 0.1
         
         // Set colors and language.
         self.setWords()
@@ -269,15 +279,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
-        //var bottomCenterView:UIView = self.centerViewRegular
+        var leadingConstraint = self.labelRegular
+        var leadingConstant:CGFloat = -15
+        var regularConstraint:CGFloat = 20
+        var instantConstraint:CGFloat = 15
         if sender.accessibilityIdentifier == "regular" {
-            self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
-            self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            //bottomCenterView = self.centerViewRegular
+            leadingConstraint = self.labelRegular
+            leadingConstant = -15
+            regularConstraint = 20
+            instantConstraint = 15
         } else {
-            self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
-            //var bottomCenterView = self.centerViewInstant
+            leadingConstraint = self.labelInstant
+            leadingConstant = -35
+            regularConstraint = 15
+            instantConstraint = 20
         }
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
@@ -290,6 +305,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             }
             self.centerViewRegularTrailing.constant = -viewWidth
             self.centerViewBothCenterY.constant = centerViewBottomConstant
+            
+            self.labelRegularLeading.constant = regularConstraint
+            self.labelInstantTrailing.constant = instantConstraint
+            
+            NSLayoutConstraint.deactivate([self.switchSelectionLeading, self.switchSelectionTrailing])
+            self.switchSelectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: leadingConstraint, attribute: .leading, multiplier: 1, constant: leadingConstant)
+            self.switchSelectionTrailing = NSLayoutConstraint(item: self.switchSelectionView, attribute: .trailing, relatedBy: .equal, toItem: leadingConstraint, attribute: .trailing, multiplier: 1, constant: 15)
+            NSLayoutConstraint.activate([self.switchSelectionLeading, self.switchSelectionTrailing])
             
             self.view.layoutIfNeeded()
         }

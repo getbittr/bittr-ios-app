@@ -33,12 +33,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     // Main scroll - Switch view
     @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var regularView: UIView!
-    @IBOutlet weak var instantView: UIView!
+    @IBOutlet weak var switchSelectionView: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
     @IBOutlet weak var labelRegular: UILabel!
     @IBOutlet weak var labelInstant: UILabel!
+    @IBOutlet weak var iconLightning: UIImageView!
+    @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
+    @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
+    @IBOutlet weak var selectionLeading: NSLayoutConstraint!
+    @IBOutlet weak var selectionTrailing: NSLayoutConstraint!
     
     // Main scroll - Items
     @IBOutlet weak var topLabel: UILabel! // Explain items
@@ -179,6 +183,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         editView.layer.cornerRadius = 13
         sendView.layer.cornerRadius = 13
         switchView.layer.cornerRadius = 13
+        switchSelectionView.layer.cornerRadius = 8
         scannerView.layer.cornerRadius = 13
         yellowCard.layer.cornerRadius = 20
         confirmToCard.layer.cornerRadius = 8
@@ -201,6 +206,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         setShadows(forView: backgroundPaste)
         setShadows(forView: backgroundKeyboard)
         setShadows(forView: btcView)
+        setShadows(forView: switchSelectionView)
         
         // Text fields
         toTextField.delegate = self
