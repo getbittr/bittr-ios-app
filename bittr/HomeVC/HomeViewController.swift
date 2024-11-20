@@ -91,10 +91,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
 
         // Corner radii
-        profitButtonView.layer.cornerRadius = 13
-        buyButtonView.layer.cornerRadius = 13
-        sendButtonView.layer.cornerRadius = 13
-        receiveButtonView.layer.cornerRadius = 13
+        profitButtonView.layer.cornerRadius = 8
+        buyButtonView.layer.cornerRadius = 8
+        sendButtonView.layer.cornerRadius = 8
+        receiveButtonView.layer.cornerRadius = 8
         headerView.layer.cornerRadius = 13
         balanceCard.layer.cornerRadius = 13
         
@@ -107,10 +107,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         headerViewButton.setTitle("", for: .normal)
         
         // Balance card shadow
-        balanceCard.layer.shadowColor = UIColor.black.cgColor
-        balanceCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        balanceCard.layer.shadowRadius = 10.0
-        balanceCard.layer.shadowOpacity = 0.1
+        self.balanceCard.setShadow()
+        self.sendButtonView.setShadow()
+        self.receiveButtonView.setShadow()
+        self.buyButtonView.setShadow()
+        self.profitButtonView.setShadow()
         
         // Table view
         homeTableView.delegate = self
@@ -174,7 +175,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Set correct top constraint and table insets.
         var bottomInset:CGFloat = 80
-        var headerViewTopConstant:CGFloat = 90
+        var headerViewTopConstant:CGFloat = 85
         if #available(iOS 13.0, *) {
             if let window = UIApplication.shared.windows.first {
                 if window.safeAreaInsets.bottom == 0 {
@@ -558,5 +559,15 @@ extension String {
         let start = index(startIndex, offsetBy: range.lowerBound)
         let end = index(start, offsetBy: range.upperBound - range.lowerBound)
         return String(self[start ..< end])
+    }
+}
+
+extension UIView {
+    
+    func setShadow() {
+        self.layer.shadowColor = UIColor.black.cgColor
+        self.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.layer.shadowRadius = 10.0
+        self.layer.shadowOpacity = 0.1
     }
 }
