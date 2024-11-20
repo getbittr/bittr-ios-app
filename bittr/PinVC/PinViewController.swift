@@ -8,16 +8,14 @@
 import UIKit
 //import KeychainSwift
 
-class PinViewController: UIViewController, UITextFieldDelegate {
+class PinViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    @IBOutlet weak var pinScrollView: UIScrollView!
-    @IBOutlet weak var pinContentView: UIView!
-    @IBOutlet weak var pinCenterView: UIView!
+    // Views
     @IBOutlet weak var confirmPinView: UIView!
     @IBOutlet weak var confirmPinButton: UIButton!
     @IBOutlet weak var restoreWalletButton: UIButton!
-    @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
-    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var pinCollectionView: UICollectionView!
+    @IBOutlet weak var pinCollectionViewWidth: NSLayoutConstraint!
     
     // Number labels
     @IBOutlet weak var label1: UILabel!
@@ -137,6 +135,10 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
+        // Collection view.
+        self.pinCollectionView.delegate = self
+        self.pinCollectionView.dataSource = self
+        
         self.changeColors()
     }
     
@@ -144,6 +146,7 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         // Update text field.
         pinTextField.insertText(String(sender.tag))
+        self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
@@ -154,23 +157,10 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         // Update text field.
         pinTextField.deleteBackward()
+        self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
-        }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        
-        let centerViewHeight = pinCenterView.bounds.height
-        
-        if pinCenterView.bounds.height + 40 > pinContentView.bounds.height {
-            
-            NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.pinContentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight)
-            NSLayoutConstraint.activate([self.contentViewHeight])
-            self.centerViewCenterY.constant = 0
-            self.view.layoutIfNeeded()
         }
     }
     
@@ -315,6 +305,41 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         self.imageBackspace.tintColor = Colors.getColor(color: "black")
         self.confirmPinView.backgroundColor = Colors.getColor(color: "blackbutton")
         self.pinTextField.textColor = Colors.getColor(color: "blackbutton")
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        
+        self.pinCollectionView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        
+        let pinLength:Int = self.pinTextField.text?.count ?? 0
+        if pinLength == 0 {
+            self.pinCollectionViewWidth.constant = 0
+        } else {
+            var collectionViewWidth:CGFloat = CGFloat((pinLength * 40) + ((pinLength-1) * 10))
+            if collectionViewWidth > self.view.bounds.width {
+                collectionViewWidth = self.view.bounds.width
+                self.pinCollectionView.contentInset = UIEdgeInsets(top: 0, left: 45, bottom: 0, right: 45)
+            }
+            self.pinCollectionViewWidth.constant = collectionViewWidth
+        }
+        
+        return pinLength
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: 40, height: 60)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        
+        if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PinCell", for: indexPath) as? PinCollectionViewCell {
+            
+            
+            
+            return cell
+        } else {
+            return UICollectionViewCell()
+        }
     }
     
 }
