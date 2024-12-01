@@ -334,8 +334,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PinCell", for: indexPath) as? PinCollectionViewCell {
             
-            
-            
             return cell
         } else {
             return UICollectionViewCell()

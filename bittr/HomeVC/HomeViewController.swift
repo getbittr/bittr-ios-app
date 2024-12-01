@@ -494,45 +494,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    @objc func changeColors() {
-        
-        self.headerView.backgroundColor = Colors.getColor(color: "headerview")
-        self.headerLabel.textColor = Colors.getColor(color: "black")
-        self.headerSpinner.color = Colors.getColor(color: "black")
-        
-        self.sendButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
-        self.receiveButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
-        self.buyButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
-        self.profitButtonView.backgroundColor = Colors.getColor(color: "transparentbutton")
-        self.sendLabel.textColor = Colors.getColor(color: "black")
-        self.receiveLabel.textColor = Colors.getColor(color: "black")
-        self.buyLabel.textColor = Colors.getColor(color: "black")
-        self.profitLabel.textColor = Colors.getColor(color: "black")
-        self.bittrProfitLabel.textColor = Colors.getColor(color: "black")
-        self.backgroundColorView.backgroundColor = Colors.getColor(color: "yellow")
-        self.backgroundColorTopView.backgroundColor = Colors.getColor(color: "yellow")
-        self.balanceCard.backgroundColor = Colors.getColor(color: "yellow")
-        self.conversionLabel.textColor = Colors.getColor(color: "transparentblack")
-        
-        self.tableSpinner.color = Colors.getColor(color: "black")
-        self.bittrProfitSpinner.color = Colors.getColor(color: "black")
-        self.balanceSpinner.color = Colors.getColor(color: "black")
-        
-        self.satsLabel.textColor = Colors.getColor(color: "black")
-        
-        if CacheManager.darkModeIsOn() {
-            self.yellowCurve.image = UIImage(named: "yellowcurvedark")
-            self.bitcoinSign.image = UIImage(named: "gilroybitcoinwhite")
-        } else {
-            self.yellowCurve.image = UIImage(named: "yellowcurve")
-            self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
-        }
-        
-        if self.balanceLabel.alpha == 1 {
-            self.setTotalSats(updateTableAfterConversion: false)
-        }
-    }
-    
 }
 
 extension String {

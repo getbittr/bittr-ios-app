@@ -1077,7 +1077,7 @@
                                                             <nil key="highlightedColor"/>
                                                         </label>
                                                         <label opaque="NO" userInteractionEnabled="NO" alpha="0.0" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="€ 1 240" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wYb-Vf-9rd">
-                                                            <rect key="frame" x="292.33333333333331" y="17" width="50.666666666666686" height="16"/>
+                                                            <rect key="frame" x="292.33333333333331" y="16.999999999999996" width="50.666666666666686" height="16.000000000000004"/>
                                                             <constraints>
                                                                 <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="IrB-Pm-8Vh"/>
                                                                 <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="cbe-41-DO7"/>
@@ -3195,42 +3195,42 @@
                                                         </connections>
                                                     </button>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GO5-gd-jw6" userLabel="New Switch View">
-                                                        <rect key="frame" x="99.333333333333329" y="51" width="194.66666666666669" height="45"/>
+                                                        <rect key="frame" x="108.00000000000001" y="51" width="177.33333333333337" height="45"/>
                                                         <subviews>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="lzX-9M-dTB" userLabel="Selection View">
-                                                                <rect key="frame" x="5" y="5" width="87.666666666666671" height="35"/>
+                                                                <rect key="frame" x="5" y="5" width="80.666666666666671" height="35"/>
                                                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                             </view>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Regular" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="sj0-lB-iLV">
-                                                                <rect key="frame" x="19.999999999999996" y="15.666666666666657" width="57.666666666666657" height="16"/>
+                                                                <rect key="frame" x="19.999999999999996" y="16.666666666666657" width="50.666666666666657" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" id="TUT-iH-nV9"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" id="odk-rX-0gt"/>
                                                                 </constraints>
-                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
+                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
                                                                 <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="bolt.fill" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="ujV-CG-Yh3">
-                                                                <rect key="frame" x="102.66666666666667" y="12.333333333333325" width="20" height="21.000000000000004"/>
+                                                                <rect key="frame" x="95.666666666666657" y="13.666666666666668" width="17" height="18"/>
                                                                 <color key="tintColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                 <constraints>
-                                                                    <constraint firstAttribute="width" constant="20" id="HOT-Fs-cHV"/>
-                                                                    <constraint firstAttribute="height" constant="20" id="n5q-aN-zX4"/>
+                                                                    <constraint firstAttribute="width" constant="17" id="HOT-Fs-cHV"/>
+                                                                    <constraint firstAttribute="height" constant="17" id="n5q-aN-zX4"/>
                                                                 </constraints>
                                                             </imageView>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Instant" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="or8-wJ-kg5">
-                                                                <rect key="frame" x="127.66666666666669" y="15.666666666666657" width="52" height="16"/>
+                                                                <rect key="frame" x="116.66666666666667" y="16.666666666666657" width="45.666666666666671" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" id="0kp-3L-UKm"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" id="1be-wt-s8Q"/>
                                                                 </constraints>
-                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
+                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
                                                                 <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="x6e-Uj-Ogw" userLabel="Regular Button">
-                                                                <rect key="frame" x="0.0" y="0.0" width="92.666666666666671" height="45"/>
+                                                                <rect key="frame" x="0.0" y="0.0" width="85.666666666666671" height="45"/>
                                                                 <accessibility key="accessibilityConfiguration" identifier="onchain"/>
                                                                 <state key="normal" title="Button"/>
                                                                 <buttonConfiguration key="configuration" style="plain"/>
@@ -3239,7 +3239,7 @@
                                                                 </connections>
                                                             </button>
                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Hdf-11-vf6">
-                                                                <rect key="frame" x="92.666666666666686" y="0.0" width="102" height="45"/>
+                                                                <rect key="frame" x="85.666666666666657" y="0.0" width="91.666666666666657" height="45"/>
                                                                 <accessibility key="accessibilityConfiguration" identifier="lightning"/>
                                                                 <state key="normal" title="Button"/>
                                                                 <buttonConfiguration key="configuration" style="plain"/>
@@ -3257,7 +3257,7 @@
                                                             <constraint firstItem="x6e-Uj-Ogw" firstAttribute="trailing" secondItem="sj0-lB-iLV" secondAttribute="trailing" constant="15" id="L39-Dm-2Ev"/>
                                                             <constraint firstItem="ujV-CG-Yh3" firstAttribute="centerY" secondItem="GO5-gd-jw6" secondAttribute="centerY" id="NnN-ZN-LP0"/>
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" id="RKn-vM-GhB"/>
-                                                            <constraint firstItem="or8-wJ-kg5" firstAttribute="leading" secondItem="ujV-CG-Yh3" secondAttribute="trailing" constant="5" id="WvV-Bx-cpj"/>
+                                                            <constraint firstItem="or8-wJ-kg5" firstAttribute="leading" secondItem="ujV-CG-Yh3" secondAttribute="trailing" constant="4" id="WvV-Bx-cpj"/>
                                                             <constraint firstItem="ujV-CG-Yh3" firstAttribute="leading" secondItem="sj0-lB-iLV" secondAttribute="trailing" constant="25" id="Xgy-AC-902"/>
                                                             <constraint firstItem="lzX-9M-dTB" firstAttribute="leading" secondItem="GO5-gd-jw6" secondAttribute="leading" constant="5" id="YPB-9j-gY8"/>
                                                             <constraint firstItem="lzX-9M-dTB" firstAttribute="top" secondItem="GO5-gd-jw6" secondAttribute="top" constant="5" id="bpj-KS-9Bq"/>
@@ -4325,11 +4325,17 @@
                         <outlet property="slowView" destination="EdH-Ty-Bef" id="yFL-IF-9Rz"/>
                         <outlet property="spinnerBox" destination="pjN-CF-Nfl" id="xqk-ES-ZU5"/>
                         <outlet property="spinnerView" destination="KtK-fv-3qB" id="WV2-Q7-und"/>
+                        <outlet property="stackImagePaste" destination="OoE-zV-ec4" id="Iok-GO-Dea"/>
+                        <outlet property="stackImageQR" destination="KVs-nE-ZZN" id="ijz-ob-PGQ"/>
+                        <outlet property="stackImageType" destination="zjs-ec-GFH" id="Gmh-1u-xzx"/>
                         <outlet property="stackLabelPaste" destination="f7o-MK-uDq" id="feU-gS-WCt"/>
                         <outlet property="stackLabelQR" destination="wFC-j3-Dbv" id="MLi-OU-oAA"/>
                         <outlet property="stackLabelType" destination="ZOa-B3-zRF" id="lD4-V2-0gJ"/>
                         <outlet property="switchSelectionView" destination="lzX-9M-dTB" id="dmD-lr-Iws"/>
                         <outlet property="switchView" destination="GO5-gd-jw6" id="ijH-6p-09g"/>
+                        <outlet property="timeFast" destination="Yeh-QM-RfJ" id="Cu9-zP-RDc"/>
+                        <outlet property="timeMedium" destination="0GP-A8-5WK" id="3Yz-wh-9kP"/>
+                        <outlet property="timeSlow" destination="Af7-9P-QfO" id="trc-xh-xXI"/>
                         <outlet property="toButton" destination="xqW-7v-hYA" id="p5G-qI-YzP"/>
                         <outlet property="toLabel" destination="g6Z-wf-8ZE" id="Mn9-ad-yc6"/>
                         <outlet property="toTextField" destination="GlN-GS-RNY" id="OJv-eL-yb9"/>
@@ -4392,42 +4398,42 @@
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="YRA-4s-rEc" userLabel="New Switch View">
-                                                        <rect key="frame" x="99.333333333333329" y="51" width="194.66666666666669" height="45"/>
+                                                        <rect key="frame" x="108.00000000000001" y="51" width="177.33333333333337" height="45"/>
                                                         <subviews>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="2jm-0N-5fF" userLabel="Selection View">
-                                                                <rect key="frame" x="5" y="5" width="87.666666666666671" height="35"/>
+                                                                <rect key="frame" x="5" y="5" width="80.666666666666671" height="35"/>
                                                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                             </view>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Regular" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1RO-1h-SaC">
-                                                                <rect key="frame" x="19.999999999999996" y="15.666666666666657" width="57.666666666666657" height="16"/>
+                                                                <rect key="frame" x="19.999999999999996" y="16.666666666666657" width="50.666666666666657" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" id="7Bo-Pe-Vsr"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" id="ro6-Ge-uFL"/>
                                                                 </constraints>
-                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
+                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
                                                                 <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="bolt.fill" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="qre-dv-ARg">
-                                                                <rect key="frame" x="102.66666666666667" y="12.333333333333325" width="20" height="21.000000000000004"/>
+                                                                <rect key="frame" x="95.666666666666657" y="13.666666666666668" width="17" height="18"/>
                                                                 <color key="tintColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                 <constraints>
-                                                                    <constraint firstAttribute="height" constant="20" id="KBo-ZB-oAc"/>
-                                                                    <constraint firstAttribute="width" constant="20" id="Lb7-5S-Zu6"/>
+                                                                    <constraint firstAttribute="height" constant="17" id="KBo-ZB-oAc"/>
+                                                                    <constraint firstAttribute="width" constant="17" id="Lb7-5S-Zu6"/>
                                                                 </constraints>
                                                             </imageView>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Instant" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="umt-xL-dRK">
-                                                                <rect key="frame" x="127.66666666666669" y="15.666666666666657" width="52" height="16"/>
+                                                                <rect key="frame" x="116.66666666666667" y="16.666666666666657" width="45.666666666666671" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" id="6Cd-oW-l5Y"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" id="rGO-uI-aaw"/>
                                                                 </constraints>
-                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
+                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
                                                                 <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Rdh-aw-wZ1" userLabel="Regular Button">
-                                                                <rect key="frame" x="0.0" y="0.0" width="92.666666666666671" height="45"/>
+                                                                <rect key="frame" x="0.0" y="0.0" width="85.666666666666671" height="45"/>
                                                                 <accessibility key="accessibilityConfiguration" identifier="regular"/>
                                                                 <state key="normal" title="Button"/>
                                                                 <buttonConfiguration key="configuration" style="plain"/>
@@ -4436,7 +4442,7 @@
                                                                 </connections>
                                                             </button>
                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="oa1-yS-m35">
-                                                                <rect key="frame" x="92.666666666666686" y="0.0" width="102" height="45"/>
+                                                                <rect key="frame" x="85.666666666666657" y="0.0" width="91.666666666666657" height="45"/>
                                                                 <accessibility key="accessibilityConfiguration" identifier="instant"/>
                                                                 <state key="normal" title="Button"/>
                                                                 <buttonConfiguration key="configuration" style="plain"/>
@@ -4459,7 +4465,7 @@
                                                             <constraint firstAttribute="trailing" secondItem="oa1-yS-m35" secondAttribute="trailing" id="det-sQ-5HL"/>
                                                             <constraint firstItem="oa1-yS-m35" firstAttribute="leading" secondItem="Rdh-aw-wZ1" secondAttribute="trailing" id="fZu-Mi-8to"/>
                                                             <constraint firstItem="umt-xL-dRK" firstAttribute="centerY" secondItem="YRA-4s-rEc" secondAttribute="centerY" constant="1" id="iDI-me-5Xo"/>
-                                                            <constraint firstItem="umt-xL-dRK" firstAttribute="leading" secondItem="qre-dv-ARg" secondAttribute="trailing" constant="5" id="iqL-hQ-hKn"/>
+                                                            <constraint firstItem="umt-xL-dRK" firstAttribute="leading" secondItem="qre-dv-ARg" secondAttribute="trailing" constant="4" id="iqL-hQ-hKn"/>
                                                             <constraint firstItem="2jm-0N-5fF" firstAttribute="leading" secondItem="YRA-4s-rEc" secondAttribute="leading" constant="5" id="j7J-Ze-D8M"/>
                                                             <constraint firstAttribute="bottom" secondItem="Rdh-aw-wZ1" secondAttribute="bottom" id="jrp-5k-KQx"/>
                                                             <constraint firstAttribute="bottom" secondItem="oa1-yS-m35" secondAttribute="bottom" id="ma3-qI-JvI"/>
@@ -5282,6 +5288,7 @@
                         <outlet property="downButton" destination="frs-eQ-jDJ" id="Mol-Rp-f98"/>
                         <outlet property="headerLabel" destination="nXk-bc-X47" id="eB8-MY-X5F"/>
                         <outlet property="headerView" destination="bCt-bM-Gtd" id="CRd-kD-IV3"/>
+                        <outlet property="iconLightning" destination="qre-dv-ARg" id="FDe-me-HUy"/>
                         <outlet property="instantButton" destination="oa1-yS-m35" id="9bR-5H-ZeC"/>
                         <outlet property="invoiceButton" destination="g7k-hp-MGA" id="BgF-ix-9j8"/>
                         <outlet property="labelInstant" destination="umt-xL-dRK" id="wTV-PV-xCr"/>
@@ -5296,6 +5303,7 @@
                         <outlet property="lnConfirmationQRView" destination="Dut-46-HAv" id="LbU-DZ-mAo"/>
                         <outlet property="lnDoneLabel" destination="tZL-wo-SIg" id="l7B-AC-inX"/>
                         <outlet property="lnHeaderLabel" destination="MfT-3q-YAd" id="FWC-Hr-Gl0"/>
+                        <outlet property="lnInvoiceCopy" destination="iFN-TN-lMp" id="zMD-oo-5RI"/>
                         <outlet property="lnInvoiceLabel" destination="EkP-hV-z9r" id="Ztv-oS-jhh"/>
                         <outlet property="lnQRCodeLogoView" destination="qWz-GU-3p4" id="iPk-01-ZCs"/>
                         <outlet property="lnQRImage" destination="Gax-dY-p7V" id="ofg-xs-EaR"/>
@@ -5317,6 +5325,7 @@
                         <outlet property="refreshView" destination="Oqw-m0-n7E" id="7Tg-NF-N3Z"/>
                         <outlet property="regularButton" destination="Rdh-aw-wZ1" id="euQ-dU-jxM"/>
                         <outlet property="scanQrButton" destination="CdL-8C-3y3" id="1f0-9i-xx7"/>
+                        <outlet property="scanQrImage" destination="h6p-bz-F0E" id="MnP-RE-uT1"/>
                         <outlet property="scannerView" destination="0Eu-YH-W0t" id="K4l-Mn-pG0"/>
                         <outlet property="scrollView" destination="3k7-fP-1dm" id="axf-ZR-e1a"/>
                         <outlet property="scrollViewTrailing" destination="Hai-VD-Mf4" id="kcN-M1-j1i"/>
@@ -5848,7 +5857,7 @@
                                                                 </constraints>
                                                             </view>
                                                         </subviews>
-                                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                        <color key="backgroundColor" red="0.44313725490196076" green="0.5607843137254902" blue="0.70196078431372544" alpha="0.40000000000000002" colorSpace="custom" customColorSpace="calibratedRGB"/>
                                                         <constraints>
                                                             <constraint firstAttribute="trailing" secondItem="Q9I-7F-UpV" secondAttribute="trailing" constant="10" id="0P8-Qa-cOO"/>
                                                             <constraint firstItem="1PO-U9-tcP" firstAttribute="leading" secondItem="aRt-m2-Vao" secondAttribute="leading" constant="10" id="28b-5e-Cbl"/>
@@ -5943,7 +5952,7 @@
                             </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Wuv-VV-DnH"/>
-                        <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                        <color key="backgroundColor" red="0.19607843137254902" green="0.36078431372549019" blue="0.5490196078431373" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="EfC-Vi-g8l" firstAttribute="centerY" secondItem="F7q-YS-oxM" secondAttribute="centerY" id="28Z-NM-kzr"/>
                             <constraint firstItem="fvA-bZ-nyJ" firstAttribute="top" secondItem="oB9-OZ-Qp1" secondAttribute="top" id="3Bq-53-bKF"/>
@@ -6772,8 +6781,8 @@
                                             </tableViewCell>
                                         </prototypes>
                                     </tableView>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="App version 0.1.85" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PiH-5g-WTt" userLabel="App Version">
-                                        <rect key="frame" x="132" y="90" width="129.33333333333337" height="16"/>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="App version 0.1.86" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PiH-5g-WTt" userLabel="App Version">
+                                        <rect key="frame" x="131.66666666666669" y="90" width="129.66666666666669" height="16"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="8Ka-oc-Bpq"/>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="gEF-Vn-Tet"/>
@@ -12397,7 +12406,7 @@
         <segue reference="FO1-qU-083"/>
         <segue reference="qmb-vm-Nmz"/>
         <segue reference="Zx4-bM-mMb"/>
-        <segue reference="4mq-9G-b1k"/>
+        <segue reference="5NJ-vU-Ume"/>
         <segue reference="hX6-RE-pvS"/>
         <segue reference="A8J-Ia-44n"/>
     </inferredMetricsTieBreakers>

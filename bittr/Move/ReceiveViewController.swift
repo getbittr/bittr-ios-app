@@ -40,6 +40,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var instantButton: UIButton!
     @IBOutlet weak var labelRegular: UILabel!
     @IBOutlet weak var labelInstant: UILabel!
+    @IBOutlet weak var iconLightning: UIImageView!
     @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
     @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
     @IBOutlet weak var switchSelectionLeading: NSLayoutConstraint!
@@ -81,6 +82,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var invoiceButton: UIButton!
     @IBOutlet weak var lnurlQrView: UIView!
     @IBOutlet weak var scanQrButton: UIButton!
+    @IBOutlet weak var scanQrImage: UIImageView!
     
     // QR Scanner
     @IBOutlet weak var qrScannerView: UIView!
@@ -102,6 +104,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var lnQRCodeLogoView: UIView!
     @IBOutlet weak var lnConfirmationAddressView: UIView!
     @IBOutlet weak var lnInvoiceLabel: UILabel!
+    @IBOutlet weak var lnInvoiceCopy: UIImageView!
     @IBOutlet weak var copyInvoiceButton: UIButton!
     @IBOutlet weak var lnConfirmationDoneView: UIView!
     @IBOutlet weak var lnConfirmationDoneButton: UIButton!
@@ -388,23 +391,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "theresalimit"),"type":"lightningreceivable"]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
-    }
-    
-    func changeColors() {
-        
-        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
-        self.qrScannerView.backgroundColor = Colors.getColor(color: "yellowandgrey")
-        
-        self.subtitleRegular.textColor = Colors.getColor(color: "black")
-        self.subtitleInstant.textColor = Colors.getColor(color: "black")
-        
-        self.amountLabel.textColor = Colors.getColor(color: "black")
-        self.descriptionLabel.textColor = Colors.getColor(color: "black")
-        self.receivableLNLabel.textColor = Colors.getColor(color: "black")
-        self.questionCircle.tintColor = Colors.getColor(color: "black")
-        
-        self.lnConfirmationLabel.textColor = Colors.getColor(color: "black")
-        self.qrScannerLabel.textColor = Colors.getColor(color: "black")
     }
     
     @IBAction func scanQrButtonTapped(_ sender: UIButton) {

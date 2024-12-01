@@ -63,6 +63,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var stackLabelQR: UILabel!
     @IBOutlet weak var stackLabelPaste: UILabel!
     @IBOutlet weak var stackLabelType: UILabel!
+    @IBOutlet weak var stackImageQR: UIImageView!
+    @IBOutlet weak var stackImagePaste: UIImageView!
+    @IBOutlet weak var stackImageType: UIImageView!
     
     // Main scroll - Amount view
     @IBOutlet weak var amountStack: UIView!
@@ -123,6 +126,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var eurosFast: UILabel!
     @IBOutlet weak var eurosMedium: UILabel!
     @IBOutlet weak var eurosSlow: UILabel!
+    @IBOutlet weak var timeFast: UILabel!
+    @IBOutlet weak var timeMedium: UILabel!
+    @IBOutlet weak var timeSlow: UILabel!
     @IBOutlet weak var fastButton: UIButton!
     @IBOutlet weak var mediumButton: UIButton!
     @IBOutlet weak var slowButton: UIButton!
@@ -450,25 +456,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         actionSheet.addAction(currencyOption)
         actionSheet.addAction(cancelAction)
         present(actionSheet, animated: true, completion: nil)
-    }
-    
-    func changeColors() {
-        
-        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
-        self.topLabel.textColor = Colors.getColor(color: "black")
-        self.toLabel.textColor = Colors.getColor(color: "black")
-        self.amountLabel.textColor = Colors.getColor(color: "black")
-        self.availableAmount.textColor = Colors.getColor(color: "black")
-        self.questionCircle.tintColor = Colors.getColor(color: "black")
-        
-        self.confirmTopLabel.textColor = Colors.getColor(color: "black")
-        self.yellowCard.backgroundColor = Colors.getColor(color: "cardbackground")
-        self.confirmToCard.backgroundColor = Colors.getColor(color: "whiteorlightblue")
-        self.confirmAmountCard.backgroundColor = Colors.getColor(color: "whiteorlightblue")
-        self.confirmAddressLabel.textColor = Colors.getColor(color: "black")
-        self.confirmAmountLabel.textColor = Colors.getColor(color: "black")
-        self.confirmEuroLabel.textColor = Colors.getColor(color: "black")
-        self.feesTopLabel.textColor = Colors.getColor(color: "black")
     }
     
 }

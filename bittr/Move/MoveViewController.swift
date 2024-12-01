@@ -61,8 +61,8 @@ class MoveViewController: UIViewController {
         sendButton.setTitle("", for: .normal)
         channelButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
-        leftCard.layer.cornerRadius = 13
-        rightCard.layer.cornerRadius = 13
+        leftCard.layer.cornerRadius = 8
+        rightCard.layer.cornerRadius = 8
         viewTotal.layer.cornerRadius = 13
         viewRegular.layer.cornerRadius = 13
         viewInstant.layer.cornerRadius = 13
@@ -176,32 +176,6 @@ class MoveViewController: UIViewController {
             let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation1"),"type":"lightningexplanation"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
-    }
-    
-    func changeColors() {
-        
-        self.subtitleLabel.textColor = Colors.getColor(color: "black")
-        
-        if CacheManager.darkModeIsOn() {
-            self.view.backgroundColor = Colors.getColor(color: "grey")
-            self.viewTotal.backgroundColor = Colors.getColor(color: "yellow")
-            self.viewInstant.backgroundColor = Colors.getColor(color: "yellow")
-            self.viewRegular.backgroundColor = Colors.getColor(color: "yellow")
-            self.yellowCard.backgroundColor = Colors.getColor(color: "cardview")
-            
-            self.leftCard.backgroundColor = Colors.getColor(color: "cardview")
-            self.rightCard.backgroundColor = Colors.getColor(color: "cardview")
-        }
-        
-        self.conversionTotal.textColor = Colors.getColor(color: "black")
-        self.conversionInstant.textColor = Colors.getColor(color: "black")
-        self.conversionRegular.textColor = Colors.getColor(color: "black")
-        self.satsTotal.textColor = Colors.getColor(color: "black")
-        self.satsRegular.textColor = Colors.getColor(color: "black")
-        self.satsInstant.textColor = Colors.getColor(color: "black")
-        self.questionMark.tintColor = Colors.getColor(color: "black")
-        self.sendLabel.textColor = Colors.getColor(color: "black")
-        self.receiveLabel.textColor = Colors.getColor(color: "black")
     }
     
 }
