@@ -309,61 +309,61 @@ class TransactionViewController: UIViewController {
     func changeColors() {
         
         // Card
-        self.view.backgroundColor = Colors.getColor(color: "yelloworblue1")
-        self.bodyView.backgroundColor = Colors.getColor(color: "whiteorblue2")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.bodyView.backgroundColor = Colors.getColor("whiteorblue2")
         
         // Date
-        self.dateView.backgroundColor = Colors.getColor(color: "grey1orblue3")
-        self.dateLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.dateView.backgroundColor = Colors.getColor("grey1orblue3")
+        self.dateLabel.textColor = Colors.getColor("blackorwhite")
         
         // Amount
-        self.amountTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.amountLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.amountTitle.textColor = Colors.getColor("blackoryellow")
+        self.amountLabel.textColor = Colors.getColor("blackorwhite")
         
         // Type
-        self.typeTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.typeLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.boltImage.tintColor = Colors.getColor(color: "blackorwhite")
+        self.typeTitle.textColor = Colors.getColor("blackoryellow")
+        self.typeLabel.textColor = Colors.getColor("blackorwhite")
+        self.boltImage.tintColor = Colors.getColor("blackorwhite")
         
         // ID
-        self.idTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.idLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.idTitle.textColor = Colors.getColor("blackoryellow")
+        self.idLabel.textColor = Colors.getColor("blackorwhite")
         
         // Description
-        self.descriptionTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.descriptionLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.descriptionTitle.textColor = Colors.getColor("blackoryellow")
+        self.descriptionLabel.textColor = Colors.getColor("blackorwhite")
         
         // Fees
-        self.feesTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.feesAmount.textColor = Colors.getColor(color: "blackorwhite")
-        self.questionCircle.tintColor = Colors.getColor(color: "blackorwhite")
+        self.feesTitle.textColor = Colors.getColor("blackoryellow")
+        self.feesAmount.textColor = Colors.getColor("blackorwhite")
+        self.questionCircle.tintColor = Colors.getColor("blackorwhite")
         
         // Confirmations
-        self.confirmationsTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.confirmationsAmount.textColor = Colors.getColor(color: "blackorwhite")
+        self.confirmationsTitle.textColor = Colors.getColor("blackoryellow")
+        self.confirmationsAmount.textColor = Colors.getColor("blackorwhite")
         
         // Current value
-        self.valueNowTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.valueNowLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.valueNowTitle.textColor = Colors.getColor("blackoryellow")
+        self.valueNowLabel.textColor = Colors.getColor("blackorwhite")
         
         // Purchase value
-        self.valueThenTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.valueThenLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.valueThenTitle.textColor = Colors.getColor("blackoryellow")
+        self.valueThenLabel.textColor = Colors.getColor("blackorwhite")
         
         // Profit
-        self.profitTitle.textColor = Colors.getColor(color: "blackoryellow")
+        self.profitTitle.textColor = Colors.getColor("blackoryellow")
         if (self.profitLabel.text ?? "").contains("-") {
-            self.profitView.backgroundColor = Colors.getColor(color: "lossbackground")
-            self.profitLabel.textColor = Colors.getColor(color: "losstext")
+            self.profitView.backgroundColor = Colors.getColor("lossbackground")
+            self.profitLabel.textColor = Colors.getColor("losstext")
         } else {
-            self.profitView.backgroundColor = Colors.getColor(color: "profitbackground")
-            self.profitLabel.textColor = Colors.getColor(color: "profittext")
+            self.profitView.backgroundColor = Colors.getColor("profitbackground")
+            self.profitLabel.textColor = Colors.getColor("profittext")
         }
         
         // Note
-        self.noteTitle.textColor = Colors.getColor(color: "blackoryellow")
-        self.noteLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.noteImage.tintColor = Colors.getColor(color: "grey2orwhite")
+        self.noteTitle.textColor = Colors.getColor("blackoryellow")
+        self.noteLabel.textColor = Colors.getColor("blackorwhite")
+        self.noteImage.tintColor = Colors.getColor("grey2orwhite")
     }
     
 }

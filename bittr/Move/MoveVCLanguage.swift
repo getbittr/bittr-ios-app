@@ -21,25 +21,25 @@ extension MoveViewController {
     
     func changeColors() {
         
-        self.subtitleLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.view.backgroundColor = Colors.getColor(color: "yelloworblue1")
+        self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
         
-        self.yellowCard.backgroundColor = Colors.getColor(color: "yelloworblue2")
-        self.viewTotal.backgroundColor = Colors.getColor(color: "whiteorblue3")
-        self.viewInstant.backgroundColor = Colors.getColor(color: "whiteorblue3")
-        self.viewRegular.backgroundColor = Colors.getColor(color: "whiteorblue3")
+        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
+        self.viewTotal.backgroundColor = Colors.getColor("whiteorblue3")
+        self.viewInstant.backgroundColor = Colors.getColor("whiteorblue3")
+        self.viewRegular.backgroundColor = Colors.getColor("whiteorblue3")
         
-        self.leftCard.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-        self.rightCard.backgroundColor = Colors.getColor(color: "white0.7orblue2")
+        self.leftCard.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.rightCard.backgroundColor = Colors.getColor("white0.7orblue2")
         
-        self.conversionTotal.textColor = Colors.getColor(color: "blackorwhite")
-        self.conversionInstant.textColor = Colors.getColor(color: "blackorwhite")
-        self.conversionRegular.textColor = Colors.getColor(color: "blackorwhite")
-        self.satsTotal.textColor = Colors.getColor(color: "blackorwhite")
-        self.satsRegular.textColor = Colors.getColor(color: "blackorwhite")
-        self.satsInstant.textColor = Colors.getColor(color: "blackorwhite")
-        self.questionMark.tintColor = Colors.getColor(color: "blackorwhite")
-        self.sendLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.receiveLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.conversionTotal.textColor = Colors.getColor("blackorwhite")
+        self.conversionInstant.textColor = Colors.getColor("blackorwhite")
+        self.conversionRegular.textColor = Colors.getColor("blackorwhite")
+        self.satsTotal.textColor = Colors.getColor("blackorwhite")
+        self.satsRegular.textColor = Colors.getColor("blackorwhite")
+        self.satsInstant.textColor = Colors.getColor("blackorwhite")
+        self.questionMark.tintColor = Colors.getColor("blackorwhite")
+        self.sendLabel.textColor = Colors.getColor("blackorwhite")
+        self.receiveLabel.textColor = Colors.getColor("blackorwhite")
     }
 }

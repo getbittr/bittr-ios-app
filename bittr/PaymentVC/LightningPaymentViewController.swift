@@ -153,29 +153,29 @@ class LightningPaymentViewController: UIViewController {
     
     func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
         
         if CacheManager.darkModeIsOn() {
-            self.bodyView.backgroundColor = Colors.getColor(color: "cardview")
+            self.bodyView.backgroundColor = Colors.getColor("whiteorblue2")
         }
         
-        self.explanationLabel.textColor = Colors.getColor(color: "black")
+        self.explanationLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.dateView.backgroundColor = Colors.getColor(color: "dateview")
-        self.dateLabel.textColor = Colors.getColor(color: "black")
+        self.dateView.backgroundColor = Colors.getColor("grey1orblue3")
+        self.dateLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.amountLeftLabel.textColor = Colors.getColor(color: "black")
-        self.amountLabel.textColor = Colors.getColor(color: "black")
+        self.amountLeftLabel.textColor = Colors.getColor("blackorwhite")
+        self.amountLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.typeLeftLabel.textColor = Colors.getColor(color: "black")
-        self.typeLabel.textColor = Colors.getColor(color: "black")
-        self.lightningBolt.tintColor = Colors.getColor(color: "black")
+        self.typeLeftLabel.textColor = Colors.getColor("blackorwhite")
+        self.typeLabel.textColor = Colors.getColor("blackorwhite")
+        self.lightningBolt.tintColor = Colors.getColor("blackorwhite")
         
-        self.idLabel.textColor = Colors.getColor(color: "black")
-        self.descriptionLabel.textColor = Colors.getColor(color: "black")
+        self.idLabel.textColor = Colors.getColor("blackorwhite")
+        self.descriptionLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.nowLabel.textColor = Colors.getColor(color: "black")
-        self.nowLeftLabel.textColor = Colors.getColor(color: "black")
+        self.nowLabel.textColor = Colors.getColor("blackorwhite")
+        self.nowLeftLabel.textColor = Colors.getColor("blackorwhite")
     }
     
     func setWords() {

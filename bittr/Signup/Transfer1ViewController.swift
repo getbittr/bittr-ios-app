@@ -385,14 +385,14 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     func changeColors() {
         
-        self.topLabelOne.textColor = Colors.getColor(color: "black")
-        self.topLabelTwo.textColor = Colors.getColor(color: "black")
-        self.topLabelThree.textColor = Colors.getColor(color: "black")
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.topLabelThree.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
-            self.ibanLabel.textColor = Colors.getColor(color: "black")
+            self.ibanLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.ibanLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.ibanLabel.textColor = Colors.getColor("transparentblack")
         }
     }
     

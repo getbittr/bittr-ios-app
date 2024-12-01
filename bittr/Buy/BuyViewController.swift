@@ -209,9 +209,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
-        self.subtitleLabel.textColor = Colors.getColor(color: "black")
-        self.addAnotherLabel.textColor = Colors.getColor(color: "black")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
+        self.addAnotherLabel.textColor = Colors.getColor("blackorwhite")
     }
     
     func setWords() {

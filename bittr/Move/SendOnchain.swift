@@ -111,16 +111,16 @@ extension SendViewController {
                                 self.feeLow = Float(Int(availableSatsPerVb * 10))/10
                                 self.slowTimeLabel.text = "Slow"
                                 
-                                self.fastView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-                                self.mediumView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-                                self.slowView.backgroundColor = Colors.getColor(color: "whiteorblue3")
+                                self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+                                self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
+                                self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
                                 self.selectedFee = "low"
                             } else {
                                 self.slowTimeLabel.text = "1 day"
                                 
-                                self.fastView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-                                self.mediumView.backgroundColor = Colors.getColor(color: "whiteorblue3")
-                                self.slowView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
+                                self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+                                self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
+                                self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
                                 self.selectedFee = "medium"
                             }
                             
@@ -205,9 +205,9 @@ extension SendViewController {
             let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!))
             
             if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
-                self.fastView.backgroundColor = Colors.getColor(color: "whiteorblue3")
-                self.mediumView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-                self.slowView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
+                self.fastView.backgroundColor = Colors.getColor("whiteorblue3")
+                self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
+                self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
                 self.selectedFee = "high"
                 
                 if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
@@ -219,9 +219,9 @@ extension SendViewController {
             let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!))
             
             if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
-                self.fastView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-                self.mediumView.backgroundColor = Colors.getColor(color: "whiteorblue3")
-                self.slowView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
+                self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+                self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
+                self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
                 self.selectedFee = "medium"
                 
                 if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
@@ -230,9 +230,9 @@ extension SendViewController {
                 }
             }
         case "slow":
-            self.fastView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-            self.mediumView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-            self.slowView.backgroundColor = Colors.getColor(color: "whiteorblue3")
+            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
             self.selectedFee = "low"
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsSlow.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
@@ -240,9 +240,9 @@ extension SendViewController {
                 self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
             }
         default:
-            self.fastView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-            self.mediumView.backgroundColor = Colors.getColor(color: "whiteorblue3")
-            self.slowView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
+            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
+            self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
             self.selectedFee = "medium"
             
             if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {

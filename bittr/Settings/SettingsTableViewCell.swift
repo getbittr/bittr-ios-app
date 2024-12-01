@@ -45,9 +45,9 @@ class SettingsTableViewCell: UITableViewCell {
     
     @objc func changeColors() {
         
-        self.settingsCardLabel.textColor = Colors.getColor(color: "black")
-        self.settingsCardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.currencyLabel.textColor = Colors.getColor(color: "black")
+        self.settingsCardLabel.textColor = Colors.getColor("blackorwhite")
+        self.settingsCardView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.currencyLabel.textColor = Colors.getColor("blackorwhite")
     }
 
 }

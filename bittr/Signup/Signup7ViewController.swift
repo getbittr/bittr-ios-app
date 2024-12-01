@@ -91,13 +91,13 @@ class Signup7ViewController: UIViewController {
     
     func changeColors() {
         
-        self.topLabelOne.textColor = Colors.getColor(color: "black")
-        self.topLabelTwo.textColor = Colors.getColor(color: "black")
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
-            self.skipLabel.textColor = Colors.getColor(color: "black")
+            self.skipLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.skipLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.skipLabel.textColor = Colors.getColor("transparentblack")
         }
     }
     

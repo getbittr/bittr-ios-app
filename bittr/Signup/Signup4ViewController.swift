@@ -176,11 +176,11 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     }
     
     func changeColors() {
-        self.topLabel.textColor = Colors.getColor(color: "black")
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
         if CacheManager.darkModeIsOn() {
-            self.backLabel.textColor = Colors.getColor(color: "black")
+            self.backLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.backLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.backLabel.textColor = Colors.getColor("transparentblack")
         }
     }
     

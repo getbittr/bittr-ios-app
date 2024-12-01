@@ -80,7 +80,7 @@ class Transfer2ViewController: UIViewController {
         
         // Checkmark elements.
         let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = Colors.getColor(color: "black").cgColor
+        viewBorder.strokeColor = Colors.getColor("blackorwhite").cgColor
         viewBorder.frame = checkView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
@@ -251,14 +251,9 @@ class Transfer2ViewController: UIViewController {
     
     func changeColors() {
         
-        self.checkmarkImage.tintColor = Colors.getColor(color: "black")
-        
-        self.topLabelOne.textColor = Colors.getColor(color: "black")
-        self.topLabelTwo.textColor = Colors.getColor(color: "black")
-        
-        //self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        //self.articleTitle.textColor = Colors.getColor(color: "black")
-
+        self.checkmarkImage.tintColor = Colors.getColor("blackorwhite")
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
     }
     
     func setWords() {

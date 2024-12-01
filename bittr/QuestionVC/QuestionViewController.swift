@@ -131,8 +131,8 @@ class QuestionViewController: UIViewController {
     
     func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
-        self.answerLabel.textColor = Colors.getColor(color: "black")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.answerLabel.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
             // Dark mode is on.

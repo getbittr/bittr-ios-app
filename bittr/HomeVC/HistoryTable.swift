@@ -62,15 +62,15 @@ extension HomeViewController {
                 if relativeGain < 0 {
                     // Loss.
                     actualCell.arrowImage.image = UIImage(systemName: "arrow.down")
-                    actualCell.gainView.backgroundColor = Colors.getColor(color: "lossbackground")
-                    actualCell.arrowImage.tintColor = Colors.getColor(color: "losstext")
-                    actualCell.gainLabel.textColor = Colors.getColor(color: "losstext")
+                    actualCell.gainView.backgroundColor = Colors.getColor("lossbackground")
+                    actualCell.arrowImage.tintColor = Colors.getColor("losstext")
+                    actualCell.gainLabel.textColor = Colors.getColor("losstext")
                 } else {
                     // Profit.
                     actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
-                    actualCell.gainView.backgroundColor = Colors.getColor(color: "profitbackground")
-                    actualCell.arrowImage.tintColor = Colors.getColor(color: "profittext")
-                    actualCell.gainLabel.textColor = Colors.getColor(color: "profittext")
+                    actualCell.gainView.backgroundColor = Colors.getColor("profitbackground")
+                    actualCell.arrowImage.tintColor = Colors.getColor("profittext")
+                    actualCell.gainLabel.textColor = Colors.getColor("profittext")
                 }
             } else {
                 actualCell.updateBoltTrailing(position: "right")
@@ -81,19 +81,19 @@ extension HomeViewController {
             
             if thisTransaction.isLightning == true {
                 actualCell.boltImage.alpha = 1
-                actualCell.satsLabel.textColor = Colors.getColor(color: "black")
-                actualCell.eurosLabel.textColor = Colors.getColor(color: "black")
+                actualCell.satsLabel.textColor = Colors.getColor("blackorwhite")
+                actualCell.eurosLabel.textColor = Colors.getColor("blackorwhite")
             } else {
                 actualCell.boltImage.alpha = 0
                 
                 if thisTransaction.confirmations < 1 && self.coreVC?.currentHeight != nil {
                     // Unconfirmed transaction.
-                    actualCell.satsLabel.textColor = Colors.getColor(color: "unconfirmed")
-                    actualCell.eurosLabel.textColor = Colors.getColor(color: "unconfirmed")
+                    actualCell.satsLabel.textColor = Colors.getColor("unconfirmed")
+                    actualCell.eurosLabel.textColor = Colors.getColor("unconfirmed")
                 } else {
                     // Confirmed transaction
-                    actualCell.satsLabel.textColor = Colors.getColor(color: "black")
-                    actualCell.eurosLabel.textColor = Colors.getColor(color: "black")
+                    actualCell.satsLabel.textColor = Colors.getColor("blackorwhite")
+                    actualCell.eurosLabel.textColor = Colors.getColor("blackorwhite")
                 }
             }
             

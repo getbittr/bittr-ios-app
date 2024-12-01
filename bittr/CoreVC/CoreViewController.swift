@@ -189,13 +189,13 @@ class CoreViewController: UIViewController {
     
     @objc func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "grey")
-        self.leftWhite.backgroundColor = Colors.getColor(color: "grey")
-        self.middleWhite.backgroundColor = Colors.getColor(color: "grey")
-        self.rightWhite.backgroundColor = Colors.getColor(color: "grey")
+        self.view.backgroundColor = Colors.getColor("grey3orblue1")
+        self.leftWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        self.middleWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        self.rightWhite.backgroundColor = Colors.getColor("grey3orblue1")
         
-        self.lowerTopBar.backgroundColor = Colors.getColor(color: "yellow")
-        self.topBar.backgroundColor = Colors.getColor(color: "transparentyellow")
+        self.lowerTopBar.backgroundColor = Colors.getColor("yelloworblue3")
+        self.topBar.backgroundColor = Colors.getColor("transparentyellow")
         
         if CacheManager.darkModeIsOn() {
             // Dark mode is on.

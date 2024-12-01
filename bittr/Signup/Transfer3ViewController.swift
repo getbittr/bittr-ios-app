@@ -290,20 +290,15 @@ class Transfer3ViewController: UIViewController {
     
     func changeColors() {
         
-        self.topLabelOne.textColor = Colors.getColor(color: "black")
-        self.topLabelTwo.textColor = Colors.getColor(color: "black")
-        self.topLabelThree.textColor = Colors.getColor(color: "black")
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.topLabelThree.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
-            self.backLabel.textColor = Colors.getColor(color: "black")
+            self.backLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.backLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.backLabel.textColor = Colors.getColor("transparentblack")
         }
-        
-        /*self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.articleTitle.textColor = Colors.getColor(color: "black")
-        self.cardView2.backgroundColor = Colors.getColor(color: "cardview")
-        self.article2Title.textColor = Colors.getColor(color: "black")*/
 
     }
     

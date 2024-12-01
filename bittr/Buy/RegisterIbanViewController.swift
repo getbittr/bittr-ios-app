@@ -110,7 +110,7 @@ class RegisterIbanViewController: UIViewController {
     
     func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "yellowandgrey")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
 }

@@ -61,23 +61,23 @@ class HistoryTableViewCell: UITableViewCell {
     
     @objc func changeColors() {
         
-        cardView.backgroundColor = Colors.getColor(color: "cardview")
-        satsLabel.textColor = Colors.getColor(color: "black")
-        eurosLabel.textColor = Colors.getColor(color: "black")
-        dayLabel.textColor = Colors.getColor(color: "black")
-        dateView.backgroundColor = Colors.getColor(color: "dateview")
+        cardView.backgroundColor = Colors.getColor("whiteorblue2")
+        satsLabel.textColor = Colors.getColor("blackorwhite")
+        eurosLabel.textColor = Colors.getColor("blackorwhite")
+        dayLabel.textColor = Colors.getColor("blackorwhite")
+        dateView.backgroundColor = Colors.getColor("grey1orblue3")
         
         if let actualText = gainLabel.text {
             if actualText.contains("-") {
                 // Loss
-                gainView.backgroundColor = Colors.getColor(color: "lossbackground")
-                arrowImage.tintColor = Colors.getColor(color: "losstext")
-                gainLabel.textColor = Colors.getColor(color: "losstext")
+                gainView.backgroundColor = Colors.getColor("lossbackground")
+                arrowImage.tintColor = Colors.getColor("losstext")
+                gainLabel.textColor = Colors.getColor("losstext")
             } else {
                 // Profit
-                gainView.backgroundColor = Colors.getColor(color: "profitbackground")
-                arrowImage.tintColor = Colors.getColor(color: "profittext")
-                gainLabel.textColor = Colors.getColor(color: "profittext")
+                gainView.backgroundColor = Colors.getColor("profitbackground")
+                arrowImage.tintColor = Colors.getColor("profittext")
+                gainLabel.textColor = Colors.getColor("profittext")
             }
         }
         

@@ -652,12 +652,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func changeColors() {
         
-        self.topLabel.textColor = Colors.getColor(color: "black")
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
-            self.resendLabel.textColor = Colors.getColor(color: "black")
+            self.resendLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.resendLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.resendLabel.textColor = Colors.getColor("transparentblack")
         }
 
     }

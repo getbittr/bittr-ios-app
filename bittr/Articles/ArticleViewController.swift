@@ -135,7 +135,7 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     func changeColors() {
         
         if CacheManager.darkModeIsOn() {
-            self.view.backgroundColor = Colors.getColor(color: "grey")
+            self.view.backgroundColor = Colors.getColor("grey3orblue1")
         }
     }
     

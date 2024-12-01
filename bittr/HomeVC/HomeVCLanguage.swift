@@ -20,31 +20,31 @@ extension HomeViewController {
     
     @objc func changeColors() {
         
-        self.headerView.backgroundColor = Colors.getColor(color: "whiteorblue2")
-        self.headerLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.headerSpinner.color = Colors.getColor(color: "blackorwhite")
+        self.headerView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.headerLabel.textColor = Colors.getColor("blackorwhite")
+        self.headerSpinner.color = Colors.getColor("blackorwhite")
         
-        self.sendButtonView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-        self.receiveButtonView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-        self.buyButtonView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
-        self.profitButtonView.backgroundColor = Colors.getColor(color: "white0.7orblue2")
+        self.sendButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.receiveButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.buyButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.profitButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
         
-        self.sendLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.receiveLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.buyLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.profitLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.bittrProfitLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.sendLabel.textColor = Colors.getColor("blackorwhite")
+        self.receiveLabel.textColor = Colors.getColor("blackorwhite")
+        self.buyLabel.textColor = Colors.getColor("blackorwhite")
+        self.profitLabel.textColor = Colors.getColor("blackorwhite")
+        self.bittrProfitLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.backgroundColorView.backgroundColor = Colors.getColor(color: "yelloworblue3")
-        self.backgroundColorTopView.backgroundColor = Colors.getColor(color: "yelloworblue3")
-        self.balanceCard.backgroundColor = Colors.getColor(color: "yelloworblue3")
-        self.conversionLabel.textColor = Colors.getColor(color: "black0.5orwhite0.5")
+        self.backgroundColorView.backgroundColor = Colors.getColor("yelloworblue3")
+        self.backgroundColorTopView.backgroundColor = Colors.getColor("yelloworblue3")
+        self.balanceCard.backgroundColor = Colors.getColor("yelloworblue3")
+        self.conversionLabel.textColor = Colors.getColor("black0.5orwhite0.5")
         
-        self.tableSpinner.color = Colors.getColor(color: "blackorwhite")
-        self.bittrProfitSpinner.color = Colors.getColor(color: "blackorwhite")
-        self.balanceSpinner.color = Colors.getColor(color: "blackorwhite")
+        self.tableSpinner.color = Colors.getColor("blackorwhite")
+        self.bittrProfitSpinner.color = Colors.getColor("blackorwhite")
+        self.balanceSpinner.color = Colors.getColor("blackorwhite")
         
-        self.satsLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.satsLabel.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
             self.yellowCurve.image = UIImage(named: "yellowcurvedark")

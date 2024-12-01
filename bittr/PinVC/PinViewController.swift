@@ -292,19 +292,19 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     @objc func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "yellow")
-        self.topLabel.textColor = Colors.getColor(color: "black")
+        self.view.backgroundColor = Colors.getColor("yelloworblue3")
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
         if CacheManager.darkModeIsOn() {
-            self.restoreButtonLabel.textColor = Colors.getColor(color: "black")
+            self.restoreButtonLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.restoreButtonLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.restoreButtonLabel.textColor = Colors.getColor("transparentblack")
         }
         for eachLabel in self.allLabels {
-            eachLabel.textColor = Colors.getColor(color: "black")
+            eachLabel.textColor = Colors.getColor("blackorwhite")
         }
-        self.imageBackspace.tintColor = Colors.getColor(color: "black")
-        self.confirmPinView.backgroundColor = Colors.getColor(color: "blackbutton")
-        self.pinTextField.textColor = Colors.getColor(color: "blackbutton")
+        self.imageBackspace.tintColor = Colors.getColor("blackorwhite")
+        self.confirmPinView.backgroundColor = Colors.getColor("blackorblue1")
+        self.pinTextField.textColor = Colors.getColor("blackorblue1")
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {

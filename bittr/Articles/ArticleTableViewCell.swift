@@ -36,8 +36,8 @@ class ArticleTableViewCell: UITableViewCell {
     
     @objc func changeColors() {
         
-        self.cardView.backgroundColor = Colors.getColor(color: "cardview")
-        self.titleLabel.textColor = Colors.getColor(color: "black")
+        self.cardView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.titleLabel.textColor = Colors.getColor("blackorwhite")
     }
 
 }

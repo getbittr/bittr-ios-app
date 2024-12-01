@@ -48,7 +48,7 @@ class OneArticleTableViewCell: UITableViewCell {
                 let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                 
                 self.cellTextLabel.attributedText = attributedText
-                self.cellTextLabel.textColor = Colors.getColor(color: "black")
+                self.cellTextLabel.textColor = Colors.getColor("blackorwhite")
             } catch let e as NSError {
                 print("Couldn't fetch text: \(e.localizedDescription)")
             }

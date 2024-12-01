@@ -156,8 +156,8 @@ class Signup3ViewController: UIViewController {
     
     func changeColors() {
         
-        self.topLabelOne.textColor = Colors.getColor(color: "black")
-        self.topLabelTwo.textColor = Colors.getColor(color: "black")
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
     }
     
     func setWords2() {

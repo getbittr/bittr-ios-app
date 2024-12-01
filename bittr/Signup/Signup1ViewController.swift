@@ -162,11 +162,11 @@ class Signup1ViewController: UIViewController {
     }
     
     func changeColors() {
-        self.topLabel.textColor = Colors.getColor(color: "black")
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
         if CacheManager.darkModeIsOn() {
-            self.restoreLabel.textColor = Colors.getColor(color: "black")
+            self.restoreLabel.textColor = Colors.getColor("blackorwhite")
         } else {
-            self.restoreLabel.textColor = Colors.getColor(color: "transparentblack")
+            self.restoreLabel.textColor = Colors.getColor("transparentblack")
         }
     }
     

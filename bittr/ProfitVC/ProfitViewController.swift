@@ -62,20 +62,20 @@ class ProfitViewController: UIViewController {
     
     func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor(color: "yelloworblue1")
-        self.subtitleLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.totalInvestmentLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.totalValueLabel.textColor = Colors.getColor(color: "blackorwhite")
-        self.totalProfitLabel.textColor = Colors.getColor(color: "blackorwhite")
+        self.totalInvestmentLabel.textColor = Colors.getColor("blackorwhite")
+        self.totalValueLabel.textColor = Colors.getColor("blackorwhite")
+        self.totalProfitLabel.textColor = Colors.getColor("blackorwhite")
         
-        self.investedLabel.textColor = Colors.getColor(color: "blackoryellow")
-        self.currentLabel.textColor = Colors.getColor(color: "blackoryellow")
-        self.profitLabel.textColor = Colors.getColor(color: "blackoryellow")
+        self.investedLabel.textColor = Colors.getColor("blackoryellow")
+        self.currentLabel.textColor = Colors.getColor("blackoryellow")
+        self.profitLabel.textColor = Colors.getColor("blackoryellow")
     
-        self.investedView.backgroundColor = Colors.getColor(color: "cardview")
-        self.currentValueView.backgroundColor = Colors.getColor(color: "cardview")
-        self.profitView.backgroundColor = Colors.getColor(color: "cardview")
+        self.investedView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.currentValueView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.profitView.backgroundColor = Colors.getColor("whiteorblue2")
     }
     
     func setWords() {

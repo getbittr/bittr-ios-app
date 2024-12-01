@@ -60,18 +60,18 @@ class IbanCollectionViewCell: UICollectionViewCell {
     
     func changeColors() {
         
-        self.labelYourEmail.textColor = Colors.getColor(color: "black")
-        self.labelYourIban.textColor = Colors.getColor(color: "black")
-        self.labelOurIban.textColor = Colors.getColor(color: "black")
-        self.labelOurName.textColor = Colors.getColor(color: "black")
-        self.labelYourCode.textColor = Colors.getColor(color: "black")
+        self.labelYourEmail.textColor = Colors.getColor("blackorwhite")
+        self.labelYourIban.textColor = Colors.getColor("blackorwhite")
+        self.labelOurIban.textColor = Colors.getColor("blackorwhite")
+        self.labelOurName.textColor = Colors.getColor("blackorwhite")
+        self.labelYourCode.textColor = Colors.getColor("blackorwhite")
         
-        self.cardBackgroundView.backgroundColor = Colors.getColor(color: "cardbackground")
-        yourIbanView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
-        ibanView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
-        nameView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
-        codeView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
-        emailView.backgroundColor = Colors.getColor(color: "whiteorlightblue")
+        self.cardBackgroundView.backgroundColor = Colors.getColor("yelloworblue2")
+        yourIbanView.backgroundColor = Colors.getColor("whiteorblue3")
+        ibanView.backgroundColor = Colors.getColor("whiteorblue3")
+        nameView.backgroundColor = Colors.getColor("whiteorblue3")
+        codeView.backgroundColor = Colors.getColor("whiteorblue3")
+        emailView.backgroundColor = Colors.getColor("whiteorblue3")
     }
     
     func setWords() {
