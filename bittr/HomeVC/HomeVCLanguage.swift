@@ -9,7 +9,7 @@ import UIKit
 
 extension HomeViewController {
     
-    func setWords() {
+    @objc func setWords() {
         
         self.headerLabel.text = Language.getWord(withID: "syncing")
         self.sendLabel.text = Language.getWord(withID: "send")

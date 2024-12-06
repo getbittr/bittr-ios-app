@@ -158,6 +158,7 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         self.setWords()
         
@@ -218,7 +219,7 @@ class CoreViewController: UIViewController {
         }
     }
     
-    func setWords() {
+    @objc func setWords() {
         
         self.statusConversion.text = Language.getWord(withID: "fetchconversionrates")
         self.statusLightning.text = Language.getWord(withID: "startlightningnode")

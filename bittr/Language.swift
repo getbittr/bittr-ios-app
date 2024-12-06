@@ -302,7 +302,8 @@ class Language: NSObject {
             "lnurlfail4": "We currently only support LNURL pay and withdraw requests.",
             "sendvcscan": "Scan",
             "sendvcpaste": "Paste",
-            "sendvctype": "Type"
+            "sendvctype": "Type",
+            "language": "Language"
         ]
         
         if let foundWord = allWords[withID] {

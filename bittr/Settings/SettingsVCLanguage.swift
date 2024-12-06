@@ -9,8 +9,9 @@ import UIKit
 
 extension SettingsViewController {
     
-    func setWords() {
+    @objc func setWords() {
         
+        self.settingsTableView.reloadData()
         self.appVersion.text = self.appVersion.text?.replacingOccurrences(of: "App version", with: Language.getWord(withID: "appversion"))
     }
 }

@@ -15,6 +15,12 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
     
+    // Language view
+    @IBOutlet weak var languageView: UIView!
+    @IBOutlet weak var languageLeftLabel: UILabel!
+    @IBOutlet weak var languageRightLabel: UILabel!
+    @IBOutlet weak var languageButton: UIButton!
+    
     // Token view
     @IBOutlet weak var tokenView: UIView!
     @IBOutlet weak var tokenLabel: UILabel!
@@ -74,26 +80,33 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        downButton.setTitle("", for: .normal)
-        tokenButton.setTitle("", for: .normal)
-        keyButton.setTitle("", for: .normal)
-        imagesButton.setTitle("", for: .normal)
-        peerButton.setTitle("", for: .normal)
-        transactionsButton.setTitle("", for: .normal)
-        notificationButton.setTitle("", for: .normal)
-        channelsButton.setTitle("", for: .normal)
-        headerView.layer.cornerRadius = 13
-        tokenView.layer.cornerRadius = 13
-        keyView.layer.cornerRadius = 13
-        imagesView.layer.cornerRadius = 13
-        peerView.layer.cornerRadius = 13
-        transactionsView.layer.cornerRadius = 13
-        notificationView.layer.cornerRadius = 13
-        channelsView.layer.cornerRadius = 13
-        darkModeView.layer.cornerRadius = 13
+        // Button titles
+        self.downButton.setTitle("", for: .normal)
+        self.tokenButton.setTitle("", for: .normal)
+        self.keyButton.setTitle("", for: .normal)
+        self.imagesButton.setTitle("", for: .normal)
+        self.peerButton.setTitle("", for: .normal)
+        self.transactionsButton.setTitle("", for: .normal)
+        self.notificationButton.setTitle("", for: .normal)
+        self.channelsButton.setTitle("", for: .normal)
+        self.languageButton.setTitle("", for: .normal)
         
+        // Corner radii
+        self.headerView.layer.cornerRadius = 13
+        self.languageView.layer.cornerRadius = 13
+        self.tokenView.layer.cornerRadius = 13
+        self.keyView.layer.cornerRadius = 13
+        self.imagesView.layer.cornerRadius = 13
+        self.peerView.layer.cornerRadius = 13
+        self.transactionsView.layer.cornerRadius = 13
+        self.notificationView.layer.cornerRadius = 13
+        self.channelsView.layer.cornerRadius = 13
+        self.darkModeView.layer.cornerRadius = 13
+        
+        // Notifications
         NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         if CacheManager.darkModeIsOn() {
             self.darkModeSwitch.setOn(true, animated: false)
@@ -120,6 +133,18 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
 
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true)
+    }
+    
+    @IBAction func languageButtonTapped(_ sender: UIButton) {
+        
+        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let englishOption = UIAlertAction(title: "English (US)", style: .default) { (action) in
+            CacheManager.changeLanguage("en_US")
+        }
+        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
+        actionSheet.addAction(englishOption)
+        actionSheet.addAction(cancelAction)
+        present(actionSheet, animated: true, completion: nil)
     }
     
     @IBAction func tokenButtonTapped(_ sender: UIButton) {
@@ -421,7 +446,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
     }
     
-    func setWords() {
+    @objc func setWords() {
         
         self.headerLabel.text = Language.getWord(withID: "devicedetails2")
         self.subheaderLabel.text = Language.getWord(withID: "accessdetails")
@@ -439,7 +464,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.channelsLeftLabel.text = "⚡️  " + Language.getWord(withID: "lightningchannels2")
         self.imagesLeftLabel.text = "🎞️  " + Language.getWord(withID: "cachedimages")
         self.imagesRightLabel.text = Language.getWord(withID: "empty")
-        
+        self.languageLeftLabel.text = "🌍  " + Language.getWord(withID: "language")
     }
     
 }

@@ -1044,4 +1044,9 @@ class CacheManager: NSObject {
         }
     }
     
+    static func changeLanguage(_ toLanguage:String) {
+        UserDefaults.standard.set(toLanguage, forKey: "language")
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
+    }
+    
 }

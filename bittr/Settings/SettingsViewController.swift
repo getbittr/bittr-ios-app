@@ -29,6 +29,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         settingsTableView.dataSource = self
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         self.changeColors()
     }
