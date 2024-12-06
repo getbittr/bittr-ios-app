@@ -11,7 +11,7 @@ extension HomeViewController {
     
     @objc func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "syncing")
+        self.headerLabel.text = Language.getWord(withID: "yourwallet")
         self.sendLabel.text = Language.getWord(withID: "send")
         self.receiveLabel.text = Language.getWord(withID: "receive")
         self.buyLabel.text = Language.getWord(withID: "buy")

@@ -115,6 +115,10 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.changeColors()
         self.setWords()
         
+        if CacheManager.getLanguage() == "en_US" {
+            self.languageRightLabel.text = "English"
+        }
+        
         Task {
             do {
                 if LightningNodeService.shared.ldkNode != nil {
@@ -416,6 +420,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         
         self.darkModeView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.languageView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.tokenView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.keyView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.peerView.backgroundColor = Colors.getColor("white0.7orblue2")
@@ -427,6 +432,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.subheaderLabel.textColor = Colors.getColor("blackorwhite")
         
         self.darkModeLabel.textColor = Colors.getColor("blackorwhite")
+        self.languageLeftLabel.textColor = Colors.getColor("blackorwhite")
+        self.languageRightLabel.textColor = Colors.getColor("blackorwhite")
         self.tokenLabel.textColor = Colors.getColor("blackorwhite")
         self.tokenRightLabel.textColor = Colors.getColor("blackorwhite")
         self.keyLabel.textColor = Colors.getColor("blackorwhite")

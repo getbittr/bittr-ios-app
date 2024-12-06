@@ -126,6 +126,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Check if dark mode is on.
         self.changeColors()
         self.setWords()
+        self.headerLabel.text = Language.getWord(withID: "syncing")
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
