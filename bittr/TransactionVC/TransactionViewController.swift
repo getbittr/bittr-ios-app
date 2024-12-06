@@ -112,10 +112,6 @@ class TransactionViewController: UIViewController {
         
         dateLabel.text = transactionDateString
         
-        
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .decimal
-        
         // Set sats.
         var plusSymbol = "+"
         if tappedTransaction.received - tappedTransaction.sent < 0 {

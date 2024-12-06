@@ -40,9 +40,8 @@ extension SendViewController {
                     divideBy = self.chfValue
                 }
             }
-            let formatter = NumberFormatter()
-            formatter.decimalSeparator = Locale.current.decimalSeparator!
-            self.onchainAmountInSatoshis = Int(((CGFloat(truncating: formatter.number(from: (self.amountTextField.text ?? "0.0").fixDecimals())!)/divideBy) * 100000000).rounded())
+            
+            self.onchainAmountInSatoshis = Int(((self.stringToNumber(self.amountTextField.text)/divideBy) * 100000000).rounded())
             self.onchainAmountInBTC = CGFloat(self.onchainAmountInSatoshis)/100000000
             
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0  {
@@ -202,7 +201,7 @@ extension SendViewController {
         
         switch tappedFee {
         case "fast":
-            let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!))
+            let feeInSats = Int(self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")))
             
             if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = Colors.getColor("whiteorblue3")
@@ -210,13 +209,13 @@ extension SendViewController {
                 self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
                 self.selectedFee = "high"
                 
-                if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsFast.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
+                if self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                     
                     self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
                 }
             }
         case "medium":
-            let feeInSats:Int = Int(CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!))
+            let feeInSats = Int(self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")))
             
             if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
@@ -224,7 +223,7 @@ extension SendViewController {
                 self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
                 self.selectedFee = "medium"
                 
-                if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
+                if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                     
                     self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
                 }
@@ -235,7 +234,7 @@ extension SendViewController {
             self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
             self.selectedFee = "low"
             
-            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsSlow.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
+            if self.stringToNumber(self.satsSlow.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                 
                 self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
             }
@@ -245,7 +244,7 @@ extension SendViewController {
             self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
             self.selectedFee = "medium"
             
-            if (CGFloat(truncating: NumberFormatter().number(from: ((self.satsMedium.text!).replacingOccurrences(of: " sats", with: "").fixDecimals()))!)) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
+            if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                 
                 self.showAlert(Language.getWord(withID: "highfeerate"), Language.getWord(withID: "highfeerate2"), Language.getWord(withID: "okay"))
             }
@@ -363,7 +362,7 @@ extension SendViewController {
                                 } else if self.selectedFee == "high" {
                                     satsLabel = self.satsFast
                                 }
-                                newTransaction.fee = Int(CGFloat(truncating: NumberFormatter().number(from: satsLabel!.text!.replacingOccurrences(of: " sats", with: "").fixDecimals())!))
+                                newTransaction.fee = Int(self.stringToNumber(satsLabel!.text!.replacingOccurrences(of: " sats", with: "")))
                                 newTransaction.sent = self.onchainAmountInSatoshis + newTransaction.fee
                                 newTransaction.isLightning = false
                                 newTransaction.isBittr = false
@@ -423,7 +422,7 @@ extension SendViewController {
                 return nil
             } catch let error as BdkError {
                 if "\(error)".contains("InsufficientFunds") {
-                    let satsReservation:Double = CGFloat(truncating: NumberFormatter().number(from: String("\(error)".split(separator: " ")[7])) ?? 0) * 0.00000001
+                    let satsReservation:Double = self.stringToNumber(String("\(error)".split(separator: " ")[7])) * 0.00000001
                     let requiredCorrection:Double = self.btcAmount - satsReservation
                     let spendableBtcAmount = self.btcAmount + requiredCorrection
                     if spendableBtcAmount < 0 {
@@ -450,6 +449,18 @@ extension UIViewController {
             let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
             self.present(alert, animated: true)
+        }
+    }
+    
+    func stringToNumber(_ thisString:String?) -> CGFloat {
+        
+        let formatter = NumberFormatter()
+        formatter.decimalSeparator = Locale.current.decimalSeparator!
+        
+        if formatter.number(from: (thisString ?? "0.0").fixDecimals()) == nil {
+            return 0
+        } else {
+            return CGFloat(truncating: formatter.number(from: (thisString ?? "0.0").fixDecimals())!)
         }
     }
 }

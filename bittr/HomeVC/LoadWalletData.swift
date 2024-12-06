@@ -251,7 +251,7 @@ extension HomeViewController {
                                     if eachExistingTransaction.id == eachTransaction.txId, eachExistingTransaction.isBittr == false {
                                         newTransactionsWereFound = true
                                         eachExistingTransaction.isBittr = true
-                                        eachExistingTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).fixDecimals())!))
+                                        eachExistingTransaction.purchaseAmount = Int(self.stringToNumber(eachTransaction.purchaseAmount))
                                         eachExistingTransaction.currency = eachTransaction.currency
                                         if eachExistingTransaction.isLightning {
                                             CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
@@ -340,6 +340,7 @@ extension HomeViewController {
         let font = self.balanceLabelInvisible.adjustedFont()
         self.satsLabel.font = font
         let adjustedSize = Int(font.pointSize)
+        print("Adjusted size: \(adjustedSize)")
         
         // Set HTML balance text.
         var transparentColor = "201, 154, 0"
@@ -448,8 +449,8 @@ extension HomeViewController {
                                 actualChfValue = actualChfValue.fixDecimals()
                                 
                                 // Set updated conversion rates for EUR and CHF.
-                                self.coreVC!.eurValue = CGFloat(truncating: NumberFormatter().number(from: actualEurValue)!)
-                                self.coreVC!.chfValue = CGFloat(truncating: NumberFormatter().number(from: actualChfValue)!)
+                                self.coreVC!.eurValue = self.stringToNumber(actualEurValue)
+                                self.coreVC!.chfValue = self.stringToNumber(actualChfValue)
                                 
                                 // Store updated conversion rates in cache.
                                 CacheManager.updateCachedData(data: self.coreVC!.eurValue, key: "eurvalue")
@@ -555,6 +556,7 @@ extension HomeViewController {
         
         // Hide profit label while calculating.
         self.bittrProfitLabel.alpha = 0
+        self.balanceCardGainLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
         
         // Variables.
@@ -606,6 +608,7 @@ extension HomeViewController {
             
             if self.couldNotFetchConversion == true {
                 self.headerProblemImage.alpha = 1
+                self.headerLabelLeading.constant = 11
             } else {
                 self.headerLabelLeading.constant = -10
             }
@@ -627,6 +630,23 @@ extension HomeViewController {
         self.bittrProfitLabel.text = "\(currencySymbol) \(accumulatedProfit)"
         self.bittrProfitLabel.alpha = 1
         self.bittrProfitSpinner.stopAnimating()
+        
+        self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %  (\(currencySymbol) \(accumulatedProfit))".replacingOccurrences(of: "-", with: "")
+        self.balanceCardGainLabel.alpha = 1
+        
+        if accumulatedProfit < 0 {
+            // Loss
+            self.balanceCardGainLabel.textColor = Colors.getColor("losstext")
+            self.balanceCardProfitView.backgroundColor = Colors.getColor("lossbackground0.8")
+            self.balanceCardArrowImage.tintColor = Colors.getColor("losstext")
+            self.balanceCardArrowImage.image = UIImage(systemName: "arrow.down")
+        } else {
+            // Profit
+            self.balanceCardGainLabel.textColor = Colors.getColor("profittext")
+            self.balanceCardProfitView.backgroundColor = Colors.getColor("profitbackground0.8")
+            self.balanceCardArrowImage.tintColor = Colors.getColor("profittext")
+            self.balanceCardArrowImage.image = UIImage(systemName: "arrow.up")
+        }
         
         self.calculatedProfit = accumulatedProfit
         self.calculatedInvestments = accumulatedInvestments
@@ -725,7 +745,7 @@ extension UIViewController {
             // Bittr funding transaction.
             thisTransaction.id = bittrTransaction!.txId
             thisTransaction.sent = 0
-            thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (bittrTransaction!.bitcoinAmount).fixDecimals())!)*100000000)
+            thisTransaction.received = Int(self.stringToNumber(bittrTransaction!.bitcoinAmount)*100000000)
             thisTransaction.isLightning = true
             thisTransaction.isFundingTransaction = true
             
@@ -736,7 +756,7 @@ extension UIViewController {
             thisTransaction.timestamp = transactionTimestamp
             
             thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (bittrTransaction!.purchaseAmount).fixDecimals())!))
+            thisTransaction.purchaseAmount = Int(self.stringToNumber(bittrTransaction!.purchaseAmount))
             thisTransaction.currency = bittrTransaction!.currency
             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: bittrTransaction!.txId)
             if let actualChannels = coreVC?.lightningChannels {
@@ -747,7 +767,7 @@ extension UIViewController {
         // Check if transaction is Bittr.
         if (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id), bittrTransaction == nil {
             thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).fixDecimals())!))
+            thisTransaction.purchaseAmount = Int(self.stringToNumber(((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String)))
             thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
         }
         

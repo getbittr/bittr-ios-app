@@ -73,9 +73,9 @@ class ProfitViewController: UIViewController {
         self.currentLabel.textColor = Colors.getColor("blackoryellow")
         self.profitLabel.textColor = Colors.getColor("blackoryellow")
     
-        self.investedView.backgroundColor = Colors.getColor("whiteorblue2")
-        self.currentValueView.backgroundColor = Colors.getColor("whiteorblue2")
-        self.profitView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.investedView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.currentValueView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.profitView.backgroundColor = Colors.getColor("white0.7orblue2")
     }
     
     func setWords() {

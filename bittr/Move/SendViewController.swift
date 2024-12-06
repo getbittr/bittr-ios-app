@@ -430,7 +430,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func btcButtonTapped(_ sender: UIButton) {
         
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let btcOption = UIAlertAction(title: "BTC", style: .default) { (action) in
+        let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
             
             self.btcLabel.text = "BTC"
             self.selectedCurrency = "bitcoin"

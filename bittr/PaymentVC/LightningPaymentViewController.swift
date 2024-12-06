@@ -65,9 +65,6 @@ class LightningPaymentViewController: UIViewController {
             
             dateLabel.text = transactionDateString
             
-            let numberFormatter = NumberFormatter()
-            numberFormatter.numberStyle = .decimal
-            
             // Set sats.
             var plusSymbol = "+"
             if actualTransaction.received - actualTransaction.sent < 0 {

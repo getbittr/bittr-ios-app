@@ -22,7 +22,7 @@ class Language: NSObject {
         
         let allWords:[String:String] = [
             "yourwallet": "your wallet",
-            "syncing": "syncing",
+            "syncing": "",
             "send": "Send",
             "receive": "Receive",
             "buy": "Buy",

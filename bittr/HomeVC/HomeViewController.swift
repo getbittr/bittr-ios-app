@@ -36,6 +36,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var balanceCardButton: UIButton!
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
+    // Balance card profit views
+    @IBOutlet weak var balanceCardProfitView: UIView!
+    @IBOutlet weak var balanceCardArrowImage: UIImageView!
+    @IBOutlet weak var balanceCardGainLabel: UILabel!
+    
     // Header: Balance card header view
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerSpinner: UIActivityIndicatorView!
@@ -97,6 +102,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         receiveButtonView.layer.cornerRadius = 8
         headerView.layer.cornerRadius = 13
         balanceCard.layer.cornerRadius = 13
+        self.balanceCardProfitView.layer.cornerRadius = 18
         
         // Button titles
         profitButton.setTitle("", for: .normal)
@@ -401,6 +407,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         self.noTransactionsLabel.alpha = 0
         self.bittrProfitLabel.alpha = 0
+        self.balanceCardGainLabel.alpha = 0
         self.bittrProfitSpinner.startAnimating()
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
@@ -411,7 +418,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.tableSpinner.startAnimating()
         
         self.headerLabel.text = Language.getWord(withID: "syncing")
-        self.headerLabelLeading.constant = 10
+        self.headerLabelLeading.constant = -10
         self.headerSpinner.startAnimating()
         self.headerProblemImage.alpha = 0
         self.couldNotFetchConversion = false
