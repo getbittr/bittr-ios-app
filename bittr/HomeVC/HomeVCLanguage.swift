@@ -63,9 +63,13 @@ extension HomeViewController {
         if CacheManager.darkModeIsOn() {
             self.yellowCurve.image = UIImage(named: "yellowcurvedark")
             self.bitcoinSign.image = UIImage(named: "gilroybitcoinwhite")
+            self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
+            self.headerDetailsImage.image = UIImage(named: "icondetailsyellow")
         } else {
             self.yellowCurve.image = UIImage(named: "yellowcurve")
             self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
+            self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")
+            self.headerDetailsImage.image = UIImage(named: "icondetailswhite")
         }
         
         if self.balanceLabel.alpha == 1 {

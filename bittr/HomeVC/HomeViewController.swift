@@ -45,9 +45,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerSpinner: UIActivityIndicatorView!
     @IBOutlet weak var headerProblemImage: UIImageView!
+    @IBOutlet weak var headerPiggyImage: UIImageView!
     @IBOutlet weak var headerLabel: UILabel!
-    @IBOutlet weak var headerLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var headerViewButton: UIButton!
+    @IBOutlet weak var headerDetailsImage: UIImageView!
     
     // Header: Lower buttons
     @IBOutlet weak var sendButtonView: UIView!
@@ -102,7 +103,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         receiveButtonView.layer.cornerRadius = 8
         headerView.layer.cornerRadius = 13
         balanceCard.layer.cornerRadius = 13
-        self.balanceCardProfitView.layer.cornerRadius = 18
+        self.balanceCardProfitView.layer.cornerRadius = 13
         
         // Button titles
         profitButton.setTitle("", for: .normal)
@@ -126,7 +127,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Check if dark mode is on.
         self.changeColors()
         self.setWords()
-        self.headerLabel.text = Language.getWord(withID: "syncing")
+        //self.headerLabel.text = Language.getWord(withID: "syncing")
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
@@ -253,7 +254,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Balance Card tapped.
         
-        if self.headerLabel.text == Language.getWord(withID: "syncing") {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
             self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
@@ -266,7 +267,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == Language.getWord(withID: "syncing") {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
             self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
@@ -285,7 +286,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == Language.getWord(withID: "syncing") {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
             self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
@@ -419,8 +420,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.tableSpinner.startAnimating()
         
-        self.headerLabel.text = Language.getWord(withID: "syncing")
-        self.headerLabelLeading.constant = -10
         self.headerSpinner.startAnimating()
         self.headerProblemImage.alpha = 0
         self.couldNotFetchConversion = false
@@ -433,7 +432,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Reload wallet when pulling down the view.
         
-        if scrollView.contentOffset.y < -200, self.didStartReset == false, self.headerLabel.text != "syncing" {
+        if scrollView.contentOffset.y < -200, self.didStartReset == false, !self.headerSpinner.isAnimating {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -477,7 +476,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == Language.getWord(withID: "syncing") {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
             self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
@@ -488,7 +487,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text != Language.getWord(withID: "syncing") {
+        if !self.headerSpinner.isAnimating {
             if self.couldNotFetchConversion == true {
                 self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
             } else {

@@ -292,7 +292,7 @@ extension HomeViewController {
         // Update bitcoin sign alpha.
         var bitcoinSignAlpha = 0.18
         if CacheManager.darkModeIsOn() {
-            bitcoinSignAlpha = 0.3
+            bitcoinSignAlpha = 0.35
         }
         
         // Calculate total balance
@@ -603,14 +603,11 @@ extension HomeViewController {
         }
         
         if cachedData == false {
-            self.headerLabel.text = Language.getWord(withID: "yourwallet")
+            //self.headerLabel.text = Language.getWord(withID: "yourwallet")
             self.headerSpinner.stopAnimating()
             
             if self.couldNotFetchConversion == true {
                 self.headerProblemImage.alpha = 1
-                self.headerLabelLeading.constant = 11
-            } else {
-                self.headerLabelLeading.constant = -10
             }
             
             self.coreVC!.walletHasSynced = true
@@ -631,7 +628,7 @@ extension HomeViewController {
         self.bittrProfitLabel.alpha = 1
         self.bittrProfitSpinner.stopAnimating()
         
-        self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %  (\(currencySymbol) \(accumulatedProfit))".replacingOccurrences(of: "-", with: "")
+        self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "") //  (\(currencySymbol) \(accumulatedProfit))"
         self.balanceCardGainLabel.alpha = 1
         
         if accumulatedProfit < 0 {
