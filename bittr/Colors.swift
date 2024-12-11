@@ -63,6 +63,9 @@ class Colors: NSObject {
         case "white0.7orblue2":
             if darkModeIsOn {return self.returnColor("blue2", 1.0)}
             else {return self.returnColor("white", 0.7)}
+        case "white0.7orblue1":
+            if darkModeIsOn {return self.returnColor("blue1", 1.0)}
+            else {return self.returnColor("white", 0.7)}
         case "whiteorblue3":
             if darkModeIsOn {return self.returnColor("blue3", 1.0)}
             else {return self.returnColor("white", 1.0)}

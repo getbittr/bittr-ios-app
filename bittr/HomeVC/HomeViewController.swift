@@ -54,17 +54,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var sendButtonView: UIView!
     @IBOutlet weak var receiveButtonView: UIView!
     @IBOutlet weak var buyButtonView: UIView!
-    @IBOutlet weak var profitButtonView: UIView!
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var receiveButton: UIButton!
     @IBOutlet weak var buyButton: UIButton!
     @IBOutlet weak var profitButton: UIButton!
-    @IBOutlet weak var bittrProfitLabel: UILabel!
-    @IBOutlet weak var bittrProfitSpinner: UIActivityIndicatorView!
     @IBOutlet weak var sendLabel: UILabel!
     @IBOutlet weak var receiveLabel: UILabel!
     @IBOutlet weak var buyLabel: UILabel!
-    @IBOutlet weak var profitLabel: UILabel!
     var calculatedProfit = 0
     var calculatedInvestments = 0
     var calculatedCurrentValue = 0
@@ -97,7 +93,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
 
         // Corner radii
-        profitButtonView.layer.cornerRadius = 8
         buyButtonView.layer.cornerRadius = 8
         sendButtonView.layer.cornerRadius = 8
         receiveButtonView.layer.cornerRadius = 8
@@ -118,7 +113,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.sendButtonView.setShadow()
         self.receiveButtonView.setShadow()
         self.buyButtonView.setShadow()
-        self.profitButtonView.setShadow()
         
         // Table view
         homeTableView.delegate = self
@@ -409,9 +403,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.coreVC?.lightningBalanceInSats = 0
         
         self.noTransactionsLabel.alpha = 0
-        self.bittrProfitLabel.alpha = 0
         self.balanceCardGainLabel.alpha = 0
-        self.bittrProfitSpinner.startAnimating()
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
         self.satsLabel.alpha = 0
