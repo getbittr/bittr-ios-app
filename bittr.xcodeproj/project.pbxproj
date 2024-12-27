@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -56,6 +56,10 @@
 		05A21FBB2BE0BB5B000F32A2 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		05A21FBC2BE0BB5B000F32A2 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241029E6C98100F9861F /* HomeViewController.swift */; };
+		05A256512D1155B4009EDC7A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05A256502D1155B4009EDC7A /* WidgetKit.framework */; };
+		05A256532D1155B4009EDC7A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05A256522D1155B4009EDC7A /* SwiftUI.framework */; };
+		05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD762B750446002F0282 /* IntroAnimation.swift */; };
 		05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD792B750567002F0282 /* Navigation.swift */; };
 		05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7B2B750838002F0282 /* ShowPin.swift */; };
@@ -115,6 +119,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		05A256622D1155B8009EDC7A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 05C3C07929CCB55600C1E695 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 05A2564D2D1155B4009EDC7A;
+			remoteInfo = BittrWidgetExtension;
+		};
 		05C3C09829CCB55800C1E695 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 05C3C07929CCB55600C1E695 /* Project object */;
@@ -130,6 +141,20 @@
 			remoteInfo = bittr;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		05A256652D1155B8009EDC7A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 8;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		050B4BAD2A16579D00563F29 /* SettingsTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTableViewCell.swift; sourceTree = "<group>"; };
@@ -178,6 +203,9 @@
 		05980B552A46F892001F312F /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		05980B572A46F8DA001F312F /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		05A2241029E6C98100F9861F /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BittrWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		05A256502D1155B4009EDC7A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		05A256522D1155B4009EDC7A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		05A8BD762B750446002F0282 /* IntroAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroAnimation.swift; sourceTree = "<group>"; };
 		05A8BD792B750567002F0282 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 		05A8BD7B2B750838002F0282 /* ShowPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowPin.swift; sourceTree = "<group>"; };
@@ -236,7 +264,30 @@
 		05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup7ViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		05A2564B2D1155B4009EDC7A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05A256532D1155B4009EDC7A /* SwiftUI.framework in Frameworks */,
+				05A256512D1155B4009EDC7A /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		05C3C07E29CCB55600C1E695 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -327,6 +378,15 @@
 			path = HomeVC;
 			sourceTree = "<group>";
 		};
+		05A2564F2D1155B4009EDC7A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				05A256502D1155B4009EDC7A /* WidgetKit.framework */,
+				05A256522D1155B4009EDC7A /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		05A8BD752B750422002F0282 /* CoreVC */ = {
 			isa = PBXGroup;
 			children = (
@@ -389,6 +449,8 @@
 				05C3C08329CCB55600C1E695 /* bittr */,
 				05C3C09A29CCB55800C1E695 /* bittrTests */,
 				05C3C0A429CCB55800C1E695 /* bittrUITests */,
+				05A256542D1155B4009EDC7A /* BittrWidget */,
+				05A2564F2D1155B4009EDC7A /* Frameworks */,
 				05C3C08229CCB55600C1E695 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -399,6 +461,7 @@
 				05C3C08129CCB55600C1E695 /* bittr.app */,
 				05C3C09729CCB55800C1E695 /* bittrTests.xctest */,
 				05C3C0A129CCB55800C1E695 /* bittrUITests.xctest */,
+				05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -525,6 +588,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 05A256692D1155B8009EDC7A /* Build configuration list for PBXNativeTarget "BittrWidgetExtension" */;
+			buildPhases = (
+				05A2564A2D1155B4009EDC7A /* Sources */,
+				05A2564B2D1155B4009EDC7A /* Frameworks */,
+				05A2564C2D1155B4009EDC7A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				05A256542D1155B4009EDC7A /* BittrWidget */,
+			);
+			name = BittrWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = BittrWidgetExtension;
+			productReference = 05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		05C3C08029CCB55600C1E695 /* bittr */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 05C3C0AB29CCB55800C1E695 /* Build configuration list for PBXNativeTarget "bittr" */;
@@ -532,11 +617,13 @@
 				05C3C07D29CCB55600C1E695 /* Sources */,
 				05C3C07E29CCB55600C1E695 /* Frameworks */,
 				05C3C07F29CCB55600C1E695 /* Resources */,
+				05A256652D1155B8009EDC7A /* Embed Foundation Extensions */,
 				BDB9C584C6434C5EA1249EE8 /* Upload Debug Symbols to Sentry */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				05A256632D1155B8009EDC7A /* PBXTargetDependency */,
 			);
 			name = bittr;
 			packageProductDependencies = (
@@ -595,9 +682,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1420;
+				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1420;
 				TargetAttributes = {
+					05A2564D2D1155B4009EDC7A = {
+						CreatedOnToolsVersion = 16.1;
+					};
 					05C3C08029CCB55600C1E695 = {
 						CreatedOnToolsVersion = 14.2;
 					};
@@ -636,11 +726,20 @@
 				05C3C08029CCB55600C1E695 /* bittr */,
 				05C3C09629CCB55800C1E695 /* bittrTests */,
 				05C3C0A029CCB55800C1E695 /* bittrUITests */,
+				05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		05A2564C2D1155B4009EDC7A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		05C3C07F29CCB55600C1E695 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -691,6 +790,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		05A2564A2D1155B4009EDC7A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		05C3C07D29CCB55600C1E695 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -803,6 +909,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		05A256632D1155B8009EDC7A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */;
+			targetProxy = 05A256622D1155B8009EDC7A /* PBXContainerItemProxy */;
+		};
 		05C3C09929CCB55800C1E695 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 05C3C08029CCB55600C1E695 /* bittr */;
@@ -835,6 +946,71 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		05A256662D1155B8009EDC7A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BittrWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BittrWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		05A256672D1155B8009EDC7A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BittrWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BittrWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		05C3C0A929CCB55800C1E695 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -956,7 +1132,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 87;
+				CURRENT_PROJECT_VERSION = 88;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -995,7 +1171,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 87;
+				CURRENT_PROJECT_VERSION = 88;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1106,6 +1282,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		05A256692D1155B8009EDC7A /* Build configuration list for PBXNativeTarget "BittrWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				05A256662D1155B8009EDC7A /* Debug */,
+				05A256672D1155B8009EDC7A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		05C3C07C29CCB55600C1E695 /* Build configuration list for PBXProject "bittr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
