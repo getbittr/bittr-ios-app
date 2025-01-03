@@ -58,7 +58,14 @@ struct Provider: AppIntentTimelineProvider {
             print("Error fetching data: \(error.localizedDescription)")
         }
         
-        return Timeline(entries: [entry], policy: .after(currentDate.addingTimeInterval(14400)))
+        // Fetch fresh data in 4 hours.
+        var timeInterval:Double = 14400
+        if entry.eurValue == "N/A" {
+            // Data couldn't be fetched. Try again in 30 minutes.
+            timeInterval = 1800
+        }
+        
+        return Timeline(entries: [entry], policy: .after(currentDate.addingTimeInterval(timeInterval)))
     }
 }
 
