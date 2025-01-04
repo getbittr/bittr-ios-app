@@ -98,6 +98,8 @@
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
+		05E483502D29049D007A5834 /* ValueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E4834F2D29049D007A5834 /* ValueViewController.swift */; };
+		05E483522D290551007A5834 /* BittrValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E483512D290546007A5834 /* BittrValue.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
 		05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */; };
@@ -145,14 +147,14 @@
 /* Begin PBXCopyFilesBuildPhase section */
 		05A256652D1155B8009EDC7A /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 8;
+			buildActionMask = 12;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
 				05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 1;
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -244,6 +246,8 @@
 		05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileManager+Extensions.swift"; sourceTree = "<group>"; };
 		05D5D0ED2A66852D00A1E771 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
+		05E4834F2D29049D007A5834 /* ValueViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValueViewController.swift; sourceTree = "<group>"; };
+		05E483512D290546007A5834 /* BittrValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrValue.swift; sourceTree = "<group>"; };
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05E743502A3581F9007755A2 /* RestoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewController.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
@@ -374,6 +378,7 @@
 				05A8BD892B750FAF002F0282 /* LoadWalletData.swift */,
 				05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */,
 				052171272CB416E7006C5663 /* HomeVCLanguage.swift */,
+				05E483512D290546007A5834 /* BittrValue.swift */,
 			);
 			path = HomeVC;
 			sourceTree = "<group>";
@@ -484,6 +489,7 @@
 				05F8DC5829F2B436008052B5 /* Articles */,
 				05F8DC5929F2B449008052B5 /* Settings */,
 				05F31CC12B88008E00AAA342 /* QuestionVC */,
+				05E4834E2D290482007A5834 /* Value */,
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				051DDEF82C6B185C0002CF2D /* Colors.swift */,
 				052171252CB41577006C5663 /* Language.swift */,
@@ -549,6 +555,14 @@
 				05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */,
 			);
 			path = Buy;
+			sourceTree = "<group>";
+		};
+		05E4834E2D290482007A5834 /* Value */ = {
+			isa = PBXGroup;
+			children = (
+				05E4834F2D29049D007A5834 /* ValueViewController.swift */,
+			);
+			path = Value;
 			sourceTree = "<group>";
 		};
 		05F31CC12B88008E00AAA342 /* QuestionVC */ = {
@@ -811,6 +825,7 @@
 				0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
 				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
+				05E483502D29049D007A5834 /* ValueViewController.swift in Sources */,
 				05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */,
 				0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */,
 				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
@@ -854,6 +869,7 @@
 				052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
+				05E483522D290551007A5834 /* BittrValue.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,

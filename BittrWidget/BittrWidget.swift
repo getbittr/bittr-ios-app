@@ -150,6 +150,7 @@ struct BittrWidgetEntryView : View {
             .frame(maxHeight: .infinity, alignment: .top)
         }
         .padding(-20)
+        .widgetURL(URL(string: "widget-deeplink://"))
     }
 }
 

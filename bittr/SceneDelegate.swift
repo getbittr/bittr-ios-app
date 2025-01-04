@@ -17,6 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let _ = (scene as? UIWindowScene) else { return }
+        self.launchBittrValue(urlContexts: connectionOptions.urlContexts, delay: 2)
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -46,6 +47,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Called as the scene transitions from the foreground to the background.
         // Use this method to save data, release shared resources, and store enough scene-specific state information
         // to restore the scene back to its current state.
+    }
+    
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        
+        self.launchBittrValue(urlContexts: URLContexts, delay: 0)
+    }
+    
+    private func launchBittrValue(urlContexts: Set<UIOpenURLContext>, delay:Double) {
+        
+        guard let _: UIOpenURLContext = urlContexts.first(where: { $0.url.scheme == "widget-deeplink" }) else { return }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "openvalue"), object: nil, userInfo: nil) as Notification)
+        }
     }
 
 
