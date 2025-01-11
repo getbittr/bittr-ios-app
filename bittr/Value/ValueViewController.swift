@@ -118,6 +118,8 @@ class ValueViewController: UIViewController {
     
     @IBAction func changeSpan(_ sender: UIButton) {
         
+        if self.valueSpinner.isAnimating { return }
+        
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         let weekOption = UIAlertAction(title: "1 week", style: .default) { (action) in
             self.selectedSpan = "week"
