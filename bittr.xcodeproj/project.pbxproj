@@ -88,6 +88,7 @@
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
 		05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */; };
+		05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF0FE52D32557300DF2D9F /* GraphView.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
 		05D417972CC930C400B87745 /* ReceiveQRScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D417962CC930B900B87745 /* ReceiveQRScanner.swift */; };
 		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; };
@@ -239,6 +240,7 @@
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningPaymentViewController.swift; sourceTree = "<group>"; };
+		05CF0FE52D32557300DF2D9F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
 		05D417962CC930B900B87745 /* ReceiveQRScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveQRScanner.swift; sourceTree = "<group>"; };
 		05D5D0E62A66825000A1E771 /* LightningNodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningNodeService.swift; sourceTree = "<group>"; };
@@ -561,6 +563,7 @@
 			isa = PBXGroup;
 			children = (
 				05E4834F2D29049D007A5834 /* ValueViewController.swift */,
+				05CF0FE52D32557300DF2D9F /* GraphView.swift */,
 			);
 			path = Value;
 			sourceTree = "<group>";
@@ -862,6 +865,7 @@
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
+				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,

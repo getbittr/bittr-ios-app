@@ -60,11 +60,13 @@ extension HomeViewController {
             self.bitcoinSign.image = UIImage(named: "gilroybitcoinwhite")
             self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
             self.headerDetailsImage.image = UIImage(named: "icondetailsyellow")
+            self.headerCurrencyImage.image = UIImage(named: "iconexchangeyellow")
         } else {
             self.yellowCurve.image = UIImage(named: "yellowcurve")
             self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
             self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")
             self.headerDetailsImage.image = UIImage(named: "icondetailswhite")
+            self.headerCurrencyImage.image = UIImage(named: "iconexchange")
         }
         
         if self.balanceLabel.alpha == 1 {

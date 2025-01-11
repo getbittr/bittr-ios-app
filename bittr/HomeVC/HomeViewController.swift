@@ -49,6 +49,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var headerViewButton: UIButton!
     @IBOutlet weak var headerDetailsImage: UIImageView!
+    @IBOutlet weak var headerCurrencyImage: UIImageView!
+    @IBOutlet weak var currencyButton: UIButton!
     
     // Header: Lower buttons
     @IBOutlet weak var sendButtonView: UIView!
@@ -93,20 +95,21 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
 
         // Corner radii
-        buyButtonView.layer.cornerRadius = 8
-        sendButtonView.layer.cornerRadius = 8
-        receiveButtonView.layer.cornerRadius = 8
-        headerView.layer.cornerRadius = 13
-        balanceCard.layer.cornerRadius = 13
+        self.buyButtonView.layer.cornerRadius = 8
+        self.sendButtonView.layer.cornerRadius = 8
+        self.receiveButtonView.layer.cornerRadius = 8
+        self.headerView.layer.cornerRadius = 13
+        self.balanceCard.layer.cornerRadius = 13
         self.balanceCardProfitView.layer.cornerRadius = 13
         
         // Button titles
-        profitButton.setTitle("", for: .normal)
-        buyButton.setTitle("", for: .normal)
-        sendButton.setTitle("", for: .normal)
-        receiveButton.setTitle("", for: .normal)
-        balanceCardButton.setTitle("", for: .normal)
-        headerViewButton.setTitle("", for: .normal)
+        self.profitButton.setTitle("", for: .normal)
+        self.buyButton.setTitle("", for: .normal)
+        self.sendButton.setTitle("", for: .normal)
+        self.receiveButton.setTitle("", for: .normal)
+        self.balanceCardButton.setTitle("", for: .normal)
+        self.headerViewButton.setTitle("", for: .normal)
+        self.currencyButton.setTitle("", for: .normal)
         
         // Balance card shadow
         self.balanceCard.setShadow()
@@ -115,8 +118,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.buyButtonView.setShadow()
         
         // Table view
-        homeTableView.delegate = self
-        homeTableView.dataSource = self
+        self.homeTableView.delegate = self
+        self.homeTableView.dataSource = self
         
         // Check if dark mode is on.
         self.changeColors()
@@ -135,7 +138,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(openValueVC), name: NSNotification.Name(rawValue: "openvalue"), object: nil)
         
         // Show cached data upon app startup.
-        showCachedData()
+        self.showCachedData()
     }
     
     
@@ -493,6 +496,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualCoreVC.blackSignupButton.alpha = 1
             }
         }
+    }
+    
+    @IBAction func currencyTapped(_ sender: UIButton) {
+        self.openValueVC()
     }
     
 }
