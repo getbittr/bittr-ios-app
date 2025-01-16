@@ -22,12 +22,13 @@ class ValueViewController: UIViewController {
     
     // Graph view and sample data
     @IBOutlet weak var graphView: GraphView!
-    var week:[CGFloat] = [94955, 95441, 95726, 98333, 93356, 89890, 92401]
-    var month:[CGFloat] = [92893, 101467, 90638, 94303, 89268, 98333]
-    var year:[CGFloat] = [42205, 47832, 66722, 65609, 62666, 49049, 62479, 94760]
-    var fiveYears:[CGFloat] = [7213, 15530, 50118, 26714, 56274, 20347, 25416, 25536, 64497, 48547]
+    var week:[CGFloat] = []
+    var month:[CGFloat] = []
+    var year:[CGFloat] = []
+    var fiveYears:[CGFloat] = []
     var currentValue:CGFloat = 0
-    var selectedSpan = "month"
+    var selectedSpan = "week"
+    var isFetchingData = true
 
     
     override func viewDidLoad() {
@@ -65,38 +66,108 @@ class ValueViewController: UIViewController {
         // Get latest value
         Task {
             do {
-                let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
-                let (data, _) = try await URLSession.shared.data(from: envUrl)
+                var eurUrl = URL(string: "https://getbittr.com/api/price/btc/historical/eur")!
+                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                    eurUrl = URL(string: "https://getbittr.com/api/price/btc/historical/chf")!
+                }
+                let (eurData, _) = try await URLSession.shared.data(from: eurUrl)
                 
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any], let actualEurValue = json["btc_eur"] as? String, let actualChfValue = json["btc_chf"] as? String {
-                    // Create an entry with the fetched data
+                print("Data: \(eurData)")
+                if let json = try JSONSerialization.jsonObject(with: eurData) as? [NSDictionary], let weekData = json[2]["data"] as? [NSDictionary], let monthData = json[3]["data"] as? [NSDictionary], let yearData = json[6]["data"] as? [NSDictionary], let fiveYearData = json[7]["data"] as? [NSDictionary] {
                     
-                    DispatchQueue.main.async {
-                        let formattedEurValue = self.formatEuroValue(actualEurValue)
-                        let formattedChfValue = self.formatEuroValue(actualChfValue)
-                        
-                        self.currentValue = self.stringToNumber(actualEurValue)
-                        var preferredCurrency = "€"
-                        var valueToDisplay = formattedEurValue
-                        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                            preferredCurrency = "CHF"
-                            valueToDisplay = formattedChfValue
-                            self.currentValue = self.stringToNumber(actualChfValue)
+                    // Data consists of dictionaries:
+                    // - [0] Minute intervals
+                    // - [1] Hourly intervals
+                    // - [2] Daily intervals
+                    // - [3] Monthly intervals
+                    // - [4] Semi-annually intervals
+                    // - [5] YTD
+                    // - [6] 1 year
+                    // - [7] 5 years
+                    // - [8] Max
+                    // Each dictionary consists of 5 key-value pairs
+                    // - [0] time_retrieved_unix_iso8601 (2025-01-13T05:55:58Z)
+                    // - [1] interval (daily)
+                    // - [2] time_retrieved_unix (1736747758)
+                    // - [3] data (12 dictionaries)
+                    // - [4] pair (eur)
+                    // The 12 data dictionaries consist of 3 key-value pairs.
+                    // - [0] time_iso8601
+                    // - [1] price (92189.2)
+                    // - [2] time_unix
+                    
+                    var last7Days = [CGFloat]()
+                    for eachDataPoint in weekData {
+                        if Calendar.current.date(byAdding: .day, value: -7, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
+                            last7Days += [self.stringToNumber((eachDataPoint["price"] as! String))]
                         }
+                    }
+                    print("Week: \(last7Days)")
+                    
+                    var lastMonth = [CGFloat]()
+                    for eachDataPoint in monthData {
+                        if Calendar.current.date(byAdding: .month, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
+                            lastMonth += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                        }
+                    }
+                    print("Month: \(lastMonth)")
+                    
+                    var lastYear = [CGFloat]()
+                    for eachDataPoint in yearData {
+                        if Calendar.current.date(byAdding: .year, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
+                            lastYear += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                        }
+                    }
+                    print("Year: \(lastYear)")
+                    
+                    var lastFiveYears = [CGFloat]()
+                    for eachDataPoint in fiveYearData {
+                        if Calendar.current.date(byAdding: .year, value: -5, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
+                            lastFiveYears += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                        }
+                    }
+                    print("5 Year: \(lastFiveYears)")
+                    
+                    let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
+                    let (data, _) = try await URLSession.shared.data(from: envUrl)
+                    
+                    if let currentJson = try JSONSerialization.jsonObject(with: data) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String {
+                        // Create an entry with the fetched data
                         
-                        print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
-                        
-                        self.currentValueLabel.text = "\(preferredCurrency) \(valueToDisplay)"
-                        
-                        self.valueSpinner.stopAnimating()
-                        self.drawGraph()
+                        DispatchQueue.main.async {
+                            let formattedEurValue = self.formatEuroValue(actualEurValue)
+                            let formattedChfValue = self.formatEuroValue(actualChfValue)
+                            
+                            self.currentValue = self.stringToNumber(actualEurValue)
+                            var preferredCurrency = "€"
+                            var valueToDisplay = formattedEurValue
+                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                                preferredCurrency = "CHF"
+                                valueToDisplay = formattedChfValue
+                                self.currentValue = self.stringToNumber(actualChfValue)
+                            }
+                            
+                            print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
+                            
+                            // Data arrays
+                            self.week = last7Days + [self.currentValue]
+                            self.month = lastMonth + [self.currentValue]
+                            self.year = lastYear + [self.currentValue]
+                            self.fiveYears = lastFiveYears + [self.currentValue]
+                            
+                            self.currentValueLabel.text = "\(preferredCurrency) \(valueToDisplay)"
+                            
+                            self.valueSpinner.stopAnimating()
+                            self.drawGraph()
+                            self.isFetchingData = false
+                        }
                     }
                 }
             } catch {
                 print("Error fetching data: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.valueSpinner.stopAnimating()
-                    self.drawGraph()
+                    self.isFetchingData = false
                 }
             }
         }
@@ -118,7 +189,7 @@ class ValueViewController: UIViewController {
     
     @IBAction func changeSpan(_ sender: UIButton) {
         
-        if self.valueSpinner.isAnimating { return }
+        if self.isFetchingData { return }
         
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         let weekOption = UIAlertAction(title: "1 week", style: .default) { (action) in
@@ -160,13 +231,19 @@ class ValueViewController: UIViewController {
             }
         }
         
-        var currentArray = self.month + [self.currentValue]
+        var currentArray = self.month
         if self.selectedSpan == "week" {
-            currentArray = self.week + [self.currentValue]
+            currentArray = self.week
         } else if self.selectedSpan == "year" {
-            currentArray = self.year + [self.currentValue]
+            currentArray = self.year
         } else if self.selectedSpan == "5years" {
-            currentArray = self.fiveYears + [self.currentValue]
+            currentArray = self.fiveYears
+        }
+        if currentArray.count == 0 {
+            self.graphView.alpha = 0
+            return
+        } else {
+            self.graphView.alpha = 1
         }
         self.graphView.data = currentArray
         
