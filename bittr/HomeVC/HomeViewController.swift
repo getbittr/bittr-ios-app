@@ -91,6 +91,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Cove View Controller
     var coreVC:CoreViewController?
     
+    // Bitcoin historical data
+    var eurData:Data?
+    var eurDataFetched:Date?
+    var chfData:Data?
+    var chfDataFetched:Date?
+    var currentValue:Data?
+    var currentValueFetched:Date?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -390,6 +398,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualProfitVC.totalProfit = self.calculatedProfit
                 actualProfitVC.totalValue = self.calculatedCurrentValue
                 actualProfitVC.totalInvestments = self.calculatedInvestments
+            }
+        } else if segue.identifier == "HomeToValue" {
+            if let valueVC = segue.destination as? ValueViewController {
+                valueVC.homeVC = self
             }
         }
     }

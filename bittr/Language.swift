@@ -303,7 +303,8 @@ class Language: NSObject {
             "sendvcscan": "Scan",
             "sendvcpaste": "Paste",
             "sendvctype": "Type",
-            "language": "Language"
+            "language": "Language",
+            "historicaldata": "We could not reach our API. Please try again."
         ]
         
         if let foundWord = allWords[withID] {
