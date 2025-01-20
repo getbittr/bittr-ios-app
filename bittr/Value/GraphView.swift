@@ -7,11 +7,148 @@
 
 import UIKit
 
-class GraphView: UIView {
+class GraphView: UIView, UIGestureRecognizerDelegate {
+    
+    var valueVC:ValueViewController?
 
     var data:[CGFloat] = [] {
         didSet {
             setNeedsDisplay()
+        }
+    }
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        self.setupGestureRecognizers()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        self.setupGestureRecognizers()
+    }
+    
+    private func setupGestureRecognizers() {
+        // Add a pan gesture recognizer to track horizontal movements
+        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+        self.addGestureRecognizer(panGesture)
+        
+        // Ensure the gesture recognizer only triggers on horizontal movement
+        panGesture.delegate = self
+    }
+    
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        // If the touch is inside this view, allow gesture recognition
+        if gestureRecognizer.view == self {
+            return true
+        }
+        return false
+    }
+    
+    @objc func handlePanGesture(_ recognizer: UIPanGestureRecognizer) {
+        let location = recognizer.location(in: self)
+        let horizontalTouchPosition = location.x
+        self.showGraphValue(x: horizontalTouchPosition, recognizer: recognizer)
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        for eachSubview in self.subviews {
+            if eachSubview.accessibilityIdentifier == "valuecard" {
+                eachSubview.removeFromSuperview()
+            }
+        }
+    }
+    
+    func showGraphValue(x:CGFloat, recognizer:UIPanGestureRecognizer) {
+        
+        for eachSubview in self.subviews {
+            if eachSubview.accessibilityIdentifier == "valuecard" {
+                eachSubview.removeFromSuperview()
+            }
+        }
+        
+        let totalWidth = self.bounds.width - 60
+        var actualX = x - 30
+        if actualX < 0 {
+            actualX = 0
+        } else if actualX > totalWidth {
+            actualX = totalWidth
+        }
+        
+        if recognizer.state != .ended, self.data.count > 0 {
+            
+            var relativeLocation = actualX/totalWidth
+            if relativeLocation > 1 {
+                relativeLocation = 1
+            } else if relativeLocation < 0 {
+                relativeLocation = 0
+            }
+            let numberOfDataPoints:CGFloat = CGFloat(self.data.count)
+            var selectedIndex = Int(relativeLocation * numberOfDataPoints) - 1
+            if selectedIndex < 0 {
+                selectedIndex = 0
+            } else if selectedIndex > Int(totalWidth) {
+                selectedIndex = Int(totalWidth)
+            }
+            let thisDataPoint = self.valueVC!.allDataPoints[selectedIndex]
+            
+            let highestNumber = self.data.max() ?? 0
+            let lowestNumber = self.data.min() ?? 0
+            let dataSpan = highestNumber - lowestNumber
+            let thisPrice = thisDataPoint["price"] as! CGFloat
+            let priceRelativeToSpan = (thisPrice - lowestNumber)/dataSpan
+            let yConstraint = 30 + (priceRelativeToSpan * (self.bounds.height - 30))
+            
+            let thisCard = UIView()
+            thisCard.translatesAutoresizingMaskIntoConstraints = false
+            thisCard.backgroundColor = .white
+            thisCard.layer.zPosition = 10
+            thisCard.layer.cornerRadius = 8
+            thisCard.alpha = 1
+            thisCard.accessibilityIdentifier = "valuecard"
+            self.addSubview(thisCard)
+            
+            let thisCardHeight = NSLayoutConstraint(item: thisCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
+            let thisCardWidth = NSLayoutConstraint(item: thisCard, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 80)
+            let thisCardCenterX = NSLayoutConstraint(item: thisCard, attribute: .centerX, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: (actualX + 30))
+            let thisCardBottom = NSLayoutConstraint(item: thisCard, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1, constant: -yConstraint)
+            self.addConstraints([thisCardBottom, thisCardCenterX])
+            thisCard.addConstraints([thisCardHeight, thisCardWidth])
+            
+            let dateLabel = UILabel()
+            dateLabel.translatesAutoresizingMaskIntoConstraints = false
+            dateLabel.font = UIFont(name: "Gilroy-Regular", size: 10)
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "dd MMM yyyy"
+            dateLabel.text = dateFormatter.string(from: thisDataPoint["date"] as! Date)
+            dateLabel.textColor = .black
+            dateLabel.alpha = 0.4
+            thisCard.addSubview(dateLabel)
+            
+            let dateLabelHeight = NSLayoutConstraint(item: dateLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            let dateLabelWidth = NSLayoutConstraint(item: dateLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            let dateLabelTop = NSLayoutConstraint(item: dateLabel, attribute: .top, relatedBy: .equal, toItem: thisCard, attribute: .top, multiplier: 1, constant: 9)
+            let dateLabelCenter = NSLayoutConstraint(item: dateLabel, attribute: .centerX, relatedBy: .equal, toItem: thisCard, attribute: .centerX, multiplier: 1, constant: 0)
+            thisCard.addConstraints([dateLabelTop, dateLabelCenter])
+            dateLabel.addConstraints([dateLabelHeight, dateLabelWidth])
+            
+            let priceLabel = UILabel()
+            priceLabel.translatesAutoresizingMaskIntoConstraints = false
+            priceLabel.font = UIFont(name: "Gilroy-Bold", size: 12)
+            var currency = "€"
+            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                currency = "CHF"
+            }
+            priceLabel.text = currency + " " + self.valueVC!.formatEuroValue("\(Int(thisDataPoint["price"] as! CGFloat))")
+            priceLabel.textColor = .black
+            thisCard.addSubview(priceLabel)
+            
+            let priceLabelHeight = NSLayoutConstraint(item: priceLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            let priceLabelWidth = NSLayoutConstraint(item: priceLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            let priceLabelTop = NSLayoutConstraint(item: priceLabel, attribute: .top, relatedBy: .equal, toItem: dateLabel, attribute: .bottom, multiplier: 1, constant: 3)
+            let priceLabelCenter = NSLayoutConstraint(item: priceLabel, attribute: .centerX, relatedBy: .equal, toItem: thisCard, attribute: .centerX, multiplier: 1, constant: 0)
+            thisCard.addConstraints([priceLabelTop, priceLabelCenter])
+            priceLabel.addConstraints([priceLabelHeight, priceLabelWidth])
+            
         }
     }
 

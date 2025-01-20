@@ -18,6 +18,11 @@ class ValueViewController: UIViewController {
     @IBOutlet weak var valueSpinner: UIActivityIndicatorView!
     @IBOutlet weak var noDataLabel: UILabel!
     
+    // Profit
+    @IBOutlet weak var profitView: UIView!
+    @IBOutlet weak var profitArrowImage: UIImageView!
+    @IBOutlet weak var profitLabel: UILabel!
+    
     // Dates
     @IBOutlet weak var buttonsView: UIView!
     @IBOutlet weak var weekButton: UIButton!
@@ -33,20 +38,32 @@ class ValueViewController: UIViewController {
     @IBOutlet weak var fiveYearsView: UIView!
     @IBOutlet weak var fiveYearsLabel: UILabel!
     
-    
     // Graph view and sample data
     @IBOutlet weak var graphView: GraphView!
+    
+    // Data
     var week:[CGFloat] = []
     var month:[CGFloat] = []
     var year:[CGFloat] = []
     var fiveYears:[CGFloat] = []
+    var allWeekData = [NSDictionary]()
+    var allMonthData = [NSDictionary]()
+    var allYearsData = [NSDictionary]()
+    var allFiveYearsData = [NSDictionary]()
+    var allDataPoints = [NSDictionary]()
+    
+    // Variables
     var currentValue:CGFloat = 0
+    var currentLowestValue:CGFloat = 0
+    var currentHighestValue:CGFloat = 0
     var selectedSpan = "week"
     var isFetchingData = true
     var homeVC:HomeViewController?
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        self.profitView.alpha = 0
 
         // Button titles
         self.downButton.setTitle("", for: .normal)
@@ -59,6 +76,7 @@ class ValueViewController: UIViewController {
         self.centerCard.layer.shadowRadius = 10.0
         self.centerCard.layer.shadowOpacity = 0.1
         self.graphView.layer.zPosition = 10
+        self.profitView.layer.cornerRadius = 13
         
         // Dates styling
         self.weekView.layer.cornerRadius = 8
@@ -84,6 +102,8 @@ class ValueViewController: UIViewController {
         
         // Colors
         self.changeColors()
+        
+        self.graphView.valueVC = self
         
         self.getCurrentValue()
     }
@@ -119,7 +139,6 @@ class ValueViewController: UIViewController {
                     }
                 }
                 
-                print("Data: \(eurData)")
                 if let json = try JSONSerialization.jsonObject(with: eurData) as? [NSDictionary], let weekData = json[2]["data"] as? [NSDictionary], let monthData = json[3]["data"] as? [NSDictionary], let yearData = json[6]["data"] as? [NSDictionary], let fiveYearData = json[7]["data"] as? [NSDictionary] {
                     
                     // Data consists of dictionaries:
@@ -147,33 +166,39 @@ class ValueViewController: UIViewController {
                     for eachDataPoint in weekData {
                         if Calendar.current.date(byAdding: .day, value: -7, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
                             last7Days += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                            self.allWeekData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                         }
                     }
-                    print("Week: \(last7Days)")
                     
                     var lastMonth = [CGFloat]()
                     for eachDataPoint in monthData {
                         if Calendar.current.date(byAdding: .month, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
                             lastMonth += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                            self.allMonthData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                         }
                     }
-                    print("Month: \(lastMonth)")
                     
                     var lastYear = [CGFloat]()
                     for eachDataPoint in yearData {
                         if Calendar.current.date(byAdding: .year, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
                             lastYear += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                            self.allYearsData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                         }
                     }
-                    print("Year: \(lastYear)")
                     
                     var lastFiveYears = [CGFloat]()
+                    var doAdd = true
                     for eachDataPoint in fiveYearData {
                         if Calendar.current.date(byAdding: .year, value: -5, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            lastFiveYears += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                            if doAdd {
+                                lastFiveYears += [self.stringToNumber((eachDataPoint["price"] as! String))]
+                                self.allFiveYearsData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
+                                doAdd = false
+                            } else {
+                                doAdd = true
+                            }
                         }
                     }
-                    print("5 Year: \(lastFiveYears)")
                     
                     var data = Data()
                     
@@ -207,10 +232,14 @@ class ValueViewController: UIViewController {
                             print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
                             
                             // Data arrays
-                            self.week = last7Days
-                            self.month = lastMonth
-                            self.year = lastYear
-                            self.fiveYears = lastFiveYears
+                            self.week = last7Days + [self.currentValue]
+                            self.month = lastMonth + [self.currentValue]
+                            self.year = lastYear + [self.currentValue]
+                            self.fiveYears = lastFiveYears + [self.currentValue]
+                            self.allWeekData = self.allWeekData + [["price":self.currentValue,"date":Date()]]
+                            self.allMonthData = self.allMonthData + [["price":self.currentValue,"date":Date()]]
+                            self.allYearsData = self.allYearsData + [["price":self.currentValue,"date":Date()]]
+                            self.allFiveYearsData = self.allFiveYearsData + [["price":self.currentValue,"date":Date()]]
                             
                             self.currentValueLabel.text = "\(preferredCurrency) \(valueToDisplay)"
                             
@@ -306,21 +335,27 @@ class ValueViewController: UIViewController {
         
         // Remove existing lines and labels.
         for eachSubview in self.centerCard.subviews {
-            if eachSubview != self.graphView, eachSubview != self.headerLabel, eachSubview != self.iconExchange, eachSubview != self.currentValueLabel, eachSubview != self.weekView, eachSubview != self.monthView, eachSubview != self.yearView, eachSubview != self.fiveYearsView, eachSubview != self.buttonsView {
+            if eachSubview != self.graphView, eachSubview != self.headerLabel, eachSubview != self.iconExchange, eachSubview != self.currentValueLabel, eachSubview != self.weekView, eachSubview != self.monthView, eachSubview != self.yearView, eachSubview != self.fiveYearsView, eachSubview != self.buttonsView, eachSubview != self.profitView {
                 eachSubview.removeFromSuperview()
             }
         }
         
         var currentArray = self.month
+        self.allDataPoints = self.allMonthData
         if self.selectedSpan == "week" {
             currentArray = self.week
+            self.allDataPoints = self.allWeekData
         } else if self.selectedSpan == "year" {
             currentArray = self.year
+            self.allDataPoints = self.allYearsData
         } else if self.selectedSpan == "5years" {
             currentArray = self.fiveYears
+            self.allDataPoints = self.allFiveYearsData
         }
         if currentArray.count == 0 {
-            self.noDataLabel.alpha = 1
+            if self.noDataLabel != nil {
+                self.noDataLabel.alpha = 1
+            }
             self.graphView.alpha = 0
             return
         } else {
@@ -338,8 +373,26 @@ class ValueViewController: UIViewController {
         
         if let lowestNumber = currentArray.min(), let highestNumber = currentArray.max() {
             
+            self.currentLowestValue = lowestNumber
+            self.currentHighestValue = highestNumber
             thisHighestNumber = highestNumber
             totalSpan = highestNumber - lowestNumber
+            
+            // Set profit label
+            let profitPercentage = "\(Int((currentArray[currentArray.count-1] - currentArray[0])/currentArray[0] * 100)) %"
+            self.profitLabel.text = profitPercentage
+            if profitPercentage.contains("-") {
+                self.profitLabel.textColor = Colors.getColor("losstext")
+                self.profitView.backgroundColor = Colors.getColor("lossbackground0.8")
+                self.profitArrowImage.tintColor = Colors.getColor("losstext")
+                self.profitArrowImage.image = UIImage(systemName: "arrow.down")
+            } else {
+                self.profitLabel.textColor = Colors.getColor("profittext")
+                self.profitView.backgroundColor = Colors.getColor("profitbackground0.8")
+                self.profitArrowImage.tintColor = Colors.getColor("profittext")
+                self.profitArrowImage.image = UIImage(systemName: "arrow.up")
+            }
+            self.profitView.alpha = 1
             
             var differential:CGFloat = 2500
             if totalSpan > 60000 {
@@ -361,8 +414,6 @@ class ValueViewController: UIViewController {
                     allLines += [roundedUp]
                 }
             }
-            
-            print(allLines)
             
             for eachLine in allLines {
                 // Draw a line
@@ -430,8 +481,6 @@ class ValueViewController: UIViewController {
                     labels += ["\(year)"]
                 }
             }
-            
-            print(dataPoints)
         } else if selectedSpan == "year" {
             
             let currentDate = Date()
