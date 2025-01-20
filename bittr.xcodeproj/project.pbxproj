@@ -1389,7 +1389,7 @@
 			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 0.31.1;
+				version = 0.31.2;
 			};
 		};
 		05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {
@@ -1397,7 +1397,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-swift/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.0.123;
+				version = 0.0.124;
 			};
 		};
 		28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
