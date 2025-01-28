@@ -25,6 +25,7 @@ extension MoveViewController {
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         
         self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
+        self.swapView.backgroundColor = Colors.getColor("yelloworblue2")
         self.viewTotal.backgroundColor = Colors.getColor("whiteorblue3")
         self.viewInstant.backgroundColor = Colors.getColor("whiteorblue3")
         self.viewRegular.backgroundColor = Colors.getColor("whiteorblue3")
@@ -41,5 +42,11 @@ extension MoveViewController {
         self.questionMark.tintColor = Colors.getColor("blackorwhite")
         self.sendLabel.textColor = Colors.getColor("blackorwhite")
         self.receiveLabel.textColor = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.swapIcon.image = UIImage(named: "iconswap")
+        } else {
+            self.swapIcon.image = UIImage(named: "iconswapwhite")
+        }
     }
 }

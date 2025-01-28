@@ -100,11 +100,12 @@ class ValueViewController: UIViewController {
         self.fiveYearsView.layer.shadowRadius = 10.0
         self.fiveYearsView.layer.shadowOpacity = 0
         
-        // Colors
+        // Colors and language
+        self.setLanguage()
         self.changeColors()
         
+        // Load graph
         self.graphView.valueVC = self
-        
         self.getCurrentValue()
     }
     
@@ -591,6 +592,10 @@ class ValueViewController: UIViewController {
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true)
+    }
+    
+    func setLanguage() {
+        self.headerLabel.text = Language.getWord(withID: "bitcoinvalue")
     }
     
     func changeColors() {

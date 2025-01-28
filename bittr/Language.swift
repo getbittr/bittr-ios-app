@@ -304,7 +304,15 @@ class Language: NSObject {
             "sendvcpaste": "Paste",
             "sendvctype": "Type",
             "language": "Language",
-            "historicaldata": "We could not reach our API. Please try again."
+            "historicaldata": "We could not reach our API. Please try again.",
+            "bitcoinvalue": "bitcoin value",
+            "swapfunds": "swap funds",
+            "swapsubtitle": "Move your satoshis between your bitcoin wallet and your bitcoin lightning channel.",
+            "move": "Move",
+            "onchaintolightning": "Onchain to Lightning",
+            "lightningtoonchain": "Lightning to Onchain",
+            "satsatatime": "Move <amount> sats at a time.",
+            "enteramountofsatoshis": "Enter amount of satoshis"
         ]
         
         if let foundWord = allWords[withID] {

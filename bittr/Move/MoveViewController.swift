@@ -45,6 +45,11 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var conversionInstant: UILabel!
     @IBOutlet weak var questionMark: UIImageView!
     
+    // Swap view
+    @IBOutlet weak var swapView: UIView!
+    @IBOutlet weak var swapButton: UIButton!
+    @IBOutlet weak var swapIcon: UIImageView!
+    
     // Labels
     @IBOutlet weak var labelRegular: UILabel!
     @IBOutlet weak var labelInstant: UILabel!
@@ -60,6 +65,7 @@ class MoveViewController: UIViewController {
         receiveButton.setTitle("", for: .normal)
         sendButton.setTitle("", for: .normal)
         channelButton.setTitle("", for: .normal)
+        self.swapButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
         leftCard.layer.cornerRadius = 8
         rightCard.layer.cornerRadius = 8
@@ -67,12 +73,19 @@ class MoveViewController: UIViewController {
         viewRegular.layer.cornerRadius = 13
         viewInstant.layer.cornerRadius = 13
         yellowCard.layer.cornerRadius = 20
+        self.swapView.layer.cornerRadius = self.swapView.bounds.height/2
         
         // Yellow card shadow.
         yellowCard.layer.shadowColor = UIColor.black.cgColor
         yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
         yellowCard.layer.shadowRadius = 10.0
         yellowCard.layer.shadowOpacity = 0.1
+        
+        // Swap view shadow
+        self.swapView.layer.shadowColor = UIColor.black.cgColor
+        self.swapView.layer.shadowOffset = CGSize(width: 0, height: 5)
+        self.swapView.layer.shadowRadius = 8
+        self.swapView.layer.shadowOpacity = 0.1
         
         // Calculate balance values.
         let correctBtcBalance:CGFloat = fetchedBtcBalance * 0.00000001
@@ -138,6 +151,10 @@ class MoveViewController: UIViewController {
                 actualReceiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
                 actualReceiveVC.homeVC = self.homeVC
             }
+        } else if segue.identifier == "MoveToSwap" {
+            if let swapVC = segue.destination as? SwapViewController {
+                swapVC.homeVC = self.homeVC
+            }
         }
     }
     
@@ -176,6 +193,10 @@ class MoveViewController: UIViewController {
             let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation1"),"type":"lightningexplanation"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
+    }
+    
+    @IBAction func swapButtonTapped(_ sender: UIButton) {
+        self.performSegue(withIdentifier: "MoveToSwap", sender: self)
     }
     
 }
