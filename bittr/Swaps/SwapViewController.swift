@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LDKNode
 
 class SwapViewController: UIViewController, UITextFieldDelegate {
 
@@ -44,6 +45,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     // Variables
     var homeVC:HomeViewController?
     var swapDirection = 0
+    var amountToBeSent:Int?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -159,6 +161,50 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func nextTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+        
+        if self.stringToNumber(self.amountTextField.text) != 0 {
+            if Int(self.stringToNumber(self.amountTextField.text)) > self.homeVC!.coreVC!.bittrChannel!.receivableMaximum {
+                // You can't receive or send this much.
+                self.showAlert(Language.getWord(withID: "swapfunds2"), Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), Language.getWord(withID: "okay"))
+            } else {
+                self.amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
+                if self.swapDirection == 0 {
+                    // Onchain to Lightning.
+                    Task {
+                        await SwapManager.onchainToLightning(amountMsat: UInt64(Int(self.stringToNumber(self.amountTextField.text))*1000), delegate: self)
+                    }
+                } else {
+                    // Lightning to Onchain
+                    Task {
+                        await SwapManager.lightningToOnchain(amountSat: Int(self.stringToNumber(self.amountTextField.text)), delegate: self)
+                    }
+                }
+            }
+        }
+    }
+    
+    func confirmExpectedFees(expectedFees:Int, swapDictionary:NSDictionary, createdInvoice:Bolt11Invoice) {
+        
+        var currency = "€"
+        var correctAmount = self.homeVC!.coreVC!.eurValue
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            correctAmount = self.homeVC!.coreVC!.chfValue
+            currency = "CHF"
+        }
+        var convertedFees = "\(CGFloat(Int(CGFloat(expectedFees)/100000000*correctAmount*100))/100)".replacingOccurrences(of: ".", with: ",")
+        if convertedFees.split(separator: ",")[1].count == 1 {
+            convertedFees = convertedFees + "0"
+        }
+        var convertedAmount = "\(Int((CGFloat(self.amountToBeSent ?? 0)/100000000*correctAmount).rounded()))"
+        
+        let alert = UIAlertController(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(expectedFees)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.amountToBeSent ?? 0)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "proceed"), style: .default, handler: { _ in
+            Task {
+                await SwapManager.sendOnchainTransaction(receivedDictionary: swapDictionary)
+            }
+        }))
+        self.present(alert, animated: true)
     }
     
     @IBAction func backgroundTapped(_ sender: UIButton) {

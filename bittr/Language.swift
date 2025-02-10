@@ -307,12 +307,17 @@ class Language: NSObject {
             "historicaldata": "We could not reach our API. Please try again.",
             "bitcoinvalue": "bitcoin value",
             "swapfunds": "swap funds",
+            "swapfunds2": "Swap funds",
             "swapsubtitle": "Move your satoshis between your bitcoin wallet and your bitcoin lightning channel.",
             "move": "Move",
             "onchaintolightning": "Onchain to Lightning",
             "lightningtoonchain": "Lightning to Onchain",
             "satsatatime": "Move <amount> sats at a time.",
-            "enteramountofsatoshis": "Enter amount of satoshis"
+            "enteramountofsatoshis": "Enter amount of satoshis",
+            "nodatareceived": "No data was received",
+            "swapamountexceeded": "You can only move up to <amount> satoshis at a time. Please enter an amount within this limit.",
+            "swapfunds3": "The expected fee to move <amount> satoshis (<convertedamount>) is <feesamount> satoshis (<convertedfees>). Do you wish to proceed?",
+            "proceed": "Proceed"
         ]
         
         if let foundWord = allWords[withID] {
