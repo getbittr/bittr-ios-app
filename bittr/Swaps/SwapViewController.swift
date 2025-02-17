@@ -46,6 +46,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     var homeVC:HomeViewController?
     var swapDirection = 0
     var amountToBeSent:Int?
+    var pendingInvoice:Bolt11Invoice?
+    var swapDictionary:NSDictionary?
+    var webSocketManager:WebSocketManager?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -183,7 +186,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    func confirmExpectedFees(expectedFees:Int, swapDictionary:NSDictionary, createdInvoice:Bolt11Invoice) {
+    func confirmExpectedFees(feeHigh:Float, onchainFees:Int, lightningFees:Int, swapDictionary:NSDictionary, createdInvoice:Bolt11Invoice) {
+        
+        self.pendingInvoice = createdInvoice
         
         var currency = "€"
         var correctAmount = self.homeVC!.coreVC!.eurValue
@@ -191,20 +196,48 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             correctAmount = self.homeVC!.coreVC!.chfValue
             currency = "CHF"
         }
-        var convertedFees = "\(CGFloat(Int(CGFloat(expectedFees)/100000000*correctAmount*100))/100)".replacingOccurrences(of: ".", with: ",")
+        var convertedFees = "\(CGFloat(Int(CGFloat(onchainFees + lightningFees)/100000000*correctAmount*100))/100)".replacingOccurrences(of: ".", with: ",")
         if convertedFees.split(separator: ",")[1].count == 1 {
             convertedFees = convertedFees + "0"
         }
         var convertedAmount = "\(Int((CGFloat(self.amountToBeSent ?? 0)/100000000*correctAmount).rounded()))"
         
-        let alert = UIAlertController(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(expectedFees)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.amountToBeSent ?? 0)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)"), preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(onchainFees + lightningFees)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.amountToBeSent ?? 0)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)"), preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "proceed"), style: .default, handler: { _ in
-            Task {
-                await SwapManager.sendOnchainTransaction(receivedDictionary: swapDictionary)
-            }
+            
+            
         }))
         self.present(alert, animated: true)
+    }
+    
+    func didCompleteOnchainTransaction(swapDictionary:NSDictionary) {
+        
+        // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
+        
+        self.swapDictionary = swapDictionary
+        
+        if let swapID = swapDictionary["id"] as? String {
+            self.webSocketManager = WebSocketManager()
+            self.webSocketManager!.delegate = self
+            self.webSocketManager!.swapID = swapID
+            self.webSocketManager!.connect()
+        }
+    }
+    
+    func receivedStatusUpdate(status:String) {
+        if status == "transaction.claim.pending" {
+            
+            // When status is transaction.claim.pending, get preimage details from API /swap/submarine/swapID/claim to verify that the Lightning payment has been made.
+            
+            if let swapID = self.swapDictionary?["id"] as? String {
+                SwapManager.checkPreimageDetails(swapID: swapID, delegate: self)
+            }
+            
+        } else if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
+            
+            // Boltz's payment has failed and we want to get a refund our onchain transaction. Get a partial signature through /swap/submarine/swapID/refund. Or a scriptpath refund can be done after the locktime of the swap expires.
+        }
     }
     
     @IBAction func backgroundTapped(_ sender: UIButton) {

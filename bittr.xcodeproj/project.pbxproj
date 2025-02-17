@@ -11,6 +11,7 @@
 		050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB02A1BBB9600563F29 /* SignupViewController.swift */; };
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
+		051045D32D59BC5800A21161 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 051045D22D59BC5800A21161 /* secp256k1 */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -25,6 +26,7 @@
 		052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171312CB430B8006C5663 /* SendVCLanguage.swift */; };
 		052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */; };
 		052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052DC6922AA853B700CD59B0 /* Transaction.swift */; };
+		052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052EC7472D63254B00170FE4 /* WebSocketManager.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		053190E429FD659B0072CE76 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
@@ -180,6 +182,7 @@
 		052171312CB430B8006C5663 /* SendVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendVCLanguage.swift; sourceTree = "<group>"; };
 		052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollectionViewCell.swift; sourceTree = "<group>"; };
 		052DC6922AA853B700CD59B0 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		052EC7472D63254B00170FE4 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
 		053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Regular.ttf"; sourceTree = "<group>"; };
@@ -307,6 +310,7 @@
 				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
 				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
 				05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */,
+				051045D32D59BC5800A21161 /* secp256k1 in Frameworks */,
 				0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */,
 				3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */,
 			);
@@ -454,6 +458,7 @@
 			children = (
 				05AF89732D436920009D629C /* SwapManager.swift */,
 				05AF89752D437073009D629C /* SwapViewController.swift */,
+				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
 			);
 			path = Swaps;
 			sourceTree = "<group>";
@@ -665,6 +670,7 @@
 				3C6A5FD226974C7A8EB518F5 /* Sentry */,
 				0589280A2C00933F00DDB850 /* LDKNode */,
 				0554035C2CB7EA04006F27CA /* LNURLDecoder */,
+				051045D22D59BC5800A21161 /* secp256k1 */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -749,6 +755,7 @@
 				28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */,
 				0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */,
+				051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -880,6 +887,7 @@
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
+				052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */,
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
@@ -1051,12 +1059,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_MODULES_AUTOLINK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -1085,7 +1095,7 @@
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_NO_COMMON_BLOCKS = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -1098,9 +1108,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1111,12 +1123,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_MODULES_AUTOLINK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -1144,7 +1158,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_NO_COMMON_BLOCKS = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -1152,8 +1166,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -1368,6 +1384,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/21-DOT-DEV/swift-secp256k1";
+			requirement = {
+				kind = exactVersion;
+				version = 0.18.0;
+			};
+		};
 		0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/FlorianHubl/LNURLDecoder";
@@ -1427,6 +1451,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		051045D22D59BC5800A21161 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			productName = secp256k1;
+		};
 		0554035C2CB7EA04006F27CA /* LNURLDecoder */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */;
