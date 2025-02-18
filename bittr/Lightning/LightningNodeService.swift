@@ -29,7 +29,7 @@ class LightningNodeService {
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
         struct Singleton {
-            static let instance = LightningNodeService(network: .signet)
+            static let instance = LightningNodeService(network: .testnet)
         }
         return Singleton.instance
     }

@@ -88,7 +88,7 @@ extension SendViewController {
                             
                             print("Adjusted - High: \(self.feeHigh), Medium: \(self.feeMedium), Low: \(self.feeLow)")
                             
-                            var address = try Address(address: actualAddress, network: .signet)
+                            var address = try Address(address: actualAddress, network: .testnet)
                             let script = address.scriptPubkey()
                             let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(self.onchainAmountInSatoshis))
                             let details = try txBuilder.finish(wallet: actualWallet)
@@ -320,7 +320,7 @@ extension SendViewController {
                 
                 Task {
                     do {
-                        var address = try Address(address: actualAddress, network: .signet)
+                        var address = try Address(address: actualAddress, network: .testnet)
                         let script = address.scriptPubkey()
                         var selectedVbyte:Float = self.feeMedium
                         if self.selectedFee == "low" {
@@ -404,7 +404,7 @@ extension SendViewController {
             do {
                 let actualAddress:String = try actualWallet.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
                 let actualAmount:Int = Int(try actualWallet.getBalance().spendable)
-                var address = try Address(address: actualAddress, network: .signet)
+                var address = try Address(address: actualAddress, network: .testnet)
                 let script = address.scriptPubkey()
                 let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
                 let details = try txBuilder.finish(wallet: actualWallet)
