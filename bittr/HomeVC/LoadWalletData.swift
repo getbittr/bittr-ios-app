@@ -417,7 +417,7 @@ extension HomeViewController {
             // TODO: Public?
             var envUrl = "https://getbittr.com/api/price/btc"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envUrl = "https://model-arachnid-viable.ngrok-free.app/price/btc"
+                envUrl = "https://getbittr.com/api/price/btc"
             }
             
             // Get currency conversion rate from Bittr API.
@@ -622,8 +622,12 @@ extension HomeViewController {
     
     func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
         
-        self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "") //  (\(currencySymbol) \(accumulatedProfit))"
-        self.balanceCardGainLabel.alpha = 1
+        if accumulatedInvestments != 0 {
+            self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "") //  (\(currencySymbol) \(accumulatedProfit))"
+            self.balanceCardGainLabel.alpha = 1
+        } else {
+            self.balanceCardGainLabel.alpha = 0
+        }
         
         if accumulatedProfit < 0 {
             // Loss
