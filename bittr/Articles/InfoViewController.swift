@@ -17,6 +17,8 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var newsHeader: UIView!
     @IBOutlet weak var faqHeader: UIView!
     @IBOutlet weak var noArticles: UILabel!
+    @IBOutlet weak var newsLabel: UILabel!
+    @IBOutlet weak var questionsLabel: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
@@ -52,6 +54,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(launchArticle), name: NSNotification.Name(rawValue: "launcharticle"), object: nil)
         
         // Download articles.
+        self.setWords()
         self.getArticles()
     }
     
@@ -105,7 +108,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
             envUrl = "https://model-arachnid-viable.ngrok-free.app/articles"
         }
         
-        var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
+        let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data else {
@@ -124,18 +127,23 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                     dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
                     if let actualDataDict = dataDictionary {
                         if let actualArticles = actualDataDict["articles"] as? NSDictionary {
+                            
                             self.everyArticle = self.parseArticles(articles: actualArticles)
+                            self.coreVC?.allArticles = self.everyArticle
                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil, userInfo: self.everyArticle) as Notification)
-                            for (articleid, articledata) in self.everyArticle {
+                            
+                            // Divide articles into two categories.
+                            for (_, articledata) in self.everyArticle {
                                 if articledata.category == "General", articledata.isVisible == true {
                                     self.faqArticles += [articledata]
-                                    //self.newsArticles += [articledata]
                                 } else {
                                     if articledata.isVisible == true {
                                         self.newsArticles += [articledata]
                                     }
                                 }
                             }
+                            
+                            // Update articles table.
                             DispatchQueue.main.async {
                                 self.faqArticles.sort { article1, article2 in
                                     article1.order < article2.order
@@ -218,45 +226,17 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                 // Image hasn't been saved to cache before.
                 
                 actualCell.spinner.startAnimating()
-                let session = URLSession(configuration: .default)
-                let downloadPicTask = session.dataTask(with: URL(string: self.faqArticles[indexPath.row].image)!) { (data, response, error) in
-                    if let e = error {
-                        print("Error downloading picture: \(e)")
-                    } else {
-                        if let res = response as? HTTPURLResponse {
-                            //print("Downloaded picture with response code \(res.statusCode)")
-                            if let imageData = data {
-                                let image = UIImage(data: imageData)
-                                // Do something with your image.
-                                DispatchQueue.main.async {
-                                    actualCell.spinner.stopAnimating()
-                                    actualCell.articleImage.image = image
-                                    self.allImages.updateValue(image!, forKey: self.faqArticles[indexPath.row].id)
-                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.faqArticles[indexPath.row].id)"), object: nil, userInfo: ["image":image!]) as Notification)
-                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updateallimages"), object: nil, userInfo: ["images":self.allImages]) as Notification)
-                                    
-                                    // Store image in cache.
-                                    let imageSize = image!.size.height * image!.size.width
-                                    let imageDownsize = 1000000 / imageSize
-                                    var imageData:Data?
-                                    if imageDownsize < 1 {
-                                        imageData = image!.jpegData(compressionQuality: imageDownsize)!
-                                    } else {
-                                        imageData = image!.jpegData(compressionQuality: 1)!
-                                    }
-                                    if let actualImageData = imageData {
-                                        CacheManager.storeImageInCache(key: self.faqArticles[indexPath.row].image, data: actualImageData)
-                                    }
-                                }
-                            } else {
-                                print("Couldn't get image: Image is nil")
-                            }
-                        } else {
-                            print("Couldn't get response code for some reason")
+                
+                Task {
+                    if let actualData = await self.getImage(urlString: self.faqArticles[indexPath.row].image) {
+                        DispatchQueue.main.async {
+                            actualCell.spinner.stopAnimating()
+                            actualCell.articleImage.image = UIImage(data: actualData)
+                            self.allImages.updateValue(UIImage(data: actualData)!, forKey: self.faqArticles[indexPath.row].id)
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.faqArticles[indexPath.row].id)"), object: nil, userInfo: ["image":UIImage(data: actualData)!]) as Notification)
                         }
                     }
                 }
-                downloadPicTask.resume()
             }
             
             return actualCell
@@ -297,7 +277,20 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                     // Image hasn't been saved to cache before.
                     
                     actualCell.spinner.startAnimating()
-                    let session = URLSession(configuration: .default)
+                    print("Will download image.")
+                    
+                    Task {
+                        if let actualData = await self.getImage(urlString: self.newsArticles[indexPath.row].image) {
+                            DispatchQueue.main.async {
+                                actualCell.spinner.stopAnimating()
+                                actualCell.articleImageView.image = UIImage(data: actualData)
+                                self.allImages.updateValue(UIImage(data: actualData)!, forKey: self.newsArticles[indexPath.row].id)
+                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.newsArticles[indexPath.row].id)"), object: nil, userInfo: ["image":UIImage(data: actualData)!]) as Notification)
+                            }
+                        }
+                    }
+                    
+                    /*let session = URLSession(configuration: .default)
                     let downloadPicTask = session.dataTask(with: URL(string: self.newsArticles[indexPath.row].image)!) { (data, response, error) in
                         if let e = error {
                             print("Error downloading picture: \(e)")
@@ -334,7 +327,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                             }
                         }
                     }
-                    downloadPicTask.resume()
+                    downloadPicTask.resume()*/
                 }
             }
             
@@ -379,6 +372,43 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
                 performSegue(withIdentifier: "InfoToArticle", sender: self)
             }
+        }
+    }
+    
+}
+
+extension UIViewController {
+    
+    func getImage(urlString:String) async -> Data? {
+        
+        do {
+            var request = URLRequest(url: URL(string: urlString)!)
+            request.httpMethod = "GET"
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return nil
+            }
+            
+            // Store image in cache.
+            let image = UIImage(data: data)!
+            let imageSize = image.size.height * image.size.width
+            let imageDownsize = 1000000 / imageSize
+            var imageData:Data?
+            if imageDownsize < 1 {
+                imageData = image.jpegData(compressionQuality: imageDownsize)!
+            } else {
+                imageData = image.jpegData(compressionQuality: 1)!
+            }
+            if let actualImageData = imageData {
+                CacheManager.storeImageInCache(key: urlString, data: actualImageData)
+            }
+            
+            return data
+        } catch {
+            print("Some error occurred fetching image. \(error.localizedDescription)")
+            return nil
         }
     }
     

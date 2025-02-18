@@ -20,7 +20,9 @@ class SignupViewController: UIViewController {
 
         NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(screenshotTaken), name: UIApplication.userDidTakeScreenshotNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
 
+        self.changeColors()
     }
     
     @objc func nextPageTapped(notification:NSNotification) {
@@ -28,9 +30,7 @@ class SignupViewController: UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -102,12 +102,9 @@ class SignupViewController: UIViewController {
     }
     
     @objc func screenshotTaken() {
-        
         // User shouldn't screenshot their mnemonic.
         if currentPage == 3 {
-            let alert = UIAlertController(title: "Be careful!", message: "We'd highly recommend against screenshotting your recovery phrase.\n\nScreenshots can easily be accessed by others, who will have full access to your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "becareful"), Language.getWord(withID: "noscreenshot"), Language.getWord(withID: "okay"))
         }
     }
     
@@ -120,12 +117,43 @@ class SignupViewController: UIViewController {
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
-        if segue.identifier == "SignupToRestore" {
-            let restoreVC = segue.destination as? RestoreViewController
-            if let actualRestoreVC = restoreVC {
-                actualRestoreVC.coreVC = self.coreVC
-            }
+        switch segue.identifier {
+        case "SignupToSignup1":
+            if let thisVC = segue.destination as? Signup1ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToSignup2":
+            if let thisVC = segue.destination as? Signup2ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToSignup3":
+            if let thisVC = segue.destination as? Signup3ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToSignup4":
+            if let thisVC = segue.destination as? Signup4ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToSignup5":
+            if let thisVC = segue.destination as? Signup5ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToSignup6":
+            if let thisVC = segue.destination as? Signup6ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToSignup7":
+            if let thisVC = segue.destination as? Signup7ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToTransfer1":
+            if let thisVC = segue.destination as? Transfer1ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToTransfer15":
+            if let thisVC = segue.destination as? Transfer15ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToTransfer2":
+            if let thisVC = segue.destination as? Transfer2ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToTransfer3":
+            if let thisVC = segue.destination as? Transfer3ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToRestore":
+            if let thisVC = segue.destination as? RestoreViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToRestore2":
+            if let thisVC = segue.destination as? Restore2ViewController {thisVC.coreVC = self.coreVC}
+        case "SignupToRestore3":
+            if let thisVC = segue.destination as? Restore3ViewController {thisVC.coreVC = self.coreVC}
+        default:
+            if let thisVC = segue.destination as? Signup1ViewController {thisVC.coreVC = self.coreVC}
         }
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
 }

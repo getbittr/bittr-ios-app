@@ -12,17 +12,28 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
 
     // Enter iban and email for bittr signup.
     
+    // Labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    @IBOutlet weak var topLabelThree: UILabel!
+    
+    // IBAN
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var ibanTextField: UITextField!
     @IBOutlet weak var ibanButton: UIButton!
+    
+    // Email
     @IBOutlet weak var emailView: UIView!
     @IBOutlet weak var emailTextField: UITextField!
     @IBOutlet weak var emailButton: UIButton!
+    
+    // Next
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var skipButton: UIButton!
+    @IBOutlet weak var ibanLabel: UILabel!
     @IBOutlet weak var articleButton: UIButton!
     
     @IBOutlet weak var scrollView: UIScrollView!
@@ -46,6 +57,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -93,6 +105,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 self.articleImage.image = actualImage
             }
         }
+        
+        self.changeColors()
+        self.setWords()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -254,9 +269,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 guard let data = data else {
                     print(String(describing: error))
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: "Oops!", message: "Something went wrong verifying your email address. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                        self.present(alert, animated: true)
+                        self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "bittrsignupfail4"), Language.getWord(withID: "okay"))
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)
                         }
@@ -284,11 +297,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
         
-        let alert = UIAlertController(title: "We're sorry!", message: "Buying bitcoin with bittr is only available to IBAN holders.\n\nYou can still use your wallet to send and receive bitcoin from other sellers.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Go to wallet", style: .cancel, handler: {_ in
+        let alert = UIAlertController(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "gotowallet"), style: .cancel, handler: {_ in
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+            self.coreVC?.setClient()
         }))
-        alert.addAction(UIAlertAction(title: "Cancel", style: .default, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .default, handler: nil))
         self.present(alert, animated: true)
     }
     
@@ -353,13 +367,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    func isValidEmail(_ email: String) -> Bool {
-        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-
-        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
-        return emailPred.evaluate(with: email)
-    }
-    
     func textFieldDidEndEditing(_ textField: UITextField) {
         updateButtonColor()
     }
@@ -374,5 +381,41 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.topLabelThree.textColor = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.ibanLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.ibanLabel.textColor = Colors.getColor("transparentblack")
+        }
+    }
+    
+    func setWords() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "bittrinstructions4")
+        self.topLabelTwo.text = Language.getWord(withID: "whatsyouriban")
+        self.topLabelThree.text = Language.getWord(withID: "whatsyouremail")
+        self.ibanTextField.placeholder = Language.getWord(withID: "enteriban")
+        self.emailTextField.placeholder = Language.getWord(withID: "enteremail")
+        self.nextButtonLabel.text = Language.getWord(withID: "verify")
+        self.ibanLabel.text = Language.getWord(withID: "noiban")
+        
+    }
+    
+}
+
+extension UIViewController {
+    
+    func isValidEmail(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: email)
     }
 }

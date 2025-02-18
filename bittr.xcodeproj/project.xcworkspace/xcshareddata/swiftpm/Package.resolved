@@ -1,12 +1,13 @@
 {
+  "originHash" : "426111853c115c7aca430f675daa7616d70c5f617293a09ecc6f950c8ecc8b37",
   "pins" : [
     {
       "identity" : "bdk-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bitcoindevkit/bdk-swift",
       "state" : {
-        "revision" : "9c69d6255c251ba606e7aad94969c8d24b0ea344",
-        "version" : "0.29.0"
+        "revision" : "6cc7412e0ead59cf6d51e8b061ce9f8e3ebb180a",
+        "version" : "0.31.2"
       }
     },
     {
@@ -24,7 +25,7 @@
       "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
         "branch" : "main",
-        "revision" : "bd9bd683201c1597d8930ac4118fa950cedfd56c"
+        "revision" : "6d8382bca81f148f06e02d13e602ea9dcb6be4b6"
       }
     },
     {
@@ -32,8 +33,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-swift/",
       "state" : {
-        "revision" : "e3fa435166527b1089787fd4ab0ce398849fb916",
-        "version" : "0.0.123"
+        "revision" : "c57a07c915ddf9e7459b5f11002b56e072e9cfd5",
+        "version" : "0.0.124"
+      }
+    },
+    {
+      "identity" : "lnurldecoder",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/LNURLDecoder",
+      "state" : {
+        "branch" : "main",
+        "revision" : "bfdfd5434571f8910ffd7cdb9e46759dd33ecbbd"
       }
     },
     {
@@ -53,7 +63,16 @@
         "revision" : "0896bbf9ec20eaf125598d0f36ee5f1049117e18",
         "version" : "1.4.2"
       }
+    },
+    {
+      "identity" : "swift-secp256k1",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/21-DOT-DEV/swift-secp256k1",
+      "state" : {
+        "revision" : "57ce9af6db14e0114af631ace25231a9d0ccccbd",
+        "version" : "0.18.0"
+      }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

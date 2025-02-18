@@ -11,8 +11,10 @@ class Transfer3ViewController: UIViewController {
 
     // Views and buttons.
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var cardView2: UIView!
@@ -20,6 +22,12 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var articleButton2: UIButton!
     @IBOutlet weak var backButton: UIButton!
+    @IBOutlet weak var backLabel: UILabel!
+    
+    // Labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    @IBOutlet weak var topLabelThree: UILabel!
     
     var currentClientID = ""
     var currentIbanID = ""
@@ -43,6 +51,7 @@ class Transfer3ViewController: UIViewController {
     
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -104,6 +113,9 @@ class Transfer3ViewController: UIViewController {
                 self.article2Image.image = actualImage2
             }
         }
+        
+        self.changeColors()
+        self.setWords()
     }
     
     
@@ -249,10 +261,11 @@ class Transfer3ViewController: UIViewController {
                     for iban in client.ibanEntities {
                         if iban.id == self.currentIbanID {
                             
-                            let alert = UIAlertController(title: "Open your banking app", message: "\nCreate your (recurring) transfer to\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: "Done", style: .cancel, handler: {_ in
+                            let alert = UIAlertController(title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", preferredStyle: .alert)
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "done"), style: .cancel, handler: {_ in
                                 // Hide signup and proceed into wallet.
                                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+                                self.coreVC?.setClient()
                             }))
                             self.present(alert, animated: true)
                         }
@@ -273,6 +286,31 @@ class Transfer3ViewController: UIViewController {
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
          NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.topLabelThree.textColor = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.backLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.backLabel.textColor = Colors.getColor("transparentblack")
+        }
+
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "finaldetails")
+        self.topLabelOne.text = Language.getWord(withID: "bittrinstructions")
+        self.topLabelTwo.text = Language.getWord(withID: "bittrinstructions2")
+        self.topLabelThree.text = Language.getWord(withID: "bittrinstructions3")
+        self.nextLabel.text = Language.getWord(withID: "letsgo")
+        self.backLabel.text = Language.getWord(withID: "back")
+        
     }
     
 }

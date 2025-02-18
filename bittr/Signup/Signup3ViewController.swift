@@ -11,10 +11,14 @@ class Signup3ViewController: UIViewController {
 
     // View showing the user their mnemonic.
     
-    @IBOutlet weak var headerView: UIView!
+    // Labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var mnemonicView: UIView!
     @IBOutlet weak var centerView: UIView!
@@ -30,6 +34,7 @@ class Signup3ViewController: UIViewController {
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
+    var coreVC:CoreViewController?
     
     // Mnemonic word labels.
     @IBOutlet weak var word1: UILabel!
@@ -64,6 +69,9 @@ class Signup3ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
+        
+        self.changeColors()
+        self.setWords2()
     }
     
     @objc func setWords(notification:NSNotification) {
@@ -144,6 +152,19 @@ class Signup3ViewController: UIViewController {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+    }
+    
+    func setWords2() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "recoveryphrase")
+        self.topLabelTwo.text = Language.getWord(withID: "recoveryphrase2")
+        self.nextLabel.text = Language.getWord(withID: "next")
     }
 
 }

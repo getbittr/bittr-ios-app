@@ -55,40 +55,15 @@ extension ReceiveViewController {
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Error", message: errorString.detail, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                    
+                    self.showAlert(Language.getWord(withID: "error"), errorString.detail, Language.getWord(withID: "okay"))
                     SentrySDK.capture(error: error)
                 }
             } catch {
                 DispatchQueue.main.async {
-                    let alert = UIAlertController(title: "Unexpected Error", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                    
+                    self.showAlert(Language.getWord(withID: "unexpectederror"), error.localizedDescription, Language.getWord(withID: "okay"))
                     SentrySDK.capture(error: error)
                 }
             }
-        }
-    }
-    
-    func getInvoiceHash(invoiceString:String) -> String? {
-        let result = Bolt11Invoice.fromStr(s: invoiceString)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return nil
-            }
-        } else if let error = result.getError() {
-            print("Failed to parse invoice: \(error)")
-            return nil
-        } else {
-            return nil
         }
     }
     

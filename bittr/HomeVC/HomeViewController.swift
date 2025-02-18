@@ -21,6 +21,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Table view header elements
     @IBOutlet weak var balanceView: UIView!
     @IBOutlet weak var backgroundColorView: UIView!
+    @IBOutlet weak var backgroundColorTopView: UIView!
     @IBOutlet weak var yellowCurve: UIImageView!
     
     // Header: Balance card
@@ -35,25 +36,33 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var balanceCardButton: UIButton!
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
+    // Balance card profit views
+    @IBOutlet weak var balanceCardProfitView: UIView!
+    @IBOutlet weak var balanceCardArrowImage: UIImageView!
+    @IBOutlet weak var balanceCardGainLabel: UILabel!
+    
     // Header: Balance card header view
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerSpinner: UIActivityIndicatorView!
     @IBOutlet weak var headerProblemImage: UIImageView!
+    @IBOutlet weak var headerPiggyImage: UIImageView!
     @IBOutlet weak var headerLabel: UILabel!
-    @IBOutlet weak var headerLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var headerViewButton: UIButton!
+    @IBOutlet weak var headerDetailsImage: UIImageView!
+    @IBOutlet weak var headerCurrencyImage: UIImageView!
+    @IBOutlet weak var currencyButton: UIButton!
     
     // Header: Lower buttons
     @IBOutlet weak var sendButtonView: UIView!
     @IBOutlet weak var receiveButtonView: UIView!
     @IBOutlet weak var buyButtonView: UIView!
-    @IBOutlet weak var profitButtonView: UIView!
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var receiveButton: UIButton!
     @IBOutlet weak var buyButton: UIButton!
     @IBOutlet weak var profitButton: UIButton!
-    @IBOutlet weak var bittrProfitLabel: UILabel!
-    @IBOutlet weak var bittrProfitSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var sendLabel: UILabel!
+    @IBOutlet weak var receiveLabel: UILabel!
+    @IBOutlet weak var buyLabel: UILabel!
     var calculatedProfit = 0
     var calculatedInvestments = 0
     var calculatedCurrentValue = 0
@@ -67,24 +76,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var cachedLightningIds = [String]()
     var tappedTransaction = 0
     
-    // Client details
-    var client = Client()
-    
     // Articles
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     
     // Balance calculations
-    var bdkBalance:CGFloat = 0.0 // in satoshis
-    var btcBalance:CGFloat = 0.0 // in satoshis
-    var btclnBalance:CGFloat = 0.0 // in satoshis
-    var totalBalanceSats:CGFloat = 0.0
     var balanceWasFetched = false
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
-    var channels:[ChannelDetails]?
-    var currentHeight:Int?
-    var bittrChannel:Channel?
     
     // Booleans
     var didStartReset = false
@@ -94,47 +91,62 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Cove View Controller
     var coreVC:CoreViewController?
     
+    // Bitcoin historical data
+    var eurData:Data?
+    var eurDataFetched:Date?
+    var chfData:Data?
+    var chfDataFetched:Date?
+    var currentValue:Data?
+    var currentValueFetched:Date?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Corner radii
-        profitButtonView.layer.cornerRadius = 13
-        buyButtonView.layer.cornerRadius = 13
-        sendButtonView.layer.cornerRadius = 13
-        receiveButtonView.layer.cornerRadius = 13
-        headerView.layer.cornerRadius = 13
-        balanceCard.layer.cornerRadius = 13
+        self.buyButtonView.layer.cornerRadius = 8
+        self.sendButtonView.layer.cornerRadius = 8
+        self.receiveButtonView.layer.cornerRadius = 8
+        self.headerView.layer.cornerRadius = 13
+        self.balanceCard.layer.cornerRadius = 13
+        self.balanceCardProfitView.layer.cornerRadius = 13
         
         // Button titles
-        profitButton.setTitle("", for: .normal)
-        buyButton.setTitle("", for: .normal)
-        sendButton.setTitle("", for: .normal)
-        receiveButton.setTitle("", for: .normal)
-        balanceCardButton.setTitle("", for: .normal)
-        headerViewButton.setTitle("", for: .normal)
+        self.profitButton.setTitle("", for: .normal)
+        self.buyButton.setTitle("", for: .normal)
+        self.sendButton.setTitle("", for: .normal)
+        self.receiveButton.setTitle("", for: .normal)
+        self.balanceCardButton.setTitle("", for: .normal)
+        self.headerViewButton.setTitle("", for: .normal)
+        self.currencyButton.setTitle("", for: .normal)
         
         // Balance card shadow
-        balanceCard.layer.shadowColor = UIColor.black.cgColor
-        balanceCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        balanceCard.layer.shadowRadius = 10.0
-        balanceCard.layer.shadowOpacity = 0.1
+        self.balanceCard.setShadow()
+        self.sendButtonView.setShadow()
+        self.receiveButtonView.setShadow()
+        self.buyButtonView.setShadow()
         
         // Table view
-        homeTableView.delegate = self
-        homeTableView.dataSource = self
+        self.homeTableView.delegate = self
+        self.homeTableView.dataSource = self
+        
+        // Check if dark mode is on.
+        self.changeColors()
+        self.setWords()
+        //self.headerLabel.text = Language.getWord(withID: "syncing")
         
         // Notification observers
-        NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(moveButtonTapped), name: NSNotification.Name(rawValue: "openmovevc"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(openValueVC), name: NSNotification.Name(rawValue: "openvalue"), object: nil)
         
         // Show cached data upon app startup.
-        showCachedData()
+        self.showCachedData()
     }
     
     
@@ -143,7 +155,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         
-        self.setConversion(btcValue: self.btcBalance/100000000, cachedData: false, updateTableAfterConversion: true)
+        self.setConversion(btcValue: CGFloat(self.coreVC!.onchainBalanceInSats + self.coreVC!.lightningBalanceInSats)/100000000, cachedData: false, updateTableAfterConversion: true)
     }
     
     
@@ -152,25 +164,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualImages = userInfo["images"] as? [String:UIImage] {
                 self.allImages = actualImages
-            }
-        }
-    }
-    
-    @objc func setClient() {
-        
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        
-        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            // Client exists in cache.
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            
-            self.client = clients[0]
-            if let actualCoreVC = self.coreVC {
-                actualCoreVC.client = clients[0]
             }
         }
     }
@@ -197,7 +190,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Set correct top constraint and table insets.
         var bottomInset:CGFloat = 80
-        var headerViewTopConstant:CGFloat = 90
+        var headerViewTopConstant:CGFloat = 85
         if #available(iOS 13.0, *) {
             if let window = UIApplication.shared.windows.first {
                 if window.safeAreaInsets.bottom == 0 {
@@ -267,11 +260,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Balance Card tapped.
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -282,19 +273,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -305,19 +292,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -338,7 +321,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if segue.identifier == "HomeToGoal" {
             let goalVC = segue.destination as? BuyViewController
             if let actualGoalVC = goalVC {
-                actualGoalVC.client = self.client
+                actualGoalVC.coreVC = self.coreVC
                 if let actualArticles = self.articles {
                     actualGoalVC.articles = actualArticles
                 }
@@ -349,13 +332,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } else if segue.identifier == "HomeToMove" {
             let moveVC = segue.destination as? MoveViewController
             if let actualMoveVC = moveVC {
-                actualMoveVC.fetchedBtcBalance = self.btcBalance
-                actualMoveVC.fetchedBtclnBalance = self.btclnBalance
-                actualMoveVC.eurValue = self.eurValue
-                actualMoveVC.chfValue = self.chfValue
+                actualMoveVC.fetchedBtcBalance = CGFloat(self.coreVC!.onchainBalanceInSats)
+                actualMoveVC.fetchedBtclnBalance = CGFloat(self.coreVC!.lightningBalanceInSats)
+                actualMoveVC.eurValue = self.coreVC!.eurValue
+                actualMoveVC.chfValue = self.coreVC!.chfValue
                 actualMoveVC.homeVC = self
                 
-                if let actualChannels = self.channels {
+                if let actualChannels = self.coreVC?.lightningChannels {
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
@@ -366,7 +349,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     }
                 }
                 
-                if let actualChannels = self.channels {
+                if let actualChannels = self.coreVC?.lightningChannels {
                     if actualChannels.count > 0 {
                         actualMoveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
@@ -376,7 +359,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let sendVC = segue.destination as? SendViewController
             if let actualSendVC = sendVC {
                 
-                if let actualChannels = self.channels {
+                if let actualChannels = self.coreVC?.lightningChannels {
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
@@ -386,17 +369,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         }
                     }
                 }
-                actualSendVC.btcAmount = self.btcBalance.rounded() * 0.00000001
-                actualSendVC.btclnAmount = self.btclnBalance.rounded() * 0.00000001
-                actualSendVC.eurValue = self.eurValue
-                actualSendVC.chfValue = self.chfValue
+                actualSendVC.btcAmount = CGFloat(self.coreVC!.onchainBalanceInSats).rounded() * 0.00000001
+                actualSendVC.btclnAmount = CGFloat(self.coreVC!.lightningBalanceInSats).rounded() * 0.00000001
+                actualSendVC.eurValue = self.coreVC!.eurValue
+                actualSendVC.chfValue = self.coreVC!.chfValue
                 actualSendVC.homeVC = self
             }
         } else if segue.identifier == "HomeToReceive" {
             let receiveVC = segue.destination as? ReceiveViewController
             if let actualReceiveVC = receiveVC {
-                
-                if let actualChannels = self.channels {
+                actualReceiveVC.homeVC = self
+                if let actualChannels = self.coreVC?.lightningChannels {
                     if actualChannels.count > 0 {
                         actualReceiveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
@@ -406,8 +389,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let transactionVC = segue.destination as? TransactionViewController
             if let actualTransactionVC = transactionVC {
                 actualTransactionVC.tappedTransaction = self.setTransactions[self.tappedTransaction]
-                actualTransactionVC.eurValue = self.eurValue
-                actualTransactionVC.chfValue = self.chfValue
+                actualTransactionVC.eurValue = self.coreVC!.eurValue
+                actualTransactionVC.chfValue = self.coreVC!.chfValue
             }
         } else if segue.identifier == "HomeToProfit" {
             let profitVC = segue.destination as? ProfitViewController
@@ -415,6 +398,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualProfitVC.totalProfit = self.calculatedProfit
                 actualProfitVC.totalValue = self.calculatedCurrentValue
                 actualProfitVC.totalInvestments = self.calculatedInvestments
+            }
+        } else if segue.identifier == "HomeToValue" {
+            if let valueVC = segue.destination as? ValueViewController {
+                valueVC.homeVC = self
             }
         }
     }
@@ -428,13 +415,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.calculatedProfit = 0
         self.calculatedInvestments = 0
         self.calculatedCurrentValue = 0
-        self.btcBalance = 0.0
-        self.btclnBalance = 0.0
-        self.totalBalanceSats = 0.0
+        self.coreVC?.onchainBalanceInSats = 0
+        self.coreVC?.lightningBalanceInSats = 0
         
         self.noTransactionsLabel.alpha = 0
-        self.bittrProfitLabel.alpha = 0
-        self.bittrProfitSpinner.startAnimating()
+        self.balanceCardGainLabel.alpha = 0
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
         self.satsLabel.alpha = 0
@@ -443,8 +428,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.tableSpinner.startAnimating()
         
-        self.headerLabel.text = "syncing"
-        self.headerLabelLeading.constant = 10
         self.headerSpinner.startAnimating()
         self.headerProblemImage.alpha = 0
         self.couldNotFetchConversion = false
@@ -457,13 +440,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Reload wallet when pulling down the view.
         
-        if scrollView.contentOffset.y < -200, self.didStartReset == false, self.headerLabel.text != "syncing" {
+        if scrollView.contentOffset.y < -200, self.didStartReset == false, !self.headerSpinner.isAnimating {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
                 return
             }
             
@@ -503,11 +484,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text == "syncing" {
+        if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -516,11 +495,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
-        if self.headerLabel.text != "syncing" {
+        if !self.headerSpinner.isAnimating {
             if self.couldNotFetchConversion == true {
-                let alert = UIAlertController(title: "Oops!", message: "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }
@@ -531,6 +508,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualCoreVC.blackSignupButton.alpha = 1
             }
         }
+    }
+    
+    @IBAction func currencyTapped(_ sender: UIButton) {
+        self.openValueVC()
     }
     
 }
@@ -559,5 +540,15 @@ extension String {
         let start = index(startIndex, offsetBy: range.lowerBound)
         let end = index(start, offsetBy: range.upperBound - range.lowerBound)
         return String(self[start ..< end])
+    }
+}
+
+extension UIView {
+    
+    func setShadow() {
+        self.layer.shadowColor = UIColor.black.cgColor
+        self.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.layer.shadowRadius = 10.0
+        self.layer.shadowOpacity = 0.1
     }
 }

@@ -29,13 +29,20 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerBackgroundButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     // Main scroll - Switch view
     @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var regularView: UIView!
-    @IBOutlet weak var instantView: UIView!
+    @IBOutlet weak var switchSelectionView: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
+    @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelInstant: UILabel!
+    @IBOutlet weak var iconLightning: UIImageView!
+    @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
+    @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
+    @IBOutlet weak var selectionLeading: NSLayoutConstraint!
+    @IBOutlet weak var selectionTrailing: NSLayoutConstraint!
     
     // Main scroll - Items
     @IBOutlet weak var topLabel: UILabel! // Explain items
@@ -43,20 +50,28 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var amountLabel: UILabel! // Amount
     
     // Main scroll - To view
+    @IBOutlet weak var addressStack: UIView!
     @IBOutlet weak var toView: UIView! // Background
     @IBOutlet weak var toTextField: UITextField! // Text field
-    @IBOutlet weak var toTextFieldTop: NSLayoutConstraint! // 5 when closed, 15 when open.
-    @IBOutlet weak var toTextFieldHeight: NSLayoutConstraint! // 0 when closed, 25 when open.
-    @IBOutlet weak var invoiceLabel: UILabel! // Text label
-    @IBOutlet weak var invoiceLabelTop: NSLayoutConstraint! // 10 when closed, 20 when open.
+    @IBOutlet weak var toButton: UIButton!
     @IBOutlet weak var backgroundQR: UIView!
     @IBOutlet weak var backgroundPaste: UIView!
     @IBOutlet weak var backgroundKeyboard: UIView!
     @IBOutlet weak var qrButton: UIButton!
     @IBOutlet weak var pasteButton: UIButton!
     @IBOutlet weak var keyboardButton: UIButton!
+    @IBOutlet weak var stackLabelQR: UILabel!
+    @IBOutlet weak var stackLabelPaste: UILabel!
+    @IBOutlet weak var stackLabelType: UILabel!
+    @IBOutlet weak var stackImageQR: UIImageView!
+    @IBOutlet weak var stackImagePaste: UIImageView!
+    @IBOutlet weak var stackImageType: UIImageView!
     
     // Main scroll - Amount view
+    @IBOutlet weak var amountStack: UIView!
+    @IBOutlet weak var btcView: UIView!
+    @IBOutlet weak var btcLabel: UILabel!
+    @IBOutlet weak var btcButton: UIButton!
     @IBOutlet weak var amountView: UIView! // Background
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
@@ -82,6 +97,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     // Onchain confirm scroll
     @IBOutlet weak var confirmHeaderView: UIView!
+    @IBOutlet weak var confirmHeaderLabel: UILabel!
+    @IBOutlet weak var confirmTopLabel: UILabel!
     @IBOutlet weak var yellowCard: UIView!
     @IBOutlet weak var confirmToCard: UIView!
     @IBOutlet weak var confirmAmountCard: UIView!
@@ -94,8 +111,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var sendButton: UIButton!
     @IBOutlet weak var sendSpinner: UIActivityIndicatorView!
     @IBOutlet weak var sendLabel: UILabel!
+    @IBOutlet weak var labelAddress: UILabel!
+    @IBOutlet weak var labelAmount: UILabel!
+    @IBOutlet weak var labelEdit: UILabel!
     
     // Onchain confirm scroll - Fees
+    @IBOutlet weak var feesTopLabel: UILabel!
     @IBOutlet weak var fastView: UIView!
     @IBOutlet weak var mediumView: UIView!
     @IBOutlet weak var slowView: UIView!
@@ -105,10 +126,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var eurosFast: UILabel!
     @IBOutlet weak var eurosMedium: UILabel!
     @IBOutlet weak var eurosSlow: UILabel!
+    @IBOutlet weak var timeFast: UILabel!
+    @IBOutlet weak var timeMedium: UILabel!
+    @IBOutlet weak var timeSlow: UILabel!
     @IBOutlet weak var fastButton: UIButton!
     @IBOutlet weak var mediumButton: UIButton!
     @IBOutlet weak var slowButton: UIButton!
     @IBOutlet weak var slowTimeLabel: UILabel!
+    
+    // Spinner view
+    @IBOutlet weak var spinnerView: UIView!
+    @IBOutlet weak var spinnerBox: UIView!
+    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
     
     // Variables
     var btcAmount:Double = 0.0
@@ -121,10 +150,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var eurValue = 0.0
     var chfValue = 0.0
     var selectedFee = "medium"
+    var selectedCurrency = "bitcoin"
     var onchainOrLightning = "onchain"
-    var selectedInput = "qr"
     var completedTransaction:Transaction?
     var homeVC:HomeViewController?
+    var onchainAmountInSatoshis:Int = 0
+    var onchainAmountInBTC:CGFloat = 0.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -146,26 +177,31 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         slowButton.setTitle("", for: .normal)
         qrButton.setTitle("", for: .normal)
         keyboardButton.setTitle("", for: .normal)
+        toButton.setTitle("", for: .normal)
+        btcButton.setTitle("", for: .normal)
         
         // Corner radii
         headerView.layer.cornerRadius = 13
-        toView.layer.cornerRadius = 13
-        amountView.layer.cornerRadius = 13
+        toView.layer.cornerRadius = 8
+        amountView.layer.cornerRadius = 8
         nextView.layer.cornerRadius = 13
         confirmHeaderView.layer.cornerRadius = 13
         editView.layer.cornerRadius = 13
         sendView.layer.cornerRadius = 13
         switchView.layer.cornerRadius = 13
+        switchSelectionView.layer.cornerRadius = 8
         scannerView.layer.cornerRadius = 13
         yellowCard.layer.cornerRadius = 20
-        confirmToCard.layer.cornerRadius = 13
-        confirmAmountCard.layer.cornerRadius = 13
-        fastView.layer.cornerRadius = 13
-        mediumView.layer.cornerRadius = 13
-        slowView.layer.cornerRadius = 13
-        backgroundQR.layer.cornerRadius = 13
-        backgroundPaste.layer.cornerRadius = 13
-        backgroundKeyboard.layer.cornerRadius = 13
+        confirmToCard.layer.cornerRadius = 8
+        confirmAmountCard.layer.cornerRadius = 8
+        fastView.layer.cornerRadius = 8
+        mediumView.layer.cornerRadius = 8
+        slowView.layer.cornerRadius = 8
+        backgroundQR.layer.cornerRadius = 8
+        backgroundPaste.layer.cornerRadius = 8
+        backgroundKeyboard.layer.cornerRadius = 8
+        spinnerBox.layer.cornerRadius = 13
+        btcView.layer.cornerRadius = 8
         
         // Shadows
         setShadows(forView: yellowCard)
@@ -175,12 +211,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         setShadows(forView: backgroundQR)
         setShadows(forView: backgroundPaste)
         setShadows(forView: backgroundKeyboard)
+        setShadows(forView: btcView)
+        setShadows(forView: switchSelectionView)
         
         // Text fields
         toTextField.delegate = self
         amountTextField.delegate = self
         amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
+        // Set colors and language
+        self.changeColors()
+        self.setWords()
         self.setSendAllLabel(forView: "onchain")
     }
     
@@ -198,19 +239,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             } else {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats()
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "Send all: \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             }
         } else {
             // Set "Send all" for lightning payments.
             if let actualMaxAmount = self.maximumSendableLNSats {
-                self.availableAmount.text = "You can send \(actualMaxAmount) satoshis."
+                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) \(actualMaxAmount) satoshis."
             } else {
-                self.availableAmount.text = "You can send 0 satoshis."
+                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) 0 satoshis."
             }
         }
     }
@@ -229,11 +270,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @objc func keyboardWillDisappear() {
         
         self.amountButton.alpha = 1
-        if self.toTextField.text == nil || self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
-            self.toTextFieldHeight.constant = 0
-            self.toTextField.alpha = 0
-            self.toTextFieldTop.constant = 5
-        }
+        self.toButton.alpha = 1
         
         NSLayoutConstraint.deactivate([contentViewBottom])
         contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
@@ -270,6 +307,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.amountButton.alpha = 0
     }
     
+    @IBAction func toButtonTapped(_ sender: UIButton) {
+        self.toTextField.becomeFirstResponder()
+        self.toButton.alpha = 0
+    }
+    
     @objc func doneButtonTapped() {
         self.amountTextField.resignFirstResponder()
         self.amountButton.alpha = 1
@@ -281,10 +323,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             // Regular
             let numberFormatter = NumberFormatter()
             numberFormatter.numberStyle = .decimal
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            self.btcLabel.text = "BTC"
+            self.selectedCurrency = "bitcoin"
         } else {
             // Instant
-            let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning channel (for instant payments).\n\nIf you've purchased satoshis into your lightning channel, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning channel.","type":"lightningsendable"]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "limitlightninganswer"),"type":"lightningsendable"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
     }
@@ -295,31 +339,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             actualCaptureSession.stopRunning()
         }
         self.view.endEditing(true)
-        
         if let actualString = UIPasteboard.general.string {
-            
-            self.selectedInput = "paste"
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                
-                self.toTextField.alpha = 0
-                self.toTextFieldHeight.constant = 0
-                self.invoiceLabel.text = actualString
-                self.invoiceLabel.alpha = 1
-                self.invoiceLabelTop.constant = 20
-                self.toTextFieldTop.constant = 5
-                
-                self.view.layoutIfNeeded()
-            }
+            self.toTextField.text = actualString
         }
-        
     }
     
     @IBAction func qrButtonTapped(_ sender: UIButton) {
-        
-        self.selectedInput = "qr"
         self.view.endEditing(true)
-        
         self.showScannerView()
     }
     
@@ -328,23 +354,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if let actualCaptureSession = captureSession {
             actualCaptureSession.stopRunning()
         }
-        
-        self.selectedInput = "keyboard"
-        
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            
-            if let pastedText = self.invoiceLabel.text {
-                self.toTextField.text = pastedText
-            }
-            
-            self.toTextField.alpha = 1
-            self.toTextFieldHeight.constant = 25
-            self.invoiceLabel.text = nil
-            self.invoiceLabel.alpha = 0
-            self.toTextFieldTop.constant = 15
-            self.invoiceLabelTop.constant = 10
-        }
-        
         self.toTextField.becomeFirstResponder()
     }
     
@@ -355,16 +364,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        if self.nextLabel.text == "Next" && self.onchainOrLightning == "onchain" {
+        if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "onchain" {
             // Check onchain transaction.
             self.checkSendOnchain()
-        } else if self.nextLabel.text == "Next" && self.onchainOrLightning == "lightning" {
+        } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
             // Confirm lightning payment.
-            self.confirmLightningTransaction()
-        } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "onchain" {
+            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
             // Hide QR scanner, show onchain.
             self.hideScannerView(forView: "onchain")
-        } else if self.nextLabel.text == "Manual input", self.onchainOrLightning == "lightning" {
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "lightning" {
             // Hide QR scanner, show lightning.
             self.hideScannerView(forView: "lightning")
         }
@@ -377,19 +386,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.scrollViewTrailing])
             self.view.layoutIfNeeded()
-        }
-    }
-    
-    func checkInternetConnection() -> Bool {
-        // Check internet connection.
-        if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
-            return false
-        } else {
-            return true
         }
     }
     
@@ -430,6 +426,38 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func feeButtonTapped(_ sender: UIButton) {
         self.switchFeeSelection(tappedFee: sender.accessibilityIdentifier!)
     }
+    
+    @IBAction func btcButtonTapped(_ sender: UIButton) {
+        
+        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
+            
+            self.btcLabel.text = "BTC"
+            self.selectedCurrency = "bitcoin"
+        }
+        let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
+            
+            self.btcLabel.text = "Sats"
+            self.selectedCurrency = "satoshis"
+        }
+        var currency = "€"
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            currency = "CHF"
+        }
+        let currencyOption = UIAlertAction(title: currency, style: .default) { (action) in
+            
+            self.btcLabel.text = currency
+            self.selectedCurrency = "currency"
+        }
+
+        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
+        actionSheet.addAction(btcOption)
+        actionSheet.addAction(satsOption)
+        actionSheet.addAction(currencyOption)
+        actionSheet.addAction(cancelAction)
+        present(actionSheet, animated: true, completion: nil)
+    }
+    
 }
 
 extension UITextField {
@@ -440,9 +468,30 @@ extension UITextField {
         toolbar.barStyle = .default
         toolbar.items = [
                 UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: self, action: nil),
-                UIBarButtonItem(title: "Done", style: .done, target: target, action: returnaction)
+                UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: target, action: returnaction)
             ]
         toolbar.sizeToFit()
         self.inputAccessoryView = toolbar
+    }
+}
+
+extension UIViewController {
+    
+    func checkInternetConnection() -> Bool {
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+            return false
+        } else {
+            return true
+        }
+    }
+}
+
+extension String {
+    
+    func fixDecimals() -> String {
+        return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }
 }

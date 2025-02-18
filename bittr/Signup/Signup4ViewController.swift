@@ -11,11 +11,15 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     // View to double check that the user has properly recorded their mnemonic.
     
+    @IBOutlet weak var topLabel: UILabel!
+    
     @IBOutlet weak var mnemonicView1: UIView!
     @IBOutlet weak var mnemonicView2: UIView!
     @IBOutlet weak var mnemonicView3: UIView!
     @IBOutlet weak var saveView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
+    @IBOutlet weak var backLabel: UILabel!
     @IBOutlet weak var backButton: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var backgroundButton2: UIButton!
@@ -31,6 +35,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     // Three checkable mnemonic words.
     var checkWords = [String]()
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,17 +56,20 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         mnemonicField3.delegate = self
         
         mnemonicField1.attributedPlaceholder = NSAttributedString(
-            string: "Enter word",
+            string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         mnemonicField2.attributedPlaceholder = NSAttributedString(
-            string: "Enter word",
+            string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         mnemonicField3.attributedPlaceholder = NSAttributedString(
-            string: "Enter word",
+            string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
+        
+        self.changeColors()
+        self.setWords()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -165,6 +173,25 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
         
         self.view.endEditing(true)
+    }
+    
+    func changeColors() {
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
+        if CacheManager.darkModeIsOn() {
+            self.backLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.backLabel.textColor = Colors.getColor("transparentblack")
+        }
+    }
+    
+    func setWords() {
+        
+        self.topLabel.text = Language.getWord(withID: "confirmrecoveryphrase")
+        self.mnemonicField1.placeholder = Language.getWord(withID: "enterword")
+        self.mnemonicField2.placeholder = Language.getWord(withID: "enterword")
+        self.mnemonicField3.placeholder = Language.getWord(withID: "enterword")
+        self.nextLabel.text = Language.getWord(withID: "confirm")
+        self.backLabel.text = Language.getWord(withID: "back")
     }
     
 }

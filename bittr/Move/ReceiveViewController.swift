@@ -13,8 +13,9 @@ import LDKNodeFFI
 import LightningDevKit
 import Sentry
 import BitcoinDevKit
+import AVFoundation
 
-class ReceiveViewController: UIViewController, UITextFieldDelegate {
+class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
 
     // General
     @IBOutlet weak var downButton: UIButton!
@@ -29,18 +30,26 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
     @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Main - Switch view
     @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var regularView: UIView!
-    @IBOutlet weak var instantView: UIView!
+    @IBOutlet weak var switchSelectionView: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
+    @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelInstant: UILabel!
+    @IBOutlet weak var iconLightning: UIImageView!
+    @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
+    @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
+    @IBOutlet weak var switchSelectionLeading: NSLayoutConstraint!
+    @IBOutlet weak var switchSelectionTrailing: NSLayoutConstraint!
     
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
     @IBOutlet weak var centerViewRegularTrailing: NSLayoutConstraint!
+    @IBOutlet weak var subtitleRegular: UILabel!
     @IBOutlet weak var qrView: UIView!
     @IBOutlet weak var qrCodeImage: UIImageView!
     @IBOutlet weak var qrCodeLogoView: UIView!
@@ -55,33 +64,63 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     // Main - Instant view
     @IBOutlet weak var centerViewInstant: UIView!
+    @IBOutlet weak var subtitleInstant: UILabel!
     @IBOutlet weak var receivableLNLabel: UILabel!
     @IBOutlet weak var receivableButton: UIButton!
+    @IBOutlet weak var questionCircle: UIImageView!
     @IBOutlet weak var backgroundButton: UIButton!
+    @IBOutlet weak var amountLabel: UILabel!
     @IBOutlet weak var amountView: UIView!
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
+    @IBOutlet weak var descriptionLabel: UILabel!
     @IBOutlet weak var descriptionView: UIView!
     @IBOutlet weak var descriptionTextField: UITextField!
     @IBOutlet weak var descriptionButton: UIButton!
     @IBOutlet weak var createView: UIView!
+    @IBOutlet weak var createInvoiceLabel: UILabel!
     @IBOutlet weak var invoiceButton: UIButton!
+    @IBOutlet weak var lnurlQrView: UIView!
+    @IBOutlet weak var scanQrButton: UIButton!
+    @IBOutlet weak var scanQrImage: UIImageView!
+    
+    // QR Scanner
+    @IBOutlet weak var qrScannerView: UIView!
+    @IBOutlet weak var scannerView: UIView!
+    @IBOutlet weak var qrScannerBackgroundButton: UIButton!
+    @IBOutlet weak var qrScannerLabel: UILabel!
+    @IBOutlet weak var qrScannerCloseView: UIView!
+    @IBOutlet weak var qrScannerCloseLabel: UILabel!
+    var captureSession: AVCaptureSession!
+    var previewLayer: AVCaptureVideoPreviewLayer!
+    var scannerWorks = false
     
     // Confirm invoice view
     @IBOutlet weak var lnConfirmationHeaderView: UIView!
+    @IBOutlet weak var lnHeaderLabel: UILabel!
+    @IBOutlet weak var lnConfirmationLabel: UILabel!
     @IBOutlet weak var lnConfirmationQRView: UIView!
     @IBOutlet weak var lnQRImage: UIImageView!
     @IBOutlet weak var lnQRCodeLogoView: UIView!
     @IBOutlet weak var lnConfirmationAddressView: UIView!
     @IBOutlet weak var lnInvoiceLabel: UILabel!
+    @IBOutlet weak var lnInvoiceCopy: UIImageView!
     @IBOutlet weak var copyInvoiceButton: UIButton!
     @IBOutlet weak var lnConfirmationDoneView: UIView!
     @IBOutlet weak var lnConfirmationDoneButton: UIButton!
+    @IBOutlet weak var lnDoneLabel: UILabel!
+    
+    // LNURL spinner
+    @IBOutlet weak var spinnerView: UIView!
+    @IBOutlet weak var spinnerBox: UIView!
+    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
     
     // Variables
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
     var createdInvoice = ""
+    var homeVC:HomeViewController?
+    var completedTransaction:Transaction?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -100,6 +139,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         copyInvoiceButton.setTitle("", for: .normal)
         lnConfirmationDoneButton.setTitle("", for: .normal)
         receivableButton.setTitle("", for: .normal)
+        scanQrButton.setTitle("", for: .normal)
+        qrScannerBackgroundButton.setTitle("", for: .normal)
         
         // Corner radii
         headerView.layer.cornerRadius = 13
@@ -114,6 +155,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         lnConfirmationQRView.layer.cornerRadius = 13
         lnConfirmationAddressView.layer.cornerRadius = 13
         lnConfirmationDoneView.layer.cornerRadius = 13
+        lnurlQrView.layer.cornerRadius = 13
+        scannerView.layer.cornerRadius = 13
+        qrScannerCloseView.layer.cornerRadius = 13
+        spinnerBox.layer.cornerRadius = 13
+        switchSelectionView.layer.cornerRadius = 8
         
         // Text field delegates
         amountTextField.delegate = self
@@ -122,7 +168,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         // Receivable sats label
         if let actualReceivableLN = maximumReceivableLNSats {
-            self.receivableLNLabel.text = "You can receive up to \(actualReceivableLN) satoshis."
+            self.receivableLNLabel.text = "\(Language.getWord(withID: "youcanreceive")) \(actualReceivableLN) satoshis."
         }
         
         // Create QR code
@@ -132,6 +178,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         addressSpinner.startAnimating()
         qrCodeSpinner.startAnimating()
         getNewAddress(resetAddress: false)
+        
+        // Selection view
+        self.switchSelectionView.layer.shadowColor = UIColor.black.cgColor
+        self.switchSelectionView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.switchSelectionView.layer.shadowRadius = 10.0
+        self.switchSelectionView.layer.shadowOpacity = 0.1
+        
+        // Set colors and language.
+        self.setWords()
+        self.changeColors()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -147,6 +203,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewBothCenterY.constant = 0
             self.view.layoutIfNeeded()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if (captureSession?.isRunning == true) {
+            captureSession.stopRunning()
         }
     }
     
@@ -181,11 +243,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
-        
         UIPasteboard.general.string = self.addressLabel.text
-        let alert = UIAlertController(title: "Copied", message: self.addressLabel.text, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), self.addressLabel.text ?? "", Language.getWord(withID: "okay"))
     }
     
     @IBAction func refreshButtonTapped(_ sender: UIButton) {
@@ -223,15 +282,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
-        //var bottomCenterView:UIView = self.centerViewRegular
+        var leadingConstraint = self.labelRegular
+        var leadingConstant:CGFloat = -15
+        var regularConstraint:CGFloat = 20
+        var instantConstraint:CGFloat = 15
         if sender.accessibilityIdentifier == "regular" {
-            self.regularView.backgroundColor = UIColor(white: 1, alpha: 1)
-            self.instantView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            //bottomCenterView = self.centerViewRegular
+            leadingConstraint = self.labelRegular
+            leadingConstant = -15
+            regularConstraint = 20
+            instantConstraint = 15
         } else {
-            self.regularView.backgroundColor = UIColor(white: 1, alpha: 0.7)
-            self.instantView.backgroundColor = UIColor(white: 1, alpha: 1)
-            //var bottomCenterView = self.centerViewInstant
+            leadingConstraint = self.labelInstant
+            leadingConstant = -35
+            regularConstraint = 15
+            instantConstraint = 20
         }
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
@@ -244,6 +308,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             }
             self.centerViewRegularTrailing.constant = -viewWidth
             self.centerViewBothCenterY.constant = centerViewBottomConstant
+            
+            self.labelRegularLeading.constant = regularConstraint
+            self.labelInstantTrailing.constant = instantConstraint
+            
+            NSLayoutConstraint.deactivate([self.switchSelectionLeading, self.switchSelectionTrailing])
+            self.switchSelectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: leadingConstraint, attribute: .leading, multiplier: 1, constant: leadingConstant)
+            self.switchSelectionTrailing = NSLayoutConstraint(item: self.switchSelectionView, attribute: .trailing, relatedBy: .equal, toItem: leadingConstraint, attribute: .trailing, multiplier: 1, constant: 15)
+            NSLayoutConstraint.activate([self.switchSelectionLeading, self.switchSelectionTrailing])
             
             self.view.layoutIfNeeded()
         }
@@ -272,6 +344,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
+        self.qrScannerView.alpha = 0
+        
+        if let actualCaptureSession = captureSession {
+            actualCaptureSession.stopRunning()
+        }
+        
         self.view.endEditing(true)
     }
     
@@ -294,10 +372,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         if self.createdInvoice != "" {
             UIPasteboard.general.string = self.createdInvoice
-            //UIPasteboard.general.string = sender.accessibilityIdentifier
-            let alert = UIAlertController(title: "Copied", message: self.createdInvoice, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "copied"), self.createdInvoice, Language.getWord(withID: "okay"))
         }
     }
     
@@ -314,8 +389,29 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func receivableButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["question":"why a limit for instant payments?","answer":"There's a limit to the amount of satoshis you can receive per invoice.\n\nYour bitcoin lightning channel has a size, ten times the amount of your first Bittr purchase. If the size is 10,000 sats and you've already purchased 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the channel size. If you need more, you can create multiple invoices.\n\nWhen the channel is full, we empty the channel funds into your bitcoin wallet so that you have space again.","type":"lightningreceivable"]
+        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "theresalimit"),"type":"lightningreceivable"]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    @IBAction func scanQrButtonTapped(_ sender: UIButton) {
+        
+        self.qrScannerView.alpha = 1
+        self.showScannerView()
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        // Show new transaction in TransactionVC.
+        if segue.identifier == "ReceiveToTransaction" {
+            let transactionVC = segue.destination as? TransactionViewController
+            if let actualTransactionVC = transactionVC {
+                if let actualCompletedTransaction = self.completedTransaction {
+                    actualTransactionVC.tappedTransaction = actualCompletedTransaction
+                    actualTransactionVC.eurValue = (CacheManager.getCachedData(key: "eurvalue") as? CGFloat)!
+                    actualTransactionVC.chfValue = (CacheManager.getCachedData(key: "chfvalue") as? CGFloat)!
+                }
+            }
+        }
     }
     
 }

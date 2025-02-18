@@ -11,7 +11,14 @@ class Transfer2ViewController: UIViewController {
 
     // Bittr signup successful. Show details for setting up bank transfer.
     
+    // Checkmark
     @IBOutlet weak var checkView: UIView!
+    @IBOutlet weak var checkmarkImage: UIImageView!
+    
+    // Top labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var nameView: UIView!
     @IBOutlet weak var codeView: UIView!
@@ -19,6 +26,7 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
@@ -26,12 +34,16 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var screenshotView: UIView!
     @IBOutlet weak var screenshotButton: UIButton!
+    @IBOutlet weak var screenshotLabel: UILabel!
     
     var currentClientID = ""
     var currentIbanID = ""
     
     @IBOutlet weak var ourIbanLabel: UILabel!
     @IBOutlet weak var yourCodeLabel: UILabel!
+    @IBOutlet weak var titleOurIBAN: UILabel!
+    @IBOutlet weak var titleOurName: UILabel!
+    @IBOutlet weak var titleYourCode: UILabel!
     
     @IBOutlet weak var ibanButton: UIButton!
     @IBOutlet weak var nameButton: UIButton!
@@ -45,6 +57,7 @@ class Transfer2ViewController: UIViewController {
     
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -67,7 +80,7 @@ class Transfer2ViewController: UIViewController {
         
         // Checkmark elements.
         let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = UIColor.black.cgColor
+        viewBorder.strokeColor = Colors.getColor("blackorwhite").cgColor
         viewBorder.frame = checkView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
@@ -100,6 +113,9 @@ class Transfer2ViewController: UIViewController {
                 self.articleImage.image = actualImage
             }
         }
+        
+        self.changeColors()
+        self.setWords()
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -156,7 +172,7 @@ class Transfer2ViewController: UIViewController {
                                         self.nameButton.accessibilityIdentifier = iban.ourName
                                         self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
                                         
-                                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatebuypage"), object: nil, userInfo: nil) as Notification)
+                                        self.coreVC?.setClient()
                                     }
                                 }
                             }
@@ -220,13 +236,9 @@ class Transfer2ViewController: UIViewController {
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         
         if error == nil {
-            let alert = UIAlertController(title: "Saved", message: "We've added the screenshot to your Photo Library.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "saved"), Language.getWord(withID: "screenshot2"), Language.getWord(withID: "okay"))
         } else {
-            let alert = UIAlertController(title: "Oops", message: "We couldn't save your screenshot. Try taking a screenshot manually.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "screenshot3"), Language.getWord(withID: "okay"))
         }
     }
     
@@ -234,9 +246,25 @@ class Transfer2ViewController: UIViewController {
         
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), sender.accessibilityIdentifier ?? "", Language.getWord(withID: "okay"))
+    }
+    
+    func changeColors() {
+        
+        self.checkmarkImage.tintColor = Colors.getColor("blackorwhite")
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+    }
+    
+    func setWords() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "readyfortransfer")
+        self.topLabelTwo.text = Language.getWord(withID: "personaldetails")
+        self.titleOurIBAN.text = Language.getWord(withID: "ouriban")
+        self.titleOurName.text = Language.getWord(withID: "ourname")
+        self.titleYourCode.text = Language.getWord(withID: "yourcode")
+        self.screenshotLabel.text = Language.getWord(withID: "screenshot")
+        self.nextLabel.text = Language.getWord(withID: "finaldetails")
     }
     
 }

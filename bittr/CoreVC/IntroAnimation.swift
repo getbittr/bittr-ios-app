@@ -10,11 +10,8 @@ import UIKit
 extension CoreViewController {
 
     override func viewDidLayoutSubviews() {
-        
         firstCoin.layer.cornerRadius = firstCoin.bounds.height / 2
         secondCoin.layer.cornerRadius = firstCoin.bounds.height / 2
-        
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -55,9 +52,7 @@ extension CoreViewController {
                         self.signupContainerView.alpha = self.signupAlpha
                         if self.signupAlpha == 0 {
                             self.pinContainerView.alpha = 1
-                            //self.homeContainerView.alpha = 1
-                            //self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
-                            //self.menuBarView.alpha = 1
+                            self.topBar.alpha = 1
                         }
                         self.view.layoutIfNeeded()
                     } completion: { finished in
@@ -74,20 +69,15 @@ extension CoreViewController {
                             self.blackCoin.alpha = 0
                             self.firstCoin.alpha = 0
                             self.coverView.alpha = 0
-                            self.topBar.alpha = 1
-                            self.view.backgroundColor = UIColor(red: 252/255, green: 252/255, blue: 255/255, alpha: 1)
                             self.homeContainerView.alpha = 1
                             self.menuBarView.alpha = 1
                             self.blackSignupBackground.alpha = 1
-                            
-                            //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+                            self.changeColors()
                             
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {
                                 // User not connected to internet.
-                                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                                self.present(alert, animated: true)
+                                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
                             }
                         }
                     }

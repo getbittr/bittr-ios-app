@@ -13,6 +13,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
     // Confirm new pin for restored wallet.
     
     var previousPIN:String?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,12 +45,11 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             if actualPreviousPin == enteredPin {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                 
+                self.coreVC?.setClient()
                 CacheManager.storePin(pin: actualPreviousPin)
                 
             } else {
-                let alert = UIAlertController(title: "Incorrect PIN", message: "Repeat the same number.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(Language.getWord(withID: "incorrectpin"), Language.getWord(withID: "repeatnumber"), Language.getWord(withID: "okay"))
             }
         }
     }

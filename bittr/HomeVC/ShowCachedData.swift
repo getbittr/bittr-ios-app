@@ -21,10 +21,13 @@ extension HomeViewController {
                     balanceLabel.attributedText = attributedText
                     balanceLabel.alpha = 1
                     bitcoinSign.alpha = 0.18
+                    if CacheManager.darkModeIsOn() {
+                        bitcoinSign.alpha = 0.35
+                    }
                     
-                    balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
+                    self.balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
                     
-                    satsLabel.font = balanceLabelInvisible.adjustedFont()
+                    satsLabel.font = self.balanceLabelInvisible.adjustedFont()
                     
                     satsLabel.alpha = 1
                 } catch let e as NSError {
@@ -35,12 +38,12 @@ extension HomeViewController {
         
         // Set cached Eur Value.
         if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
-            self.eurValue = cachedEurValue
+            self.coreVC?.eurValue = cachedEurValue
         }
         
         // Set cached Chf Value.
         if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
-            self.chfValue = cachedChfValue
+            self.coreVC?.chfValue = cachedChfValue
         }
         
         // Set cached transactions.
@@ -61,7 +64,7 @@ extension HomeViewController {
                 }
             }
             
-            self.setConversion(btcValue: CGFloat(truncating: NumberFormatter().number(from: actualCachedBalance)!)/100000000, cachedData: true, updateTableAfterConversion: true)
+            self.setConversion(btcValue: self.stringToNumber(actualCachedBalance)/100000000, cachedData: true, updateTableAfterConversion: true)
         }
     }
 

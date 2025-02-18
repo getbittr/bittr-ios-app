@@ -11,75 +11,68 @@ class Signup7ViewController: UIViewController {
 
     // Confirmation of created wallet. Sign up with bittr or skip directly to wallet.
     
+    // Checkmark
     @IBOutlet weak var checkView: UIView!
-    @IBOutlet weak var saveView: UIView!
-    @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var checkmarkImage: UIImageView!
+    
+    // Top labels
+    @IBOutlet weak var topLabelOne: UILabel!
+    @IBOutlet weak var topLabelTwo: UILabel!
+    @IBOutlet weak var topLabelTwoTop: NSLayoutConstraint!
+    
+    // Selection
+    @IBOutlet weak var partnerView: UIView!
+    @IBOutlet weak var partnerButton: UIButton!
+    @IBOutlet weak var continueView: UIView!
+    @IBOutlet weak var continueLabel: UILabel!
+    @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var skipButton: UIButton!
+    @IBOutlet weak var skipLabel: UILabel!
+    
+    // Article
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
-    
-    // Article elements.
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
+    var embeddedInBuyVC = false
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Corner radii and button items.
-        checkView.layer.cornerRadius = 35
-        saveView.layer.cornerRadius = 13
+        // Corner radii.
+        checkView.layer.cornerRadius = 25
+        partnerView.layer.cornerRadius = 13
+        continueView.layer.cornerRadius = 13
         cardView.layer.cornerRadius = 13
         imageContainer.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
+        
+        // Button titles
+        partnerButton.setTitle("", for: .normal)
+        continueButton.setTitle("", for: .normal)
         skipButton.setTitle("", for: .normal)
         articleButton.setTitle("", for: .normal)
         
-        // Check view elements.
-        let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = UIColor.black.cgColor
-        viewBorder.frame = checkView.bounds
-        viewBorder.fillColor = nil
-        viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
-        viewBorder.lineWidth = 2
-        self.checkView.layer.addSublayer(viewBorder)
-        
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-    }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
+        NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
+        self.changeColors()
+        self.setWords()
     }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
-        }
-    }
-    
     
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
         // Close sign up and proceed into wallet.
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+        self.coreVC?.setClient()
+    }
+    
+    @IBAction func partnerButtonTapped(_ sender: UIButton) {
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
@@ -94,6 +87,60 @@ class Signup7ViewController: UIViewController {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
+        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.skipLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.skipLabel.textColor = Colors.getColor("transparentblack")
+        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        if self.embeddedInBuyVC == true {
+            self.checkView.alpha = 0
+            self.topLabelOne.alpha = 0
+            self.topLabelTwo.font = UIFont(name: "Gilroy-Bold", size: 16)
+            self.topLabelTwoTop.constant = -86
+            self.skipLabel.alpha = 0
+            self.skipButton.alpha = 0
+            self.view.layoutIfNeeded()
+        }
+        
+        self.updateArticle()
+    }
+    
+    @objc func updateArticle() {
+        if self.coreVC != nil {
+            if self.coreVC!.allArticles != nil {
+                if let thisArticle = self.coreVC!.allArticles![pageArticle1Slug] {
+                    
+                    self.pageArticle1 = thisArticle
+                    self.articleTitle.text = self.pageArticle1.title
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                    
+                    if let imageData = CacheManager.getImage(key: self.pageArticle1.image) {
+                        self.spinner1.stopAnimating()
+                        self.articleImage.image = UIImage(data: imageData)
+                    } else {
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    func setWords() {
+        
+        self.topLabelOne.text = Language.getWord(withID: "walletisready")
+        self.topLabelTwo.text = Language.getWord(withID: "firstbitcoin")
+        self.continueLabel.text = Language.getWord(withID: "next")
+        self.skipLabel.text = Language.getWord(withID: "skip")
     }
     
 }

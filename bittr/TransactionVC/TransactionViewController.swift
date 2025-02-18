@@ -9,10 +9,12 @@ import UIKit
 
 class TransactionViewController: UIViewController {
 
+    // Header view
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var bodyView: UIView!
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     // Views
     @IBOutlet weak var amountView: UIView!
@@ -22,6 +24,18 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var nowView: UIView!
     @IBOutlet weak var profitView: UIView!
     @IBOutlet weak var descriptionView: UIView!
+    
+    // Titles
+    @IBOutlet weak var amountTitle: UILabel!
+    @IBOutlet weak var typeTitle: UILabel!
+    @IBOutlet weak var idTitle: UILabel!
+    @IBOutlet weak var confirmationsTitle: UILabel!
+    @IBOutlet weak var feesTitle: UILabel!
+    @IBOutlet weak var descriptionTitle: UILabel!
+    @IBOutlet weak var valueNowTitle: UILabel!
+    @IBOutlet weak var valueThenTitle: UILabel!
+    @IBOutlet weak var profitTitle: UILabel!
+    @IBOutlet weak var noteTitle: UILabel!
     
     // Labels
     @IBOutlet weak var dateLabel: UILabel!
@@ -68,12 +82,14 @@ class TransactionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // Button titles
         downButton.setTitle("", for: .normal)
         noteButton.setTitle("", for: .normal)
         transactionButton.setTitle("", for: .normal)
         descriptionButton.setTitle("", for: .normal)
         questionButton.setTitle("", for: .normal)
         
+        // Corner radii
         headerView.layer.cornerRadius = 13
         bodyView.layer.cornerRadius = 13
         dateView.layer.cornerRadius = 7
@@ -84,7 +100,10 @@ class TransactionViewController: UIViewController {
         nowView.layer.cornerRadius = 7
         profitView.layer.cornerRadius = 7
         
+        // Language
+        self.setWords()
         
+        // Transaction data
         let transactionDate = Date(timeIntervalSince1970: Double(tappedTransaction.timestamp))
         let dateFormatter = DateFormatter()
         dateFormatter.timeZone = TimeZone.current
@@ -92,10 +111,6 @@ class TransactionViewController: UIViewController {
         let transactionDateString = dateFormatter.string(from: transactionDate)
         
         dateLabel.text = transactionDateString
-        
-        
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .decimal
         
         // Set sats.
         var plusSymbol = "+"
@@ -157,12 +172,19 @@ class TransactionViewController: UIViewController {
         if tappedTransaction.isLightning == true {
             // Lightning transaction.
             
-            self.typeLabel.text = "Instant"
+            self.typeLabel.text = Language.getWord(withID: "instant")
             self.boltImage.alpha = 0.8
             self.confirmationsViewHeight.constant = 0
             self.confirmationsView.alpha = 0
             self.feesViewHeight.constant = 0
             self.feesView.alpha = 0
+            
+            if transactionValue < 0 {
+                // Outbound Lightning payment.
+                self.feesViewHeight.constant = 40
+                self.feesView.alpha = 1
+                self.feesAmount.text = "\(tappedTransaction.fee) sats"
+            }
             
             if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
                 self.descriptionLabel.text = self.tappedTransaction.lnDescription
@@ -184,13 +206,13 @@ class TransactionViewController: UIViewController {
         } else {
             // Onchain transaction
             
-            self.typeLabel.text = "Regular"
+            self.typeLabel.text = Language.getWord(withID: "regular")
             self.boltImage.alpha = 0
             self.confirmationsViewHeight.constant = 40
             self.confirmationsView.alpha = 1
             self.confirmationsAmount.text = "\(tappedTransaction.confirmations)"
             if tappedTransaction.confirmations < 1 {
-                self.confirmationsAmount.text = "Unconfirmed"
+                self.confirmationsAmount.text = Language.getWord(withID: "unconfirmed")
             }
             
             if tappedTransaction.received - tappedTransaction.sent < 0 {
@@ -211,6 +233,7 @@ class TransactionViewController: UIViewController {
             self.view.layoutIfNeeded()
         }
         
+        self.changeColors()
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -219,11 +242,11 @@ class TransactionViewController: UIViewController {
     
     @IBAction func noteButtonTapped(_ sender: UIButton) {
         
-        let alert = UIAlertController(title: "Add a note", message: "", preferredStyle: .alert)
+        let alert = UIAlertController(title: Language.getWord(withID: "addanote"), message: "", preferredStyle: .alert)
         alert.addTextField { (textField) in
             textField.text = "\(self.noteLabel.text ?? "")"
         }
-        alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { (save) in
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "save"), style: .default, handler: { (save) in
             
             let noteText = alert.textFields![0].text!
             if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
@@ -233,7 +256,7 @@ class TransactionViewController: UIViewController {
                 self.noteImage.alpha = 0
             }
         }))
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
     }
     
@@ -264,23 +287,79 @@ class TransactionViewController: UIViewController {
     @IBAction func idButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.id
-        let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.id, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), self.tappedTransaction.id, Language.getWord(withID: "okay"))
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lnDescription
-        let alert = UIAlertController(title: "Copied", message: self.tappedTransaction.lnDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), self.tappedTransaction.lnDescription, Language.getWord(withID: "okay"))
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["question":"lightning channel fees","answer":"This is the first transaction of your new bitcoin lightning channel.\n\nThe opening and closing of a lightning channel incur mining fees, which we cover with a one-time upfront charge of 10 000 satoshis.\n\nAll additional transactions into and out of your lightning channel are free."]
+        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannelfees"),"answer":Language.getWord(withID: "lightningchannelfees2")]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        // Card
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.bodyView.backgroundColor = Colors.getColor("whiteorblue2")
+        
+        // Date
+        self.dateView.backgroundColor = Colors.getColor("grey1orblue3")
+        self.dateLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Amount
+        self.amountTitle.textColor = Colors.getColor("blackoryellow")
+        self.amountLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Type
+        self.typeTitle.textColor = Colors.getColor("blackoryellow")
+        self.typeLabel.textColor = Colors.getColor("blackorwhite")
+        self.boltImage.tintColor = Colors.getColor("blackorwhite")
+        
+        // ID
+        self.idTitle.textColor = Colors.getColor("blackoryellow")
+        self.idLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Description
+        self.descriptionTitle.textColor = Colors.getColor("blackoryellow")
+        self.descriptionLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Fees
+        self.feesTitle.textColor = Colors.getColor("blackoryellow")
+        self.feesAmount.textColor = Colors.getColor("blackorwhite")
+        self.questionCircle.tintColor = Colors.getColor("blackorwhite")
+        
+        // Confirmations
+        self.confirmationsTitle.textColor = Colors.getColor("blackoryellow")
+        self.confirmationsAmount.textColor = Colors.getColor("blackorwhite")
+        
+        // Current value
+        self.valueNowTitle.textColor = Colors.getColor("blackoryellow")
+        self.valueNowLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Purchase value
+        self.valueThenTitle.textColor = Colors.getColor("blackoryellow")
+        self.valueThenLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Profit
+        self.profitTitle.textColor = Colors.getColor("blackoryellow")
+        if (self.profitLabel.text ?? "").contains("-") {
+            self.profitView.backgroundColor = Colors.getColor("lossbackground")
+            self.profitLabel.textColor = Colors.getColor("losstext")
+        } else {
+            self.profitView.backgroundColor = Colors.getColor("profitbackground")
+            self.profitLabel.textColor = Colors.getColor("profittext")
+        }
+        
+        // Note
+        self.noteTitle.textColor = Colors.getColor("blackoryellow")
+        self.noteLabel.textColor = Colors.getColor("blackorwhite")
+        self.noteImage.tintColor = Colors.getColor("grey2orwhite")
     }
     
 }

@@ -13,14 +13,22 @@ class Signup1ViewController: UIViewController {
     // Create or Restore wallet view. First view new users see.
     
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
+    @IBOutlet weak var topLabel: UILabel!
+    
+    // Next button
     @IBOutlet weak var buttonView: UIView!
     @IBOutlet weak var nextButton: UIButton!
+    
+    // Restore button
     @IBOutlet weak var restoreView: UIView!
     @IBOutlet weak var restoreButton: UIButton!
+    @IBOutlet weak var restoreLabel: UILabel!
+    
+    // Article
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
-    
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
@@ -31,6 +39,7 @@ class Signup1ViewController: UIViewController {
     @IBOutlet weak var createWalletLabel: UILabel!
     
     var nextTapped = false
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -52,6 +61,9 @@ class Signup1ViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        
+        self.changeColors()
+        self.setWords()
     }
     
     
@@ -91,9 +103,7 @@ class Signup1ViewController: UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -106,9 +116,7 @@ class Signup1ViewController: UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
             return
         }
         
@@ -151,6 +159,23 @@ class Signup1ViewController: UIViewController {
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
+        if CacheManager.darkModeIsOn() {
+            self.restoreLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.restoreLabel.textColor = Colors.getColor("transparentblack")
+        }
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "welcome")
+        self.topLabel.text = Language.getWord(withID: "createyourownwallet")
+        self.createWalletLabel.text = Language.getWord(withID: "createwallet")
+        self.restoreLabel.text = Language.getWord(withID: "restorewallet")
     }
     
 }

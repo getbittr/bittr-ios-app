@@ -43,51 +43,40 @@ extension CoreViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "CoreToSettings" {
-            let settingsVC = segue.destination as? SettingsViewController
-            if let actualSettingsVC = settingsVC {
-                actualSettingsVC.coreVC = self
+            if let settingsVC = segue.destination as? SettingsViewController {
+                settingsVC.coreVC = self
+                self.settingsVC = settingsVC
             }
         } else if segue.identifier == "CoreToPin" {
-            let pinVC = segue.destination as? PinViewController
-            if let actualPinVC = pinVC {
-                actualPinVC.coreVC = self
+            if let pinVC = segue.destination as? PinViewController {
+                pinVC.coreVC = self
             }
         } else if segue.identifier == "CoreToHome" {
-            let homeVC = segue.destination as? HomeViewController
-            if let actualHomeVC = homeVC {
-                actualHomeVC.coreVC = self
-                self.homeVC = actualHomeVC
+            if let homeVC = segue.destination as? HomeViewController {
+                homeVC.coreVC = self
+                self.homeVC = homeVC
             }
         } else if segue.identifier == "CoreToInfo" {
-            let infoVC = segue.destination as? InfoViewController
-            if let actualInfoVC = infoVC {
-                actualInfoVC.coreVC = self
+            if let infoVC = segue.destination as? InfoViewController {
+                infoVC.coreVC = self
+                self.infoVC = infoVC
             }
         } else if segue.identifier == "CoreToQuestion" {
-            let questionVC = segue.destination as? QuestionViewController
-            if let actualQuestionVC = questionVC {
-                actualQuestionVC.headerText = self.tappedQuestion
-                actualQuestionVC.answerText = self.tappedAnswer
-                if let actualBittrChannel = self.bittrChannel {
-                    actualQuestionVC.bittrChannel = actualBittrChannel
-                }
+            if let questionVC = segue.destination as? QuestionViewController {
+                questionVC.headerText = self.tappedQuestion
+                questionVC.answerText = self.tappedAnswer
+                questionVC.coreVC = self
                 if let actualTappedType = self.tappedType {
-                    actualQuestionVC.questionType = actualTappedType
+                    questionVC.questionType = actualTappedType
                 }
             }
         } else if segue.identifier == "CoreToLightning" {
-            let lightningPaymentVC = segue.destination as? LightningPaymentViewController
-            if let actualPaymentVC = lightningPaymentVC {
+            if let lightningPaymentVC = segue.destination as? LightningPaymentViewController {
                 if let actualTransaction = self.receivedBittrTransaction {
-                    actualPaymentVC.receivedTransaction = actualTransaction
-                    actualPaymentVC.eurValue = self.eurValue
-                    actualPaymentVC.chfValue = self.chfValue
+                    lightningPaymentVC.receivedTransaction = actualTransaction
+                    lightningPaymentVC.eurValue = self.eurValue
+                    lightningPaymentVC.chfValue = self.chfValue
                 }
-            }
-        } else if segue.identifier == "CoreToSignup" {
-            let signupVC = segue.destination as? SignupViewController
-            if let actualSignupVC = signupVC {
-                actualSignupVC.coreVC = self
             }
         }
     }

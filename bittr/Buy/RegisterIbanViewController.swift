@@ -12,11 +12,12 @@ class RegisterIbanViewController: UIViewController {
     @IBOutlet weak var downButton: UIButton!
     var currentPage = 0
     
-    @IBOutlet weak var transfer1ContainerViewLeading: NSLayoutConstraint!
+    @IBOutlet weak var signup7ContainerViewLeading: NSLayoutConstraint!
     
     var currentClientID = ""
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,6 +26,8 @@ class RegisterIbanViewController: UIViewController {
         
         NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(downButtonTapped), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func nextPageTapped(notification:NSNotification) {
@@ -36,6 +39,9 @@ class RegisterIbanViewController: UIViewController {
                 var leadingConstant:CGFloat = 0
                 
                 switch pageNumber {
+                case "6":
+                    leadingConstant = -1 * viewWidth
+                    currentPage = 8
                 case "7":
                     leadingConstant = -1 * viewWidth
                     currentPage = 9
@@ -51,7 +57,7 @@ class RegisterIbanViewController: UIViewController {
                 
                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                     
-                    self.transfer1ContainerViewLeading.constant = leadingConstant
+                    self.signup7ContainerViewLeading.constant = leadingConstant
                     self.view.layoutIfNeeded()
                 }
             }
@@ -65,7 +71,13 @@ class RegisterIbanViewController: UIViewController {
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
-        if segue.identifier == "RegisterToTransfer1" {
+        if segue.identifier == "RegisterToSignup7" {
+            
+            if let signup7VC = segue.destination as? Signup7ViewController {
+                signup7VC.embeddedInBuyVC = true
+                signup7VC.coreVC = self.coreVC
+            }
+        } else if segue.identifier == "RegisterToTransfer1" {
             
             let transfer1VC = segue.destination as? Transfer1ViewController
             if let actualTransfer1VC = transfer1VC {
@@ -73,6 +85,7 @@ class RegisterIbanViewController: UIViewController {
                 actualTransfer1VC.currentClientID = self.currentClientID
                 actualTransfer1VC.articles = self.articles
                 actualTransfer1VC.allImages = self.allImages
+                actualTransfer1VC.coreVC = self.coreVC
             }
         } else if segue.identifier == "RegisterToTransfer2" {
             
@@ -81,6 +94,7 @@ class RegisterIbanViewController: UIViewController {
                 
                 actualTransfer2VC.articles = self.articles
                 actualTransfer2VC.allImages = self.allImages
+                actualTransfer2VC.coreVC = self.coreVC
             }
         } else if segue.identifier == "RegisterToTransfer3" {
             
@@ -89,8 +103,14 @@ class RegisterIbanViewController: UIViewController {
                 
                 actualTransfer3VC.articles = self.articles
                 actualTransfer3VC.allImages = self.allImages
+                actualTransfer3VC.coreVC = self.coreVC
             }
         }
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
 }

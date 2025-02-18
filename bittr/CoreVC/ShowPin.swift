@@ -10,17 +10,21 @@ import UIKit
 extension CoreViewController {
 
     func correctPin(spinner:UIActivityIndicatorView) {
+        // The correct pin has been entered in the PinVC and the wallet is ready to be synced and shown.
         
-        // Step 2.
-        
-        if let actualHomeVC = self.homeVC {
-            actualHomeVC.setClient()
-        }
+        // Load client details.
+        self.setClient()
         
         // Start wallet.
-        startLightning()
+        self.startLightning()
         
         // Lower pin view.
+        self.lowerPinView(spinner: spinner)
+    }
+    
+    
+    func lowerPinView(spinner:UIActivityIndicatorView) {
+        
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.pinBottom])
             self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
@@ -31,15 +35,31 @@ extension CoreViewController {
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
             self.didBecomeVisible = true
-            
             if self.needsToHandleNotification == true {
                 // A notification will be handled after syncing the wallet.
-                self.pendingLabel.text = "syncing wallet"
+                self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
                 self.pendingSpinner.startAnimating()
                 self.pendingView.alpha = 1
                 self.blackSignupBackground.alpha = 0.2
             }
         }
+    }
+    
+    
+    func setClient() {
+        
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        
+        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
+        if let actualDeviceDict = deviceDict {
+            // Client exists in cache.
+            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            self.client = clients[0]
+        }
+        
     }
     
     

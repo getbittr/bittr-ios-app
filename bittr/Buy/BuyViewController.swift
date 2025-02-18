@@ -15,18 +15,28 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var headerView2: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
+    
+    // Add another
     @IBOutlet weak var addAnotherView: UIView!
     @IBOutlet weak var addAnotherButton: UIButton!
     @IBOutlet weak var emptyLabel: UILabel!
+    @IBOutlet weak var subtitleLabel: UILabel!
+    @IBOutlet weak var addAnotherLabel: UILabel!
+    @IBOutlet weak var addAnotherViewTop: NSLayoutConstraint!
+    
+    // Continue view
+    @IBOutlet weak var continueView: UIView!
+    @IBOutlet weak var continueButton: UIButton!
     
     // Client details
-    var client = Client()
     var allIbanEntities = [IbanEntity]()
     
     // Articles
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,6 +44,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Corner radii and button titles.
         headerView2.layer.cornerRadius = 13
         addAnotherView.layer.cornerRadius = 13
+        continueView.layer.cornerRadius = 13
+        continueButton.setTitle("", for: .normal)
         downButton.setTitle("", for: .normal)
         addAnotherButton.setTitle("", for: .normal)
         
@@ -43,7 +55,11 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Button border.
         let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = UIColor.black.cgColor
+        if CacheManager.darkModeIsOn() {
+            viewBorder.strokeColor = UIColor.white.cgColor
+        } else {
+            viewBorder.strokeColor = UIColor.black.cgColor
+        }
         viewBorder.frame = addAnotherView.bounds
         viewBorder.fillColor = nil
         viewBorder.path = UIBezierPath(roundedRect: addAnotherView.bounds, cornerRadius: 13).cgPath
@@ -52,7 +68,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "updatebuypage"), object: nil)
+        
+        // Set colors and language.
+        self.changeColors()
+        self.setWords()
         
         // Parse IBAN entities.
         self.parseIbanEntities()
@@ -62,7 +81,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         allIbanEntities = [IbanEntity]()
         
-        for eachIbanEntity in self.client.ibanEntities {
+        if self.coreVC == nil {return}
+        for eachIbanEntity in self.coreVC!.client.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
                 self.allIbanEntities += [eachIbanEntity]
             }
@@ -82,7 +102,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if let actualDeviceDict = deviceDict {
             // Client exists in cache.
             let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            self.client = clients[0]
+            self.coreVC?.client = clients[0]
             self.parseIbanEntities()
         }
     }
@@ -134,9 +154,21 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         if self.allIbanEntities.count > 0 {
             self.emptyLabel.alpha = 0
+            self.continueView.alpha = 0
+            self.addAnotherView.alpha = 1
+            self.addAnotherButton.alpha = 1
+            self.addAnotherViewTop.constant = 40
+            self.view.layoutIfNeeded()
+            
             return self.allIbanEntities.count
         } else {
             self.emptyLabel.alpha = 1
+            self.continueView.alpha = 1
+            self.addAnotherView.alpha = 0
+            self.addAnotherButton.alpha = 0
+            self.addAnotherViewTop.constant = -100
+            self.view.layoutIfNeeded()
+            
             return 0
         }
     }
@@ -146,6 +178,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         return CGSize(width: 335, height: 285)
     }
     
+    @IBAction func continueButtonTapped(_ sender: UIButton) {
+        self.performSegue(withIdentifier: "GoalToRegister", sender: self)
+    }
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "GoalToRegister" {
@@ -153,7 +189,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             let registerVC = segue.destination as? RegisterIbanViewController
             if let actualRegisterVC = registerVC {
                 
-                actualRegisterVC.currentClientID = self.client.id
+                actualRegisterVC.coreVC = self.coreVC
+                actualRegisterVC.currentClientID = self.coreVC!.client.id
                 if let actualArticles = self.articles {
                     actualRegisterVC.articles = actualArticles
                 }
@@ -167,8 +204,21 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func copyItem(_ sender: UIButton) {
         
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        let alert = UIAlertController(title: "Copied", message: sender.accessibilityIdentifier, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(Language.getWord(withID: "copied"), sender.accessibilityIdentifier ?? "", Language.getWord(withID: "okay"))
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
+        self.addAnotherLabel.textColor = Colors.getColor("blackorwhite")
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "buybitcoin")
+        self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
+        self.emptyLabel.text = Language.getWord(withID: "buyempty")
+        self.addAnotherLabel.text = "+  " + Language.getWord(withID: "addanother")
     }
 }

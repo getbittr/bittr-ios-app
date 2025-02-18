@@ -14,9 +14,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     // Restore an existing wallet.
     
     // Views and buttons.
+    @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var mnemonicView: UIView!
     @IBOutlet weak var restoreView: UIView!
     @IBOutlet weak var restoreButton: UIButton!
+    @IBOutlet weak var cancelLabel: UILabel!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
@@ -83,9 +85,23 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         mnemonic11.delegate = self
         mnemonic12.delegate = self
         
+        self.setTextFields(theseFields: [mnemonic1, mnemonic2, mnemonic3, mnemonic4, mnemonic5, mnemonic6, mnemonic7, mnemonic8, mnemonic9, mnemonic10, mnemonic11, mnemonic12])
+        
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        
+        self.changeColors()
+        self.setWords()
+    }
+    
+    func setTextFields(theseFields:[UITextField]) {
+        for eachField in theseFields {
+            eachField.attributedPlaceholder = NSAttributedString(
+                string: Language.getWord(withID: "enterword"),
+                attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
+            )
+        }
     }
     
     @objc func setSignupArticles(notification:NSNotification) {
@@ -215,6 +231,25 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+    }
+    
+    func changeColors() {
+        
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.cancelLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.cancelLabel.textColor = Colors.getColor("transparentblack")
+        }
+
+    }
+    
+    func setWords() {
+        
+        self.topLabel.text = Language.getWord(withID: "enterrecoveryphrase")
+        self.restoreButtonText.text = Language.getWord(withID: "restorewallet")
+        self.cancelLabel.text = Language.getWord(withID: "cancel")
     }
     
 }

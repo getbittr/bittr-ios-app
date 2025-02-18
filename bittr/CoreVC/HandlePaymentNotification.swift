@@ -30,9 +30,9 @@ extension CoreViewController {
                         // App was open when notification came in.
                         
                         self.varSpecialData = specialData
-                        let alert = UIAlertController(title: "Bittr payout", message: "You're receiving a new Lightning payment! Tap Okay to receive it now and continue what you're doing after.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
-                            self.pendingLabel.text = "receiving payment"
+                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
+                            self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                             self.pendingSpinner.startAnimating()
                             self.pendingView.alpha = 1
                             self.blackSignupBackground.alpha = 0.2
@@ -43,7 +43,7 @@ extension CoreViewController {
                         self.present(alert, animated: true)
                     } else {
                         // App was closed when notification came in and was subsequently opened.
-                        self.pendingLabel.text = "receiving payment"
+                        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                         self.pendingSpinner.startAnimating()
                         self.pendingView.alpha = 1
                         self.blackSignupBackground.alpha = 0.2
@@ -58,9 +58,7 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    let alert = UIAlertController(title: "Bittr payout", message: "Please sign in and wait a moment to receive your Lightning payment.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                    self.present(alert, animated: true)
+                    self.showAlert(Language.getWord(withID: "bittrpayout"), Language.getWord(withID: "pleasesignin"), Language.getWord(withID: "okay"))
                 }
             } else {
                 // No special key, so this is a normal notification.
@@ -97,9 +95,9 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
-                        alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
                         }))
                         self.present(alert, animated: true)
@@ -109,9 +107,9 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        let alert = UIAlertController(title: "Bittr payout", message: "We couldn't connect to Bittr. Please try again.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
-                        alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                             self.reconnectToPeer()
                         }))
                         self.present(alert, animated: true)
@@ -168,15 +166,15 @@ extension CoreViewController {
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
-                            let alert = UIAlertController(title: "Bittr payout", message: "\(error.localizedDescription)", preferredStyle: .alert)
+                            let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", preferredStyle: .alert)
                             if error.localizedDescription.contains("try again") {
-                                alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: {_ in
+                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
                                     if let actualSpecialData = self.varSpecialData {
                                         self.facilitateNotificationPayout(specialData: actualSpecialData)
                                     }
                                 }))
                             }
-                            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
                             self.present(alert, animated: true)
                         }
                     }
@@ -187,31 +185,10 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            let alert = UIAlertController(title: "Bittr payout", message: "The notification payload did not contain the data needed to complete your payout.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Close", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "bittrpayout"), Language.getWord(withID: "bittrpayoutfail"), Language.getWord(withID: "close"))
         }
     }
     
-    func getInvoiceHash(invoiceString:String) -> String? {
-        
-        let result = Bolt11Invoice.fromStr(s: invoiceString)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return nil
-            }
-        } else if let error = result.getError() {
-            print("Failed to parse invoice: \(error)")
-            return nil
-        } else {
-            return nil
-        }
-    }
     
     func reconnectToPeer() {
         
@@ -304,7 +281,7 @@ extension CoreViewController {
                     }
                     
                     let paymentHash = "\(event)".split(separator: ",")[1].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " paymentHash: ", with: "")
-                    print("Did extract payment hash: \(paymentHash).")
+                    print("Did extract payment hash. \(paymentHash)")
                     
                     if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
@@ -333,7 +310,7 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         
                         CacheManager.didHandleEvent(event: "\(event)")
-                        let notificationDict:[String: Any] = ["question":"closed lightning channel","answer":"We've been notified that your lightning channel has been closed.\n\nAny funds that were in this channel will be deposited into your bitcoin wallet.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+                        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "closedlightningchannel"),"answer":Language.getWord(withID: "closedlightningchannel2")]
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
                     }
                 } else if "\(event)".contains("channelPending") {
@@ -359,28 +336,11 @@ extension CoreViewController {
                                 if bittrApiTransactions.count == 1 {
                                     for eachTransaction in bittrApiTransactions {
                                         if eachTransaction.txId == fundingTxo {
-                                            
-                                            // This is the funding Txo.
-                                            let formatter = DateFormatter()
-                                            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
-                                            let transactionDate = formatter.date(from:eachTransaction.datetime)!
-                                            let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
-                                            
-                                            let thisTransaction = Transaction()
-                                            thisTransaction.isBittr = true
-                                            thisTransaction.isLightning = true
-                                            thisTransaction.purchaseAmount = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.purchaseAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!))
-                                            thisTransaction.currency = eachTransaction.currency
-                                            thisTransaction.id = eachTransaction.txId
-                                            thisTransaction.sent = 0
-                                            thisTransaction.received = Int(CGFloat(truncating: NumberFormatter().number(from: (eachTransaction.bitcoinAmount).replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!))!)*100000000)
-                                            thisTransaction.timestamp = transactionTimestamp
-                                            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: eachTransaction.txId)
-                                            thisTransaction.isFundingTransaction = true
-                                            
-                                            self.receivedBittrTransaction = thisTransaction
-                                            
                                             DispatchQueue.main.async {
+                                                
+                                                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                                
+                                                self.receivedBittrTransaction = thisTransaction
                                                 self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
                                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                                             }
@@ -412,11 +372,10 @@ extension CoreViewController {
             actualHomeVC.homeTableView.reloadData()
             
             // Update HomeVC balance.
-            actualHomeVC.btclnBalance += CGFloat(newTransaction.received)
+            actualHomeVC.coreVC?.lightningBalanceInSats += newTransaction.received
             actualHomeVC.setTotalSats(updateTableAfterConversion: false)
             
             // Add payment to channel details.
-            actualHomeVC.bittrChannel?.received += newTransaction.received
             actualHomeVC.coreVC?.bittrChannel?.received += newTransaction.received
         }
     }

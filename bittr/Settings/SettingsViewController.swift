@@ -12,18 +12,26 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     // UI elements
     @IBOutlet weak var settingsTableView: UITableView!
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var appVersion: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
     var tappedUrl:String?
-    let settings = [["label":"Get support", "icon":"envelope", "id":"support"],["label":"Restore wallet", "icon":"banknote", "id":"restore"],["label":"Privacy Policy", "icon":"checkmark.shield", "id":"privacy"],["label":"Terms & Conditions", "icon":"book.pages", "id":"terms"],["label":"Currency", "icon":"dollarsign.circle", "id":"currency"],["label":"Wallet and balance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"Device details", "icon":"ipad.and.iphone", "id":"device"]]
+    let settings = [["label":"getsupport", "icon":"envelope", "id":"support"],["label":"restorewallet", "icon":"banknote", "id":"restore"],["label":"privacypolicy", "icon":"checkmark.shield", "id":"privacy"],["label":"termsandconditions", "icon":"book.pages", "id":"terms"],["label":"currency", "icon":"dollarsign.circle", "id":"currency"],["label":"walletandbalance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]]
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.setWords()
+        
         // Table view
         settingsTableView.delegate = self
         settingsTableView.dataSource = self
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.changeColors()
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -42,7 +50,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             actualCell.layer.zPosition = CGFloat(indexPath.row)
             actualCell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
             actualCell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
-            actualCell.settingsCardLabel.text = self.settings[indexPath.row]["label"] ?? "Unnamed"
+            actualCell.settingsCardLabel.text = Language.getWord(withID: self.settings[indexPath.row]["label"] ?? "Unnamed")
             actualCell.settingsButton.accessibilityIdentifier = self.settings[indexPath.row]["id"] ?? ""
             
             if self.settings[indexPath.row]["id"] == "currency" {
@@ -73,13 +81,13 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
         } else if sender.accessibilityIdentifier == "restore" {
             
-            let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+            let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
                 
-                let secondAlert = UIAlertController(title: "Restore wallet", message: "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.", preferredStyle: .alert)
-                secondAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+                let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
+                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
                     
                     if let actualCoreVC = self.coreVC {
                         actualCoreVC.resetApp(nodeIsRunning: true)
@@ -102,7 +110,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 let notificationDict:[String: Any] = ["currency":"CHF"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
             }
-            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+            let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
             actionSheet.addAction(eurOption)
             actionSheet.addAction(chfOption)
             actionSheet.addAction(cancelAction)
@@ -111,9 +119,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             if let actualCoreVC = self.coreVC {
                 if actualCoreVC.walletHasSynced == false {
                     // Wallet isn't ready.
-                    let alert = UIAlertController(title: "Syncing wallet", message: "Please wait a moment while we're syncing your wallet.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                    self.present(alert, animated: true)
+                    self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
                     return
                 }
             }
@@ -143,6 +149,11 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
             }
         }
+    }
+    
+    @objc func changeColors() {
+        
+        self.appVersion.textColor = Colors.getColor("appversion")
     }
     
 }

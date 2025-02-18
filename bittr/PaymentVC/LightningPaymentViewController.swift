@@ -12,13 +12,27 @@ class LightningPaymentViewController: UIViewController {
 
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     @IBOutlet weak var bodyView: UIView!
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var dateLabel: UILabel!
+    
+    // Amount
+    @IBOutlet weak var amountLeftLabel: UILabel!
     @IBOutlet weak var amountLabel: UILabel!
+    
+    // Type
+    @IBOutlet weak var typeLeftLabel: UILabel!
+    @IBOutlet weak var typeLabel: UILabel!
+    @IBOutlet weak var lightningBolt: UIImageView!
+    
+    // Description
     @IBOutlet weak var descriptionLabel: UILabel!
     @IBOutlet weak var descriptionButton: UIButton!
+    
+    // Now
+    @IBOutlet weak var nowLeftLabel: UILabel!
     @IBOutlet weak var nowLabel: UILabel!
     
     var receivedTransaction:Transaction?
@@ -38,6 +52,9 @@ class LightningPaymentViewController: UIViewController {
         bodyView.layer.cornerRadius = 13
         dateView.layer.cornerRadius = 7
         
+        self.changeColors()
+        self.setWords()
+        
         if let actualTransaction = self.receivedTransaction {
             
             let transactionDate = Date(timeIntervalSince1970: Double(actualTransaction.timestamp))
@@ -47,9 +64,6 @@ class LightningPaymentViewController: UIViewController {
             let transactionDateString = dateFormatter.string(from: transactionDate)
             
             dateLabel.text = transactionDateString
-            
-            let numberFormatter = NumberFormatter()
-            numberFormatter.numberStyle = .decimal
             
             // Set sats.
             var plusSymbol = "+"
@@ -74,13 +88,13 @@ class LightningPaymentViewController: UIViewController {
                 
                 self.descriptionLabel.text = actualTransaction.lnDescription
                 if actualTransaction.lnDescription == "" {
-                    self.descriptionLabel.text = "Channel funding transaction"
+                    self.descriptionLabel.text = Language.getWord(withID: "fundingtx")
                 }
             } else {
                 
                 self.descriptionLabel.text = actualTransaction.id
-                self.explanationLabel.text = "You've received a new payment into your lightning channel!"
-                self.idLabel.text = "ID"
+                self.explanationLabel.text = Language.getWord(withID: "newpayment")
+                self.idLabel.text = Language.getWord(withID: "id")
                 self.piggyImageHeight.constant = 0
                 self.view.layoutIfNeeded()
             }
@@ -106,9 +120,7 @@ class LightningPaymentViewController: UIViewController {
         if let actualTransaction = self.receivedTransaction {
             
             UIPasteboard.general.string = actualTransaction.lnDescription
-            let alert = UIAlertController(title: "Copied", message: actualTransaction.lnDescription, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(Language.getWord(withID: "copied"), actualTransaction.lnDescription, Language.getWord(withID: "okay"))
         }
     }
     
@@ -134,6 +146,44 @@ class LightningPaymentViewController: UIViewController {
         }
         
         return balanceValue
+    }
+    
+    func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        
+        if CacheManager.darkModeIsOn() {
+            self.bodyView.backgroundColor = Colors.getColor("whiteorblue2")
+        }
+        
+        self.explanationLabel.textColor = Colors.getColor("blackorwhite")
+        
+        self.dateView.backgroundColor = Colors.getColor("grey1orblue3")
+        self.dateLabel.textColor = Colors.getColor("blackorwhite")
+        
+        self.amountLeftLabel.textColor = Colors.getColor("blackorwhite")
+        self.amountLabel.textColor = Colors.getColor("blackorwhite")
+        
+        self.typeLeftLabel.textColor = Colors.getColor("blackorwhite")
+        self.typeLabel.textColor = Colors.getColor("blackorwhite")
+        self.lightningBolt.tintColor = Colors.getColor("blackorwhite")
+        
+        self.idLabel.textColor = Colors.getColor("blackorwhite")
+        self.descriptionLabel.textColor = Colors.getColor("blackorwhite")
+        
+        self.nowLabel.textColor = Colors.getColor("blackorwhite")
+        self.nowLeftLabel.textColor = Colors.getColor("blackorwhite")
+    }
+    
+    func setWords() {
+        
+        self.headerLabel.text = Language.getWord(withID: "success2")
+        self.explanationLabel.text = Language.getWord(withID: "goodjob")
+        self.amountLeftLabel.text = Language.getWord(withID: "amount")
+        self.typeLeftLabel.text = Language.getWord(withID: "type")
+        self.idLabel.text = Language.getWord(withID: "description")
+        self.nowLeftLabel.text = Language.getWord(withID: "currentvalue")
+        self.typeLabel.text = Language.getWord(withID: "instant")
     }
     
 }

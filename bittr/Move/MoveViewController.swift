@@ -12,13 +12,17 @@ class MoveViewController: UIViewController {
     // Elements
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var channelButton: UIButton!
+    @IBOutlet weak var subtitleLabel: UILabel!
     
     // Send and Receive buttons
     @IBOutlet weak var leftCard: UIView! // Send Button View
     @IBOutlet weak var rightCard: UIView! // Receive Button View
     @IBOutlet weak var receiveButton: UIButton!
     @IBOutlet weak var sendButton: UIButton!
+    @IBOutlet weak var sendLabel: UILabel!
+    @IBOutlet weak var receiveLabel: UILabel!
     
     // Values
     var fetchedBtcBalance:CGFloat = 0.0
@@ -39,6 +43,16 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var conversionTotal: UILabel!
     @IBOutlet weak var conversionRegular: UILabel!
     @IBOutlet weak var conversionInstant: UILabel!
+    @IBOutlet weak var questionMark: UIImageView!
+    
+    // Swap view
+    @IBOutlet weak var swapView: UIView!
+    @IBOutlet weak var swapButton: UIButton!
+    @IBOutlet weak var swapIcon: UIImageView!
+    
+    // Labels
+    @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelInstant: UILabel!
     
     // Home View Controller
     var homeVC:HomeViewController?
@@ -51,19 +65,27 @@ class MoveViewController: UIViewController {
         receiveButton.setTitle("", for: .normal)
         sendButton.setTitle("", for: .normal)
         channelButton.setTitle("", for: .normal)
+        self.swapButton.setTitle("", for: .normal)
         headerView.layer.cornerRadius = 13
-        leftCard.layer.cornerRadius = 13
-        rightCard.layer.cornerRadius = 13
+        leftCard.layer.cornerRadius = 8
+        rightCard.layer.cornerRadius = 8
         viewTotal.layer.cornerRadius = 13
         viewRegular.layer.cornerRadius = 13
         viewInstant.layer.cornerRadius = 13
         yellowCard.layer.cornerRadius = 20
+        self.swapView.layer.cornerRadius = self.swapView.bounds.height/2
         
         // Yellow card shadow.
         yellowCard.layer.shadowColor = UIColor.black.cgColor
         yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
         yellowCard.layer.shadowRadius = 10.0
         yellowCard.layer.shadowOpacity = 0.1
+        
+        // Swap view shadow
+        self.swapView.layer.shadowColor = UIColor.black.cgColor
+        self.swapView.layer.shadowOffset = CGSize(width: 0, height: 5)
+        self.swapView.layer.shadowRadius = 8
+        self.swapView.layer.shadowOpacity = 0.1
         
         // Calculate balance values.
         let correctBtcBalance:CGFloat = fetchedBtcBalance * 0.00000001
@@ -86,6 +108,7 @@ class MoveViewController: UIViewController {
         conversionRegular.text = currencySymbol + " " + btcBalanceValue
         conversionInstant.text = currencySymbol + " " + btclnBalanceValue
         
+        self.changeColors()
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -126,6 +149,11 @@ class MoveViewController: UIViewController {
             let receiveVC = segue.destination as? ReceiveViewController
             if let actualReceiveVC = receiveVC {
                 actualReceiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
+                actualReceiveVC.homeVC = self.homeVC
+            }
+        } else if segue.identifier == "MoveToSwap" {
+            if let swapVC = segue.destination as? SwapViewController {
+                swapVC.homeVC = self.homeVC
             }
         }
     }
@@ -158,13 +186,17 @@ class MoveViewController: UIViewController {
         
         if self.satsInstant.text?.replacingOccurrences(of: "sats", with: "").replacingOccurrences(of: " ", with: "") == "0" {
             // There is no Lightning channel.
-            let notificationDict:[String: Any] = ["question":"lightning channels","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information."]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannels"),"answer":Language.getWord(withID: "lightningexplanation1")]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         } else {
             // There's a Lightning channel.
-            let notificationDict:[String: Any] = ["question":"lightning channel","answer":"To send and receive Bitcoin Lightning payments, you need to have at least one Lightning channel with anyone.\n\nTo open a channel with Bittr, buy bitcoin worth up to 100 Swiss Francs or Euros. Check your wallet's Buy section or getbittr.com for all information.","type":"lightningexplanation"]
+            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation1"),"type":"lightningexplanation"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
         }
+    }
+    
+    @IBAction func swapButtonTapped(_ sender: UIButton) {
+        self.performSegue(withIdentifier: "MoveToSwap", sender: self)
     }
     
 }

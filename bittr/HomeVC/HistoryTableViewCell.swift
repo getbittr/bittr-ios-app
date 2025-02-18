@@ -35,6 +35,10 @@ class HistoryTableViewCell: UITableViewCell {
         cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
         cardView.layer.shadowRadius = 12.0
         cardView.layer.shadowOpacity = 0.05
+        
+        self.changeColors()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
     }
     
     func updateBoltTrailing(position:String) {
@@ -52,6 +56,37 @@ class HistoryTableViewCell: UITableViewCell {
             NSLayoutConstraint.deactivate([self.boltImageTrailing])
             self.boltImageTrailing = NSLayoutConstraint(item: self.boltImage, attribute: .trailing, relatedBy: .equal, toItem: self.cardView, attribute: .trailing, multiplier: 1, constant: -15)
             NSLayoutConstraint.activate([self.boltImageTrailing])
+        }
+    }
+    
+    @objc func changeColors() {
+        
+        cardView.backgroundColor = Colors.getColor("whiteorblue2")
+        satsLabel.textColor = Colors.getColor("blackorwhite")
+        eurosLabel.textColor = Colors.getColor("blackorwhite")
+        dayLabel.textColor = Colors.getColor("blackorwhite")
+        dateView.backgroundColor = Colors.getColor("grey1orblue3")
+        
+        if let actualText = gainLabel.text {
+            if actualText.contains("-") {
+                // Loss
+                gainView.backgroundColor = Colors.getColor("lossbackground")
+                arrowImage.tintColor = Colors.getColor("losstext")
+                gainLabel.textColor = Colors.getColor("losstext")
+            } else {
+                // Profit
+                gainView.backgroundColor = Colors.getColor("profitbackground")
+                arrowImage.tintColor = Colors.getColor("profittext")
+                gainLabel.textColor = Colors.getColor("profittext")
+            }
+        }
+        
+        if CacheManager.darkModeIsOn() {
+            // Dark mode is on.
+            bittrImage.image = UIImage(named: "logodarkmode32")
+        } else {
+            // Dark mode is off.
+            bittrImage.image = UIImage(named: "logoorange32")
         }
     }
 

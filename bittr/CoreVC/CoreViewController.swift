@@ -33,6 +33,9 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var coverView: UIView!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var yellowcurve: UIImageView!
+    @IBOutlet weak var lowerTopBar: UIView!
+    @IBOutlet weak var lowerYellowcurve: UIImageView!
+    @IBOutlet weak var bittrText: UIImageView!
     
     // Container view and constraints for HomeVC
     @IBOutlet weak var homeContainerView: UIView!
@@ -50,6 +53,9 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var leftWhite: UIView!
     @IBOutlet weak var middleWhite: UIView!
     @IBOutlet weak var rightWhite: UIView!
+    @IBOutlet weak var leftImageUnselected: UIImageView!
+    @IBOutlet weak var middleImageUnselected: UIImageView!
+    @IBOutlet weak var rightImageUnselected: UIImageView!
     
     // Container views for PinVC and SignupVC
     @IBOutlet weak var pinContainerView: UIView!
@@ -72,8 +78,15 @@ class CoreViewController: UIViewController {
     var varSpecialData:[String: Any]?
     var receivedBittrTransaction:Transaction?
     
-    // Connection to HomeVC
+    // Connection to VCs
     var homeVC:HomeViewController?
+    var infoVC:InfoViewController?
+    var settingsVC:SettingsViewController?
+    var signupVC:SignupViewController?
+    
+    // Articles
+    var allArticles:[String:Article]?
+    var allImages:[String:Data]?
     
     // Elements for QuestionVC
     var tappedQuestion = ""
@@ -84,8 +97,17 @@ class CoreViewController: UIViewController {
     var didStartNode = false
     var walletHasSynced = false
     var syncStatus = "startnode"
+    @IBOutlet weak var statusConversion: UILabel!
+    @IBOutlet weak var statusLightning: UILabel!
+    @IBOutlet weak var statusBlockchain: UILabel!
+    @IBOutlet weak var statusSyncing: UILabel!
+    @IBOutlet weak var statusFinal: UILabel!
     
-    // Conversion rates
+    // Wallet details.
+    var currentHeight:Int?
+    var lightningChannels:[ChannelDetails]?
+    var lightningBalanceInSats:Int = 0
+    var onchainBalanceInSats:Int = 0
     var eurValue:CGFloat = 0.0
     var chfValue:CGFloat = 0.0
     
@@ -129,26 +151,33 @@ class CoreViewController: UIViewController {
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(startLightning), name: NSNotification.Name(rawValue: "startlightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.setWords()
         
         // Determine whether to show pin view or signup view.
-        if let actualPin = CacheManager.getPin() {
+        if CacheManager.getPin() != nil {
             // Wallet exists. Launch pin.
-            signupAlpha = 0
-            blackSignupAlpha = 0
+            self.signupAlpha = 0
+            self.blackSignupAlpha = 0
+            // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
+            
         } else {
-            // No wallet exists yet. Go through signup.
+            // No wallet exists yet. Load SignupVC ahead of intro animation completion.
+            
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
             let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
             self.addChild(newChild)
             newChild.view.frame.size = self.signupContainerView.frame.size
             self.signupContainerView.addSubview(newChild.view)
+            (newChild as! SignupViewController).coreVC = self
             newChild.didMove(toParent: self)
         }
     }
@@ -157,6 +186,46 @@ class CoreViewController: UIViewController {
         self.blackSignupBackground.alpha = 0
         self.statusView.alpha = 0
         self.blackSignupButton.alpha = 0
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("grey3orblue1")
+        self.leftWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        self.middleWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        self.rightWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        
+        self.lowerTopBar.backgroundColor = Colors.getColor("yelloworblue3")
+        self.topBar.backgroundColor = Colors.getColor("transparentyellow")
+        
+        if CacheManager.darkModeIsOn() {
+            // Dark mode is on.
+            self.leftImageUnselected.image = UIImage(named: "buttonpigwhite")
+            self.middleImageUnselected.image = UIImage(named: "buttonmagazinewhite")
+            self.rightImageUnselected.image = UIImage(named: "buttonsettingswhite")
+            self.yellowcurve.image = UIImage(named: "yellowcurvedark")
+            self.lowerYellowcurve.image = UIImage(named: "yellowcurvedark")
+            self.bittrText.image = UIImage(named: "bittrtextwhite")
+            self.finalLogo.image = UIImage(named: "logodarkmode80")
+        } else {
+            // Dark mode is off.
+            self.leftImageUnselected.image = UIImage(named: "buttonpigblack")
+            self.middleImageUnselected.image = UIImage(named: "buttonmagazineblack")
+            self.rightImageUnselected.image = UIImage(named: "buttonsettingsblack")
+            self.lowerYellowcurve.image = UIImage(named: "yellowcurve")
+            self.yellowcurve.image = UIImage(named: "yellowcurve")
+            self.bittrText.image = UIImage(named: "bittrtext")
+            self.finalLogo.image = UIImage(named: "logo80")
+        }
+    }
+    
+    @objc func setWords() {
+        
+        self.statusConversion.text = Language.getWord(withID: "fetchconversionrates")
+        self.statusLightning.text = Language.getWord(withID: "startlightningnode")
+        self.statusBlockchain.text = Language.getWord(withID: "initiatewallet")
+        self.statusSyncing.text = Language.getWord(withID: "syncwallet")
+        self.statusFinal.text = Language.getWord(withID: "finalcalculations")
     }
     
 }

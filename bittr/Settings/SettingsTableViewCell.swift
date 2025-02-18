@@ -27,6 +27,9 @@ class SettingsTableViewCell: UITableViewCell {
         settingsButton.setTitle("", for: .normal)
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.changeColors()
     }
     
     @objc func changeCurrency(notification:NSNotification) {
@@ -38,6 +41,13 @@ class SettingsTableViewCell: UITableViewCell {
                 }
             }
         }
+    }
+    
+    @objc func changeColors() {
+        
+        self.settingsCardLabel.textColor = Colors.getColor("blackorwhite")
+        self.settingsCardView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.currencyLabel.textColor = Colors.getColor("blackorwhite")
     }
 
 }

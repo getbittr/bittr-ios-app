@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,12 +11,22 @@
 		050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB02A1BBB9600563F29 /* SignupViewController.swift */; };
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
+		051045D32D59BC5800A21161 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = 051045D22D59BC5800A21161 /* secp256k1 */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
 		051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */; };
+		051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051DDEF82C6B185C0002CF2D /* Colors.swift */; };
+		052171262CB4157E006C5663 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171252CB41577006C5663 /* Language.swift */; };
+		052171282CB416EA006C5663 /* HomeVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171272CB416E7006C5663 /* HomeVCLanguage.swift */; };
+		0521712A2CB41B1A006C5663 /* TransactionVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171292CB41B14006C5663 /* TransactionVCLanguage.swift */; };
+		0521712C2CB41D37006C5663 /* InfoVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521712B2CB41D32006C5663 /* InfoVCLanguage.swift */; };
+		0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */; };
+		052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521712F2CB421F8006C5663 /* MoveVCLanguage.swift */; };
+		052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171312CB430B8006C5663 /* SendVCLanguage.swift */; };
 		052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */; };
 		052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052DC6922AA853B700CD59B0 /* Transaction.swift */; };
+		052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052EC7472D63254B00170FE4 /* WebSocketManager.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		053190E429FD659B0072CE76 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
@@ -25,6 +35,9 @@
 		053190EA29FEE4F80072CE76 /* MoveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190E929FEE4F80072CE76 /* MoveViewController.swift */; };
 		053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190EB29FEE5190072CE76 /* TransactionViewController.swift */; };
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
+		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
+		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
+		055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055403682CC14FC0006F27CA /* SendLNURL.swift */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */; };
 		056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056911102BC3E16800BD047B /* SyncingStatus.swift */; };
@@ -34,6 +47,7 @@
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
+		058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */; };
 		05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */; };
 		05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */; };
 		0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0595AB082B2EE7E900375498 /* WebsiteViewController.swift */; };
@@ -44,6 +58,10 @@
 		05A21FBB2BE0BB5B000F32A2 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		05A21FBC2BE0BB5B000F32A2 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2241029E6C98100F9861F /* HomeViewController.swift */; };
+		05A256512D1155B4009EDC7A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05A256502D1155B4009EDC7A /* WidgetKit.framework */; };
+		05A256532D1155B4009EDC7A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05A256522D1155B4009EDC7A /* SwiftUI.framework */; };
+		05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD762B750446002F0282 /* IntroAnimation.swift */; };
 		05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD792B750567002F0282 /* Navigation.swift */; };
 		05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7B2B750838002F0282 /* ShowPin.swift */; };
@@ -55,6 +73,8 @@
 		05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */; };
 		05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */; };
 		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
+		05AF89742D436920009D629C /* SwapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89732D436920009D629C /* SwapManager.swift */; };
+		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
@@ -72,7 +92,9 @@
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
 		05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */; };
+		05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF0FE52D32557300DF2D9F /* GraphView.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
+		05D417972CC930C400B87745 /* ReceiveQRScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D417962CC930B900B87745 /* ReceiveQRScanner.swift */; };
 		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
 		05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */; };
@@ -81,6 +103,8 @@
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
+		05E483502D29049D007A5834 /* ValueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E4834F2D29049D007A5834 /* ValueViewController.swift */; };
+		05E483522D290551007A5834 /* BittrValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E483512D290546007A5834 /* BittrValue.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
 		05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */; };
@@ -102,6 +126,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		05A256622D1155B8009EDC7A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 05C3C07929CCB55600C1E695 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 05A2564D2D1155B4009EDC7A;
+			remoteInfo = BittrWidgetExtension;
+		};
 		05C3C09829CCB55800C1E695 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 05C3C07929CCB55600C1E695 /* Project object */;
@@ -118,6 +149,20 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		05A256652D1155B8009EDC7A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		050B4BAD2A16579D00563F29 /* SettingsTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTableViewCell.swift; sourceTree = "<group>"; };
 		050B4BB02A1BBB9600563F29 /* SignupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupViewController.swift; sourceTree = "<group>"; };
@@ -127,8 +172,17 @@
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
 		051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore3ViewController.swift; sourceTree = "<group>"; };
+		051DDEF82C6B185C0002CF2D /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		052171252CB41577006C5663 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
+		052171272CB416E7006C5663 /* HomeVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeVCLanguage.swift; sourceTree = "<group>"; };
+		052171292CB41B14006C5663 /* TransactionVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionVCLanguage.swift; sourceTree = "<group>"; };
+		0521712B2CB41D32006C5663 /* InfoVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoVCLanguage.swift; sourceTree = "<group>"; };
+		0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsVCLanguage.swift; sourceTree = "<group>"; };
+		0521712F2CB421F8006C5663 /* MoveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveVCLanguage.swift; sourceTree = "<group>"; };
+		052171312CB430B8006C5663 /* SendVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendVCLanguage.swift; sourceTree = "<group>"; };
 		052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollectionViewCell.swift; sourceTree = "<group>"; };
 		052DC6922AA853B700CD59B0 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		052EC7472D63254B00170FE4 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
 		053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Regular.ttf"; sourceTree = "<group>"; };
@@ -137,6 +191,8 @@
 		053190E929FEE4F80072CE76 /* MoveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveViewController.swift; sourceTree = "<group>"; };
 		053190EB29FEE5190072CE76 /* TransactionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewController.swift; sourceTree = "<group>"; };
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
+		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
+		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewController.swift; sourceTree = "<group>"; };
 		0565C47C2BA9851100CE89C6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -146,6 +202,7 @@
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCollectionViewCell.swift; sourceTree = "<group>"; };
 		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
 		05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveLightning.swift; sourceTree = "<group>"; };
 		0595AB082B2EE7E900375498 /* WebsiteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteViewController.swift; sourceTree = "<group>"; };
@@ -154,6 +211,9 @@
 		05980B552A46F892001F312F /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		05980B572A46F8DA001F312F /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		05A2241029E6C98100F9861F /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BittrWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		05A256502D1155B4009EDC7A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		05A256522D1155B4009EDC7A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		05A8BD762B750446002F0282 /* IntroAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroAnimation.swift; sourceTree = "<group>"; };
 		05A8BD792B750567002F0282 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 		05A8BD7B2B750838002F0282 /* ShowPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowPin.swift; sourceTree = "<group>"; };
@@ -165,6 +225,8 @@
 		05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchAndPrint.swift; sourceTree = "<group>"; };
 		05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTable.swift; sourceTree = "<group>"; };
 		05A965C12A6FBE1F00265BE6 /* MondayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MondayError.swift; sourceTree = "<group>"; };
+		05AF89732D436920009D629C /* SwapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapManager.swift; sourceTree = "<group>"; };
+		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
 		05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer15ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -185,12 +247,16 @@
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningPaymentViewController.swift; sourceTree = "<group>"; };
+		05CF0FE52D32557300DF2D9F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
+		05D417962CC930B900B87745 /* ReceiveQRScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveQRScanner.swift; sourceTree = "<group>"; };
 		05D5D0E62A66825000A1E771 /* LightningNodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningNodeService.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
 		05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileManager+Extensions.swift"; sourceTree = "<group>"; };
 		05D5D0ED2A66852D00A1E771 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
+		05E4834F2D29049D007A5834 /* ValueViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValueViewController.swift; sourceTree = "<group>"; };
+		05E483512D290546007A5834 /* BittrValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrValue.swift; sourceTree = "<group>"; };
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05E743502A3581F9007755A2 /* RestoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewController.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
@@ -211,7 +277,30 @@
 		05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup7ViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		05A2564B2D1155B4009EDC7A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05A256532D1155B4009EDC7A /* SwiftUI.framework in Frameworks */,
+				05A256512D1155B4009EDC7A /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		05C3C07E29CCB55600C1E695 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -221,6 +310,8 @@
 				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
 				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
 				05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */,
+				051045D32D59BC5800A21161 /* secp256k1 in Frameworks */,
+				0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */,
 				3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -270,14 +361,19 @@
 			isa = PBXGroup;
 			children = (
 				053190E929FEE4F80072CE76 /* MoveViewController.swift */,
+				0521712F2CB421F8006C5663 /* MoveVCLanguage.swift */,
 				0579B2702A0530F80007891F /* SendViewController.swift */,
+				052171312CB430B8006C5663 /* SendVCLanguage.swift */,
 				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
+				055403682CC14FC0006F27CA /* SendLNURL.swift */,
 				05F1FB5F2C33E043004AE14F /* SendOnchain.swift */,
 				05F1FB612C33E1CD004AE14F /* SendLightning.swift */,
 				05F1FB632C341852004AE14F /* SendSwitch.swift */,
 				0579B2722A0531470007891F /* ReceiveViewController.swift */,
 				05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */,
 				05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */,
+				0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */,
+				05D417962CC930B900B87745 /* ReceiveQRScanner.swift */,
 			);
 			path = Move;
 			sourceTree = "<group>";
@@ -291,8 +387,19 @@
 				05A8BD872B750F82002F0282 /* ShowCachedData.swift */,
 				05A8BD892B750FAF002F0282 /* LoadWalletData.swift */,
 				05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */,
+				052171272CB416E7006C5663 /* HomeVCLanguage.swift */,
+				05E483512D290546007A5834 /* BittrValue.swift */,
 			);
 			path = HomeVC;
+			sourceTree = "<group>";
+		};
+		05A2564F2D1155B4009EDC7A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				05A256502D1155B4009EDC7A /* WidgetKit.framework */,
+				05A256522D1155B4009EDC7A /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		05A8BD752B750422002F0282 /* CoreVC */ = {
@@ -324,6 +431,7 @@
 			isa = PBXGroup;
 			children = (
 				053190EB29FEE5190072CE76 /* TransactionViewController.swift */,
+				052171292CB41B14006C5663 /* TransactionVCLanguage.swift */,
 			);
 			path = TransactionVC;
 			sourceTree = "<group>";
@@ -332,6 +440,7 @@
 			isa = PBXGroup;
 			children = (
 				051D778E2A9DEAC8002107C0 /* PinViewController.swift */,
+				058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */,
 			);
 			path = PinVC;
 			sourceTree = "<group>";
@@ -342,6 +451,16 @@
 				05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */,
 			);
 			path = PaymentVC;
+			sourceTree = "<group>";
+		};
+		05AF89722D436901009D629C /* Swaps */ = {
+			isa = PBXGroup;
+			children = (
+				05AF89732D436920009D629C /* SwapManager.swift */,
+				05AF89752D437073009D629C /* SwapViewController.swift */,
+				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
+			);
+			path = Swaps;
 			sourceTree = "<group>";
 		};
 		05C3C07829CCB55600C1E695 = {
@@ -355,6 +474,8 @@
 				05C3C08329CCB55600C1E695 /* bittr */,
 				05C3C09A29CCB55800C1E695 /* bittrTests */,
 				05C3C0A429CCB55800C1E695 /* bittrUITests */,
+				05A256542D1155B4009EDC7A /* BittrWidget */,
+				05A2564F2D1155B4009EDC7A /* Frameworks */,
 				05C3C08229CCB55600C1E695 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -365,6 +486,7 @@
 				05C3C08129CCB55600C1E695 /* bittr.app */,
 				05C3C09729CCB55800C1E695 /* bittrTests.xctest */,
 				05C3C0A129CCB55800C1E695 /* bittrUITests.xctest */,
+				05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -387,6 +509,11 @@
 				05F8DC5829F2B436008052B5 /* Articles */,
 				05F8DC5929F2B449008052B5 /* Settings */,
 				05F31CC12B88008E00AAA342 /* QuestionVC */,
+				05E4834E2D290482007A5834 /* Value */,
+				05AF89722D436901009D629C /* Swaps */,
+				05980B572A46F8DA001F312F /* CacheManager.swift */,
+				051DDEF82C6B185C0002CF2D /* Colors.swift */,
+				052171252CB41577006C5663 /* Language.swift */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
 				05C3C08629CCB55600C1E695 /* SceneDelegate.swift */,
 				05C3C08A29CCB55600C1E695 /* Main.storyboard */,
@@ -421,7 +548,6 @@
 				05980B552A46F892001F312F /* Device.swift */,
 				05980B532A46F7E4001F312F /* Client.swift */,
 				05980B512A46F76E001F312F /* IbanEntity.swift */,
-				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				052DC6922AA853B700CD59B0 /* Transaction.swift */,
@@ -452,6 +578,15 @@
 			path = Buy;
 			sourceTree = "<group>";
 		};
+		05E4834E2D290482007A5834 /* Value */ = {
+			isa = PBXGroup;
+			children = (
+				05E4834F2D29049D007A5834 /* ValueViewController.swift */,
+				05CF0FE52D32557300DF2D9F /* GraphView.swift */,
+			);
+			path = Value;
+			sourceTree = "<group>";
+		};
 		05F31CC12B88008E00AAA342 /* QuestionVC */ = {
 			isa = PBXGroup;
 			children = (
@@ -464,6 +599,7 @@
 			isa = PBXGroup;
 			children = (
 				05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */,
+				0521712B2CB41D32006C5663 /* InfoVCLanguage.swift */,
 				05F8DC5E29F2E212008052B5 /* ArticleTableViewCell.swift */,
 				052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */,
 				053190ED29FEE7C90072CE76 /* ArticleViewController.swift */,
@@ -476,6 +612,7 @@
 		05F8DC5929F2B449008052B5 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */,
 				05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */,
 				050B4BAD2A16579D00563F29 /* SettingsTableViewCell.swift */,
 				0595AB082B2EE7E900375498 /* WebsiteViewController.swift */,
@@ -487,6 +624,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 05A256692D1155B8009EDC7A /* Build configuration list for PBXNativeTarget "BittrWidgetExtension" */;
+			buildPhases = (
+				05A2564A2D1155B4009EDC7A /* Sources */,
+				05A2564B2D1155B4009EDC7A /* Frameworks */,
+				05A2564C2D1155B4009EDC7A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				05A256542D1155B4009EDC7A /* BittrWidget */,
+			);
+			name = BittrWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = BittrWidgetExtension;
+			productReference = 05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		05C3C08029CCB55600C1E695 /* bittr */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 05C3C0AB29CCB55800C1E695 /* Build configuration list for PBXNativeTarget "bittr" */;
@@ -494,11 +653,13 @@
 				05C3C07D29CCB55600C1E695 /* Sources */,
 				05C3C07E29CCB55600C1E695 /* Frameworks */,
 				05C3C07F29CCB55600C1E695 /* Resources */,
+				05A256652D1155B8009EDC7A /* Embed Foundation Extensions */,
 				BDB9C584C6434C5EA1249EE8 /* Upload Debug Symbols to Sentry */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				05A256632D1155B8009EDC7A /* PBXTargetDependency */,
 			);
 			name = bittr;
 			packageProductDependencies = (
@@ -508,6 +669,8 @@
 				05BE46182BB9A83100555B9B /* SPConfetti */,
 				3C6A5FD226974C7A8EB518F5 /* Sentry */,
 				0589280A2C00933F00DDB850 /* LDKNode */,
+				0554035C2CB7EA04006F27CA /* LNURLDecoder */,
+				051045D22D59BC5800A21161 /* secp256k1 */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -556,9 +719,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1420;
+				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1420;
 				TargetAttributes = {
+					05A2564D2D1155B4009EDC7A = {
+						CreatedOnToolsVersion = 16.1;
+					};
 					05C3C08029CCB55600C1E695 = {
 						CreatedOnToolsVersion = 14.2;
 					};
@@ -588,6 +754,8 @@
 				05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */,
 				28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */,
+				0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */,
+				051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -596,11 +764,20 @@
 				05C3C08029CCB55600C1E695 /* bittr */,
 				05C3C09629CCB55800C1E695 /* bittrTests */,
 				05C3C0A029CCB55800C1E695 /* bittrUITests */,
+				05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		05A2564C2D1155B4009EDC7A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		05C3C07F29CCB55600C1E695 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -651,19 +828,30 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		05A2564A2D1155B4009EDC7A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		05C3C07D29CCB55600C1E695 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */,
+				05D417972CC930C400B87745 /* ReceiveQRScanner.swift in Sources */,
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
 				05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */,
 				053190E829FEE4EC0072CE76 /* BuyViewController.swift in Sources */,
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
+				0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
 				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
+				05E483502D29049D007A5834 /* ValueViewController.swift in Sources */,
 				05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */,
+				0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */,
 				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
@@ -680,24 +868,36 @@
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
 				051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */,
+				058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */,
 				05F418EE2BAC1DF0005CFAD0 /* Channel.swift in Sources */,
+				052171282CB416EA006C5663 /* HomeVCLanguage.swift in Sources */,
 				05F8DC5B29F2B45F008052B5 /* InfoViewController.swift in Sources */,
+				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
+				05AF89762D437073009D629C /* SwapViewController.swift in Sources */,
 				05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */,
+				055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
+				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
+				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
+				052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */,
+				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
+				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,
 				05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */,
+				052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
+				05E483522D290551007A5834 /* BittrValue.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
@@ -708,6 +908,7 @@
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */,
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
+				0521712A2CB41B1A006C5663 /* TransactionVCLanguage.swift in Sources */,
 				05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
@@ -723,6 +924,7 @@
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
+				0521712C2CB41D37006C5663 /* InfoVCLanguage.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
 				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
@@ -751,6 +953,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		05A256632D1155B8009EDC7A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 05A2564D2D1155B4009EDC7A /* BittrWidgetExtension */;
+			targetProxy = 05A256622D1155B8009EDC7A /* PBXContainerItemProxy */;
+		};
 		05C3C09929CCB55800C1E695 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 05C3C08029CCB55600C1E695 /* bittr */;
@@ -783,16 +990,83 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		05A256662D1155B8009EDC7A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BittrWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BittrWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		05A256672D1155B8009EDC7A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BittrWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BittrWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		05C3C0A929CCB55800C1E695 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_MODULES_AUTOLINK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -821,7 +1095,7 @@
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_NO_COMMON_BLOCKS = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -834,9 +1108,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -847,12 +1123,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_MODULES_AUTOLINK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -880,7 +1158,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_NO_COMMON_BLOCKS = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -888,8 +1166,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -904,7 +1184,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 77;
+				CURRENT_PROJECT_VERSION = 91;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -919,7 +1199,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -943,7 +1223,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 77;
+				CURRENT_PROJECT_VERSION = 91;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -958,7 +1238,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -984,7 +1264,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GFR2R8MM32;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1004,7 +1284,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GFR2R8MM32;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1023,6 +1303,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GFR2R8MM32;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1041,6 +1322,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GFR2R8MM32;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1054,6 +1336,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		05A256692D1155B8009EDC7A /* Build configuration list for PBXNativeTarget "BittrWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				05A256662D1155B8009EDC7A /* Debug */,
+				05A256672D1155B8009EDC7A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		05C3C07C29CCB55600C1E695 /* Build configuration list for PBXProject "bittr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1093,6 +1384,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/21-DOT-DEV/swift-secp256k1";
+			requirement = {
+				kind = exactVersion;
+				version = 0.18.0;
+			};
+		};
+		0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FlorianHubl/LNURLDecoder";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
@@ -1122,15 +1429,7 @@
 			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 0.29.0;
-			};
-		};
-		05D80E032BA4178E00E2F093 /* XCRemoteSwiftPackageReference "ldk-node" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
-			requirement = {
-				branch = release/0.2;
-				kind = branch;
+				version = 0.31.2;
 			};
 		};
 		05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {
@@ -1138,7 +1437,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-swift/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.0.123;
+				version = 0.0.124;
 			};
 		};
 		28CF498C554B47FDBC992DCB /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
@@ -1152,6 +1451,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		051045D22D59BC5800A21161 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			productName = secp256k1;
+		};
+		0554035C2CB7EA04006F27CA /* LNURLDecoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */;
+			productName = LNURLDecoder;
+		};
 		0589280A2C00933F00DDB850 /* LDKNode */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */;

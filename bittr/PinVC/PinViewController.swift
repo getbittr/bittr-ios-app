@@ -8,16 +8,28 @@
 import UIKit
 //import KeychainSwift
 
-class PinViewController: UIViewController, UITextFieldDelegate {
+class PinViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    @IBOutlet weak var pinScrollView: UIScrollView!
-    @IBOutlet weak var pinContentView: UIView!
-    @IBOutlet weak var pinCenterView: UIView!
+    // Views
     @IBOutlet weak var confirmPinView: UIView!
     @IBOutlet weak var confirmPinButton: UIButton!
     @IBOutlet weak var restoreWalletButton: UIButton!
-    @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
-    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var pinCollectionView: UICollectionView!
+    @IBOutlet weak var pinCollectionViewWidth: NSLayoutConstraint!
+    
+    // Number labels
+    @IBOutlet weak var label1: UILabel!
+    @IBOutlet weak var label2: UILabel!
+    @IBOutlet weak var label3: UILabel!
+    @IBOutlet weak var label4: UILabel!
+    @IBOutlet weak var label5: UILabel!
+    @IBOutlet weak var label6: UILabel!
+    @IBOutlet weak var label7: UILabel!
+    @IBOutlet weak var label8: UILabel!
+    @IBOutlet weak var label9: UILabel!
+    @IBOutlet weak var label0: UILabel!
+    @IBOutlet weak var imageBackspace: UIImageView!
+    var allLabels = [UILabel]()
     
     // Buttons
     @IBOutlet weak var button1: UIButton!
@@ -65,29 +77,29 @@ class PinViewController: UIViewController, UITextFieldDelegate {
 
         // Set elements according to superview.
         if self.embeddingView == "core" {
-            self.topLabel.text = "Enter your PIN code"
-            self.nextButtonLabel.text = "Confirm"
-            self.restoreButtonLabel.text = "Restore wallet"
+            self.topLabel.text = Language.getWord(withID: "enteryourpincode")
+            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+            self.restoreButtonLabel.text = Language.getWord(withID: "restorewallet")
             self.restoreButtonView.alpha = 1
         } else if self.embeddingView == "signup5" {
-            self.topLabel.text = "Set a PIN code for secure access to your wallet"
-            self.nextButtonLabel.text = "Next"
+            self.topLabel.text = Language.getWord(withID: "setapin")
+            self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
         } else if self.embeddingView == "signup6" {
-            self.topLabel.text = "Confirm your PIN code"
-            self.nextButtonLabel.text = "Confirm"
-            self.restoreButtonLabel.text = "Back"
+            self.topLabel.text = Language.getWord(withID: "confirmyourpin")
+            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+            self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1
         } else if self.embeddingView == "restore2" {
-            self.topLabel.text = "Set a PIN code for secure access to your wallet"
-            self.nextButtonLabel.text = "Next"
+            self.topLabel.text = Language.getWord(withID: "setapin")
+            self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
         } else if self.embeddingView == "restore3" {
-            self.topLabel.text = "Confirm your PIN code"
-            self.nextButtonLabel.text = "Confirm"
-            self.restoreButtonLabel.text = "Back"
+            self.topLabel.text = Language.getWord(withID: "confirmyourpin")
+            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
+            self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1
         }
         
@@ -118,12 +130,23 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         for eachBackground in allBackgrounds! {
             eachBackground.layer.cornerRadius = 45
         }
+        
+        self.allLabels = [self.label1, self.label2, self.label3, self.label4, self.label5, self.label6, self.label7, self.label8, self.label9, self.label0]
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        // Collection view.
+        self.pinCollectionView.delegate = self
+        self.pinCollectionView.dataSource = self
+        
+        self.changeColors()
     }
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
         
         // Update text field.
         pinTextField.insertText(String(sender.tag))
+        self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
@@ -134,23 +157,10 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         // Update text field.
         pinTextField.deleteBackward()
+        self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
-        }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        
-        let centerViewHeight = pinCenterView.bounds.height
-        
-        if pinCenterView.bounds.height + 40 > pinContentView.bounds.height {
-            
-            NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.pinContentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight)
-            NSLayoutConstraint.activate([self.contentViewHeight])
-            self.centerViewCenterY.constant = 0
-            self.view.layoutIfNeeded()
         }
     }
     
@@ -161,16 +171,14 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                let alert = UIAlertController(title: "Check your connection", message: "You don't seem to be connected to the internet. Please try to connect.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
                 return
             }
             
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
-                let alert = UIAlertController(title: "Restore wallet", message: "You've entered an incorrect pin too many times. Please restore your wallet.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                     self.pinTextField.text = ""
                     if let actualCoreVC = self.coreVC {
                         actualCoreVC.resetApp(nodeIsRunning: false)
@@ -181,22 +189,18 @@ class PinViewController: UIViewController, UITextFieldDelegate {
             }
             
             if let actualCorrectPin = self.correctPin {
-                
                 if actualCorrectPin == self.pinTextField.text {
                     // Correct pin.
                     CacheManager.resetFailedPinAttempts()
                     if let actualCoreVC = self.coreVC {
-                        
                         self.pinSpinner.startAnimating()
-                        
-                        // Step 1.
                         actualCoreVC.correctPin(spinner:self.pinSpinner)
                     }
                 } else {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
-                    let alert = UIAlertController(title: "Incorrect PIN", message: "Please enter your correct pin. If you've forgotten it, please restore your wallet.", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: { _ in
+                    let alert = UIAlertController(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
                         self.pinTextField.text = ""
                     }))
                     self.present(alert, animated: true)
@@ -236,13 +240,13 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         
         if self.embeddingView == "core" {
             
-            let alert = UIAlertController(title: "Restore wallet", message: "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+            let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
                 
-                let secondAlert = UIAlertController(title: "Restore wallet", message: "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.", preferredStyle: .alert)
-                secondAlert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                secondAlert.addAction(UIAlertAction(title: "Restore", style: .destructive, handler: {_ in
+                let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
+                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
                     
                     if let actualCoreVC = self.coreVC {
                         actualCoreVC.resetApp(nodeIsRunning: false)
@@ -283,6 +287,56 @@ class PinViewController: UIViewController, UITextFieldDelegate {
         // Hide button feedback.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.allBackgrounds![sender.tag].alpha = 0
+        }
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("yelloworblue3")
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
+        if CacheManager.darkModeIsOn() {
+            self.restoreButtonLabel.textColor = Colors.getColor("blackorwhite")
+        } else {
+            self.restoreButtonLabel.textColor = Colors.getColor("transparentblack")
+        }
+        for eachLabel in self.allLabels {
+            eachLabel.textColor = Colors.getColor("blackorwhite")
+        }
+        self.imageBackspace.tintColor = Colors.getColor("blackorwhite")
+        self.confirmPinView.backgroundColor = Colors.getColor("blackorblue1")
+        self.pinTextField.textColor = Colors.getColor("blackorblue1")
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        
+        self.pinCollectionView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        
+        let pinLength:Int = self.pinTextField.text?.count ?? 0
+        if pinLength == 0 {
+            self.pinCollectionViewWidth.constant = 0
+        } else {
+            var collectionViewWidth:CGFloat = CGFloat((pinLength * 40) + ((pinLength-1) * 10))
+            if collectionViewWidth > self.view.bounds.width {
+                collectionViewWidth = self.view.bounds.width
+                self.pinCollectionView.contentInset = UIEdgeInsets(top: 0, left: 45, bottom: 0, right: 45)
+            }
+            self.pinCollectionViewWidth.constant = collectionViewWidth
+        }
+        
+        return pinLength
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: 40, height: 60)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        
+        if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PinCell", for: indexPath) as? PinCollectionViewCell {
+            
+            return cell
+        } else {
+            return UICollectionViewCell()
         }
     }
     

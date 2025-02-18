@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import LNURLDecoder
 
 extension SendViewController {
     
@@ -15,15 +16,16 @@ extension SendViewController {
         if fixQrScanner() == true {
             // Open QR scanner.
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.addressStack.alpha = 0
                 self.toLabel.alpha = 0
                 self.toView.alpha = 0
                 self.pasteButton.alpha = 0
-                self.amountView.alpha = 0
+                self.amountStack.alpha = 0
                 self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
                 self.scannerView.alpha = 1
-                self.nextLabel.text = "Manual input"
+                self.nextLabel.text = Language.getWord(withID: "manualinput")
                 
                 NSLayoutConstraint.deactivate([self.nextViewTop])
                 self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.scannerView, attribute: .bottom, multiplier: 1, constant: 30)
@@ -38,7 +40,7 @@ extension SendViewController {
                 }
             }
         } else {
-            self.showErrorMessage(alertTitle: "Scanning not supported", alertMessage: "Your device does not support scanning a code from an item. Please use a device with a camera.", alertButton: "Okay")
+            self.showAlert(Language.getWord(withID: "scanningnotsupported"), Language.getWord(withID: "scanningnotavailable"), Language.getWord(withID: "okay"))
         }
     }
     
@@ -115,17 +117,17 @@ extension SendViewController {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showErrorMessage(alertTitle: "No address found.", alertMessage: "Please scan a bitcoin or lightning address QR code or input the address manually.", alertButton: "Okay")
-         } else {
+            self.showAlert(Language.getWord(withID: "noaddressfound"), Language.getWord(withID: "pleasescan"), Language.getWord(withID: "okay"))
+        } else if code.lowercased().contains("lnurl") || self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            // Valid LNURL code.
+            self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
+        } else {
              // Valid address
              let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
              let components = address.components(separatedBy: "?")
              if let bitcoinAddress = components.first {
                  // Success.
-                 self.toTextField.alpha = 0
-                 self.invoiceLabel.text = bitcoinAddress
-                 self.invoiceLabel.alpha = 1
-                 self.invoiceLabelTop.constant = 20
+                 self.toTextField.text = bitcoinAddress
                  
                  if components.count > 1 {
                      if components[1].contains("amount") {
@@ -133,7 +135,7 @@ extension SendViewController {
                          
                          let numberFormatter = NumberFormatter()
                          numberFormatter.numberStyle = .decimal
-                         let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)) ?? 0).decimalValue as NSNumber
+                         let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
                          
                          self.amountTextField.text = "\(bitcoinAmount)"
                      } else {
@@ -145,7 +147,7 @@ extension SendViewController {
              } else {
                  self.toTextField.text = nil
                  self.amountTextField.text = nil
-                 self.showErrorMessage(alertTitle: "No bitcoin address found.", alertMessage: "Please scan a bitcoin address QR code or input the address manually.", alertButton: "Okay")
+                 self.showAlert(Language.getWord(withID: "nobitcoinaddressfound"), Language.getWord(withID: "pleasescan2"), Language.getWord(withID: "okay"))
              }
         }
         

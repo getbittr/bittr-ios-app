@@ -10,6 +10,7 @@ import UIKit
 class Signup5ViewController: UIViewController, UITextFieldDelegate {
 
     // View for user to set their new pin.
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
