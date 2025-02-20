@@ -10,6 +10,8 @@ import UIKit
 extension HomeViewController {
     
     func fetchAndPrintPeers() {
+        let lightningPubKey = LightningNodeService.shared.nodeId()
+        print(lightningPubKey)
         Task {
             do {
                 let peers = try await LightningNodeService.shared.listPeers()

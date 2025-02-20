@@ -29,7 +29,7 @@ class LightningNodeService {
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
         struct Singleton {
-            static let instance = LightningNodeService(network: .testnet)
+            static let instance = LightningNodeService(network: .regtest)
         }
         return Singleton.instance
     }
@@ -123,7 +123,7 @@ class LightningNodeService {
                     // Create a BIP32 extended root key using the mnemonic and a nil password
                     var bip32ExtendedRootKey:DescriptorSecretKey
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bip32ExtendedRootKey = DescriptorSecretKey(network: .testnet, mnemonic: mnemonic, password: nil)
+                        bip32ExtendedRootKey = DescriptorSecretKey(network: .regtest, mnemonic: mnemonic, password: nil)
                     } else {
                         bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
                     }
@@ -131,7 +131,7 @@ class LightningNodeService {
                     // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
                     var bip84ExternalDescriptor:Descriptor
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .testnet)
+                        bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .regtest)
                     } else {
                         bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .bitcoin)
                     }
@@ -154,7 +154,7 @@ class LightningNodeService {
                     // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
                     var bip84InternalDescriptor:Descriptor
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .testnet)
+                        bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .regtest)
                     } else {
                         bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .bitcoin)
                     }
@@ -166,7 +166,7 @@ class LightningNodeService {
                     // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
                     var wallet:Wallet
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .testnet, databaseConfig: .sqlite(config: config))
+                        wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .regtest, databaseConfig: .sqlite(config: config))
                     } else {
                         wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, databaseConfig: .sqlite(config: config))
                     }
@@ -176,10 +176,18 @@ class LightningNodeService {
                     // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
                     var electrumUrl = "ssl://electrum.blockstream.info:50002"
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        electrumUrl = "ssl://electrum.blockstream.info:60002"
+                        electrumUrl = "tcp://regtest.getbittr.com:3002"
                     }
-                    let electrum = ElectrumConfig(url: electrumUrl, socks5: nil, retry: 5, timeout: nil, stopGap: 10, validateDomain: true)
-                    let blockchainConfig = BlockchainConfig.electrum(config: electrum)
+                    let electrum = ElectrumConfig(
+                        url: electrumUrl,
+                        socks5: nil,
+                        retry: 5,
+                        timeout: nil,
+                        stopGap: 10,
+                        validateDomain: electrumUrl.starts(with: "ssl://") // Only validate if using SSL
+                    )
+                    let esplora = EsploraConfig(baseUrl: "https://esplora.regtest.getbittr.com/api", proxy: nil, concurrency: 1, stopGap: 10, timeout: nil)
+                    let blockchainConfig = BlockchainConfig.esplora(config: esplora)
                     let blockchain = try Blockchain(config: blockchainConfig)
                     self.blockchain = blockchain
                     
@@ -243,8 +251,8 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
-        let addresses = ["109.205.181.232:29735", "86.104.228.24:9735"]
+        let nodeIds = ["02a85a326c33664672a8d77ba875595a73533720335e3324fe03fc153ceb5dd203", "02a85a326c33664672a8d77ba875595a73533720335e3324fe03fc153ceb5dd203"]
+        let addresses = ["31.58.51.17:9736", "31.58.51.17:9736"]
         
         // Connect to Lightning peer.
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string

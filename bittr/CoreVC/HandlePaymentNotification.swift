@@ -194,8 +194,8 @@ extension CoreViewController {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
-        let addresses = ["109.205.181.232:29735", "86.104.228.24:9735"]
+        let nodeIds = ["02a85a326c33664672a8d77ba875595a73533720335e3324fe03fc153ceb5dd203", "02a85a326c33664672a8d77ba875595a73533720335e3324fe03fc153ceb5dd203"]
+        let addresses = ["31.58.51.17:9736", "31.58.51.17:9736"]
         
         // Connect to Lightning peer.
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
