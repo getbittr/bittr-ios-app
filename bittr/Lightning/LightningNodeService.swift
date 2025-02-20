@@ -251,8 +251,8 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["02a85a326c33664672a8d77ba875595a73533720335e3324fe03fc153ceb5dd203", "02a85a326c33664672a8d77ba875595a73533720335e3324fe03fc153ceb5dd203"]
-        let addresses = ["31.58.51.17:9736", "31.58.51.17:9736"]
+        let nodeIds = ["03fb2627229d3cc8b62a9db7ee76b4584831dce859743fc68285de8362926dba7f", "03fb2627229d3cc8b62a9db7ee76b4584831dce859743fc68285de8362926dba7f"]
+        let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
