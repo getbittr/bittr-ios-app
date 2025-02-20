@@ -556,6 +556,7 @@ extension HomeViewController {
         
         // Hide profit label while calculating.
         self.balanceCardGainLabel.alpha = 0
+        self.balanceCardProfitView.alpha = 0
         
         // Variables.
         let bittrTransactionsCount = self.bittrTransactions.count
@@ -622,8 +623,14 @@ extension HomeViewController {
     
     func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
         
-        self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "") //  (\(currencySymbol) \(accumulatedProfit))"
-        self.balanceCardGainLabel.alpha = 1
+        if accumulatedInvestments != 0 {
+            self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "") //  (\(currencySymbol) \(accumulatedProfit))"
+            self.balanceCardGainLabel.alpha = 1
+            self.balanceCardProfitView.alpha = 1
+        } else {
+            self.balanceCardGainLabel.alpha = 0
+            self.balanceCardProfitView.alpha = 0
+        }
         
         if accumulatedProfit < 0 {
             // Loss

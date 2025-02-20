@@ -419,6 +419,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.coreVC?.lightningBalanceInSats = 0
         
         self.noTransactionsLabel.alpha = 0
+        self.balanceCardProfitView.alpha = 0
         self.balanceCardGainLabel.alpha = 0
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
