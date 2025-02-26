@@ -228,7 +228,20 @@ class LightningNodeService {
                 self.currentHeight = Int(fetchedCurrentHeight)
                 
                 // Proceed to next step.
-                self.connectToLightningPeer()
+                Task {
+                    if try await LightningNodeService.shared.listPeers().count == 1 {
+                        // We're already connected to peer.
+                        DispatchQueue.global(qos: .background).async {
+                            self.didProceedBeyondPeerConnection = true
+                            self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        }
+                    } else {
+                        // Connect to peer.
+                        DispatchQueue.global(qos: .background).async {
+                            self.connectToLightningPeer()
+                        }
+                    }
+                }
                 
             } catch let error as BdkError {
                 print("Some error occurred. \(error)")
@@ -432,26 +445,8 @@ class LightningNodeService {
     }
     
     func walletReset() {
-        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            do {
-                try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
-                
-                let actualTransactions:[TransactionDetails] = try self.bdkWallet!.listTransactions(includeRaw: false)
-                Task {
-                    let actualChannels = try await LightningNodeService.shared.listChannels()
-                    let actualPayments = try await LightningNodeService.shared.listPayments()
-                    DispatchQueue.main.async {
-                        let transactionsNotificationDict:[AnyHashable:Any] = ["transactions":actualTransactions,"lightningnodeservice":self,"channels":actualChannels,"payments":actualPayments]
-                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
-                    }
-                }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                print("Error getting transactions. \(errorString.title): \(errorString.detail)")
-            } catch {
-                print("Error getting transactions. \(error.localizedDescription)")
-            }
+            self.startBDK()
         }
     }
     

@@ -105,7 +105,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         // TODO: Public?
         var envUrl = "https://getbittr.com/api/articles"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envUrl = "https://model-arachnid-viable.ngrok-free.app/articles"
+            envUrl = "https://getbittr.com/api/articles"
         }
         
         let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
