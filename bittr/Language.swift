@@ -154,7 +154,7 @@ class Language: NSObject {
             "profitsubtitle": "Here's to financial independence! These are the results of your savings so far.",
             "totalinvestment": "Total investment",
             "finaldetails": "final details",
-            "bittrinstructions": "You can buy up to 999€/day from bittr. Purchases below 100€ go into your Lightning wallet, to save on transaction fees.",
+            "bittrinstructions": "You can buy up to 999€ per 30 days from bittr. Purchases below 100€ go into your Lightning wallet, to save on transaction fees.",
             "bittrinstructions2": "We like dollar-cost-averaging. That's, for example, buying 50€ of bitcoin every Monday.",
             "bittrinstructions3": "Set up a recurring transfer to buy bitcoin repeatedly at a pace and amount that suits you.",
             "letsgo": "Let's go",

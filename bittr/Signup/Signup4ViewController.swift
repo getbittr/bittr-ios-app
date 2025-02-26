@@ -28,6 +28,9 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var mnemonicField1: UITextField!
     @IBOutlet weak var mnemonicField2: UITextField!
     @IBOutlet weak var mnemonicField3: UITextField!
+    @IBOutlet weak var label1: UILabel!
+    @IBOutlet weak var label2: UILabel!
+    @IBOutlet weak var label3: UILabel!
     
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
@@ -77,15 +80,28 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         // Set notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setcheckwords"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
     }
     
     @objc func setCheckWords(notification:NSNotification) {
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualWords = userInfo["words"] as? [String] {
-                self.checkWords = actualWords
+        if self.coreVC == nil { print("CoreVC nil in Signup4.") }
+        if let actualMnemonic = self.coreVC?.newMnemonic {
+            
+            var indicesSet = Set<Int>()
+            while indicesSet.count < 3 {
+                indicesSet.insert(Int.random(in: 0...11))
             }
+            var indicesToCheck:[Int] = Array(indicesSet)
+            indicesToCheck.sort { int1, int2 in
+                int1 < int2
+            }
+            
+            self.label1.text = "\(indicesToCheck[0]+1)"
+            self.label2.text = "\(indicesToCheck[1]+1)"
+            self.label3.text = "\(indicesToCheck[2]+1)"
+            
+            self.checkWords = [actualMnemonic[indicesToCheck[0]], actualMnemonic[indicesToCheck[1]], actualMnemonic[indicesToCheck[2]]]
         }
     }
     
