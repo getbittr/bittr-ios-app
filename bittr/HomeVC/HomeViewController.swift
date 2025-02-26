@@ -31,6 +31,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var bitcoinSign: UIImageView!
     @IBOutlet weak var balanceLabel: UILabel!
     @IBOutlet weak var satsLabel: UILabel!
+    @IBOutlet weak var satsLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
     @IBOutlet weak var balanceCardButton: UIButton!

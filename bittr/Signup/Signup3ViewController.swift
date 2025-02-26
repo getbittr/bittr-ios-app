@@ -77,29 +77,20 @@ class Signup3ViewController: UIViewController {
     @objc func setWords(notification:NSNotification) {
         
         // Step 8.
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualMnemonic = userInfo["mnemonic"] as? String {
-                
-                let individualWords:[String] = actualMnemonic.components(separatedBy: " ")
-                self.word1.text = individualWords[0]
-                self.word2.text = individualWords[1]
-                self.word3.text = individualWords[2]
-                self.word4.text = individualWords[3]
-                self.word5.text = individualWords[4]
-                self.word6.text = individualWords[5]
-                self.word7.text = individualWords[6]
-                self.word8.text = individualWords[7]
-                self.word9.text = individualWords[8]
-                self.word10.text = individualWords[9]
-                self.word11.text = individualWords[10]
-                self.word12.text = individualWords[11]
-                
-                // Send checkable words to Signup4VC.
-                let checkWords:[String] = [self.word2.text!, self.word7.text!, self.word9.text!]
-                let notificationDict = ["words":checkWords]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setcheckwords"), object: nil, userInfo: notificationDict) as Notification)
-            }
+        if self.coreVC == nil { print("CoreVC nil in Signup3.") }
+        if let actualMnemonic = self.coreVC?.newMnemonic {
+            self.word1.text = actualMnemonic[0]
+            self.word2.text = actualMnemonic[1]
+            self.word3.text = actualMnemonic[2]
+            self.word4.text = actualMnemonic[3]
+            self.word5.text = actualMnemonic[4]
+            self.word6.text = actualMnemonic[5]
+            self.word7.text = actualMnemonic[6]
+            self.word8.text = actualMnemonic[7]
+            self.word9.text = actualMnemonic[8]
+            self.word10.text = actualMnemonic[9]
+            self.word11.text = actualMnemonic[10]
+            self.word12.text = actualMnemonic[11]
         }
     }
     

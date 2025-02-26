@@ -66,6 +66,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
+    var newMnemonic:[String]?
     
     // Variables for notification handling
     var didBecomeVisible = false
@@ -174,10 +175,10 @@ class CoreViewController: UIViewController {
             
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
             let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
+            (newChild as! SignupViewController).coreVC = self
             self.addChild(newChild)
             newChild.view.frame.size = self.signupContainerView.frame.size
             self.signupContainerView.addSubview(newChild.view)
-            (newChild as! SignupViewController).coreVC = self
             newChild.didMove(toParent: self)
         }
     }

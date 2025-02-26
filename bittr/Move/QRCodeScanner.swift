@@ -8,6 +8,7 @@
 import UIKit
 import AVFoundation
 import LNURLDecoder
+import LightningDevKit
 
 extension SendViewController {
     
@@ -122,33 +123,76 @@ extension SendViewController {
             // Valid LNURL code.
             self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
         } else {
-             // Valid address
-             let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "")
-             let components = address.components(separatedBy: "?")
-             if let bitcoinAddress = components.first {
-                 // Success.
-                 self.toTextField.text = bitcoinAddress
-                 
-                 if components.count > 1 {
-                     if components[1].contains("amount") {
-                         let amountString = components[1].components(separatedBy: "&")
-                         
-                         let numberFormatter = NumberFormatter()
-                         numberFormatter.numberStyle = .decimal
-                         let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
-                         
-                         self.amountTextField.text = "\(bitcoinAmount)"
-                     } else {
-                         self.amountTextField.text = nil
-                     }
-                 } else {
-                     self.amountTextField.text = nil
-                 }
-             } else {
-                 self.toTextField.text = nil
-                 self.amountTextField.text = nil
-                 self.showAlert(Language.getWord(withID: "nobitcoinaddressfound"), Language.getWord(withID: "pleasescan2"), Language.getWord(withID: "okay"))
-             }
+            // Valid address
+            
+            if code.lowercased().contains("bitcoin:"), code.lowercased().contains("lightning=") {
+                // This is a Bitcoin QR.
+                
+                // Example QR
+                // bitcoin:bc1qhg5nndn8ngrykjun9k7rgczw2x3ywwtcf0hplz?amount=0.00001&lightning=lnbc10u1pnma0z3dqqnp4q0wy5shnpskxc050schq0r5gkkk39e5w89qzfcd5fz9ngejqjwhavpp5vfpx5dwh97vf7wrvcu9mt006mkdft5fjzfnrqakf6288dhj9r2pssp5e64sv4zyf4esy4wgdkdndtne2lxr4lf0ndpy2e0n3qm80kfty77q9qyysgqcqpcxqrrssrzjqd54day770dcv0n0fhp57f9vuxd7zack3gy8p6pletmw0f5rsv439apyqqqqqqqqqvqqqqlgqqqqqqgq2qvw6n7wd6x6ej47u5a2k253jy65js489qvrf36v8mnw79u3hvaz9k3926ypm2d92h7wxlff7gtyen3ny0gp9mqwjhj8kvk3w9kaq5dxqqtqwll6
+                
+                let codeElements = code.split(separator: "&")
+                var bitcoinCode = ""
+                var lightningCode = ""
+                for eachElement in codeElements {
+                    if String(eachElement).contains("bitcoin:") {
+                        bitcoinCode = String(eachElement)
+                    } else if String(eachElement).contains("lightning=") {
+                        lightningCode = String(eachElement)
+                    }
+                }
+                
+                if bitcoinCode != "", lightningCode != "" {
+                    // Codes have been correctly recognized.
+                    
+                    // Check if we have sufficient funds in Lightning.
+                    if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningCode.replacingOccurrences(of: "lightning=", with: "")).getValue() {
+                        if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                            let invoiceAmount = Int(invoiceAmountMilli)/1000
+                            if invoiceAmount > self.maximumSendableLNSats ?? 0 {
+                                // We can't send this much in Lightning. Send onchain.
+                                self.found(code: bitcoinCode)
+                                return
+                            } else {
+                                // We have sufficient funds in Lightning.
+                                //self.bitcoinQR = bitcoinCode
+                                self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
+                                addressType = "lightning"
+                                self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                            }
+                        }
+                    }
+                }
+            } else {
+                // This is a normal onchain or lightning QR.
+                
+                let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "").replacingOccurrences(of: "lightning=", with: "")
+                let components = address.components(separatedBy: "?")
+                if let bitcoinAddress = components.first {
+                    // Success.
+                    self.toTextField.text = bitcoinAddress
+                    
+                    if components.count > 1 {
+                        if components[1].contains("amount") {
+                            let amountString = components[1].components(separatedBy: "&")
+                            
+                            let numberFormatter = NumberFormatter()
+                            numberFormatter.numberStyle = .decimal
+                            let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
+                            
+                            self.amountTextField.text = "\(bitcoinAmount)"
+                        } else {
+                            self.amountTextField.text = nil
+                        }
+                    } else {
+                        self.amountTextField.text = nil
+                    }
+                } else {
+                    self.toTextField.text = nil
+                    self.amountTextField.text = nil
+                    self.showAlert(Language.getWord(withID: "nobitcoinaddressfound"), Language.getWord(withID: "pleasescan2"), Language.getWord(withID: "okay"))
+                }
+            }
         }
         
         self.onchainOrLightning = addressType

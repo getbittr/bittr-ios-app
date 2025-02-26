@@ -331,7 +331,17 @@ extension HomeViewController {
             numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8]
         default:
             zeros = ""
-            numbers = "\(CGFloat(totalBalanceSats)/100000000)"
+            numbers = "\(CGFloat(totalBalanceSats)/100000000)".replacingOccurrences(of: ",", with: ".")
+            let decimalsCount = numbers.split(separator: ".")[1].count
+            var decimalsToAdd = 8 - decimalsCount
+            while decimalsToAdd > 0 {
+                if decimalsToAdd == 6 || decimalsToAdd == 3 {
+                    numbers += " 0"
+                } else {
+                    numbers += "0"
+                }
+                decimalsToAdd -= 1
+            }
             bitcoinSignAlpha = 1
         }
         
@@ -364,8 +374,12 @@ extension HomeViewController {
                 // Don't show "sats" label if user has 1 or more bitcoin.
                 if bitcoinSignAlpha == 1 {
                     satsLabel.alpha = 0
+                    satsLabel.text = ""
+                    satsLabelLeading.constant = 0
                 } else {
                     satsLabel.alpha = 1
+                    satsLabel.text = "sats"
+                    satsLabelLeading.constant = 12
                 }
                 
                 // Store satoshis balance string to cache.
@@ -628,8 +642,9 @@ extension HomeViewController {
             self.balanceCardGainLabel.alpha = 1
             self.balanceCardProfitView.alpha = 1
         } else {
-            self.balanceCardGainLabel.alpha = 0
-            self.balanceCardProfitView.alpha = 0
+            self.balanceCardGainLabel.alpha = 1
+            self.balanceCardProfitView.alpha = 1
+            self.balanceCardGainLabel.text = "0 %"
         }
         
         if accumulatedProfit < 0 {
