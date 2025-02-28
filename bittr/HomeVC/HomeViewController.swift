@@ -263,7 +263,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")])
             return
         }
         
@@ -276,13 +276,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")])
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")])
             return
         }
         
@@ -295,13 +295,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")])
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")])
             return
         }
         
@@ -446,7 +446,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")])
                 return
             }
             
@@ -488,7 +488,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(Language.getWord(withID: "syncingwallet"), Language.getWord(withID: "syncingwallet2"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")])
             return
         }
         
@@ -499,7 +499,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.headerSpinner.isAnimating {
             if self.couldNotFetchConversion == true {
-                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "conversionfail"), Language.getWord(withID: "okay"))
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")])
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }

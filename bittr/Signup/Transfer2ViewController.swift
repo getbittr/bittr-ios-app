@@ -236,9 +236,9 @@ class Transfer2ViewController: UIViewController {
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         
         if error == nil {
-            self.showAlert(Language.getWord(withID: "saved"), Language.getWord(withID: "screenshot2"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "saved"), message: Language.getWord(withID: "screenshot2"), buttons: [Language.getWord(withID: "okay")])
         } else {
-            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "screenshot3"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "screenshot3"), buttons: [Language.getWord(withID: "okay")])
         }
     }
     
@@ -246,7 +246,7 @@ class Transfer2ViewController: UIViewController {
         
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(Language.getWord(withID: "copied"), sender.accessibilityIdentifier ?? "", Language.getWord(withID: "okay"))
+        self.showAlert(title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")])
     }
     
     func changeColors() {

@@ -55,12 +55,12 @@ extension ReceiveViewController {
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
-                    self.showAlert(Language.getWord(withID: "error"), errorString.detail, Language.getWord(withID: "okay"))
+                    self.showAlert(title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")])
                     SentrySDK.capture(error: error)
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.showAlert(Language.getWord(withID: "unexpectederror"), error.localizedDescription, Language.getWord(withID: "okay"))
+                    self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")])
                     SentrySDK.capture(error: error)
                 }
             }

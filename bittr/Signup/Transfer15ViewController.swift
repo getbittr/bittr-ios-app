@@ -230,7 +230,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                     DispatchQueue.main.async {
                                                         self.nextButtonActivityIndicator.stopAnimating()
                                                         self.nextButtonLabel.alpha = 1
-                                                        self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "verificationfail"), Language.getWord(withID: "okay"))
+                                                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")])
                                                     }
                                                 }
                                             }
@@ -340,7 +340,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         guard let data = data else {
                             DispatchQueue.main.async {
                                 print(String(describing: error))
-                                self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "bittrsignupfail"), Language.getWord(withID: "okay"))
+                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")])
                                 if let actualError = error {
                                     SentrySDK.capture(error: actualError)
                                 }
@@ -493,7 +493,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     guard let data = data else {
                                         print(String(describing: error))
                                         DispatchQueue.main.async {
-                                            self.showAlert(Language.getWord(withID: "oops"), Language.getWord(withID: "bittrsignupfail4"), Language.getWord(withID: "okay"))
+                                            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")])
                                             if let actualError = error {
                                                 SentrySDK.capture(error: actualError)
                                             }

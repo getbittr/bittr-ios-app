@@ -128,11 +128,11 @@ extension UIViewController {
                                                 self.present(alert, animated: true)
                                             } else {
                                                 // Payment came back failed.
-                                                self.showAlert(Language.getWord(withID: "paymentfailed"), Language.getWord(withID: "paymentfailed2"), Language.getWord(withID: "okay"))
+                                                self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")])
                                             }
                                         } else {
                                             // Success alert
-                                            self.showAlert(Language.getWord(withID: "paymentsuccessful"), "Payment hash: \(paymentHash)", Language.getWord(withID: "okay"))
+                                            self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")])
                                         }
                                         
                                         sendVC?.nextLabel.alpha = 1
@@ -148,7 +148,7 @@ extension UIViewController {
                                         sendVC?.nextLabel.alpha = 1
                                         sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.showAlert(Language.getWord(withID: "paymentfailed"), errorString.detail, Language.getWord(withID: "okay"))
+                                        self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")])
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -159,7 +159,7 @@ extension UIViewController {
                                         sendVC?.nextLabel.alpha = 1
                                         sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.showAlert(Language.getWord(withID: "unexpectederror"), error.localizedDescription, Language.getWord(withID: "okay"))
+                                        self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")])
                                         
                                         SentrySDK.capture(error: error)
                                     }

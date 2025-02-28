@@ -171,7 +171,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")])
                 return
             }
             

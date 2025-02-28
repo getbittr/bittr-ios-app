@@ -58,7 +58,7 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    self.showAlert(Language.getWord(withID: "bittrpayout"), Language.getWord(withID: "pleasesignin"), Language.getWord(withID: "okay"))
+                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")])
                 }
             } else {
                 // No special key, so this is a normal notification.
@@ -185,7 +185,7 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            self.showAlert(Language.getWord(withID: "bittrpayout"), Language.getWord(withID: "bittrpayoutfail"), Language.getWord(withID: "close"))
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")])
         }
     }
     
