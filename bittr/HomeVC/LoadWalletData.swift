@@ -20,7 +20,7 @@ extension HomeViewController {
             
             // Ensure CoreVC availability.
             if self.coreVC == nil {
-                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
@@ -285,7 +285,7 @@ extension HomeViewController {
     func setTotalSats(updateTableAfterConversion:Bool) {
         
         if self.coreVC == nil {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -398,7 +398,7 @@ extension HomeViewController {
     func setConversion(btcValue:CGFloat, cachedData:Bool, updateTableAfterConversion:Bool) {
         
         if self.coreVC == nil {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -441,7 +441,7 @@ extension HomeViewController {
                     print("Conversion error:" + String(describing: error))
                     
                     DispatchQueue.main.async {
-                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")])
+                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         self.couldNotFetchConversion = true
                         self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                         if let actualError = error {
@@ -498,7 +498,7 @@ extension HomeViewController {
                         print("Conversion error:" + error.localizedDescription)
                         
                         DispatchQueue.main.async {
-                            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")])
+                            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             
                             self.couldNotFetchConversion = true
                             self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
@@ -562,7 +562,7 @@ extension HomeViewController {
         
         print("Did start calculating profit.")
         if self.coreVC == nil {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         

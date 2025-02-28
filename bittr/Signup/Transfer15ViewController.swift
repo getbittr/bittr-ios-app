@@ -102,20 +102,19 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             // Check push notifications status.
             let current = UNUserNotificationCenter.current()
             current.getNotificationSettings { (settings) in
+                
+                self.setSender = sender.accessibilityIdentifier!
+                
                 if settings.authorizationStatus == .notDetermined {
                     // Notifications preference hasn't been set yet.
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
-                            self.askForPushNotifications(sender: sender.accessibilityIdentifier!)
-                        }))
-                        self.present(alert, animated: true)
+                        self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
                     }
                 } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
                     // Notifications preference has been set but token hasn't been cached.
-                    self.askForPushNotifications(sender: sender.accessibilityIdentifier!)
+                    self.askForPushNotifications()
                 } else {
-                    self.check2Fa(sender: sender.accessibilityIdentifier!)
+                    self.check2Fa()
                 }
             }
         }
@@ -124,12 +123,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     @objc func resume2Fa() {
         if start2Fa == true {
-            self.check2Fa(sender: self.setSender)
+            self.check2Fa()
             self.start2Fa = false
         }
     }
     
-    func check2Fa(sender:String) {
+    func check2Fa() {
         
         print("Check 2FA started.")
         
@@ -223,14 +222,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 
                                                 DispatchQueue.main.async {
                                                     // Get wallet address.
-                                                    self.getAddress(page: sender)
+                                                    self.getAddress(page: self.setSender)
                                                 }
                                             } else if let actualErrorMessage = errorMessage as? String {
                                                 if actualErrorMessage == "Invalid 2FA verification token provided" {
                                                     DispatchQueue.main.async {
                                                         self.nextButtonActivityIndicator.stopAnimating()
                                                         self.nextButtonLabel.alpha = 1
-                                                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")])
+                                                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                                     }
                                                 }
                                             }
@@ -340,7 +339,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         guard let data = data else {
                             DispatchQueue.main.async {
                                 print(String(describing: error))
-                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")])
+                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 if let actualError = error {
                                     SentrySDK.capture(error: actualError)
                                 }
@@ -381,22 +380,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 self.nextButtonActivityIndicator.stopAnimating()
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
-                                                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
-                                                    let notificationDict:[String: Any] = ["page":"6"]
-                                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                                }))
-                                                self.present(alert, animated: true)
+                                                
+                                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
                                             } else {
                                                 self.nextButtonActivityIndicator.stopAnimating()
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
-                                                let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: {_ in
-                                                    let notificationDict:[String: Any] = ["page":"6"]
-                                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                                }))
-                                                self.present(alert, animated: true)
+                                                
+                                                self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
                                             }
                                         }
                                     }
@@ -423,6 +414,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
             }
         }
+    }
+    
+    @objc func backToPreviousPage() {
+        self.hideAlert()
+        let notificationDict:[String: Any] = ["page":"6"]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
     
@@ -493,7 +490,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     guard let data = data else {
                                         print(String(describing: error))
                                         DispatchQueue.main.async {
-                                            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")])
+                                            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             if let actualError = error {
                                                 SentrySDK.capture(error: actualError)
                                             }
@@ -606,7 +603,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.view.endEditing(true)
     }
     
-    func askForPushNotifications(sender:String) {
+    @objc func askForPushNotifications() {
+        
+        self.hideAlert()
         
         let current = UNUserNotificationCenter.current()
         current.getNotificationSettings { (settings) in
@@ -619,7 +618,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                     print("Permission granted: \(granted)")
                     guard granted else {
-                        self.check2Fa(sender: sender)
+                        self.check2Fa()
                         return
                     }
                     
@@ -627,13 +626,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     current.getNotificationSettings { (settings) in
                         print("Notification settings: \(settings)")
                         guard settings.authorizationStatus == .authorized else {
-                            self.check2Fa(sender: sender)
+                            self.check2Fa()
                             return
                         }
                         DispatchQueue.main.async {
                             // Register for notifications.
                             self.start2Fa = true
-                            self.setSender = sender
                             UIApplication.shared.registerForRemoteNotifications()
                         }
                     }
@@ -643,7 +641,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 DispatchQueue.main.async {
                     // Register for notifications.
                     self.start2Fa = true
-                    self.setSender = sender
                     UIApplication.shared.registerForRemoteNotifications()
                 }
             }

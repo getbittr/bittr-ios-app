@@ -58,7 +58,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 
             } else {
                 // Pin is incorrect.
-                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }

@@ -49,7 +49,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
                 CacheManager.storePin(pin: actualPreviousPin)
                 
             } else {
-                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }

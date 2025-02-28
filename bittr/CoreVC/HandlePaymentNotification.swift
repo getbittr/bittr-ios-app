@@ -28,19 +28,8 @@ extension CoreViewController {
                     
                     if self.wasNotified == false {
                         // App was open when notification came in.
-                        
                         self.varSpecialData = specialData
-                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
-                            self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-                            self.pendingSpinner.startAnimating()
-                            self.pendingView.alpha = 1
-                            self.blackSignupBackground.alpha = 0.2
-                            
-                            self.facilitateNotificationPayout(specialData: specialData)
-                            self.needsToHandleNotification = false
-                        }))
-                        self.present(alert, animated: true)
+                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
@@ -58,13 +47,23 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")])
+                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
                 // No special key, so this is a normal notification.
                 print("No special key found in notification.")
             }
         }
+    }
+    
+    @objc func triggerPayout() {
+        self.hideAlert()
+        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
+        self.pendingSpinner.startAnimating()
+        self.pendingView.alpha = 1
+        self.blackSignupBackground.alpha = 0.2
+        self.facilitateNotificationPayout(specialData: self.varSpecialData!)
+        self.needsToHandleNotification = false
     }
     
     
@@ -185,7 +184,7 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")])
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
         }
     }
     

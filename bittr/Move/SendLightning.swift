@@ -79,60 +79,29 @@ extension UIViewController {
                                         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                                             
                                             if thisPayment.status != .failed {
-                                                // Success alert
-                                                let alert = UIAlertController(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default, handler: { _ in
-                                                    
-                                                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                                                        
-                                                        let newTransaction = Transaction()
-                                                        newTransaction.id = thisPayment.id
-                                                        newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
-                                                        newTransaction.received = 0
-                                                        newTransaction.isLightning = true
-                                                        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                                                        newTransaction.confirmations = 0
-                                                        newTransaction.height = 0
-                                                        newTransaction.isBittr = false
-                                                        
-                                                        if Int(thisPayment.amountMsat ?? 0)/1000 > invoiceAmount {
-                                                            // Fees were incurred.
-                                                            let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - invoiceAmount
-                                                            CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
-                                                            newTransaction.fee = feesIncurred
-                                                        } else {
-                                                            newTransaction.fee = 0
-                                                        }
-                                                        
-                                                        sendVC?.completedTransaction = newTransaction
-                                                        receiveVC?.completedTransaction = newTransaction
-                                                        
-                                                        if let actualHomeVC = sendVC?.homeVC {
-                                                            actualHomeVC.setTransactions += [newTransaction]
-                                                            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                                                                transaction1.timestamp > transaction2.timestamp
-                                                            }
-                                                            actualHomeVC.homeTableView.reloadData()
-                                                        } else if let actualHomeVC = receiveVC?.homeVC {
-                                                            actualHomeVC.setTransactions += [newTransaction]
-                                                            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                                                                transaction1.timestamp > transaction2.timestamp
-                                                            }
-                                                            actualHomeVC.homeTableView.reloadData()
-                                                        }
-                                                        
-                                                        sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
-                                                        receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
-                                                    }
-                                                }))
-                                                self.present(alert, animated: true)
+                                                
+                                                var thisAction:Selector?
+                                                if sendVC != nil {
+                                                    sendVC!.newPaymentHash = paymentHash
+                                                    sendVC!.newInvoiceAmount = invoiceAmount
+                                                    thisAction = #selector(sendVC!.addNewPayment)
+                                                } else if receiveVC != nil {
+                                                    receiveVC!.newPaymentHash = paymentHash
+                                                    receiveVC!.newInvoiceAmount = invoiceAmount
+                                                    thisAction = #selector(receiveVC!.addNewPayment)
+                                                }
+                                                
+                                                if thisAction != nil {
+                                                    // Success alert
+                                                    self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
+                                                }
                                             } else {
                                                 // Payment came back failed.
-                                                self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")])
+                                                self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             }
                                         } else {
                                             // Success alert
-                                            self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")])
+                                            self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                         }
                                         
                                         sendVC?.nextLabel.alpha = 1
@@ -148,7 +117,7 @@ extension UIViewController {
                                         sendVC?.nextLabel.alpha = 1
                                         sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")])
+                                        self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -159,7 +128,7 @@ extension UIViewController {
                                         sendVC?.nextLabel.alpha = 1
                                         sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")])
+                                        self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -170,6 +139,52 @@ extension UIViewController {
                     }
                 }
             }
+        }
+    }
+    
+    func addNewPaymentToTable(paymentHash:PaymentHash, invoiceAmount:Int, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+        self.hideAlert()
+        
+        if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+            
+            let newTransaction = Transaction()
+            newTransaction.id = thisPayment.id
+            newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
+            newTransaction.received = 0
+            newTransaction.isLightning = true
+            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+            newTransaction.confirmations = 0
+            newTransaction.height = 0
+            newTransaction.isBittr = false
+            
+            if Int(thisPayment.amountMsat ?? 0)/1000 > invoiceAmount {
+                // Fees were incurred.
+                let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - invoiceAmount
+                CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
+                newTransaction.fee = feesIncurred
+            } else {
+                newTransaction.fee = 0
+            }
+            
+            sendVC?.completedTransaction = newTransaction
+            receiveVC?.completedTransaction = newTransaction
+            
+            if let actualHomeVC = sendVC?.homeVC {
+                actualHomeVC.setTransactions += [newTransaction]
+                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                    transaction1.timestamp > transaction2.timestamp
+                }
+                actualHomeVC.homeTableView.reloadData()
+            } else if let actualHomeVC = receiveVC?.homeVC {
+                actualHomeVC.setTransactions += [newTransaction]
+                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                    transaction1.timestamp > transaction2.timestamp
+                }
+                actualHomeVC.homeTableView.reloadData()
+            }
+            
+            sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
+            receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
         }
     }
 }

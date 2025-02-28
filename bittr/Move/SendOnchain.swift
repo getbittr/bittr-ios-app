@@ -50,7 +50,7 @@ extension SendViewController {
                 
             } else if self.onchainAmountInBTC > self.btcAmount {
                 // Insufficient funds available.
-                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
             
                 self.nextLabel.alpha = 0
@@ -169,9 +169,9 @@ extension SendViewController {
                                 
                                 if "\(error)".contains("InsufficientFunds") {
                                     let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
-                                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")])
+                                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 } else {
-                                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", buttons: [Language.getWord(withID: "okay")])
+                                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                                 
                                 SentrySDK.capture(error: error)
@@ -182,7 +182,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")])
+                                self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 
                                 SentrySDK.capture(error: error)
                             }
@@ -211,7 +211,7 @@ extension SendViewController {
                 
                 if self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                     
-                    self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")])
+                    self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         case "medium":
@@ -225,7 +225,7 @@ extension SendViewController {
                 
                 if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                     
-                    self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")])
+                    self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         case "slow":
@@ -236,7 +236,7 @@ extension SendViewController {
             
             if self.stringToNumber(self.satsSlow.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                 
-                self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         default:
             self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
@@ -246,7 +246,7 @@ extension SendViewController {
             
             if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                 
-                self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }
@@ -346,62 +346,64 @@ extension SendViewController {
                             print("Successful transaction.")
                             self.sendLabel.alpha = 1
                             self.sendSpinner.stopAnimating()
+                            self.newTxId = txid
                             
-                            let successAlert = UIAlertController(title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), preferredStyle: .alert)
-                            successAlert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .default, handler: {_ in
-                                
-                                let newTransaction = Transaction()
-                                newTransaction.id = "\(txid)"
-                                newTransaction.confirmations = 0
-                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                                newTransaction.height = 0
-                                newTransaction.received = 0
-                                var satsLabel = self.satsMedium
-                                if self.selectedFee == "low" {
-                                    satsLabel = self.satsSlow
-                                } else if self.selectedFee == "high" {
-                                    satsLabel = self.satsFast
-                                }
-                                newTransaction.fee = Int(self.stringToNumber(satsLabel!.text!.replacingOccurrences(of: " sats", with: "")))
-                                newTransaction.sent = self.onchainAmountInSatoshis + newTransaction.fee
-                                newTransaction.isLightning = false
-                                newTransaction.isBittr = false
-                                
-                                self.completedTransaction = newTransaction
-                                
-                                if let actualHomeVC = self.homeVC {
-                                    actualHomeVC.setTransactions += [newTransaction]
-                                    actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                                        transaction1.timestamp > transaction2.timestamp
-                                    }
-                                    actualHomeVC.homeTableView.reloadData()
-                                }
-                                
-                                self.performSegue(withIdentifier: "SendToTransaction", sender: self)
-                                
-                                self.resetFields()
-                                
-                                // Slide back to leftmost scroll view.
-                                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                                    NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-                                    self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
-                                    NSLayoutConstraint.activate([self.scrollViewTrailing])
-                                    self.view.layoutIfNeeded()
-                                }
-                            }))
-                            self.present(successAlert, animated: true)
+                            self.showAlert(title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
                         }
                     } catch {
                         print("Transaction error: \(error.localizedDescription)")
-                        self.showAlert(title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")])
+                        self.showAlert(title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
             } else {
                 print("Wallet or Blockchain instance not available.")
-                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")])
+                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }))
         self.present(alert, animated: true)
+    }
+    
+    @objc func addNewTxToTable() {
+        self.hideAlert()
+        
+        let newTransaction = Transaction()
+        newTransaction.id = "\(self.newTxId)"
+        newTransaction.confirmations = 0
+        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+        newTransaction.height = 0
+        newTransaction.received = 0
+        var satsLabel = self.satsMedium
+        if self.selectedFee == "low" {
+            satsLabel = self.satsSlow
+        } else if self.selectedFee == "high" {
+            satsLabel = self.satsFast
+        }
+        newTransaction.fee = Int(self.stringToNumber(satsLabel!.text!.replacingOccurrences(of: " sats", with: "")))
+        newTransaction.sent = self.onchainAmountInSatoshis + newTransaction.fee
+        newTransaction.isLightning = false
+        newTransaction.isBittr = false
+        
+        self.completedTransaction = newTransaction
+        
+        if let actualHomeVC = self.homeVC {
+            actualHomeVC.setTransactions += [newTransaction]
+            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+                transaction1.timestamp > transaction2.timestamp
+            }
+            actualHomeVC.homeTableView.reloadData()
+        }
+        
+        self.performSegue(withIdentifier: "SendToTransaction", sender: self)
+        
+        self.resetFields()
+        
+        // Slide back to leftmost scroll view.
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+            self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.scrollViewTrailing])
+            self.view.layoutIfNeeded()
+        }
     }
     
     func getMaximumSendableSats() -> Double? {
@@ -444,7 +446,7 @@ extension SendViewController {
 
 extension UIViewController {
     
-    func showAlert(title:String, message:String, buttons:[String]) {
+    func showAlert(title:String, message:String, buttons:[String], actions:[Selector]?) {
         /*DispatchQueue.main.async {
             let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
@@ -538,6 +540,14 @@ extension UIViewController {
             closeButton.setTitle("", for: .normal)
             closeButton.backgroundColor = .clear
             closeButton.addTarget(self, action: #selector(self.hideAlert), for: .touchUpInside)
+            if actions == nil {
+                closeIcon.alpha = 1
+                closeButton.alpha = 1
+            } else {
+                // Hide close icon for alerts with a specific function.
+                closeIcon.alpha = 0
+                closeButton.alpha = 0
+            }
             yellowCard.addSubview(closeButton)
             let closeButtonCenterX = NSLayoutConstraint(item: closeButton, attribute: .centerX, relatedBy: .equal, toItem: closeIcon, attribute: .centerX, multiplier: 1, constant: 0)
             let closeButtonCenterY = NSLayoutConstraint(item: closeButton, attribute: .centerY, relatedBy: .equal, toItem: closeIcon, attribute: .centerY, multiplier: 1, constant: 0)
@@ -578,56 +588,74 @@ extension UIViewController {
             yellowCard.addConstraints([messageLabelLeft, messageLabelRight, messageLabelTop])
             messageLabel.addConstraints([messageLabelHeight])
             
-            // Close view
-            let closeView = UIView()
-            closeView.translatesAutoresizingMaskIntoConstraints = false
-            closeView.backgroundColor = Colors.getColor("white0.7orblue1")
-            closeView.layer.cornerRadius = 8
-            closeView.layer.shadowColor = UIColor.black.cgColor
-            closeView.layer.shadowOffset = CGSize(width: 0, height: 7)
-            closeView.layer.shadowRadius = 10.0
-            closeView.layer.shadowOpacity = 0.1
-            closeView.clipsToBounds = false
-            yellowCard.addSubview(closeView)
-            let closeViewTop = NSLayoutConstraint(item: closeView, attribute: .top, relatedBy: .equal, toItem: messageLabel, attribute: .bottom, multiplier: 1, constant: 35)
-            let closeViewBottom = NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: -10)
-            let yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: closeView, attribute: .bottom, multiplier: 1, constant: 10)
-            let closeViewLeft = NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 10)
-            let closeViewRight = NSLayoutConstraint(item: closeView, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -10)
-            let closeViewHeight = NSLayoutConstraint(item: closeView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
-            yellowCard.addConstraints([closeViewTop, closeViewBottom, closeViewLeft, closeViewRight])
-            closeView.addConstraint(closeViewHeight)
-            darkBackground.addConstraints([yellowCardBottom])
+            // Buttons stack
+            let buttonsStack = UIView()
+            buttonsStack.translatesAutoresizingMaskIntoConstraints = false
+            buttonsStack.clipsToBounds = false
+            buttonsStack.backgroundColor = .clear
+            yellowCard.addSubview(buttonsStack)
+            let buttonsStackHeight = NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
+            let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 10)
+            let buttonsStackRight = NSLayoutConstraint(item: buttonsStack, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -10)
+            let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: 0)
+            let buttonsStackTop = NSLayoutConstraint(item: buttonsStack, attribute: .top, relatedBy: .equal, toItem: messageLabel, attribute: .bottom, multiplier: 1, constant: 35)
+            yellowCard.addConstraints([buttonsStackLeft, buttonsStackRight, buttonsStackBottom, buttonsStackTop])
+            buttonsStack.addConstraint(buttonsStackHeight)
             
-            // Button label
-            let buttonLabel = UILabel()
-            buttonLabel.translatesAutoresizingMaskIntoConstraints = false
-            buttonLabel.numberOfLines = 1
-            buttonLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-            buttonLabel.text = buttons[0]
-            buttonLabel.textColor = Colors.getColor("blackorwhite")
-            buttonLabel.textAlignment = .center
-            closeView.addSubview(buttonLabel)
-            let buttonLabelCenterX = NSLayoutConstraint(item: buttonLabel, attribute: .centerX, relatedBy: .equal, toItem: closeView, attribute: .centerX, multiplier: 1, constant: 0)
-            let buttonLabelCenterY = NSLayoutConstraint(item: buttonLabel, attribute: .centerY, relatedBy: .equal, toItem: closeView, attribute: .centerY, multiplier: 1, constant: 1)
-            let buttonLabelHeight = NSLayoutConstraint(item: buttonLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            let buttonLabelWidth = NSLayoutConstraint(item: buttonLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            closeView.addConstraints([buttonLabelCenterX, buttonLabelCenterY])
-            buttonLabel.addConstraints([buttonLabelHeight, buttonLabelWidth])
-            
-            // Main button
-            let mainButton = UIButton()
-            mainButton.translatesAutoresizingMaskIntoConstraints = false
-            mainButton.setTitle("", for: .normal)
-            mainButton.backgroundColor = .clear
-            mainButton.addTarget(self, action: #selector(self.hideAlert), for: .touchUpInside)
-            yellowCard.addSubview(mainButton)
-            let mainButtonBottom = NSLayoutConstraint(item: mainButton, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: 0)
-            let mainButtonLeft = NSLayoutConstraint(item: mainButton, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 0)
-            let mainButtonRight = NSLayoutConstraint(item: mainButton, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: 0)
-            let mainButtonTop = NSLayoutConstraint(item: mainButton, attribute: .top, relatedBy: .equal, toItem: closeView, attribute: .top, multiplier: 1, constant: 0)
-            yellowCard.addConstraints([mainButtonTop, mainButtonLeft, mainButtonRight, mainButtonBottom])
-            
+            if buttons.count == 1 {
+                
+                // Close view
+                let closeView = UIView()
+                closeView.translatesAutoresizingMaskIntoConstraints = false
+                closeView.backgroundColor = Colors.getColor("white0.7orblue1")
+                closeView.layer.cornerRadius = 8
+                closeView.layer.shadowColor = UIColor.black.cgColor
+                closeView.layer.shadowOffset = CGSize(width: 0, height: 7)
+                closeView.layer.shadowRadius = 10.0
+                closeView.layer.shadowOpacity = 0.1
+                closeView.clipsToBounds = false
+                buttonsStack.addSubview(closeView)
+                let closeViewTop = NSLayoutConstraint(item: closeView, attribute: .top, relatedBy: .equal, toItem: buttonsStack, attribute: .top, multiplier: 1, constant: 0)
+                let closeViewBottom = NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: -10)
+                let closeViewLeft = NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: 0)
+                let closeViewRight = NSLayoutConstraint(item: closeView, attribute: .trailing, relatedBy: .equal, toItem: buttonsStack, attribute: .trailing, multiplier: 1, constant: 0)
+                let closeViewHeight = NSLayoutConstraint(item: closeView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
+                buttonsStack.addConstraints([closeViewTop, closeViewBottom, closeViewLeft, closeViewRight])
+                closeView.addConstraint(closeViewHeight)
+                
+                // Button label
+                let buttonLabel = UILabel()
+                buttonLabel.translatesAutoresizingMaskIntoConstraints = false
+                buttonLabel.numberOfLines = 1
+                buttonLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                buttonLabel.text = buttons[0]
+                buttonLabel.textColor = Colors.getColor("blackorwhite")
+                buttonLabel.textAlignment = .center
+                closeView.addSubview(buttonLabel)
+                let buttonLabelCenterX = NSLayoutConstraint(item: buttonLabel, attribute: .centerX, relatedBy: .equal, toItem: closeView, attribute: .centerX, multiplier: 1, constant: 0)
+                let buttonLabelCenterY = NSLayoutConstraint(item: buttonLabel, attribute: .centerY, relatedBy: .equal, toItem: closeView, attribute: .centerY, multiplier: 1, constant: 1)
+                let buttonLabelHeight = NSLayoutConstraint(item: buttonLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                let buttonLabelWidth = NSLayoutConstraint(item: buttonLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                closeView.addConstraints([buttonLabelCenterX, buttonLabelCenterY])
+                buttonLabel.addConstraints([buttonLabelHeight, buttonLabelWidth])
+                
+                // Main button
+                let mainButton = UIButton()
+                mainButton.translatesAutoresizingMaskIntoConstraints = false
+                mainButton.setTitle("", for: .normal)
+                mainButton.backgroundColor = .clear
+                if actions == nil {
+                    mainButton.addTarget(self, action: #selector(self.hideAlert), for: .touchUpInside)
+                } else {
+                    mainButton.addTarget(self, action: actions![0], for: .touchUpInside)
+                }
+                buttonsStack.addSubview(mainButton)
+                let mainButtonBottom = NSLayoutConstraint(item: mainButton, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: 0)
+                let mainButtonLeft = NSLayoutConstraint(item: mainButton, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: 0)
+                let mainButtonRight = NSLayoutConstraint(item: mainButton, attribute: .trailing, relatedBy: .equal, toItem: buttonsStack, attribute: .trailing, multiplier: 1, constant: 0)
+                let mainButtonTop = NSLayoutConstraint(item: mainButton, attribute: .top, relatedBy: .equal, toItem: buttonsStack, attribute: .top, multiplier: 1, constant: 0)
+                yellowCard.addConstraints([mainButtonTop, mainButtonLeft, mainButtonRight, mainButtonBottom])
+            }
             
             self.view.layoutIfNeeded()
         }

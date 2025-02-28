@@ -119,7 +119,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             if let actualCoreVC = self.coreVC {
                 if actualCoreVC.walletHasSynced == false {
                     // Wallet isn't ready.
-                    self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")])
+                    self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     return
                 }
             }
