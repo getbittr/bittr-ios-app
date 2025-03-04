@@ -237,22 +237,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         if self.embeddingView == "core" {
             
-            let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
-                
-                let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
-                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
-                    
-                    if let actualCoreVC = self.coreVC {
-                        actualCoreVC.resetApp(nodeIsRunning: false)
-                    }
-                }))
-                self.present(secondAlert, animated: true)
-            }))
-            self.present(alert, animated: true)
-            
+            self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.secondRestoreAlert)])
         } else if self.embeddingView == "signup5" {
             return
         } else if self.embeddingView == "signup6" {
@@ -271,6 +256,20 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             }
         }
         
+    }
+    
+    @objc func secondRestoreAlert() {
+        self.hideAlert()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.confirmRestore)])
+        }
+    }
+    
+    @objc func confirmRestore() {
+        self.hideAlert()
+        if let actualCoreVC = self.coreVC {
+            actualCoreVC.resetApp(nodeIsRunning: false)
+        }
     }
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {

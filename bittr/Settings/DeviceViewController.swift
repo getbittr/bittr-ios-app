@@ -302,12 +302,12 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         if let actualHomeVC = self.homeVC {
             if let actualCoreVC = actualHomeVC.coreVC {
-                if let actualSpecialData = actualCoreVC.varSpecialData {
+                if actualCoreVC.varSpecialData != nil {
                     actualCoreVC.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                     actualCoreVC.pendingSpinner.startAnimating()
                     actualCoreVC.pendingView.alpha = 1
                     actualCoreVC.blackSignupBackground.alpha = 0.2
-                    actualCoreVC.facilitateNotificationPayout(specialData: actualSpecialData)
+                    actualCoreVC.facilitateNotificationPayout()
                     self.dismiss(animated: true)
                 } else {
                     if let actualSpecialData = CacheManager.getLatestNotification() {
@@ -316,7 +316,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                         actualCoreVC.pendingSpinner.startAnimating()
                         actualCoreVC.pendingView.alpha = 1
                         actualCoreVC.blackSignupBackground.alpha = 0.2
-                        actualCoreVC.facilitateNotificationPayout(specialData: actualSpecialData)
+                        actualCoreVC.facilitateNotificationPayout()
                         self.dismiss(animated: true)
                     } else {
                         self.showNotificationAlert()

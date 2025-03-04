@@ -89,6 +89,7 @@
 		05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */; };
 		05C3C0B829CCC75600C1E695 /* Montserrat-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C0B729CCC75600C1E695 /* Montserrat-Regular.ttf */; };
 		05C3C0BA29CCC76100C1E695 /* Montserrat-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C0B929CCC76100C1E695 /* Montserrat-Bold.ttf */; };
+		05C4691B2D76CFF4000B1C24 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C4691A2D76CFF0000B1C24 /* AlertManager.swift */; };
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */; };
 		05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */; };
@@ -244,6 +245,7 @@
 		05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreViewController.swift; sourceTree = "<group>"; };
 		05C3C0B729CCC75600C1E695 /* Montserrat-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Montserrat-Regular.ttf"; sourceTree = "<group>"; };
 		05C3C0B929CCC76100C1E695 /* Montserrat-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Montserrat-Bold.ttf"; sourceTree = "<group>"; };
+		05C4691A2D76CFF0000B1C24 /* AlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertManager.swift; sourceTree = "<group>"; };
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05C811222B37107700DEFBB1 /* LightningPaymentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningPaymentViewController.swift; sourceTree = "<group>"; };
@@ -512,6 +514,7 @@
 				05E4834E2D290482007A5834 /* Value */,
 				05AF89722D436901009D629C /* Swaps */,
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
+				05C4691A2D76CFF0000B1C24 /* AlertManager.swift */,
 				051DDEF82C6B185C0002CF2D /* Colors.swift */,
 				052171252CB41577006C5663 /* Language.swift */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
@@ -891,6 +894,7 @@
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
+				05C4691B2D76CFF4000B1C24 /* AlertManager.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,
 				05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */,
