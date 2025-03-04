@@ -59,13 +59,13 @@ class LightningNodeService {
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
             // TODO: Public? // Signet and Bitcoin node.
-            trustedPeers0conf: ["03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
+            trustedPeers0conf: ["035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678", "035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678"],
             probingLiquidityLimitMultiplier: UInt64(3),
             logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
                     trustedPeersNoReserve: [
-                        PublicKey("03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36"),
-                        PublicKey("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12")
+                        PublicKey("035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678"),
+                        PublicKey("035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678")
                     ], perChannelReserveSats: UInt64(1000))
         )
         
@@ -176,9 +176,10 @@ class LightningNodeService {
                     // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
                     var electrumUrl = "ssl://electrum.blockstream.info:50002"
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        electrumUrl = "tcp://regtest.getbittr.com:3002"
+                        electrumUrl = "tcp://regtest.getbittr.com:19001"
                     }
                     let electrum = ElectrumConfig(
+                        
                         url: electrumUrl,
                         socks5: nil,
                         retry: 5,
@@ -186,8 +187,7 @@ class LightningNodeService {
                         stopGap: 10,
                         validateDomain: electrumUrl.starts(with: "ssl://") // Only validate if using SSL
                     )
-                    let esplora = EsploraConfig(baseUrl: "https://esplora.regtest.getbittr.com/api", proxy: nil, concurrency: 1, stopGap: 10, timeout: nil)
-                    let blockchainConfig = BlockchainConfig.esplora(config: esplora)
+                    let blockchainConfig = BlockchainConfig.electrum(config: electrum)
                     let blockchain = try Blockchain(config: blockchainConfig)
                     self.blockchain = blockchain
                     
@@ -251,7 +251,7 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03fb2627229d3cc8b62a9db7ee76b4584831dce859743fc68285de8362926dba7f", "03fb2627229d3cc8b62a9db7ee76b4584831dce859743fc68285de8362926dba7f"]
+        let nodeIds = ["035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678", "035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
