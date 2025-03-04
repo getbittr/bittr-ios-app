@@ -287,13 +287,13 @@ class TransactionViewController: UIViewController {
     @IBAction func idButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.id
-        self.showAlert(Language.getWord(withID: "copied"), self.tappedTransaction.id, Language.getWord(withID: "okay"))
+        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.id, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lnDescription
-        self.showAlert(Language.getWord(withID: "copied"), self.tappedTransaction.lnDescription, Language.getWord(withID: "okay"))
+        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {

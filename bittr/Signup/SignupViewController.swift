@@ -30,7 +30,7 @@ class SignupViewController: UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -104,7 +104,7 @@ class SignupViewController: UIViewController {
     @objc func screenshotTaken() {
         // User shouldn't screenshot their mnemonic.
         if currentPage == 3 {
-            self.showAlert(Language.getWord(withID: "becareful"), Language.getWord(withID: "noscreenshot"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "noscreenshot"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     

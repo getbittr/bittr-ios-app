@@ -121,6 +121,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var createdInvoice = ""
     var homeVC:HomeViewController?
     var completedTransaction:Transaction?
+    var newPaymentHash:PaymentHash?
+    var newInvoiceAmount:Int?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -244,7 +246,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
         UIPasteboard.general.string = self.addressLabel.text
-        self.showAlert(Language.getWord(withID: "copied"), self.addressLabel.text ?? "", Language.getWord(withID: "okay"))
+        self.showAlert(title: Language.getWord(withID: "copied"), message: self.addressLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func refreshButtonTapped(_ sender: UIButton) {
@@ -372,7 +374,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         if self.createdInvoice != "" {
             UIPasteboard.general.string = self.createdInvoice
-            self.showAlert(Language.getWord(withID: "copied"), self.createdInvoice, Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "copied"), message: self.createdInvoice, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -411,6 +413,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
                     actualTransactionVC.chfValue = (CacheManager.getCachedData(key: "chfvalue") as? CGFloat)!
                 }
             }
+        }
+    }
+    
+    @objc func addNewPayment() {
+        if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
+            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, sendVC: nil, receiveVC: self)
+            self.newInvoiceAmount = nil
+            self.newPaymentHash = nil
         }
     }
     

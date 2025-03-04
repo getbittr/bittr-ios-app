@@ -317,7 +317,8 @@ class Language: NSObject {
             "nodatareceived": "No data was received",
             "swapamountexceeded": "You can only move up to <amount> satoshis at a time. Please enter an amount within this limit.",
             "swapfunds3": "The expected fee to move <amount> satoshis (<convertedamount>) is <feesamount> satoshis (<convertedfees>). Do you wish to proceed?",
-            "proceed": "Proceed"
+            "proceed": "Proceed",
+            "message": "message"
         ]
         
         if let foundWord = allWords[withID] {

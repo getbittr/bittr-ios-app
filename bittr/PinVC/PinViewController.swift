@@ -171,20 +171,16 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
-                let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
-                    self.pinTextField.text = ""
-                    if let actualCoreVC = self.coreVC {
-                        actualCoreVC.resetApp(nodeIsRunning: false)
-                    }
-                }))
-                self.present(alert, animated: true)
+                self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                if let actualCoreVC = self.coreVC {
+                    actualCoreVC.resetApp(nodeIsRunning: false)
+                }
                 return
             }
             
@@ -199,11 +195,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 } else {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
-                    let alert = UIAlertController(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: { _ in
-                        self.pinTextField.text = ""
-                    }))
-                    self.present(alert, animated: true)
+                    self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 }
             } else {
                 // No pin found in storage.
@@ -234,6 +226,11 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 actualRestore3VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         }
+    }
+    
+    @objc func clearPinField() {
+        self.hideAlert()
+        self.pinTextField.text = ""
     }
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {

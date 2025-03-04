@@ -66,49 +66,33 @@ extension CoreViewController {
         }
     }
     
+    @objc func restartLightning() {
+        
+        self.hideAlert()
+        if let actualNode = LightningNodeService.shared.ldkNode {
+            if actualNode.status().isRunning {
+                print("Node is running.")
+                LightningNodeService.shared.startBDK()
+            } else {
+                print("Node isn't running. 2")
+                self.startLightning()
+            }
+        } else {
+            print("Node isn't running.")
+            self.startLightning()
+        }
+    }
+    
     @objc func stopLightning(notification:NSNotification?, stopNode:Bool) {
         
         if let actualNotification = notification {
-            
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {
-                    let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(notificationMessage)", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                        if let actualNode = LightningNodeService.shared.ldkNode {
-                            if actualNode.status().isRunning {
-                                print("Node is running.")
-                                LightningNodeService.shared.startBDK()
-                            } else {
-                                print("Node isn't running. 2")
-                                self.startLightning()
-                            }
-                        } else {
-                            print("Node isn't running.")
-                            self.startLightning()
-                        }
-                    }))
-                    DispatchQueue.main.async {
-                        self.present(alert, animated: true)
-                    }
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(notificationMessage)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
                 }
             }
         } else {
-            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                do {
-                    self.startLightning()
-                } catch let error as NodeError {
-                    let errorString = handleNodeError(error)
-                    print("Can't stop node. \(errorString.title): \(errorString.detail)")
-                    if errorString.title == "NotRunning" {
-                        self.startLightning()
-                    }
-                } catch {
-                    print("Can't stop node. \(error.localizedDescription)")
-                    self.startLightning()
-                }
-            }))
-            self.present(alert, animated: true)
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
         }
     }
 

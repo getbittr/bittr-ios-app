@@ -63,7 +63,7 @@ extension UIViewController {
                 if let error = dataError {
                     print("Error 50: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail3"), Language.getWord(withID: "okay"))
+                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
                 
@@ -138,7 +138,7 @@ extension UIViewController {
                                     }
                                 } else {
                                     DispatchQueue.main.async {
-                                        self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail4"), Language.getWord(withID: "okay"))
+                                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
                                 }
                             }
@@ -146,7 +146,7 @@ extension UIViewController {
                     } catch {
                         print("Error 111: \(error.localizedDescription)")
                         DispatchQueue.main.async {
-                            self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail3"), Language.getWord(withID: "okay"))
+                            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 }
@@ -160,7 +160,7 @@ extension UIViewController {
         } catch {
             print("Couldn't decode LNURL. Message: \(error.localizedDescription)")
             DispatchQueue.main.async {
-                self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail3"), Language.getWord(withID: "okay"))
+                self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
             if sendVC != nil {
                 sendVC!.stopLNURLSpinner()
@@ -236,14 +236,14 @@ extension UIViewController {
                             }
                         } else if let receivedStatus = actualDataDict["status"] as? String, let receivedDetail = actualDataDict["detail"] as? String {
                             DispatchQueue.main.async {
-                                self.showAlert(Language.getWord(withID: "payrequest"), "\(Language.getWord(withID: "lnurlfail2")) \(receivedDetail)", Language.getWord(withID: "okay"))
+                                self.showAlert(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(receivedDetail)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     }
                 } catch {
                     print("Error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail3"), Language.getWord(withID: "okay"))
+                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
             }
@@ -304,7 +304,7 @@ extension UIViewController {
                         if let error = dataError {
                             print("Error: \(error.localizedDescription)")
                             DispatchQueue.main.async {
-                                self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail3"), Language.getWord(withID: "okay"))
+                                self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                         
@@ -332,7 +332,7 @@ extension UIViewController {
                                             // There was a problem.
                                             if let receivedReason = actualDataDict["reason"] as? String {
                                                 DispatchQueue.main.async {
-                                                    self.showAlert(Language.getWord(withID: "withdrawrequest"), "\(Language.getWord(withID: "lnurlfail1")) \(receivedReason)", Language.getWord(withID: "okay"))
+                                                    self.showAlert(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(receivedReason)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                                 }
                                             }
                                         }
@@ -341,7 +341,7 @@ extension UIViewController {
                             } catch {
                                 print("Error: \(error.localizedDescription)")
                                 DispatchQueue.main.async {
-                                    self.showAlert(Language.getWord(withID: "lnurl"), Language.getWord(withID: "lnurlfail3"), Language.getWord(withID: "okay"))
+                                    self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             }
                         }
@@ -357,7 +357,7 @@ extension UIViewController {
                     if receiveVC != nil {
                         receiveVC!.stopLNURLSpinner()
                     }
-                    self.showAlert(Language.getWord(withID: "error"), errorString.detail, Language.getWord(withID: "okay"))
+                    self.showAlert(title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                     SentrySDK.capture(error: error)
                 }
             } catch {
@@ -368,7 +368,7 @@ extension UIViewController {
                     if receiveVC != nil {
                         receiveVC!.stopLNURLSpinner()
                     }
-                    self.showAlert(Language.getWord(withID: "unexpectederror"), error.localizedDescription, Language.getWord(withID: "okay"))
+                    self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                     SentrySDK.capture(error: error)
                 }
             }

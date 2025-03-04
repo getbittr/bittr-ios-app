@@ -156,6 +156,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var homeVC:HomeViewController?
     var onchainAmountInSatoshis:Int = 0
     var onchainAmountInBTC:CGFloat = 0.0
+    var newTxId = ""
+    var newPaymentHash:PaymentHash?
+    var newInvoiceAmount:Int?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -458,6 +461,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         present(actionSheet, animated: true, completion: nil)
     }
     
+    @objc func addNewPayment() {
+        if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
+            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, sendVC: self, receiveVC: nil)
+            self.newInvoiceAmount = nil
+            self.newPaymentHash = nil
+        }
+    }
+    
 }
 
 extension UITextField {
@@ -481,7 +492,7 @@ extension UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(Language.getWord(withID: "checkyourconnection"), Language.getWord(withID: "trytoconnect"), Language.getWord(withID: "okay"))
+            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return false
         } else {
             return true
