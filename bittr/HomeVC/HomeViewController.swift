@@ -31,6 +31,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var bitcoinSign: UIImageView!
     @IBOutlet weak var balanceLabel: UILabel!
     @IBOutlet weak var satsLabel: UILabel!
+    @IBOutlet weak var satsLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
     @IBOutlet weak var balanceCardButton: UIButton!
@@ -419,6 +420,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.coreVC?.lightningBalanceInSats = 0
         
         self.noTransactionsLabel.alpha = 0
+        self.balanceCardProfitView.alpha = 0
         self.balanceCardGainLabel.alpha = 0
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0

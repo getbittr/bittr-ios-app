@@ -116,19 +116,21 @@ class Signup7ViewController: UIViewController {
     }
     
     @objc func updateArticle() {
-        if self.coreVC != nil {
-            if self.coreVC!.allArticles != nil {
-                if let thisArticle = self.coreVC!.allArticles![pageArticle1Slug] {
-                    
-                    self.pageArticle1 = thisArticle
-                    self.articleTitle.text = self.pageArticle1.title
-                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                    
-                    if let imageData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.spinner1.stopAnimating()
-                        self.articleImage.image = UIImage(data: imageData)
-                    } else {
+        DispatchQueue.main.async {
+            if self.coreVC != nil {
+                if self.coreVC!.allArticles != nil {
+                    if let thisArticle = self.coreVC!.allArticles![self.pageArticle1Slug] {
                         
+                        self.pageArticle1 = thisArticle
+                        self.articleTitle.text = self.pageArticle1.title
+                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                        
+                        if let imageData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.spinner1.stopAnimating()
+                            self.articleImage.image = UIImage(data: imageData)
+                        } else {
+                            
+                        }
                     }
                 }
             }

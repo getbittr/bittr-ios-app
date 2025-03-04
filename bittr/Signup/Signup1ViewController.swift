@@ -138,8 +138,9 @@ class Signup1ViewController: UIViewController {
         }
         
         // Send mnemonic to 3rd signup view.
-        let notificationDict:[String: Any] = ["mnemonic":mnemonicString]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: notificationDict) as Notification)
+        if self.coreVC == nil { print("CoreVC nil.") }
+        self.coreVC?.newMnemonic = mnemonicString.components(separatedBy: " ")
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: nil) as Notification)
         
         self.didReceiveMnemonic()
     }

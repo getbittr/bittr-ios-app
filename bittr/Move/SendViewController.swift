@@ -241,7 +241,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 numberFormatter.numberStyle = .decimal
                 self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
             } else {
-                self.maximumSendableOnchainBtc = self.getMaximumSendableSats()
+                self.maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? 0
                 let numberFormatter = NumberFormatter()
                 numberFormatter.numberStyle = .decimal
                 self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
