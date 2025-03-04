@@ -59,13 +59,13 @@ class LightningNodeService {
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
             // TODO: Public? // Signet and Bitcoin node.
-            trustedPeers0conf: ["035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678", "035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678"],
+            trustedPeers0conf: ["030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3", "030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3"],
             probingLiquidityLimitMultiplier: UInt64(3),
             logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
                     trustedPeersNoReserve: [
-                        PublicKey("035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678"),
-                        PublicKey("035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678")
+                        PublicKey("030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3"),
+                        PublicKey("030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3")
                     ], perChannelReserveSats: UInt64(1000))
         )
         
@@ -264,7 +264,7 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678", "035a2029dcb6d8e2eff0171a6a63c6573bbf5deecc92191b6dd8e2341ad04c3678"]
+        let nodeIds = ["030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3", "030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
