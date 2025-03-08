@@ -69,12 +69,12 @@ class SwapManager: NSObject {
                 "invoice": invoice,
                 "refundPublicKey": "034ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88"
             ]
-            var testnetURL = ""
+            var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                testnetURL = "testnet."
+                apiURL = "https://api.regtest.getbittr.com/v2"
             }
             let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
-            var request = URLRequest(url: URL(string: "https://api.\(testnetURL)boltz.exchange/v2/swap/submarine".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
+            var request = URLRequest(url: URL(string: "\(apiURL)/swap/submarine".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
             request.httpMethod = "POST"
@@ -177,10 +177,11 @@ class SwapManager: NSObject {
                         let high = try actualBlockchain.estimateFee(target: 1)
                         let feeHigh = Float(Int(high.asSatPerVb()*10))/10
                         
-                        var address = try Address(address: onchainAddress, network: .bitcoin)
+                        var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                            address = try Address(address: onchainAddress, network: .testnet)
+                            network = BitcoinDevKit.Network.regtest
                         }
+                        let address = try Address(address: onchainAddress, network: network)
                         let script = address.scriptPubkey()
                         let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(expectedAmount))
                         let details = try txBuilder.finish(wallet: actualWallet)
@@ -240,10 +241,11 @@ class SwapManager: NSObject {
                 
                 Task {
                     do {
-                        var address = try Address(address: onchainAddress, network: .bitcoin)
+                        var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                            address = try Address(address: onchainAddress, network: .testnet)
+                            network = BitcoinDevKit.Network.regtest
                         }
+                        let address = try Address(address: onchainAddress, network: network)
                         let script = address.scriptPubkey()
                         let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(expectedAmount)).feeRate(satPerVbyte: feeHigh)
                         let details = try txBuilder.finish(wallet: actualWallet)
@@ -309,12 +311,12 @@ class SwapManager: NSObject {
             let parameters: [String: Any] = [
                 "id": swapID
             ]
-            var testnetURL = ""
+            var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                testnetURL = "testnet."
+                apiURL = "https://api.regtest.getbittr.com/v2"
             }
             let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
-            var request = URLRequest(url: URL(string: "https://api.\(testnetURL)boltz.exchange/v2/swap/\(swapID)".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
+            var request = URLRequest(url: URL(string: "\(apiURL)/swap/\(swapID)".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
             request.httpMethod = "GET"
@@ -357,7 +359,7 @@ class SwapManager: NSObject {
                             }
                         }
                     } catch {
-                        print("Error 111: \(error.localizedDescription)")
+                        print("Error 360: \(error.localizedDescription)")
                         completion(nil)
                     }
                 }
@@ -381,12 +383,12 @@ class SwapManager: NSObject {
             let parameters: [String: Any] = [
                 "id": swapID
             ]
-            var testnetURL = ""
+            var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                testnetURL = "testnet."
+                apiURL = "https://api.regtest.getbittr.com/v2"
             }
             let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
-            var request = URLRequest(url: URL(string: "https://api.\(testnetURL)boltz.exchange/v2/swap/submarine/\(swapID)/claim".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
+            var request = URLRequest(url: URL(string: "\(apiURL)/swap/submarine/\(swapID)/claim".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
             request.httpMethod = "GET"
@@ -408,7 +410,7 @@ class SwapManager: NSObject {
                 }
                 
                 // Response has been received.
-                print("Data received: \(String(data:data, encoding:.utf8)!)")
+                print("411 Data received: \(String(data:data, encoding:.utf8)!)")
                 // Example error {"error":"10000 is less than minimal of 25000"}
                 // Example success
                 

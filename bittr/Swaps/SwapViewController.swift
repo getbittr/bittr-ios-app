@@ -165,6 +165,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     @IBAction func nextTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
+        // TODO: Hide after testing
+        /*self.swapDictionary = ["bip21":"bitcoin:bcrt1pjrfwgwzqx09sefe870shg4ly5nd94t4cswgv8mh4z33v83325f5sl5epem?amount=0.00060362&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":60362,"id":"7NC16YmWQZm5","address":"bcrt1pjrfwgwzqx09sefe870shg4ly5nd94t4cswgv8mh4z33v83325f5sl5epem","swapTree":["claimLeaf":["version":192,"output":"a914d38a55fdd2cf0e1205ceaf84a8552935230096238820a24359002d3450b1e28f775e2cb89ccb2b06cb4d137925c16899964d0ab2ed01ac"],"refundLeaf":["version":192,"output":"204ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88ad020f02b1"]],"claimPublicKey":"02a24359002d3450b1e28f775e2cb89ccb2b06cb4d137925c16899964d0ab2ed01","timeoutBlockHeight":527]
+        self.didCompleteOnchainTransaction(swapDictionary:self.swapDictionary!)*/
+        /*SwapManager.checkSwapStatus("7NC16YmWQZm5") { status in
+            print("172 Status: \(status ?? "No status available")")
+        }*/
+        
         if self.stringToNumber(self.amountTextField.text) != 0 {
             if Int(self.stringToNumber(self.amountTextField.text)) > self.homeVC!.coreVC!.bittrChannel!.receivableMaximum {
                 // You can't receive or send this much.
@@ -206,7 +213,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "proceed"), style: .default, handler: { _ in
             
-            
+            SwapManager.sendOnchainPayment(feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees, receivedDictionary: swapDictionary, delegate: self)
         }))
         self.present(alert, animated: true)
     }

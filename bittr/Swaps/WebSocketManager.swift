@@ -20,8 +20,22 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     override init() {
         super.init()
         // Create a URLSession with a background configuration
-        let config = URLSessionConfiguration.background(withIdentifier: "com.yourapp.websocket")
+        let config = URLSessionConfiguration.default
         session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        
+        // Listen for app entering background/foreground
+        NotificationCenter.default.addObserver(self, selector: #selector(appWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+    }
+    
+    @objc func appWillEnterForeground() {
+        print("App entered foreground, reconnecting WebSocket...")
+        connect()
+    }
+
+    @objc func appDidEnterBackground() {
+        print("App entered background, disconnecting WebSocket...")
+        disconnect()
     }
     
     func connect() {
@@ -34,7 +48,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         startBackgroundTask()
         
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            url = URL(string: "wss://api.testnet.boltz.exchange/v2/ws")!
+            url = URL(string: "wss://api.regtest.getbittr.com/v2/ws")!
         }
         // Establish WebSocket connection
         webSocketTask = session.webSocketTask(with: url)
@@ -94,14 +108,20 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                     print("Received data: \(data)")
                     
                     var dataDictionary:NSDictionary?
+                    print("97 Received data: \(String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) ?? data)")
                     if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
                         do {
                             dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
                             if let actualDataDict = dataDictionary {
                                 if let receivedArguments = actualDataDict["args"] as? NSDictionary, let receivedStatus = receivedArguments["status"] as? String {
                                     
+                                    print("Received status: \(receivedStatus)")
                                     delegate.receivedStatusUpdate(status: receivedStatus)
+                                } else {
+                                    print("107 Status not legible.")
                                 }
+                            } else {
+                                print("110 No dictionary.")
                             }
                         } catch {
                             print("Error 98: \(error.localizedDescription)")
@@ -140,6 +160,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
         print("WebSocket connection established")
         sendMessage("subscribe")
+        receiveMessage()
     }
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWithError error: Error?) {
