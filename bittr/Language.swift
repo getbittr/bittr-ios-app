@@ -318,7 +318,10 @@ class Language: NSObject {
             "swapamountexceeded": "You can only move up to <amount> satoshis at a time. Please enter an amount within this limit.",
             "swapfunds3": "The expected fee to move <amount> satoshis (<convertedamount>) is <feesamount> satoshis (<convertedfees>). Do you wish to proceed?",
             "proceed": "Proceed",
-            "message": "message"
+            "message": "message",
+            "direction": "Direction",
+            "fees": "Fees",
+            "status": "Status"
         ]
         
         if let foundWord = allWords[withID] {

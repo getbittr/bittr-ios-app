@@ -91,6 +91,8 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     
     func receiveMessage() {
         
+        print("94 Message received.")
+        
         guard let delegate = self.delegate as? SwapViewController else {
             print("No delegate set for received message.")
             return
@@ -101,6 +103,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
             case .failure(let error):
                 print("Failed to receive message: \(error)")
             case .success(let message):
+                print("106: \(message)")
                 switch message {
                 case .string(let text):
                     print("Received string: \(text)")
@@ -128,6 +131,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                         }
                     }
                 @unknown default:
+                    print("Received unknown response 133. \(result)")
                     break
                 }
             }

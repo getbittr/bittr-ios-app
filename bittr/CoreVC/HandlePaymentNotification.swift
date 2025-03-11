@@ -193,7 +193,7 @@ extension CoreViewController {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3", "030b793ce6e1d060cc15b113006022ac2fa04962e4669f07721ae844fb76af47f3"]
+        let nodeIds = ["02ba8a642e53b70b4c5ade9ff940bda53563d0485e19568a0416aa70e3a801196a", "02ba8a642e53b70b4c5ade9ff940bda53563d0485e19568a0416aa70e3a801196a"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.

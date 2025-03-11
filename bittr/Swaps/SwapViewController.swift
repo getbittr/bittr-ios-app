@@ -19,6 +19,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     
     // Card contents
     @IBOutlet weak var centerCard: UIView!
+    @IBOutlet weak var centerCardLeading: NSLayoutConstraint!
     @IBOutlet weak var centerBackground: UIButton!
     @IBOutlet weak var swapIcon: UIImageView!
     @IBOutlet weak var topLabel: UILabel!
@@ -42,6 +43,26 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
     
+    // Confirm card
+    @IBOutlet weak var confirmCard: UIView!
+    @IBOutlet weak var confirmTopLabel: UILabel!
+    @IBOutlet weak var confirmTopIcon: UIImageView!
+    @IBOutlet weak var confirmDirection: UIView!
+    @IBOutlet weak var confirmDirectionLabel: UILabel!
+    @IBOutlet weak var confirmAmount: UIView!
+    @IBOutlet weak var confirmAmountLabel: UILabel!
+    @IBOutlet weak var confirmFees: UIView!
+    @IBOutlet weak var confirmFeesLabel: UILabel!
+    @IBOutlet weak var confirmStatus: UIView!
+    @IBOutlet weak var confirmStatusLabel: UILabel!
+    @IBOutlet weak var resetIcon: UIImageView!
+    @IBOutlet weak var confirmStatusSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var confirmStatusButton: UIButton!
+    @IBOutlet weak var titleDirection: UILabel!
+    @IBOutlet weak var titleAmount: UILabel!
+    @IBOutlet weak var titleFees: UILabel!
+    @IBOutlet weak var titleStatus: UILabel!
+    
     // Variables
     var homeVC:HomeViewController?
     var swapDirection = 0
@@ -60,6 +81,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.nextButton.setTitle("", for: .normal)
         self.availableButton.setTitle("", for: .normal)
         self.fromButton.setTitle("", for: .normal)
+        self.confirmStatusButton.setTitle("", for: .normal)
         
         // Center card styling
         self.centerCard.layer.cornerRadius = 13
@@ -67,6 +89,17 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
         self.centerCard.layer.shadowRadius = 10.0
         self.centerCard.layer.shadowOpacity = 0.1
+        
+        // Confirm card styling
+        self.confirmCard.layer.cornerRadius = 13
+        self.confirmCard.layer.shadowColor = UIColor.black.cgColor
+        self.confirmCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.confirmCard.layer.shadowRadius = 10.0
+        self.confirmCard.layer.shadowOpacity = 0.1
+        self.confirmDirection.layer.cornerRadius = 8
+        self.confirmAmount.layer.cornerRadius = 8
+        self.confirmFees.layer.cornerRadius = 8
+        self.confirmStatus.layer.cornerRadius = 8
         
         // Amount text field
         self.amountTextField.delegate = self
@@ -166,13 +199,21 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
         
         // TODO: Hide after testing
-        /*self.swapDictionary = ["bip21":"bitcoin:bcrt1pjrfwgwzqx09sefe870shg4ly5nd94t4cswgv8mh4z33v83325f5sl5epem?amount=0.00060362&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":60362,"id":"7NC16YmWQZm5","address":"bcrt1pjrfwgwzqx09sefe870shg4ly5nd94t4cswgv8mh4z33v83325f5sl5epem","swapTree":["claimLeaf":["version":192,"output":"a914d38a55fdd2cf0e1205ceaf84a8552935230096238820a24359002d3450b1e28f775e2cb89ccb2b06cb4d137925c16899964d0ab2ed01ac"],"refundLeaf":["version":192,"output":"204ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88ad020f02b1"]],"claimPublicKey":"02a24359002d3450b1e28f775e2cb89ccb2b06cb4d137925c16899964d0ab2ed01","timeoutBlockHeight":527]
+        /*self.swapDictionary = ["bip21":"bitcoin:bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd?amount=0.00055357&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":55357,"id":"zRX14hgFtYLY","address":"bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd","swapTree":["claimLeaf":["version":192,"output":"a914df3d48b0e6848a21773b9f08ba0e5fee449853cc882036ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93ac"],"refundLeaf":["version":192,"output":"20da4bdf00584f344ffcaf99f954b5d0ead6124a7269ec404f0ee8ceb12866c315ad021d02b1"]],"claimPublicKey":"0336ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93","timeoutBlockHeight":541]
+        self.confirmDirectionLabel.text = self.fromLabel.text
+        self.confirmAmountLabel.text = "55000 sats"
+        self.confirmFeesLabel.text = "510 sats"
+        self.confirmStatusLabel.text = "Sending"
+        self.confirmStatusSpinner.startAnimating()
+        self.switchView("confirm")
         self.didCompleteOnchainTransaction(swapDictionary:self.swapDictionary!)*/
-        /*SwapManager.checkSwapStatus("7NC16YmWQZm5") { status in
-            print("172 Status: \(status ?? "No status available")")
-        }*/
         
-        if self.stringToNumber(self.amountTextField.text) != 0 {
+        if self.nextSpinner.isAnimating { return }
+         
+        self.nextLabel.alpha = 0
+        self.nextSpinner.startAnimating()
+         
+         if self.stringToNumber(self.amountTextField.text) != 0 {
             if Int(self.stringToNumber(self.amountTextField.text)) > self.homeVC!.coreVC!.bittrChannel!.receivableMaximum {
                 // You can't receive or send this much.
                 self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -193,7 +234,51 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+    func switchView(_ toView: String) {
+        
+        if toView == "confirm" {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.centerCardLeading.constant = 15 - self.view.bounds.width
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.centerCardLeading.constant = 15
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
+    @IBAction func confirmStatusButtonTapped(_ sender: UIButton) {
+        
+        DispatchQueue.main.async {
+            self.confirmStatusLabel.alpha = 0
+            self.resetIcon.alpha = 0
+            
+            if let swapID = self.swapDictionary!["id"] as? String {
+                SwapManager.checkSwapStatus(swapID) { status in
+                    DispatchQueue.main.async {
+                        self.confirmStatusLabel.alpha = 1
+                        self.resetIcon.alpha = 1
+                        if let receivedStatus = status {
+                            self.confirmStatusLabel.text = receivedStatus
+                            
+                            if receivedStatus == "invoice.failedToPay" {
+                                SwapManager.claimRefund()
+                            }
+                        } else {
+                            print("No status received.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     func confirmExpectedFees(feeHigh:Float, onchainFees:Int, lightningFees:Int, swapDictionary:NSDictionary, createdInvoice:Bolt11Invoice) {
+        
+        self.nextLabel.alpha = 1
+        self.nextSpinner.stopAnimating()
         
         self.pendingInvoice = createdInvoice
         
@@ -213,6 +298,14 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "proceed"), style: .default, handler: { _ in
             
+            self.swapDictionary = swapDictionary
+            self.confirmDirectionLabel.text = self.fromLabel.text
+            self.confirmAmountLabel.text = "\(self.amountToBeSent ?? 0) sats"
+            self.confirmFeesLabel.text = "\(onchainFees + lightningFees) sats"
+            self.confirmStatusLabel.text = "Sending"
+            self.confirmStatusSpinner.startAnimating()
+            self.switchView("confirm")
+            
             SwapManager.sendOnchainPayment(feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees, receivedDictionary: swapDictionary, delegate: self)
         }))
         self.present(alert, animated: true)
@@ -222,6 +315,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
         
+        self.confirmStatusLabel.text = "Confirming"
         self.swapDictionary = swapDictionary
         
         if let swapID = swapDictionary["id"] as? String {
@@ -233,6 +327,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     }
     
     func receivedStatusUpdate(status:String) {
+        
+        self.confirmStatusLabel.text = status
+        
         if status == "transaction.claim.pending" {
             
             // When status is transaction.claim.pending, get preimage details from API /swap/submarine/swapID/claim to verify that the Lightning payment has been made.
@@ -244,6 +341,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         } else if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
             
             // Boltz's payment has failed and we want to get a refund our onchain transaction. Get a partial signature through /swap/submarine/swapID/refund. Or a scriptpath refund can be done after the locktime of the swap expires.
+            
+            SwapManager.claimRefund()
         }
     }
     
@@ -257,6 +356,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.moveLabel.text = Language.getWord(withID: "move")
         self.nextLabel.text = Language.getWord(withID: "next")
         self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
+        self.titleDirection.text = Language.getWord(withID: "direction")
+        self.titleAmount.text = Language.getWord(withID: "amount")
+        self.titleFees.text = Language.getWord(withID: "fees")
+        self.titleStatus.text = Language.getWord(withID: "status")
     }
     
     func changeColors() {
@@ -265,6 +368,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.moveLabel.textColor = Colors.getColor("blackoryellow")
         self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
+        self.confirmCard.backgroundColor = Colors.getColor("yelloworblue1")
+        self.confirmTopLabel.textColor = Colors.getColor("whiteoryellow")
+        self.confirmDirection.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmAmount.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmFees.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmStatus.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmDirectionLabel.textColor = Colors.getColor("blackorwhite")
+        self.confirmAmountLabel.textColor = Colors.getColor("blackorwhite")
+        self.confirmFeesLabel.textColor = Colors.getColor("blackorwhite")
+        self.confirmStatusLabel.textColor = Colors.getColor("blackorwhite")
         self.availableAmountLabel.textColor = Colors.getColor("blackorwhite")
         self.questionMark.tintColor = Colors.getColor("blackorwhite")
         self.amountTextField.backgroundColor = Colors.getColor("white0.7orblue2")
@@ -278,8 +391,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         if CacheManager.darkModeIsOn() {
             self.swapIcon.image = UIImage(named: "iconswap")
+            self.confirmTopIcon.image = UIImage(named: "iconswap")
+            self.resetIcon.image = UIImage(named: "iconresetwhite")
         } else {
             self.swapIcon.image = UIImage(named: "iconswapwhite")
+            self.confirmTopIcon.image = UIImage(named: "iconswapwhite")
+            self.resetIcon.image = UIImage(named: "iconreset")
         }
     }
 

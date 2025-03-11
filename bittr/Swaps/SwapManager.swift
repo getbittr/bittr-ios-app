@@ -67,8 +67,9 @@ class SwapManager: NSObject {
                 "from": "BTC",
                 "to": "BTC",
                 "invoice": invoice,
-                "refundPublicKey": "034ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88"
+                "refundPublicKey": "034ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88" /* Tom "03da4bdf00584f344ffcaf99f954b5d0ead6124a7269ec404f0ee8ceb12866c315"*/
             ]
+            // Private key Tom "cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J"
             var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                 apiURL = "https://api.regtest.getbittr.com/v2"
@@ -104,6 +105,8 @@ class SwapManager: NSObject {
                 print("Data received: \(String(data:data, encoding:.utf8)!)")
                 // Example error {"error":"10000 is less than minimal of 25000"}
                 // Example success {"bip21":"bitcoin:bc1pn47a2c9ymet8qxwpmlcxnyrs4jcewsdj09t464ag6v2d34uppkdq7ef20s?amount=0.00025478&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":25478,"id":"PJ3hNAALsNqn","address":"bc1pn47a2c9ymet8qxwpmlcxnyrs4jcewsdj09t464ag6v2d34uppkdq7ef20s","swapTree":{"claimLeaf":{"version":192,"output":"a9147434464e5afb4407a67bb9ecf6b076dd43d1931c88209f3ec13701b1ebebbdbb6f00530ba7357fc63234353088fa4f6ad973c947a8deac"},"refundLeaf":{"version":192,"output":"204ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88ad0303760db1"}},"claimPublicKey":"039f3ec13701b1ebebbdbb6f00530ba7357fc63234353088fa4f6ad973c947a8de","timeoutBlockHeight":882179}
+                
+                //{"bip21":"bitcoin:bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd?amount=0.00055357&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":55357,"id":"zRX14hgFtYLY","address":"bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd","swapTree":{"claimLeaf":{"version":192,"output":"a914df3d48b0e6848a21773b9f08ba0e5fee449853cc882036ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93ac"},"refundLeaf":{"version":192,"output":"20da4bdf00584f344ffcaf99f954b5d0ead6124a7269ec404f0ee8ceb12866c315ad021d02b1"}},"claimPublicKey":"0336ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93","timeoutBlockHeight":541}
                 
                 var dataDictionary:NSDictionary?
                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
@@ -306,21 +309,30 @@ class SwapManager: NSObject {
     
     static func checkSwapStatus(_ swapID:String, completion: @escaping (String?) -> Void) {
         
-        do {
+        /* {
+        "status": "transaction.mempool",
+        "zeroConfRejected": true,
+        "transaction": {
+            "id": "522a30e75acd1a40779a15dabe1bbd2f72274d14d0a0d534427328f4d1f0c1d8",
+            "hex": "01000000000102f33880892fd099b704c81d8685201499c955204f7badfbcb59daf45c6a59091e0000000000feffffffe34d83119f21b3c155c1105ff0586d95d02b3397e08e7f46d59ad413cde4592c0000000000feffffff027883000000000000160014a22e11bbcc8df14728a05ea773afa1ded4a218dc3dd800000000000022512052ec2c092ea928607cd34010bf0cd5fb2ae733afb1747e3e7cca84e7c577d0bf0247304402202b5965fc00b6f40db1822144ad7041b052573dcc2165106d8672f8de4746461102203f15f2221fae1ba18f3d49af7726d2cdf98765e9d790706ece84b46f1a37dbc7012102b83d4808931d1a36772e286aa7b2743a9c28035dd071d0907a11262f1ccf297a0247304402206b066dcd1e413a1b0e6a7972175fd0e675a751bef2aa23bdd30367ca65b2aa8e022029e2af71ec7373f3d13197492e1f333d3481514aa4ac150a3a7c8235ca7231c60121033d0cbf5876cd5b12871d351e426b9971cd144508067f6860c9772aded274a665fd000000"
+        }
+    }*/
+        
+        //do {
             // Create GET API call.
-            let parameters: [String: Any] = [
+            /*let parameters: [String: Any] = [
                 "id": swapID
-            ]
+            ]*/
             var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                 apiURL = "https://api.regtest.getbittr.com/v2"
             }
-            let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
+            //let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
             var request = URLRequest(url: URL(string: "\(apiURL)/swap/\(swapID)".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
             request.httpMethod = "GET"
-            request.httpBody = postData
+            //request.httpBody = postData
             
             let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
                 if let httpResponse = response as? HTTPURLResponse {
@@ -329,11 +341,11 @@ class SwapManager: NSObject {
                 }
                 
                 if let error = dataError {
-                    print("Error: \(error.localizedDescription)")
+                    print("335 Error: \(error.localizedDescription)")
                 }
                 
                 guard let data = data else {
-                    print("No data received. Error: \(dataError ?? "no error"). Response: \(String(describing: response)).")
+                    print("339 No data received. Error: \(dataError ?? "no error"). Response: \(String(describing: response)).")
                     completion(nil)
                     return
                 }
@@ -366,14 +378,14 @@ class SwapManager: NSObject {
             }
             task.resume()
             
-        } catch let error as NodeError {
+        /*} catch let error as NodeError {
             let errorString = handleNodeError(error)
             print("241: " + errorString.detail)
             completion(nil)
         } catch {
             print("243: " + error.localizedDescription)
             completion(nil)
-        }
+        }*/
     }
     
     static func checkPreimageDetails(swapID:String, delegate:Any?) {
@@ -472,6 +484,128 @@ class SwapManager: NSObject {
         }
     }
     
+    struct Base58Check {
+        static let alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+        static func decode(_ input: String) -> Data? {
+            var value = [UInt8](repeating: 0, count: 1)
+
+            for char in input {
+                guard let index = alphabet.firstIndex(of: char)?.utf16Offset(in: alphabet) else {
+                    return nil
+                }
+
+                var carry = index
+                for i in (0..<value.count).reversed() {
+                    carry += Int(value[i]) * 58
+                    value[i] = UInt8(carry & 0xFF)
+                    carry >>= 8
+                }
+
+                while carry > 0 {
+                    value.insert(UInt8(carry & 0xFF), at: 0)
+                    carry >>= 8
+                }
+            }
+
+            let leadingZeros = input.prefix { $0 == "1" }.count
+            value.insert(contentsOf: Array(repeating: 0, count: leadingZeros), at: 0)
+
+            guard value.count >= 4 else { return nil }
+            let checksum = value.suffix(4)
+            let payload = value.dropLast(4)
+
+            let hash = Data(SHA256.hash(data: SHA256.hash(data: Data(payload)).withUnsafeBytes { Data($0) }).withUnsafeBytes { Data($0) })
+            
+            guard hash.prefix(4).map({ $0 }) == Array(checksum) else { return nil }
+
+            return Data(payload)
+        }
+    }
+
+    static func wifToPrivateKey(_ wif: String) -> Data? {
+        guard let decoded = Base58Check.decode(wif) else {
+            print("Invalid WIF format")
+            return nil
+        }
+
+        guard decoded.count == 33 || decoded.count == 34 else {
+            print("❌ Invalid decoded length: \(decoded.count) bytes")
+            return nil
+        }
+
+        let privateKey = decoded.dropFirst().dropLast(decoded.count == 34 ? 1 : 0) // Remove prefix & optional compression flag
+
+        guard privateKey.count == 32 else {
+            print("❌ Private key is not 32 bytes, got \(privateKey.count) bytes")
+            return nil
+        }
+
+        return privateKey
+    }
+    
+    static func generatePublicNonce(from privateKeyData:Data) -> Data? {
+        
+        guard let context = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)) else {
+            print("Failed to create secp256k1 context")
+            return nil
+        }
+        
+        defer {
+            secp256k1_context_destroy(context)
+        }
+        
+        var secretNonce = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
+        
+        var pubNonce = secp256k1_pubkey()
+        let result = secretNonce.withUnsafeBytes { secretNoncePtr in
+            secp256k1_ec_pubkey_create(
+                context,
+                &pubNonce,
+                secretNoncePtr.bindMemory(to: UInt8.self).baseAddress!
+            )
+        }
+        
+        guard result == 1 else {
+            print("Failed to generate public nonce")
+            return nil
+        }
+        
+        var serializedPubNonce = Data(repeating: 0, count: 33)
+        var outputLength = 33
+        let serializationResult = serializedPubNonce.withUnsafeMutableBytes { outputPtr in
+            secp256k1_ec_pubkey_serialize(
+                context,
+                outputPtr.bindMemory(to: UInt8.self).baseAddress!,
+                &outputLength,
+                &pubNonce,
+                UInt32(SECP256K1_EC_COMPRESSED)
+            )
+        }
+        
+        guard serializationResult == 1 else {
+            print("Failed to serialize public nonce")
+            return nil
+        }
+        
+        return serializedPubNonce
+    }
+    
+    static func claimRefund() {
+        
+        if let privateKey = self.wifToPrivateKey("cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J") {
+            print("✅ Private key extracted:", privateKey.map { String(format: "%02x", $0) }.joined())
+            
+            if let pubNonce = self.generatePublicNonce(from: privateKey) {
+                print("Generated pubNonce:", pubNonce.map { String(format: "%02x", $0) }.joined())
+                
+            }
+        } else {
+            print("❌ Failed to extract private key")
+        }
+    }
+    
+    
     static func lightningToOnchain(amountSat:Int, delegate:Any?) async {
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
@@ -482,3 +616,10 @@ class SwapManager: NSObject {
         
     }
 }
+
+extension Data {
+    func hexEncodedString() -> String {
+        return map { String(format: "%02x", $0) }.joined()
+    }
+}
+
