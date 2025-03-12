@@ -59,13 +59,13 @@ class LightningNodeService {
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
             // TODO: Public? // Signet and Bitcoin node.
-            trustedPeers0conf: ["02ba8a642e53b70b4c5ade9ff940bda53563d0485e19568a0416aa70e3a801196a", "02ba8a642e53b70b4c5ade9ff940bda53563d0485e19568a0416aa70e3a801196a"],
+            trustedPeers0conf: ["0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e", "0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e"],
             probingLiquidityLimitMultiplier: UInt64(3),
             logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
                     trustedPeersNoReserve: [
-                        PublicKey("02ba8a642e53b70b4c5ade9ff940bda53563d0485e19568a0416aa70e3a801196a"),
-                        PublicKey("02ba8a642e53b70b4c5ade9ff940bda53563d0485e19568a0416aa70e3a801196a")
+                        PublicKey("0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e"),
+                        PublicKey("0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e")
                     ], perChannelReserveSats: UInt64(1000))
         )
         
@@ -127,6 +127,33 @@ class LightningNodeService {
                     } else {
                         bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
                     }
+                    
+                    print("bip32ExtendedRootKey (hex): \(bip32ExtendedRootKey.asString())")
+                    
+                    try ChainXSContext.createSecp256k1Ctx()
+                    
+                    ChainXSContext.setNetwork(.TEST)
+                    
+                    let hdNode = try HDNode(extendedKey: bip32ExtendedRootKey.asString().replacingOccurrences(of: "/*", with: ""))
+                    
+                    let derivedNode = try hdNode.ckdFromDerivationPath("m/44'/1'/0'/0/0") // Example path
+                    
+                    // Get and print private key
+                    let rawprivateKey = try derivedNode.getKeyOrAddressByKey(PRIV_KEY)
+                    print("Private Key (hex): \(rawprivateKey)")
+
+                    // Get and print WIF format private key (more commonly used)
+                    let privateKeyWIF = try derivedNode.getKeyOrAddressByKey(WIF_KEY)
+                    print("Private Key (WIF): \(privateKeyWIF)")
+
+                    // Get and print public key
+                    let publicKey = try derivedNode.getKeyOrAddressByKey(PUB_KEY)
+                    print("Public Key (hex): \(publicKey)")
+
+                    // Get and print Bitcoin address (more commonly used)
+                    let bitcoinAddress = try derivedNode.getKeyOrAddressByKey(P2PKH_KEY)
+                    print("Bitcoin Address: \(bitcoinAddress)")
+
                     
                     // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
                     var bip84ExternalDescriptor:Descriptor
