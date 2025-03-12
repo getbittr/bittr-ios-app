@@ -115,9 +115,3 @@ func createP2WPKHAddress(_ compressedPubKey: Data) throws -> String {
 
     return try SegwitAddrCoder().encode(hrp: ChainXSContext.p2wpkhPrefix, version: ChainXSContext.p2wpkhVersion, program: HASH_160(compressedPubKey))
 }
-
-func createKASAddress(_ compressedPubKey: Data, test: Bool) throws -> String {
-    if !isValidPubKey(compressedPubKey) || compressedPubKey.count != 33 { throw CHAINXS_ERR.INVALID_PUB_KEY }
-
-    return Bech32CashAddr.encode(payload: Data([0]) + compressedPubKey.dropFirst(), prefix: test ? ChainXSContext.kaspaTestPrefix:ChainXSContext.kaspaPrefix)
-}
