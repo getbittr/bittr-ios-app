@@ -95,7 +95,7 @@ struct HDNode: CustomStringConvertible {
 
         try childPrivKey.withUnsafeMutableBytes { (keyPtr: UnsafeMutableRawBufferPointer) in
             try left.withUnsafeBytes { (tweakPtr: UnsafeRawBufferPointer) in
-                if secp256k1_ec_privkey_tweak_add(ChainXSContext.secp256k1Ctx, keyPtr.baseAddress!.assumingMemoryBound(to: UInt8.self), tweakPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)) != 1 {
+                if secp256k1_ec_seckey_tweak_add(ChainXSContext.secp256k1Ctx, keyPtr.baseAddress!.assumingMemoryBound(to: UInt8.self), tweakPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)) != 1 {
                     throw CHAINXS_ERR.INVALID_CHILD_HD_NODE
                 }
             }

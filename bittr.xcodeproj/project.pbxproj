@@ -126,7 +126,6 @@
 		379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C3E2D81738E00C871C5 /* AddressUtils.swift */; };
 		379A8C522D81738E00C871C5 /* DataExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C442D81738E00C871C5 /* DataExt.swift */; };
 		379A8C532D81738E00C871C5 /* StringExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4B2D81738E00C871C5 /* StringExt.swift */; };
-		379A8C542D81738E00C871C5 /* Bech32CashAddr.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C402D81738E00C871C5 /* Bech32CashAddr.swift */; };
 		379A8C552D81738E00C871C5 /* SegwitAddrCoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4A2D81738E00C871C5 /* SegwitAddrCoder.swift */; };
 		379A8C572D81738E00C871C5 /* RIPEMD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C492D81738E00C871C5 /* RIPEMD.swift */; };
 		379A8C582D81738E00C871C5 /* Bech32Segwit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C412D81738E00C871C5 /* Bech32Segwit.swift */; };
@@ -289,7 +288,6 @@
 		05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup7ViewController.swift; sourceTree = "<group>"; };
 		379A8C3E2D81738E00C871C5 /* AddressUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressUtils.swift; sourceTree = "<group>"; };
 		379A8C3F2D81738E00C871C5 /* ArrayExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrayExt.swift; sourceTree = "<group>"; };
-		379A8C402D81738E00C871C5 /* Bech32CashAddr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bech32CashAddr.swift; sourceTree = "<group>"; };
 		379A8C412D81738E00C871C5 /* Bech32Segwit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bech32Segwit.swift; sourceTree = "<group>"; };
 		379A8C442D81738E00C871C5 /* DataExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExt.swift; sourceTree = "<group>"; };
 		379A8C452D81738E00C871C5 /* DerivationPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DerivationPath.swift; sourceTree = "<group>"; };
@@ -651,7 +649,6 @@
 			children = (
 				379A8C3E2D81738E00C871C5 /* AddressUtils.swift */,
 				379A8C3F2D81738E00C871C5 /* ArrayExt.swift */,
-				379A8C402D81738E00C871C5 /* Bech32CashAddr.swift */,
 				379A8C412D81738E00C871C5 /* Bech32Segwit.swift */,
 				379A8C442D81738E00C871C5 /* DataExt.swift */,
 				379A8C452D81738E00C871C5 /* DerivationPath.swift */,
@@ -901,7 +898,6 @@
 				379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */,
 				379A8C522D81738E00C871C5 /* DataExt.swift in Sources */,
 				379A8C532D81738E00C871C5 /* StringExt.swift in Sources */,
-				379A8C542D81738E00C871C5 /* Bech32CashAddr.swift in Sources */,
 				379A8C552D81738E00C871C5 /* SegwitAddrCoder.swift in Sources */,
 				379A8C572D81738E00C871C5 /* RIPEMD.swift in Sources */,
 				379A8C582D81738E00C871C5 /* Bech32Segwit.swift in Sources */,
