@@ -726,7 +726,7 @@ extension UIViewController {
                 thisTransaction.height = Int(confirmationTime.height)
                 thisTransaction.timestamp = Int(confirmationTime.timestamp)
                 if let actualCurrentHeight = coreVC?.currentHeight {
-                    thisTransaction.confirmations = actualCurrentHeight - thisTransaction.height
+                    thisTransaction.confirmations = (actualCurrentHeight - thisTransaction.height) + 1
                 }
             } else {
                 // Handle the case where confirmationTime is nil.

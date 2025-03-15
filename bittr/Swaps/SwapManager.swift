@@ -67,9 +67,10 @@ class SwapManager: NSObject {
                 "from": "BTC",
                 "to": "BTC",
                 "invoice": invoice,
-                "refundPublicKey": "034ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88" /* Tom "03da4bdf00584f344ffcaf99f954b5d0ead6124a7269ec404f0ee8ceb12866c315"*/
+                "refundPublicKey": "0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24"
             ]
-            // Private key Tom "cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J"
+            // 15 March private key KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur
+
             var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                 apiURL = "https://api.regtest.getbittr.com/v2"
@@ -104,9 +105,7 @@ class SwapManager: NSObject {
                 // Response has been received.
                 print("Data received: \(String(data:data, encoding:.utf8)!)")
                 // Example error {"error":"10000 is less than minimal of 25000"}
-                // Example success {"bip21":"bitcoin:bc1pn47a2c9ymet8qxwpmlcxnyrs4jcewsdj09t464ag6v2d34uppkdq7ef20s?amount=0.00025478&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":25478,"id":"PJ3hNAALsNqn","address":"bc1pn47a2c9ymet8qxwpmlcxnyrs4jcewsdj09t464ag6v2d34uppkdq7ef20s","swapTree":{"claimLeaf":{"version":192,"output":"a9147434464e5afb4407a67bb9ecf6b076dd43d1931c88209f3ec13701b1ebebbdbb6f00530ba7357fc63234353088fa4f6ad973c947a8deac"},"refundLeaf":{"version":192,"output":"204ea6d0ca3bef8ad17d716c9cea306596e8088b5c03abd1804e9d6c574d737c88ad0303760db1"}},"claimPublicKey":"039f3ec13701b1ebebbdbb6f00530ba7357fc63234353088fa4f6ad973c947a8de","timeoutBlockHeight":882179}
-                
-                //{"bip21":"bitcoin:bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd?amount=0.00055357&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":55357,"id":"zRX14hgFtYLY","address":"bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd","swapTree":{"claimLeaf":{"version":192,"output":"a914df3d48b0e6848a21773b9f08ba0e5fee449853cc882036ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93ac"},"refundLeaf":{"version":192,"output":"20da4bdf00584f344ffcaf99f954b5d0ead6124a7269ec404f0ee8ceb12866c315ad021d02b1"}},"claimPublicKey":"0336ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93","timeoutBlockHeight":541}
+                // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
                 
                 var dataDictionary:NSDictionary?
                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
@@ -310,13 +309,12 @@ class SwapManager: NSObject {
     static func checkSwapStatus(_ swapID:String, completion: @escaping (String?) -> Void) {
         
         /* {
-        "status": "transaction.mempool",
-        "zeroConfRejected": true,
-        "transaction": {
-            "id": "522a30e75acd1a40779a15dabe1bbd2f72274d14d0a0d534427328f4d1f0c1d8",
-            "hex": "01000000000102f33880892fd099b704c81d8685201499c955204f7badfbcb59daf45c6a59091e0000000000feffffffe34d83119f21b3c155c1105ff0586d95d02b3397e08e7f46d59ad413cde4592c0000000000feffffff027883000000000000160014a22e11bbcc8df14728a05ea773afa1ded4a218dc3dd800000000000022512052ec2c092ea928607cd34010bf0cd5fb2ae733afb1747e3e7cca84e7c577d0bf0247304402202b5965fc00b6f40db1822144ad7041b052573dcc2165106d8672f8de4746461102203f15f2221fae1ba18f3d49af7726d2cdf98765e9d790706ece84b46f1a37dbc7012102b83d4808931d1a36772e286aa7b2743a9c28035dd071d0907a11262f1ccf297a0247304402206b066dcd1e413a1b0e6a7972175fd0e675a751bef2aa23bdd30367ca65b2aa8e022029e2af71ec7373f3d13197492e1f333d3481514aa4ac150a3a7c8235ca7231c60121033d0cbf5876cd5b12871d351e426b9971cd144508067f6860c9772aded274a665fd000000"
-        }
-    }*/
+         "status":"transaction.mempool",
+         "zeroConfRejected":true,
+         "transaction":{
+         "id":"2edfaeb630a8de4870c33046483c22ef2dd14f87c9b45e242924138ad0bb50cc",
+         "hex":"010000000001010339c27932ed3437e12c2021e1b219aca14ee5af696ae4b2d93b9d406b05f0630000000000feffffff02f1f42b010000000016001432abff3cfd36f4f83fbe2c50534b728254153acab0c40000000000002251204f7ec486d75dfba06cdbb219f94fb29e15767d583a8f9e1af4d78b98bd48b15d024730440220290e6d4bf4c14c9b2a60856e50abb5715fb1646b51f1737dd1ed7a18d343c1c2022060408caa7ea17d3dd1dcd22be3334a3ec65023f841bca48d11c50f4c3cd0a9590121026479e19c5d9c4e162442f802221f1355fc3568f9cca5491c2c621542c209cd43bf000000"}
+         } */
         
         //do {
             // Create GET API call.
@@ -593,7 +591,11 @@ class SwapManager: NSObject {
     
     static func claimRefund() {
         
-        if let privateKey = self.wifToPrivateKey("cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J") {
+        print("Claim refund triggered.")
+        
+        //let aggregateKey = try secp256k1.MuSig.aggregate([])
+        
+        /*if let privateKey = self.wifToPrivateKey("cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J") {
             print("✅ Private key extracted:", privateKey.map { String(format: "%02x", $0) }.joined())
             
             if let pubNonce = self.generatePublicNonce(from: privateKey) {
@@ -602,7 +604,7 @@ class SwapManager: NSObject {
             }
         } else {
             print("❌ Failed to extract private key")
-        }
+        }*/
     }
     
     

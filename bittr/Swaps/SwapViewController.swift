@@ -63,6 +63,14 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var titleFees: UILabel!
     @IBOutlet weak var titleStatus: UILabel!
     
+    // Pending stack
+    @IBOutlet weak var pendingStack: UIView!
+    @IBOutlet weak var pendingStackHeight: NSLayoutConstraint! // 0 or 75
+    @IBOutlet weak var pendingView: UIView!
+    @IBOutlet weak var pendingButton: UIButton!
+    @IBOutlet weak var pendingCoverView: UIView!
+    @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
+    
     // Variables
     var homeVC:HomeViewController?
     var swapDirection = 0
@@ -82,6 +90,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.availableButton.setTitle("", for: .normal)
         self.fromButton.setTitle("", for: .normal)
         self.confirmStatusButton.setTitle("", for: .normal)
+        self.pendingButton.setTitle("", for: .normal)
         
         // Center card styling
         self.centerCard.layer.cornerRadius = 13
@@ -119,6 +128,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         // Next view
         self.nextView.layer.cornerRadius = 13
+        self.pendingView.layer.cornerRadius = 13
         
         // Available amount
         if let actualChannel = self.homeVC?.coreVC?.bittrChannel {
@@ -133,6 +143,43 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        
+        // TODO: Hide after testing
+        /*if self.homeVC?.coreVC?.ongoingSwapDictionary == nil {
+            self.homeVC?.coreVC?.ongoingSwapDictionary = ["bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":["claimLeaf":["version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"],"refundLeaf":["version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"]],"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479,"totalfees":505,"useramount":50000,"direction":0]
+        }*/
+        
+        if let pendingSwap = self.homeVC?.coreVC?.ongoingSwapDictionary {
+            self.pendingCoverView.alpha = 0.6
+            self.pendingSpinner.startAnimating()
+            
+            SwapManager.checkSwapStatus(pendingSwap["id"] as! String) { status in
+                DispatchQueue.main.async {
+                    self.pendingSpinner.stopAnimating()
+                    if let receivedStatus = status {
+                        if receivedStatus != "invoice.paid", receivedStatus != "transaction.claim.pending", receivedStatus != "transaction.claimed" {
+                            self.pendingStackHeight.constant = 75
+                            self.pendingStack.alpha = 1
+                            self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
+                            if pendingSwap["direction"] as! Int == 0 {
+                                self.confirmDirectionLabel.text = "Onchain to Lightning"
+                            } else {
+                                self.confirmDirectionLabel.text = "Lightning to Onchain"
+                            }
+                            self.confirmAmountLabel.text = "\(pendingSwap["useramount"] as! Int) sats"
+                            self.confirmFeesLabel.text = "\(pendingSwap["totalfees"] as! Int) sats"
+                            self.swapDictionary = pendingSwap
+                            
+                            self.view.layoutIfNeeded()
+                        } else {
+                            self.pendingCoverView.alpha = 0
+                        }
+                    } else {
+                        self.pendingCoverView.alpha = 0
+                    }
+                }
+            }
+        }
     }
     
     @objc func keyboardWillDisappear() {
@@ -234,6 +281,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+    @IBAction func pendingSwapTapped(_ sender: UIButton) {
+        if let pendingSwap = self.homeVC?.coreVC?.ongoingSwapDictionary {
+            self.switchView("confirm")
+        }
+    }
+    
     func switchView(_ toView: String) {
         
         if toView == "confirm" {
@@ -261,9 +314,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                         self.confirmStatusLabel.alpha = 1
                         self.resetIcon.alpha = 1
                         if let receivedStatus = status {
-                            self.confirmStatusLabel.text = receivedStatus
                             
-                            if receivedStatus == "invoice.failedToPay" {
+                            self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
+                            
+                            if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
                                 SwapManager.claimRefund()
                             }
                         } else {
@@ -272,6 +326,24 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                     }
                 }
             }
+        }
+    }
+    
+    func userFriendlyStatus(receivedStatus:String) -> String {
+        
+        switch receivedStatus {
+        case "swap.created": return "Preparing"
+        case "invoice.set": return "Preparing"
+        case "transaction.mempool": return "Awaiting confirmation"
+        case "transaction.confirmed": return "Awaiting payment"
+        case "invoice.pending": return "Invoice pending"
+        case "invoice.paid": return "Swap complete"
+        case "invoice.failedToPay": return "Swap failed (couldn't pay invoice)"
+        case "transaction.claim.pending": return "Swap complete"
+        case "transaction.claimed": return "Swap complete"
+        case "swap.expired": return "Swap expired"
+        case "transaction.lockupFailed": return "Swap failed (incorrect amount)"
+        default: return receivedStatus
         }
     }
     
@@ -292,13 +364,18 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         if convertedFees.split(separator: ",")[1].count == 1 {
             convertedFees = convertedFees + "0"
         }
-        var convertedAmount = "\(Int((CGFloat(self.amountToBeSent ?? 0)/100000000*correctAmount).rounded()))"
+        let convertedAmount = "\(Int((CGFloat(self.amountToBeSent ?? 0)/100000000*correctAmount).rounded()))"
         
         let alert = UIAlertController(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(onchainFees + lightningFees)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.amountToBeSent ?? 0)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)"), preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "proceed"), style: .default, handler: { _ in
             
+            let updatedDictionary:NSMutableDictionary = swapDictionary.mutableCopy() as! NSMutableDictionary
+            updatedDictionary.setValue(onchainFees + lightningFees, forKey: "totalfees")
+            updatedDictionary.setValue(self.amountToBeSent ?? 0, forKey: "useramount")
+            updatedDictionary.setValue(self.swapDirection, forKey: "direction")
             self.swapDictionary = swapDictionary
+            self.homeVC?.coreVC?.ongoingSwapDictionary = updatedDictionary
             self.confirmDirectionLabel.text = self.fromLabel.text
             self.confirmAmountLabel.text = "\(self.amountToBeSent ?? 0) sats"
             self.confirmFeesLabel.text = "\(onchainFees + lightningFees) sats"
@@ -315,8 +392,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
         
-        self.confirmStatusLabel.text = "Confirming"
+        self.confirmStatusLabel.text = "Awaiting confirmation"
         self.swapDictionary = swapDictionary
+        self.homeVC?.coreVC?.ongoingSwapDictionary = swapDictionary
         
         if let swapID = swapDictionary["id"] as? String {
             self.webSocketManager = WebSocketManager()
@@ -369,6 +447,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.moveLabel.textColor = Colors.getColor("blackoryellow")
         self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         self.confirmCard.backgroundColor = Colors.getColor("yelloworblue1")
+        self.pendingCoverView.backgroundColor = Colors.getColor("yelloworblue1")
         self.confirmTopLabel.textColor = Colors.getColor("whiteoryellow")
         self.confirmDirection.backgroundColor = Colors.getColor("whiteorblue3")
         self.confirmAmount.backgroundColor = Colors.getColor("whiteorblue3")
