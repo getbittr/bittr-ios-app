@@ -9,7 +9,9 @@ import UIKit
 import LDKNode
 import Sentry
 import secp256k1
+import secp256k1_bindings
 import BitcoinDevKit
+import CryptoKit
 
 class SwapManager: NSObject {
     
@@ -592,6 +594,50 @@ class SwapManager: NSObject {
     static func claimRefund() {
         
         print("Claim refund triggered.")
+        
+        do {
+            /*let boltzPublicKey = try! secp256k1.Signing.PublicKey(pemRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f")
+            let myPrivateKey = try! secp256k1.Signing.PrivateKey(pemRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur").publicKey
+            let combinedPublicKey = try! boltzPublicKey.combine([myPrivateKey], format: .uncompressed)*/
+            
+            /*let combinedKeyString = """
+            -----BEGIN EC PRIVATE KEY-----
+            03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24
+            -----END EC PRIVATE KEY-----
+            """*/
+            
+            /*let publicKey = try P256.Signing.PublicKey(rawRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes).pemRepresentation
+            print("Did generate publicKey")*/
+            
+            let combinedKey = try secp256k1.Signing.PrivateKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes)
+            print("Did generate combinedKey")
+            let tweak = try "2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1".bytes
+            print("Did generate tweak")
+            let tweakedCombinedKey = try combinedKey.add(tweak)
+            print("Did generate tweakedCombinedKey")
+            
+            let schnorrKey = try secp256k1.Schnorr.PrivateKey(dataRepresentation: tweakedCombinedKey.dataRepresentation)
+            print("Did generate schnorrKey")
+            
+            /*let boltzSchnorrKey = try! secp256k1.Schnorr.PublicKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes, format: .uncompressed)
+            let mySchnorrKey = try! secp256k1.Schnorr.PrivateKey(dataRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur".bytes).publicKey*/
+            //let combinedKey = try! secp256k1.Schnorr.
+            
+            let message = "2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1".data(using: .utf8)!
+            print("Did generate message")
+            let messageHash = SHA256.hash(data: message)
+            print("Did generate messageHash")
+            let firstNonce = try secp256k1.MuSig.Nonce.generate(secretKey: schnorrKey, publicKey: schnorrKey.publicKey, msg32: Array(messageHash))
+            
+            print("Public nonce")
+            
+        } catch let error as CryptoKit.CryptoKitError {
+            print("628 Error: \(error)")
+        } catch let error as secp256k1Error {
+            print("637 Error: \(error)")
+        } catch {
+            print("630 Error: \(error.localizedDescription)")
+        }
         
         //let aggregateKey = try secp256k1.MuSig.aggregate([])
         
