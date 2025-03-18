@@ -484,6 +484,44 @@ class LightningNodeService {
         }
     }
     
+    func signMessageForPath(path: String, message: String) throws -> String {
+        // Create HDNode and derive the path
+        try ChainXSContext.createSecp256k1Ctx()
+
+        // Create mnemonic object from the stored mnemonic string
+        let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
+        
+        // Create BIP32 extended root key using the mnemonic
+        let bip32ExtendedRootKey: DescriptorSecretKey
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            bip32ExtendedRootKey = DescriptorSecretKey(network: .regtest, mnemonic: mnemonic, password: nil)
+            ChainXSContext.setNetwork(.TEST)
+        } else {
+            bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
+            ChainXSContext.setNetwork(.MAIN)
+        }
+        
+        let hdNode = try HDNode(extendedKey: bip32ExtendedRootKey.asString().replacingOccurrences(of: "/*", with: ""))
+        let derivedNode = try hdNode.ckdFromDerivationPath(path)
+        
+        // Get and print WIF format private key (more commonly used)
+        let privateKeyWIF = try derivedNode.getKeyOrAddressByKey(WIF_KEY)
+        print("Private Key (WIF): \(privateKeyWIF)")
+
+        // Get and print public key
+        let publicKey = try derivedNode.getKeyOrAddressByKey(PUB_KEY)
+        print("Public Key (hex): \(publicKey)")
+
+        // Get and print Bitcoin address (more commonly used)
+        let bitcoinAddress = try derivedNode.getKeyOrAddressByKey(P2WPKH_KEY)
+        print("Bitcoin Address: \(bitcoinAddress)")
+        
+        // Get private keys in hex format (to be used in the message signing function)
+        let privateKeyHex = try derivedNode.getKeyOrAddressByKey(PRIV_KEY)
+
+        return try BitcoinMessage.sign(message: message, privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
+    }
+    
 }
 
 extension FileManager {

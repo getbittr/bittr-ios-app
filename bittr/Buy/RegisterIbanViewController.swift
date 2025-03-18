@@ -43,13 +43,13 @@ class RegisterIbanViewController: UIViewController {
                     leadingConstant = -1 * viewWidth
                     currentPage = 8
                 case "7":
-                    leadingConstant = -1 * viewWidth
+                    leadingConstant = -2 * viewWidth
                     currentPage = 9
                 case "8":
-                    leadingConstant = -2 * viewWidth
+                    leadingConstant = -3 * viewWidth
                     currentPage = 10
                 case "9":
-                    leadingConstant = -3 * viewWidth
+                    leadingConstant = -4 * viewWidth
                     currentPage = 11
                 default:
                     leadingConstant = -viewWidth
