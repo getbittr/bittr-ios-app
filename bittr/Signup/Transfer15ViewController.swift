@@ -297,6 +297,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         let lightningPubKey = LightningNodeService.shared.nodeId()
         let xpub = LightningNodeService.shared.getXpub()
         
+        let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/1'/0'/0/0", message: message)
+        
         Task {
             do {
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: message)
@@ -309,7 +311,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "initial_address_type": "extended",
                     "category": "ledger",
                     "bitcoin_message": message,
-                    "bitcoin_signature": "Hxzhjz3+eMJNjhJc6iyWJfvD3c/ukn3ygpwW0EfY/KKXaNNwAe0Syis7GxGCTtieui8g7CYg39+nuT55Lb0QYms=",
+                    "bitcoin_signature": signature,
                     "iban": iban.yourIbanNumber,
                     "lightning_pubkey": lightningPubKey,
                     "lightning_signature": lightningSignature,
