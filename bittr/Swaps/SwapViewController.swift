@@ -262,11 +262,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.didCompleteOnchainTransaction(swapDictionary:self.swapDictionary!)*/
         
         if self.nextSpinner.isAnimating { return }
-         
+        
         self.nextLabel.alpha = 0
         self.nextSpinner.startAnimating()
-         
-         if self.stringToNumber(self.amountTextField.text) != 0 {
+        
+        if self.stringToNumber(self.amountTextField.text) != 0 {
             if Int(self.stringToNumber(self.amountTextField.text)) > self.homeVC!.coreVC!.bittrChannel!.receivableMaximum {
                 // You can't receive or send this much.
                 self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -343,17 +343,25 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     func userFriendlyStatus(receivedStatus:String) -> String {
         
         switch receivedStatus {
-        case "swap.created": return "Preparing"
-        case "invoice.set": return "Preparing"
-        case "transaction.mempool": return "Awaiting confirmation"
-        case "transaction.confirmed": return "Awaiting payment"
-        case "invoice.pending": return "Invoice pending"
-        case "invoice.paid": return "Swap complete"
-        case "invoice.failedToPay": return "Swap failed (couldn't pay invoice)"
-        case "transaction.claim.pending": return "Swap complete"
-        case "transaction.claimed": return "Swap complete"
-        case "swap.expired": return "Swap expired"
-        case "transaction.lockupFailed": return "Swap failed (incorrect amount)"
+        case "swap.created": return Language.getWord(withID: "swapstatuspreparing")
+        case "invoice.set": return Language.getWord(withID: "swapstatuspreparing")
+        case "transaction.mempool": return Language.getWord(withID: "swapstatusawaitingconfirmation")
+        case "transaction.confirmed": if self.swapDirection == 0 {
+            return Language.getWord(withID: "swapstatusawaitingpayment")
+        } else {
+            return Language.getWord(withID: "swapstatusswapcomplete")
+        }
+        case "invoice.pending": return Language.getWord(withID: "swapstatusinvoicepending")
+        case "invoice.paid": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "invoice.failedToPay": return Language.getWord(withID: "swapstatusfailedtopay")
+        case "transaction.claim.pending": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "transaction.claimed": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "swap.expired": return Language.getWord(withID: "swapstatusexpired")
+        case "transaction.lockupFailed": return Language.getWord(withID: "swapstatusincorrectamount")
+        case "invoice.settled": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "invoice.expired": return Language.getWord(withID: "swapstatusinvoicexpired")
+        case "transaction.failed": return Language.getWord(withID: "swapstatusfailed")
+        case "transaction.refunded": return Language.getWord(withID: "swapstatusfailed")
         default: return receivedStatus
         }
     }
@@ -385,7 +393,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             updatedDictionary.setValue(onchainFees + lightningFees, forKey: "totalfees")
             updatedDictionary.setValue(self.amountToBeSent ?? 0, forKey: "useramount")
             updatedDictionary.setValue(self.swapDirection, forKey: "direction")
-            self.swapDictionary = swapDictionary
+            self.swapDictionary = updatedDictionary
             self.homeVC?.coreVC?.ongoingSwapDictionary = updatedDictionary
             CacheManager.saveLatestSwap(updatedDictionary)
             self.confirmDirectionLabel.text = self.fromLabel.text
@@ -395,7 +403,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             self.confirmStatusSpinner.startAnimating()
             self.switchView("confirm")
             
-            SwapManager.sendOnchainPayment(feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees, receivedDictionary: swapDictionary, delegate: self)
+            if self.swapDirection == 0 {
+                SwapManager.sendOnchainPayment(feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees, receivedDictionary: self.swapDictionary!, delegate: self)
+            } else {
+                SwapManager.sendLightningPayment(swapDictionary: self.swapDictionary!, delegate: self)
+            }
         }))
         self.present(alert, animated: true)
     }
@@ -404,7 +416,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
         
-        self.confirmStatusLabel.text = "Awaiting confirmation"
+        self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingconfirmation")
         self.swapDictionary = swapDictionary
         self.homeVC?.coreVC?.ongoingSwapDictionary = swapDictionary
         CacheManager.saveLatestSwap(swapDictionary)
@@ -434,6 +446,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             // Boltz's payment has failed and we want to get a refund our onchain transaction. Get a partial signature through /swap/submarine/swapID/refund. Or a scriptpath refund can be done after the locktime of the swap expires.
             
             SwapManager.claimRefund()
+        } else if status == "transaction.mempool", self.swapDirection == 1 {
+            // Claim onchain transaction.
+            SwapManager.claimOnchainTransaction(swapDictionary: self.swapDictionary!, delegate: self)
         }
     }
     

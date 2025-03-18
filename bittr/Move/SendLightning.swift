@@ -142,7 +142,7 @@ extension UIViewController {
         }
     }
     
-    func addNewPaymentToTable(paymentHash:PaymentHash, invoiceAmount:Int, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+    func addNewPaymentToTable(paymentHash:PaymentHash, invoiceAmount:Int, delegate:Any?) {
         self.hideAlert()
         
         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
@@ -166,25 +166,36 @@ extension UIViewController {
                 newTransaction.fee = 0
             }
             
-            sendVC?.completedTransaction = newTransaction
-            receiveVC?.completedTransaction = newTransaction
-            
-            if let actualHomeVC = sendVC?.homeVC {
-                actualHomeVC.setTransactions += [newTransaction]
-                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                    transaction1.timestamp > transaction2.timestamp
+            if let sendVC = delegate as? SendViewController {
+                sendVC.completedTransaction = newTransaction
+                if let homeVC = sendVC.homeVC {
+                    homeVC.setTransactions += [newTransaction]
+                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    homeVC.homeTableView.reloadData()
                 }
-                actualHomeVC.homeTableView.reloadData()
-            } else if let actualHomeVC = receiveVC?.homeVC {
-                actualHomeVC.setTransactions += [newTransaction]
-                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                    transaction1.timestamp > transaction2.timestamp
+                sendVC.performSegue(withIdentifier: "SendToTransaction", sender: self)
+            } else if let receiveVC = delegate as? ReceiveViewController {
+                receiveVC.completedTransaction = newTransaction
+                if let homeVC = receiveVC.homeVC {
+                    homeVC.setTransactions += [newTransaction]
+                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    homeVC.homeTableView.reloadData()
                 }
-                actualHomeVC.homeTableView.reloadData()
+                receiveVC.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
+            } else if let swapVC = delegate as? SwapViewController {
+                if let homeVC = swapVC.homeVC {
+                    homeVC.setTransactions += [newTransaction]
+                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    homeVC.homeTableView.reloadData()
+                }
             }
             
-            sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
-            receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
         }
     }
 }

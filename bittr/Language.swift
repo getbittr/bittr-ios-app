@@ -321,7 +321,19 @@ class Language: NSObject {
             "message": "message",
             "direction": "Direction",
             "fees": "Fees",
-            "status": "Status"
+            "status": "Status",
+            "swaperror1": "We could not initiate this swap. We encountered a problem generating an invoice to pay out.",
+            "swapstatuspreparing": "Preparing",
+            "swapstatusawaitingconfirmation": "Awaiting confirmation",
+            "swapstatusawaitingpayment": "Awaiting payment",
+            "swapstatusinvoicepending": "Invoice pending",
+            "swapstatusswapcomplete": "Swap complete",
+            "swapstatusfailedtopay": "Swap failed (couldn't pay invoice)",
+            "swapstatusexpired": "Swap expired",
+            "swapstatusincorrectamount": "Swap failed (incorrect amount)",
+            "swapstatusawaitingtransaction": "Awaiting transaction",
+            "swapstatusinvoicexpired": "Swap failed (invoice expired)",
+            "swapstatusfailed": "Swap failed"
         ]
         
         if let foundWord = allWords[withID] {

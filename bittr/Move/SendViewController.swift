@@ -463,7 +463,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @objc func addNewPayment() {
         if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
-            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, sendVC: self, receiveVC: nil)
+            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, delegate: self)
             self.newInvoiceAmount = nil
             self.newPaymentHash = nil
         }

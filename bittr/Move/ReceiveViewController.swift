@@ -418,7 +418,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     @objc func addNewPayment() {
         if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
-            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, sendVC: nil, receiveVC: self)
+            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, delegate: self)
             self.newInvoiceAmount = nil
             self.newPaymentHash = nil
         }

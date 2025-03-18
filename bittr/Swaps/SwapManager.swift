@@ -12,6 +12,7 @@ import secp256k1
 import secp256k1_bindings
 import BitcoinDevKit
 import CryptoKit
+import LightningDevKit
 
 class SwapManager: NSObject {
     
@@ -166,7 +167,7 @@ class SwapManager: NSObject {
         }
     }
     
-    static func checkOnchainFees(amountInSatoshis:Int, createdInvoice:Bolt11Invoice, receivedDictionary:NSDictionary, delegate:Any?) async {
+    static func checkOnchainFees(amountInSatoshis:Int, createdInvoice:LDKNode.Bolt11Invoice, receivedDictionary:NSDictionary, delegate:Any?) async {
         
         if let onchainAddress = receivedDictionary["address"] as? String, let expectedAmount = receivedDictionary["expectedAmount"] as? Int, let swapID = receivedDictionary["id"] as? String {
             
@@ -657,11 +658,240 @@ class SwapManager: NSObject {
     static func lightningToOnchain(amountSat:Int, delegate:Any?) async {
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
-        // Pay the invoice.
+        
+        // Create random preimage hash
+        // Create a random preimage for the swap; has to have a length of 32 bytes
+        // crypto.sha256(preimage).toString('hex')
+        let randomPreimage = self.generateRandomPreimage()
+        let randomPreimageHash = self.sha256Hash(of: randomPreimage)
+        let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
+        
+        let parameters: [String: Any] = [
+            "from": "BTC",
+            "to": "BTC",
+            "claimPublicKey": "0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24",
+            "preimageHash": randomPreimageHashHex,
+            "onchainAmount": amountSat
+        ]
+        
+        var apiURL = "https://api.boltz.exchange/v2"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            apiURL = "https://api.regtest.getbittr.com/v2"
+        }
+        
+        do {
+            let postData = try JSONSerialization.data(withJSONObject: parameters, options: [])
+            var request = URLRequest(url: URL(string: "\(apiURL)/swap/reverse".replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.httpMethod = "POST"
+            request.httpBody = postData
+            
+            let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("Status code: \(httpResponse.statusCode)")
+                    print("Headers: \(httpResponse.allHeaderFields)")
+                }
+                
+                if let error = dataError {
+                    print("Error: \(error.localizedDescription)")
+                }
+                
+                guard let data = data else {
+                    print("No data received. Error: \(dataError ?? "no error"). Response: \(String(describing: response)).")
+                    DispatchQueue.main.async {
+                        if let swapVC = delegate as? SwapViewController {
+                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "nodatareceived")). \(Language.getWord(withID: "error")): " + (dataError?.localizedDescription ?? "No error"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    }
+                    return
+                }
+                
+                // Response has been received.
+                print("Data received: \(String(data:data, encoding:.utf8)!)")
+                // Example error
+                // Example success
+                
+                var dataDictionary:NSDictionary?
+                if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
+                    do {
+                        dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
+                        if let actualDataDict = dataDictionary {
+                            if let receivedError = actualDataDict["error"] as? String {
+                                // Error
+                                DispatchQueue.main.async {
+                                    if let swapVC = delegate as? SwapViewController {
+                                        swapVC.showAlert(title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    }
+                                }
+                            } else {
+                                // Successful swap creation.
+                                /*if let expectedAmount = actualDataDict["expectedAmount"] as? Int {
+                                    Task {
+                                        await self.checkOnchainFees(amountInSatoshis: Int(amountMsat)/1000, createdInvoice: invoice, receivedDictionary: actualDataDict, delegate: delegate)
+                                    }
+                                }*/
+                                let mutableSwapDictionary:NSMutableDictionary = actualDataDict.mutableCopy() as! NSMutableDictionary
+                                mutableSwapDictionary.setValue(amountSat, forKey: "useramount")
+                                mutableSwapDictionary.setValue(randomPreimageHashHex, forKey: "preimagehex")
+                                self.checkReverseSwapFees(swapDictionary: mutableSwapDictionary, delegate: delegate)
+                            }
+                        }
+                    } catch {
+                        print("Error 111: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            if let swapVC = delegate as? SwapViewController {
+                                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "nodatareceived") + " 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            }
+                        }
+                    }
+                }
+            }
+            task.resume()
+            
+        } catch let error as NodeError {
+            let errorString = handleNodeError(error)
+            DispatchQueue.main.async {
+                if let swapVC = delegate as? SwapViewController {
+                    swapVC.showAlert(title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+                SentrySDK.capture(error: error)
+            }
+        } catch {
+            DispatchQueue.main.async {
+                if let swapVC = delegate as? SwapViewController {
+                    swapVC.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+                SentrySDK.capture(error: error)
+            }
+        }
+    }
+    
+    static func generateRandomPreimage() -> Data {
+        var preimage = Data(count: 32)
+        let result = preimage.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
+        guard result == errSecSuccess else {
+            fatalError("Failed to generate random preimage")
+        }
+        return preimage
+    }
+    
+    static func sha256Hash(of data: Data) -> Data {
+        return Data(SHA256.hash(data: data))
+    }
+    
+    static func checkReverseSwapFees(swapDictionary:NSDictionary, delegate:Any?) {
+        
+        if let receivedInvoice = swapDictionary["invoice"] as? String, let userAmount = swapDictionary["useramount"] as? Int, let delegate = delegate as? SwapViewController {
+            // Check requested invoice amount.
+            if delegate.checkInternetConnection() {
+                    
+                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: receivedInvoice).getValue() {
+                    // Lightning invoice.
+                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                        let invoiceAmount = Int(invoiceAmountMilli)/1000
+                        
+                        // Calculate onchain fees.
+                        let onchainFees:Int = invoiceAmount - userAmount
+                        
+                        // Calculate maximum total routing fees.
+                        let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
+                        let (tryPaymentHash, tryRecipientOnion, tryRouteParams) = invoicePaymentResult.getValue()!
+                        let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
+                        let lightningFees:Int = maximumRoutingFeesMsat/1000
+                        
+                        // Confirm fees with user.
+                        DispatchQueue.main.async {
+                            delegate.confirmExpectedFees(feeHigh: 0, onchainFees: onchainFees, lightningFees: lightningFees, swapDictionary: swapDictionary, createdInvoice: receivedInvoice)
+                        }
+                    }
+                }
+            }
+        } else {
+            if let swapVC = delegate as? SwapViewController {
+                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        }
+    }
+    
+    static func sendLightningPayment(swapDictionary:NSDictionary, delegate:Any?) {
+        
+        // Fees confirmed by user, pay Boltz invoice.
+        
+        if let delegate = delegate as? SwapViewController, let invoice = swapDictionary["invoice"] as? String, let userAmount = swapDictionary["useramount"] as? Int, let totalFees = swapDictionary["totalfees"] as? Int {
+            
+            Task {
+                do {
+                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: invoice)
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                            
+                            if thisPayment.status != .failed {
+                                // Success payment
+                                delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
+                                delegate.addNewPaymentToTable(paymentHash: paymentHash, invoiceAmount: userAmount, delegate: self)
+                                
+                                if let swapID = swapDictionary["id"] as? String {
+                                    delegate.webSocketManager = WebSocketManager()
+                                    delegate.webSocketManager!.delegate = delegate
+                                    delegate.webSocketManager!.swapID = swapID
+                                    delegate.webSocketManager!.connect()
+                                }
+                            } else {
+                                // Payment came back failed.
+                                delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
+                                delegate.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            }
+                        } else {
+                            // Success alert
+                            delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
+                            delegate.addNewPaymentToTable(paymentHash: paymentHash, invoiceAmount: userAmount, delegate: self)
+                            
+                            if let swapID = swapDictionary["id"] as? String {
+                                delegate.webSocketManager = WebSocketManager()
+                                delegate.webSocketManager!.delegate = delegate
+                                delegate.webSocketManager!.swapID = swapID
+                                delegate.webSocketManager!.connect()
+                            }
+                        }
+                    }
+                } catch let error as NodeError {
+                    let errorString = handleNodeError(error)
+                    DispatchQueue.main.async {
+                        // Error alert for NodeError
+                        delegate.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error)
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        // General error alert
+                        delegate.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error)
+                    }
+                }
+            }
+        }
+    }
+    
+    static func claimOnchainTransaction(swapDictionary:NSDictionary, delegate:Any?) {
+        
+        // As soon as the swap status is "transaction.mempool", the onchain transaction can be claimed.
         // Claim the onchain transaction.
-        // Call /chain/BTC/transaction to broadcast the onchain transaction with Boltz.
         
-        
+        if let boltzPublicKey = swapDictionary["refundPublicKey"] as? String, let randomPreimageHex = swapDictionary["preimagehex"] as? String {
+            
+            // STEPS (see https://docs.boltz.exchange/api/api-v2)
+            // 1. Create a musig signing session with boltzPublicKey and our public key.
+            // 2. Tweak it with the Taptree of the swap scripts.
+            // 3. Get the transactionHex (either already received with the status, or through GET /swap/reverse/{id}/transaction.
+            // 4. Create a claim transaction to be signed cooperatively via a key path spend.
+            // 5. Get the partial signature from Boltz through POST /swap/reverse/{id}/claim with parameters {index: 0, transaction: transactionHex, preimage: randomPreimageHex, pubNonce: Buffer.from(musig.getPublicNonce()).toString('hex')}. We receive pubNonce and partialSignature.
+            // 6. Aggregate the nonces of boltzPublicKey and the received pubNonce.
+            // 7. Sign the claim transaction and add Boltz's partialSignature.
+            // 8. Broadcast the transaction through POST /chain/BTC/transaction with the "hex" of the transaction.
+            
+        }
     }
 }
 
