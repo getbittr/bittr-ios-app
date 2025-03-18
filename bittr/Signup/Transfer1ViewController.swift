@@ -230,7 +230,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
               ],
               [
                 "key": "category",
-                "value": "ledger",
+                "value": "ios",
                 "type": "text"
               ]] as [[String : Any]]
             

@@ -128,10 +128,6 @@ class LightningNodeService {
                         bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
                     }
                     
-                    let priv_key = try self.getPrivateKeyForPath(path: "m/84'/1'/0'/0/0")
-                    
-                    print("priv_key. \(priv_key)")
-                    
                     // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
                     var bip84ExternalDescriptor:Descriptor
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -488,7 +484,7 @@ class LightningNodeService {
         }
     }
     
-    func getPrivateKeyForPath(path: String) throws -> String {
+    func signMessageForPath(path: String, message: String) throws -> String {
         // Create HDNode and derive the path
         try ChainXSContext.createSecp256k1Ctx()
 
@@ -519,12 +515,11 @@ class LightningNodeService {
         // Get and print Bitcoin address (more commonly used)
         let bitcoinAddress = try derivedNode.getKeyOrAddressByKey(P2WPKH_KEY)
         print("Bitcoin Address: \(bitcoinAddress)")
-
         
         // Get private keys in hex format (to be used in the message signing function)
         let privateKeyHex = try derivedNode.getKeyOrAddressByKey(PRIV_KEY)
 
-        return privateKeyHex
+        return try BitcoinMessage.sign(message: message, privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
     }
     
 }

@@ -71,7 +71,7 @@ class BittrService {
             let lightningPubKey = LightningNodeService.shared.nodeId()
             
             // TODO: Public?
-            var envUrl = URL(string: "https://staging.getbittr.com/api/")!
+            var envUrl = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
             if UserDefaults.standard.value(forKey: "envkey") as? Int != 0 {
                 envUrl = URL(string: "https://getbittr.com/api/")!
             }
