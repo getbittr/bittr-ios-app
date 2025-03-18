@@ -1049,4 +1049,22 @@ class CacheManager: NSObject {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
     }
     
+    static func saveLatestSwap(_ latestSwap:NSDictionary?) {
+        if latestSwap != nil {
+            UserDefaults.standard.set(latestSwap!, forKey: "ongoingswap")
+        } else {
+            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
+                UserDefaults.standard.removeObject(forKey: "ongoingswap")
+            }
+        }
+    }
+    
+    static func getLatestSwap() -> NSDictionary? {
+        if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
+            return storedSwap
+        } else {
+            return nil
+        }
+    }
+    
 }
