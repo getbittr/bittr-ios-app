@@ -431,7 +431,7 @@ extension HomeViewController {
             // TODO: Public?
             var envUrl = "https://getbittr.com/api/price/btc"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envUrl = "https://getbittr.com/api/price/btc"
+                envUrl = "https://model-arachnid-viable.ngrok-free.app/price/btc"
             }
             
             // Get currency conversion rate from Bittr API.

@@ -122,6 +122,9 @@
 		05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */; };
 		05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */; };
 		05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */; };
+		376009352D8AC3A00048A7B6 /* BTCTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009342D8AC3A00048A7B6 /* BTCTransaction.swift */; };
+		376009372D8AC3AF0048A7B6 /* BTCVarInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */; };
+		376009392D8AC3C50048A7B6 /* BTCHashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009382D8AC3C50048A7B6 /* BTCHashing.swift */; };
 		379A8C4E2D81738E00C871C5 /* HDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C472D81738E00C871C5 /* HDNode.swift */; };
 		379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C3E2D81738E00C871C5 /* AddressUtils.swift */; };
 		379A8C522D81738E00C871C5 /* DataExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C442D81738E00C871C5 /* DataExt.swift */; };
@@ -134,6 +137,7 @@
 		379A8C5B2D81738E00C871C5 /* Globals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C462D81738E00C871C5 /* Globals.swift */; };
 		379A8C5C2D81738E00C871C5 /* WordListEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4C2D81738E00C871C5 /* WordListEN.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
+		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6A5FD226974C7A8EB518F5 /* Sentry */; };
 /* End PBXBuildFile section */
 
@@ -287,6 +291,9 @@
 		05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup5ViewController.swift; sourceTree = "<group>"; };
 		05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup6ViewController.swift; sourceTree = "<group>"; };
 		05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup7ViewController.swift; sourceTree = "<group>"; };
+		376009342D8AC3A00048A7B6 /* BTCTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCTransaction.swift; sourceTree = "<group>"; };
+		376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCVarInt.swift; sourceTree = "<group>"; };
+		376009382D8AC3C50048A7B6 /* BTCHashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCHashing.swift; sourceTree = "<group>"; };
 		379A8C3E2D81738E00C871C5 /* AddressUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressUtils.swift; sourceTree = "<group>"; };
 		379A8C3F2D81738E00C871C5 /* ArrayExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrayExt.swift; sourceTree = "<group>"; };
 		379A8C412D81738E00C871C5 /* Bech32Segwit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bech32Segwit.swift; sourceTree = "<group>"; };
@@ -299,6 +306,7 @@
 		379A8C4B2D81738E00C871C5 /* StringExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringExt.swift; sourceTree = "<group>"; };
 		379A8C4C2D81738E00C871C5 /* WordListEN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListEN.swift; sourceTree = "<group>"; };
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
+		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -480,6 +488,7 @@
 		05AF89722D436901009D629C /* Swaps */ = {
 			isa = PBXGroup;
 			children = (
+				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
 				05AF89732D436920009D629C /* SwapManager.swift */,
 				05AF89752D437073009D629C /* SwapViewController.swift */,
 				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
@@ -584,6 +593,9 @@
 		05D5D0E82A66835300A1E771 /* Lightning */ = {
 			isa = PBXGroup;
 			children = (
+				376009382D8AC3C50048A7B6 /* BTCHashing.swift */,
+				376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */,
+				376009342D8AC3A00048A7B6 /* BTCTransaction.swift */,
 				379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */,
 				05D5D0E62A66825000A1E771 /* LightningNodeService.swift */,
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
@@ -913,9 +925,12 @@
 				05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */,
 				05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
+				37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */,
 				05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */,
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
+				376009392D8AC3C50048A7B6 /* BTCHashing.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
+				376009352D8AC3A00048A7B6 /* BTCTransaction.swift in Sources */,
 				0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */,
 				05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */,
 				05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */,
@@ -936,6 +951,7 @@
 				05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */,
 				055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
+				376009372D8AC3AF0048A7B6 /* BTCVarInt.swift in Sources */,
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,

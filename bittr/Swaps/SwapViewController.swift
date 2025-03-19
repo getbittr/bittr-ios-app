@@ -144,10 +144,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
         
-        // TODO: Hide after testing
-        if self.homeVC?.coreVC?.ongoingSwapDictionary == nil {
-            self.homeVC?.coreVC?.ongoingSwapDictionary = ["bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":["claimLeaf":["version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"],"refundLeaf":["version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"]],"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479,"totalfees":505,"useramount":50000,"direction":0]
-        }
+//        // TODO: Hide after testing
+//        if self.homeVC?.coreVC?.ongoingSwapDictionary == nil {
+//            self.homeVC?.coreVC?.ongoingSwapDictionary = ["bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":["claimLeaf":["version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"],"refundLeaf":["version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"]],"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479,"totalfees":505,"useramount":50000,"direction":0]
+//        }
         
         if let pendingSwap = self.homeVC?.coreVC?.ongoingSwapDictionary {
             self.pendingCoverView.alpha = 0.6
@@ -157,7 +157,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                 DispatchQueue.main.async {
                     self.pendingSpinner.stopAnimating()
                     if let receivedStatus = status {
-                        if receivedStatus != "invoice.paid", receivedStatus != "transaction.claim.pending", receivedStatus != "transaction.claimed" {
+                        if receivedStatus != "invoice.paid", receivedStatus != "transaction.claim.pending", receivedStatus != "transaction.claimed", receivedStatus != "invoice.set" {
                             self.pendingStackHeight.constant = 75
                             self.pendingStack.alpha = 1
                             self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
@@ -261,7 +261,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.nextSpinner.startAnimating()
          
          if self.stringToNumber(self.amountTextField.text) != 0 {
-            if Int(self.stringToNumber(self.amountTextField.text)) > self.homeVC!.coreVC!.bittrChannel!.receivableMaximum {
+            if Int(self.stringToNumber(self.amountTextField.text)) > 1000000 {
                 // You can't receive or send this much.
                 self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {

@@ -59,13 +59,13 @@ class LightningNodeService {
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
             // TODO: Public? // Signet and Bitcoin node.
-            trustedPeers0conf: ["0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e", "0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e"],
+            trustedPeers0conf: ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"],
             probingLiquidityLimitMultiplier: UInt64(3),
             logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
                     trustedPeersNoReserve: [
-                        PublicKey("0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e"),
-                        PublicKey("0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e")
+                        PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"),
+                        PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5")
                     ], perChannelReserveSats: UInt64(1000))
         )
         
@@ -85,6 +85,10 @@ class LightningNodeService {
         }
         
         self.varMnemonicString = mnemonicString
+        
+        let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/1'/0'/0/0", message: "Hello World")
+        
+        print("Signature: \(signature)")
         
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
@@ -264,7 +268,7 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e", "0334eae19de8258a97eb0cf422160bf248a3153d91f57a8cc4db19dbb1cc60c59e"]
+        let nodeIds = ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
@@ -484,7 +488,7 @@ class LightningNodeService {
         }
     }
     
-    func signMessageForPath(path: String, message: String) throws -> String {
+    func getPrivatePublicKeyForPath(path: String) throws -> (privateKeyHex: String, publicKeyHex: String) {
         // Create HDNode and derive the path
         try ChainXSContext.createSecp256k1Ctx()
 
@@ -504,22 +508,24 @@ class LightningNodeService {
         let hdNode = try HDNode(extendedKey: bip32ExtendedRootKey.asString().replacingOccurrences(of: "/*", with: ""))
         let derivedNode = try hdNode.ckdFromDerivationPath(path)
         
-        // Get and print WIF format private key (more commonly used)
-        let privateKeyWIF = try derivedNode.getKeyOrAddressByKey(WIF_KEY)
-        print("Private Key (WIF): \(privateKeyWIF)")
-
-        // Get and print public key
-        let publicKey = try derivedNode.getKeyOrAddressByKey(PUB_KEY)
-        print("Public Key (hex): \(publicKey)")
-
-        // Get and print Bitcoin address (more commonly used)
-        let bitcoinAddress = try derivedNode.getKeyOrAddressByKey(P2WPKH_KEY)
-        print("Bitcoin Address: \(bitcoinAddress)")
-        
-        // Get private keys in hex format (to be used in the message signing function)
+        // Get private key in hex format
         let privateKeyHex = try derivedNode.getKeyOrAddressByKey(PRIV_KEY)
+        
+        // Get public key in hex format
+        let publicKeyHex = try derivedNode.getKeyOrAddressByKey(PUB_KEY)
 
-        return try BitcoinMessage.sign(message: message, privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
+        print("Private Key (Hex): \(privateKeyHex)")
+        print("Public Key (Hex): \(publicKeyHex)")
+
+        return (privateKeyHex, publicKeyHex)
+    }
+
+    
+    func signMessageForPath(path: String, message: String) throws -> String {
+        // Get private keys in hex format (to be used in the message signing function)
+        let (privateKey, _publicKey) = try getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+
+        return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
     }
     
 }

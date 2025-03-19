@@ -64,12 +64,14 @@ class SwapManager: NSObject {
             //let xpubData = Data(xpub.utf8)
             //let xpubHex = xpub.unicodeScalars.filter { $0.isASCII }.map { String(format: "%X", $0.value) }.joined()
             
+            let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+            
             // Create POST API call.
             let parameters: [String: Any] = [
                 "from": "BTC",
                 "to": "BTC",
                 "invoice": invoice,
-                "refundPublicKey": "0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24"
+                "refundPublicKey": publicKey
             ]
             // 15 March private key KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur
 
