@@ -138,6 +138,7 @@
 		379A8C5C2D81738E00C871C5 /* WordListEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4C2D81738E00C871C5 /* WordListEN.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
+		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
 		37F176532D8BDF0000386BCC /* Musig2Bitcoin in Frameworks */ = {isa = PBXBuildFile; productRef = 37F176522D8BDF0000386BCC /* Musig2Bitcoin */; };
 		3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6A5FD226974C7A8EB518F5 /* Sentry */; };
 /* End PBXBuildFile section */
@@ -308,6 +309,7 @@
 		379A8C4C2D81738E00C871C5 /* WordListEN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListEN.swift; sourceTree = "<group>"; };
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
+		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -490,6 +492,7 @@
 		05AF89722D436901009D629C /* Swaps */ = {
 			isa = PBXGroup;
 			children = (
+				37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */,
 				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
 				05AF89732D436920009D629C /* SwapManager.swift */,
 				05AF89752D437073009D629C /* SwapViewController.swift */,
@@ -966,6 +969,7 @@
 				052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */,
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
+				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,
