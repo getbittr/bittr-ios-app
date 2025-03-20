@@ -9,6 +9,7 @@ import secp256k1
 import CryptoKit
 import BitcoinDevKit
 import LightningDevKit
+import Musig2Bitcoin
 
 enum SegwitType {
     case p2wpkh
@@ -85,18 +86,28 @@ class BitcoinMessage {
     // Refactor the main function to await the result of requestRefundAndProcess
     static func bla() async throws -> Bool {
         let theirPublicKeyBytes = try! "03defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5".bytes
-        let theirPublicKey = try! secp256k1.Schnorr.PublicKey.init(dataRepresentation: theirPublicKeyBytes, format: .compressed)
+        // First create a Signing.PublicKey with the compressed bytes
+        let theirPublicKey = try! secp256k1.Schnorr.PublicKey(
+            dataRepresentation: theirPublicKeyBytes,
+            format: .compressed
+        )
 
-        print("theirPublicKey: \(theirPublicKey)")
-
-        let (privateKey, _) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+        let (privateKey, pubkey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+        
+        print("pubkey: \(pubkey)")
 
         let ourPrivateKeyBytes = try! privateKey.bytes
         let ourPrivateKey = try! secp256k1.Schnorr.PrivateKey.init(dataRepresentation: ourPrivateKeyBytes)
+        
+        let ourPublicKey = ourPrivateKey.publicKey.dataRepresentation.hex
+        print("ourPublicKey: \(ourPublicKey)")
 
-        let boltzAggregateKey = try secp256k1.MuSig.aggregate([theirPublicKey, ourPrivateKey.publicKey])
+        let boltzAggregateKey = try secp256k1.MuSig.aggregate([theirPublicKey, ourPrivateKey.publicKey], format: secp256k1.Format.compressed)
+        
+        let hexString = String(bytes: boltzAggregateKey.dataRepresentation)
 
         print("boltzAggregateKey: \(boltzAggregateKey)")
+        print("hexString: \(hexString)")
 
         let tweak = try! "203f0fadc9e61e8655b8b1e4d01c17bb8996d312b8767e2782671d6cac64a92bdfad02ae04b1".bytes
         let tweakedKey = try! boltzAggregateKey.add(tweak)
@@ -113,10 +124,25 @@ class BitcoinMessage {
         )
         let ourBoltzNonceHex = try! ourBoltzNonce.pubnonce.serialized().hex
         print("ourBoltzNonce: \(ourBoltzNonceHex)")
+        
+        // Cost of non-threshold signature addresses
+        let prev_txs = ["010000000001018a60bf20ef3835698664ac5f1bd7babe6981078ae50433ee4e45a4f7d546353e0100000000feffffff02505a2b01000000001600140b2adca010bb166312ef5f904bbcec85f928e6beb44b02000000000022512052ecbd332c9320217667871743874992f1073f1c4f3ffa5a0602b987621ce40302473044022048a493285d7265ce980488d2b4c36b44975c0c65cb7758e44fd273ce30acf73402201b237c5d58c18d8a75303d3f873633463510228f3ddbe797d4c97fb6ba3f6b0c0121029b5348421694ce0dd0c454818211b31e6b5ea7bf7e215ddce4e7a4ed96168641be000000"];
+        let txids: [String] = ["621d9aac4d478a66e31978b5447b47c4e2adc3f880b833ee18ed543a4fbccb05"];
+        let input_indexs: [UInt32] = [1];
+        let addresses: [String]  = ["bcrt1qad39rwqgjeusdmvwq7mn0p4g5x4eec3wxwcz9d"];
+        let amounts: [UInt64] = [150_000];
+
+        let base_tx = generateRawTx(prev_txs: prev_txs, txids: txids, input_indexs:input_indexs, addresses:addresses, amounts: amounts);
+        
+        print("base_tx: \(base_tx)")
+        
+        let unsignedTx = getUnsignedTx(tx:base_tx)
+        
+        print("unsignedTx: \(unsignedTx)")
 
         let refundData = RefundRequest(
             pubNonce: ourBoltzNonceHex,
-            transaction: "020000000105cbbc4f3a54ed18ee33b880f8c3ade2c4477b44b57819e3668a474dac9a1d620100000000fdffffff01f049020000000000160014eb6251b808967906ed8e07b73786a8a1ab9ce22e00000000",
+            transaction: unsignedTx,
             index: 0
         )
 
@@ -136,11 +162,15 @@ class BitcoinMessage {
 
                 print("aggregatedNonce: \(aggregatedNonce)")
                 
-                let boltzTransaction = "020000000105cbbc4f3a54ed18ee33b880f8c3ade2c4477b44b57819e3668a474dac9a1d620100000000fdffffff01f049020000000000160014eb6251b808967906ed8e07b73786a8a1ab9ce22e00000000".data(using: .utf8)!
+                let boltzRubenAggregateKey = try secp256k1.MuSig.aggregate([theirPublicKey, ourPrivateKey.publicKey], format: secp256k1.Format.uncompressed)
+                
+                let sighash = getSighash(tx: base_tx, txid: txids[0], input_index: input_indexs[0], agg_pubkey: boltzRubenAggregateKey.dataRepresentation.hex, sigversion: 1, proto: "");
+                            
+                print("current sighash:", sighash);
                 
                 // Create partial signatures
                 let firstBoltzPartialSignature = try ourPrivateKey.partialSignature(
-                    for: boltzTransaction,
+                    for: sighash.bytes,
                     pubnonce: ourBoltzNonce.pubnonce,
                     secureNonce: ourBoltzNonce.secnonce,
                     publicNonceAggregate: aggregatedNonce,
@@ -158,77 +188,37 @@ class BitcoinMessage {
                     
                 // Aggregate partial signatures into a full signature
                 let aggregateBoltzSignature = try secp256k1.MuSig.aggregateSignatures([firstBoltzPartialSignature, partialSig])
+                
+                let sighashDigest = try! SHA256.hash(data: sighash.bytes)
 
                 // Verify the aggregate signature
-//                let isOurBoltzValid = boltzAggregateKey.isValidSignature(
-//                    firstBoltzPartialSignature,
-//                    publicKey: ourPrivateKey.publicKey,
-//                    nonce: ourBoltzNonce.pubnonce,
-//                    for: boltzTransaction
-//                )
-//
-//                print("isOurBoltzValid: \(isOurBoltzValid)")
+                let isOurBoltzValid = boltzRubenAggregateKey.isValidSignature(
+                    firstBoltzPartialSignature,
+                    publicKey: ourPrivateKey.publicKey,
+                    nonce: ourBoltzNonce.pubnonce,
+                    for: sighashDigest
+                )
+
+                print("isOurBoltzValid: \(isOurBoltzValid)")
                 
                 let aggregateSignatureHex = aggregateBoltzSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
                 
                 print("Aggregate Signature Hex 1: \(aggregateBoltzSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
                 print("Aggregate Signature Hex 2: \(aggregateSignatureHex)")
                 
-                // Verify the aggregate signature
-//                let isTheirBoltzValid = boltzAggregateKey.isValidSignature(
-//                    partialSig,
-//                    publicKey: theirPublicKey,
-//                    nonce: theirNonce,
-//                    for: boltzMessageHash
-//                )
-//
-//                print("isTheirBoltzValid: \(isTheirBoltzValid)")
-
-                // Usage example:
-                let txHashHex = "621d9aac4d478a66e31978b5447b47c4e2adc3f880b833ee18ed543a4fbccb05"
-                let txHashBytes = txHashHex.hexToBytes()
-
-                // Now you can use it in BTCTransaction
-                let tx = BTCTransaction()
-                tx.version = 2
-
-                // Add an input
-                let input = BTCTransaction.Input(
-                    previousTransactionHash: txHashBytes, // Use the converted bytes here
-                    previousOutputIndex: 1,              // output index you're spending
-                    script: []                           // empty script for now
+//                 Verify the aggregate signature
+                let isTheirBoltzValid = boltzAggregateKey.isValidSignature(
+                    partialSig,
+                    publicKey: theirPublicKey,
+                    nonce: theirNonce,
+                    for: sighashDigest
                 )
-                input.sequence = 0xfffffffd
-                tx.inputs = [input]
 
-//                // Add witness data if needed
-                tx.setWitnessForInput(
-                    inputIndex: 0,
-                    witness: BTCTransaction.Witness(stackElements: [aggregateBoltzSignature.bytes])
-                )
-                
-                let address = try Address(address: "bcrt1qad39rwqgjeusdmvwq7mn0p4g5x4eec3wxwcz9d", network: .regtest)
-                let script = address.scriptPubkey().toBytes()
+                print("isTheirBoltzValid: \(isTheirBoltzValid)")
 
-                // Add an output
-                let output = BTCTransaction.Output(
-                            value: 150000,
-                            script: script)
-                tx.outputs = [output]
-
-                // Get the serialized transaction
-                let serializedTx = tx.serialize()
+                let final_tx = buildTaprootTx(tx: base_tx, signature: aggregateSignatureHex, txid: txids[0], input_index: input_indexs[0]);
                 
-                // Usage example:
-                let hexString = serializedTx.toHexString()
-                
-                print("hexString: \(hexString)")
-                
-                let ruben = try BitcoinDevKit.Transaction.init(transactionBytes: serializedTx)
-                
-                
-                
-                
+                print("current transaction:", final_tx);
                 
             } catch {
                 print("Error during nonce aggregation or signature creation: \(error)")
@@ -236,6 +226,8 @@ class BitcoinMessage {
         } else {
             print("Failed to get the data.")
         }
+        
+        
 
         return true
     }

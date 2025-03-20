@@ -1,5 +1,5 @@
 {
-  "originHash" : "426111853c115c7aca430f675daa7616d70c5f617293a09ecc6f950c8ecc8b37",
+  "originHash" : "d9004853b7304487c9f390c7b3c673999db41c9eb8f08dba1584d94f3b0279cd",
   "pins" : [
     {
       "identity" : "bdk-swift",
@@ -44,6 +44,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "bfdfd5434571f8910ffd7cdb9e46759dd33ecbbd"
+      }
+    },
+    {
+      "identity" : "musig2-ios-api",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/chainx-org/musig2-ios-api",
+      "state" : {
+        "revision" : "373c4cec6ba80e1474029f865a851718d675b700",
+        "version" : "2.7.0"
       }
     },
     {

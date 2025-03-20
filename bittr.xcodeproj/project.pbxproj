@@ -138,6 +138,7 @@
 		379A8C5C2D81738E00C871C5 /* WordListEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4C2D81738E00C871C5 /* WordListEN.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
+		37F176532D8BDF0000386BCC /* Musig2Bitcoin in Frameworks */ = {isa = PBXBuildFile; productRef = 37F176522D8BDF0000386BCC /* Musig2Bitcoin */; };
 		3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6A5FD226974C7A8EB518F5 /* Sentry */; };
 /* End PBXBuildFile section */
 
@@ -344,6 +345,7 @@
 				05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */,
 				051045D32D59BC5800A21161 /* secp256k1 in Frameworks */,
 				0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */,
+				37F176532D8BDF0000386BCC /* Musig2Bitcoin in Frameworks */,
 				3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -727,6 +729,7 @@
 				0589280A2C00933F00DDB850 /* LDKNode */,
 				0554035C2CB7EA04006F27CA /* LNURLDecoder */,
 				051045D22D59BC5800A21161 /* secp256k1 */,
+				37F176522D8BDF0000386BCC /* Musig2Bitcoin */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -812,6 +815,7 @@
 				058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */,
 				0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */,
 				051045D12D59BC5800A21161 /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
+				37F176512D8BDF0000386BCC /* XCRemoteSwiftPackageReference "musig2-ios-api" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -1520,6 +1524,14 @@
 				minimumVersion = 8.0.0;
 			};
 		};
+		37F176512D8BDF0000386BCC /* XCRemoteSwiftPackageReference "musig2-ios-api" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chainx-org/musig2-ios-api";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1557,6 +1569,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */;
 			productName = LightningDevKit;
+		};
+		37F176522D8BDF0000386BCC /* Musig2Bitcoin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 37F176512D8BDF0000386BCC /* XCRemoteSwiftPackageReference "musig2-ios-api" */;
+			productName = Musig2Bitcoin;
 		};
 		3C6A5FD226974C7A8EB518F5 /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;
