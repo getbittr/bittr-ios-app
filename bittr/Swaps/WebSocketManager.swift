@@ -30,7 +30,10 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     
     @objc func appWillEnterForeground() {
         print("App entered foreground, reconnecting WebSocket...")
-        connect()
+        // Ensure the socket is not already open before reconnecting
+        if webSocketTask == nil {
+            connect()  // Re-establish connection
+        }
     }
 
     @objc func appDidEnterBackground() {
@@ -53,12 +56,10 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         // Establish WebSocket connection
         webSocketTask = session.webSocketTask(with: url)
         webSocketTask?.resume()
-        
         receiveMessage() // Start receiving messages
     }
     
-    func sendMessage(_ message: String) {
-        
+    func sendMessage() {
         guard let swapID = self.swapID else {
             print("No SwapID has been set.")
             return
@@ -72,22 +73,24 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: messageDict, options: [])
-            
-            // Create a WebSocket message from the JSON data
-            let webSocketMessage = URLSessionWebSocketTask.Message.data(jsonData)
-            
-            // Send the message
+            if let jsonString = String(data: jsonData, encoding: .utf8) {  // Convert Data to String
+            let webSocketMessage = URLSessionWebSocketTask.Message.string(jsonString)  // Send as String
+                
             webSocketTask?.send(webSocketMessage) { error in
                 if let error = error {
                     print("Failed to send message: \(error)")
                 } else {
-                    print("Message sent: \(messageDict)")
+                    print("Message sent: \(jsonString)")  // Log the string version
                 }
             }
+        } else {
+            print("Failed to convert JSON data to String")
+        }
         } catch {
             print("Failed to serialize message to JSON: \(error)")
         }
     }
+
     
     func receiveMessage() {
         
@@ -141,6 +144,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     }
     
     func disconnect() {
+        // Stop receiving messages (prevents the error spam)
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         endBackgroundTask()
     }
@@ -157,13 +161,14 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         if backgroundTask != .invalid {
             UIApplication.shared.endBackgroundTask(backgroundTask)
             backgroundTask = .invalid
+            webSocketTask = nil  // Clear the task to prevent reuse of a dead socket
         }
     }
     
     // URLSessionWebSocketDelegate methods (optional)
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
         print("WebSocket connection established")
-        sendMessage("subscribe")
+        sendMessage()
         receiveMessage()
     }
 
@@ -173,7 +178,9 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         } else {
             print("WebSocket closed successfully")
         }
-        // Reconnect logic can be placed here if desired
+        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.connect()
+        }
     }
     
 }
