@@ -137,8 +137,8 @@ class BoltzRefund {
                     session: ourBoltzPartialSignature.session
                 )
                 
+                // boltzAPIPartialSignature: PartialSignature(dataRepresentation: 36 bytes, session: 133 bytes)
                 print("boltzAPIPartialSignature: \(boltzAPIPartialSignature)")
-                boltzAPIPartialSignature: PartialSignature(dataRepresentation: 36 bytes, session: 133 bytes)
                 
                 // Aggregate partial signatures into a full signature
                 let aggregateBoltzSignature = try secp256k1.MuSig.aggregateSignatures([ourBoltzPartialSignature, boltzAPIPartialSignature])
