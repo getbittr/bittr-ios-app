@@ -112,7 +112,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         // Amount text field
         self.amountTextField.delegate = self
-        self.amountTextField.addDoneButton(target: self, returnaction: #selector(self.backgroundTapped))
+        self.amountTextField.inputAccessoryView = createInputAccessoryView()
         self.amountTextField.layer.cornerRadius = 8
         self.amountTextField.layer.shadowColor = UIColor.black.cgColor
         self.amountTextField.layer.shadowOffset = CGSize(width: 0, height: 7)
@@ -452,6 +452,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         } else if status == "transaction.claimed" {
             // Once the transaction.claimed status appears, it's the final status so we can stop spinning
             self.confirmStatusSpinner.stopAnimating()
+            // We should also close the websocket connection and stop the background task
+            self.webSocketManager!.disconnect()
         }
     }
     
@@ -508,6 +510,33 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             self.confirmTopIcon.image = UIImage(named: "iconswapwhite")
             self.resetIcon.image = UIImage(named: "iconreset")
         }
+    }
+
+    // MARK: - Input Accessory View
+    private func createInputAccessoryView() -> UIView {
+        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
+        containerView.backgroundColor = Colors.getColor("whiteorblue3")
+        
+        let toolbar = UIToolbar(frame: containerView.bounds)
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        toolbar.backgroundColor = .clear
+        
+        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: self, action: #selector(backgroundTapped))
+        
+        toolbar.items = [flexSpace, doneButton]
+        toolbar.tintColor = Colors.getColor("blackorwhite")
+        
+        containerView.addSubview(toolbar)
+        
+        NSLayoutConstraint.activate([
+            toolbar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: containerView.topAnchor),
+            toolbar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+        
+        return containerView
     }
 
 }
