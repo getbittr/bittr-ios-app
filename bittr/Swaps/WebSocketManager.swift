@@ -93,55 +93,68 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
     
     func receiveMessage() {
-        
-        print("94 Message received.")
-        
+        guard let webSocketTask = webSocketTask else {
+            print("WebSocket task is nil, stopping receiveMessage() to prevent errors.")
+            return
+        }
+
+        webSocketTask.receive { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .failure(let error):
+                print("❌ Failed to receive message: \(error.localizedDescription)")
+                return
+
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    print("📩 Received string: \(text)")
+
+                    // Convert JSON string into a Swift dictionary
+                    if let data = text.data(using: .utf8) {
+                        do {
+                            if let jsonDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                                self.handleReceivedMessage(jsonDict)
+                            } else {
+                                print("❌ Failed to convert JSON into a dictionary.")
+                            }
+                        } catch {
+                            print("❌ JSON Parsing Error: \(error.localizedDescription)")
+                        }
+                    }
+
+                @unknown default:
+                    print("⚠️ Received unknown response format.")
+                }
+            }
+
+            // Keep listening for new messages
+            self.receiveMessage()
+        }
+    }
+    
+    func handleReceivedMessage(_ jsonDict: [String: Any]) {
         guard let delegate = self.delegate as? SwapViewController else {
             print("No delegate set for received message.")
             return
         }
-        
-        webSocketTask?.receive { result in
-            switch result {
-            case .failure(let error):
-                print("Failed to receive message: \(error)")
-            case .success(let message):
-                print("106: \(message)")
-                switch message {
-                case .string(let text):
-                    print("Received string: \(text)")
-                case .data(let data):
-                    print("Received data: \(data)")
-                    
-                    var dataDictionary:NSDictionary?
-                    print("97 Received data: \(String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) ?? data)")
-                    if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                        do {
-                            dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                            if let actualDataDict = dataDictionary {
-                                if let receivedArguments = actualDataDict["args"] as? NSDictionary, let receivedStatus = receivedArguments["status"] as? String {
-                                    
-                                    print("Received status: \(receivedStatus)")
-                                    delegate.receivedStatusUpdate(status: receivedStatus)
-                                } else {
-                                    print("107 Status not legible.")
-                                }
-                            } else {
-                                print("110 No dictionary.")
-                            }
-                        } catch {
-                            print("Error 98: \(error.localizedDescription)")
-                        }
-                    }
-                @unknown default:
-                    print("Received unknown response 133. \(result)")
-                    break
-                }
-            }
-            // Continue receiving messages
-            self.receiveMessage()
+
+        guard let args = jsonDict["args"] as? [[String: Any]], // Expecting an array
+              let firstArg = args.first,                      // Get the first item
+              let receivedStatus = firstArg["status"] as? String else {
+            print("❌ Could not extract status from args.")
+            return
+        }
+
+        print("✅ Received status: \(receivedStatus)")
+
+        // Ensure status update is performed on the main thread
+        DispatchQueue.main.async {
+            delegate.receivedStatusUpdate(status: receivedStatus)
         }
     }
+
     
     func disconnect() {
         // Stop receiving messages (prevents the error spam)

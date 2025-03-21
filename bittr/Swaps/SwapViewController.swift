@@ -431,7 +431,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     
     func receivedStatusUpdate(status:String) {
         
-        self.confirmStatusLabel.text = status
+        self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: status)
         
         if status == "transaction.claim.pending" {
             
@@ -449,6 +449,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         } else if status == "transaction.mempool", self.swapDirection == 1 {
             // Claim onchain transaction.
             SwapManager.claimOnchainTransaction(swapDictionary: self.swapDictionary!, delegate: self)
+        } else if status == "transaction.claimed" {
+            // Once the transaction.claimed status appears, it's the final status so we can stop spinning
+            self.confirmStatusSpinner.stopAnimating()
         }
     }
     
