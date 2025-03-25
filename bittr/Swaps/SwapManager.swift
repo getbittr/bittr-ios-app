@@ -41,10 +41,14 @@ class SwapManager: NSObject {
         
         do {
             
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyyMMddHHmmss"
+            let idString = dateFormatter.string(from: Date())
+            
             // Create an invoice for the amount we want to move.
             let invoice = try await LightningNodeService.shared.receivePayment(
                 amountMsat: amountMsat,
-                description: "Swap onchain to lightning",
+                description: "Swap onchain to lightning \(idString)",
                 expirySecs: 3600
             )
             
@@ -54,7 +58,7 @@ class SwapManager: NSObject {
                     if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice) {
                         let newTimestamp = Int(Date().timeIntervalSince1970)
                         CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
-                        CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning")
+                        CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning \(idString)")
                         print("Did cache invoice data.")
                     }
                 }
@@ -125,8 +129,12 @@ class SwapManager: NSObject {
                             } else {
                                 // Successful swap creation.
                                 if let expectedAmount = actualDataDict["expectedAmount"] as? Int {
+                                    
+                                    let mutableDictionary:NSMutableDictionary = actualDataDict.mutableCopy() as! NSMutableDictionary
+                                    mutableDictionary.setValue("Swap onchain to lightning \(idString)", forKey: "idstring")
+                                    
                                     Task {
-                                        await self.checkOnchainFees(amountInSatoshis: Int(amountMsat)/1000, createdInvoice: invoice, receivedDictionary: actualDataDict, delegate: delegate)
+                                        await self.checkOnchainFees(amountInSatoshis: Int(amountMsat)/1000, createdInvoice: invoice, receivedDictionary: mutableDictionary, delegate: delegate)
                                     }
                                     /*let expectedFees:Int = expectedAmount - Int(amountMsat)/1000
                                     DispatchQueue.main.async {
@@ -273,6 +281,11 @@ class SwapManager: NSObject {
                             newTransaction.sent = expectedAmount + onchainFees
                             newTransaction.isLightning = false
                             newTransaction.isBittr = false
+                            
+                            if let idString = receivedDictionary["idstring"] as? String {
+                                newTransaction.lnDescription = idString
+                                CacheManager.storeInvoiceDescription(hash: txid, desc: idString)
+                            }
                             
                             if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
                                 homeVC.setTransactions += [newTransaction]

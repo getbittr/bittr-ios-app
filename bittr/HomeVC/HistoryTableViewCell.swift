@@ -20,6 +20,7 @@ class HistoryTableViewCell: UITableViewCell {
     @IBOutlet weak var arrowImage: UIImageView!
     @IBOutlet weak var bittrImage: UIImageView!
     @IBOutlet weak var boltImage: UIImageView!
+    @IBOutlet weak var swapImage: UIImageView!
     @IBOutlet weak var boltImageTrailing: NSLayoutConstraint!
     
     override func awakeFromNib() {
@@ -47,6 +48,10 @@ class HistoryTableViewCell: UITableViewCell {
         case "left":
             NSLayoutConstraint.deactivate([self.boltImageTrailing])
             self.boltImageTrailing = NSLayoutConstraint(item: self.boltImage, attribute: .trailing, relatedBy: .equal, toItem: self.bittrImage, attribute: .leading, multiplier: 1, constant: -6)
+            NSLayoutConstraint.activate([self.boltImageTrailing])
+        case "middle":
+            NSLayoutConstraint.deactivate([self.boltImageTrailing])
+            self.boltImageTrailing = NSLayoutConstraint(item: self.boltImage, attribute: .trailing, relatedBy: .equal, toItem: self.swapImage, attribute: .leading, multiplier: 1, constant: -6)
             NSLayoutConstraint.activate([self.boltImageTrailing])
         case "right":
             NSLayoutConstraint.deactivate([self.boltImageTrailing])

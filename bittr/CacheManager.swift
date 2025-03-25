@@ -306,6 +306,11 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.channelId, forKey: "channelId" as NSCopying)
             oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
             oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
+            oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
+            oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
+            oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
+            oneTransaction.setObject(eachTransaction.swapDirection, forKey: "swapdirection" as NSCopying)
+            oneTransaction.setObject(eachTransaction.confirmations, forKey: "confirmations" as NSCopying)
             
             transactionsDict += [oneTransaction]
         }
@@ -358,6 +363,21 @@ class CacheManager: NSObject {
             }
             if let transactionLnDescription = eachTransaction["lnDescription"] as? String {
                 thisTransaction.lnDescription = transactionLnDescription
+            }
+            if let isSwap = eachTransaction["isswap"] as? Bool {
+                thisTransaction.isSwap = isSwap
+            }
+            if let onchainID = eachTransaction["onchainid"] as? String {
+                thisTransaction.onchainID = onchainID
+            }
+            if let lightningID = eachTransaction["lightningid"] as? String {
+                thisTransaction.lightningID = lightningID
+            }
+            if let swapDirection = eachTransaction["swapdirection"] as? Int {
+                thisTransaction.swapDirection = swapDirection
+            }
+            if let confirmations = eachTransaction["confirmations"] as? Int {
+                thisTransaction.confirmations = confirmations
             }
             
             if thisTransaction.timestamp != 0 {
