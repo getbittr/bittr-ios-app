@@ -70,7 +70,7 @@ extension CoreViewController {
     func facilitateNotificationPayout(specialData:[String:Any]) {
         
         // TODO: Public?
-        let nodeIds = ["020cc9cb712db4889cfa8f4a0b945a8bbcbda514e9244b9c1f5d789e26ad193eba", "020cc9cb712db4889cfa8f4a0b945a8bbcbda514e9244b9c1f5d789e26ad193eba"]
+        let nodeIds = ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"]
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         print("Did start payout process.")
@@ -193,7 +193,7 @@ extension CoreViewController {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["020cc9cb712db4889cfa8f4a0b945a8bbcbda514e9244b9c1f5d789e26ad193eba", "020cc9cb712db4889cfa8f4a0b945a8bbcbda514e9244b9c1f5d789e26ad193eba"]
+        let nodeIds = ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
@@ -296,6 +296,33 @@ extension CoreViewController {
                         thisTransaction.confirmations = 0
                         thisTransaction.height = 0
                         thisTransaction.fee = 0
+                        
+                        if CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
+                            if self.homeVC != nil {
+                                for (index, eachTransaction) in self.homeVC!.setTransactions.enumerated() {
+                                    if eachTransaction.lnDescription.contains("Swap onchain to lightning "), eachTransaction.lnDescription == CacheManager.getInvoiceDescription(hash: paymentHash) {
+                                        // This is a swap. This is the matching onchain transaction.
+                                        
+                                        thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
+                                        thisTransaction.lightningID = paymentDetails.id
+                                        thisTransaction.onchainID = eachTransaction.id
+                                        thisTransaction.isSwap = true
+                                        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
+                                        thisTransaction.isLightning = false
+                                        //let sentAmount:Int = eachTransaction.received + thisTransaction.received - eachTransaction.sent - thisTransaction.sent
+                                        thisTransaction.sent = eachTransaction.sent - eachTransaction.received
+                                        thisTransaction.swapDirection = 0
+                                        thisTransaction.height = eachTransaction.height
+                                        
+                                        if let actualCurrentHeight = self.currentHeight {
+                                            thisTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
+                                        }
+                                        
+                                        self.homeVC!.setTransactions.remove(at: index)
+                                    }
+                                }
+                            }
+                        }
                         
                         self.receivedBittrTransaction = thisTransaction
                         DispatchQueue.main.async {
