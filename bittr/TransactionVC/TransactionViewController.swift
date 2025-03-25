@@ -24,6 +24,7 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var nowView: UIView!
     @IBOutlet weak var profitView: UIView!
     @IBOutlet weak var descriptionView: UIView!
+    @IBOutlet weak var lightningIdView: UIView!
     
     // Titles
     @IBOutlet weak var amountTitle: UILabel!
@@ -48,11 +49,14 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var descriptionLabel: UILabel!
     @IBOutlet weak var typeLabel: UILabel!
     @IBOutlet weak var boltImage: UIImageView!
+    @IBOutlet weak var lightningIDLabel: UILabel!
+    @IBOutlet weak var lightningIDTitle: UILabel!
     
     // Heights
     @IBOutlet weak var thenViewHeight: NSLayoutConstraint!
     @IBOutlet weak var profitViewHeight: NSLayoutConstraint!
     @IBOutlet weak var descriptionViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var lightningIDHeight: NSLayoutConstraint!
     
     // Notes
     @IBOutlet weak var noteLabel: UILabel!
@@ -74,6 +78,7 @@ class TransactionViewController: UIViewController {
     // Buttons
     @IBOutlet weak var transactionButton: UIButton!
     @IBOutlet weak var descriptionButton: UIButton!
+    @IBOutlet weak var lightningIdButton: UIButton!
     
     var tappedTransaction = Transaction()
     var eurValue = 0.0
@@ -83,11 +88,12 @@ class TransactionViewController: UIViewController {
         super.viewDidLoad()
         
         // Button titles
-        downButton.setTitle("", for: .normal)
-        noteButton.setTitle("", for: .normal)
-        transactionButton.setTitle("", for: .normal)
-        descriptionButton.setTitle("", for: .normal)
-        questionButton.setTitle("", for: .normal)
+        self.downButton.setTitle("", for: .normal)
+        self.noteButton.setTitle("", for: .normal)
+        self.transactionButton.setTitle("", for: .normal)
+        self.descriptionButton.setTitle("", for: .normal)
+        self.questionButton.setTitle("", for: .normal)
+        self.lightningIdButton.setTitle("", for: .normal)
         
         // Corner radii
         headerView.layer.cornerRadius = 13
@@ -226,11 +232,61 @@ class TransactionViewController: UIViewController {
                 self.feesView.alpha = 0
             }
             
+            if tappedTransaction.lnDescription != "" {
+                // Swap transaction.
+                self.descriptionLabel.text = self.tappedTransaction.lnDescription
+            } else {
+                // Normal transaction.
+                self.descriptionView.alpha = 0
+                NSLayoutConstraint.deactivate([self.descriptionViewHeight])
+                self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.descriptionViewHeight])
+                self.view.layoutIfNeeded()
+            }
+        }
+        
+        if tappedTransaction.isSwap {
+            
+            // Amount
+            self.amountTitle.text = "Moved"
+            self.amountLabel.text = "\(addSpacesToString(balanceValue: String(tappedTransaction.received)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            
+            // Direction
+            self.typeTitle.text = "From"
+            self.boltImage.alpha = 0
+            if tappedTransaction.swapDirection == 0 {
+                self.typeLabel.text = "Onchain to Lightning"
+            } else {
+                self.typeLabel.text = "Lightning to Onchain"
+            }
+            
+            // Fees
+            self.feesViewHeight.constant = 40
+            self.feesView.alpha = 1
+            self.feesAmount.text = "\(addSpacesToString(balanceValue: String(tappedTransaction.sent - tappedTransaction.received)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            
+            // Onchain ID
+            self.idTitle.text = "Onchain ID"
+            self.idLabel.text = tappedTransaction.onchainID
+            
+            // Lightning ID
+            self.lightningIDLabel.text = tappedTransaction.lightningID
+            self.lightningIDHeight.constant = 40
+            self.lightningIdView.alpha = 1
+            self.view.layoutIfNeeded()
+            
+            // Description
+            //self.descriptionLabel.text = self.tappedTransaction.id
+            //self.descriptionTitle.text = "Swap ID"
             self.descriptionView.alpha = 0
             NSLayoutConstraint.deactivate([self.descriptionViewHeight])
             self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.descriptionViewHeight])
-            self.view.layoutIfNeeded()
+            
+            // Current value
+            transactionValue = CGFloat(tappedTransaction.received)/100000000
+            balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
+            self.valueNowLabel.text = balanceValue + " " + currencySymbol
         }
         
         self.changeColors()
@@ -286,14 +342,29 @@ class TransactionViewController: UIViewController {
     
     @IBAction func idButtonTapped(_ sender: UIButton) {
         
+        var copyingText = self.tappedTransaction.id
+        if self.tappedTransaction.isSwap {
+            copyingText = self.tappedTransaction.onchainID
+        }
         UIPasteboard.general.string = self.tappedTransaction.id
-        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.id, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
-        UIPasteboard.general.string = self.tappedTransaction.lnDescription
-        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        var copyingText = self.tappedTransaction.lnDescription
+        if self.tappedTransaction.isSwap {
+            copyingText = self.tappedTransaction.id
+        }
+        
+        UIPasteboard.general.string = copyingText
+        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+    
+    @IBAction func lightningIDTapped(_ sender: UIButton) {
+        
+        UIPasteboard.general.string = self.tappedTransaction.lightningID
+        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
@@ -345,6 +416,10 @@ class TransactionViewController: UIViewController {
         // Purchase value
         self.valueThenTitle.textColor = Colors.getColor("blackoryellow")
         self.valueThenLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Lightning ID
+        self.lightningIDTitle.textColor = Colors.getColor("blackoryellow")
+        self.lightningIDLabel.textColor = Colors.getColor("blackorwhite")
         
         // Profit
         self.profitTitle.textColor = Colors.getColor("blackoryellow")

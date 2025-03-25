@@ -178,10 +178,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                             
                             self.view.layoutIfNeeded()
                         } else {
+                            // Remove completed swap from cache.
                             self.pendingCoverView.alpha = 0
+                            CacheManager.saveLatestSwap(nil)
+                            self.homeVC?.coreVC?.ongoingSwapDictionary = nil
                         }
                     } else {
+                        // Remove completed swap from cache.
                         self.pendingCoverView.alpha = 0
+                        CacheManager.saveLatestSwap(nil)
+                        self.homeVC?.coreVC?.ongoingSwapDictionary = nil
                     }
                 }
             }

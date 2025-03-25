@@ -25,4 +25,10 @@ class Transaction: NSObject {
     var channelId = ""
     var isFundingTransaction = false
     
+    // Swaps
+    var isSwap = false
+    var swapDirection = 0
+    var onchainID = ""
+    var lightningID = ""
+    
 }
