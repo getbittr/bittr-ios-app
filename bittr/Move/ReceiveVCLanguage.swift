@@ -11,21 +11,17 @@ extension ReceiveViewController {
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "receivebitcoin")
+        self.topLabel.text = Language.getWord(withID: "receivebitcoin")
         self.labelRegular.text = Language.getWord(withID: "regular")
+        self.labelBoth.text = Language.getWord(withID: "both")
         self.labelInstant.text = Language.getWord(withID: "instant")
         self.subtitleRegular.text = Language.getWord(withID: "thisisanaddress")
-        self.subtitleInstant.text = Language.getWord(withID: "createaninvoice")
-        self.amountLabel.text = Language.getWord(withID: "amountinsatoshis")
-        self.descriptionLabel.text = Language.getWord(withID: "description")
-        self.amountTextField.placeholder = Language.getWord(withID: "enteramount")
-        self.descriptionTextField.placeholder = Language.getWord(withID: "enterdescription")
+        self.subtitleBoth.text = Language.getWord(withID: "subtitleboth")
+        self.bothAmountTextField.placeholder = Language.getWord(withID: "insatoshis")
         self.createInvoiceLabel.text = Language.getWord(withID: "createinvoice")
-        self.lnHeaderLabel.text = Language.getWord(withID: "lightninginvoice")
-        self.lnConfirmationLabel.text = Language.getWord(withID: "thisisyourinvoice")
-        self.lnDoneLabel.text = Language.getWord(withID: "done")
         self.qrScannerLabel.text = Language.getWord(withID: "lnurlscannerlabel")
         self.qrScannerCloseLabel.text = Language.getWord(withID: "close")
+        self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
         
     }
     
@@ -39,6 +35,7 @@ extension ReceiveViewController {
         self.switchSelectionView.backgroundColor = Colors.getColor("whiteorblue3")
         self.labelRegular.textColor = Colors.getColor("blackorwhite")
         self.labelInstant.textColor = Colors.getColor("blackorwhite")
+        self.labelBoth.textColor = Colors.getColor("blackorwhite")
         self.iconLightning.tintColor = Colors.getColor("blackorwhite")
         
         // QR scanner
@@ -46,36 +43,33 @@ extension ReceiveViewController {
         
         // Regular
         self.addressView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.bothAddressView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.addressLabel.textColor = Colors.getColor("blackorwhite")
+        self.bothAddressLabel.textColor = Colors.getColor("blackorwhite")
         self.addressSpinner.color = Colors.getColor("blackorwhite")
         self.addressCopy.tintColor = Colors.getColor("blackorwhite")
+        self.bothAddressCopy.tintColor = Colors.getColor("blackorwhite")
         
         // Subtitle
         self.subtitleRegular.textColor = Colors.getColor("blackorwhite")
-        self.subtitleInstant.textColor = Colors.getColor("blackorwhite")
         
         // Instant
-        self.amountLabel.textColor = Colors.getColor("blackoryellow")
-        self.descriptionLabel.textColor = Colors.getColor("blackoryellow")
-        self.receivableLNLabel.textColor = Colors.getColor("blackorwhite")
-        self.questionCircle.tintColor = Colors.getColor("blackorwhite")
-        self.amountView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.descriptionView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.amountTextField.attributedPlaceholder = NSAttributedString(
-            string: Language.getWord(withID: "enteramount"),
+        self.bothAmountLabel.textColor = Colors.getColor("blackoryellow")
+        self.bothAmountView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.bothDescriptionView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.bothAmountTextField.attributedPlaceholder = NSAttributedString(
+            string: Language.getWord(withID: "amountinsatoshis"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
-        self.amountTextField.textColor = Colors.getColor("blackorwhite")
-        self.descriptionTextField.attributedPlaceholder = NSAttributedString(
-            string: Language.getWord(withID: "enterdescription"),
+        self.bothDescriptionTextField.attributedPlaceholder = NSAttributedString(
+            string: Language.getWord(withID: "description"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
-        self.descriptionTextField.textColor = Colors.getColor("blackorwhite")
+        self.bothAmountTextField.textColor = Colors.getColor("blackorwhite")
         self.lnurlQrView.backgroundColor = Colors.getColor("whiteorblue3")
         self.scanQrImage.tintColor = Colors.getColor("blackorwhite")
         
         // Instant confirmation
-        self.lnConfirmationLabel.textColor = Colors.getColor("blackorwhite")
         self.qrScannerLabel.textColor = Colors.getColor("blackorwhite")
         self.lnConfirmationAddressView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.lnInvoiceLabel.textColor = Colors.getColor("blackorwhite")

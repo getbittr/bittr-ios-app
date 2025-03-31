@@ -214,7 +214,7 @@ class LightningNodeService {
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet
-                self.bdkBalance = Int(try self.bdkWallet!.getBalance().confirmed)
+                self.bdkBalance = Int(try self.bdkWallet!.getBalance().total)
                 print("Did fetch onchain balance.")
                 
                 // Retrieve a list of transaction details from the wallet, excluding raw transaction data

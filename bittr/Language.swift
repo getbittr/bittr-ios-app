@@ -333,7 +333,12 @@ class Language: NSObject {
             "swapstatusincorrectamount": "Swap failed (incorrect amount)",
             "swapstatusawaitingtransaction": "Awaiting transaction",
             "swapstatusinvoicexpired": "Swap failed (invoice expired)",
-            "swapstatusfailed": "Swap failed"
+            "swapstatusfailed": "Swap failed",
+            "both": "Both",
+            "subtitleboth": "Share a single QR.",
+            "bothamountlabel": "Amount and description (optional)",
+            "add": "Add",
+            "insatoshis": "In satoshis"
         ]
         
         if let foundWord = allWords[withID] {

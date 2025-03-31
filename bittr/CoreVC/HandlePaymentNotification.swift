@@ -312,10 +312,10 @@ extension CoreViewController {
                                         //let sentAmount:Int = eachTransaction.received + thisTransaction.received - eachTransaction.sent - thisTransaction.sent
                                         thisTransaction.sent = eachTransaction.sent - eachTransaction.received
                                         thisTransaction.swapDirection = 0
-                                        thisTransaction.height = eachTransaction.height
                                         
                                         if let actualCurrentHeight = self.currentHeight {
-                                            thisTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
+                                            thisTransaction.height = actualCurrentHeight
+                                            thisTransaction.confirmations = 1
                                         }
                                         
                                         self.homeVC!.setTransactions.remove(at: index)
