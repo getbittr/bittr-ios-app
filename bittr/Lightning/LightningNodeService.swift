@@ -460,6 +460,11 @@ class LightningNodeService {
         return paymentHash
     }
     
+    func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
+        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000))
+        return paymentHash
+    }
+    
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
         
         if let invoiceDetails = ldkNode!.payment(paymentId: paymentHash) {

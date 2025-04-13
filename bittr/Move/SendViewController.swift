@@ -378,11 +378,25 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
                         } else {
                             // Zero invoice.
-                            
+                            self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 }
             } else {
+                // Transfer to satoshis.
+                var satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
+                if self.selectedCurrency == "bitcoin" {
+                    satoshisValue = Int((self.stringToNumber(self.amountTextField.text) * 100000000).rounded())
+                } else if self.selectedCurrency == "currency" {
+                    var currencyValue = self.eurValue
+                    if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                        currencyValue = self.chfValue
+                    }
+                    satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/currencyValue)*100000000).rounded())
+                }
+                self.amountTextField.text = "\(satoshisValue)"
+                self.btcLabel.text = "Sats"
+                self.selectedCurrency = "satoshis"
                 self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
             }
         } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {

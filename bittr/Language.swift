@@ -340,7 +340,8 @@ class Language: NSObject {
             "add": "Add",
             "insatoshis": "In satoshis",
             "addressandamount": "Address and amount",
-            "invoiceandamount": "Invoice and amount"
+            "invoiceandamount": "Invoice and amount",
+            "amountmissing": "Please enter the amount of satoshis you'd like to send for this invoice."
         ]
         
         if let foundWord = allWords[withID] {

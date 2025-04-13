@@ -166,6 +166,11 @@ extension SendViewController {
                                 addressType = "lightning"
                                 //self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
                             }
+                        } else {
+                            // Zero invoice.
+                            self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
+                            self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
+                            addressType = "lightning"
                         }
                     }
                 }
