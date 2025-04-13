@@ -77,7 +77,7 @@ class Language: NSObject {
             "enterinvoice": "Enter invoice",
             "enteraddress": "Enter address",
             "enteramount": "Enter amount",
-            "manualinput": "Manual input",
+            "manualinput": "Close camera",
             "confirmtransaction": "confirm transaction",
             "checkdetails": "Make sure these details are correct.",
             "feerate": "Select your preferred fee rate.",
@@ -338,7 +338,9 @@ class Language: NSObject {
             "subtitleboth": "Share a single QR.",
             "bothamountlabel": "Amount and description (optional)",
             "add": "Add",
-            "insatoshis": "In satoshis"
+            "insatoshis": "In satoshis",
+            "addressandamount": "Address and amount",
+            "invoiceandamount": "Invoice and amount"
         ]
         
         if let foundWord = allWords[withID] {

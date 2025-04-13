@@ -56,14 +56,6 @@ extension UIViewController {
                         
                         let alert = UIAlertController(title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                        /*if sendVC?.bitcoinQR != nil {
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "sendonchain"), style: .default, handler: { _ in
-                                
-                                // The user has scanned a Bitcoin QR code, which automatically suggested a Lightning payment. The user can opt instead to perform an onchain transaction.
-                                sendVC!.found(code: sendVC!.bitcoinQR!)
-                                sendVC!.bitcoinQR = nil
-                            }))
-                        }*/
                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: {_ in
                             
                             sendVC?.nextLabel.alpha = 0

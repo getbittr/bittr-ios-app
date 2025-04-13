@@ -435,7 +435,6 @@ extension HomeViewController {
         let font = self.balanceLabelInvisible.adjustedFont()
         self.satsLabel.font = font
         let adjustedSize = Int(font.pointSize)
-        print("Adjusted size: \(adjustedSize)")
         
         // Set HTML balance text.
         var transparentColor = "201, 154, 0"

@@ -21,6 +21,7 @@ extension SendViewController {
         }
         
         self.scannerView.alpha = 0
+        self.amountStack.alpha = 1
         self.addressStack.alpha = 1
         self.toLabel.alpha = 1
         self.toView.alpha = 1
@@ -31,12 +32,10 @@ extension SendViewController {
         self.availableAmount.alpha = 1
         
         if forView == "onchain" {
-            self.topLabel.text = Language.getWord(withID: "sendtoplabel")
-            self.toLabel.text = Language.getWord(withID: "address")
+            self.toLabel.text = Language.getWord(withID: "addressandamount")
             self.toTextField.placeholder = Language.getWord(withID: "enteraddress")
         } else {
-            self.topLabel.text = Language.getWord(withID: "sendtoplabellightning")
-            self.toLabel.text = Language.getWord(withID: "invoice")
+            self.toLabel.text = Language.getWord(withID: "invoiceandamount")
             self.toTextField.placeholder = Language.getWord(withID: "enterinvoice")
         }
         
@@ -45,10 +44,6 @@ extension SendViewController {
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             if forView == "onchain" {
-                self.amountStack.alpha = 1
-                self.amountLabel.alpha = 1
-                self.availableAmountTop.constant = 10
-                self.availableButtonTop.constant = 0
                 self.availableAmountCenterX.constant = 0
                 self.questionCircle.alpha = 0
                 self.labelRegularLeading.constant = 20
@@ -56,10 +51,6 @@ extension SendViewController {
                 leadingConstraint = self.labelRegular
                 leadingConstant = -15
             } else {
-                self.amountStack.alpha = 0
-                self.amountLabel.alpha = 0
-                self.availableAmountTop.constant = -75
-                self.availableButtonTop.constant = -85
                 self.availableAmountCenterX.constant = -10
                 self.questionCircle.alpha = 1
                 self.labelRegularLeading.constant = 15
