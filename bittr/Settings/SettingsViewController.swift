@@ -80,22 +80,41 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             self.tappedUrl = "https://getbittr.com/support"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
         } else if sender.accessibilityIdentifier == "restore" {
-            
-            let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
-                
-                let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
-                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
-                    
-                    if let actualCoreVC = self.coreVC {
-                        actualCoreVC.resetApp(nodeIsRunning: true)
+            if let actualCoreVC = self.coreVC {
+                if actualCoreVC.walletHasSynced == false {
+                    // Wallet isn't ready.
+                    self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    return
+                }
+            } else {
+                return
+            }
+            Task {
+                let channels = try await LightningNodeService.shared.listChannels()
+                DispatchQueue.main.async {
+                    if channels.count > 0 {
+                        // Wallet cannot be restored with open channels.
+                        self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    } else {
+                        // Retore wallet.
+                        let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
+                            
+                            let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
+                            secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                            secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
+                                
+                                if let actualCoreVC = self.coreVC {
+                                    actualCoreVC.resetApp(nodeIsRunning: true)
+                                }
+                            }))
+                            self.present(secondAlert, animated: true)
+                        }))
+                        self.present(alert, animated: true)
                     }
-                }))
-                self.present(secondAlert, animated: true)
-            }))
-            self.present(alert, animated: true)
+                }
+            }
         } else if sender.accessibilityIdentifier == "currency" {
             let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in

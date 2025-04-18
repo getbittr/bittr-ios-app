@@ -67,6 +67,7 @@ class CoreViewController: UIViewController {
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
     var newMnemonic:[String]?
+    var resettingPin = false
     
     // Variables for notification handling
     var didBecomeVisible = false
@@ -171,17 +172,9 @@ class CoreViewController: UIViewController {
             self.signupAlpha = 0
             self.blackSignupAlpha = 0
             // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
-            
         } else {
             // No wallet exists yet. Load SignupVC ahead of intro animation completion.
-            
-            let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
-            let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
-            (newChild as! SignupViewController).coreVC = self
-            self.addChild(newChild)
-            newChild.view.frame.size = self.signupContainerView.frame.size
-            self.signupContainerView.addSubview(newChild.view)
-            newChild.didMove(toParent: self)
+            self.launchSignup()
         }
     }
     

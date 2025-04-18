@@ -79,7 +79,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if self.embeddingView == "core" {
             self.topLabel.text = Language.getWord(withID: "enteryourpincode")
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
-            self.restoreButtonLabel.text = Language.getWord(withID: "restorewallet")
+            self.restoreButtonLabel.text = Language.getWord(withID: "forgotpin")
             self.restoreButtonView.alpha = 1
         } else if self.embeddingView == "signup5" {
             self.topLabel.text = Language.getWord(withID: "setapin")
@@ -202,27 +202,19 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 print("No pin found in storage.")
             }
         } else if self.embeddingView == "signup5" {
-            
             if let actualSignup5VC = self.upperViewController as? Signup5ViewController {
-                
                 actualSignup5VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         } else if self.embeddingView == "signup6" {
-            
             if let actualSignup6VC = self.upperViewController as? Signup6ViewController {
-                
                 actualSignup6VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         } else if self.embeddingView == "restore2" {
-            
             if let actualRestore2VC = self.upperViewController as? Restore2ViewController {
-                
                 actualRestore2VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         } else if self.embeddingView == "restore3" {
-            
             if let actualRestore3VC = self.upperViewController as? Restore3ViewController {
-                
                 actualRestore3VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         }
@@ -237,36 +229,26 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         if self.embeddingView == "core" {
             
-            let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
+            let alert = UIAlertController(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
+            alert.addAction(UIAlertAction(title: Language.getWord(withID: "reset"), style: .destructive, handler: {_ in
                 
-                let secondAlert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), preferredStyle: .alert)
-                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                secondAlert.addAction(UIAlertAction(title: Language.getWord(withID: "restore"), style: .destructive, handler: {_ in
-                    
-                    if let actualCoreVC = self.coreVC {
-                        actualCoreVC.resetApp(nodeIsRunning: false)
-                    }
-                }))
-                self.present(secondAlert, animated: true)
+                if let actualCoreVC = self.coreVC {
+                    actualCoreVC.startPinReset()
+                }
             }))
             self.present(alert, animated: true)
             
         } else if self.embeddingView == "signup5" {
             return
         } else if self.embeddingView == "signup6" {
-            
             if let actualSignup6VC = self.upperViewController as? Signup6ViewController {
-                
                 actualSignup6VC.backButtonTapped()
             }
         } else if self.embeddingView == "restore2" {
             return
         } else if self.embeddingView == "restore3" {
-            
             if let actualRestore3VC = self.upperViewController as? Restore3ViewController {
-                
                 actualRestore3VC.backButtonTapped()
             }
         }

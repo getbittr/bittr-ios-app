@@ -240,6 +240,7 @@ class Language: NSObject {
             "restorewallet2": "\nThis app only supports one wallet simultaneously. Restoring a wallet means removing this current wallet from your device.\n\nOnly restore a wallet if you're sure you've properly backed up this current wallet.",
             "restore": "Restore",
             "restorewallet3": "\nAre you sure you want to remove this current wallet from your device and replace it with a restored one?\n\nIf you tap Restore, we'll reset and close the app. Please reopen it to proceed with your restoration.",
+            "restorewallet4": "Please close your Lightning channels before restoring a wallet.\n\nRestoring a wallet means removing this current wallet from your device, upon which you may lose access to the funds in your Lightning channels.",
             "syncingwallet": "Syncing wallet",
             "syncingwallet3": "syncing wallet",
             "syncingwallet2": "Please wait a moment while we're syncing your wallet.",
@@ -341,7 +342,12 @@ class Language: NSObject {
             "insatoshis": "In satoshis",
             "addressandamount": "Address and amount",
             "invoiceandamount": "Invoice and amount",
-            "amountmissing": "Please enter the amount of satoshis you'd like to send for this invoice."
+            "amountmissing": "Please enter the amount of satoshis you'd like to send for this invoice.",
+            "forgotpin": "Forgot PIN",
+            "forgotpin2": "Please enter your 12-word recovery phrase to reset your PIN.",
+            "forgotpin3": "The recovery phrase is incorrect.",
+            "reset": "Reset",
+            "resetpin": "Reset PIN"
         ]
         
         if let foundWord = allWords[withID] {

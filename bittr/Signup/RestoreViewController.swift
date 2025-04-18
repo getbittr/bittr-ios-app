@@ -135,6 +135,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     override func viewWillAppear(_ animated: Bool) {
         
+        if self.coreVC != nil {
+            self.coreVC!.infoVC?.getArticles()
+            if self.coreVC!.resettingPin {
+                self.restoreButtonText.text = Language.getWord(withID: "resetpin")
+            }
+        }
+        
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
     }
@@ -194,20 +201,48 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                     enteredMnemonic = "\(enteredMnemonic) \(actualWord)"
                     handledWords += 1
                     if handledWords == 12 {
-                        // Store restorable mnemonic in cache.
-                        CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
                         
-                        // Start wallet.
-                        if let actualCoreVC = self.coreVC {
-                            actualCoreVC.startLightning()
+                        if self.coreVC == nil {
+                            return
+                        } else if self.coreVC!.resettingPin {
+                            // We're resetting the device PIN.
+                            
+                            self.restoreButtonSpinner.stopAnimating()
+                            self.restoreButtonText.alpha = 1
+                            
+                            if let currentMnemonic = CacheManager.getMnemonic() {
+                                if currentMnemonic == enteredMnemonic {
+                                    // Correct mnemonic has been entered.
+                                    
+                                    // Start wallet.
+                                    self.coreVC!.startLightning()
+                                    
+                                    // Proceed to next page.
+                                    let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                } else {
+                                    // Entered mnemonic is incorrect.
+                                    self.showAlert(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                }
+                            } else {
+                                // No existing mnenonic is available.
+                                self.showAlert(title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            }
+                        } else {
+                            // We're restoring an existing wallet.
+                            // Store restorable mnemonic in cache.
+                            CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
+                            
+                            // Start wallet.
+                            self.coreVC!.startLightning()
+                            
+                            // Proceed to next page.
+                            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                            
+                            self.restoreButtonSpinner.stopAnimating()
+                            self.restoreButtonText.alpha = 1
                         }
-                        
-                        // Proceed to next page.
-                        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                        
-                        self.restoreButtonSpinner.stopAnimating()
-                        self.restoreButtonText.alpha = 1
                     }
                 }
             }
@@ -218,8 +253,18 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         self.view.endEditing(true)
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        if self.coreVC == nil {
+            return
+        } else if self.coreVC!.resettingPin {
+            // We're resetting the device PIN.
+            self.coreVC!.pinContainerView.alpha = 1
+            self.coreVC!.resettingPin = false
+            self.coreVC!.hideSignup()
+        } else {
+            // We're restoring an existing wallet.
+            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        }
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
