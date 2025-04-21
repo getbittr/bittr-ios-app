@@ -275,7 +275,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         if self.stringToNumber(self.amountTextField.text) != 0 {
             if Int(self.stringToNumber(self.amountTextField.text)) > self.homeVC!.coreVC!.bittrChannel!.receivableMaximum {
                 // You can't receive or send this much.
-                self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
                 self.amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
                 if self.swapDirection == 0 {

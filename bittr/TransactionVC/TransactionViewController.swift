@@ -359,7 +359,7 @@ class TransactionViewController: UIViewController {
             copyingText = self.tappedTransaction.onchainID
         }
         UIPasteboard.general.string = copyingText
-        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
@@ -370,13 +370,13 @@ class TransactionViewController: UIViewController {
         }
         
         UIPasteboard.general.string = copyingText
-        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func lightningIDTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lightningID
-        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {

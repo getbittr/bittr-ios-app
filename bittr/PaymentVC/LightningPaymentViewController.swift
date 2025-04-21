@@ -131,7 +131,7 @@ class LightningPaymentViewController: UIViewController {
         if let actualTransaction = self.receivedTransaction {
             
             UIPasteboard.general.string = actualTransaction.lnDescription
-            self.showAlert(title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     

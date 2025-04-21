@@ -77,7 +77,7 @@ extension CoreViewController {
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {
                                 // User not connected to internet.
-                                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     }

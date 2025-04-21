@@ -204,7 +204,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func copyItem(_ sender: UIButton) {
         
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func changeColors() {

@@ -103,7 +103,7 @@ class SwapManager: NSObject {
                     print("No data received. Error: \(dataError ?? "no error"). Response: \(String(describing: response)).")
                     DispatchQueue.main.async {
                         if let swapVC = delegate as? SwapViewController {
-                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "nodatareceived")). \(Language.getWord(withID: "error")): " + (dataError?.localizedDescription ?? "No error"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "nodatareceived")). \(Language.getWord(withID: "error")): " + (dataError?.localizedDescription ?? "No error"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                     return
@@ -123,7 +123,7 @@ class SwapManager: NSObject {
                                 // Error
                                 DispatchQueue.main.async {
                                     if let swapVC = delegate as? SwapViewController {
-                                        swapVC.showAlert(title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
                                 }
                             } else {
@@ -149,7 +149,7 @@ class SwapManager: NSObject {
                         print("Error 111: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "nodatareceived") + " 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "nodatareceived") + " 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     }
@@ -161,14 +161,14 @@ class SwapManager: NSObject {
             let errorString = handleNodeError(error)
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
-                    swapVC.showAlert(title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 SentrySDK.capture(error: error)
             }
         } catch {
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
-                    swapVC.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 SentrySDK.capture(error: error)
             }
@@ -221,11 +221,11 @@ class SwapManager: NSObject {
                             if "\(error)".contains("InsufficientFunds") {
                                 let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
                                 if let swapVC = delegate as? SwapViewController {
-                                    swapVC.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             } else {
                                 if let swapVC = delegate as? SwapViewController {
-                                    swapVC.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             }
                             
@@ -235,7 +235,7 @@ class SwapManager: NSObject {
                         print("Error: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                             SentrySDK.capture(error: error)
                         }
@@ -301,7 +301,7 @@ class SwapManager: NSObject {
                         print("Transaction error: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     }
@@ -714,7 +714,7 @@ class SwapManager: NSObject {
                     print("No data received. Error: \(dataError ?? "no error"). Response: \(String(describing: response)).")
                     DispatchQueue.main.async {
                         if let swapVC = delegate as? SwapViewController {
-                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "nodatareceived")). \(Language.getWord(withID: "error")): " + (dataError?.localizedDescription ?? "No error"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "nodatareceived")). \(Language.getWord(withID: "error")): " + (dataError?.localizedDescription ?? "No error"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                     return
@@ -734,7 +734,7 @@ class SwapManager: NSObject {
                                 // Error
                                 DispatchQueue.main.async {
                                     if let swapVC = delegate as? SwapViewController {
-                                        swapVC.showAlert(title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
                                 }
                             } else {
@@ -754,7 +754,7 @@ class SwapManager: NSObject {
                         print("Error 111: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "nodatareceived") + " 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "nodatareceived") + " 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     }
@@ -766,14 +766,14 @@ class SwapManager: NSObject {
             let errorString = handleNodeError(error)
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
-                    swapVC.showAlert(title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 SentrySDK.capture(error: error)
             }
         } catch {
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
-                    swapVC.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 SentrySDK.capture(error: error)
             }
@@ -822,7 +822,7 @@ class SwapManager: NSObject {
             }
         } else {
             if let swapVC = delegate as? SwapViewController {
-                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }
@@ -854,7 +854,7 @@ class SwapManager: NSObject {
                             } else {
                                 // Payment came back failed.
                                 delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
-                                delegate.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                delegate.showAlert(presentingController: delegate, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         } else {
                             // Success alert
@@ -873,13 +873,13 @@ class SwapManager: NSObject {
                     let errorString = handleNodeError(error)
                     DispatchQueue.main.async {
                         // Error alert for NodeError
-                        delegate.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        delegate.showAlert(presentingController: delegate, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                         SentrySDK.capture(error: error)
                     }
                 } catch {
                     DispatchQueue.main.async {
                         // General error alert
-                        delegate.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        delegate.showAlert(presentingController: delegate, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                         SentrySDK.capture(error: error)
                     }
                 }

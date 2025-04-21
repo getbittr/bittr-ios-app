@@ -85,15 +85,15 @@ extension UIViewController {
                                                 
                                                 if thisAction != nil {
                                                     // Success alert
-                                                    self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
+                                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
                                                 }
                                             } else {
                                                 // Payment came back failed.
-                                                self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             }
                                         } else {
                                             // Success alert
-                                            self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                         }
                                         
                                         sendVC?.nextLabel.alpha = 1
@@ -109,7 +109,7 @@ extension UIViewController {
                                         sendVC?.nextLabel.alpha = 1
                                         sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -120,7 +120,7 @@ extension UIViewController {
                                         sendVC?.nextLabel.alpha = 1
                                         sendVC?.nextSpinner.stopAnimating()
                                         
-                                        self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                                         
                                         SentrySDK.capture(error: error)
                                     }
@@ -182,15 +182,15 @@ extension UIViewController {
                                                     
                                                     if thisAction != nil {
                                                         // Success alert
-                                                        self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
+                                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
                                                     }
                                                 } else {
                                                     // Payment came back failed.
-                                                    self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                                 }
                                             } else {
                                                 // Success alert
-                                                self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             }
                                             
                                             sendVC?.nextLabel.alpha = 1
@@ -206,7 +206,7 @@ extension UIViewController {
                                             sendVC?.nextLabel.alpha = 1
                                             sendVC?.nextSpinner.stopAnimating()
                                             
-                                            self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             
                                             SentrySDK.capture(error: error)
                                         }
@@ -217,7 +217,7 @@ extension UIViewController {
                                             sendVC?.nextLabel.alpha = 1
                                             sendVC?.nextSpinner.stopAnimating()
                                             
-                                            self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             
                                             SentrySDK.capture(error: error)
                                         }

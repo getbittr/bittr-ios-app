@@ -83,7 +83,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             if let actualCoreVC = self.coreVC {
                 if actualCoreVC.walletHasSynced == false {
                     // Wallet isn't ready.
-                    self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     return
                 }
             } else {
@@ -94,7 +94,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 DispatchQueue.main.async {
                     if channels.count > 0 {
                         // Wallet cannot be restored with open channels.
-                        self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
                         // Retore wallet.
                         let alert = UIAlertController(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), preferredStyle: .alert)
@@ -138,7 +138,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             if let actualCoreVC = self.coreVC {
                 if actualCoreVC.walletHasSynced == false {
                     // Wallet isn't ready.
-                    self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     return
                 }
             }

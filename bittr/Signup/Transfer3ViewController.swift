@@ -261,7 +261,7 @@ class Transfer3ViewController: UIViewController {
                     for iban in client.ibanEntities {
                         if iban.id == self.currentIbanID {
                             
-                            self.showAlert(title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
                         }
                     }
                 }

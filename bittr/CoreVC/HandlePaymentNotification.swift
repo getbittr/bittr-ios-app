@@ -29,7 +29,7 @@ extension CoreViewController {
                     if self.wasNotified == false {
                         // App was open when notification came in.
                         self.varSpecialData = specialData
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
@@ -47,7 +47,7 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
                 // No special key, so this is a normal notification.
@@ -102,14 +102,14 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else if peers[0].nodeId == nodeId, peers[0].isConnected == false {
                     DispatchQueue.main.async {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else {
                     
@@ -164,9 +164,9 @@ extension CoreViewController {
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
                             if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                             } else {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
                             }
                         }
                     }
@@ -177,7 +177,7 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
         }
     }
     

@@ -269,7 +269,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 guard let data = data else {
                     print(String(describing: error))
                     DispatchQueue.main.async {
-                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         if let actualError = error {
                             SentrySDK.capture(error: actualError)
                         }
@@ -296,7 +296,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
-        self.showAlert(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
     }
     
     @objc func alertGoToWallet() {

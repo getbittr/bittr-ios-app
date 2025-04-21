@@ -282,7 +282,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             copyingText = self.bothAddressLabel.text
         }
         UIPasteboard.general.string = copyingText
-        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func refreshButtonTapped(_ sender: UIButton) {
@@ -409,7 +409,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBAction func copyInvoiceButtonTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.lnInvoiceLabel.text ?? ""
-        self.showAlert(title: Language.getWord(withID: "copied"), message: self.lnInvoiceLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.lnInvoiceLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func receivableButtonTapped(_ sender: UIButton) {

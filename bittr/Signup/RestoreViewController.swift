@@ -222,11 +222,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
                                 } else {
                                     // Entered mnemonic is incorrect.
-                                    self.showAlert(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             } else {
                                 // No existing mnenonic is available.
-                                self.showAlert(title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         } else {
                             // We're restoring an existing wallet.

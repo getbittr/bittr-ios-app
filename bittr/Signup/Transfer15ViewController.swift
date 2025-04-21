@@ -108,7 +108,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 if settings.authorizationStatus == .notDetermined {
                     // Notifications preference hasn't been set yet.
                     DispatchQueue.main.async {
-                        self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
                     }
                 } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
                     // Notifications preference has been set but token hasn't been cached.
@@ -229,7 +229,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                     DispatchQueue.main.async {
                                                         self.nextButtonActivityIndicator.stopAnimating()
                                                         self.nextButtonLabel.alpha = 1
-                                                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                                     }
                                                 }
                                             }
@@ -341,7 +341,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         guard let data = data else {
                             DispatchQueue.main.async {
                                 print(String(describing: error))
-                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 if let actualError = error {
                                     SentrySDK.capture(error: actualError)
                                 }
@@ -383,13 +383,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
                                                 
-                                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
                                             } else {
                                                 self.nextButtonActivityIndicator.stopAnimating()
                                                 self.nextButtonLabel.alpha = 1
                                                 self.codeTextField.text = nil
                                                 
-                                                self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
                                             }
                                         }
                                     }
@@ -492,7 +492,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     guard let data = data else {
                                         print(String(describing: error))
                                         DispatchQueue.main.async {
-                                            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                             if let actualError = error {
                                                 SentrySDK.capture(error: actualError)
                                             }

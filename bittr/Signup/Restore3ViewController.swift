@@ -50,7 +50,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
                 self.coreVC?.resettingPin = false
                 
             } else {
-                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }
