@@ -228,17 +228,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
         
         if self.embeddingView == "core" {
-            
-            let alert = UIAlertController(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "reset"), style: .destructive, handler: {_ in
-                
-                if let actualCoreVC = self.coreVC {
-                    actualCoreVC.startPinReset()
-                }
-            }))
-            self.present(alert, animated: true)
-            
+            self.showAlert(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "reset")], actions: [nil, #selector(self.startPinReset)])
         } else if self.embeddingView == "signup5" {
             return
         } else if self.embeddingView == "signup6" {
@@ -252,7 +242,11 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 actualRestore3VC.backButtonTapped()
             }
         }
-        
+    }
+    
+    @objc func startPinReset() {
+        self.hideAlert()
+        self.coreVC!.startPinReset()
     }
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {
