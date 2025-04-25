@@ -222,38 +222,10 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             }
             
             // Send email to bittr API for email verification. Bittr will send email.
-            let parameters = [
-              [
-                "key": "email",
-                "value": self.emailTextField.text!,
-                "type": "text"
-              ],
-              [
-                "key": "category",
-                "value": "ios",
-                "type": "text"
-              ]] as [[String : Any]]
-            
-            let boundary = "Boundary-\(UUID().uuidString)"
-            var body = ""
-            var error: Error? = nil
-            for param in parameters {
-                if param["disabled"] == nil {
-                    let paramName = param["key"]!
-                    body += "--\(boundary)\r\n"
-                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
-                    if param["contentType"] != nil {
-                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
-                    }
-                    let paramType = param["type"] as! String
-                    if paramType == "text" {
-                        let paramValue = param["value"] as! String
-                        body += "\r\n\r\n\(paramValue)\r\n"
-                    }
-                }
-            }
-            body += "--\(boundary)--\r\n";
-            let postData = body.data(using: .utf8)
+            let parameters: [String: Any] = [
+                "email": self.emailTextField.text!,
+                "category": "ios"
+            ]
             
             // TODO: Public?
             var envUrl = "https://getbittr.com/api/verify/email"
@@ -261,34 +233,28 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
             }
             
-            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            request.httpMethod = "POST"
-            request.httpBody = postData
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data else {
-                    print(String(describing: error))
-                    DispatchQueue.main.async {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        if let actualError = error {
-                            SentrySDK.capture(error: actualError)
+            Task {
+                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { receivedDictionary in
+                    
+                    if let receivedError = receivedDictionary["error"] as? String {
+                        // Error.
+                        DispatchQueue.main.async {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            SentrySDK.capture(error: receivedError)
+                        }
+                    } else {
+                        // Success.
+                        DispatchQueue.main.async {
+                            // Send details to next signup page.
+                            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier!, "client":self.currentClientID, "iban":self.currentIbanID]
+                            // Move to next page.
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
                         }
                     }
-                    return
-                }
-                // Response received from Bittr API.
-                
-                DispatchQueue.main.async {
-                    // Send details to next signup page.
-                    let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier, "client":self.currentClientID, "iban":self.currentIbanID]
-                    // Move to next page.
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                    self.nextButtonActivityIndicator.stopAnimating()
-                    self.nextButtonLabel.alpha = 1
                 }
             }
-            task.resume()
-            
         }
     }
     
