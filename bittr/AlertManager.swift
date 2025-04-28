@@ -53,9 +53,9 @@ extension UIViewController {
             alertIcon.translatesAutoresizingMaskIntoConstraints = false
             alertIcon.contentMode = .scaleAspectFit
             if CacheManager.darkModeIsOn() {
-                alertIcon.image = UIImage(named: "iconmailboxyellow")
+                alertIcon.image = UIImage(named: "iconbellyellow")
             } else {
-                alertIcon.image = UIImage(named: "iconmailboxwhite")
+                alertIcon.image = UIImage(named: "iconbellwhite")
             }
             yellowCard.addSubview(alertIcon)
             let alertIconTop = NSLayoutConstraint(item: alertIcon, attribute: .top, relatedBy: .equal, toItem: yellowCard, attribute: .top, multiplier: 1, constant: 19)
@@ -70,7 +70,7 @@ extension UIViewController {
             headerLabel.translatesAutoresizingMaskIntoConstraints = false
             headerLabel.numberOfLines = 1
             headerLabel.font = UIFont(name: "Gilroy-Bold", size: 18)
-            headerLabel.text = Language.getWord(withID: "message")
+            headerLabel.text = title.lowercased()
             headerLabel.textColor = Colors.getColor("whiteoryellow")
             yellowCard.addSubview(headerLabel)
             let headerLabelCenterY = NSLayoutConstraint(item: headerLabel, attribute: .centerY, relatedBy: .equal, toItem: alertIcon, attribute: .centerY, multiplier: 1, constant: 0)
@@ -128,7 +128,7 @@ extension UIViewController {
             closeButton.addConstraints([closeButtonWidth, closeButtonHeight])
             
             // Message title
-            let titleLabel = UILabel()
+            /*let titleLabel = UILabel()
             titleLabel.translatesAutoresizingMaskIntoConstraints = false
             titleLabel.numberOfLines = 1
             titleLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
@@ -141,7 +141,7 @@ extension UIViewController {
             let titleLabelHeight = NSLayoutConstraint(item: titleLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             let titleLabelWidth = NSLayoutConstraint(item: titleLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             yellowCard.addConstraints([titleLabelTop, titleLabelCenterX])
-            titleLabel.addConstraints([titleLabelHeight, titleLabelWidth])
+            titleLabel.addConstraints([titleLabelHeight, titleLabelWidth])*/
             
             // Message
             let messageLabel = UILabel()
@@ -152,7 +152,7 @@ extension UIViewController {
             messageLabel.textColor = Colors.getColor("blackorwhite")
             messageLabel.textAlignment = .center
             yellowCard.addSubview(messageLabel)
-            let messageLabelTop = NSLayoutConstraint(item: messageLabel, attribute: .top, relatedBy: .equal, toItem: titleLabel, attribute: .bottom, multiplier: 1, constant: 8)
+            let messageLabelTop = NSLayoutConstraint(item: messageLabel, attribute: .top, relatedBy: .equal, toItem: alertIcon, attribute: .bottom, multiplier: 1, constant: 25)
             let messageLabelLeft = NSLayoutConstraint(item: messageLabel, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 40)
             let messageLabelRight = NSLayoutConstraint(item: messageLabel, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -40)
             let messageLabelHeight = NSLayoutConstraint(item: messageLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
