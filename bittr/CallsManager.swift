@@ -8,9 +8,15 @@
 import UIKit
 import LDKNode
 
+enum APIError: Error {
+    case invalidURL
+    case requestFailed(String)
+    case decodingFailed
+}
+
 class CallsManager: NSObject {
     
-    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:String, completion: @escaping (NSDictionary) -> Void) async {
+    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:String, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
         
         var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -25,21 +31,14 @@ class CallsManager: NSObject {
             
             let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
                 
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("Status code: \(httpResponse.statusCode)")
-                    print("Headers: \(httpResponse.allHeaderFields)")
-                }
-                
                 if let error = dataError {
                     print("Error: \(error.localizedDescription)")
-                    let errorDictionary:NSDictionary = ["error":error.localizedDescription]
-                    completion(errorDictionary)
+                    completion(.failure(.requestFailed(error.localizedDescription)))
                     return
                 }
                 
                 guard let data = data else {
-                    let errorDictionary:NSDictionary = ["error":"No data received. Response: \(String(describing: response))."]
-                    completion(errorDictionary)
+                    completion(.failure(.requestFailed("No data received.")))
                     return
                 }
                 
@@ -49,29 +48,25 @@ class CallsManager: NSObject {
                     do {
                         let dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
                         if let actualDataDict = dataDictionary {
-                            completion(actualDataDict)
+                            completion(.success(actualDataDict))
                         } else {
-                            let errorDictionary:NSDictionary = ["error":"Received data wasn't in the expected format."]
-                            completion(errorDictionary)
+                            completion(.failure(.decodingFailed))
                             return
                         }
                     } catch {
-                        let errorDictionary:NSDictionary = ["error":error.localizedDescription]
-                        completion(errorDictionary)
+                        completion(.failure(.decodingFailed))
+                        return
                     }
                 } else {
-                    let errorDictionary:NSDictionary = ["error":"Received data wasn't in the expected format."]
-                    completion(errorDictionary)
+                    completion(.failure(.decodingFailed))
                     return
                 }
             }
             task.resume()
         } catch let error as NodeError {
-            let errorDictionary:NSDictionary = ["error":"\(handleNodeError(error))"]
-            completion(errorDictionary)
+            completion(.failure(.requestFailed("\(handleNodeError(error))")))
         } catch {
-            let errorDictionary:NSDictionary = ["error":error.localizedDescription]
-            completion(errorDictionary)
+            completion(.failure(.requestFailed(error.localizedDescription)))
         }
     }
 }

@@ -234,16 +234,10 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             }
             
             Task {
-                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { receivedDictionary in
+                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
                     
-                    if let receivedError = receivedDictionary["error"] as? String {
-                        // Error.
-                        DispatchQueue.main.async {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.capture(error: receivedError)
-                        }
-                    } else {
-                        // Success.
+                    switch result {
+                    case .success(let receivedDictionary):
                         DispatchQueue.main.async {
                             // Send details to next signup page.
                             let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier!, "client":self.currentClientID, "iban":self.currentIbanID]
@@ -252,7 +246,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                             self.nextButtonActivityIndicator.stopAnimating()
                             self.nextButtonLabel.alpha = 1
                         }
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            SentrySDK.capture(error: error)
+                        }
                     }
+                    
                 }
             }
         }

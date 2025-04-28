@@ -84,17 +84,16 @@ class SwapManager: NSObject {
             }
             
             Task {
-                await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: "POST") { receivedDictionary in
+                await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: "POST") { result in
                     
-                    if let receivedError = receivedDictionary["error"] as? String {
-                        // Error
+                    switch result {
+                    case .failure(let error):
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
-                    } else {
-                        // Successful swap creation.
+                    case .success(let receivedDictionary):
                         if receivedDictionary["expectedAmount"] is Int {
                             
                             let mutableDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
@@ -105,6 +104,7 @@ class SwapManager: NSObject {
                             }
                         }
                     }
+                    
                 }
             }
             
@@ -278,19 +278,19 @@ class SwapManager: NSObject {
         }
     
         Task {
-            await CallsManager.makeApiCall(url: "\(apiURL)/swap/\(swapID)", parameters: nil, getOrPost: "GET") { receivedDictionary in
+            await CallsManager.makeApiCall(url: "\(apiURL)/swap/\(swapID)", parameters: nil, getOrPost: "GET") { result in
                 
-                if receivedDictionary["error"] is String {
-                    // Error
+                switch result {
+                case .failure(let error):
                     DispatchQueue.main.async {
                         completion(nil)
                     }
-                } else {
-                    // Response received.
+                case .success(let receivedDictionary):
                     if let receivedStatus = receivedDictionary["status"] as? String {
                         completion(receivedStatus)
                     }
                 }
+                
             }
         }
     }
@@ -304,12 +304,12 @@ class SwapManager: NSObject {
         }
         
         Task {
-            await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine/\(swapID)/claim", parameters: nil, getOrPost: "GET") { receivedDictionary in
+            await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine/\(swapID)/claim", parameters: nil, getOrPost: "GET") { result in
                 
-                if let receivedError = receivedDictionary["error"] as? String {
-                    // Error
-                } else {
-                    // Successful swap creation.
+                switch result {
+                case .failure(let error):
+                    print("Error. \(error.localizedDescription)")
+                case .success(let receivedDictionary):
                     if let receivedPreimage = receivedDictionary["preimage"] as? String, let receivedPublicNonce = receivedDictionary["pubNonce"] as? String, let receivedPublicKey = receivedDictionary["publicKey"] as? String, let receivedTransactionHash = receivedDictionary["transactionHash"] as? String {
                         
                         // Verify that the Lightning payment has been made.
@@ -343,6 +343,7 @@ class SwapManager: NSObject {
                         // Did not receive expected data.
                     }
                 }
+                
             }
         }
     }
@@ -542,27 +543,22 @@ class SwapManager: NSObject {
         }
         
         Task {
-            await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: "POST") { receivedDictionary in
+            await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: "POST") { result in
                 
-                if let receivedError = receivedDictionary["error"] as? String {
-                    // Error
+                switch result {
+                case .failure(let error):
                     DispatchQueue.main.async {
                         if let swapVC = delegate as? SwapViewController {
-                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(receivedError)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
-                } else {
-                    // Successful swap creation.
-                    /*if let expectedAmount = actualDataDict["expectedAmount"] as? Int {
-                        Task {
-                            await self.checkOnchainFees(amountInSatoshis: Int(amountMsat)/1000, createdInvoice: invoice, receivedDictionary: actualDataDict, delegate: delegate)
-                        }
-                    }*/
+                case .success(let receivedDictionary):
                     let mutableSwapDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                     mutableSwapDictionary.setValue(amountSat, forKey: "useramount")
                     mutableSwapDictionary.setValue(randomPreimageHashHex, forKey: "preimagehex")
                     self.checkReverseSwapFees(swapDictionary: mutableSwapDictionary, delegate: delegate)
                 }
+                
             }
         }
     }

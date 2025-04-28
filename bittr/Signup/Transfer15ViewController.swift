@@ -161,19 +161,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             }
                             
                             Task {
-                                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { receivedDictionary in
+                                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
                                     
-                                    if let receivedError = receivedDictionary["error"] as? String {
-                                        // Error.
-                                        SentrySDK.capture(error: receivedError)
-                                        DispatchQueue.main.async {
-                                            self.nextButtonActivityIndicator.stopAnimating()
-                                            self.nextButtonLabel.alpha = 1
-                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                        }
-                                    } else {
-                                        // Success.
-                                        
+                                    switch result {
+                                    case .success(let receivedDictionary):
                                         let emailToken = receivedDictionary["token"]
                                         let errorMessage = receivedDictionary["message"]
                                         if let actualEmailToken = emailToken as? String {
@@ -193,7 +184,15 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 }
                                             }
                                         }
+                                    case .failure(let error):
+                                        SentrySDK.capture(error: error)
+                                        DispatchQueue.main.async {
+                                            self.nextButtonActivityIndicator.stopAnimating()
+                                            self.nextButtonLabel.alpha = 1
+                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        }
                                     }
+                                    
                                 }
                             }
                         }
@@ -281,16 +280,15 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     envUrl = "https://model-arachnid-viable.ngrok-free.app/customer"
                 }
                 
-                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { receivedDictionary in
+                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
                     
-                    if let receivedError = receivedDictionary["error"] as? String {
-                        // Error
+                    switch result {
+                    case .failure(let error):
                         DispatchQueue.main.async {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.capture(error: receivedError)
+                            SentrySDK.capture(error: error)
                         }
-                    } else {
-                        // Success
+                    case .success(let receivedDictionary):
                         if let actualDataItems = receivedDictionary["data"] as? NSDictionary {
                             let dataOurIban = actualDataItems["iban"]
                             let dataCode = actualDataItems["deposit_code"]
@@ -327,6 +325,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             }
                         }
                     }
+                    
                 }
             } catch let error as NSError {
                 print(error)
@@ -376,16 +375,15 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 }
                                 
                                 Task {
-                                    await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { receivedDictionary in
+                                    await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
                                         
-                                        if let receivedError = receivedDictionary["error"] as? String {
-                                            // Error
+                                        switch result {
+                                        case .failure(let error):
                                             DispatchQueue.main.async {
                                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                                SentrySDK.capture(error: receivedError)
+                                                SentrySDK.capture(error: error)
                                             }
-                                        } else {
-                                            // Success
+                                        case .success(let receivedDictionary):
                                             DispatchQueue.main.async {
                                                 let alert = UIAlertController(title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(iban.yourEmail).", preferredStyle: .alert)
                                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
@@ -400,6 +398,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                                 Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
                                             }
                                         }
+                                        
                                     }
                                 }
                             }
