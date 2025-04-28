@@ -380,18 +380,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                         switch result {
                                         case .failure(let error):
                                             DispatchQueue.main.async {
-                                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                                 SentrySDK.capture(error: error)
                                             }
                                         case .success(let receivedDictionary):
                                             DispatchQueue.main.async {
-                                                let alert = UIAlertController(title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(iban.yourEmail).", preferredStyle: .alert)
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "changeemail"), style: .default, handler: {_ in
-                                                    let notificationDict:[String: Any] = ["page":"6"]
-                                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                                                }))
-                                                self.present(alert, animated: true)
+                                                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(iban.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
                                                 
                                                 // Restart counter.
                                                 self.counter = 30
@@ -408,14 +402,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             }
         } else {
             // Timer is still counting down.
-            let alert = UIAlertController(title: "", message: Language.getWord(withID: "resendcode2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "okay"), style: .cancel, handler: nil))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "changeemail"), style: .default, handler: {_ in
-                let notificationDict:[String: Any] = ["page":"6"]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-            }))
-            self.present(alert, animated: true)
+            self.showAlert(presentingController: self.coreVC ?? self, title: "", message: Language.getWord(withID: "resendcode2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
         }
+    }
+    
+    @objc func backToChangeEmail() {
+        self.hideAlert()
+        let notificationDict:[String: Any] = ["page":"6"]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
     }
     
     

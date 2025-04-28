@@ -144,6 +144,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var eurValue = 0.0
     var chfValue = 0.0
     var selectedFee = "medium"
+    var selectedFeeInSats = 0
     var selectedCurrency = "bitcoin"
     var onchainOrLightning = "onchain"
     var completedTransaction:Transaction?
@@ -154,6 +155,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var newPaymentHash:PaymentHash?
     var newInvoiceAmount:Int?
     var bitcoinQR = ""
+    var temporaryInvoiceText = ""
+    var temporaryInvoiceAmount = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()

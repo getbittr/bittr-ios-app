@@ -76,6 +76,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     // Other VCs
     var homeVC:HomeViewController?
+    var temporaryNotificationToken = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -185,43 +186,39 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     }
     
     @objc func showToken(notification:NSNotification) {
-        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {
-                let alert = UIAlertController(title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "copy"), style: .default, handler: { _ in
-                    // Copy the invoice to the clipboard
-                    UIPasteboard.general.string = notificationToken
-                }))
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.temporaryNotificationToken = notificationToken
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyNotificationToken), nil])
             }
         }
     }
     
+    @objc func copyNotificationToken() {
+        self.hideAlert()
+        UIPasteboard.general.string = self.temporaryNotificationToken
+        self.temporaryNotificationToken = ""
+    }
+    
     @IBAction func keyButtonTapped(_ sender: UIButton) {
-        
         let lightningKey = LightningNodeService.shared.nodeId()
-        
-        let alert = UIAlertController(title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "copy"), style: .default, handler: { _ in
-            // Copy the invoice to the clipboard
-            UIPasteboard.general.string = lightningKey
-        }))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyLightningKey), nil])
+    }
+    
+    @objc func copyLightningKey() {
+        self.hideAlert()
+        let lightningKey = LightningNodeService.shared.nodeId()
+        UIPasteboard.general.string = lightningKey
     }
     
     @IBAction func imagesButtonTapped(_ sender: UIButton) {
-        
-        let alert = UIAlertController(title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "remove"), style: .default, handler: { _ in
-            // Copy the invoice to the clipboard
-            CacheManager.emptyImage()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-        }))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [Language.getWord(withID: "remove"), Language.getWord(withID: "cancel")], actions: [#selector(self.emptyImageCache), nil])
+    }
+    
+    @objc func emptyImageCache() {
+        self.hideAlert()
+        CacheManager.emptyImage()
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func peerButtonTapped(_ sender: UIButton) {
@@ -240,33 +237,15 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
                         print("Not connected to peer.")
-                        
-                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "connect"), style: .default, handler: { _ in
-                            self.reconnectToPeer()
-                        }))
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                        self.present(alert, animated: true)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "connect"), Language.getWord(withID: "close")], actions: [#selector(self.reconnectToPeer), nil])
                     }
                 } else {
                     print("Not connected to peer.")
-                    
-                    let alert = UIAlertController(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "connect"), style: .default, handler: { _ in
-                        self.reconnectToPeer()
-                    }))
-                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                    self.present(alert, animated: true)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "connect"), Language.getWord(withID: "close")], actions: [#selector(self.reconnectToPeer), nil])
                 }
             } catch {
                 print("Error listing peers: \(error.localizedDescription)")
-                
-                let alert = UIAlertController(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "connect"), style: .default, handler: { _ in
-                    self.reconnectToPeer()
-                }))
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                self.present(alert, animated: true)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "connect"), Language.getWord(withID: "close")], actions: [#selector(self.reconnectToPeer), nil])
             }
         }
     }
@@ -274,28 +253,29 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBAction func transactionsButtonTapped(_ sender: UIButton) {
         
         if let actualHomeVC = self.homeVC {
-            let alert = UIAlertController(title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "check"), style: .default, handler: { _ in
-                self.transactionsLabel.alpha = 0
-                self.transactionsSpinner.startAnimating()
-                Task {
-                    if await actualHomeVC.fetchTransactionData(txIds: [String](), sendAll: true) == true {
-                        DispatchQueue.main.async {
-                            self.transactionsLabel.alpha = 1
-                            self.transactionsSpinner.stopAnimating()
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            self.transactionsLabel.alpha = 1
-                            self.transactionsSpinner.stopAnimating()
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    }
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions2"), buttons: [Language.getWord(withID: "check"), Language.getWord(withID: "close")], actions: [#selector(self.checkBittrTransactions), nil])
+        }
+    }
+    
+    @objc func checkBittrTransactions() {
+        self.hideAlert()
+        
+        self.transactionsLabel.alpha = 0
+        self.transactionsSpinner.startAnimating()
+        Task {
+            if await self.homeVC!.fetchTransactionData(txIds: [String](), sendAll: true) == true {
+                DispatchQueue.main.async {
+                    self.transactionsLabel.alpha = 1
+                    self.transactionsSpinner.stopAnimating()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
-            }))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            } else {
+                DispatchQueue.main.async {
+                    self.transactionsLabel.alpha = 1
+                    self.transactionsSpinner.stopAnimating()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
         }
     }
     
@@ -335,7 +315,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrnotification"), message: Language.getWord(withID: "bittrnotification2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
-    func reconnectToPeer() {
+    @objc func reconnectToPeer() {
+        self.hideAlert()
         
         self.peerLabel.alpha = 0
         self.peerSpinner.startAnimating()

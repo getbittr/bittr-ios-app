@@ -26,50 +26,15 @@ extension ReceiveViewController {
                 }
                 return address
             } else {
-                /*DispatchQueue.main.async {
-                    let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "addressfail"), preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                        self.getNewAddress(resetAddress: true)
-                    }))
-                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
-                        self.addressSpinner.stopAnimating()
-                        self.qrCodeSpinner.stopAnimating()
-                        self.bothQrCodeSpinner.stopAnimating()
-                    }))
-                    self.present(alert, animated: true)
-                }*/
                 return nil
             }
         } catch let error as NodeError {
-            let errorString = handleNodeError(error)
             DispatchQueue.main.async {
-                /*let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "addressfail2")). (\(errorString).) \(Language.getWord(withID: "pleasetryagain")).", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                    self.getNewAddress(resetAddress: true)
-                }))
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
-                    self.addressSpinner.stopAnimating()
-                    self.qrCodeSpinner.stopAnimating()
-                    self.bothQrCodeSpinner.stopAnimating()
-                }))
-                self.present(alert, animated: true)*/
-                
                 SentrySDK.capture(error: error)
             }
             return nil
         } catch {
             DispatchQueue.main.async {
-                /*let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "addressfail"), preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                    self.getNewAddress(resetAddress: true)
-                }))
-                alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
-                    self.addressSpinner.stopAnimating()
-                    self.qrCodeSpinner.stopAnimating()
-                    self.bothQrCodeSpinner.stopAnimating()
-                }))
-                self.present(alert, animated: true)*/
-                
                 SentrySDK.capture(error: error)
             }
             return nil

@@ -199,6 +199,7 @@ extension SendViewController {
         switch tappedFee {
         case "fast":
             let feeInSats = Int(self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")))
+            self.selectedFeeInSats = feeInSats
             
             if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = Colors.getColor("whiteorblue3")
@@ -213,6 +214,7 @@ extension SendViewController {
             }
         case "medium":
             let feeInSats = Int(self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")))
+            self.selectedFeeInSats = feeInSats
             
             if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
@@ -252,32 +254,36 @@ extension SendViewController {
     func checkFeeAvailability(tappedFee:String, feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
         
         if feeInSats + actualAmount > availableBalance {
-            let alert = UIAlertController(title: Language.getWord(withID: "balance2"), message: "\(Language.getWord(withID: "youravailablebalance")) (\(availableBalance) sats) \(Language.getWord(withID: "isinsufficient")).", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "updateamount"), style: .default, handler: { _ in
-                self.amountTextField.text = "\(CGFloat(availableBalance-feeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
-                
-                var currencySymbol = "€"
-                var conversionRate:CGFloat = 0
-                var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
-                var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
-                conversionRate = eurAmount ?? 0.0
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    currencySymbol = "CHF"
-                    conversionRate = chfAmount ?? 0.0
-                }
-                self.confirmAmountLabel.text = "\(self.onchainAmountInBTC) btc"
-                self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
-                
-                self.switchFeeSelection(tappedFee:tappedFee)
-            }))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-            self.present(alert, animated: true)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: "\(Language.getWord(withID: "youravailablebalance")) (\(availableBalance) sats) \(Language.getWord(withID: "isinsufficient")).", buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
             return false
         } else {
             return true
         }
     }
     
+    @objc func handleAmountChange() {
+        self.hideAlert()
+        
+        self.amountTextField.text = "\(CGFloat(Int(self.btcAmount*100000000)-self.selectedFeeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+        
+        var currencySymbol = "€"
+        var conversionRate:CGFloat = 0
+        var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
+        var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
+        conversionRate = eurAmount ?? 0.0
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            currencySymbol = "CHF"
+            conversionRate = chfAmount ?? 0.0
+        }
+        self.confirmAmountLabel.text = "\(self.onchainAmountInBTC) btc"
+        self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
+        
+        var thisSelectedFee = self.selectedFee
+        if thisSelectedFee == "high" {
+            thisSelectedFee = "fast"
+        }
+        self.switchFeeSelection(tappedFee:thisSelectedFee)
+    }
     
     func confirmSendOnchain() {
         // Send onchain transaction.
@@ -285,20 +291,14 @@ extension SendViewController {
         
         if self.slowTimeLabel.text == "Slow" && self.selectedFee == "low" {
             // Selected fee is very low.
-            let alert = UIAlertController(title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "changefee"), style: .cancel, handler: {_ in
-                return
-            }))
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "continue"), style: .default, handler: {_ in
-                self.proceedWithOnchainConfirmation()
-            }))
-            self.present(alert, animated: true)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [Language.getWord(withID: "changefee"), Language.getWord(withID: "continue")], actions: [nil, #selector(self.proceedWithOnchainConfirmation)])
         } else {
             self.proceedWithOnchainConfirmation()
         }
     }
     
-    func proceedWithOnchainConfirmation() {
+    @objc func proceedWithOnchainConfirmation() {
+        self.hideAlert()
         
         var feeSatoshis = (self.satsMedium.text ?? "no").replacingOccurrences(of: " sats", with: "")
         if self.selectedFee == "low" {
@@ -307,54 +307,54 @@ extension SendViewController {
             feeSatoshis = (self.satsFast.text ?? "no").replacingOccurrences(of: " sats", with: "")
         }
         
-        let alert = UIAlertController(title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "sendconfirmation")) \(self.onchainAmountInBTC) btc, \(Language.getWord(withID: "sendconfirmation2")) \(feeSatoshis) satoshis, \(Language.getWord(withID: "to")) \(self.confirmAddressLabel.text ?? Language.getWord(withID: "thisaddress"))?", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: {_ in
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "sendconfirmation")) \(self.onchainAmountInBTC) btc, \(Language.getWord(withID: "sendconfirmation2")) \(feeSatoshis) satoshis, \(Language.getWord(withID: "to")) \(self.confirmAddressLabel.text ?? Language.getWord(withID: "thisaddress"))?", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
+    }
+    
+    @objc func performOnchainTransaction() {
+        self.hideAlert()
+        
+        self.sendLabel.alpha = 0
+        self.sendSpinner.startAnimating()
+        
+        if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
             
-            self.sendLabel.alpha = 0
-            self.sendSpinner.startAnimating()
+            let actualAddress:String = self.confirmAddressLabel.text!
             
-            if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
-                
-                let actualAddress:String = self.confirmAddressLabel.text!
-                
-                Task {
-                    do {
-                        var address = try Address(address: actualAddress, network: .regtest)
-                        let script = address.scriptPubkey()
-                        var selectedVbyte:Float = self.feeMedium
-                        if self.selectedFee == "low" {
-                            selectedVbyte = self.feeLow
-                        } else if self.selectedFee == "high" {
-                            selectedVbyte = self.feeHigh
-                        }
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(self.onchainAmountInSatoshis)).feeRate(satPerVbyte: selectedVbyte)
-                        let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                        let tx = details.psbt.extractTx()
-                        try actualBlockchain.broadcast(transaction: tx)
-                        let txid = details.psbt.txid()
-                        print("Transaction ID: \(txid)")
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            print("Successful transaction.")
-                            self.sendLabel.alpha = 1
-                            self.sendSpinner.stopAnimating()
-                            self.newTxId = txid
-                            
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
-                        }
-                    } catch {
-                        print("Transaction error: \(error.localizedDescription)")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+            Task {
+                do {
+                    var address = try Address(address: actualAddress, network: .regtest)
+                    let script = address.scriptPubkey()
+                    var selectedVbyte:Float = self.feeMedium
+                    if self.selectedFee == "low" {
+                        selectedVbyte = self.feeLow
+                    } else if self.selectedFee == "high" {
+                        selectedVbyte = self.feeHigh
                     }
+                    let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(self.onchainAmountInSatoshis)).feeRate(satPerVbyte: selectedVbyte)
+                    let details = try txBuilder.finish(wallet: actualWallet)
+                    let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
+                    let tx = details.psbt.extractTx()
+                    try actualBlockchain.broadcast(transaction: tx)
+                    let txid = details.psbt.txid()
+                    print("Transaction ID: \(txid)")
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        print("Successful transaction.")
+                        self.sendLabel.alpha = 1
+                        self.sendSpinner.stopAnimating()
+                        self.newTxId = txid
+                        
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
+                    }
+                } catch {
+                    print("Transaction error: \(error.localizedDescription)")
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
-            } else {
-                print("Wallet or Blockchain instance not available.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
-        }))
-        self.present(alert, animated: true)
+        } else {
+            print("Wallet or Blockchain instance not available.")
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
     }
     
     @objc func addNewTxToTable() {

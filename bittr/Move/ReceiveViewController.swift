@@ -133,6 +133,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var completedTransaction:Transaction?
     var newPaymentHash:PaymentHash?
     var newInvoiceAmount:Int?
+    var temporaryInvoiceText = ""
+    var temporaryInvoiceAmount = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
