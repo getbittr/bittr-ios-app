@@ -246,13 +246,11 @@ extension UIViewController {
                 NSLayoutConstraint.activate([yellowCardBottom])
                 presentingController.view.layoutIfNeeded()
             }) { _ in
-                UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut, animations: {
+                UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
                     NSLayoutConstraint.deactivate([yellowCardBottom])
                     yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 13)
                     NSLayoutConstraint.activate([yellowCardBottom])
                     presentingController.view.layoutIfNeeded()
-                }) { _ in
-                    
                 }
             }
         }

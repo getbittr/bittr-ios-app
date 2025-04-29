@@ -104,6 +104,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusBlockchain: UILabel!
     @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
+    @IBOutlet weak var syncingStatusTop: NSLayoutConstraint!
     
     // Wallet details.
     var currentHeight:Int?
@@ -179,9 +180,18 @@ class CoreViewController: UIViewController {
     }
     
     @IBAction func blackSignupButtonTapped(_ sender: UIButton) {
-        self.blackSignupBackground.alpha = 0
-        self.statusView.alpha = 0
-        self.blackSignupButton.alpha = 0
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            NSLayoutConstraint.deactivate([self.syncingStatusTop])
+            self.syncingStatusTop = NSLayoutConstraint(item: self.statusView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.syncingStatusTop])
+            self.blackSignupBackground.alpha = 0
+            self.view.layoutIfNeeded()
+        }) { _ in
+            self.statusView.alpha = 0
+            self.blackSignupButton.alpha = 0
+        }
     }
     
     @objc func changeColors() {

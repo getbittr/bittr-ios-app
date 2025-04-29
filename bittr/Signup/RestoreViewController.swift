@@ -194,7 +194,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         for eachWord in enteredWords {
             if let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String {
-                if enteredMnemonic == "" {
+                if actualWord == "" {
+                    self.restoreButtonSpinner.stopAnimating()
+                    self.restoreButtonText.alpha = 1
+                    return
+                } else if enteredMnemonic == "" {
                     enteredMnemonic = actualWord
                     handledWords += 1
                 } else {
@@ -245,6 +249,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                         }
                     }
                 }
+            } else {
+                self.restoreButtonSpinner.stopAnimating()
+                self.restoreButtonText.alpha = 1
+                return
             }
         }
     }
