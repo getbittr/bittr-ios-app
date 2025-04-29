@@ -12,7 +12,6 @@ import Sentry
 class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
 
     @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
     
     // Language view
@@ -93,7 +92,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.languageButton.setTitle("", for: .normal)
         
         // Corner radii
-        self.headerView.layer.cornerRadius = 13
         self.languageView.layer.cornerRadius = 13
         self.tokenView.layer.cornerRadius = 13
         self.keyView.layer.cornerRadius = 13

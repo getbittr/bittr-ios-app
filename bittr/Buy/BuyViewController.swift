@@ -9,12 +9,11 @@ import UIKit
 
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
+    // General
     @IBOutlet weak var downButton: UIButton!
-    
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
-    @IBOutlet weak var headerView2: UIView!
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
@@ -42,16 +41,15 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         super.viewDidLoad()
         
         // Corner radii and button titles.
-        headerView2.layer.cornerRadius = 13
-        addAnotherView.layer.cornerRadius = 13
-        continueView.layer.cornerRadius = 13
-        continueButton.setTitle("", for: .normal)
-        downButton.setTitle("", for: .normal)
-        addAnotherButton.setTitle("", for: .normal)
+        self.addAnotherView.layer.cornerRadius = 13
+        self.continueView.layer.cornerRadius = 13
+        self.continueButton.setTitle("", for: .normal)
+        self.downButton.setTitle("", for: .normal)
+        self.addAnotherButton.setTitle("", for: .normal)
         
         // Collection view.
-        ibanCollectionView.delegate = self
-        ibanCollectionView.dataSource = self
+        self.ibanCollectionView.delegate = self
+        self.ibanCollectionView.dataSource = self
         
         // Button border.
         let viewBorder = CAShapeLayer()
@@ -60,14 +58,14 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         } else {
             viewBorder.strokeColor = UIColor.black.cgColor
         }
-        viewBorder.frame = addAnotherView.bounds
+        viewBorder.frame = self.addAnotherView.bounds
         viewBorder.fillColor = nil
-        viewBorder.path = UIBezierPath(roundedRect: addAnotherView.bounds, cornerRadius: 13).cgPath
+        viewBorder.path = UIBezierPath(roundedRect: self.addAnotherView.bounds, cornerRadius: 13).cgPath
         viewBorder.lineWidth = 1
-        addAnotherView.layer.addSublayer(viewBorder)
+        self.addAnotherView.layer.addSublayer(viewBorder)
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         
         // Set colors and language.
         self.changeColors()
@@ -79,7 +77,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func parseIbanEntities() {
         
-        allIbanEntities = [IbanEntity]()
+        self.allIbanEntities = [IbanEntity]()
         
         if self.coreVC == nil {return}
         for eachIbanEntity in self.coreVC!.client.ibanEntities {
