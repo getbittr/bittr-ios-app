@@ -435,6 +435,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.couldNotFetchConversion = false
         self.didFetchConversion = false
         
+        self.coreVC?.checkmarkSyncing.alpha = 0
+        self.coreVC?.spinnerSyncing.startAnimating()
+        self.coreVC?.checkmarkFinal.alpha = 0
+        
         LightningNodeService.shared.walletReset()
     }
     
