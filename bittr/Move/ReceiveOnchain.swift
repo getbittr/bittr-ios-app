@@ -16,14 +16,11 @@ import BitcoinDevKit
 
 extension ReceiveViewController {
     
-    func getNewOnchainAddress() -> String? {
+    func getNewOnchainAddress(_ addressIndex:AddressIndex) -> String? {
         
         do {
             let wallet = LightningNodeService.shared.getWallet()
-            if let address = try wallet?.getAddress(addressIndex: .new).address.asString() {
-                DispatchQueue.main.async {
-                    CacheManager.storeLastAddress(newAddress: address)
-                }
+            if let address = try wallet?.getAddress(addressIndex: addressIndex).address.asString() {
                 return address
             } else {
                 return nil
@@ -52,6 +49,17 @@ extension ReceiveViewController {
         }
     }
     
+    @objc func confirmOnchainAddress() {
+        self.hideAlert()
+        self.didDoublecheckLastUsedAddress = true
+        self.getNewAddress(resetAddress: true)
+    }
+    
+    @objc func confirmUnusedOnchainAddress() {
+        self.hideAlert()
+        self.getNewAddress(resetAddress: false)
+    }
+    
     func getNewAddress(resetAddress:Bool) {
         
         Task {
@@ -73,12 +81,24 @@ extension ReceiveViewController {
             if !resetAddress {
                 if let cachedOnchainAddress = self.getOnchainAddress() {
                     onchainAddressToDisplay = cachedOnchainAddress
-                } else if let newOnchainAddress = self.getNewOnchainAddress() {
+                } else if let newOnchainAddress = self.getNewOnchainAddress(.lastUnused) {
+                    CacheManager.storeLastAddress(newAddress: newOnchainAddress)
                     onchainAddressToDisplay = newOnchainAddress
                 }
             } else {
-                if let newOnchainAddress = self.getNewOnchainAddress() {
-                    onchainAddressToDisplay = newOnchainAddress
+                var addressIndex:AddressIndex = .lastUnused
+                if didDoublecheckLastUsedAddress {
+                    addressIndex = .new
+                    self.didDoublecheckLastUsedAddress = false
+                }
+                if let newOnchainAddress = self.getNewOnchainAddress(addressIndex) {
+                    if self.getOnchainAddress() != nil, self.getOnchainAddress()! == newOnchainAddress {
+                        // Old address is unused.
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [#selector(self.confirmUnusedOnchainAddress), #selector(self.confirmOnchainAddress)])
+                    } else {
+                        CacheManager.storeLastAddress(newAddress: newOnchainAddress)
+                        onchainAddressToDisplay = newOnchainAddress
+                    }
                 }
             }
             

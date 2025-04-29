@@ -135,6 +135,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var newInvoiceAmount:Int?
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
+    var didDoublecheckLastUsedAddress = false
     
     override func viewDidLoad() {
         super.viewDidLoad()

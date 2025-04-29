@@ -347,7 +347,9 @@ class Language: NSObject {
             "forgotpin2": "Please enter your 12-word recovery phrase to reset your PIN.",
             "forgotpin3": "The recovery phrase is incorrect.",
             "reset": "Reset",
-            "resetpin": "Reset PIN"
+            "resetpin": "Reset PIN",
+            "newaddress": "new address",
+            "newaddress2": "The current address is unused. Would you like to get a new one anyway?"
         ]
         
         if let foundWord = allWords[withID] {
