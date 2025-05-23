@@ -41,40 +41,40 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     var setSender = ""
     var start2Fa = false
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Corner radii and button titles.
-        codeView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        codeButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        resendButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        backgroundButton2.setTitle("", for: .normal)
+        // Corner radii
+        self.codeView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        
+        // Button titles
+        self.codeButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        self.resendButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.backgroundButton2.setTitle("", for: .normal)
         
         // Email code text field.
-        codeTextField.delegate = self
-        codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        self.codeTextField.delegate = self
+        self.codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(updateClient), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(updateClient), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
         
         self.changeColors()
         self.setWords()
+        self.updateClient()
     }
     
-    @objc func updateClient(notification:NSNotification) {
+    func updateClient() {
         // Register client details.
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let clientID = userInfo["client"] as? String {
-                self.currentClientID = clientID
-            }
-            if let ibanID = userInfo["iban"] as? String {
-                self.currentIbanID = ibanID
-            }
+        if self.signupVC != nil {
+            self.currentClientID = self.signupVC!.currentClientID
+            self.currentIbanID = self.signupVC!.currentIbanID
         }
     }
     
@@ -93,7 +93,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.view.endEditing(true)
         
         // Check whether code has been entered.
-        updateButtonColor()
+        self.updateButtonColor()
         if self.nextView.backgroundColor == UIColor.black {
             
             self.nextButtonLabel.alpha = 0
@@ -301,9 +301,15 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
                                     self.nextButtonActivityIndicator.stopAnimating()
                                     self.nextButtonLabel.alpha = 1
+                                    
                                     // Move to next page.
-                                    let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
-                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                    self.signupVC?.currentClientID = self.currentClientID
+                                    self.signupVC?.currentIbanID = self.currentIbanID
+                                    self.signupVC?.currentCode = true
+                                    self.signupVC?.moveToPage(12)
+                                    
+                                    /*let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
+                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                                 }
                             }
                         } else if let actualApiMessage = receivedDictionary["message"] as? String {
@@ -338,8 +344,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     @objc func backToPreviousPage() {
         self.hideAlert()
-        let notificationDict:[String: Any] = ["page":"6"]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        
+        self.signupVC?.moveToPage(10)
+        
+        /*let notificationDict:[String: Any] = ["page":"6"]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     
@@ -408,8 +417,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     @objc func backToChangeEmail() {
         self.hideAlert()
-        let notificationDict:[String: Any] = ["page":"6"]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        
+        self.signupVC?.moveToPage(10)
+        
+        /*let notificationDict:[String: Any] = ["page":"6"]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     
@@ -438,13 +450,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     @objc func keyboardWillDisappear() {
         
-        updateButtonColor()
+        self.updateButtonColor()
         
         self.codeButton.alpha = 1
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
+        NSLayoutConstraint.deactivate([self.contentViewBottom])
+        self.contentViewBottom = NSLayoutConstraint(item: self.contentView!, attribute: .bottom, relatedBy: .equal, toItem: self.scrollView, attribute: .bottom, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.contentViewBottom])
         
         self.view.layoutIfNeeded()
     }
@@ -455,25 +467,25 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             
             let keyboardHeight = keyboardSize.height
             
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
+            NSLayoutConstraint.deactivate([self.contentViewBottom])
+            self.contentViewBottom = NSLayoutConstraint(item: self.contentView!, attribute: .bottom, relatedBy: .equal, toItem: self.scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
+            NSLayoutConstraint.activate([self.contentViewBottom])
             
             self.view.layoutIfNeeded()
         }
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        updateButtonColor()
+        self.updateButtonColor()
         return false
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
-        updateButtonColor()
+        self.updateButtonColor()
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        updateButtonColor()
+        self.updateButtonColor()
         return true
     }
     

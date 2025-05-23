@@ -58,6 +58,7 @@ class Transfer2ViewController: UIViewController {
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -88,11 +89,11 @@ class Transfer2ViewController: UIViewController {
         self.checkView.layer.addSublayer(viewBorder)
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
-        if let actualArticles = articles {
+        /*if let actualArticles = articles {
             if let actualArticle = actualArticles[pageArticle1Slug] {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
@@ -112,13 +113,40 @@ class Transfer2ViewController: UIViewController {
             if let actualImage = actualImages[pageArticle1Slug] {
                 self.articleImage.image = actualImage
             }
-        }
+        }*/
         
         self.changeColors()
         self.setWords()
+        self.updateData()
+        self.getSignupArticle()
     }
     
-    @objc func setSignupArticles(notification:NSNotification) {
+    func getSignupArticle() {
+        
+        Task {
+            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle1 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle1.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.articleImage.image = UIImage(data: actualData)
+                        }
+                        if self.articleImage.image != nil {
+                            self.spinner1.stopAnimating()
+                        }
+                    }
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+        }
+    }
+    
+    /*@objc func setSignupArticles(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualArticle = userInfo[pageArticle1Slug] as? Article {
@@ -139,41 +167,38 @@ class Transfer2ViewController: UIViewController {
                 self.articleImage.image = actualImage
             }
         }
-    }
+    }*/
     
     
-    @objc func updateData(notification:NSNotification) {
+    func updateData() {
         
         // Set data received from bittr API.
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
-                self.currentClientID = clientID
-                self.currentIbanID = ibanID
+        if self.signupVC != nil {
+            self.currentClientID = self.signupVC!.currentClientID
+            self.currentIbanID = self.signupVC!.currentIbanID
+            
+            if self.signupVC!.currentCode {
+                var envKey = "proddevice"
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    envKey = "device"
+                }
                 
-                if userInfo["code"] as? Bool == true {
-                    
-                    var envKey = "proddevice"
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        envKey = "device"
-                    }
-                    
-                    let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-                    if let actualDeviceDict = deviceDict {
-                        let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-                        for client in clients {
-                            if client.id == self.currentClientID {
-                                for iban in client.ibanEntities {
-                                    if iban.id == self.currentIbanID {
-                                        
-                                        self.ourIbanLabel.text = iban.ourIbanNumber
-                                        self.yourCodeLabel.text = iban.yourUniqueCode
-                                        
-                                        self.ibanButton.accessibilityIdentifier = iban.ourIbanNumber
-                                        self.nameButton.accessibilityIdentifier = iban.ourName
-                                        self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
-                                        
-                                        self.coreVC?.setClient()
-                                    }
+                let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
+                if let actualDeviceDict = deviceDict {
+                    let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+                    for client in clients {
+                        if client.id == self.currentClientID {
+                            for iban in client.ibanEntities {
+                                if iban.id == self.currentIbanID {
+                                    
+                                    self.ourIbanLabel.text = iban.ourIbanNumber
+                                    self.yourCodeLabel.text = iban.yourUniqueCode
+                                    
+                                    self.ibanButton.accessibilityIdentifier = iban.ourIbanNumber
+                                    self.nameButton.accessibilityIdentifier = iban.ourName
+                                    self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
+                                    
+                                    self.signupVC!.coreVC?.setClient()
                                 }
                             }
                         }
@@ -186,9 +211,9 @@ class Transfer2ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
-        var centerViewHeight = centerView.bounds.height
+        let centerViewHeight = self.centerView.bounds.height
         
-        if centerView.bounds.height + 40 > contentView.bounds.height {
+        if self.centerView.bounds.height + 40 > self.contentView.bounds.height {
             
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 60)
@@ -200,8 +225,10 @@ class Transfer2ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.signupVC?.moveToPage(13)
+        
+        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
@@ -246,7 +273,7 @@ class Transfer2ViewController: UIViewController {
         
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func changeColors() {

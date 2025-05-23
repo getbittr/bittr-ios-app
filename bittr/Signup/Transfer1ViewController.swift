@@ -58,33 +58,36 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        ibanView.layer.cornerRadius = 13
-        emailView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        ibanButton.setTitle("", for: .normal)
-        emailButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        backgroundButton2.setTitle("", for: .normal)
-        skipButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.ibanView.layer.cornerRadius = 13
+        self.emailView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        
+        // Button titles
+        self.ibanButton.setTitle("", for: .normal)
+        self.emailButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.backgroundButton2.setTitle("", for: .normal)
+        self.skipButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
         
         // Text fields.
-        ibanTextField.delegate = self
-        emailTextField.delegate = self
+        self.ibanTextField.delegate = self
+        self.emailTextField.delegate = self
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
-        if let actualArticles = articles {
+        /*if let actualArticles = articles {
             if let actualArticle = actualArticles[pageArticle1Slug] {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
@@ -98,19 +101,45 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 }
                 self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
             }
-        }
+        }*/
         
-        if let actualImages = allImages {
+        /*if let actualImages = allImages {
             if let actualImage = actualImages[pageArticle1Slug] {
                 self.articleImage.image = actualImage
             }
-        }
+        }*/
         
         self.changeColors()
         self.setWords()
+        self.getSignupArticle()
     }
     
-    @objc func setSignupArticles(notification:NSNotification) {
+    func getSignupArticle() {
+        
+        Task {
+            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle1 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle1.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.articleImage.image = UIImage(data: actualData)
+                        }
+                        if self.articleImage.image != nil {
+                            self.spinner1.stopAnimating()
+                        }
+                    }
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+        }
+    }
+    
+    /*@objc func setSignupArticles(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualArticle = userInfo[pageArticle1Slug] as? Article {
@@ -131,7 +160,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 self.articleImage.image = actualImage
             }
         }
-    }
+    }*/
     
     @IBAction func ibanButtonTapped(_ sender: UIButton) {
         
@@ -241,8 +270,11 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                         DispatchQueue.main.async {
                             // Send details to next signup page.
                             let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier!, "client":self.currentClientID, "iban":self.currentIbanID]
+                            
                             // Move to next page.
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                            self.signupVC?.moveToPage(11)
+                            
+                            /*NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                             self.nextButtonActivityIndicator.stopAnimating()
                             self.nextButtonLabel.alpha = 1
                         }

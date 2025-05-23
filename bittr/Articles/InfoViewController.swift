@@ -58,48 +58,6 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.getArticles()
     }
     
-    func parseArticles(articles:NSDictionary) -> [String:Article] {
-        
-        var allArticles = [String:Article]()
-        
-        for (articleid, articledata) in articles {
-            
-            let thisArticle = Article()
-            
-            if let actualArticleID = articleid as? String {
-                thisArticle.id = actualArticleID
-            }
-            if let actualArticleData = articledata as? NSDictionary {
-                
-                if let actualArticleImage = actualArticleData["headerimage"] as? String {
-                    thisArticle.image = actualArticleImage
-                }
-                if let actualArticleText = actualArticleData["text"] as? [NSDictionary] {
-                    thisArticle.text = actualArticleText
-                }
-                if let actualArticleDate = actualArticleData["date"] as? Int {
-                    thisArticle.date = actualArticleDate
-                }
-                if let actualArticleTitle = actualArticleData["title"] as? String {
-                    thisArticle.title = actualArticleTitle
-                }
-                if let actualArticleOrder = actualArticleData["order"] as? Int {
-                    thisArticle.order = actualArticleOrder
-                }
-                if let actualArticleVisibility = actualArticleData["visible"] as? Bool {
-                    thisArticle.isVisible = actualArticleVisibility
-                }
-                if let actualArticleCategory = actualArticleData["category"] as? String {
-                    thisArticle.category = actualArticleCategory
-                }
-            }
-            
-            allArticles.updateValue(thisArticle, forKey: thisArticle.id)
-        }
-        
-        return allArticles
-    }
-    
     func getArticles() {
         
         // TODO: Public?

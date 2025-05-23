@@ -24,7 +24,7 @@ class RegisterIbanViewController: UIViewController {
         
         downButton.setTitle("", for: .normal)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        /*NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)*/
         NotificationCenter.default.addObserver(self, selector: #selector(downButtonTapped), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         
         self.changeColors()

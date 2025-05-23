@@ -14,28 +14,30 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
     
     var previousPIN:String?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        NotificationCenter.default.addObserver(self, selector: #selector(setPreviousPin), name: NSNotification.Name(rawValue: "previouspin"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setPreviousPin), name: NSNotification.Name(rawValue: "previouspin"), object: nil)
+        
+        self.setPreviousPin()
     }
     
-    @objc func setPreviousPin(notification:NSNotification) {
+    func setPreviousPin() {
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let previousNumber = userInfo["previouspin"] as? String {
-                
-                self.previousPIN = previousNumber
-            }
+        if self.signupVC != nil {
+            self.previousPIN = self.signupVC!.enteredPin
         }
     }
     
     
     func backButtonTapped() {
         
-        let notificationDict:[String: Any] = ["page":"-3"]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.signupVC?.moveToPage(1)
+        
+        /*let notificationDict:[String: Any] = ["page":"-3"]
+         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     func nextButtonTapped(enteredPin:String) {
@@ -45,9 +47,9 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             if actualPreviousPin == enteredPin {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
                 
-                self.coreVC?.setClient()
+                self.signupVC?.coreVC?.setClient()
                 CacheManager.storePin(pin: actualPreviousPin)
-                self.coreVC?.resettingPin = false
+                self.signupVC?.coreVC?.resettingPin = false
                 
             } else {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)

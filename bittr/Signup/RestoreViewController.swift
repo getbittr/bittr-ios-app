@@ -56,43 +56,72 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
     
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        mnemonicView.layer.cornerRadius = 13
-        restoreView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        restoreButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        backgroundButton2.setTitle("", for: .normal)
-        backButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.mnemonicView.layer.cornerRadius = 13
+        self.restoreView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        
+        // Button titles
+        self.restoreButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.backgroundButton2.setTitle("", for: .normal)
+        self.backButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
         
         // Text fields.
-        mnemonic1.delegate = self
-        mnemonic2.delegate = self
-        mnemonic3.delegate = self
-        mnemonic4.delegate = self
-        mnemonic5.delegate = self
-        mnemonic6.delegate = self
-        mnemonic7.delegate = self
-        mnemonic8.delegate = self
-        mnemonic9.delegate = self
-        mnemonic10.delegate = self
-        mnemonic11.delegate = self
-        mnemonic12.delegate = self
+        self.mnemonic1.delegate = self
+        self.mnemonic2.delegate = self
+        self.mnemonic3.delegate = self
+        self.mnemonic4.delegate = self
+        self.mnemonic5.delegate = self
+        self.mnemonic6.delegate = self
+        self.mnemonic7.delegate = self
+        self.mnemonic8.delegate = self
+        self.mnemonic9.delegate = self
+        self.mnemonic10.delegate = self
+        self.mnemonic11.delegate = self
+        self.mnemonic12.delegate = self
         
-        self.setTextFields(theseFields: [mnemonic1, mnemonic2, mnemonic3, mnemonic4, mnemonic5, mnemonic6, mnemonic7, mnemonic8, mnemonic9, mnemonic10, mnemonic11, mnemonic12])
+        self.setTextFields(theseFields: [self.mnemonic1, self.mnemonic2, self.mnemonic3, self.mnemonic4, self.mnemonic5, self.mnemonic6, self.mnemonic7, self.mnemonic8, self.mnemonic9, self.mnemonic10, self.mnemonic11, self.mnemonic12])
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
         self.setWords()
+        self.getSignupArticle()
+    }
+    
+    func getSignupArticle() {
+        
+        Task {
+            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle1 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle1.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.articleImage.image = UIImage(data: actualData)
+                        }
+                        if self.articleImage.image != nil {
+                            self.spinner1.stopAnimating()
+                        }
+                    }
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+        }
     }
     
     func setTextFields(theseFields:[UITextField]) {
@@ -104,7 +133,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    @objc func setSignupArticles(notification:NSNotification) {
+    /*@objc func setSignupArticles(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualArticle = userInfo[pageArticle1Slug] as? Article {
@@ -131,13 +160,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                 self.articleImage.image = actualImage
             }
         }
-    }
+    }*/
     
     override func viewWillAppear(_ animated: Bool) {
         
-        if self.coreVC != nil {
-            self.coreVC!.infoVC?.getArticles()
-            if self.coreVC!.resettingPin {
+        if self.signupVC?.coreVC != nil {
+            //self.signupVC!.coreVC!.infoVC?.getArticles()
+            if self.signupVC!.coreVC!.resettingPin {
                 self.restoreButtonText.text = Language.getWord(withID: "resetpin")
             }
         }
@@ -148,9 +177,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     @objc func keyboardWillDisappear() {
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
+        NSLayoutConstraint.deactivate([self.contentViewBottom])
+        self.contentViewBottom = NSLayoutConstraint(item: self.contentView!, attribute: .bottom, relatedBy: .equal, toItem: self.scrollView, attribute: .bottom, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.contentViewBottom])
         
         self.view.layoutIfNeeded()
     }
@@ -161,9 +190,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             
             let keyboardHeight = keyboardSize.height
             
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
+            NSLayoutConstraint.deactivate([self.contentViewBottom])
+            self.contentViewBottom = NSLayoutConstraint(item: self.contentView!, attribute: .bottom, relatedBy: .equal, toItem: self.scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
+            NSLayoutConstraint.activate([self.contentViewBottom])
             
             self.view.layoutIfNeeded()
         }
@@ -222,8 +251,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                     self.coreVC!.startLightning()
                                     
                                     // Proceed to next page.
-                                    let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                                    self.signupVC?.moveToPage(1)
+                                    
+                                    /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                                 } else {
                                     // Entered mnemonic is incorrect.
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -241,8 +272,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             self.coreVC!.startLightning()
                             
                             // Proceed to next page.
-                            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+                            self.signupVC?.moveToPage(1)
+                            
+                            /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                             
                             self.restoreButtonSpinner.stopAnimating()
                             self.restoreButtonText.alpha = 1
@@ -261,17 +294,21 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         self.view.endEditing(true)
         
-        if self.coreVC == nil {
+        if self.signupVC == nil {
             return
-        } else if self.coreVC!.resettingPin {
+        } else if self.signupVC!.coreVC == nil {
+            return
+        } else if self.signupVC!.coreVC!.resettingPin {
             // We're resetting the device PIN.
-            self.coreVC!.pinContainerView.alpha = 1
-            self.coreVC!.resettingPin = false
-            self.coreVC!.hideSignup()
+            self.signupVC!.coreVC!.pinContainerView.alpha = 1
+            self.signupVC!.coreVC!.resettingPin = false
+            self.signupVC!.coreVC!.hideSignup()
         } else {
             // We're restoring an existing wallet.
-            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            self.signupVC!.moveToPage(3)
+            
+            /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
         }
     }
     

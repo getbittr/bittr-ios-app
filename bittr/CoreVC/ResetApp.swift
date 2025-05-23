@@ -17,13 +17,13 @@ extension CoreViewController {
         self.resettingPin = true
         
         // Launch signup for menmonic check.
-        self.launchSignup()
+        self.launchSignup(onPage: 3)
         
         // Show signup.
-        self.showSignupView(atPage: "-1")
+        self.showSignupView()
     }
     
-    func launchSignup() {
+    func launchSignup(onPage:Int) {
         if self.signupContainerView.subviews.count == 0 {
             // Add signup view to container.
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
@@ -33,6 +33,9 @@ extension CoreViewController {
             newChild.view.frame.size = self.signupContainerView.frame.size
             self.signupContainerView.addSubview(newChild.view)
             newChild.didMove(toParent: self)
+            
+            (newChild as! SignupViewController).animateTransition = false
+            (newChild as! SignupViewController).moveToPage(onPage)
         }
     }
     
@@ -40,7 +43,7 @@ extension CoreViewController {
         
         // Remove wallet from device and remove corresponding cached data.
         
-        self.launchSignup()
+        self.launchSignup(onPage: 2)
     
         do {
             if nodeIsRunning == false {
@@ -51,8 +54,6 @@ extension CoreViewController {
             }
             
             CacheManager.deleteClientInfo()
-            
-            self.showSignupView(atPage: "restore")
         } catch let error as NodeError {
             print(error.localizedDescription)
             
@@ -64,8 +65,6 @@ extension CoreViewController {
                 print(error.localizedDescription)
             }
             
-            self.showSignupView(atPage: "restore")
-            
         } catch {
             print(error.localizedDescription)
             
@@ -76,16 +75,10 @@ extension CoreViewController {
             } catch {
                 print(error.localizedDescription)
             }
-            
-            self.showSignupView(atPage: "restore")
         }
     }
     
-    func showSignupView(atPage:String) {
-        
-        // Center on Signup1VC.
-        let notificationDict:[String: Any] = ["page":atPage]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+    func showSignupView() {
         
         // Show SignupVC.
         self.signupContainerView.alpha = 1

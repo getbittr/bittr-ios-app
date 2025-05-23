@@ -52,31 +52,34 @@ class Transfer3ViewController: UIViewController {
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        headerView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        cardView2.layer.cornerRadius = 13
-        imageContainer2.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
-        articleButton2.setTitle("", for: .normal)
-        backButton.setTitle("", for: .normal)
+        // Corner radii
+        self.headerView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        self.cardView2.layer.cornerRadius = 13
+        self.imageContainer2.layer.cornerRadius = 13
+        
+        // Button titles
+        self.nextButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
+        self.articleButton2.setTitle("", for: .normal)
+        self.backButton.setTitle("", for: .normal)
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        /*NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles2), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setArticle2Image), name: NSNotification.Name(rawValue: "setimage\(pageArticle2Slug)"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(checkImageDownload), name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(checkImageDownload), name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil)*/
         
-        if let actualArticles = articles {
+        /*if let actualArticles = articles {
             if let actualArticle = actualArticles[pageArticle1Slug] {
                 self.pageArticle1 = actualArticle
                 DispatchQueue.main.async {
@@ -103,7 +106,7 @@ class Transfer3ViewController: UIViewController {
                 }
                 self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
             }
-        }
+        }*/
         
         if let actualImages = allImages {
             if let actualImage = actualImages[pageArticle1Slug] {
@@ -116,10 +119,57 @@ class Transfer3ViewController: UIViewController {
         
         self.changeColors()
         self.setWords()
+        self.updateData()
+        self.getSignupArticle()
+    }
+    
+    func getSignupArticle() {
+        
+        Task {
+            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle1 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle1.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.articleImage.image = UIImage(data: actualData)
+                        }
+                        if self.articleImage.image != nil {
+                            self.spinner1.stopAnimating()
+                        }
+                    }
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+            
+            await self.getArticle(self.pageArticle2Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle2 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle2.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle2.image) {
+                            self.article2Image.image = UIImage(data: actualData)
+                        }
+                        if self.article2Image.image != nil {
+                            self.spinner2.stopAnimating()
+                        }
+                    }
+                    self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+        }
     }
     
     
-    @objc func checkImageDownload() {
+    /*@objc func checkImageDownload() {
         
         if self.article2Image.image == nil {
             let session = URLSession(configuration: .default)
@@ -172,7 +222,7 @@ class Transfer3ViewController: UIViewController {
             }
             downloadPicTask.resume()
         }
-    }
+    }*/
     
     
     override func viewDidAppear(_ animated: Bool) {
@@ -190,7 +240,7 @@ class Transfer3ViewController: UIViewController {
     }
     
     
-    @objc func setSignupArticles(notification:NSNotification) {
+    /*@objc func setSignupArticles(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualArticle = userInfo[pageArticle1Slug] as? Article {
@@ -234,16 +284,21 @@ class Transfer3ViewController: UIViewController {
                 self.article2Image.image = actualImage
             }
         }
-    }
+    }*/
     
-    @objc func updateData(notification:NSNotification) {
+    func updateData() {
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+        if self.signupVC != nil {
+            self.currentClientID = self.signupVC!.currentClientID
+            self.currentIbanID = self.signupVC!.currentIbanID
+        }
+        
+        /*if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
                 self.currentClientID = clientID
                 self.currentIbanID = ibanID
             }
-        }
+        }*/
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
@@ -273,7 +328,7 @@ class Transfer3ViewController: UIViewController {
         self.hideAlert()
         // Hide signup and proceed into wallet.
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        self.coreVC?.setClient()
+        self.signupVC?.coreVC?.setClient()
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
@@ -285,8 +340,10 @@ class Transfer3ViewController: UIViewController {
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.signupVC?.moveToPage(12)
+        
+        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     func changeColors() {

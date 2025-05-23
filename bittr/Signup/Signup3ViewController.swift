@@ -35,6 +35,7 @@ class Signup3ViewController: UIViewController {
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     // Mnemonic word labels.
     @IBOutlet weak var word1: UILabel!
@@ -53,32 +54,64 @@ class Signup3ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        saveView.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
-        cardView.layer.cornerRadius = 13
-        cardView.layer.shadowColor = UIColor.black.cgColor
-        cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        cardView.layer.shadowRadius = 12.0
-        cardView.layer.shadowOpacity = 0.05
-        imageContainer.layer.cornerRadius = 13
-        mnemonicView.layer.cornerRadius = 13
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.saveView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        self.mnemonicView.layer.cornerRadius = 13
+        
+        // Button titles
+        self.articleButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        
+        // Card styling
+        self.cardView.layer.shadowColor = UIColor.black.cgColor
+        self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
+        self.cardView.layer.shadowRadius = 12.0
+        self.cardView.layer.shadowOpacity = 0.05
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
         
+        // Words and colors
         self.changeColors()
         self.setWords2()
+        self.setMnemonic()
+        self.getSignupArticle()
     }
     
-    @objc func setWords(notification:NSNotification) {
+    func getSignupArticle() {
+        
+        Task {
+            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle1 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle1.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.articleImage.image = UIImage(data: actualData)
+                        }
+                        if self.articleImage.image != nil {
+                            self.spinner1.stopAnimating()
+                        }
+                    }
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+        }
+    }
+    
+    func setMnemonic() {
         
         // Step 8.
-        if self.coreVC == nil { print("CoreVC nil in Signup3.") }
-        if let actualMnemonic = self.coreVC?.newMnemonic {
+        if self.signupVC?.coreVC == nil { print("CoreVC nil in Signup3.") }
+        if let actualMnemonic = self.signupVC?.coreVC?.newMnemonic {
             self.word1.text = actualMnemonic[0]
             self.word2.text = actualMnemonic[1]
             self.word3.text = actualMnemonic[2]
@@ -94,7 +127,7 @@ class Signup3ViewController: UIViewController {
         }
     }
     
-    @objc func setSignupArticles(notification:NSNotification) {
+    /*@objc func setSignupArticles(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualArticle = userInfo[pageArticle1Slug] as? Article {
@@ -115,12 +148,14 @@ class Signup3ViewController: UIViewController {
                 self.articleImage.image = actualImage
             }
         }
-    }
+    }*/
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
+        
+        self.signupVC?.moveToPage(6)
     }
     
     override func viewDidAppear(_ animated: Bool) {

@@ -140,19 +140,19 @@ class CoreViewController: UIViewController {
         super.viewDidLoad()
         
         // Save environment key for switching between Dev and Production.
-        UserDefaults.standard.set(devEnvironment, forKey: "envkey")
+        UserDefaults.standard.set(self.devEnvironment, forKey: "envkey")
         
         // Set corner radii and button titles.
-        selectedView.layer.cornerRadius = 13
-        leftWhite.layer.cornerRadius = 13
-        middleWhite.layer.cornerRadius = 13
-        rightWhite.layer.cornerRadius = 13
-        pendingView.layer.cornerRadius = 13
-        statusView.layer.cornerRadius = 13
-        leftButton.setTitle("", for: .normal)
-        middleButton.setTitle("", for: .normal)
-        rightButton.setTitle("", for: .normal)
-        yellowcurve.alpha = 0.85
+        self.selectedView.layer.cornerRadius = 13
+        self.leftWhite.layer.cornerRadius = 13
+        self.middleWhite.layer.cornerRadius = 13
+        self.rightWhite.layer.cornerRadius = 13
+        self.pendingView.layer.cornerRadius = 13
+        self.statusView.layer.cornerRadius = 13
+        self.leftButton.setTitle("", for: .normal)
+        self.middleButton.setTitle("", for: .normal)
+        self.rightButton.setTitle("", for: .normal)
+        self.yellowcurve.alpha = 0.85
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
@@ -166,17 +166,6 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         self.setWords()
-        
-        // Determine whether to show pin view or signup view.
-        if CacheManager.getPin() != nil {
-            // Wallet exists. Launch pin.
-            self.signupAlpha = 0
-            self.blackSignupAlpha = 0
-            // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
-        } else {
-            // No wallet exists yet. Load SignupVC ahead of intro animation completion.
-            self.launchSignup()
-        }
     }
     
     @IBAction func blackSignupButtonTapped(_ sender: UIButton) {

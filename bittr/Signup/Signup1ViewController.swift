@@ -40,34 +40,64 @@ class Signup1ViewController: UIViewController {
     
     var nextTapped = false
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        headerView.layer.cornerRadius = 13
-        buttonView.layer.cornerRadius = 13
-        restoreView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
-        restoreButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.headerView.layer.cornerRadius = 13
+        self.buttonView.layer.cornerRadius = 13
+        self.restoreView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
         
-        cardView.layer.shadowColor = UIColor.black.cgColor
-        cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        cardView.layer.shadowRadius = 12.0
-        cardView.layer.shadowOpacity = 0.05
+        // Button titles
+        self.nextButton.setTitle("", for: .normal)
+        self.restoreButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        // Card styling
+        self.cardView.layer.shadowColor = UIColor.black.cgColor
+        self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
+        self.cardView.layer.shadowRadius = 12.0
+        self.cardView.layer.shadowOpacity = 0.05
+        
+        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
         
         self.changeColors()
         self.setWords()
+        self.getSignupArticle()
+    }
+    
+    func getSignupArticle() {
+        
+        Task {
+            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
+                
+                switch result {
+                case .success(let receivedArticle):
+                    self.pageArticle1 = receivedArticle
+                    DispatchQueue.main.async {
+                        self.articleTitle.text = self.pageArticle1.title
+                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
+                            self.articleImage.image = UIImage(data: actualData)
+                        }
+                        if self.articleImage.image != nil {
+                            self.spinner1.stopAnimating()
+                        }
+                    }
+                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                case .failure(let receivedError):
+                    print("Couldn't get article: \(receivedError)")
+                }
+            }
+        }
     }
     
     
-    @objc func setSignupArticles(notification:NSNotification) {
+    /*@objc func setSignupArticles(notification:NSNotification) {
         
         // Set article image.
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
@@ -85,9 +115,9 @@ class Signup1ViewController: UIViewController {
                 self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
             }
         }
-    }
+    }*/
     
-    @objc func setArticleImage(notification:NSNotification) {
+    /*@objc func setArticleImage(notification:NSNotification) {
         
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let actualImage = userInfo["image"] as? UIImage {
@@ -95,20 +125,22 @@ class Signup1ViewController: UIViewController {
                 self.articleImage.image = actualImage
             }
         }
-    }
+    }*/
     
 
     @IBAction func restoreButtonClicked(_ sender: UIButton) {
         
         // Check internet connection.
-        if !Reachability.isConnectedToNetwork() {
+        /*if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
             self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
         let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
+        
+        self.signupVC?.moveToPage(2)
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
@@ -138,9 +170,9 @@ class Signup1ViewController: UIViewController {
         }
         
         // Send mnemonic to 3rd signup view.
-        if self.coreVC == nil { print("CoreVC nil.") }
-        self.coreVC?.newMnemonic = mnemonicString.components(separatedBy: " ")
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: nil) as Notification)
+        if self.signupVC?.coreVC == nil { print("CoreVC nil.") }
+        self.signupVC?.coreVC?.newMnemonic = mnemonicString.components(separatedBy: " ")
+        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: nil) as Notification)
 
         self.didReceiveMnemonic()
     }
@@ -151,8 +183,9 @@ class Signup1ViewController: UIViewController {
         self.nextButtonSpinner.stopAnimating()
         
         if nextTapped == true {
-            let notificationDict:[String: Any] = ["page":"0"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            /*let notificationDict:[String: Any] = ["page":"0"]
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
+            self.signupVC?.moveToPage(4)
             nextTapped = false
         }
     }
@@ -179,4 +212,81 @@ class Signup1ViewController: UIViewController {
         self.restoreLabel.text = Language.getWord(withID: "restorewallet")
     }
     
+}
+
+extension UIViewController {
+    
+    func getArticle(_ withSlug:String, coreVC:CoreViewController!, completion: @escaping (Result<Article, String>) -> Void) async {
+        
+        if coreVC.allArticles?[withSlug] != nil {
+            return completion(.success(coreVC.allArticles![withSlug]!))
+        } else {
+            Task {
+                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: "POST") { result in
+                    
+                    switch result {
+                    case .success(let receivedDictionary):
+                        
+                        if let actualArticles = receivedDictionary["articles"] as? NSDictionary {
+                            
+                            let everyArticle = self.parseArticles(articles: actualArticles)
+                            coreVC.allArticles = everyArticle
+                            
+                            DispatchQueue.main.async {
+                                if everyArticle[withSlug] != nil {
+                                    return completion(.success(everyArticle[withSlug]!))
+                                } else {
+                                    return completion(.failure("Article doesn't exist."))
+                                }
+                            }
+                        }
+                    case .failure(let error):
+                        return completion(.failure(error.localizedDescription))
+                    }
+                }
+            }
+        }
+    }
+    
+    func parseArticles(articles:NSDictionary) -> [String:Article] {
+        
+        var allArticles = [String:Article]()
+        
+        for (articleid, articledata) in articles {
+            
+            let thisArticle = Article()
+            
+            if let actualArticleID = articleid as? String {
+                thisArticle.id = actualArticleID
+            }
+            if let actualArticleData = articledata as? NSDictionary {
+                
+                if let actualArticleImage = actualArticleData["headerimage"] as? String {
+                    thisArticle.image = actualArticleImage
+                }
+                if let actualArticleText = actualArticleData["text"] as? [NSDictionary] {
+                    thisArticle.text = actualArticleText
+                }
+                if let actualArticleDate = actualArticleData["date"] as? Int {
+                    thisArticle.date = actualArticleDate
+                }
+                if let actualArticleTitle = actualArticleData["title"] as? String {
+                    thisArticle.title = actualArticleTitle
+                }
+                if let actualArticleOrder = actualArticleData["order"] as? Int {
+                    thisArticle.order = actualArticleOrder
+                }
+                if let actualArticleVisibility = actualArticleData["visible"] as? Bool {
+                    thisArticle.isVisible = actualArticleVisibility
+                }
+                if let actualArticleCategory = actualArticleData["category"] as? String {
+                    thisArticle.category = actualArticleCategory
+                }
+            }
+            
+            allArticles.updateValue(thisArticle, forKey: thisArticle.id)
+        }
+        
+        return allArticles
+    }
 }

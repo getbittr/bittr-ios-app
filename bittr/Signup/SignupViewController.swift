@@ -11,21 +11,110 @@ class SignupViewController: UIViewController {
 
     // View that contains the container views of all signup views.
     
-    @IBOutlet weak var signup1ContainerViewLeading: NSLayoutConstraint!
+    // Container views
+    @IBOutlet weak var secondRestorePinContainer: UIView!
+    @IBOutlet weak var firstRestorePinContainer: UIView!
+    @IBOutlet weak var restoreMnemonicContainer: UIView!
+    @IBOutlet weak var createWalletContainer: UIView!
+    @IBOutlet weak var createWalletCheckContainer: UIView!
+    @IBOutlet weak var newMnemonicContainer: UIView!
+    @IBOutlet weak var newMnemonicCheckContainer: UIView!
+    @IBOutlet weak var firstPinContainer: UIView!
+    @IBOutlet weak var secondPinContainer: UIView!
+    @IBOutlet weak var walletReadyContainer: UIView!
+    @IBOutlet weak var bittrSignupContainer: UIView!
+    @IBOutlet weak var bittrEmailVerificationContainer: UIView!
+    @IBOutlet weak var bittrDetailsContainer: UIView!
+    @IBOutlet weak var bittrFinalContainer: UIView!
+    
+    // Leading constraint
+    @IBOutlet weak var containerViewsLeading: NSLayoutConstraint!
+    
+    // Variables
     var currentPage = 0
     var coreVC:CoreViewController?
+    var allContainerViews = [UIView]()
+    var embedViewIdentifiers = ["Restore3", "Restore2", "Restore", "Signup1", "Signup2", "Signup3", "Signup4", "Signup5", "Signup6", "Signup7", "Transfer1", "Transfer15", "Transfer2", "Transfer"]
+    var enteredPin = ""
+    var currentClientID = ""
+    var currentIbanID = ""
+    var currentCode = false
+    var animateTransition = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        self.allContainerViews = [self.secondRestorePinContainer, self.firstRestorePinContainer, self.restoreMnemonicContainer, self.createWalletContainer, self.createWalletCheckContainer, self.newMnemonicContainer, self.newMnemonicCheckContainer, self.firstPinContainer, self.secondPinContainer, self.walletReadyContainer, self.bittrSignupContainer, self.bittrEmailVerificationContainer, self.bittrDetailsContainer, self.bittrFinalContainer]
 
-        NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(screenshotTaken), name: UIApplication.userDidTakeScreenshotNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
 
         self.changeColors()
     }
     
-    @objc func nextPageTapped(notification:NSNotification) {
+    func moveToPage(_ thisPage:Int) {
+        
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
+        // Identify new view controller.
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        let newChild = storyboard.instantiateViewController(withIdentifier: self.embedViewIdentifiers[thisPage])
+        
+        // Set SignupVC for embedding view controller.
+        (newChild as? Restore3ViewController)?.signupVC = self
+        (newChild as? Restore2ViewController)?.signupVC = self
+        (newChild as? RestoreViewController)?.signupVC = self
+        (newChild as? Signup1ViewController)?.signupVC = self
+        (newChild as? Signup2ViewController)?.signupVC = self
+        (newChild as? Signup3ViewController)?.signupVC = self
+        (newChild as? Signup4ViewController)?.signupVC = self
+        (newChild as? Signup5ViewController)?.signupVC = self
+        (newChild as? Signup6ViewController)?.signupVC = self
+        (newChild as? Signup7ViewController)?.signupVC = self
+        (newChild as? Transfer1ViewController)?.signupVC = self
+        (newChild as? Transfer15ViewController)?.signupVC = self
+        (newChild as? Transfer2ViewController)?.signupVC = self
+        (newChild as? Transfer3ViewController)?.signupVC = self
+        
+        // Add new view controller to correct container view.
+        self.addChild(newChild)
+        newChild.view.frame.size = self.allContainerViews[thisPage].frame.size
+        self.allContainerViews[thisPage].addSubview(newChild.view)
+        newChild.didMove(toParent: self)
+        
+        // Update current page
+        self.currentPage = thisPage
+        
+        // Animate slide to next page
+        var duration = 0.3
+        if !self.animateTransition {
+            duration = 0
+        }
+        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseInOut) {
+            self.containerViewsLeading.constant = UIScreen.main.bounds.width * CGFloat(-thisPage)
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            
+            // Remove previous view from its container.
+            for (index, eachContainer) in self.allContainerViews.enumerated() {
+                if index != thisPage, eachContainer.subviews.count > 0 {
+                    for eachSubview in eachContainer.subviews {
+                        eachSubview.removeFromSuperview()
+                    }
+                }
+            }
+            self.animateTransition = true
+        }
+        
+    }
+    
+    /*@objc func nextPageTapped(notification:NSNotification) {
         
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
@@ -99,11 +188,11 @@ class SignupViewController: UIViewController {
                 }
             }
         }
-    }
+    }*/
     
     @objc func screenshotTaken() {
         // User shouldn't screenshot their mnemonic.
-        if currentPage == 3 {
+        if self.currentPage == 5 {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "noscreenshot"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
@@ -115,7 +204,7 @@ class SignupViewController: UIViewController {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }
     
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+    /*override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         switch segue.identifier {
         case "SignupToSignup1":
@@ -149,10 +238,9 @@ class SignupViewController: UIViewController {
         default:
             if let thisVC = segue.destination as? Signup1ViewController {thisVC.coreVC = self.coreVC}
         }
-    }
+    }*/
     
     @objc func changeColors() {
-        
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
