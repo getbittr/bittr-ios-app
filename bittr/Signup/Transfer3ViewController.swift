@@ -53,6 +53,7 @@ class Transfer3ViewController: UIViewController {
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -84,10 +85,10 @@ class Transfer3ViewController: UIViewController {
         self.setWords()
         self.updateData()
         Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
                 self.pageArticle1 = article ?? Article()
             })
-            await self.setSignupArticle(articleSlug: self.pageArticle2Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton2, articleTitle: self.article2Title, articleImage: self.article2Image, articleSpinner: self.spinner2, completion: { article in
+            await self.setSignupArticle(articleSlug: self.pageArticle2Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton2, articleTitle: self.article2Title, articleImage: self.article2Image, articleSpinner: self.spinner2, completion: { article in
                 self.pageArticle2 = article ?? Article()
             })
         }
@@ -142,7 +143,7 @@ class Transfer3ViewController: UIViewController {
         self.hideAlert()
         // Hide signup and proceed into wallet.
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        self.signupVC?.coreVC?.setClient()
+        (self.signupVC?.coreVC ?? self.coreVC!).setClient()
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
@@ -154,6 +155,7 @@ class Transfer3ViewController: UIViewController {
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(12)
+        self.ibanVC?.moveToPage(12)
     }
     
     func changeColors() {

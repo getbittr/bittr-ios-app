@@ -42,6 +42,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     var start2Fa = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -341,6 +342,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @objc func backToPreviousPage() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(10)
     }
     
     
@@ -410,6 +412,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @objc func backToChangeEmail() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(10)
     }
     
     

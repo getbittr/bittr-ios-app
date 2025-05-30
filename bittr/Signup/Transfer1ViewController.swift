@@ -59,6 +59,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -86,7 +87,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.changeColors()
         self.setWords()
         Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
                 self.pageArticle1 = article ?? Article()
             })
         }
@@ -203,12 +204,15 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                             
                             // Move to next page.
                             self.signupVC?.moveToPage(11)
+                            self.ibanVC?.moveToPage(11)
                             
                             self.nextButtonActivityIndicator.stopAnimating()
                             self.nextButtonLabel.alpha = 1
                         }
                     case .failure(let error):
                         DispatchQueue.main.async {
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             SentrySDK.capture(error: error)
                         }
@@ -229,7 +233,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     @objc func alertGoToWallet() {
         self.hideAlert()
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        self.coreVC?.setClient()
+        (self.signupVC?.coreVC ?? self.coreVC!).setClient()
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {

@@ -41,6 +41,7 @@ class Signup7ViewController: UIViewController {
     var embeddedInBuyVC = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -61,7 +62,7 @@ class Signup7ViewController: UIViewController {
         self.changeColors()
         self.setWords()
         Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
                 self.pageArticle1 = article ?? Article()
             })
         }
@@ -81,6 +82,7 @@ class Signup7ViewController: UIViewController {
         
         // Proceed to bittr signup.
         self.signupVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(10)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

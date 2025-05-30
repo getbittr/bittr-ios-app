@@ -59,6 +59,7 @@ class Transfer2ViewController: UIViewController {
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -92,7 +93,7 @@ class Transfer2ViewController: UIViewController {
         self.setWords()
         self.updateData()
         Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
                 self.pageArticle1 = article ?? Article()
             })
         }
@@ -153,6 +154,7 @@ class Transfer2ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(13)
+        self.ibanVC?.moveToPage(13)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
@@ -197,7 +199,7 @@ class Transfer2ViewController: UIViewController {
         
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func changeColors() {
