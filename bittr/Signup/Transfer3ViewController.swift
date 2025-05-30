@@ -71,43 +71,6 @@ class Transfer3ViewController: UIViewController {
         self.articleButton2.setTitle("", for: .normal)
         self.backButton.setTitle("", for: .normal)
         
-        // Notification observers.
-        //NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
-        /*NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles2), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticle2Image), name: NSNotification.Name(rawValue: "setimage\(pageArticle2Slug)"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(checkImageDownload), name: NSNotification.Name(rawValue: "checkimagedownload"), object: nil)*/
-        
-        /*if let actualArticles = articles {
-            if let actualArticle = actualArticles[pageArticle1Slug] {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.articleImage.image = UIImage(data: actualData)
-                    }
-                    if self.articleImage.image != nil {
-                        self.spinner1.stopAnimating()
-                    }
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-            if let actualArticle2 = actualArticles[pageArticle2Slug] {
-                self.pageArticle2 = actualArticle2
-                DispatchQueue.main.async {
-                    self.article2Title.text = self.pageArticle2.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle2.image) {
-                        self.article2Image.image = UIImage(data: actualData)
-                    }
-                    if self.article2Image.image != nil {
-                        self.spinner2.stopAnimating()
-                    }
-                }
-                self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
-            }
-        }*/
-        
         if let actualImages = allImages {
             if let actualImage = actualImages[pageArticle1Slug] {
                 self.articleImage.image = actualImage
@@ -120,100 +83,15 @@ class Transfer3ViewController: UIViewController {
         self.changeColors()
         self.setWords()
         self.updateData()
-        self.getSignupArticle()
-    }
-    
-    func getSignupArticle() {
-        
         Task {
-            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
-                
-                switch result {
-                case .success(let receivedArticle):
-                    DispatchQueue.main.async {
-                        self.pageArticle1 = receivedArticle
-                        self.articleTitle.text = self.pageArticle1.title
-                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
-                    }
-                case .failure(let receivedError):
-                    print("Couldn't get article: \(receivedError)")
-                }
-            }
-            
-            await self.getArticle(self.pageArticle2Slug, coreVC: self.signupVC!.coreVC!) { result in
-                
-                switch result {
-                case .success(let receivedArticle):
-                    DispatchQueue.main.async {
-                        self.pageArticle2 = receivedArticle
-                        self.articleTitle.text = self.pageArticle2.title
-                        self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
-                        self.articleImage.setArticleImage(url: self.pageArticle2.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner2)
-                    }
-                case .failure(let receivedError):
-                    print("Couldn't get article: \(receivedError)")
-                }
-            }
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
+            await self.setSignupArticle(articleSlug: self.pageArticle2Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton2, articleTitle: self.article2Title, articleImage: self.article2Image, articleSpinner: self.spinner2, completion: { article in
+                self.pageArticle2 = article ?? Article()
+            })
         }
     }
-    
-    
-    /*@objc func checkImageDownload() {
-        
-        if self.article2Image.image == nil {
-            let session = URLSession(configuration: .default)
-            let downloadPicTask = session.dataTask(with: URL(string: self.pageArticle2.image)!) { (data, response, error) in
-                if let e = error {
-                    print("Error downloading picture: \(e)")
-                } else {
-                    if let res = response as? HTTPURLResponse {
-                        print("Downloaded picture with response code \(res.statusCode)")
-                        if let imageData = data {
-                            let image = UIImage(data: imageData)
-                            // Do something with your image.
-                            DispatchQueue.main.async {
-                                self.spinner2.stopAnimating()
-                                self.article2Image.image = image
-                            }
-                        } else {
-                            print("Couldn't get image: Image is nil")
-                        }
-                    } else {
-                        print("Couldn't get response code for some reason")
-                    }
-                }
-            }
-            downloadPicTask.resume()
-        }
-        
-        if self.articleImage.image == nil {
-            let session = URLSession(configuration: .default)
-            let downloadPicTask = session.dataTask(with: URL(string: self.pageArticle1.image)!) { (data, response, error) in
-                if let e = error {
-                    print("Error downloading picture: \(e)")
-                } else {
-                    if let res = response as? HTTPURLResponse {
-                        print("Downloaded picture with response code \(res.statusCode)")
-                        if let imageData = data {
-                            let image = UIImage(data: imageData)
-                            // Do something with your image.
-                            DispatchQueue.main.async {
-                                self.spinner1.stopAnimating()
-                                self.articleImage.image = image
-                            }
-                        } else {
-                            print("Couldn't get image: Image is nil")
-                        }
-                    } else {
-                        print("Couldn't get response code for some reason")
-                    }
-                }
-            }
-            downloadPicTask.resume()
-        }
-    }*/
-    
     
     override func viewDidAppear(_ animated: Bool) {
         
@@ -229,66 +107,12 @@ class Transfer3ViewController: UIViewController {
         }
     }
     
-    
-    /*@objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
-        }
-    }
-    
-    @objc func setSignupArticles2(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle2Slug] as? Article {
-                self.pageArticle2 = actualArticle
-                DispatchQueue.main.async {
-                    self.article2Title.text = self.pageArticle2.title
-                }
-                self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
-            }
-        }
-    }
-    
-    @objc func setArticle2Image(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner2.stopAnimating()
-                self.article2Image.image = actualImage
-            }
-        }
-    }*/
-    
     func updateData() {
         
         if self.signupVC != nil {
             self.currentClientID = self.signupVC!.currentClientID
             self.currentIbanID = self.signupVC!.currentIbanID
         }
-        
-        /*if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
-                self.currentClientID = clientID
-                self.currentIbanID = ibanID
-            }
-        }*/
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
@@ -329,11 +153,7 @@ class Transfer3ViewController: UIViewController {
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
-        
         self.signupVC?.moveToPage(12)
-        
-        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     func changeColors() {

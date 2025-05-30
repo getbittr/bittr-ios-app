@@ -6,7 +6,6 @@
 //
 
 import UIKit
-//import KeychainSwift
 
 class Signup6ViewController: UIViewController, UITextFieldDelegate {
 
@@ -18,9 +17,6 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Set notification observers.
-        //NotificationCenter.default.addObserver(self, selector: #selector(setPreviousPin), name: NSNotification.Name(rawValue: "previouspin"), object: nil)
     }
     
     func setPreviousPin() {
@@ -28,29 +24,19 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
         if self.signupVC?.enteredPin != nil, self.signupVC!.enteredPin != "" {
             self.previousPIN = self.signupVC!.enteredPin
         }
-        
-        /*if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let previousNumber = userInfo["previouspin"] as? String {
-                
-                self.previousPIN = previousNumber
-            }
-        }*/
     }
-    
     
     func backButtonTapped() {
         
         self.signupVC?.enteredPin = ""
         self.signupVC?.moveToPage(7)
-        
-        /*let notificationDict:[String: Any] = ["page":"3"]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     func nextButtonTapped(enteredPin:String) {
         
         // Check whether the confirmed pin is correct.
         
+        self.setPreviousPin()
         if let actualPreviousPin = self.previousPIN {
             if actualPreviousPin == enteredPin {
                 // Pin is correct.
@@ -61,9 +47,6 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 
                 // Move to next page.
                 self.signupVC?.moveToPage(9)
-                
-                /*let notificationDict:[String: Any] = ["page":"5"]
-                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                 
                 // Store pin in cache.
                 CacheManager.storePin(pin: actualPreviousPin)

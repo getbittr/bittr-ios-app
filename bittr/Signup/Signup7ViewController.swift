@@ -58,32 +58,12 @@ class Signup7ViewController: UIViewController {
         self.skipButton.setTitle("", for: .normal)
         self.articleButton.setTitle("", for: .normal)
         
-        // Notification observers.
-        //NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        //NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        
         self.changeColors()
         self.setWords()
-        self.getSignupArticle()
-    }
-    
-    func getSignupArticle() {
-        
         Task {
-            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
-                
-                switch result {
-                case .success(let receivedArticle):
-                    DispatchQueue.main.async {
-                        self.pageArticle1 = receivedArticle
-                        self.articleTitle.text = self.pageArticle1.title
-                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
-                    }
-                case .failure(let receivedError):
-                    print("Couldn't get article: \(receivedError)")
-                }
-            }
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
@@ -101,9 +81,6 @@ class Signup7ViewController: UIViewController {
         
         // Proceed to bittr signup.
         self.signupVC?.moveToPage(10)
-        
-        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
@@ -135,31 +112,7 @@ class Signup7ViewController: UIViewController {
             self.skipButton.alpha = 0
             self.view.layoutIfNeeded()
         }
-        
-        //self.updateArticle()
     }
-    
-    /*@objc func updateArticle() {
-        DispatchQueue.main.async {
-            if self.coreVC != nil {
-                if self.coreVC!.allArticles != nil {
-                    if let thisArticle = self.coreVC!.allArticles![self.pageArticle1Slug] {
-                        
-                        self.pageArticle1 = thisArticle
-                        self.articleTitle.text = self.pageArticle1.title
-                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                        
-                        if let imageData = CacheManager.getImage(key: self.pageArticle1.image) {
-                            self.spinner1.stopAnimating()
-                            self.articleImage.image = UIImage(data: imageData)
-                        } else {
-                            
-                        }
-                    }
-                }
-            }
-        }
-    }*/
     
     func setWords() {
         

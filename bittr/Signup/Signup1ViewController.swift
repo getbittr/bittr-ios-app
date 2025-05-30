@@ -63,77 +63,16 @@ class Signup1ViewController: UIViewController {
         self.cardView.layer.shadowRadius = 12.0
         self.cardView.layer.shadowOpacity = 0.05
         
-        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        
         self.changeColors()
         self.setWords()
-        self.getSignupArticle()
-    }
-    
-    func getSignupArticle() {
-        
         Task {
-            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
-                
-                switch result {
-                case .success(let receivedArticle):
-                    DispatchQueue.main.async {
-                        self.pageArticle1 = receivedArticle
-                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                        self.articleTitle.text = self.pageArticle1.title
-                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
-                    }
-                case .failure(let receivedError):
-                    print("Couldn't get article: \(receivedError)")
-                }
-            }
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
-    
-    /*@objc func setSignupArticles(notification:NSNotification) {
-        
-        // Set article image.
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.articleImage.image = UIImage(data: actualData)
-                    }
-                    if self.articleImage.image != nil {
-                        self.spinner1.stopAnimating()
-                    }
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }*/
-    
-    /*@objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
-        }
-    }*/
-    
-
     @IBAction func restoreButtonClicked(_ sender: UIButton) {
-        
-        // Check internet connection.
-        /*if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
         
         self.signupVC?.moveToPage(2)
     }
@@ -167,7 +106,6 @@ class Signup1ViewController: UIViewController {
         // Send mnemonic to 3rd signup view.
         if self.signupVC?.coreVC == nil { print("CoreVC nil.") }
         self.signupVC?.coreVC?.newMnemonic = mnemonicString.components(separatedBy: " ")
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setwords"), object: nil, userInfo: nil) as Notification)
 
         self.didReceiveMnemonic()
     }
@@ -178,8 +116,6 @@ class Signup1ViewController: UIViewController {
         self.nextButtonSpinner.stopAnimating()
         
         if nextTapped == true {
-            /*let notificationDict:[String: Any] = ["page":"0"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
             self.signupVC?.moveToPage(4)
             nextTapped = false
         }
@@ -210,6 +146,23 @@ class Signup1ViewController: UIViewController {
 }
 
 extension UIViewController {
+    
+    func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView, completion: @escaping (Article?) -> Void) async {
+        
+        await self.getArticle(articleSlug, coreVC: coreVC) { result in
+            
+            switch result {
+            case .success(let receivedArticle):
+                articleButton.accessibilityIdentifier = articleSlug
+                articleTitle.text = receivedArticle.title
+                articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
+                completion(receivedArticle)
+            case .failure(let receivedError):
+                print("Couldn't get article: \(receivedError)")
+                completion(nil)
+            }
+        }
+    }
     
     func getArticle(_ withSlug:String, coreVC:CoreViewController!, completion: @escaping (Result<Article, String>) -> Void) async {
         

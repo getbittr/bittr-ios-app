@@ -62,7 +62,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
         // Notification observers.
-        //NotificationCenter.default.addObserver(self, selector: #selector(updateClient), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
         
         self.changeColors()
@@ -307,9 +306,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.signupVC?.currentIbanID = self.currentIbanID
                                     self.signupVC?.currentCode = true
                                     self.signupVC?.moveToPage(12)
-                                    
-                                    /*let notificationDict:[String: Any] = ["page":page, "client":self.currentClientID, "iban":self.currentIbanID, "code":true]
-                                     NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                                 }
                             }
                         } else if let actualApiMessage = receivedDictionary["message"] as? String {
@@ -344,11 +340,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     @objc func backToPreviousPage() {
         self.hideAlert()
-        
         self.signupVC?.moveToPage(10)
-        
-        /*let notificationDict:[String: Any] = ["page":"6"]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     
@@ -417,11 +409,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     @objc func backToChangeEmail() {
         self.hideAlert()
-        
         self.signupVC?.moveToPage(10)
-        
-        /*let notificationDict:[String: Any] = ["page":"6"]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     

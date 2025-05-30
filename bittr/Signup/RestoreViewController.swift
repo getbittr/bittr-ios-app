@@ -90,32 +90,12 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         self.setTextFields(theseFields: [self.mnemonic1, self.mnemonic2, self.mnemonic3, self.mnemonic4, self.mnemonic5, self.mnemonic6, self.mnemonic7, self.mnemonic8, self.mnemonic9, self.mnemonic10, self.mnemonic11, self.mnemonic12])
         
-        // Notification observers.
-        //NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        //NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        
         self.changeColors()
         self.setWords()
-        self.getSignupArticle()
-    }
-    
-    func getSignupArticle() {
-        
         Task {
-            await self.getArticle(self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!) { result in
-                
-                switch result {
-                case .success(let receivedArticle):
-                    DispatchQueue.main.async {
-                        self.pageArticle1 = receivedArticle
-                        self.articleTitle.text = self.pageArticle1.title
-                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
-                    }
-                case .failure(let receivedError):
-                    print("Couldn't get article: \(receivedError)")
-                }
-            }
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
@@ -128,39 +108,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    /*@objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.articleImage.image = UIImage(data: actualData)
-                    }
-                    if self.articleImage.image != nil {
-                        self.spinner1.stopAnimating()
-                    }
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
-        }
-    }*/
-    
     override func viewWillAppear(_ animated: Bool) {
         
         if self.signupVC?.coreVC != nil {
-            //self.signupVC!.coreVC!.infoVC?.getArticles()
             if self.signupVC!.coreVC!.resettingPin {
                 self.restoreButtonText.text = Language.getWord(withID: "resetpin")
             }
@@ -247,9 +197,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                     
                                     // Proceed to next page.
                                     self.signupVC?.moveToPage(1)
-                                    
-                                    /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-                                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                                 } else {
                                     // Entered mnemonic is incorrect.
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -268,9 +215,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             
                             // Proceed to next page.
                             self.signupVC?.moveToPage(1)
-                            
-                            /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
                             
                             self.restoreButtonSpinner.stopAnimating()
                             self.restoreButtonText.alpha = 1
@@ -301,9 +245,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         } else {
             // We're restoring an existing wallet.
             self.signupVC!.moveToPage(3)
-            
-            /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
         }
     }
     

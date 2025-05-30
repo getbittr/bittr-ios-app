@@ -24,14 +24,8 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
             // Move to next page.
             self.signupVC?.moveToPage(8)
             
-            /*let notificationDict:[String: Any] = ["page":"4"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
-            
             // Send pin to Signup6VC.
             self.signupVC?.enteredPin = enteredPin
-            
-            /*let pinNotificationDict:[String: Any] = ["previouspin":enteredPin]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "previouspin"), object: nil, userInfo: pinNotificationDict) as Notification)*/
         }
     }
     

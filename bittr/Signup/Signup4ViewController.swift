@@ -179,9 +179,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         if self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && self.mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && self.mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
             
-            /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
-            
             self.signupVC?.moveToPage(7)
         }
     }
@@ -189,9 +186,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBAction func backButtonTapped(_ sender: UIButton) {
         
         self.view.endEditing(true)
-        
-        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
         
         self.signupVC?.moveToPage(5)
     }
