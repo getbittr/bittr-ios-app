@@ -130,17 +130,12 @@ class Transfer3ViewController: UIViewController {
                 
                 switch result {
                 case .success(let receivedArticle):
-                    self.pageArticle1 = receivedArticle
                     DispatchQueue.main.async {
+                        self.pageArticle1 = receivedArticle
                         self.articleTitle.text = self.pageArticle1.title
-                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                            self.articleImage.image = UIImage(data: actualData)
-                        }
-                        if self.articleImage.image != nil {
-                            self.spinner1.stopAnimating()
-                        }
+                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
                     }
-                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
                 case .failure(let receivedError):
                     print("Couldn't get article: \(receivedError)")
                 }
@@ -150,17 +145,12 @@ class Transfer3ViewController: UIViewController {
                 
                 switch result {
                 case .success(let receivedArticle):
-                    self.pageArticle2 = receivedArticle
                     DispatchQueue.main.async {
+                        self.pageArticle2 = receivedArticle
                         self.articleTitle.text = self.pageArticle2.title
-                        if let actualData = CacheManager.getImage(key: self.pageArticle2.image) {
-                            self.article2Image.image = UIImage(data: actualData)
-                        }
-                        if self.article2Image.image != nil {
-                            self.spinner2.stopAnimating()
-                        }
+                        self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
+                        self.articleImage.setArticleImage(url: self.pageArticle2.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner2)
                     }
-                    self.articleButton2.accessibilityIdentifier = self.pageArticle2Slug
                 case .failure(let receivedError):
                     print("Couldn't get article: \(receivedError)")
                 }

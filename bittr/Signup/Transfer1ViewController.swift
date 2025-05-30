@@ -121,17 +121,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 
                 switch result {
                 case .success(let receivedArticle):
-                    self.pageArticle1 = receivedArticle
                     DispatchQueue.main.async {
+                        self.pageArticle1 = receivedArticle
                         self.articleTitle.text = self.pageArticle1.title
-                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                            self.articleImage.image = UIImage(data: actualData)
-                        }
-                        if self.articleImage.image != nil {
-                            self.spinner1.stopAnimating()
-                        }
+                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
+                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
                     }
-                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
                 case .failure(let receivedError):
                     print("Couldn't get article: \(receivedError)")
                 }

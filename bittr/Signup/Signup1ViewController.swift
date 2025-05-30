@@ -78,17 +78,12 @@ class Signup1ViewController: UIViewController {
                 
                 switch result {
                 case .success(let receivedArticle):
-                    self.pageArticle1 = receivedArticle
                     DispatchQueue.main.async {
+                        self.pageArticle1 = receivedArticle
+                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
                         self.articleTitle.text = self.pageArticle1.title
-                        if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                            self.articleImage.image = UIImage(data: actualData)
-                        }
-                        if self.articleImage.image != nil {
-                            self.spinner1.stopAnimating()
-                        }
+                        self.articleImage.setArticleImage(url: self.pageArticle1.image, coreVC: self.signupVC?.coreVC, imageSpinner: self.spinner1)
                     }
-                    self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
                 case .failure(let receivedError):
                     print("Couldn't get article: \(receivedError)")
                 }
@@ -288,5 +283,35 @@ extension UIViewController {
         }
         
         return allArticles
+    }
+}
+
+extension UIImageView {
+    
+    func setArticleImage(url:String, coreVC:CoreViewController?, imageSpinner:UIActivityIndicatorView?) {
+        
+        if let actualData = CacheManager.getImage(key: url) {
+            // Image is available in cache.
+            self.image = UIImage(data: actualData)
+            imageSpinner?.stopAnimating()
+        } else {
+            // Image needs to be downloaded.
+            Task {
+                if let actualData = await coreVC?.getImage(urlString: url) {
+                    // Image successfully downloaded.
+                    DispatchQueue.main.async {
+                        imageSpinner?.stopAnimating()
+                        self.image = UIImage(data: actualData)
+                        CacheManager.storeImageInCache(key: url, data: actualData)
+                        imageSpinner?.stopAnimating()
+                    }
+                } else {
+                    // Image couldn't be downloaded.
+                    DispatchQueue.main.async {
+                        imageSpinner?.stopAnimating()
+                    }
+                }
+            }
+        }
     }
 }
