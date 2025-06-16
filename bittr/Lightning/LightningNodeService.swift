@@ -54,20 +54,16 @@ class LightningNodeService {
             logDirPath: storageManager.getDocumentsDirectory(),
             network: network,
             listeningAddresses: correctListeningAddresses,
-            defaultCltvExpiryDelta: UInt32(144),
-            onchainWalletSyncIntervalSecs: UInt64(60),
-            walletSyncIntervalSecs: UInt64(20),
-            feeRateCacheUpdateIntervalSecs: UInt64(600),
-            // TODO: Public? // Signet and Bitcoin node.
+            nodeAlias: nil,
             trustedPeers0conf: ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"],
             probingLiquidityLimitMultiplier: UInt64(3),
             logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
-                    trustedPeersNoReserve: [
-                        PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"),
-                        PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5")
-                    ], perChannelReserveSats: UInt64(1000))
-        )
+                trustedPeersNoReserve: [
+                    PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"),
+                    PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5")
+                ], perChannelReserveSats: UInt64(1000)),
+            sendingParameters: nil)
         
         let nodeBuilder = Builder.fromConfig(config: config)
         
@@ -91,14 +87,18 @@ class LightningNodeService {
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace, config: nil)
+            //nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
         case .regtest:
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
+            //nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.regtest, config: nil)
         case .signet:
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
+            //nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.signet, config: nil)
         case .testnet:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
+            //nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.testnet, config: nil)
         }
         
         let ldkNode = try nodeBuilder.build()
@@ -456,12 +456,12 @@ class LightningNodeService {
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice)
+        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice, sendingParameters: nil)
         return paymentHash
     }
     
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000))
+        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), sendingParameters: nil)
         return paymentHash
     }
     
