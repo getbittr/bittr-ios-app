@@ -13,6 +13,7 @@ import LDKNodeFFI
 import Sentry
 
 class LightningNodeService {
+    
     public var ldkNode: Node?
     private var network: LDKNode.Network
     private let mnemonicKey = ""

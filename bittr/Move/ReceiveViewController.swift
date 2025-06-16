@@ -233,9 +233,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     override func viewDidAppear(_ animated: Bool) {
         let centerViewHeight = centerViewBoth.bounds.height
-        if centerViewBoth.bounds.height + 40 > contentView.bounds.height {
+        if centerViewBoth.bounds.height + 60 > contentView.bounds.height {
             NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 80)
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewBothCenterY.constant = 0
             self.view.layoutIfNeeded()
