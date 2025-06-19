@@ -11,6 +11,7 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
 
     // View for user to set their new pin.
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,12 +22,10 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
         // Check whether pin is more than 3 characters.
         if enteredPin.count > 3 {
             // Move to next page.
-            let notificationDict:[String: Any] = ["page":"4"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            self.signupVC?.moveToPage(8)
             
             // Send pin to Signup6VC.
-            let pinNotificationDict:[String: Any] = ["previouspin":enteredPin]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "previouspin"), object: nil, userInfo: pinNotificationDict) as Notification)
+            self.signupVC?.enteredPin = enteredPin
         }
     }
     

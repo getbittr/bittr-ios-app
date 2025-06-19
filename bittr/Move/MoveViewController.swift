@@ -11,7 +11,6 @@ class MoveViewController: UIViewController {
 
     // Elements
     @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var channelButton: UIButton!
     @IBOutlet weak var subtitleLabel: UILabel!
@@ -60,26 +59,27 @@ class MoveViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Corner radii and button titles.
-        downButton.setTitle("", for: .normal)
-        receiveButton.setTitle("", for: .normal)
-        sendButton.setTitle("", for: .normal)
-        channelButton.setTitle("", for: .normal)
+        // Button titles.
+        self.downButton.setTitle("", for: .normal)
+        self.receiveButton.setTitle("", for: .normal)
+        self.sendButton.setTitle("", for: .normal)
+        self.channelButton.setTitle("", for: .normal)
         self.swapButton.setTitle("", for: .normal)
-        headerView.layer.cornerRadius = 13
-        leftCard.layer.cornerRadius = 8
-        rightCard.layer.cornerRadius = 8
-        viewTotal.layer.cornerRadius = 13
-        viewRegular.layer.cornerRadius = 13
-        viewInstant.layer.cornerRadius = 13
-        yellowCard.layer.cornerRadius = 20
+        
+        // Corner radii
+        self.leftCard.layer.cornerRadius = 8
+        self.rightCard.layer.cornerRadius = 8
+        self.viewTotal.layer.cornerRadius = 13
+        self.viewRegular.layer.cornerRadius = 13
+        self.viewInstant.layer.cornerRadius = 13
+        self.yellowCard.layer.cornerRadius = 20
         self.swapView.layer.cornerRadius = self.swapView.bounds.height/2
         
         // Yellow card shadow.
-        yellowCard.layer.shadowColor = UIColor.black.cgColor
-        yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        yellowCard.layer.shadowRadius = 10.0
-        yellowCard.layer.shadowOpacity = 0.1
+        self.yellowCard.layer.shadowColor = UIColor.black.cgColor
+        self.yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.yellowCard.layer.shadowRadius = 10.0
+        self.yellowCard.layer.shadowOpacity = 0.1
         
         // Swap view shadow
         self.swapView.layer.shadowColor = UIColor.black.cgColor

@@ -19,6 +19,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
 
     // General
     @IBOutlet weak var downButton: UIButton!
+    @IBOutlet weak var topLabel: UILabel!
+    @IBOutlet weak var topIcon: UIImageView!
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -29,19 +31,21 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var centerViewBoth: UIView!
     @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
     @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Main - Switch view
     @IBOutlet weak var switchView: UIView!
     @IBOutlet weak var switchSelectionView: UIView!
     @IBOutlet weak var regularButton: UIButton!
+    @IBOutlet weak var bothButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
     @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var labelBoth: UILabel!
     @IBOutlet weak var labelInstant: UILabel!
     @IBOutlet weak var iconLightning: UIImageView!
+    @IBOutlet weak var iconLightningLeading: NSLayoutConstraint!
     @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
+    @IBOutlet weak var labelBothLeading: NSLayoutConstraint!
     @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
     @IBOutlet weak var switchSelectionLeading: NSLayoutConstraint!
     @IBOutlet weak var switchSelectionTrailing: NSLayoutConstraint!
@@ -64,25 +68,38 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     // Main - Instant view
     @IBOutlet weak var centerViewInstant: UIView!
-    @IBOutlet weak var subtitleInstant: UILabel!
-    @IBOutlet weak var receivableLNLabel: UILabel!
-    @IBOutlet weak var receivableButton: UIButton!
-    @IBOutlet weak var questionCircle: UIImageView!
-    @IBOutlet weak var backgroundButton: UIButton!
-    @IBOutlet weak var amountLabel: UILabel!
-    @IBOutlet weak var amountView: UIView!
-    @IBOutlet weak var amountTextField: UITextField!
-    @IBOutlet weak var amountButton: UIButton!
-    @IBOutlet weak var descriptionLabel: UILabel!
-    @IBOutlet weak var descriptionView: UIView!
-    @IBOutlet weak var descriptionTextField: UITextField!
-    @IBOutlet weak var descriptionButton: UIButton!
     @IBOutlet weak var createView: UIView!
     @IBOutlet weak var createInvoiceLabel: UILabel!
     @IBOutlet weak var invoiceButton: UIButton!
     @IBOutlet weak var lnurlQrView: UIView!
     @IBOutlet weak var scanQrButton: UIButton!
     @IBOutlet weak var scanQrImage: UIImageView!
+    
+    // Main - Both view
+    @IBOutlet weak var subtitleBoth: UILabel!
+    @IBOutlet weak var bothQrView: UIView!
+    @IBOutlet weak var bothAddressView: UIView!
+    @IBOutlet weak var bothQrCodeImage: UIImageView!
+    @IBOutlet weak var bothQrCodeLogoView: UIView!
+    @IBOutlet weak var bothQrCodeSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var bothAddressLabel: UILabel!
+    @IBOutlet weak var bothCopyAddressButton: UIButton!
+    @IBOutlet weak var bothAddressCopy: UIImageView!
+    
+    // Amount view
+    @IBOutlet weak var bothAmountLabel: UILabel!
+    @IBOutlet weak var bothAmountView: UIView!
+    @IBOutlet weak var bothAmountTextField: UITextField!
+    @IBOutlet weak var bothAmountButton: UIButton!
+    @IBOutlet weak var bothAddView: UIView!
+    @IBOutlet weak var bothAddButton: UIButton!
+    
+    // Description view
+    @IBOutlet weak var bothDescriptionView: UIView!
+    @IBOutlet weak var bothDescriptionTextField: UITextField!
+    @IBOutlet weak var bothDescriptionButton: UIButton!
+    @IBOutlet weak var bothDescriptionAddView: UIView!
+    @IBOutlet weak var bothDescriptionAddButton: UIButton!
     
     // QR Scanner
     @IBOutlet weak var qrScannerView: UIView!
@@ -96,9 +113,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var scannerWorks = false
     
     // Confirm invoice view
-    @IBOutlet weak var lnConfirmationHeaderView: UIView!
-    @IBOutlet weak var lnHeaderLabel: UILabel!
-    @IBOutlet weak var lnConfirmationLabel: UILabel!
     @IBOutlet weak var lnConfirmationQRView: UIView!
     @IBOutlet weak var lnQRImage: UIImageView!
     @IBOutlet weak var lnQRCodeLogoView: UIView!
@@ -106,9 +120,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var lnInvoiceLabel: UILabel!
     @IBOutlet weak var lnInvoiceCopy: UIImageView!
     @IBOutlet weak var copyInvoiceButton: UIButton!
-    @IBOutlet weak var lnConfirmationDoneView: UIView!
-    @IBOutlet weak var lnConfirmationDoneButton: UIButton!
-    @IBOutlet weak var lnDoneLabel: UILabel!
     
     // LNURL spinner
     @IBOutlet weak var spinnerView: UIView!
@@ -118,68 +129,65 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     // Variables
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
-    var createdInvoice = ""
     var homeVC:HomeViewController?
     var completedTransaction:Transaction?
     var newPaymentHash:PaymentHash?
     var newInvoiceAmount:Int?
+    var temporaryInvoiceText = ""
+    var temporaryInvoiceAmount = 0
+    var didDoublecheckLastUsedAddress = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Button titles
-        downButton.setTitle("", for: .normal)
-        copyAddressButton.setTitle("", for: .normal)
-        refreshButton.setTitle("", for: .normal)
-        regularButton.setTitle("", for: .normal)
-        instantButton.setTitle("", for: .normal)
-        amountButton.setTitle("", for: .normal)
-        descriptionButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        contentBackgroundButton.setTitle("", for: .normal)
-        invoiceButton.setTitle("", for: .normal)
-        copyInvoiceButton.setTitle("", for: .normal)
-        lnConfirmationDoneButton.setTitle("", for: .normal)
-        receivableButton.setTitle("", for: .normal)
-        scanQrButton.setTitle("", for: .normal)
-        qrScannerBackgroundButton.setTitle("", for: .normal)
+        self.downButton.setTitle("", for: .normal)
+        self.copyAddressButton.setTitle("", for: .normal)
+        self.bothCopyAddressButton.setTitle("", for: .normal)
+        self.refreshButton.setTitle("", for: .normal)
+        self.regularButton.setTitle("", for: .normal)
+        self.bothButton.setTitle("", for: .normal)
+        self.instantButton.setTitle("", for: .normal)
+        self.contentBackgroundButton.setTitle("", for: .normal)
+        self.invoiceButton.setTitle("", for: .normal)
+        self.copyInvoiceButton.setTitle("", for: .normal)
+        self.scanQrButton.setTitle("", for: .normal)
+        self.qrScannerBackgroundButton.setTitle("", for: .normal)
+        self.bothAddButton.setTitle("", for: .normal)
+        self.bothDescriptionAddButton.setTitle("", for: .normal)
         
         // Corner radii
-        headerView.layer.cornerRadius = 13
-        qrView.layer.cornerRadius = 13
-        addressView.layer.cornerRadius = 13
-        refreshView.layer.cornerRadius = 13
-        switchView.layer.cornerRadius = 13
-        amountView.layer.cornerRadius = 13
-        descriptionView.layer.cornerRadius = 13
-        createView.layer.cornerRadius = 13
-        lnConfirmationHeaderView.layer.cornerRadius = 13
-        lnConfirmationQRView.layer.cornerRadius = 13
-        lnConfirmationAddressView.layer.cornerRadius = 13
-        lnConfirmationDoneView.layer.cornerRadius = 13
-        lnurlQrView.layer.cornerRadius = 13
-        scannerView.layer.cornerRadius = 13
-        qrScannerCloseView.layer.cornerRadius = 13
-        spinnerBox.layer.cornerRadius = 13
-        switchSelectionView.layer.cornerRadius = 8
+        self.qrView.layer.cornerRadius = 13
+        self.bothQrView.layer.cornerRadius = 13
+        self.addressView.layer.cornerRadius = 13
+        self.bothAddressView.layer.cornerRadius = 13
+        self.refreshView.layer.cornerRadius = 13
+        self.switchView.layer.cornerRadius = 13
+        self.bothAmountView.layer.cornerRadius = 13
+        self.bothDescriptionView.layer.cornerRadius = 13
+        self.bothAddView.layer.cornerRadius = 8
+        self.bothDescriptionAddView.layer.cornerRadius = 8
+        self.createView.layer.cornerRadius = 13
+        self.lnConfirmationQRView.layer.cornerRadius = 13
+        self.lnConfirmationAddressView.layer.cornerRadius = 13
+        self.lnurlQrView.layer.cornerRadius = 13
+        self.scannerView.layer.cornerRadius = 13
+        self.qrScannerCloseView.layer.cornerRadius = 13
+        self.spinnerBox.layer.cornerRadius = 13
+        self.switchSelectionView.layer.cornerRadius = 8
         
         // Text field delegates
-        amountTextField.delegate = self
-        descriptionTextField.delegate = self
-        amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        self.bothAmountTextField.delegate = self
+        self.bothAmountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        self.bothDescriptionTextField.delegate = self
         
         // Receivable sats label
-        if let actualReceivableLN = maximumReceivableLNSats {
+        /*if let actualReceivableLN = maximumReceivableLNSats {
             self.receivableLNLabel.text = "\(Language.getWord(withID: "youcanreceive")) \(actualReceivableLN) satoshis."
-        }
+        }*/
         
         // Create QR code
-        addressCopy.alpha = 0
-        qrCodeImage.alpha = 0
-        addressLabel.text = ""
-        addressSpinner.startAnimating()
-        qrCodeSpinner.startAnimating()
-        getNewAddress(resetAddress: false)
+        self.resetQRs(resetAddress: false)
         
         // Selection view
         self.switchSelectionView.layer.shadowColor = UIColor.black.cgColor
@@ -192,6 +200,32 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.changeColors()
     }
     
+    func resetQRs(resetAddress:Bool) {
+        
+        // QRs
+        self.qrCodeImage.alpha = 0
+        self.bothQrCodeImage.alpha = 0
+        self.lnQRImage.alpha = 0
+        self.qrCodeLogoView.alpha = 0
+        self.bothQrCodeLogoView.alpha = 0
+        self.lnQRCodeLogoView.alpha = 0
+        
+        // Address labels
+        self.addressCopy.alpha = 0
+        self.bothAddressCopy.alpha = 0
+        self.lnInvoiceCopy.alpha = 0
+        self.addressLabel.text = ""
+        self.bothAddressLabel.text = ""
+        self.lnInvoiceLabel.text = ""
+        
+        self.addressSpinner.startAnimating()
+        self.qrCodeSpinner.startAnimating()
+        self.bothQrCodeSpinner.startAnimating()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.getNewAddress(resetAddress: resetAddress)
+        }
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
@@ -199,9 +233,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     override func viewDidAppear(_ animated: Bool) {
         let centerViewHeight = centerViewBoth.bounds.height
-        if centerViewBoth.bounds.height + 40 > contentView.bounds.height {
+        if centerViewBoth.bounds.height + 60 > contentView.bounds.height {
             NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 80)
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.centerViewBothCenterY.constant = 0
             self.view.layoutIfNeeded()
@@ -218,8 +252,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         keyboardIsActive = false
         
-        self.descriptionButton.alpha = 1
-        self.amountButton.alpha = 1
+        self.bothAmountButton.alpha = 1
+        self.bothDescriptionButton.alpha = 1
         
         NSLayoutConstraint.deactivate([contentViewBottom])
         contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
@@ -245,22 +279,18 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
-        UIPasteboard.general.string = self.addressLabel.text
-        self.showAlert(title: Language.getWord(withID: "copied"), message: self.addressLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        
+        var copyingText = self.addressLabel.text
+        if sender.tag == 1 {
+            copyingText = self.bothAddressLabel.text
+        }
+        UIPasteboard.general.string = copyingText
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func refreshButtonTapped(_ sender: UIButton) {
-        
-        addressCopy.alpha = 0
-        qrCodeImage.alpha = 0
-        qrCodeLogoView.alpha = 0
-        addressLabel.text = ""
-        addressSpinner.startAnimating()
-        qrCodeSpinner.startAnimating()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.getNewAddress(resetAddress:true)
-        }
+        self.view.endEditing(true)
+        self.resetQRs(resetAddress: true)
     }
 
     
@@ -287,32 +317,50 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         var leadingConstraint = self.labelRegular
         var leadingConstant:CGFloat = -15
         var regularConstraint:CGFloat = 20
-        var instantConstraint:CGFloat = 15
+        var bothConstraint:CGFloat = 30
+        var instantConstraint:CGFloat = 20
+        var iconLightningConstraint:CGFloat = 25
         if sender.accessibilityIdentifier == "regular" {
+            // Regular
             leadingConstraint = self.labelRegular
             leadingConstant = -15
-            regularConstraint = 20
-            instantConstraint = 15
-        } else {
+            bothConstraint = 30
+            iconLightningConstraint = 17
+        } else if sender.accessibilityIdentifier == "instant" {
+            // Instant
             leadingConstraint = self.labelInstant
             leadingConstant = -35
-            regularConstraint = 15
-            instantConstraint = 20
+            bothConstraint = 20
+            iconLightningConstraint = 30
+        } else {
+            // Both
+            leadingConstraint = self.labelBoth
+            leadingConstant = -15
+            bothConstraint = 28
+            iconLightningConstraint = 28
         }
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             
-            var viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
+            var viewWidth:CGFloat = 0
             var centerViewBottomConstant:CGFloat = 100
             if sender.accessibilityIdentifier == "regular" {
+                viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
+                centerViewBottomConstant = 0
+            } else if sender.accessibilityIdentifier == "both" {
                 viewWidth = 0
                 centerViewBottomConstant = 0
+            } else {
+                viewWidth = -self.view.safeAreaLayoutGuide.layoutFrame.size.width
+                centerViewBottomConstant = 0
             }
-            self.centerViewRegularTrailing.constant = -viewWidth
+            self.centerViewRegularTrailing.constant = viewWidth
             self.centerViewBothCenterY.constant = centerViewBottomConstant
             
             self.labelRegularLeading.constant = regularConstraint
             self.labelInstantTrailing.constant = instantConstraint
+            self.labelBothLeading.constant = bothConstraint
+            self.iconLightningLeading.constant = iconLightningConstraint
             
             NSLayoutConstraint.deactivate([self.switchSelectionLeading, self.switchSelectionTrailing])
             self.switchSelectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: leadingConstraint, attribute: .leading, multiplier: 1, constant: leadingConstant)
@@ -324,8 +372,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     @objc func doneButtonTapped() {
-        self.amountTextField.resignFirstResponder()
-        self.amountButton.alpha = 1
+        self.view.endEditing(true)
+        self.bothAmountButton.alpha = 1
+        self.bothDescriptionButton.alpha = 1
+        self.resetQRs(resetAddress: false)
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -333,16 +383,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         return false
     }
     
-    @IBAction func amountButtonTapped(_ sender: UIButton) {
+    @IBAction func bothAmountButtonTapped(_ sender: UIButton) {
         
-        self.amountTextField.becomeFirstResponder()
-        self.amountButton.alpha = 0
+        self.bothAmountTextField.becomeFirstResponder()
+        self.bothAmountButton.alpha = 0
     }
     
-    @IBAction func descriptionButtonTapped(_ sender: UIButton) {
-        
-        self.descriptionTextField.becomeFirstResponder()
-        self.descriptionButton.alpha = 0
+    @IBAction func bothDescriptionButtonTapped(_ sender: UIButton) {
+        self.bothDescriptionTextField.becomeFirstResponder()
+        self.bothDescriptionButton.alpha = 0
+    }
+    
+    @IBAction func bothAddButtonTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        self.resetQRs(resetAddress: false)
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
@@ -355,38 +409,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.view.endEditing(true)
     }
     
-    @IBAction func createInvoiceButtonTapped(_ sender: UIButton) {
-        
-        if keyboardIsActive == true {
-            self.view.endEditing(true)
-        } else {
-            
-            if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
-                // Some field was left empty.
-            } else {
-                let actualAmount = (Int(self.amountTextField.text!) ?? 0) * 1000
-                self.receivePayment(amountMsat: UInt64(actualAmount), description: self.descriptionTextField.text ?? "", expirySecs: 3600)
-            }
-        }
-    }
-    
     @IBAction func copyInvoiceButtonTapped(_ sender: UIButton) {
         
-        if self.createdInvoice != "" {
-            UIPasteboard.general.string = self.createdInvoice
-            self.showAlert(title: Language.getWord(withID: "copied"), message: self.createdInvoice, buttons: [Language.getWord(withID: "okay")], actions: nil)
-        }
-    }
-    
-    @IBAction func lnDoneButtonTapped(_ sender: UIButton) {
-        
-        // Hide confirmation view.
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-            self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.scrollViewTrailing])
-            self.view.layoutIfNeeded()
-        }
+        UIPasteboard.general.string = self.lnInvoiceLabel.text ?? ""
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.lnInvoiceLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func receivableButtonTapped(_ sender: UIButton) {
@@ -396,7 +422,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     @IBAction func scanQrButtonTapped(_ sender: UIButton) {
-        
         self.qrScannerView.alpha = 1
         self.showScannerView()
     }
@@ -418,7 +443,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     @objc func addNewPayment() {
         if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
-            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, sendVC: nil, receiveVC: self)
+            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, delegate: self)
             self.newInvoiceAmount = nil
             self.newPaymentHash = nil
         }

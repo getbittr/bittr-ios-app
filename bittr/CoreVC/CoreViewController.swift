@@ -67,6 +67,7 @@ class CoreViewController: UIViewController {
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
     var newMnemonic:[String]?
+    var resettingPin = false
     
     // Variables for notification handling
     var didBecomeVisible = false
@@ -103,6 +104,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusBlockchain: UILabel!
     @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
+    @IBOutlet weak var syncingStatusTop: NSLayoutConstraint!
     
     // Wallet details.
     var currentHeight:Int?
@@ -138,19 +140,19 @@ class CoreViewController: UIViewController {
         super.viewDidLoad()
         
         // Save environment key for switching between Dev and Production.
-        UserDefaults.standard.set(devEnvironment, forKey: "envkey")
+        UserDefaults.standard.set(self.devEnvironment, forKey: "envkey")
         
         // Set corner radii and button titles.
-        selectedView.layer.cornerRadius = 13
-        leftWhite.layer.cornerRadius = 13
-        middleWhite.layer.cornerRadius = 13
-        rightWhite.layer.cornerRadius = 13
-        pendingView.layer.cornerRadius = 13
-        statusView.layer.cornerRadius = 13
-        leftButton.setTitle("", for: .normal)
-        middleButton.setTitle("", for: .normal)
-        rightButton.setTitle("", for: .normal)
-        yellowcurve.alpha = 0.85
+        self.selectedView.layer.cornerRadius = 13
+        self.leftWhite.layer.cornerRadius = 13
+        self.middleWhite.layer.cornerRadius = 13
+        self.rightWhite.layer.cornerRadius = 13
+        self.pendingView.layer.cornerRadius = 13
+        self.statusView.layer.cornerRadius = 13
+        self.leftButton.setTitle("", for: .normal)
+        self.middleButton.setTitle("", for: .normal)
+        self.rightButton.setTitle("", for: .normal)
+        self.yellowcurve.alpha = 0.85
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
@@ -164,31 +166,21 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
         self.setWords()
-        
-        // Determine whether to show pin view or signup view.
-        if CacheManager.getPin() != nil {
-            // Wallet exists. Launch pin.
-            self.signupAlpha = 0
-            self.blackSignupAlpha = 0
-            // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
-            
-        } else {
-            // No wallet exists yet. Load SignupVC ahead of intro animation completion.
-            
-            let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
-            let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
-            (newChild as! SignupViewController).coreVC = self
-            self.addChild(newChild)
-            newChild.view.frame.size = self.signupContainerView.frame.size
-            self.signupContainerView.addSubview(newChild.view)
-            newChild.didMove(toParent: self)
-        }
     }
     
     @IBAction func blackSignupButtonTapped(_ sender: UIButton) {
-        self.blackSignupBackground.alpha = 0
-        self.statusView.alpha = 0
-        self.blackSignupButton.alpha = 0
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            NSLayoutConstraint.deactivate([self.syncingStatusTop])
+            self.syncingStatusTop = NSLayoutConstraint(item: self.statusView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.syncingStatusTop])
+            self.blackSignupBackground.alpha = 0
+            self.view.layoutIfNeeded()
+        }) { _ in
+            self.statusView.alpha = 0
+            self.blackSignupButton.alpha = 0
+        }
     }
     
     @objc func changeColors() {

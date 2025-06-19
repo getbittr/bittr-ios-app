@@ -58,78 +58,38 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        ibanView.layer.cornerRadius = 13
-        emailView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        ibanButton.setTitle("", for: .normal)
-        emailButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        backgroundButton2.setTitle("", for: .normal)
-        skipButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.ibanView.layer.cornerRadius = 13
+        self.emailView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        
+        // Button titles
+        self.ibanButton.setTitle("", for: .normal)
+        self.emailButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.backgroundButton2.setTitle("", for: .normal)
+        self.skipButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
         
         // Text fields.
-        ibanTextField.delegate = self
-        emailTextField.delegate = self
-        
-        // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        
-        if let actualArticles = articles {
-            if let actualArticle = actualArticles[pageArticle1Slug] {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.articleImage.image = UIImage(data: actualData)
-                    }
-                    if self.articleImage.image != nil {
-                        self.spinner1.stopAnimating()
-                    }
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-        
-        if let actualImages = allImages {
-            if let actualImage = actualImages[pageArticle1Slug] {
-                self.articleImage.image = actualImage
-            }
-        }
+        self.ibanTextField.delegate = self
+        self.emailTextField.delegate = self
         
         self.changeColors()
         self.setWords()
-    }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
+        Task {
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
@@ -222,38 +182,10 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             }
             
             // Send email to bittr API for email verification. Bittr will send email.
-            let parameters = [
-              [
-                "key": "email",
-                "value": self.emailTextField.text!,
-                "type": "text"
-              ],
-              [
-                "key": "category",
-                "value": "ios",
-                "type": "text"
-              ]] as [[String : Any]]
-            
-            let boundary = "Boundary-\(UUID().uuidString)"
-            var body = ""
-            var error: Error? = nil
-            for param in parameters {
-                if param["disabled"] == nil {
-                    let paramName = param["key"]!
-                    body += "--\(boundary)\r\n"
-                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
-                    if param["contentType"] != nil {
-                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
-                    }
-                    let paramType = param["type"] as! String
-                    if paramType == "text" {
-                        let paramValue = param["value"] as! String
-                        body += "\r\n\r\n\(paramValue)\r\n"
-                    }
-                }
-            }
-            body += "--\(boundary)--\r\n";
-            let postData = body.data(using: .utf8)
+            let parameters: [String: Any] = [
+                "email": self.emailTextField.text!,
+                "category": "ios"
+            ]
             
             // TODO: Public?
             var envUrl = "https://getbittr.com/api/verify/email"
@@ -261,34 +193,33 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
             }
             
-            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            request.httpMethod = "POST"
-            request.httpBody = postData
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data else {
-                    print(String(describing: error))
-                    DispatchQueue.main.async {
-                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        if let actualError = error {
-                            SentrySDK.capture(error: actualError)
+            Task {
+                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                    
+                    switch result {
+                    case .success(let receivedDictionary):
+                        DispatchQueue.main.async {
+                            // Send details to next signup page.
+                            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier!, "client":self.currentClientID, "iban":self.currentIbanID]
+                            
+                            // Move to next page.
+                            self.signupVC?.moveToPage(11)
+                            self.ibanVC?.moveToPage(11)
+                            
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
+                        }
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            SentrySDK.capture(error: error)
                         }
                     }
-                    return
-                }
-                // Response received from Bittr API.
-                
-                DispatchQueue.main.async {
-                    // Send details to next signup page.
-                    let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier, "client":self.currentClientID, "iban":self.currentIbanID]
-                    // Move to next page.
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                    self.nextButtonActivityIndicator.stopAnimating()
-                    self.nextButtonLabel.alpha = 1
+                    
                 }
             }
-            task.resume()
-            
         }
     }
     
@@ -296,14 +227,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
-        
-        let alert = UIAlertController(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "gotowallet"), style: .cancel, handler: {_ in
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-            self.coreVC?.setClient()
-        }))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .default, handler: nil))
-        self.present(alert, animated: true)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
+    }
+    
+    @objc func alertGoToWallet() {
+        self.hideAlert()
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
+        (self.signupVC?.coreVC ?? self.coreVC!).setClient()
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {

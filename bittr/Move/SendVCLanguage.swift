@@ -11,11 +11,9 @@ extension SendViewController {
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "sendbitcoin")
-        self.topLabel.text = Language.getWord(withID: "sendtoplabel")
-        self.toLabel.text = Language.getWord(withID: "address")
+        self.sendBitcoinLabel.text = Language.getWord(withID: "sendbitcoin")
+        self.toLabel.text = Language.getWord(withID: "addressandamount")
         self.toTextField.placeholder = Language.getWord(withID: "enteraddress")
-        self.amountLabel.text = Language.getWord(withID: "amount")
         self.labelRegular.text = Language.getWord(withID: "regular")
         self.labelInstant.text = Language.getWord(withID: "instant")
         self.amountTextField.placeholder = Language.getWord(withID: "enteramount")
@@ -29,7 +27,6 @@ extension SendViewController {
         self.sendLabel.text = Language.getWord(withID: "send")
         self.stackLabelQR.text = Language.getWord(withID: "sendvcscan")
         self.stackLabelPaste.text = Language.getWord(withID: "sendvcpaste")
-        self.stackLabelType.text = Language.getWord(withID: "sendvctype")
         
     }
     
@@ -43,25 +40,19 @@ extension SendViewController {
         self.labelInstant.textColor = Colors.getColor("blackorwhite")
         self.iconLightning.tintColor = Colors.getColor("blackorwhite")
         
-        self.topLabel.textColor = Colors.getColor("blackorwhite")
-        
         self.toLabel.textColor = Colors.getColor("blackoryellow")
         self.backgroundQR.backgroundColor = Colors.getColor("whiteorblue3")
         self.backgroundPaste.backgroundColor = Colors.getColor("whiteorblue3")
-        self.backgroundKeyboard.backgroundColor = Colors.getColor("whiteorblue3")
         self.stackLabelQR.textColor = Colors.getColor("blackorwhite")
         self.stackLabelPaste.textColor = Colors.getColor("blackorwhite")
-        self.stackLabelType.textColor = Colors.getColor("blackorwhite")
         self.stackImageQR.tintColor = Colors.getColor("blackorwhite")
         self.stackImagePaste.tintColor = Colors.getColor("blackorwhite")
-        self.stackImageType.tintColor = Colors.getColor("blackorwhite")
         self.toView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.toTextField.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enteramount"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
         
-        self.amountLabel.textColor = Colors.getColor("blackoryellow")
         self.availableAmount.textColor = Colors.getColor("blackorwhite")
         self.questionCircle.tintColor = Colors.getColor("blackorwhite")
         self.btcView.backgroundColor = Colors.getColor("whiteorblue3")

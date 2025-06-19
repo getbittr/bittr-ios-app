@@ -29,7 +29,7 @@ extension CoreViewController {
                     if self.wasNotified == false {
                         // App was open when notification came in.
                         self.varSpecialData = specialData
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
@@ -38,7 +38,7 @@ extension CoreViewController {
                         self.blackSignupBackground.alpha = 0.2
                         
                         self.varSpecialData = specialData
-                        self.facilitateNotificationPayout(specialData: specialData)
+                        self.facilitateNotificationPayout()
                         self.needsToHandleNotification = false
                     }
                 } else {
@@ -47,7 +47,7 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
                 // No special key, so this is a normal notification.
@@ -62,18 +62,26 @@ extension CoreViewController {
         self.pendingSpinner.startAnimating()
         self.pendingView.alpha = 1
         self.blackSignupBackground.alpha = 0.2
-        self.facilitateNotificationPayout(specialData: self.varSpecialData!)
+        self.facilitateNotificationPayout()
         self.needsToHandleNotification = false
     }
     
     
-    func facilitateNotificationPayout(specialData:[String:Any]) {
+    @objc func facilitateNotificationPayout() {
+        self.hideAlert()
         
         // TODO: Public?
         let nodeIds = ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"]
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         print("Did start payout process.")
+        var specialData = [String:Any]()
+        if self.varSpecialData != nil {
+            specialData = self.varSpecialData!
+        } else {
+            print("No special data available.")
+            return
+        }
         
         // Extract required data from specialData
         if let notificationId = specialData["notification_id"] as? String {
@@ -94,24 +102,14 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
-                            self.reconnectToPeer()
-                        }))
-                        self.present(alert, animated: true)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else if peers[0].nodeId == nodeId, peers[0].isConnected == false {
                     DispatchQueue.main.async {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
-                            self.reconnectToPeer()
-                        }))
-                        self.present(alert, animated: true)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else {
                     
@@ -165,16 +163,11 @@ extension CoreViewController {
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
-                            let alert = UIAlertController(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", preferredStyle: .alert)
-                            if error.localizedDescription.contains("try again") {
-                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .default, handler: {_ in
-                                    if let actualSpecialData = self.varSpecialData {
-                                        self.facilitateNotificationPayout(specialData: actualSpecialData)
-                                    }
-                                }))
+                            if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                            } else {
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
                             }
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "close"), style: .cancel, handler: nil))
-                            self.present(alert, animated: true)
                         }
                     }
                 }
@@ -184,12 +177,13 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
         }
     }
     
     
-    func reconnectToPeer() {
+    @objc func reconnectToPeer() {
+        self.hideAlert()
         
         // TODO: Public?
         // .testnet and .bitcoin
@@ -236,16 +230,16 @@ extension CoreViewController {
             try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
             connectTask.cancel()
             print("Connecting to peer takes too long.")
-            if let actualSpecialData = self.varSpecialData {
-                self.facilitateNotificationPayout(specialData: actualSpecialData)
+            if self.varSpecialData != nil {
+                self.facilitateNotificationPayout()
             }
         }
         
         Task.init {
             let result = await connectTask.value
             timeoutTask.cancel()
-            if let actualSpecialData = self.varSpecialData {
-                self.facilitateNotificationPayout(specialData: actualSpecialData)
+            if self.varSpecialData != nil {
+                self.facilitateNotificationPayout()
             }
         }
     }
@@ -296,6 +290,33 @@ extension CoreViewController {
                         thisTransaction.confirmations = 0
                         thisTransaction.height = 0
                         thisTransaction.fee = 0
+                        
+                        if CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
+                            if self.homeVC != nil {
+                                for (index, eachTransaction) in self.homeVC!.setTransactions.enumerated() {
+                                    if eachTransaction.lnDescription.contains("Swap onchain to lightning "), eachTransaction.lnDescription == CacheManager.getInvoiceDescription(hash: paymentHash) {
+                                        // This is a swap. This is the matching onchain transaction.
+                                        
+                                        thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
+                                        thisTransaction.lightningID = paymentDetails.id
+                                        thisTransaction.onchainID = eachTransaction.id
+                                        thisTransaction.isSwap = true
+                                        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
+                                        thisTransaction.isLightning = false
+                                        //let sentAmount:Int = eachTransaction.received + thisTransaction.received - eachTransaction.sent - thisTransaction.sent
+                                        thisTransaction.sent = eachTransaction.sent - eachTransaction.received
+                                        thisTransaction.swapDirection = 0
+                                        
+                                        if let actualCurrentHeight = self.currentHeight {
+                                            thisTransaction.height = actualCurrentHeight
+                                            thisTransaction.confirmations = 1
+                                        }
+                                        
+                                        self.homeVC!.setTransactions.remove(at: index)
+                                    }
+                                }
+                            }
+                        }
                         
                         self.receivedBittrTransaction = thisTransaction
                         DispatchQueue.main.async {

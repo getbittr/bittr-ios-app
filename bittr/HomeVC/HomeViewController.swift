@@ -133,7 +133,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Check if dark mode is on.
         self.changeColors()
         self.setWords()
-        //self.headerLabel.text = Language.getWord(withID: "syncing")
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
@@ -263,7 +262,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -276,13 +275,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -295,13 +294,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -435,6 +434,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.couldNotFetchConversion = false
         self.didFetchConversion = false
         
+        self.coreVC?.checkmarkSyncing.alpha = 0
+        self.coreVC?.spinnerSyncing.startAnimating()
+        self.coreVC?.checkmarkFinal.alpha = 0
+        
         LightningNodeService.shared.walletReset()
     }
     
@@ -446,7 +449,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
@@ -488,7 +491,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.headerSpinner.isAnimating {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -499,15 +502,31 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.headerSpinner.isAnimating {
             if self.couldNotFetchConversion == true {
-                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }
         } else {
             if let actualCoreVC = self.coreVC {
-                actualCoreVC.blackSignupBackground.alpha = 0.2
                 actualCoreVC.statusView.alpha = 1
                 actualCoreVC.blackSignupButton.alpha = 1
+                
+                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+                    
+                    NSLayoutConstraint.deactivate([actualCoreVC.syncingStatusTop])
+                    actualCoreVC.syncingStatusTop = NSLayoutConstraint(item: actualCoreVC.statusView, attribute: .bottom, relatedBy: .equal, toItem: actualCoreVC.view, attribute: .bottom, multiplier: 1, constant: 0)
+                    NSLayoutConstraint.activate([actualCoreVC.syncingStatusTop])
+                    actualCoreVC.blackSignupBackground.alpha = 0.2
+                    actualCoreVC.view.layoutIfNeeded()
+                }) { _ in
+                    UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                        
+                        NSLayoutConstraint.deactivate([actualCoreVC.syncingStatusTop])
+                        actualCoreVC.syncingStatusTop = NSLayoutConstraint(item: actualCoreVC.statusView, attribute: .bottom, relatedBy: .equal, toItem: actualCoreVC.view, attribute: .bottom, multiplier: 1, constant: 13)
+                        NSLayoutConstraint.activate([actualCoreVC.syncingStatusTop])
+                        actualCoreVC.view.layoutIfNeeded()
+                    }
+                }
             }
         }
     }

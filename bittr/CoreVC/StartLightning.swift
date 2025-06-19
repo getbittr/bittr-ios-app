@@ -88,11 +88,11 @@ extension CoreViewController {
         if let actualNotification = notification {
             if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
                 if let notificationMessage = userInfo["message"] as? String {
-                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(notificationMessage)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(notificationMessage)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
                 }
             }
         } else {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
         }
     }
 

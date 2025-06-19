@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
-        "branch" : "main",
-        "revision" : "6d8382bca81f148f06e02d13e602ea9dcb6be4b6"
+        "revision" : "bd9bd683201c1597d8930ac4118fa950cedfd56c",
+        "version" : "0.3.0"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-swift/",
       "state" : {
-        "revision" : "c57a07c915ddf9e7459b5f11002b56e072e9cfd5",
-        "version" : "0.0.124"
+        "revision" : "b36f37fc216ae83eb8fdc625ae3c85ea4158a7d6",
+        "version" : "0.0.125"
       }
     },
     {

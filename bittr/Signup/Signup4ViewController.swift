@@ -39,40 +39,46 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     // Three checkable mnemonic words.
     var checkWords = [String]()
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Corner radii and button titles.
-        mnemonicView1.layer.cornerRadius = 13
-        mnemonicView2.layer.cornerRadius = 13
-        mnemonicView3.layer.cornerRadius = 13
-        saveView.layer.cornerRadius = 13
-        backButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        backgroundButton2.setTitle("", for: .normal)
+        // Corner radii
+        self.mnemonicView1.layer.cornerRadius = 13
+        self.mnemonicView2.layer.cornerRadius = 13
+        self.mnemonicView3.layer.cornerRadius = 13
+        self.saveView.layer.cornerRadius = 13
         
-        // Text field elements.
-        mnemonicField1.delegate = self
-        mnemonicField2.delegate = self
-        mnemonicField3.delegate = self
+        // Button titles
+        self.backButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.backgroundButton2.setTitle("", for: .normal)
         
-        mnemonicField1.attributedPlaceholder = NSAttributedString(
+        // Text field elements
+        self.mnemonicField1.delegate = self
+        self.mnemonicField2.delegate = self
+        self.mnemonicField3.delegate = self
+        
+        // Text field placeholders
+        self.mnemonicField1.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
-        mnemonicField2.attributedPlaceholder = NSAttributedString(
+        self.mnemonicField2.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
-        mnemonicField3.attributedPlaceholder = NSAttributedString(
+        self.mnemonicField3.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enterword"),
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         
+        // Set colors and words
         self.changeColors()
         self.setWords()
+        self.setMnemonic()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -80,13 +86,13 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         // Set notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
     }
     
-    @objc func setCheckWords(notification:NSNotification) {
+    func setMnemonic() {
         
-        if self.coreVC == nil { print("CoreVC nil in Signup4.") }
-        if let actualMnemonic = self.coreVC?.newMnemonic {
+        if self.signupVC?.coreVC == nil { print("CoreVC nil in Signup4.") }
+        if let actualMnemonic = self.signupVC?.coreVC?.newMnemonic {
             
             var indicesSet = Set<Int>()
             while indicesSet.count < 3 {
@@ -107,9 +113,9 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     @objc func keyboardWillDisappear() {
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
+        NSLayoutConstraint.deactivate([self.contentViewBottom])
+        self.contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.contentViewBottom])
         
         self.view.layoutIfNeeded()
     }
@@ -120,9 +126,9 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             
             let keyboardHeight = keyboardSize.height
             
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
+            NSLayoutConstraint.deactivate([self.contentViewBottom])
+            self.contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
+            NSLayoutConstraint.activate([self.contentViewBottom])
             
             self.view.layoutIfNeeded()
         }
@@ -131,7 +137,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         
         // Make Next button clickable or unclickable.
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
+        if self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && self.mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && self.mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
@@ -148,7 +154,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             textField.resignFirstResponder()
         }
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
+        if self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && self.mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && self.mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
@@ -159,7 +165,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
+        if self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && self.mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && self.mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.6)
@@ -170,11 +176,10 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         self.view.endEditing(true)
         
-        if mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
+        if self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && self.mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && self.mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
             
-            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            self.signupVC?.moveToPage(7)
         }
     }
     
@@ -182,8 +187,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         self.view.endEditing(true)
         
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.signupVC?.moveToPage(5)
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {

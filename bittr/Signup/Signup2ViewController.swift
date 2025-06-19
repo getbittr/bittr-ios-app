@@ -34,49 +34,32 @@ class Signup2ViewController: UIViewController {
     let pageArticle1Slug = "what-is-a-bitcoin-wallet"
     var pageArticle1 = Article()
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        buttonView.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
-        cardView.layer.cornerRadius = 13
-        cardView.layer.shadowColor = UIColor.black.cgColor
-        cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        cardView.layer.shadowRadius = 12.0
-        cardView.layer.shadowOpacity = 0.05
-        imageContainer.layer.cornerRadius = 13
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.buttonView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
         
-        // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        // Button titles
+        self.articleButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        
+        // Card styling
+        self.cardView.layer.shadowColor = UIColor.black.cgColor
+        self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
+        self.cardView.layer.shadowRadius = 12.0
+        self.cardView.layer.shadowOpacity = 0.05
         
         self.changeColors()
         self.setWords()
-    }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
+        Task {
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
@@ -95,9 +78,7 @@ class Signup2ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         if switchOne.isOn == true && switchTwo.isOn == true {
-            
-            let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+            self.signupVC?.moveToPage(5)
         }
     }
     

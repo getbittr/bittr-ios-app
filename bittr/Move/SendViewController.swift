@@ -17,8 +17,10 @@ import Sentry
 
 class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
 
-    // Down button
+    // General
     @IBOutlet weak var downButton: UIButton!
+    @IBOutlet weak var topIcon: UIImageView!
+    @IBOutlet weak var sendBitcoinLabel: UILabel!
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -28,8 +30,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerBackgroundButton: UIButton!
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var headerLabel: UILabel!
     
     // Main scroll - Switch view
     @IBOutlet weak var switchView: UIView!
@@ -45,9 +45,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var selectionTrailing: NSLayoutConstraint!
     
     // Main scroll - Items
-    @IBOutlet weak var topLabel: UILabel! // Explain items
     @IBOutlet weak var toLabel: UILabel! // Address or Invoice
-    @IBOutlet weak var amountLabel: UILabel! // Amount
     
     // Main scroll - To view
     @IBOutlet weak var addressStack: UIView!
@@ -56,16 +54,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var toButton: UIButton!
     @IBOutlet weak var backgroundQR: UIView!
     @IBOutlet weak var backgroundPaste: UIView!
-    @IBOutlet weak var backgroundKeyboard: UIView!
     @IBOutlet weak var qrButton: UIButton!
     @IBOutlet weak var pasteButton: UIButton!
-    @IBOutlet weak var keyboardButton: UIButton!
     @IBOutlet weak var stackLabelQR: UILabel!
     @IBOutlet weak var stackLabelPaste: UILabel!
-    @IBOutlet weak var stackLabelType: UILabel!
     @IBOutlet weak var stackImageQR: UIImageView!
     @IBOutlet weak var stackImagePaste: UIImageView!
-    @IBOutlet weak var stackImageType: UIImageView!
     
     // Main scroll - Amount view
     @IBOutlet weak var amountStack: UIView!
@@ -150,6 +144,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var eurValue = 0.0
     var chfValue = 0.0
     var selectedFee = "medium"
+    var selectedFeeInSats = 0
     var selectedCurrency = "bitcoin"
     var onchainOrLightning = "onchain"
     var completedTransaction:Transaction?
@@ -159,6 +154,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var newTxId = ""
     var newPaymentHash:PaymentHash?
     var newInvoiceAmount:Int?
+    var bitcoinQR = ""
+    var temporaryInvoiceText = ""
+    var temporaryInvoiceAmount = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -179,12 +177,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         mediumButton.setTitle("", for: .normal)
         slowButton.setTitle("", for: .normal)
         qrButton.setTitle("", for: .normal)
-        keyboardButton.setTitle("", for: .normal)
         toButton.setTitle("", for: .normal)
         btcButton.setTitle("", for: .normal)
         
         // Corner radii
-        headerView.layer.cornerRadius = 13
         toView.layer.cornerRadius = 8
         amountView.layer.cornerRadius = 8
         nextView.layer.cornerRadius = 13
@@ -202,7 +198,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         slowView.layer.cornerRadius = 8
         backgroundQR.layer.cornerRadius = 8
         backgroundPaste.layer.cornerRadius = 8
-        backgroundKeyboard.layer.cornerRadius = 8
         spinnerBox.layer.cornerRadius = 13
         btcView.layer.cornerRadius = 8
         
@@ -213,7 +208,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         setShadows(forView: slowView)
         setShadows(forView: backgroundQR)
         setShadows(forView: backgroundPaste)
-        setShadows(forView: backgroundKeyboard)
         setShadows(forView: btcView)
         setShadows(forView: switchSelectionView)
         
@@ -343,7 +337,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
         self.view.endEditing(true)
         if let actualString = UIPasteboard.general.string {
-            self.toTextField.text = actualString
+            if !actualString.contains("bitcoin"), !actualString.lowercased().contains("ln") {
+                self.toTextField.text = actualString
+            } else {
+                self.handleScannedOrPastedString(actualString, scanned: false)
+            }
         }
     }
     
@@ -372,7 +370,38 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.checkSendOnchain()
         } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
             // Confirm lightning payment.
-            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+            if (self.amountTextField.text ?? "") == "" {
+                if (self.toTextField.text ?? "").prefix(2) == "ln" {
+                    if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.toTextField.text!).getValue() {
+                        if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                            let invoiceAmount = Int(invoiceAmountMilli)/1000
+                            self.amountTextField.text = "\(invoiceAmount)"
+                            self.btcLabel.text = "Sats"
+                            self.selectedCurrency = "satoshis"
+                            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                        } else {
+                            // Zero invoice.
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    }
+                }
+            } else {
+                // Transfer to satoshis.
+                var satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
+                if self.selectedCurrency == "bitcoin" {
+                    satoshisValue = Int((self.stringToNumber(self.amountTextField.text) * 100000000).rounded())
+                } else if self.selectedCurrency == "currency" {
+                    var currencyValue = self.eurValue
+                    if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                        currencyValue = self.chfValue
+                    }
+                    satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/currencyValue)*100000000).rounded())
+                }
+                self.amountTextField.text = "\(satoshisValue)"
+                self.btcLabel.text = "Sats"
+                self.selectedCurrency = "satoshis"
+                self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+            }
         } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
             // Hide QR scanner, show onchain.
             self.hideScannerView(forView: "onchain")
@@ -418,8 +447,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
-        // Reset fields.
-        self.resetFields()
+        if (sender.accessibilityIdentifier ?? "") == "onchain", self.bitcoinQR != "" {
+            self.toTextField.text = self.bitcoinQR
+        } else {
+            // Reset fields.
+            self.resetFields()
+        }
         
         // Switch view.
         self.onchainOrLightning = sender.accessibilityIdentifier ?? self.onchainOrLightning
@@ -463,7 +496,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @objc func addNewPayment() {
         if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
-            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, sendVC: self, receiveVC: nil)
+            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, delegate: self)
             self.newInvoiceAmount = nil
             self.newPaymentHash = nil
         }
@@ -492,7 +525,7 @@ extension UIViewController {
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
-            self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return false
         } else {
             return true

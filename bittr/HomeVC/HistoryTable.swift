@@ -31,7 +31,7 @@ extension HomeViewController {
             if thisTransaction.received - thisTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+            actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Set conversion
             var correctValue:CGFloat = self.coreVC!.eurValue
@@ -52,6 +52,7 @@ extension HomeViewController {
                 actualCell.updateBoltTrailing(position: "left")
                 actualCell.bittrImage.alpha = 1
                 actualCell.gainView.alpha = 1
+                actualCell.swapImage.alpha = 0
                 if thisTransaction.purchaseAmount == 0 {
                     // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
                     thisTransaction.purchaseAmount = Int((transactionValue*correctValue).rounded())
@@ -73,10 +74,19 @@ extension HomeViewController {
                     actualCell.gainLabel.textColor = Colors.getColor("profittext")
                 }
             } else {
-                actualCell.updateBoltTrailing(position: "right")
-                actualCell.bittrImage.alpha = 0
-                actualCell.gainView.alpha = 0
-                actualCell.gainLabel.text = ""
+                if thisTransaction.isSwap || thisTransaction.lnDescription.contains("Swap") {
+                    actualCell.swapImage.alpha = 1
+                    actualCell.updateBoltTrailing(position: "middle")
+                    actualCell.bittrImage.alpha = 0
+                    actualCell.gainView.alpha = 0
+                    actualCell.gainLabel.text = ""
+                } else {
+                    actualCell.updateBoltTrailing(position: "right")
+                    actualCell.bittrImage.alpha = 0
+                    actualCell.gainView.alpha = 0
+                    actualCell.gainLabel.text = ""
+                    actualCell.swapImage.alpha = 0
+                }
             }
             
             if thisTransaction.isLightning == true {

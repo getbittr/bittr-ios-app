@@ -13,6 +13,7 @@ import LDKNodeFFI
 import Sentry
 
 class LightningNodeService {
+    
     public var ldkNode: Node?
     private var network: LDKNode.Network
     private let mnemonicKey = ""
@@ -58,15 +59,14 @@ class LightningNodeService {
             onchainWalletSyncIntervalSecs: UInt64(60),
             walletSyncIntervalSecs: UInt64(20),
             feeRateCacheUpdateIntervalSecs: UInt64(600),
-            // TODO: Public? // Signet and Bitcoin node.
-            trustedPeers0conf: ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"],
+            trustedPeers0conf: ["03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba", "03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"],
             probingLiquidityLimitMultiplier: UInt64(3),
             logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
-                    trustedPeersNoReserve: [
-                        PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"),
-                        PublicKey("0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5")
-                    ], perChannelReserveSats: UInt64(1000))
+                trustedPeersNoReserve: [
+                    PublicKey("03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"),
+                    PublicKey("03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba")
+                ], perChannelReserveSats: UInt64(1000))
         )
         
         let nodeBuilder = Builder.fromConfig(config: config)
@@ -95,14 +95,18 @@ class LightningNodeService {
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
+            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace, config: nil)
             nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
         case .regtest:
             nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
+            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.regtest, config: nil)
         case .signet:
             nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
+            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.signet, config: nil)
         case .testnet:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
             nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
+            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.testnet, config: nil)
         }
         
         let ldkNode = try nodeBuilder.build()
@@ -218,7 +222,7 @@ class LightningNodeService {
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet
-                self.bdkBalance = Int(try self.bdkWallet!.getBalance().confirmed)
+                self.bdkBalance = Int(try self.bdkWallet!.getBalance().total)
                 print("Did fetch onchain balance.")
                 
                 // Retrieve a list of transaction details from the wallet, excluding raw transaction data
@@ -268,7 +272,7 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5", "0348cb7898293b2efa4a67ac65d69286447c8784722e97c026e1858bc4a84350b5"]
+        let nodeIds = ["03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba", "03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
@@ -460,7 +464,12 @@ class LightningNodeService {
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice)
+        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice/*, sendingParameters: nil*/)
+        return paymentHash
+    }
+    
+    func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
+        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000)/*, sendingParameters: nil*/)
         return paymentHash
     }
     

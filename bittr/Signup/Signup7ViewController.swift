@@ -40,36 +40,39 @@ class Signup7ViewController: UIViewController {
     var pageArticle1 = Article()
     var embeddedInBuyVC = false
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Corner radii.
-        checkView.layer.cornerRadius = 25
-        partnerView.layer.cornerRadius = 13
-        continueView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
+        self.checkView.layer.cornerRadius = 25
+        self.partnerView.layer.cornerRadius = 13
+        self.continueView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
         
         // Button titles
-        partnerButton.setTitle("", for: .normal)
-        continueButton.setTitle("", for: .normal)
-        skipButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
-        
-        // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateArticle), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
+        self.partnerButton.setTitle("", for: .normal)
+        self.continueButton.setTitle("", for: .normal)
+        self.skipButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
         
         self.changeColors()
         self.setWords()
+        Task {
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
+        }
     }
     
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
         // Close sign up and proceed into wallet.
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        self.coreVC?.setClient()
+        self.signupVC?.coreVC?.setClient()
     }
     
     @IBAction func partnerButtonTapped(_ sender: UIButton) {
@@ -78,8 +81,8 @@ class Signup7ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         // Proceed to bittr signup.
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.signupVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(10)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
@@ -110,30 +113,6 @@ class Signup7ViewController: UIViewController {
             self.skipLabel.alpha = 0
             self.skipButton.alpha = 0
             self.view.layoutIfNeeded()
-        }
-        
-        self.updateArticle()
-    }
-    
-    @objc func updateArticle() {
-        DispatchQueue.main.async {
-            if self.coreVC != nil {
-                if self.coreVC!.allArticles != nil {
-                    if let thisArticle = self.coreVC!.allArticles![self.pageArticle1Slug] {
-                        
-                        self.pageArticle1 = thisArticle
-                        self.articleTitle.text = self.pageArticle1.title
-                        self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-                        
-                        if let imageData = CacheManager.getImage(key: self.pageArticle1.image) {
-                            self.spinner1.stopAnimating()
-                            self.articleImage.image = UIImage(data: imageData)
-                        } else {
-                            
-                        }
-                    }
-                }
-            }
         }
     }
     

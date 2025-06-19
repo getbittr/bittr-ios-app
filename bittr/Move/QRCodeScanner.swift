@@ -22,7 +22,6 @@ extension SendViewController {
                 self.toView.alpha = 0
                 self.pasteButton.alpha = 0
                 self.amountStack.alpha = 0
-                self.amountLabel.alpha = 0
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
                 self.scannerView.alpha = 1
@@ -41,7 +40,7 @@ extension SendViewController {
                 }
             }
         } else {
-            self.showAlert(title: Language.getWord(withID: "scanningnotsupported"), message: Language.getWord(withID: "scanningnotavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "scanningnotsupported"), message: Language.getWord(withID: "scanningnotavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -96,36 +95,40 @@ extension SendViewController {
             guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
             guard let stringValue = readableObject.stringValue else { return }
             AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-            found(code: stringValue)
+            self.handleScannedOrPastedString(stringValue, scanned: true)
         }
     }
     
-    func found(code: String) {
+    func handleScannedOrPastedString(_ code:String, scanned:Bool) {
         
         print("Code: " + code)
         
-        // Check bitcoin or lightning in code to switch view if needed.
         var addressType = "onchain"
-        if code.lowercased().contains("bitcoin") && code.lowercased().contains("ln") {
-            addressType = self.onchainOrLightning
-        } else if code.lowercased().contains("ln") || code.contains("lightning") {
+        
+        // Check bitcoin or lightning in code to switch view if needed.
+        if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
+            // This is a Bitcoin QR.
             addressType = "lightning"
-        } else if !code.contains("bitcoin") && !code.lowercased().contains("ln") {
+        } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
+            // This is a Lightning invoice.
+            addressType = "lightning"
+        } else {
+            // Unsure about the code.
             addressType = self.onchainOrLightning
         }
         
-        if !code.contains("bitcoin") && !code.lowercased().contains("ln") {
+        if scanned, !code.contains("bitcoin") && !code.lowercased().contains("ln") {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showAlert(title: Language.getWord(withID: "noaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "noaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else if code.lowercased().contains("lnurl") || self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
             // Valid LNURL code.
             self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
         } else {
             // Valid address
             
-            if code.lowercased().contains("bitcoin:"), code.lowercased().contains("lightning=") {
+            if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
                 // This is a Bitcoin QR.
                 
                 // Example QR
@@ -151,15 +154,23 @@ extension SendViewController {
                             let invoiceAmount = Int(invoiceAmountMilli)/1000
                             if invoiceAmount > self.maximumSendableLNSats ?? 0 {
                                 // We can't send this much in Lightning. Send onchain.
-                                self.found(code: bitcoinCode)
+                                self.handleScannedOrPastedString(bitcoinCode, scanned: scanned)
                                 return
                             } else {
                                 // We have sufficient funds in Lightning.
-                                //self.bitcoinQR = bitcoinCode
+                                self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
                                 self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
+                                self.amountTextField.text = "\(invoiceAmount)"
+                                self.btcLabel.text = "Sats"
+                                self.selectedCurrency = "satoshis"
                                 addressType = "lightning"
-                                self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                                //self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
                             }
+                        } else {
+                            // Zero invoice.
+                            self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
+                            self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
+                            addressType = "lightning"
                         }
                     }
                 }
@@ -185,12 +196,25 @@ extension SendViewController {
                             self.amountTextField.text = nil
                         }
                     } else {
-                        self.amountTextField.text = nil
+                        if bitcoinAddress.prefix(2) == "ln" {
+                            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: bitcoinAddress).getValue() {
+                                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                                    let invoiceAmount = Int(invoiceAmountMilli)/1000
+                                    self.amountTextField.text = "\(invoiceAmount)"
+                                    self.btcLabel.text = "Sats"
+                                    self.selectedCurrency = "satoshis"
+                                } else {
+                                    self.amountTextField.text = nil
+                                }
+                            }
+                        } else {
+                            self.amountTextField.text = nil
+                        }
                     }
                 } else {
                     self.toTextField.text = nil
                     self.amountTextField.text = nil
-                    self.showAlert(title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }

@@ -16,78 +16,133 @@ import BitcoinDevKit
 
 extension ReceiveViewController {
     
+    func getNewOnchainAddress(_ addressIndex:AddressIndex) -> String? {
+        
+        do {
+            let wallet = LightningNodeService.shared.getWallet()
+            if let address = try wallet?.getAddress(addressIndex: addressIndex).address.asString() {
+                return address
+            } else {
+                return nil
+            }
+        } catch let error as NodeError {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error)
+            }
+            return nil
+        } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error)
+            }
+            return nil
+        }
+    }
+    
+    func getOnchainAddress() -> String? {
+        
+        if let cachedAddress = CacheManager.getLastAddress() {
+            print("Show cached address.")
+            return cachedAddress
+        } else {
+            print("Show new address.")
+            return nil
+        }
+    }
+    
+    @objc func confirmOnchainAddress() {
+        self.hideAlert()
+        self.didDoublecheckLastUsedAddress = true
+        self.getNewAddress(resetAddress: true)
+    }
+    
+    @objc func confirmUnusedOnchainAddress() {
+        self.hideAlert()
+        self.getNewAddress(resetAddress: false)
+    }
+    
     func getNewAddress(resetAddress:Bool) {
         
-        if let cachedAddress = CacheManager.getLastAddress(), resetAddress == false {
-            print("Showing cached address.")
-            self.addressLabel.text = cachedAddress
-            self.addressCopy.alpha = 1
-            self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + cachedAddress)
-            self.qrCodeImage.layer.magnificationFilter = .nearest
-            self.qrCodeImage.alpha = 1
-            self.qrCodeLogoView.alpha = 1
-            self.addressSpinner.stopAnimating()
-            self.qrCodeSpinner.stopAnimating()
-        } else {
-            print("Showing new address.")
-            Task {
-                do {
-                    //let address = try await LightningNodeService.shared.newFundingAddress()
-                    let wallet = LightningNodeService.shared.getWallet()
-                    if let address = try wallet?.getAddress(addressIndex: .new).address.asString() {
-                        DispatchQueue.main.async {
-                            CacheManager.storeLastAddress(newAddress: address)
-                            self.addressLabel.text = address
-                            self.addressCopy.alpha = 1
-                            self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:" + address)
-                            self.qrCodeImage.layer.magnificationFilter = .nearest
-                            self.qrCodeImage.alpha = 1
-                            self.qrCodeLogoView.alpha = 1
-                            self.addressSpinner.stopAnimating()
-                            self.qrCodeSpinner.stopAnimating()
-                        }
+        Task {
+            var invoiceToDisplay:String?
+            var onchainAddressToDisplay:String?
+            var amountInBTC:CGFloat = 0
+            var enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+            
+            if self.bothAmountTextField.text != nil, self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
+                // An amount has been entered. Create a regular invoice.
+                amountInBTC = CGFloat(Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0)/100000000
+                let amountInMsat = (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0)*1000
+                invoiceToDisplay = await self.getRegularInvoice(amountMsat: UInt64(amountInMsat), description: enteredDescription, expirySecs: 3600)
+            } else {
+                // No amount has been entered. Create a zero invoice.
+                invoiceToDisplay = await self.getZeroInvoice(enteredDescription: enteredDescription)
+            }
+                
+            if !resetAddress {
+                if let cachedOnchainAddress = self.getOnchainAddress() {
+                    onchainAddressToDisplay = cachedOnchainAddress
+                } else if let newOnchainAddress = self.getNewOnchainAddress(.lastUnused) {
+                    CacheManager.storeLastAddress(newAddress: newOnchainAddress)
+                    onchainAddressToDisplay = newOnchainAddress
+                }
+            } else {
+                var addressIndex:AddressIndex = .lastUnused
+                if didDoublecheckLastUsedAddress {
+                    addressIndex = .new
+                    self.didDoublecheckLastUsedAddress = false
+                }
+                if let newOnchainAddress = self.getNewOnchainAddress(addressIndex) {
+                    if self.getOnchainAddress() != nil, self.getOnchainAddress()! == newOnchainAddress {
+                        // Old address is unused.
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [#selector(self.confirmUnusedOnchainAddress), #selector(self.confirmOnchainAddress)])
                     } else {
-                        DispatchQueue.main.async {
-                            let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "addressfail"), preferredStyle: .alert)
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                                self.getNewAddress(resetAddress: resetAddress)
-                            }))
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
-                                self.addressSpinner.stopAnimating()
-                                self.qrCodeSpinner.stopAnimating()
-                            }))
-                            self.present(alert, animated: true)
-                        }
+                        CacheManager.storeLastAddress(newAddress: newOnchainAddress)
+                        onchainAddressToDisplay = newOnchainAddress
                     }
-                } catch let error as NodeError {
-                    let errorString = handleNodeError(error)
-                    DispatchQueue.main.async {
-                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "addressfail2")). (\(errorString).) \(Language.getWord(withID: "pleasetryagain")).", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                            self.getNewAddress(resetAddress: resetAddress)
-                        }))
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
-                            self.addressSpinner.stopAnimating()
-                            self.qrCodeSpinner.stopAnimating()
-                        }))
-                        self.present(alert, animated: true)
-                        
-                        SentrySDK.capture(error: error)
+                }
+            }
+            
+            if onchainAddressToDisplay != nil, invoiceToDisplay != nil {
+                
+                DispatchQueue.main.async {
+                    // Address labels
+                    self.addressLabel.text = onchainAddressToDisplay!
+                    self.lnInvoiceLabel.text = invoiceToDisplay!
+                    var amountText = ""
+                    var labelText = ""
+                    if amountInBTC != 0 {
+                        amountText = "?amount=\(amountInBTC)"
                     }
-                } catch {
-                    DispatchQueue.main.async {
-                        let alert = UIAlertController(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "addressfail"), preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "tryagain"), style: .cancel, handler: {_ in
-                            self.getNewAddress(resetAddress: resetAddress)
-                        }))
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: {_ in
-                            self.addressSpinner.stopAnimating()
-                            self.qrCodeSpinner.stopAnimating()
-                        }))
-                        self.present(alert, animated: true)
-                        
-                        SentrySDK.capture(error: error)
+                    if enteredDescription != "" {
+                        labelText = "&label=\(enteredDescription)"
                     }
+                    self.bothAddressLabel.text = "bitcoin:\(onchainAddressToDisplay!)\(amountText)\(labelText)&lightning=\(invoiceToDisplay!)"
+                    
+                    // Copy images
+                    self.addressCopy.alpha = 1
+                    self.bothAddressCopy.alpha = 1
+                    self.lnInvoiceCopy.alpha = 1
+                    
+                    // QR code images
+                    self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:\(onchainAddressToDisplay!)\(amountText)")
+                    self.qrCodeImage.layer.magnificationFilter = .nearest
+                    self.qrCodeImage.alpha = 1
+                    self.bothQrCodeImage.image = self.generateQRCode(from: "bitcoin:\(onchainAddressToDisplay!)\(amountText)\(labelText)&lightning=\(invoiceToDisplay!)")
+                    self.bothQrCodeImage.layer.magnificationFilter = .nearest
+                    self.bothQrCodeImage.alpha = 1
+                    self.lnQRImage.image = self.generateQRCode(from: "lightning:" + invoiceToDisplay!)
+                    self.lnQRImage.layer.magnificationFilter = .nearest
+                    self.lnQRImage.alpha = 1
+                    
+                    // Logo views
+                    self.qrCodeLogoView.alpha = 1
+                    self.bothQrCodeLogoView.alpha = 1
+                    self.lnQRCodeLogoView.alpha = 1
+                    
+                    // Spinners
+                    self.addressSpinner.stopAnimating()
+                    self.qrCodeSpinner.stopAnimating()
+                    self.bothQrCodeSpinner.stopAnimating()
                 }
             }
         }

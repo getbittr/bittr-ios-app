@@ -54,95 +54,215 @@ extension UIViewController {
                         var transactionValue = CGFloat(invoiceAmount)/100000000
                         var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
                         
-                        let alert = UIAlertController(title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", preferredStyle: .alert)
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                        /*if sendVC?.bitcoinQR != nil {
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "sendonchain"), style: .default, handler: { _ in
-                                
-                                // The user has scanned a Bitcoin QR code, which automatically suggested a Lightning payment. The user can opt instead to perform an onchain transaction.
-                                sendVC!.found(code: sendVC!.bitcoinQR!)
-                                sendVC!.bitcoinQR = nil
-                            }))
-                        }*/
-                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: {_ in
+                        sendVC?.temporaryInvoiceText = invoiceText!
+                        receiveVC?.temporaryInvoiceText = invoiceText!
+                        sendVC?.temporaryInvoiceAmount = invoiceAmount
+                        receiveVC?.temporaryInvoiceAmount = invoiceAmount
+                        
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performLightningPayment)])
+                    } else {
+                        // Zero invoice.
+                        let invoiceAmount = Int(self.stringToNumber(sendVC?.amountTextField.text))
+                        if invoiceAmount > 0 {
                             
-                            sendVC?.nextLabel.alpha = 0
-                            sendVC?.nextSpinner.startAnimating()
-                            
-                            print("Invoice text: " + String(invoiceText!.replacingOccurrences(of: " ", with: "")))
-                            
-                            Task {
-                                do {
-                                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText!.replacingOccurrences(of: " ", with: "")))
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                        
-                                        if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                                            
-                                            if thisPayment.status != .failed {
-                                                
-                                                var thisAction:Selector?
-                                                if sendVC != nil {
-                                                    sendVC!.newPaymentHash = paymentHash
-                                                    sendVC!.newInvoiceAmount = invoiceAmount
-                                                    thisAction = #selector(sendVC!.addNewPayment)
-                                                } else if receiveVC != nil {
-                                                    receiveVC!.newPaymentHash = paymentHash
-                                                    receiveVC!.newInvoiceAmount = invoiceAmount
-                                                    thisAction = #selector(receiveVC!.addNewPayment)
-                                                }
-                                                
-                                                if thisAction != nil {
-                                                    // Success alert
-                                                    self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
-                                                }
-                                            } else {
-                                                // Payment came back failed.
-                                                self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                            }
-                                        } else {
-                                            // Success alert
-                                            self.showAlert(title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                        }
-                                        
-                                        sendVC?.nextLabel.alpha = 1
-                                        sendVC?.nextSpinner.stopAnimating()
-                                        
-                                        sendVC?.resetFields()
-                                    }
-                                } catch let error as NodeError {
-                                    let errorString = handleNodeError(error)
-                                    DispatchQueue.main.async {
-                                        // Error alert for NodeError
-                                        
-                                        sendVC?.nextLabel.alpha = 1
-                                        sendVC?.nextSpinner.stopAnimating()
-                                        
-                                        self.showAlert(title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                        
-                                        SentrySDK.capture(error: error)
-                                    }
-                                } catch {
-                                    DispatchQueue.main.async {
-                                        // General error alert
-                                        
-                                        sendVC?.nextLabel.alpha = 1
-                                        sendVC?.nextSpinner.stopAnimating()
-                                        
-                                        self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                        
-                                        SentrySDK.capture(error: error)
-                                    }
-                                }
+                            var correctValue:CGFloat = CGFloat(sendVC?.eurValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
+                            var currencySymbol = "€"
+                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                                correctValue = CGFloat(sendVC?.chfValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
+                                currencySymbol = "CHF"
                             }
-                        }))
-                        self.present(alert, animated: true)
+                            
+                            // Calculate maximum total routing fees.
+                            let invoicePaymentResult = Bindings.paymentParametersFromZeroAmountInvoice(invoice: parsedInvoice, amountMsat: UInt64(invoiceAmount*1000))
+                            let (tryPaymentHash, tryRecipientOnion, tryRouteParams) = invoicePaymentResult.getValue()!
+                            let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
+                            let maximumRoutingFeesSat:Int = maximumRoutingFeesMsat/1000
+                            
+                            var transactionValue = CGFloat(invoiceAmount)/100000000
+                            var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
+                            
+                            sendVC?.temporaryInvoiceText = invoiceText!
+                            receiveVC?.temporaryInvoiceText = invoiceText!
+                            sendVC?.temporaryInvoiceAmount = invoiceAmount
+                            receiveVC?.temporaryInvoiceAmount = invoiceAmount
+                            
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performZeroLightningPayment)])
+                        }
                     }
                 }
             }
         }
     }
     
-    func addNewPaymentToTable(paymentHash:PaymentHash, invoiceAmount:Int, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+    @objc func performLightningPayment() {
+        self.hideAlert()
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        sendVC?.nextLabel.alpha = 0
+        sendVC?.nextSpinner.startAnimating()
+        
+        let invoiceText = sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText
+        sendVC?.temporaryInvoiceText = ""
+        receiveVC?.temporaryInvoiceText = ""
+        let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
+        sendVC?.temporaryInvoiceAmount = 0
+        receiveVC?.temporaryInvoiceAmount = 0
+        
+        print("Invoice text: " + String(invoiceText.replacingOccurrences(of: " ", with: "")))
+        
+        Task {
+            do {
+                let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText.replacingOccurrences(of: " ", with: "")))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    
+                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                        
+                        if thisPayment.status != .failed {
+                            
+                            var thisAction:Selector?
+                            if sendVC != nil {
+                                sendVC!.newPaymentHash = paymentHash
+                                sendVC!.newInvoiceAmount = invoiceAmount
+                                thisAction = #selector(sendVC!.addNewPayment)
+                            } else if receiveVC != nil {
+                                receiveVC!.newPaymentHash = paymentHash
+                                receiveVC!.newInvoiceAmount = invoiceAmount
+                                thisAction = #selector(receiveVC!.addNewPayment)
+                            }
+                            
+                            if thisAction != nil {
+                                // Success alert
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
+                            }
+                        } else {
+                            // Payment came back failed.
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    } else {
+                        // Success alert
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
+                    
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    
+                    sendVC?.resetFields()
+                }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    // Error alert for NodeError
+                    
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    
+                    SentrySDK.capture(error: error)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    // General error alert
+                    
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    
+                    SentrySDK.capture(error: error)
+                }
+            }
+        }
+    }
+    
+    @objc func performZeroLightningPayment() {
+        self.hideAlert()
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        sendVC?.nextLabel.alpha = 0
+        sendVC?.nextSpinner.startAnimating()
+        
+        let invoiceText = sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText
+        sendVC?.temporaryInvoiceText = ""
+        receiveVC?.temporaryInvoiceText = ""
+        let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
+        sendVC?.temporaryInvoiceAmount = 0
+        receiveVC?.temporaryInvoiceAmount = 0
+        
+        print("Invoice text: " + String(invoiceText.replacingOccurrences(of: " ", with: "")))
+        
+        Task {
+            do {
+                
+                let paymentHash = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: String(invoiceText.replacingOccurrences(of: " ", with: "")), amount: invoiceAmount)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    
+                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                        
+                        if thisPayment.status != .failed {
+                            
+                            var thisAction:Selector?
+                            if sendVC != nil {
+                                sendVC!.newPaymentHash = paymentHash
+                                sendVC!.newInvoiceAmount = invoiceAmount
+                                thisAction = #selector(sendVC!.addNewPayment)
+                            } else if receiveVC != nil {
+                                receiveVC!.newPaymentHash = paymentHash
+                                receiveVC!.newInvoiceAmount = invoiceAmount
+                                thisAction = #selector(receiveVC!.addNewPayment)
+                            }
+                            
+                            if thisAction != nil {
+                                // Success alert
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
+                            }
+                        } else {
+                            // Payment came back failed.
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    } else {
+                        // Success alert
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
+                    
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    
+                    sendVC?.resetFields()
+                }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    // Error alert for NodeError
+                    
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    
+                    SentrySDK.capture(error: error)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    // General error alert
+                    
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    
+                    SentrySDK.capture(error: error)
+                }
+            }
+        }
+    }
+    
+    func addNewPaymentToTable(paymentHash:PaymentHash, invoiceAmount:Int, delegate:Any?) {
         self.hideAlert()
         
         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
@@ -166,25 +286,36 @@ extension UIViewController {
                 newTransaction.fee = 0
             }
             
-            sendVC?.completedTransaction = newTransaction
-            receiveVC?.completedTransaction = newTransaction
-            
-            if let actualHomeVC = sendVC?.homeVC {
-                actualHomeVC.setTransactions += [newTransaction]
-                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                    transaction1.timestamp > transaction2.timestamp
+            if let sendVC = delegate as? SendViewController {
+                sendVC.completedTransaction = newTransaction
+                if let homeVC = sendVC.homeVC {
+                    homeVC.setTransactions += [newTransaction]
+                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    homeVC.homeTableView.reloadData()
                 }
-                actualHomeVC.homeTableView.reloadData()
-            } else if let actualHomeVC = receiveVC?.homeVC {
-                actualHomeVC.setTransactions += [newTransaction]
-                actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                    transaction1.timestamp > transaction2.timestamp
+                sendVC.performSegue(withIdentifier: "SendToTransaction", sender: self)
+            } else if let receiveVC = delegate as? ReceiveViewController {
+                receiveVC.completedTransaction = newTransaction
+                if let homeVC = receiveVC.homeVC {
+                    homeVC.setTransactions += [newTransaction]
+                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    homeVC.homeTableView.reloadData()
                 }
-                actualHomeVC.homeTableView.reloadData()
+                receiveVC.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
+            } else if let swapVC = delegate as? SwapViewController {
+                if let homeVC = swapVC.homeVC {
+                    homeVC.setTransactions += [newTransaction]
+                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                        transaction1.timestamp > transaction2.timestamp
+                    }
+                    homeVC.homeTableView.reloadData()
+                }
             }
             
-            sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
-            receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
         }
     }
 }

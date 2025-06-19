@@ -10,11 +10,13 @@ import SPConfetti
 
 class LightningPaymentViewController: UIViewController {
 
+    // General
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
-    
     @IBOutlet weak var bodyView: UIView!
+    
+    // Date
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var dateLabel: UILabel!
     
@@ -46,11 +48,11 @@ class LightningPaymentViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        downButton.setTitle("", for: .normal)
-        descriptionButton.setTitle("", for: .normal)
-        headerView.layer.cornerRadius = 13
-        bodyView.layer.cornerRadius = 13
-        dateView.layer.cornerRadius = 7
+        self.downButton.setTitle("", for: .normal)
+        self.descriptionButton.setTitle("", for: .normal)
+        self.headerView.layer.cornerRadius = 13
+        self.bodyView.layer.cornerRadius = 13
+        self.dateView.layer.cornerRadius = 7
         
         self.changeColors()
         self.setWords()
@@ -63,14 +65,17 @@ class LightningPaymentViewController: UIViewController {
             dateFormatter.dateFormat = "dd MMM yyyy HH:mm"
             let transactionDateString = dateFormatter.string(from: transactionDate)
             
-            dateLabel.text = transactionDateString
+            self.dateLabel.text = transactionDateString
             
             // Set sats.
             var plusSymbol = "+"
             if actualTransaction.received - actualTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(actualTransaction.received - actualTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+            self.amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(actualTransaction.received - actualTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+            if actualTransaction.isSwap {
+                self.amountLabel.text = "+ \(addSpacesToString(balanceValue: String(actualTransaction.received)).replacingOccurrences(of: "-", with: "")) sats"
+            }
             
             var correctValue:CGFloat = self.eurValue
             var currencySymbol = "€"
@@ -80,6 +85,9 @@ class LightningPaymentViewController: UIViewController {
             }
             
             var transactionValue = CGFloat(actualTransaction.received-actualTransaction.sent)/100000000
+            if actualTransaction.isSwap {
+                transactionValue = CGFloat(actualTransaction.received)/100000000
+            }
             var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
             
             self.nowLabel.text = balanceValue + " " + currencySymbol
@@ -93,6 +101,9 @@ class LightningPaymentViewController: UIViewController {
             } else {
                 
                 self.descriptionLabel.text = actualTransaction.id
+                if actualTransaction.isSwap {
+                    self.descriptionLabel.text = actualTransaction.lightningID
+                }
                 self.explanationLabel.text = Language.getWord(withID: "newpayment")
                 self.idLabel.text = Language.getWord(withID: "id")
                 self.piggyImageHeight.constant = 0
@@ -120,7 +131,7 @@ class LightningPaymentViewController: UIViewController {
         if let actualTransaction = self.receivedTransaction {
             
             UIPasteboard.general.string = actualTransaction.lnDescription
-            self.showAlert(title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     

@@ -22,45 +22,29 @@ class RegisterIbanViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        downButton.setTitle("", for: .normal)
+        // Button titles
+        self.downButton.setTitle("", for: .normal)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(downButtonTapped), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         
         self.changeColors()
     }
     
-    @objc func nextPageTapped(notification:NSNotification) {
+    func moveToPage(_ thisPage:Int) {
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let pageNumber = userInfo["page"] as? String {
-                
-                let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
-                var leadingConstant:CGFloat = 0
-                
-                switch pageNumber {
-                case "6":
-                    leadingConstant = -1 * viewWidth
-                    currentPage = 8
-                case "7":
-                    leadingConstant = -2 * viewWidth
-                    currentPage = 9
-                case "8":
-                    leadingConstant = -3 * viewWidth
-                    currentPage = 10
-                case "9":
-                    leadingConstant = -4 * viewWidth
-                    currentPage = 11
-                default:
-                    leadingConstant = -viewWidth
-                }
-                
-                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                    
-                    self.signup7ContainerViewLeading.constant = leadingConstant
-                    self.view.layoutIfNeeded()
-                }
-            }
+        // Check internet connection.
+        if !Reachability.isConnectedToNetwork() {
+            // User not connected to internet.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
+        let navigateToPage = thisPage - 9
+        let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            self.signup7ContainerViewLeading.constant = -viewWidth*CGFloat(navigateToPage)
+            self.view.layoutIfNeeded()
         }
     }
     
@@ -72,38 +56,37 @@ class RegisterIbanViewController: UIViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "RegisterToSignup7" {
-            
             if let signup7VC = segue.destination as? Signup7ViewController {
                 signup7VC.embeddedInBuyVC = true
                 signup7VC.coreVC = self.coreVC
+                signup7VC.ibanVC = self
             }
         } else if segue.identifier == "RegisterToTransfer1" {
-            
-            let transfer1VC = segue.destination as? Transfer1ViewController
-            if let actualTransfer1VC = transfer1VC {
-                
-                actualTransfer1VC.currentClientID = self.currentClientID
-                actualTransfer1VC.articles = self.articles
-                actualTransfer1VC.allImages = self.allImages
-                actualTransfer1VC.coreVC = self.coreVC
+            if let transfer1VC = segue.destination as? Transfer1ViewController {
+                transfer1VC.currentClientID = self.currentClientID
+                transfer1VC.articles = self.articles
+                transfer1VC.allImages = self.allImages
+                transfer1VC.coreVC = self.coreVC
+                transfer1VC.ibanVC = self
+            }
+        } else if segue.identifier == "RegisterToTransfer15" {
+            if let transfer15VC = segue.destination as? Transfer15ViewController {
+                transfer15VC.coreVC = self.coreVC
+                transfer15VC.ibanVC = self
             }
         } else if segue.identifier == "RegisterToTransfer2" {
-            
-            let transfer2VC = segue.destination as? Transfer2ViewController
-            if let actualTransfer2VC = transfer2VC {
-                
-                actualTransfer2VC.articles = self.articles
-                actualTransfer2VC.allImages = self.allImages
-                actualTransfer2VC.coreVC = self.coreVC
+            if let transfer2VC = segue.destination as? Transfer2ViewController {
+                transfer2VC.articles = self.articles
+                transfer2VC.allImages = self.allImages
+                transfer2VC.coreVC = self.coreVC
+                transfer2VC.ibanVC = self
             }
         } else if segue.identifier == "RegisterToTransfer3" {
-            
-            let transfer3VC = segue.destination as? Transfer3ViewController
-            if let actualTransfer3VC = transfer3VC {
-                
-                actualTransfer3VC.articles = self.articles
-                actualTransfer3VC.allImages = self.allImages
-                actualTransfer3VC.coreVC = self.coreVC
+            if let transfer3VC = segue.destination as? Transfer3ViewController {
+                transfer3VC.articles = self.articles
+                transfer3VC.allImages = self.allImages
+                transfer3VC.coreVC = self.coreVC
+                transfer3VC.ibanVC = self
             }
         }
     }
