@@ -159,7 +159,7 @@ func handleNodeError(_ error: NodeError) -> MondayError {
     case .LiquidityFeeTooHigh(message: let message):
         return .init(title: "LiquidityFeeTooHigh", detail: message)
         
-    case .UriParameterParsingFailed(message: let message):
+    /*case .UriParameterParsingFailed(message: let message):
         return .init(title: "UriParameterParsingFailed", detail: message)
         
     case .InvalidUri(message: let message):
@@ -169,8 +169,10 @@ func handleNodeError(_ error: NodeError) -> MondayError {
         return .init(title: "InvalidQuantity", detail: message)
         
     case .InvalidNodeAlias(message: let message):
-        return .init(title: "InvalidNodeAlias", detail: message)
+        return .init(title: "InvalidNodeAlias", detail: message)*/
         
+    case .MessageSigningFailed(message: let message):
+        return .init(title: "MessageSigningFailed", detail: message)
     }
     
 }

@@ -1471,7 +1471,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.4.3;
+				version = 0.3.0;
 			};
 		};
 		05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */ = {
@@ -1495,7 +1495,7 @@
 			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 0.32.1;
+				version = 0.31.2;
 			};
 		};
 		05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {
