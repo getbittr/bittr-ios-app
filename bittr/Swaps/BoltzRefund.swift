@@ -5,7 +5,7 @@
 //  Created by Ruben Waterman on 20/03/2025.
 //
 import Musig2Bitcoin
-import secp256k1
+import P256K
 
 class BoltzRefund {
     static func tryBoltzRefund() async throws -> Bool {
@@ -31,7 +31,7 @@ class BoltzRefund {
         //        }
         let boltzServerPublicKeyBytes = try! "03defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5".bytes
         
-        let boltzServerPublicKey = try! secp256k1.Schnorr.PublicKey(
+        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
             format: .compressed
         )
@@ -41,12 +41,12 @@ class BoltzRefund {
         // hexPublicKey: 033f0fadc9e61e8655b8b1e4d01c17bb8996d312b8767e2782671d6cac64a92bdf
         let (hexPrivateKey, _hexPublicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
         
-        // In order to aggregate the keys, I re-initialize the same key using secp256k1.Schnorr.PrivateKey.init but the public/private key still looks the same
+        // In order to aggregate the keys, I re-initialize the same key using P256K.Schnorr.PrivateKey.init but the public/private key still looks the same
         let ourPrivateKeyBytes = try! hexPrivateKey.bytes
-        let ourPrivateKey = try! secp256k1.Schnorr.PrivateKey.init(dataRepresentation: ourPrivateKeyBytes)
+        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: ourPrivateKeyBytes)
         
         // For some reason, when I want to later on use the getSighash function, that only accepts uncompressed keys, so we're using that as the format here already
-        let boltzAggregateKey = try secp256k1.MuSig.aggregate([boltzServerPublicKey, ourPrivateKey.publicKey], format: secp256k1.Format.uncompressed)
+        let boltzAggregateKey = try P256K.MuSig.aggregate([boltzServerPublicKey, ourPrivateKey.publicKey], format: P256K.Format.uncompressed)
         
         // The boltzAggregateKey looks like this: 04499bcea8f3dbf842f347c30b08ae4e3e29141e689c8f1de82c9fd6f37b57d5c4f2712db01543c5d9226b6629294f95958efd2994ae071cd20e5f151e02004a8a
         let hexString = String(bytes: boltzAggregateKey.dataRepresentation)
@@ -55,7 +55,7 @@ class BoltzRefund {
         
         // Now, we take the refundLeaf.output from our Swap and tweak the key, again because we need an uncompressed key later on to create the sigHash, we put format .uncompressed
         let tweak = try! "203f0fadc9e61e8655b8b1e4d01c17bb8996d312b8767e2782671d6cac64a92bdfad02ae04b1".bytes
-        let tweakedKey = try! boltzAggregateKey.add(tweak, format: secp256k1.Format.uncompressed)
+        let tweakedKey = try! boltzAggregateKey.add(tweak, format: P256K.Format.uncompressed)
         
         let hexTweakedString = String(bytes: tweakedKey.dataRepresentation)
         // hexTweakedString: 0496c1b570134b244bc1c6d09ecc288678bd14fe94a17b78cfb204a28f7945bf4c80f3f2fd19055791c97bf605558873bbcc04f6fc584a7c7ec56fb892051ca7b4
@@ -66,7 +66,7 @@ class BoltzRefund {
         let boltzMessageHash = SHA256.hash(data: boltzMessage)
         
         // Mostly following the example https://github.com/21-DOT-DEV/swift-secp256k1?tab=readme-ov-file#musig2
-        let ourBoltzNonce = try secp256k1.MuSig.Nonce.generate(
+        let ourBoltzNonce = try P256K.MuSig.Nonce.generate(
             secretKey: ourPrivateKey,
             publicKey: ourPrivateKey.publicKey,
             msg32: Array(boltzMessageHash)
@@ -108,11 +108,11 @@ class BoltzRefund {
             // Received Partial Signature from the Boltz API: af01662446959e0a0b9a847fa9caf380e1fbe0a1fd56194e3e722196b90669f2
             
             do {
-                // I created this secp256k1.Schnorr.Nonce(hexString: pubNonce) as I didn't find anything in the package to parse a hex, perhaps it's wrong
-                let theirNonce = try secp256k1.Schnorr.Nonce(hexString: pubNonce)
+                // I created this P256K.Schnorr.Nonce(hexString: pubNonce) as I didn't find anything in the package to parse a hex, perhaps it's wrong
+                let theirNonce = try P256K.Schnorr.Nonce(hexString: pubNonce)
                 
-                // Aggregate nonces (I can only aggregate nonce if they are in the swift struct secp256k1.MuSig.Nonce)
-                let aggregatedNonce = try secp256k1.MuSig.Nonce(aggregating: [ourBoltzNonce.pubnonce, theirNonce])
+                // Aggregate nonces (I can only aggregate nonce if they are in the swift struct P256K.MuSig.Nonce)
+                let aggregatedNonce = try P256K.MuSig.Nonce(aggregating: [ourBoltzNonce.pubnonce, theirNonce])
                 
                 // Here is the code to get the sighash but I'm not sure if it works correctly
                 let sighash = getSighash(tx: base_tx, txid: txids[0], input_index: input_indexs[0], agg_pubkey: tweakedKey.dataRepresentation.hex, sigversion: 1, proto: "");
@@ -132,7 +132,7 @@ class BoltzRefund {
                 print("ourBoltzPartialSignature: \(ourBoltzPartialSignature)")
                 // ourBoltzPartialSignature: PartialSignature(dataRepresentation: 36 bytes, session: 133 bytes)
                 
-                let boltzAPIPartialSignature = try secp256k1.Schnorr.PartialSignature(
+                let boltzAPIPartialSignature = try P256K.Schnorr.PartialSignature(
                     hexString: partialSignature,
                     session: ourBoltzPartialSignature.session
                 )
@@ -141,7 +141,7 @@ class BoltzRefund {
                 print("boltzAPIPartialSignature: \(boltzAPIPartialSignature)")
                 
                 // Aggregate partial signatures into a full signature
-                let aggregateBoltzSignature = try secp256k1.MuSig.aggregateSignatures([ourBoltzPartialSignature, boltzAPIPartialSignature])
+                let aggregateBoltzSignature = try P256K.MuSig.aggregateSignatures([ourBoltzPartialSignature, boltzAPIPartialSignature])
                 
                 let sighashDigest = try! SHA256.hash(data: sighash.bytes)
                 

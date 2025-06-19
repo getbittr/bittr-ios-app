@@ -20,9 +20,9 @@ struct RefundResponse: Codable {
     let error: String?
 }
 
-// MARK: - APIError
+// MARK: - BoltzAPIError
 
-enum APIError: Error {
+enum BoltzAPIError: Error {
     case invalidURL
     case requestFailed(String)
     case decodingFailed
@@ -34,7 +34,7 @@ class BoltzAPI {
     static let baseURL = "https://api.regtest.getbittr.com/v2/swap/submarine/"
     
     // Generic POST request method
-    static func post<T: Codable, U: Codable>(endpoint: String, body: T, completion: @escaping (Result<U, APIError>) -> Void) {
+    static func post<T: Codable, U: Codable>(endpoint: String, body: T, completion: @escaping (Result<U, BoltzAPIError>) -> Void) {
         guard let url = URL(string: baseURL + endpoint) else {
             completion(.failure(.invalidURL))
             return
@@ -75,7 +75,7 @@ class BoltzAPI {
     }
     
     // Refund specific API method
-    static func requestRefund(swapID: String, refundData: RefundRequest, completion: @escaping (Result<RefundResponse, APIError>) -> Void) {
+    static func requestRefund(swapID: String, refundData: RefundRequest, completion: @escaping (Result<RefundResponse, BoltzAPIError>) -> Void) {
         post(endpoint: "\(swapID)/refund", body: refundData, completion: completion)
     }
 }

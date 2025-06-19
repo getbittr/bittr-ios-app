@@ -5,7 +5,7 @@
 //  Created by Ruben Waterman on 12/03/2025.
 //
 import Foundation
-import secp256k1
+import P256K
 import CryptoKit
 
 enum SegwitType {
@@ -67,7 +67,7 @@ class BitcoinMessage {
         let messageHash = magicHash(message: message)
         
         // Create recovery private key
-        let recoveryKey = try secp256k1.Recovery.PrivateKey(dataRepresentation: privateBytes)
+        let recoveryKey = try P256K.Recovery.PrivateKey(dataRepresentation: privateBytes)
         
         // Create recovery signature
         let recoverySignature = try recoveryKey.signature(for: messageHash)

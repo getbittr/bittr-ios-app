@@ -8,8 +8,7 @@
 import UIKit
 import LDKNode
 import Sentry
-import secp256k1
-import secp256k1_bindings
+import P256K
 import BitcoinDevKit
 import CryptoKit
 import LightningDevKit
@@ -462,8 +461,8 @@ class SwapManager: NSObject {
         print("Claim refund triggered.")
         
         do {
-            /*let boltzPublicKey = try! secp256k1.Signing.PublicKey(pemRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f")
-            let myPrivateKey = try! secp256k1.Signing.PrivateKey(pemRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur").publicKey
+            /*let boltzPublicKey = try! P256K.Signing.PublicKey(pemRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f")
+            let myPrivateKey = try! P256K.Signing.PrivateKey(pemRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur").publicKey
             let combinedPublicKey = try! boltzPublicKey.combine([myPrivateKey], format: .uncompressed)*/
             
             /*let combinedKeyString = """
@@ -475,25 +474,25 @@ class SwapManager: NSObject {
             /*let publicKey = try P256.Signing.PublicKey(rawRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes).pemRepresentation
             print("Did generate publicKey")*/
             
-            let combinedKey = try secp256k1.Signing.PrivateKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes)
+            let combinedKey = try P256K.Signing.PrivateKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes)
             print("Did generate combinedKey")
             let tweak = try "2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1".bytes
             print("Did generate tweak")
             let tweakedCombinedKey = try combinedKey.add(tweak)
             print("Did generate tweakedCombinedKey")
             
-            let schnorrKey = try secp256k1.Schnorr.PrivateKey(dataRepresentation: tweakedCombinedKey.dataRepresentation)
+            let schnorrKey = try P256K.Schnorr.PrivateKey(dataRepresentation: tweakedCombinedKey.dataRepresentation)
             print("Did generate schnorrKey")
             
-            /*let boltzSchnorrKey = try! secp256k1.Schnorr.PublicKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes, format: .uncompressed)
-            let mySchnorrKey = try! secp256k1.Schnorr.PrivateKey(dataRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur".bytes).publicKey*/
-            //let combinedKey = try! secp256k1.Schnorr.
+            /*let boltzSchnorrKey = try! P256K.Schnorr.PublicKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes, format: .uncompressed)
+            let mySchnorrKey = try! P256K.Schnorr.PrivateKey(dataRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur".bytes).publicKey*/
+            //let combinedKey = try! P256K.Schnorr.
             
             let message = "2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1".data(using: .utf8)!
             print("Did generate message")
             let messageHash = SHA256.hash(data: message)
             print("Did generate messageHash")
-            let firstNonce = try secp256k1.MuSig.Nonce.generate(secretKey: schnorrKey, publicKey: schnorrKey.publicKey, msg32: Array(messageHash))
+            let firstNonce = try P256K.MuSig.Nonce.generate(secretKey: schnorrKey, publicKey: schnorrKey.publicKey, msg32: Array(messageHash))
             
             print("Public nonce")
             
@@ -505,7 +504,7 @@ class SwapManager: NSObject {
             print("630 Error: \(error.localizedDescription)")
         }
         
-        //let aggregateKey = try secp256k1.MuSig.aggregate([])
+        //let aggregateKey = try P256K.MuSig.aggregate([])
         
         /*if let privateKey = self.wifToPrivateKey("cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J") {
             print("✅ Private key extracted:", privateKey.map { String(format: "%02x", $0) }.joined())
