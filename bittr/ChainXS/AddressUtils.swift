@@ -6,7 +6,7 @@
 
 import CommonCrypto
 import Foundation
-import secp256k1
+import libsecp256k1
 
 func isValidPubKey(_ pubKey: Data) -> Bool {
     var secp256k1_pubk = secp256k1_pubkey()

@@ -7,7 +7,7 @@
 
 import CommonCrypto
 import Foundation
-import secp256k1
+import libsecp256k1
 
 let regExMnemonic = try? NSRegularExpression(pattern: "^[a-z]+([\\s]+[a-z]+)+$", options: .caseInsensitive)
 let regExMnemonicWords = try? NSRegularExpression(pattern: "[a-z]+", options: .caseInsensitive)
