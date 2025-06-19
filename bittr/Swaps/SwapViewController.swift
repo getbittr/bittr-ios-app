@@ -143,50 +143,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        
-//        // TODO: Hide after testing
-//        if self.homeVC?.coreVC?.ongoingSwapDictionary == nil {
-//            self.homeVC?.coreVC?.ongoingSwapDictionary = ["bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":["claimLeaf":["version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"],"refundLeaf":["version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"]],"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479,"totalfees":505,"useramount":50000,"direction":0]
-//        }
-        
-        if pendingSwap != nil {
-            self.homeVC?.coreVC?.ongoingSwapDictionary = pendingSwap!
-            self.pendingCoverView.alpha = 0.6
-            self.pendingSpinner.startAnimating()
-            
-            SwapManager.checkSwapStatus(pendingSwap!["id"] as! String) { status in
-                DispatchQueue.main.async {
-                    self.pendingSpinner.stopAnimating()
-                    if let receivedStatus = status {
-                        if receivedStatus != "invoice.paid", receivedStatus != "transaction.claim.pending", receivedStatus != "transaction.claimed", receivedStatus != "invoice.set" {
-                            self.pendingStackHeight.constant = 75
-                            self.pendingStack.alpha = 1
-                            self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
-                            if pendingSwap!["direction"] as! Int == 0 {
-                                self.confirmDirectionLabel.text = "Onchain to Lightning"
-                            } else {
-                                self.confirmDirectionLabel.text = "Lightning to Onchain"
-                            }
-                            self.confirmAmountLabel.text = "\(pendingSwap!["useramount"] as! Int) sats"
-                            self.confirmFeesLabel.text = "\(pendingSwap!["totalfees"] as! Int) sats"
-                            self.swapDictionary = pendingSwap!
-                            
-                            self.view.layoutIfNeeded()
-                        } else {
-                            // Remove completed swap from cache.
-                            self.pendingCoverView.alpha = 0
-                            CacheManager.saveLatestSwap(nil)
-                            self.homeVC?.coreVC?.ongoingSwapDictionary = nil
-                        }
-                    } else {
-                        // Remove completed swap from cache.
-                        self.pendingCoverView.alpha = 0
-                        CacheManager.saveLatestSwap(nil)
-                        self.homeVC?.coreVC?.ongoingSwapDictionary = nil
-                    }
-                }
-            }
-        }
     }
     
     @objc func keyboardWillDisappear() {

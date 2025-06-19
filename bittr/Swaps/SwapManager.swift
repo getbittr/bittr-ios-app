@@ -97,6 +97,8 @@ class SwapManager: NSObject {
                     case .success(let receivedDictionary):
                         if receivedDictionary["expectedAmount"] is Int {
                             
+                            print(receivedDictionary)
+                            
                             let mutableDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                             mutableDictionary.setValue("Swap onchain to lightning \(idString)", forKey: "idstring")
                             
@@ -407,53 +409,6 @@ class SwapManager: NSObject {
         }
 
         return privateKey
-    }
-    
-    static func generatePublicNonce(from privateKeyData:Data) -> Data? {
-        
-        guard let context = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)) else {
-            print("Failed to create secp256k1 context")
-            return nil
-        }
-        
-        defer {
-            secp256k1_context_destroy(context)
-        }
-        
-        var secretNonce = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
-        
-        var pubNonce = secp256k1_pubkey()
-        let result = secretNonce.withUnsafeBytes { secretNoncePtr in
-            secp256k1_ec_pubkey_create(
-                context,
-                &pubNonce,
-                secretNoncePtr.bindMemory(to: UInt8.self).baseAddress!
-            )
-        }
-        
-        guard result == 1 else {
-            print("Failed to generate public nonce")
-            return nil
-        }
-        
-        var serializedPubNonce = Data(repeating: 0, count: 33)
-        var outputLength = 33
-        let serializationResult = serializedPubNonce.withUnsafeMutableBytes { outputPtr in
-            secp256k1_ec_pubkey_serialize(
-                context,
-                outputPtr.bindMemory(to: UInt8.self).baseAddress!,
-                &outputLength,
-                &pubNonce,
-                UInt32(SECP256K1_EC_COMPRESSED)
-            )
-        }
-        
-        guard serializationResult == 1 else {
-            print("Failed to serialize public nonce")
-            return nil
-        }
-        
-        return serializedPubNonce
     }
     
     static func claimRefund() {
