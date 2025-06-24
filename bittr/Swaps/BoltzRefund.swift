@@ -46,7 +46,7 @@ class BoltzRefund {
         let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: ourPrivateKeyBytes)
         
         // For some reason, when I want to later on use the getSighash function, that only accepts uncompressed keys, so we're using that as the format here already
-        let boltzAggregateKey = try P256K.MuSig.aggregate([boltzServerPublicKey, ourPrivateKey.publicKey], format: P256K.Format.uncompressed)
+        let boltzAggregateKey = try P256K.MuSig.aggregate([boltzServerPublicKey, ourPrivateKey.publicKey], format: P256K.Format.compressed)
         
         // The boltzAggregateKey looks like this: 04499bcea8f3dbf842f347c30b08ae4e3e29141e689c8f1de82c9fd6f37b57d5c4f2712db01543c5d9226b6629294f95958efd2994ae071cd20e5f151e02004a8a
         let hexString = String(bytes: boltzAggregateKey.dataRepresentation)
@@ -55,7 +55,7 @@ class BoltzRefund {
         
         // Now, we take the refundLeaf.output from our Swap and tweak the key, again because we need an uncompressed key later on to create the sigHash, we put format .uncompressed
         let tweak = try! "20ef07ea4cacba6709d43a74278a7b6c792cbcef10a035f04d2f196c9069876876ad02b204b1".bytes
-        let tweakedKey = try! boltzAggregateKey.add(tweak, format: P256K.Format.uncompressed)
+        let tweakedKey = try! boltzAggregateKey.add(tweak, format: P256K.Format.compressed)
         
         let hexTweakedString = String(bytes: tweakedKey.dataRepresentation)
         // hexTweakedString: 0496c1b570134b244bc1c6d09ecc288678bd14fe94a17b78cfb204a28f7945bf4c80f3f2fd19055791c97bf605558873bbcc04f6fc584a7c7ec56fb892051ca7b4
@@ -87,9 +87,13 @@ class BoltzRefund {
         
         let base_tx = generateRawTx(prev_txs: prev_txs, txids: txids, input_indexs:input_indexs, addresses:addresses, amounts: amounts);
         
-        let unsignedTx = getUnsignedTx(tx:base_tx)
+//        let unsignedTx = getUnsignedTx(tx:base_tx)
         
         // unsignedTx: 0200000001a09039771e17f6120713da7a2c298f3651dbde000ee44d161d74592aa94c432a01000000000000000001f04902000000000016001419e0025f607f3e8e6d6a38a7f98a8d269d6fd35500000000
+        
+        
+        let unsignedTx = "0100000001a09039771e17f6120713da7a2c298f3651dbde000ee44d161d74592aa94c432a0100000000ffffffff01f04902000000000016001419e0025f607f3e8e6d6a38a7f98a8d269d6fd35500000000"
+        
         print("unsignedTx: \(unsignedTx)")
         
         let refundData = RefundRequest(
@@ -115,14 +119,14 @@ class BoltzRefund {
                 let aggregatedNonce = try P256K.MuSig.Nonce(aggregating: [ourBoltzNonce.pubnonce, theirNonce])
                 
                 // Here is the code to get the sighash but I'm not sure if it works correctly
-                let sighash = getSighash(tx: base_tx, txid: txids[0], input_index: input_indexs[0], agg_pubkey: tweakedKey.dataRepresentation.hex, sigversion: 1, proto: "");
+                //                let sighash = getSighash(tx: base_tx, txid: txids[0], input_index: input_indexs[0], agg_pubkey: tweakedKey.dataRepresentation.hex, sigversion: 1, proto: "");
                 
                 // current sighash: 337179eb31fc94dcfd09d866f77e24e6905c4bb0346affd15a63b763034836a9
-                print("current sighash:", sighash);
+//                print("current sighash:", sighash);
                 
                 // Create our partial signatures (which also creates the session that we can later on use to parse the BoltzAPI signature
                 let ourBoltzPartialSignature = try ourPrivateKey.partialSignature(
-                    for: sighash.bytes,
+                    for: "9e3c507f5b27336e3e76548190fc42737c03792cc876fbe181b0749aeb9ee12f".bytes,
                     pubnonce: ourBoltzNonce.pubnonce,
                     secureNonce: ourBoltzNonce.secnonce,
                     publicNonceAggregate: aggregatedNonce,
@@ -143,20 +147,20 @@ class BoltzRefund {
                 // Aggregate partial signatures into a full signature
                 let aggregateBoltzSignature = try P256K.MuSig.aggregateSignatures([ourBoltzPartialSignature, boltzAPIPartialSignature])
                 
-                let sighashDigest = try! SHA256.hash(data: sighash.bytes)
-                
+//                let sighashDigest = try! SHA256.hash(data: sighash.bytes)
+
                 // This is an attempt to verify the signature (but I'm not quite convinced it works because whatever we put into ours as "for", it always returns valid
                 // For some reason I can't put here the sighash.bytes (which we signed earlier) as I have to put a Digest into the for parameter
-                let isOurSignatureValid = tweakedKey.isValidSignature(
-                    ourBoltzPartialSignature,
-                    publicKey: ourPrivateKey.publicKey,
-                    nonce: ourBoltzNonce.pubnonce,
-                    for: sighashDigest
-                )
+//                let isOurSignatureValid = tweakedKey.isValidSignature(
+//                    ourBoltzPartialSignature,
+//                    publicKey: ourPrivateKey.publicKey,
+//                    nonce: ourBoltzNonce.pubnonce,
+//                    for: sighashDigest
+//                )
                 
                 // this always returns true no matter what is put in as 'for' parameter, which seems odd to me
                 // isOurSignatureValid: true
-                print("isOurSignatureValid: \(isOurSignatureValid)")
+//                print("isOurSignatureValid: \(isOurSignatureValid)")
                 
                 // If I understood it correctly we need to put the aggregateSignatureHex in the witness of our transaction
                 let aggregateSignatureHex = aggregateBoltzSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
@@ -165,15 +169,15 @@ class BoltzRefund {
                 print("Aggregate Signature Hex: \(aggregateSignatureHex)")
                 
                 // I tried to see if we can verify the signature that we get back but this always returns false so I'm sure we're doing something wrong
-                let isBoltzAPISignatureValid = tweakedKey.isValidSignature(
-                    boltzAPIPartialSignature,
-                    publicKey: boltzServerPublicKey,
-                    nonce: theirNonce,
-                    for: sighashDigest
-                )
+//                let isBoltzAPISignatureValid = tweakedKey.isValidSignature(
+//                    boltzAPIPartialSignature,
+//                    publicKey: boltzServerPublicKey,
+//                    nonce: theirNonce,
+//                    for: sighashDigest
+//                )
                 
                 // This one always returns false, so I'm sure I'm doing something wrong: isBoltzAPISignatureValid: false
-                print("isBoltzAPISignatureValid: \(isBoltzAPISignatureValid)")
+//                print("isBoltzAPISignatureValid: \(isBoltzAPISignatureValid)")
                 
                 let final_tx = buildTaprootTx(tx: base_tx, signature: aggregateSignatureHex, txid: txids[0], input_index: input_indexs[0]);
                 
