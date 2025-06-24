@@ -8,7 +8,6 @@
 import Foundation
 import LDKNode
 import BitcoinDevKit
-import bdkFFI
 import LDKNodeFFI
 import Sentry
 
@@ -215,7 +214,7 @@ class LightningNodeService {
                 let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
                 let update = try self.electrumClient!.sync(
                     request: syncRequest,
-                    batchSize: UInt64(10),
+                    batchSize: UInt64(25),
                     fetchPrevTxouts: true
                 )
                 try self.bdkWallet!.applyUpdate(update: update)
