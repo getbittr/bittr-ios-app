@@ -133,13 +133,13 @@ class SwapManager: NSObject {
             let feesForLightningPayment = expectedAmount - amountInSatoshis
             
             // Check what the onchain fees will be for sending this onchain payment.
-            if let actualBlockchain = LightningNodeService.shared.getBlockchain(), let actualWallet = LightningNodeService.shared.getWallet() {
+            if /*let actualBlockchain = LightningNodeService.shared.getBlockchain(),*/ let actualWallet = LightningNodeService.shared.getWallet() {
                 
                 Task {
                     do {
                         // Get current fees for fast onchain transaction.
-                        let high = try actualBlockchain.estimateFee(target: 1)
-                        let feeHigh = Float(Int(high.asSatPerVb()*10))/10
+                        let high = try LightningNodeService.shared.getClient()!.estimateFee(number: 1)
+                        let feeHigh = Float(Int(high*10))/10
                         
                         var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -147,10 +147,10 @@ class SwapManager: NSObject {
                         }
                         let address = try Address(address: onchainAddress, network: network)
                         let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(expectedAmount))
+                        let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(expectedAmount)))
                         let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                        let tx = details.psbt.extractTx()
+                        let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                        let tx = try details.extractTx()
                         let size = tx.vsize()
                         
                         // Convert fees.
@@ -164,7 +164,7 @@ class SwapManager: NSObject {
                                 swapVC.confirmExpectedFees(feeHigh: feeHigh, onchainFees: Int(feesForOnchainPayment), lightningFees: feesForLightningPayment, swapDictionary: receivedDictionary, createdInvoice: createdInvoice)
                             }
                         }
-                    } catch let error as BdkError {
+                    }/* catch let error as BdkError {
                         
                         print("BDK error: \(error)")
                         DispatchQueue.main.async {
@@ -182,7 +182,7 @@ class SwapManager: NSObject {
                             
                             SentrySDK.capture(error: error)
                         }
-                    } catch {
+                    }*/ catch {
                         print("Error: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
@@ -201,7 +201,7 @@ class SwapManager: NSObject {
         if let onchainAddress = receivedDictionary["address"] as? String, let expectedAmount = receivedDictionary["expectedAmount"] as? Int, let swapID = receivedDictionary["id"] as? String {
             
             // Send onchain transaction.
-            if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
+            if let actualWallet = LightningNodeService.shared.getWallet()/*, let actualBlockchain = LightningNodeService.shared.getBlockchain()*/ {
                 
                 Task {
                     do {
@@ -211,41 +211,45 @@ class SwapManager: NSObject {
                         }
                         let address = try Address(address: onchainAddress, network: network)
                         let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(expectedAmount)).feeRate(satPerVbyte: feeHigh)
+                        let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(expectedAmount))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(feeHigh)))
                         let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                        let tx = details.psbt.extractTx()
-                        try actualBlockchain.broadcast(transaction: tx)
-                        let txid = details.psbt.txid()
-                        print("Transaction ID: \(txid)")
+                        let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                        let tx = try details.extractTx()
                         
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            print("Successful transaction.")
+                        if let client = LightningNodeService.shared.getClient() {
                             
-                            let newTransaction = Transaction()
-                            newTransaction.id = "\(txid)"
-                            newTransaction.confirmations = 0
-                            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                            newTransaction.height = 0
-                            newTransaction.received = 0
-                            newTransaction.fee = onchainFees
-                            newTransaction.sent = expectedAmount + onchainFees
-                            newTransaction.isLightning = false
-                            newTransaction.isBittr = false
+                            let txid = try client.transactionBroadcast(tx: tx)
                             
-                            if let idString = receivedDictionary["idstring"] as? String {
-                                newTransaction.lnDescription = idString
-                                CacheManager.storeInvoiceDescription(hash: txid, desc: idString)
-                            }
+                            print("Transaction ID: \(txid)")
                             
-                            if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
-                                homeVC.setTransactions += [newTransaction]
-                                homeVC.setTransactions.sort { transaction1, transaction2 in
-                                    transaction1.timestamp > transaction2.timestamp
-                                }
-                                homeVC.homeTableView.reloadData()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                print("Successful transaction.")
                                 
-                                swapVC.didCompleteOnchainTransaction(swapDictionary: receivedDictionary)
+                                let newTransaction = Transaction()
+                                newTransaction.id = "\(txid)"
+                                newTransaction.confirmations = 0
+                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                newTransaction.height = 0
+                                newTransaction.received = 0
+                                newTransaction.fee = onchainFees
+                                newTransaction.sent = expectedAmount + onchainFees
+                                newTransaction.isLightning = false
+                                newTransaction.isBittr = false
+                                
+                                if let idString = receivedDictionary["idstring"] as? String {
+                                    newTransaction.lnDescription = idString
+                                    CacheManager.storeInvoiceDescription(hash: txid, desc: idString)
+                                }
+                                
+                                if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
+                                    homeVC.setTransactions += [newTransaction]
+                                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                                        transaction1.timestamp > transaction2.timestamp
+                                    }
+                                    homeVC.homeTableView.reloadData()
+                                    
+                                    swapVC.didCompleteOnchainTransaction(swapDictionary: receivedDictionary)
+                                }
                             }
                         }
                     } catch {

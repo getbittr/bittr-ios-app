@@ -18,7 +18,8 @@ extension ReceiveViewController {
     
     func getZeroInvoice(enteredDescription:String) async -> String? {
         do {
-            let zeroInvoice = try LightningNodeService.shared.ldkNode!.bolt11Payment().receiveVariableAmount(description: enteredDescription, expirySecs: 3600)
+            let invoiceDescription = Bolt11InvoiceDescription.direct(description: enteredDescription)
+            let zeroInvoice = try LightningNodeService.shared.ldkNode!.bolt11Payment().receiveVariableAmount(description: invoiceDescription, expirySecs: 3600)
             
             DispatchQueue.main.async {
                 let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice)

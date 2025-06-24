@@ -70,30 +70,35 @@ extension SendViewController {
                 self.confirmAmountLabel.text = "\(self.onchainAmountInBTC) btc"
                 self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
                 
-                if let actualBlockchain = LightningNodeService.shared.getBlockchain(), let actualWallet = LightningNodeService.shared.getWallet() {
+                if /*let actualBlockchain = LightningNodeService.shared.getBlockchain(), */let actualWallet = LightningNodeService.shared.getWallet() {
                     
                     let actualAddress:String = invoiceText!
                     
                     Task {
                         do {
-                            let high = try actualBlockchain.estimateFee(target: 1)
-                            let medium = try actualBlockchain.estimateFee(target: 3)
-                            let low = try actualBlockchain.estimateFee(target: 6)
                             
-                            print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
+                            let high = try LightningNodeService.shared.getClient()!.estimateFee(number: 1)
+                            let medium = try LightningNodeService.shared.getClient()!.estimateFee(number: 3)
+                            let low = try LightningNodeService.shared.getClient()!.estimateFee(number: 6)
                             
-                            self.feeLow = Float(Int(low.asSatPerVb()*10))/10
-                            self.feeMedium = Float(Int(medium.asSatPerVb()*10))/10
-                            self.feeHigh = Float(Int(high.asSatPerVb()*10))/10
+                            //print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
+                            
+                            self.feeLow = Float(Int(low*10))/10
+                            self.feeMedium = Float(Int(medium*10))/10
+                            self.feeHigh = Float(Int(high*10))/10
                             
                             print("Adjusted - High: \(self.feeHigh), Medium: \(self.feeMedium), Low: \(self.feeLow)")
                             
-                            var address = try Address(address: actualAddress, network: .regtest)
+                            var bdkNetwork = BitcoinDevKit.Network.bitcoin
+                            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                                bdkNetwork = BitcoinDevKit.Network.regtest
+                            }
+                            let address = try Address(address: actualAddress, network: bdkNetwork)
                             let script = address.scriptPubkey()
-                            let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(self.onchainAmountInSatoshis))
+                            let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(self.onchainAmountInSatoshis)))
                             let details = try txBuilder.finish(wallet: actualWallet)
-                            let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                            let tx = details.psbt.extractTx()
+                            let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                            let tx = try details.extractTx()
                             let size = tx.vsize()
 
                             print("Size: \(String(describing: size))")
@@ -156,7 +161,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                             }
-                        } catch let error as BdkError {
+                        }/* catch let error as BdkError {
                             
                             print("BDK error: \(error)")
                             DispatchQueue.main.async {
@@ -173,7 +178,7 @@ extension SendViewController {
                                 
                                 SentrySDK.capture(error: error)
                             }
-                        } catch {
+                        }*/ catch {
                             print("Error: \(error.localizedDescription)")
                             DispatchQueue.main.async {
                                 self.nextLabel.alpha = 1
@@ -316,13 +321,17 @@ extension SendViewController {
         self.sendLabel.alpha = 0
         self.sendSpinner.startAnimating()
         
-        if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
+        if let actualWallet = LightningNodeService.shared.getWallet()/*, let actualBlockchain = LightningNodeService.shared.getBlockchain()*/ {
             
             let actualAddress:String = self.confirmAddressLabel.text!
             
             Task {
                 do {
-                    var address = try Address(address: actualAddress, network: .regtest)
+                    var bdkNetwork = BitcoinDevKit.Network.bitcoin
+                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                        bdkNetwork = BitcoinDevKit.Network.regtest
+                    }
+                    let address = try Address(address: actualAddress, network: bdkNetwork)
                     let script = address.scriptPubkey()
                     var selectedVbyte:Float = self.feeMedium
                     if self.selectedFee == "low" {
@@ -330,21 +339,24 @@ extension SendViewController {
                     } else if self.selectedFee == "high" {
                         selectedVbyte = self.feeHigh
                     }
-                    let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(self.onchainAmountInSatoshis)).feeRate(satPerVbyte: selectedVbyte)
+                    let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(self.onchainAmountInSatoshis))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte)))
                     let details = try txBuilder.finish(wallet: actualWallet)
-                    let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                    let tx = details.psbt.extractTx()
-                    try actualBlockchain.broadcast(transaction: tx)
-                    let txid = details.psbt.txid()
-                    print("Transaction ID: \(txid)")
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        print("Successful transaction.")
-                        self.sendLabel.alpha = 1
-                        self.sendSpinner.stopAnimating()
-                        self.newTxId = txid
+                    let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                    let tx = try details.extractTx()
+                    if let client = LightningNodeService.shared.getClient() {
                         
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
+                        let txid = try client.transactionBroadcast(tx: tx)
+                        
+                        print("Transaction ID: \(txid)")
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            print("Successful transaction.")
+                            self.sendLabel.alpha = 1
+                            self.sendSpinner.stopAnimating()
+                            self.newTxId = txid
+                            
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
+                        }
                     }
                 } catch {
                     print("Transaction error: \(error.localizedDescription)")
@@ -404,16 +416,20 @@ extension SendViewController {
         
         if let actualWallet = LightningNodeService.shared.getWallet() {
             do {
-                let actualAddress:String = try actualWallet.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
-                let actualAmount:Int = Int(try actualWallet.getBalance().spendable)
-                var address = try Address(address: actualAddress, network: .regtest)
+                let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
+                var bdkNetwork = BitcoinDevKit.Network.bitcoin
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    bdkNetwork = BitcoinDevKit.Network.regtest
+                }
+                let address = try Address(address: actualAddress, network: bdkNetwork)
                 let script = address.scriptPubkey()
-                let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(actualAmount))
+                let actualAmount:Int = Int(actualWallet.balance().trustedSpendable.toSat())
+                let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(actualAmount)))
                 let details = try txBuilder.finish(wallet: actualWallet)
-                let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
+                let _ = try actualWallet.sign(psbt: details, signOptions: nil)
                 
                 return nil
-            } catch let error as BdkError {
+            }/* catch let error as BdkError {
                 if "\(error)".contains("InsufficientFunds") {
                     let satsReservation:Double = self.stringToNumber(String("\(error)".split(separator: " ")[7])) * 0.00000001
                     let requiredCorrection:Double = self.btcAmount - satsReservation
@@ -426,8 +442,19 @@ extension SendViewController {
                 } else {
                     return nil
                 }
-            } catch {
-                return nil
+            }*/ catch {
+                if error.localizedDescription.contains("InsufficientFunds") {
+                    let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7])) * 0.00000001
+                    let requiredCorrection:Double = self.btcAmount - satsReservation
+                    let spendableBtcAmount = self.btcAmount + requiredCorrection
+                    if spendableBtcAmount < 0 {
+                        return 0
+                    } else {
+                        return spendableBtcAmount
+                    }
+                } else {
+                    return nil
+                }
             }
         } else {
             return nil

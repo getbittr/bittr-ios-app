@@ -57,12 +57,12 @@ extension HomeViewController {
             var txIds = [String]()
             
             // Set onchain transactions.
-            var receivedTransactions = [TransactionDetails]()
-            if let actualReceivedTransactions = userInfo["transactions"] as? [TransactionDetails] {
+            var receivedTransactions = [CanonicalTx]()
+            if let actualReceivedTransactions = userInfo["transactions"] as? [CanonicalTx] {
                 receivedTransactions = actualReceivedTransactions
                 // Add all onchain transaction IDs.
                 for eachTransaction in actualReceivedTransactions {
-                    txIds += [eachTransaction.txid]
+                    txIds += [eachTransaction.transaction.computeTxid()]
                 }
             }
             
@@ -114,11 +114,11 @@ extension HomeViewController {
     }
     
     
-    func updateTransactionHistory(receivedTransactions:[TransactionDetails], receivedPayments:[PaymentDetails]) {
+    func updateTransactionHistory(receivedTransactions:[CanonicalTx], receivedPayments:[PaymentDetails]) {
         
         // Create onchain transaction entities.
         for eachTransaction in receivedTransactions {
-            if !self.cachedLightningIds.contains(eachTransaction.txid) {
+            if !self.cachedLightningIds.contains(eachTransaction.transaction.computeTxid()) {
                 // Onchain transaction isn't part of a previously cached swap transaction.
                 let thisTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
@@ -777,15 +777,15 @@ extension PaymentKind {
             return nil
         case .bolt11(_, let preimage, _):
             return preimage
-        case .bolt11Jit(_, let preimage, _, _):
+        case .bolt11Jit(_, let preimage, _, _, _):
             return preimage
         case .spontaneous(_, let preimage):
             return preimage
-        case .bolt12Offer(hash: _, let preimage, secret: _, offerId: _):
-        //case .bolt12Offer(hash: _, preimage: let preimage, secret: _, offerId: _, payerNote: _, quantity: _):
+        //case .bolt12Offer(hash: _, let preimage, secret: _, offerId: _):
+        case .bolt12Offer(hash: _, preimage: let preimage, secret: _, offerId: _, payerNote: _, quantity: _):
             return preimage
-        case .bolt12Refund(hash: _, let preimage, secret: _):
-        //case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
+        //case .bolt12Refund(hash: _, let preimage, secret: _):
+        case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
             return preimage
         }
     }
@@ -793,7 +793,7 @@ extension PaymentKind {
 
 extension UIViewController {
     
-    func createTransaction(transactionDetails:TransactionDetails?, paymentDetails:PaymentDetails?, bittrTransaction:BittrTransaction?, coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
+    func createTransaction(transactionDetails:CanonicalTx?, paymentDetails:PaymentDetails?, bittrTransaction:BittrTransaction?, coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()
@@ -802,24 +802,27 @@ extension UIViewController {
         if transactionDetails != nil {
             
             // Onchain transaction.
-            thisTransaction.id = transactionDetails!.txid
-            thisTransaction.note = CacheManager.getTransactionNote(txid: transactionDetails!.txid)
-            thisTransaction.fee = Int(transactionDetails!.fee!)
-            thisTransaction.received = Int(transactionDetails!.received)
-            thisTransaction.sent = Int(transactionDetails!.sent)
+            thisTransaction.id = transactionDetails!.transaction.computeTxid()
+            thisTransaction.note = CacheManager.getTransactionNote(txid: transactionDetails!.transaction.computeTxid())
+            do {
+                thisTransaction.fee = Int(try LightningNodeService.shared.getWallet()!.calculateFee(tx: transactionDetails!.transaction).toSat())
+            } catch {
+                print("810 Could not calculate fee.")
+            }
+            thisTransaction.received = Int(LightningNodeService.shared.getWallet()!.sentAndReceived(tx: transactionDetails!.transaction).received.toSat())
+            thisTransaction.sent = Int(LightningNodeService.shared.getWallet()!.sentAndReceived(tx: transactionDetails!.transaction).sent.toSat())
             thisTransaction.isLightning = false
-            if let confirmationTime = transactionDetails!.confirmationTime {
-                thisTransaction.height = Int(confirmationTime.height)
-                thisTransaction.timestamp = Int(confirmationTime.timestamp)
+            switch transactionDetails!.chainPosition {
+            case .unconfirmed(timestamp: let timestamp):
+                thisTransaction.timestamp = Int(timestamp ?? UInt64(Date().timeIntervalSince1970))
+                thisTransaction.height = 0
+                thisTransaction.confirmations = 0
+            case .confirmed(confirmationBlockTime: let confirmationBlockTime, transitively: let transitively):
+                thisTransaction.timestamp = Int(confirmationBlockTime.confirmationTime)
+                thisTransaction.height = Int(confirmationBlockTime.blockId.height)
                 if let actualCurrentHeight = coreVC?.currentHeight {
                     thisTransaction.confirmations = (actualCurrentHeight - thisTransaction.height) + 1
                 }
-            } else {
-                // Handle the case where confirmationTime is nil.
-                thisTransaction.height = 0
-                thisTransaction.confirmations = 0
-                let currentTimestamp = Int(Date().timeIntervalSince1970)
-                thisTransaction.timestamp = currentTimestamp
             }
             
             if CacheManager.getInvoiceDescription(hash: thisTransaction.id) != "" {

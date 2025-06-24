@@ -18,11 +18,13 @@ class LightningNodeService {
     private var network: LDKNode.Network
     private let mnemonicKey = ""
     private let storageManager = LightningStorage()
+    private var connection: Connection?
+    private var electrumClient: ElectrumClient?
     private var bdkWallet: BitcoinDevKit.Wallet?
-    private var blockchain: Blockchain?
+    //private var blockchain: Blockchain?
     private var xpub = ""
     private var bdkBalance = 0
-    private var varWalletTransactions = [TransactionDetails]()
+    private var varWalletTransactions = [CanonicalTx]()
     private var varMnemonicString = ""
     private var currentHeight = 0
     private var didProceedBeyondPeerConnection = false
@@ -52,21 +54,18 @@ class LightningNodeService {
         
         let config = Config(
             storageDirPath: storageManager.getDocumentsDirectory(),
-            logDirPath: storageManager.getDocumentsDirectory(),
             network: network,
             listeningAddresses: correctListeningAddresses,
-            defaultCltvExpiryDelta: UInt32(144),
-            onchainWalletSyncIntervalSecs: UInt64(60),
-            walletSyncIntervalSecs: UInt64(20),
-            feeRateCacheUpdateIntervalSecs: UInt64(600),
+            announcementAddresses: nil,
+            nodeAlias: nil,
             trustedPeers0conf: ["03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba", "03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"],
             probingLiquidityLimitMultiplier: UInt64(3),
-            logLevel: .debug,
             anchorChannelsConfig: AnchorChannelsConfig(
                 trustedPeersNoReserve: [
                     PublicKey("03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"),
                     PublicKey("03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba")
-                ], perChannelReserveSats: UInt64(1000))
+                ], perChannelReserveSats: UInt64(1000)),
+            sendingParameters: nil
         )
         
         let nodeBuilder = Builder.fromConfig(config: config)
@@ -80,7 +79,7 @@ class LightningNodeService {
         } else {
             // New wallet.
             print("Did not find mnemonic. Creating a new one.")
-            mnemonicString = BitcoinDevKit.Mnemonic.init(wordCount: .words12).asString()
+            mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         
@@ -91,18 +90,14 @@ class LightningNodeService {
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
-            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace, config: nil)
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace, config: nil)
         case .regtest:
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.regtest)
-            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.regtest, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.regtest, config: nil)
         case .signet:
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.signet)
-            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.signet, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.signet, config: nil)
         case .testnet:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
-            nodeBuilder.setEsploraServer(esploraServerUrl: Constants.Config.EsploraServerURLNetwork.testnet)
-            //nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.testnet, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.testnet, config: nil)
         }
         
         let ldkNode = try nodeBuilder.build()
@@ -114,13 +109,15 @@ class LightningNodeService {
         
         DispatchQueue.global(qos: .background).async {
             
-            var walletTransactions:[TransactionDetails]?
+            var walletTransactions:[CanonicalTx]?
             
             // BDK launch.
             do {
                 
-                if self.blockchain == nil || self.bdkWallet == nil {
+                if /*self.blockchain == nil || */self.bdkWallet == nil {
+                    
                     print("Will start blockchain and wallet.")
+                    
                     // Attempt to create a mnemonic object from the provided mnemonic string.
                     let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
                     
@@ -141,7 +138,7 @@ class LightningNodeService {
                     }
                     
                     // Get XPUB.
-                    let descriptor = bip84ExternalDescriptor.asString()
+                    let descriptor = bip84ExternalDescriptor.description
                     let components = descriptor.components(separatedBy: "]")
                     if components.count > 1 {
                         let xpubPart = components[1].split(separator: "/").first
@@ -164,15 +161,21 @@ class LightningNodeService {
                     }
                     
                     // Set up the local SQLite database for the Bitcoin wallet using the provided file path
-                    let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
-                    let config = SqliteDbConfiguration(path: dbPath.path)
+                    //let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
+                    //let config = SqliteDbConfiguration(path: dbPath.path)
                     
                     // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
                     var wallet:Wallet
+                    self.connection = try Connection.createConnection()
+                    if self.connection == nil {
+                        print("Could not create connection.")
+                        return
+                    }
+                    
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .regtest, databaseConfig: .sqlite(config: config))
+                        wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .regtest, connection: self.connection!)
                     } else {
-                        wallet = try BitcoinDevKit.Wallet.init(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, databaseConfig: .sqlite(config: config))
+                        wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, connection: self.connection!)
                     }
                     self.bdkWallet = wallet
                     
@@ -182,8 +185,10 @@ class LightningNodeService {
                     if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                         electrumUrl = "tcp://regtest.getbittr.com:19001"
                     }
-                    let electrum = ElectrumConfig(
-                        
+                    let electrum = try ElectrumClient(url: electrumUrl)
+                    self.electrumClient = electrum
+                    
+                    /*let electrum = ElectrumConfig(
                         url: electrumUrl,
                         socks5: nil,
                         retry: 5,
@@ -193,7 +198,7 @@ class LightningNodeService {
                     )
                     let blockchainConfig = BlockchainConfig.electrum(config: electrum)
                     let blockchain = try Blockchain(config: blockchainConfig)
-                    self.blockchain = blockchain
+                    self.blockchain = blockchain*/
                     
                     print("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
@@ -206,7 +211,15 @@ class LightningNodeService {
                 
                 print("Will sync wallet.")
                 // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
-                try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
+                //try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
+                let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
+                let update = try self.electrumClient!.sync(
+                    request: syncRequest,
+                    batchSize: UInt64(10),
+                    fetchPrevTxouts: true
+                )
+                try self.bdkWallet!.applyUpdate(update: update)
+                print("Wallet persist: \(try self.bdkWallet!.persist(connection: self.connection!))")
                 
                 print("Did sync wallet.")
                 DispatchQueue.main.async {
@@ -218,18 +231,27 @@ class LightningNodeService {
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet
-                self.bdkBalance = Int(try self.bdkWallet!.getBalance().total)
+                //self.bdkBalance = Int(try self.bdkWallet!.getBalance().total)
+                self.bdkBalance = Int(self.bdkWallet!.balance().total.toSat())
                 print("Did fetch onchain balance.")
                 
                 // Retrieve a list of transaction details from the wallet, excluding raw transaction data
-                walletTransactions = try self.bdkWallet!.listTransactions(includeRaw: false)
+                //walletTransactions = try self.bdkWallet!.listTransactions(includeRaw: false)
+                walletTransactions = self.bdkWallet!.transactions()
+                let sortedTransactions = (walletTransactions ?? [CanonicalTx]()).sorted { (tx1, tx2) in
+                    return tx1.chainPosition.isBefore(tx2.chainPosition)
+                }
+                self.varWalletTransactions = sortedTransactions
                 print("Did fetch onchain transactions.")
-                let actualWalletTransactions = walletTransactions ?? [TransactionDetails]()
-                self.varWalletTransactions = actualWalletTransactions
                 
                 // Get current height.
-                let fetchedCurrentHeight = try self.blockchain!.getHeight()
+                var esploraUrl = Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    esploraUrl = Constants.Config.EsploraServerURLNetwork.regtest
+                }
+                let fetchedCurrentHeight = try EsploraClient(url: esploraUrl).getHeight()
                 self.currentHeight = Int(fetchedCurrentHeight)
+                print("Current height: \(self.currentHeight)")
                 
                 // Proceed to next step.
                 Task {
@@ -247,12 +269,12 @@ class LightningNodeService {
                     }
                 }
                 
-            } catch let error as BdkError {
+            } /*catch let error as BdkError {
                 print("Some error occurred. \(error)")
                 let notificationDict:[String: Any] = ["message":"We can't seem to connect to the Blockchain. Please check your network."]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
                 SentrySDK.capture(error: error)
-            } catch {
+            } */catch {
                 print("Some error occurred. \(error.localizedDescription)")
                 let notificationDict:[String: Any] = ["message":"\(error.localizedDescription)"]
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
@@ -360,7 +382,7 @@ class LightningNodeService {
     }
     
     
-    func getChannelsAndPayments(actualWalletTransactions:[TransactionDetails]) {
+    func getChannelsAndPayments(actualWalletTransactions:[CanonicalTx]) {
         
         Task {
             do {
@@ -440,9 +462,9 @@ class LightningNodeService {
         return bdkWallet
     }
     
-    func getBlockchain() -> Blockchain? {
+    /*func getBlockchain() -> Blockchain? {
         return blockchain
-    }
+    }*/
     
     func getXpub() -> String {
         return xpub
@@ -455,17 +477,18 @@ class LightningNodeService {
     }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
-        let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
+        let invoiceDescription = Bolt11InvoiceDescription.direct(description: description)
+        let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
         return invoice
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice/*, sendingParameters: nil*/)
+        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice, sendingParameters: nil)
         return paymentHash
     }
     
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000)/*, sendingParameters: nil*/)
+        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), sendingParameters: nil)
         return paymentHash
     }
     
@@ -479,6 +502,10 @@ class LightningNodeService {
         }
     }
     
+    func getClient() -> ElectrumClient? {
+        return self.electrumClient
+    }
+    
     func deleteDocuments() throws {
         try FileManager.default.deleteAllContentsInDocumentsDirectory()
     }
@@ -488,7 +515,11 @@ class LightningNodeService {
         DispatchQueue.global(qos: .background).async {
             let event = self.ldkNode!.waitNextEvent()
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil, userInfo: ["event":event]) as Notification)
-            self.ldkNode!.eventHandled()
+            do {
+                try self.ldkNode!.eventHandled()
+            } catch {
+                print("Error: \(error.localizedDescription)")
+            }
             self.listenForEvents()
         }
     }
@@ -550,3 +581,71 @@ extension FileManager {
     }
 }
 
+extension Connection {
+    
+    static func createConnection() throws -> Connection {
+        let documentsDirectoryURL = URL.documentsDirectory
+        let walletDataDirectoryURL = documentsDirectoryURL.appendingPathComponent("wallet_data")
+
+        if FileManager.default.fileExists(atPath: walletDataDirectoryURL.path) {
+            try FileManager.default.removeItem(at: walletDataDirectoryURL)
+        }
+
+        try FileManager.default.ensureDirectoryExists(at: walletDataDirectoryURL)
+        try FileManager.default.removeOldFlatFileIfNeeded(at: documentsDirectoryURL)
+        let persistenceBackendPath = walletDataDirectoryURL.appendingPathComponent("wallet.sqlite")
+            .path
+        let connection = try Connection(path: persistenceBackendPath)
+        return connection
+    }
+}
+
+extension FileManager {
+
+    func ensureDirectoryExists(at url: URL) throws {
+        var isDir: ObjCBool = false
+        if fileExists(atPath: url.path, isDirectory: &isDir) {
+            if !isDir.boolValue {
+                try removeItem(at: url)
+            }
+        }
+        if !fileExists(atPath: url.path) {
+            try createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+        }
+    }
+
+    func removeOldFlatFileIfNeeded(at directoryURL: URL) throws {
+        let flatFileURL = directoryURL.appendingPathComponent("wallet_data")
+        var isDir: ObjCBool = false
+        if fileExists(atPath: flatFileURL.path, isDirectory: &isDir) {
+            if !isDir.boolValue {
+                try removeItem(at: flatFileURL)
+            }
+        }
+    }
+}
+
+extension ChainPosition {
+    func isBefore(_ other: ChainPosition) -> Bool {
+        switch (self, other) {
+        case (.unconfirmed, .confirmed):
+            // Unconfirmed should come before confirmed.
+            return true
+        case (.confirmed, .unconfirmed):
+            // Confirmed should come after unconfirmed.
+            return false
+        case (.unconfirmed(let timestamp1), .unconfirmed(let timestamp2)):
+            // If both are unconfirmed, compare by timestamp (optional).
+            return (timestamp1 ?? 0) < (timestamp2 ?? 0)
+        case (
+            .confirmed(let blockTime1, let transitively1),
+            .confirmed(let blockTime2, let transitively2)
+        ):
+            // Sort by height descending, but note that if transitively is Some,
+            // this block height might not be the "original" confirmation block
+            return blockTime1.blockId.height != blockTime2.blockId.height
+                ? blockTime1.blockId.height > blockTime2.blockId.height
+                : (transitively1 != nil) && (transitively2 == nil)
+        }
+    }
+}
