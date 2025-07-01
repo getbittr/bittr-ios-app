@@ -274,7 +274,7 @@ extension UIViewController {
                 
                 DispatchQueue.main.async {
                     
-                    let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
+                    let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description)
                     let newTimestamp = Int(Date().timeIntervalSince1970)
                     if let actualInvoiceHash = invoiceHash {
                         CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)

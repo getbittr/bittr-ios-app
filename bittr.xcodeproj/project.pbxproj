@@ -1471,7 +1471,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.5.0;
+				version = 0.6.1;
 			};
 		};
 		05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */ = {

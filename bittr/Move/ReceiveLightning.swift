@@ -22,7 +22,7 @@ extension ReceiveViewController {
             let zeroInvoice = try LightningNodeService.shared.ldkNode!.bolt11Payment().receiveVariableAmount(description: invoiceDescription, expirySecs: 3600)
             
             DispatchQueue.main.async {
-                let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice)
+                let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description)
                 let newTimestamp = Int(Date().timeIntervalSince1970)
                 if let actualInvoiceHash = invoiceHash {
                     CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)
@@ -31,7 +31,7 @@ extension ReceiveViewController {
                     }
                 }
             }
-            return zeroInvoice
+            return zeroInvoice.description
         } catch let error as NodeError {
             let errorString = handleNodeError(error)
             DispatchQueue.main.async {
@@ -57,7 +57,7 @@ extension ReceiveViewController {
                 expirySecs: expirySecs
             )
             DispatchQueue.main.async {
-                let invoiceHash = self.getInvoiceHash(invoiceString: invoice)
+                let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description)
                 let newTimestamp = Int(Date().timeIntervalSince1970)
                 if let actualInvoiceHash = invoiceHash {
                     CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)

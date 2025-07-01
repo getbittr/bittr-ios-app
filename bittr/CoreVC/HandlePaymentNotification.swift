@@ -122,7 +122,7 @@ extension CoreViewController {
                         print("Did create invoice.")
                         
                         DispatchQueue.main.async {
-                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice) {
+                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description) {
                                 let newTimestamp = Int(Date().timeIntervalSince1970)
                                 CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                                 CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
@@ -133,7 +133,7 @@ extension CoreViewController {
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         print("Did sign message.")
                         
-                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
+                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         
                         DispatchQueue.main.async {

@@ -55,7 +55,7 @@ class SwapManager: NSObject {
             // Store invoice in cache.
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
-                    if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice) {
+                    if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description) {
                         let newTimestamp = Int(Date().timeIntervalSince1970)
                         CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                         CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning \(idString)")
@@ -319,7 +319,7 @@ class SwapManager: NSObject {
                         // Verify that the Lightning payment has been made.
                         if let swapVC = delegate as? SwapViewController {
                             if let pendingInvoice = swapVC.pendingInvoice {
-                                if let pendingInvoiceHash = swapVC.getInvoiceHash(invoiceString: pendingInvoice) {
+                                if let pendingInvoiceHash = swapVC.getInvoiceHash(invoiceString: pendingInvoice.description) {
                                     if let pendingPreimage = LightningNodeService.shared.getPaymentDetails(paymentHash: pendingInvoiceHash)?.kind.preimageAsString {
                                         
                                         if pendingPreimage == receivedPreimage {
@@ -602,7 +602,11 @@ class SwapManager: NSObject {
                         
                         // Confirm fees with user.
                         DispatchQueue.main.async {
-                            delegate.confirmExpectedFees(feeHigh: 0, onchainFees: onchainFees, lightningFees: lightningFees, swapDictionary: swapDictionary, createdInvoice: receivedInvoice)
+                            do {
+                                delegate.confirmExpectedFees(feeHigh: 0, onchainFees: onchainFees, lightningFees: lightningFees, swapDictionary: swapDictionary, createdInvoice: try Bolt11Invoice.fromStr(invoiceStr: receivedInvoice))
+                            } catch {
+                                
+                            }
                         }
                     }
                 }
@@ -622,7 +626,7 @@ class SwapManager: NSObject {
             
             Task {
                 do {
-                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: invoice)
+                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoice))
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
