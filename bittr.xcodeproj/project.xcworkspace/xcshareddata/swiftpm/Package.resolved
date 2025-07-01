@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RubenWaterman/swift-secp256k1",
       "state" : {
-        "branch" : "boltz",
-        "revision" : "a4f6a9e245074b5745e46ba8f01b5237d22205c5"
+        "branch" : "ruben",
+        "revision" : "46947269b29e288fb9ebc343ca06c3d21ddd6353"
       }
     }
   ],

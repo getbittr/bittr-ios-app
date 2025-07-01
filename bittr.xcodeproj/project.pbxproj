@@ -123,6 +123,7 @@
 		05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */; };
 		05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */; };
 		05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */; };
+		371A6B9D2E1301AB0086C78C /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 371A6B9C2E1301AB0086C78C /* P256K */; };
 		376009352D8AC3A00048A7B6 /* BTCTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009342D8AC3A00048A7B6 /* BTCTransaction.swift */; };
 		376009372D8AC3AF0048A7B6 /* BTCVarInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */; };
 		376009392D8AC3C50048A7B6 /* BTCHashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009382D8AC3C50048A7B6 /* BTCHashing.swift */; };
@@ -139,7 +140,6 @@
 		379A8C5C2D81738E00C871C5 /* WordListEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4C2D81738E00C871C5 /* WordListEN.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
-		37BD6C992E0479FC00905D4F /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 37BD6C982E0479FC00905D4F /* P256K */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
 		37F176532D8BDF0000386BCC /* Musig2Bitcoin in Frameworks */ = {isa = PBXBuildFile; productRef = 37F176522D8BDF0000386BCC /* Musig2Bitcoin */; };
 		3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6A5FD226974C7A8EB518F5 /* Sentry */; };
@@ -347,7 +347,7 @@
 				0589280B2C00933F00DDB850 /* LDKNode in Frameworks */,
 				05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */,
 				05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */,
-				37BD6C992E0479FC00905D4F /* P256K in Frameworks */,
+				371A6B9D2E1301AB0086C78C /* P256K in Frameworks */,
 				05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */,
 				05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */,
 				0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */,
@@ -738,7 +738,7 @@
 				0589280A2C00933F00DDB850 /* LDKNode */,
 				0554035C2CB7EA04006F27CA /* LNURLDecoder */,
 				37F176522D8BDF0000386BCC /* Musig2Bitcoin */,
-				37BD6C982E0479FC00905D4F /* P256K */,
+				371A6B9C2E1301AB0086C78C /* P256K */,
 			);
 			productName = bittr;
 			productReference = 05C3C08129CCB55600C1E695 /* bittr.app */;
@@ -824,7 +824,7 @@
 				058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */,
 				0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */,
 				37F176512D8BDF0000386BCC /* XCRemoteSwiftPackageReference "musig2-ios-api" */,
-				37BD6C972E0479E800905D4F /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
+				371A6B9B2E1301AB0086C78C /* XCRemoteSwiftPackageReference "swift-secp256k1" */,
 			);
 			productRefGroup = 05C3C08229CCB55600C1E695 /* Products */;
 			projectDirPath = "";
@@ -1530,11 +1530,11 @@
 				minimumVersion = 8.0.0;
 			};
 		};
-		37BD6C972E0479E800905D4F /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
+		371A6B9B2E1301AB0086C78C /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RubenWaterman/swift-secp256k1";
 			requirement = {
-				branch = boltz;
+				branch = ruben;
 				kind = branch;
 			};
 		};
@@ -1579,9 +1579,9 @@
 			package = 05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */;
 			productName = LightningDevKit;
 		};
-		37BD6C982E0479FC00905D4F /* P256K */ = {
+		371A6B9C2E1301AB0086C78C /* P256K */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 37BD6C972E0479E800905D4F /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			package = 371A6B9B2E1301AB0086C78C /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
 			productName = P256K;
 		};
 		37F176522D8BDF0000386BCC /* Musig2Bitcoin */ = {
