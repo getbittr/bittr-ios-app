@@ -63,11 +63,6 @@ class SwapManager: NSObject {
                 }
             }
             
-            // Get public key for potential refund.
-            //let xpub = LightningNodeService.shared.getXpub()
-            //let xpubData = Data(xpub.utf8)
-            //let xpubHex = xpub.unicodeScalars.filter { $0.isASCII }.map { String(format: "%X", $0.value) }.joined()
-            
             let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
             
             // Create POST API call.
@@ -389,27 +384,6 @@ class SwapManager: NSObject {
             return Data(payload)
         }
     }
-
-    static func wifToPrivateKey(_ wif: String) -> Data? {
-        guard let decoded = Base58Check.decode(wif) else {
-            print("Invalid WIF format")
-            return nil
-        }
-
-        guard decoded.count == 33 || decoded.count == 34 else {
-            print("❌ Invalid decoded length: \(decoded.count) bytes")
-            return nil
-        }
-
-        let privateKey = decoded.dropFirst().dropLast(decoded.count == 34 ? 1 : 0) // Remove prefix & optional compression flag
-
-        guard privateKey.count == 32 else {
-            print("❌ Private key is not 32 bytes, got \(privateKey.count) bytes")
-            return nil
-        }
-
-        return privateKey
-    }
     
     static func claimRefund() {
         
@@ -458,19 +432,6 @@ class SwapManager: NSObject {
         } catch {
             print("630 Error: \(error.localizedDescription)")
         }
-        
-        //let aggregateKey = try P256K.MuSig.aggregate([])
-        
-        /*if let privateKey = self.wifToPrivateKey("cQWo7AVPFAR8S33hNNEXqNhDYgQ5U7ZTxEyEnuWZ3tuxZLqHyU1J") {
-            print("✅ Private key extracted:", privateKey.map { String(format: "%02x", $0) }.joined())
-            
-            if let pubNonce = self.generatePublicNonce(from: privateKey) {
-                print("Generated pubNonce:", pubNonce.map { String(format: "%02x", $0) }.joined())
-                
-            }
-        } else {
-            print("❌ Failed to extract private key")
-        }*/
     }
     
     
@@ -484,11 +445,15 @@ class SwapManager: NSObject {
         let randomPreimage = self.generateRandomPreimage()
         let randomPreimageHash = self.sha256Hash(of: randomPreimage)
         let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
+
+        let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+        
+        print("randomPreimageHashHex: \(randomPreimage.hexEncodedString())")
         
         let parameters: [String: Any] = [
             "from": "BTC",
             "to": "BTC",
-            "claimPublicKey": "0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24",
+            "claimPublicKey": publicKey,
             "preimageHash": randomPreimageHashHex,
             "onchainAmount": amountSat
         ]
