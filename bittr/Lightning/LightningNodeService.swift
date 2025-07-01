@@ -400,7 +400,14 @@ class LightningNodeService {
                 }
                 
                 // Get payments.
-                let payments = try await LightningNodeService.shared.listPayments()
+                var payments = try await LightningNodeService.shared.listPayments()
+                // Remove onchain payments from array.
+                for (index, eachPayment) in payments.enumerated().reversed() {
+                    switch eachPayment.kind {
+                    case .onchain(txid: _, status: _): payments.remove(at: index)
+                    default: print("Lightning payment.")
+                    }
+                }
                 
                 // Send notification with all details.
                 let transactionsNotificationDict:[AnyHashable:Any] = ["transactions":actualWalletTransactions, "channels":channels, "payments":payments, "bdkbalance":self.bdkBalance, "currentheight":self.currentHeight]
