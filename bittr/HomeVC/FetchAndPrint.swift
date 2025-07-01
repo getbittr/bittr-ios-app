@@ -19,7 +19,7 @@ extension HomeViewController {
                     if peers[0].isConnected == true {
                         Task {
                             do {
-                                let result = try await BoltzRefund.tryBoltzClaim()
+                                let result = try await BoltzRefund.tryBoltzRefund()
                                 print("Result: \(result)")
                             } catch {
                                 print("Error: \(error)")
