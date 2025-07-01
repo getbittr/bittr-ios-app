@@ -77,11 +77,11 @@ extension SendViewController {
                     Task {
                         do {
                             
-                            let high = try LightningNodeService.shared.getClient()!.estimateFee(number: 1)
-                            let medium = try LightningNodeService.shared.getClient()!.estimateFee(number: 3)
-                            let low = try LightningNodeService.shared.getClient()!.estimateFee(number: 6)
+                            let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
                             
-                            //print("High: \(high.asSatPerVb()), Medium: \(medium.asSatPerVb()), Low: \(low.asSatPerVb())")
+                            let high = feeEstimates[1]! //try LightningNodeService.shared.getClient()!.estimateFee(number: 1)
+                            let medium = feeEstimates[3]! //try LightningNodeService.shared.getClient()!.estimateFee(number: 3)
+                            let low = feeEstimates[6]! //try LightningNodeService.shared.getClient()!.estimateFee(number: 6)
                             
                             self.feeLow = Float(Int(low*10))/10
                             self.feeMedium = Float(Int(medium*10))/10
@@ -443,7 +443,7 @@ extension SendViewController {
                     return nil
                 }
             }*/ catch {
-                if error.localizedDescription.contains("InsufficientFunds") {
+                if error.localizedDescription.contains("Insufficient funds") {
                     let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7])) * 0.00000001
                     let requiredCorrection:Double = self.btcAmount - satsReservation
                     let spendableBtcAmount = self.btcAmount + requiredCorrection

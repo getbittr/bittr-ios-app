@@ -57,12 +57,12 @@ class LightningNodeService {
             listeningAddresses: correctListeningAddresses,
             announcementAddresses: nil,
             nodeAlias: nil,
-            trustedPeers0conf: ["03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba", "03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"],
+            trustedPeers0conf: ["02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3", "02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3"],
             probingLiquidityLimitMultiplier: UInt64(3),
             anchorChannelsConfig: AnchorChannelsConfig(
                 trustedPeersNoReserve: [
-                    PublicKey("03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"),
-                    PublicKey("03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba")
+                    PublicKey("02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3"),
+                    PublicKey("02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3")
                 ], perChannelReserveSats: UInt64(1000)),
             sendingParameters: nil
         )
@@ -211,9 +211,16 @@ class LightningNodeService {
                 print("Will sync wallet.")
                 // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
                 //try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
-                let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
-                let update = try self.electrumClient!.sync(
+                let syncRequest = try self.bdkWallet!.startFullScan().build()
+                //let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
+                /*let update = try self.electrumClient!.sync(
                     request: syncRequest,
+                    batchSize: UInt64(25),
+                    fetchPrevTxouts: true
+                )*/
+                let update = try self.electrumClient!.fullScan(
+                    request: syncRequest,
+                    stopGap: UInt64(25),
                     batchSize: UInt64(25),
                     fetchPrevTxouts: true
                 )
@@ -244,11 +251,7 @@ class LightningNodeService {
                 print("Did fetch onchain transactions.")
                 
                 // Get current height.
-                var esploraUrl = Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace
-                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    esploraUrl = Constants.Config.EsploraServerURLNetwork.regtest
-                }
-                let fetchedCurrentHeight = try EsploraClient(url: esploraUrl).getHeight()
+                let fetchedCurrentHeight = try self.getEsploraClient()!.getHeight()
                 self.currentHeight = Int(fetchedCurrentHeight)
                 print("Current height: \(self.currentHeight)")
                 
@@ -289,7 +292,7 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba", "03962d5ff8e9ac98f3a14dbedc18ee74fd146461c2be2dc58e5bb7b339a04c89ba"]
+        let nodeIds = ["02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3", "02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
@@ -503,6 +506,14 @@ class LightningNodeService {
     
     func getClient() -> ElectrumClient? {
         return self.electrumClient
+    }
+    
+    func getEsploraClient() -> EsploraClient? {
+        var esploraUrl = Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            esploraUrl = Constants.Config.EsploraServerURLNetwork.regtest
+        }
+        return EsploraClient(url: esploraUrl)
     }
     
     func deleteDocuments() throws {
