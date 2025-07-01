@@ -10,24 +10,24 @@ import P256K
 class BoltzRefund {
     static func tryBoltzClaimInternalTransactionGeneration() async throws -> Bool {
         //        {
-        //            "id": "7TNAMND8TpBC",
-        //            "invoice": "lnbcrt505610n1p5x8hqxsp53cc6umyva3e9vzemfrd679fhyg8u639xe3nt57jqpd72xtst8ypqpp57jmpxtcc9tka0v7pmccq9zmj3yl2r5h6fse4ccznjjspmcyz8ztqdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq7urq6fed0pkzdwr03t2f02t3pcxgm3w3n9ztqa03qzc9mnfv08u5ywtemjpssecfus5txcw387sn2sya6kzwdx4wnf6cg2fyn0tt5fgpwnwsst",
+        //            "id": "9ncXTzLM821K",
+        //            "invoice": "lnbcrt505610n1p5xgg0esp5stctx4gle9vgh94fvzx0dt8a57daflertd0jvw8c439l98psyv8spp5wlrd8fl7fxtm3wnltgnpddnkxp7wphuf9gl6hhr9u5jh6qp26ppqdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq0mdhsmlvq2f335d8my9963e7mxts9ry8c9xyg9yerryexwcclcm4rhg8whcnwhagkdlnasktlsx57hfuefmetunug88w9y5nfldhdqsqwpp6qq",
         //            "swapTree": {
         //                "claimLeaf": {
         //                    "version": 192,
-        //                    "output": "82012088a914dc3629a8b0fc948c29b1af03cfe328329156e3b68820b45641876412357b35600c5aa6df1d8f598842b6f1f39b5d7f25928aed7374dcac"
+        //                    "output": "82012088a914986067db5067f3456356c546e6ec57b2f30ebcf6882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
         //                },
         //                "refundLeaf": {
         //                    "version": 192,
-        //                    "output": "2016c9a4ebe84573a3a75802f090ddbe2bd9a4a5088503e1fffc83363139ea371ead025601b1"
+        //                    "output": "20defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5ad024b01b1"
         //                }
         //            },
-        //            "lockupAddress": "bcrt1pw4wlylcfcpm23phm6ptakr7xdxnmjmqf8va4a40f3ywhfwgsf2xsv2f74c",
-        //            "refundPublicKey": "0316c9a4ebe84573a3a75802f090ddbe2bd9a4a5088503e1fffc83363139ea371e",
-        //            "timeoutBlockHeight": 342
+        //            "lockupAddress": "bcrt1p3l7c992rtv663ql6qwq5j8g5tj3hw4h3kk5f8efshhrr7f4sxr4q7mxp4f",
+        //            "refundPublicKey": "03defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5",
+        //            "timeoutBlockHeight": 331
         //        }
         
-        let boltzServerPublicKeyBytes = try! "02482a2db89ce575fb8e6cae372abdbba22e3a4d84c4dea7f923486dcb085318ee".bytes
+        let boltzServerPublicKeyBytes = try! "03defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5".bytes
         
         let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
@@ -57,23 +57,23 @@ class BoltzRefund {
         //        "swapTree": {
         //        "claimLeaf": {
         //            "version": 192,
-        //            "output": "82012088a914dc3629a8b0fc948c29b1af03cfe328329156e3b68820b45641876412357b35600c5aa6df1d8f598842b6f1f39b5d7f25928aed7374dcac"
+        //            "output": "82012088a914986067db5067f3456356c546e6ec57b2f30ebcf6882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
         //        },
         //        "refundLeaf": {
         //            "version": 192,
-        //            "output": "2016c9a4ebe84573a3a75802f090ddbe2bd9a4a5088503e1fffc83363139ea371ead025601b1"
+        //            "output": "20defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5ad024b01b1"
         //        }
         //    }
         
         // Create the claim leaf hash
-        let claimLeafOutput = try "82012088a914ace17abaa30c5fb54a9481ea883e9d46c79d15778820b45641876412357b35600c5aa6df1d8f598842b6f1f39b5d7f25928aed7374dcac".bytes
+        let claimLeafOutput = try "82012088a914986067db5067f3456356c546e6ec57b2f30ebcf6882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac".bytes
         let claimLeafHash = try SHA256.taggedHash(
             tag: "TapLeaf".data(using: .utf8)!,
             data: Data([0xC0]) + Data(claimLeafOutput).compactSizePrefix
         )
         
         // Create the refund leaf hash
-        let refundLeafOutput = try "20482a2db89ce575fb8e6cae372abdbba22e3a4d84c4dea7f923486dcb085318eead025701b1".bytes
+        let refundLeafOutput = try "20defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5ad024b01b1".bytes
         let refundLeafHash = try SHA256.taggedHash(
             tag: "TapLeaf".data(using: .utf8)!,
             data: Data([0xC0]) + Data(refundLeafOutput).compactSizePrefix
@@ -119,11 +119,28 @@ class BoltzRefund {
         
         print("\n=== TWEAKED PUBLIC KEY ===")
         print("Tweaked x-only public key: \(tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined())")
-        print("Expected result: 9c1ff67571dcf338b4d417e53afeb7fe20d59b7327481a4e8f9f6504b150ec3b")
+        //        print("Expected result: 9c1ff67571dcf338b4d417e53afeb7fe20d59b7327481a4e8f9f6504b150ec3b")
+        
+        
+        // The next few lintes will create the raw transaction of our refund, so that we can send the unsigned transaction to the Boltz API
+        // and later on calculate the sighash that we AND the boltz API need to sign
+        let prev_txs = ["01000000000101878adf0a543eaab5ff89986241aabd807aeda05d2e0f1dd6695443e12bd3b17e0000000000ffffffff0250c30000000000002251208ffd8295435b35a883fa0381491d145ca37756f1b5a893e530bdc63f26b030ea6699cfb20000000022512050c44b238470d24adcc504821bf8c62ff8a2a9a1a3645062087c46435f620c450247304402201055d855417308c4054858e4275cef69ca09a65a195ac70c64604a603d6e807f0220405808eb8a3c0ba67af612aaaa5ca852b534fb58604747180ece0862d66e0d81012102d61001c7ab68ced0e89c9141e48cbb6870a1dcfa14333d33a296158a6f951e1500000000"];
+        let txids: [String] = ["8b0e6b29fed7de2b25cffc722438b15d0181255f354fff4502c5e8c3ec72f1b1"];
+        let input_indexs: [UInt32] = [0];
+        let addresses: [String]  = ["bcrt1qekjssnr0rahwxtk0jaeth9x5gyavec7pgkgugh"];
+        let amounts: [UInt64] = [49_000];
+        
+        let base_tx = generateRawTx(prev_txs: prev_txs, txids: txids, input_indexs:input_indexs, addresses:addresses, amounts: amounts);
+        
+        let unsignedTx = getUnsignedTx(tx:base_tx)
+        
+        let sighash = getSighash(tx: base_tx, txid: txids[0],input_index: input_indexs[0], agg_pubkey: "", sigversion: 0, proto: "");
+        
+        print("current sighash:", sighash);
+        print("unsignedTx:", unsignedTx);
         
         // Create partial signatures
-        let messageHashHex = "cf948211a1070a16c322befbb629c3129bbbe5d001982bfea94a580a6d02cc52"
-        let messageHashBytes = try messageHashHex.bytes
+        let messageHashBytes = try sighash.bytes
         let messageDigest = HashDigest(messageHashBytes)
         
         // Generate nonces for each signer
@@ -136,15 +153,14 @@ class BoltzRefund {
         print("Our nonce: \(firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined())")
 
         // Hardcoded values for testing
-        let swapID = "bLEk6F6YHuzm"
-        let claimTransaction = "010000000001011898e20b40a8001a992319d72f3333d95dcaace0917ec5120277f8bad64d95230100000000fdffffff0188c2000000000000160014a8b9b13db16d176496faed039b76a96913d624ed01400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        let preimage = "cdbc1b54efe3f3c546045983d470f951676f92b94f2bb0627119869b60f946fc"
+        let swapID = "9ncXTzLM821K"
         let ourNonceHex = firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined()
+        let preimage = "bcdfbc02ea3226fb72606979c012247b355768e5a85beb8fee314d54442e519c"
         
         // Create claim request
         let claimRequest = ClaimRequest(
             index: 0,
-            transaction: claimTransaction,
+            transaction: unsignedTx,
             preimage: preimage,
             pubNonce: ourNonceHex
         )
@@ -183,8 +199,14 @@ class BoltzRefund {
             print("External Partial Signature: \(externalPartialSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")        
 
             let aggregateSignature = try P256K.MuSig.aggregateSignatures([externalPartialSignature, firstPartialSignature])
+            
+            let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
 
-            print("Aggregate Signature: \(aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
+            print("Aggregate Signature: \(aggregateSignatureHex)")
+            
+            let final_tx = buildTaprootTx(tx: base_tx, signature: aggregateSignatureHex, txid: txids[0], input_index: input_indexs[0]);
+            
+            print("final_tx: \(final_tx)")
         } else {
             print("Failed to get claim response from Boltz")
         }
