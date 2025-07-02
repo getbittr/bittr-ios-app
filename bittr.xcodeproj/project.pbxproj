@@ -127,6 +127,7 @@
 		376009352D8AC3A00048A7B6 /* BTCTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009342D8AC3A00048A7B6 /* BTCTransaction.swift */; };
 		376009372D8AC3AF0048A7B6 /* BTCVarInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */; };
 		376009392D8AC3C50048A7B6 /* BTCHashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009382D8AC3C50048A7B6 /* BTCHashing.swift */; };
+		3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */; };
 		379A8C4E2D81738E00C871C5 /* HDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C472D81738E00C871C5 /* HDNode.swift */; };
 		379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C3E2D81738E00C871C5 /* AddressUtils.swift */; };
 		379A8C522D81738E00C871C5 /* DataExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C442D81738E00C871C5 /* DataExt.swift */; };
@@ -141,7 +142,6 @@
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
-		37DB410F2E145ED100DA8841 /* DetectSwap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DB410E2E145ECC00DA8841 /* DetectSwap.swift */; };
 		37F176532D8BDF0000386BCC /* Musig2Bitcoin in Frameworks */ = {isa = PBXBuildFile; productRef = 37F176522D8BDF0000386BCC /* Musig2Bitcoin */; };
 		3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6A5FD226974C7A8EB518F5 /* Sentry */; };
 /* End PBXBuildFile section */
@@ -301,6 +301,7 @@
 		376009342D8AC3A00048A7B6 /* BTCTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCTransaction.swift; sourceTree = "<group>"; };
 		376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCVarInt.swift; sourceTree = "<group>"; };
 		376009382D8AC3C50048A7B6 /* BTCHashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCHashing.swift; sourceTree = "<group>"; };
+		3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzSwiftSDK.swift; sourceTree = "<group>"; };
 		379A8C3E2D81738E00C871C5 /* AddressUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressUtils.swift; sourceTree = "<group>"; };
 		379A8C3F2D81738E00C871C5 /* ArrayExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrayExt.swift; sourceTree = "<group>"; };
 		379A8C412D81738E00C871C5 /* Bech32Segwit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bech32Segwit.swift; sourceTree = "<group>"; };
@@ -315,7 +316,6 @@
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
-		37DB410E2E145ECC00DA8841 /* DetectSwap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectSwap.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -498,7 +498,7 @@
 		05AF89722D436901009D629C /* Swaps */ = {
 			isa = PBXGroup;
 			children = (
-				37DB410E2E145ECC00DA8841 /* DetectSwap.swift */,
+				3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */,
 				37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */,
 				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
 				05AF89732D436920009D629C /* SwapManager.swift */,
@@ -916,6 +916,7 @@
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
 				05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */,
 				053190E829FEE4EC0072CE76 /* BuyViewController.swift in Sources */,
+				3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */,
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
 				0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */,
@@ -1000,7 +1001,6 @@
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
 				0521712A2CB41B1A006C5663 /* TransactionVCLanguage.swift in Sources */,
 				05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */,
-				37DB410F2E145ED100DA8841 /* DetectSwap.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
 				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,

@@ -120,7 +120,7 @@ class BoltzRefund {
         
         print("\n=== TWEAKED PUBLIC KEY ===")
         print("Tweaked x-only public key: \(tweakedKeyHex)")
-        //        print("Expected result: 9c1ff67571dcf338b4d417e53afeb7fe20d59b7327481a4e8f9f6504b150ec3b")
+        //        print("Expected result: 8ffd8295435b35a883fa0381491d145ca37756f1b5a893e530bdc63f26b030ea")
         
         let transactionHex = "01000000000101878adf0a543eaab5ff89986241aabd807aeda05d2e0f1dd6695443e12bd3b17e0000000000ffffffff0250c30000000000002251208ffd8295435b35a883fa0381491d145ca37756f1b5a893e530bdc63f26b030ea6699cfb20000000022512050c44b238470d24adcc504821bf8c62ff8a2a9a1a3645062087c46435f620c450247304402201055d855417308c4054858e4275cef69ca09a65a195ac70c64604a603d6e807f0220405808eb8a3c0ba67af612aaaa5ca852b534fb58604747180ece0862d66e0d81012102d61001c7ab68ced0e89c9141e48cbb6870a1dcfa14333d33a296158a6f951e1500000000"
         
@@ -129,34 +129,43 @@ class BoltzRefund {
             print("Invalid tweaked key")
             return false
         }
+        
+        let expectedTxHash = "b1f172ecc3e8c50245ff4f355f2581015db1382472fccf252bded7fe296b0e8b"
+        
+        guard let txHash = Data(hexString: expectedTxHash),
+                  let tweakedKey = Data(hexString: tweakedKeyHex) else {
+                print("❌ Failed to parse hex data")
+                return false
+            }
 
         if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: transactionHex) {
             print("Found swap output:")
             print("Value: \(swapOutput.value)")
             print("Script: \(swapOutput.script.hexString)")
             print("Vout: \(swapOutput.vout)")
+            
+            let destinationAddress = "bcrt1qekjssnr0rahwxtk0jaeth9x5gyavec7pgkgugh"
+            let swapValue: UInt64 = 50000
+            let exactFee = 200
+            
+            let claimTx = constructClaimTransaction(
+                    swapOutput: swapOutput,
+                    destinationAddress: destinationAddress,
+                    fee: exactFee,
+                    txHash: txHash,
+                    network: .regtest
+                )
+            
+            
             return true
         } else {
             print("No swap output found")
             return false
         }
         
-//        // The next few lintes will create the raw transaction of our refund, so that we can send the unsigned transaction to the Boltz API
-//        // and later on calculate the sighash that we AND the boltz API need to sign
-//        let prev_txs = ["01000000000101878adf0a543eaab5ff89986241aabd807aeda05d2e0f1dd6695443e12bd3b17e0000000000ffffffff0250c30000000000002251208ffd8295435b35a883fa0381491d145ca37756f1b5a893e530bdc63f26b030ea6699cfb20000000022512050c44b238470d24adcc504821bf8c62ff8a2a9a1a3645062087c46435f620c450247304402201055d855417308c4054858e4275cef69ca09a65a195ac70c64604a603d6e807f0220405808eb8a3c0ba67af612aaaa5ca852b534fb58604747180ece0862d66e0d81012102d61001c7ab68ced0e89c9141e48cbb6870a1dcfa14333d33a296158a6f951e1500000000"];
-//        let txids: [String] = ["8b0e6b29fed7de2b25cffc722438b15d0181255f354fff4502c5e8c3ec72f1b1"];
-//        let input_indexs: [UInt32] = [0];
-//        let addresses: [String]  = ["bcrt1qekjssnr0rahwxtk0jaeth9x5gyavec7pgkgugh"];
-//        let amounts: [UInt64] = [49_000];
-//        
-//        let base_tx = generateRawTx(prev_txs: prev_txs, txids: txids, input_indexs:input_indexs, addresses:addresses, amounts: amounts);
-//        
-//        let unsignedTx = getUnsignedTx(tx:base_tx)
-//        
-//        let sighash = getSighash(tx: base_tx, txid: txids[0],input_index: input_indexs[0], agg_pubkey: "", sigversion: 0, proto: "");
-//        
-//        print("current sighash:", sighash);
-//        print("unsignedTx:", unsignedTx);
+        
+        
+        
         
         // Create partial signatures
 //        let messageHashBytes = try sighash.bytes
@@ -229,8 +238,6 @@ class BoltzRefund {
 //        } else {
 //            print("Failed to get claim response from Boltz")
 //        }
-
-        return true
     }
 
     static func tryBoltzClaim() async throws -> Bool {
