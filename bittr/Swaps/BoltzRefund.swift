@@ -9,25 +9,25 @@ import P256K
 
 class BoltzRefund {
     static func tryBoltzClaimInternalTransactionGeneration() async throws -> Bool {
-        //        {
-        //            "id": "9ncXTzLM821K",
-        //            "invoice": "lnbcrt505610n1p5xgg0esp5stctx4gle9vgh94fvzx0dt8a57daflertd0jvw8c439l98psyv8spp5wlrd8fl7fxtm3wnltgnpddnkxp7wphuf9gl6hhr9u5jh6qp26ppqdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq0mdhsmlvq2f335d8my9963e7mxts9ry8c9xyg9yerryexwcclcm4rhg8whcnwhagkdlnasktlsx57hfuefmetunug88w9y5nfldhdqsqwpp6qq",
-        //            "swapTree": {
-        //                "claimLeaf": {
-        //                    "version": 192,
-        //                    "output": "82012088a914986067db5067f3456356c546e6ec57b2f30ebcf6882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
-        //                },
-        //                "refundLeaf": {
-        //                    "version": 192,
-        //                    "output": "20defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5ad024b01b1"
-        //                }
-        //            },
-        //            "lockupAddress": "bcrt1p3l7c992rtv663ql6qwq5j8g5tj3hw4h3kk5f8efshhrr7f4sxr4q7mxp4f",
-        //            "refundPublicKey": "03defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5",
-        //            "timeoutBlockHeight": 331
-        //        }
+//        {
+//            "id": "tMmbtMk5yMug",
+//            "invoice": "lnbcrt505610n1p5xtqcgsp5202grajyzmg8kjt37u4r6dqges0jj0stu9n862zduze8fhv6qdtqpp5uc3x9xu25ggkc0q6787fva4apx868qpcq4hsrtr50tpqua0y632sdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgqvmpdeducrxtefpehwxy7yptmwlchhapma9whptyz7wkyy3zg6rvzqsp3y6crp86a8hwthhl3cs5zn096tlpq6s0leh540d77mzujx4qqjs7pe6",
+//            "swapTree": {
+//                "claimLeaf": {
+//                    "version": 192,
+//                    "output": "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
+//                },
+//                "refundLeaf": {
+//                    "version": 192,
+//                    "output": "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
+//                }
+//            },
+//            "lockupAddress": "bcrt1pl4v4jzm9a8pak3d23wa9m5s5lqusza726ead29jy8h0w8l8jlrcsa4h36n",
+//            "refundPublicKey": "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f",
+//            "timeoutBlockHeight": 331
+//        }
         
-        let boltzServerPublicKeyBytes = try! "03defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5".bytes
+        let boltzServerPublicKeyBytes = try! "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes
         
         let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
@@ -57,23 +57,23 @@ class BoltzRefund {
         //        "swapTree": {
         //        "claimLeaf": {
         //            "version": 192,
-        //            "output": "82012088a914986067db5067f3456356c546e6ec57b2f30ebcf6882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
+        //            "output": "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
         //        },
         //        "refundLeaf": {
         //            "version": 192,
-        //            "output": "20defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5ad024b01b1"
+        //            "output": "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
         //        }
         //    }
         
         // Create the claim leaf hash
-        let claimLeafOutput = try "82012088a914986067db5067f3456356c546e6ec57b2f30ebcf6882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac".bytes
+        let claimLeafOutput = try "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac".bytes
         let claimLeafHash = try SHA256.taggedHash(
             tag: "TapLeaf".data(using: .utf8)!,
             data: Data([0xC0]) + Data(claimLeafOutput).compactSizePrefix
         )
         
         // Create the refund leaf hash
-        let refundLeafOutput = try "20defe74e5f8393f9c48d9c9fb0bf49a883adac25269890bb1d2d7c41af619f2d5ad024b01b1".bytes
+        let refundLeafOutput = try "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1".bytes
         let refundLeafHash = try SHA256.taggedHash(
             tag: "TapLeaf".data(using: .utf8)!,
             data: Data([0xC0]) + Data(refundLeafOutput).compactSizePrefix
@@ -113,8 +113,8 @@ class BoltzRefund {
         let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
         
         // Create a new MuSig public key from the tweaked x-only key (preserves the cache)
-        let tweakedKey = try aggregatedPublicKey.add(Array(Data(tapTweakHash)))
-        print("Sharon's key: \(tweakedKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
+        let tweakedAggregatedKey = try aggregatedPublicKey.add(Array(Data(tapTweakHash)))
+        print("Sharon's key: \(tweakedAggregatedKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
 
         let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
         
@@ -122,23 +122,18 @@ class BoltzRefund {
         print("Tweaked x-only public key: \(tweakedKeyHex)")
         //        print("Expected result: 8ffd8295435b35a883fa0381491d145ca37756f1b5a893e530bdc63f26b030ea")
         
-        let transactionHex = "01000000000101878adf0a543eaab5ff89986241aabd807aeda05d2e0f1dd6695443e12bd3b17e0000000000ffffffff0250c30000000000002251208ffd8295435b35a883fa0381491d145ca37756f1b5a893e530bdc63f26b030ea6699cfb20000000022512050c44b238470d24adcc504821bf8c62ff8a2a9a1a3645062087c46435f620c450247304402201055d855417308c4054858e4275cef69ca09a65a195ac70c64604a603d6e807f0220405808eb8a3c0ba67af612aaaa5ca852b534fb58604747180ece0862d66e0d81012102d61001c7ab68ced0e89c9141e48cbb6870a1dcfa14333d33a296158a6f951e1500000000"
+        let lockupTxHex = "0100000000010198ae895c1b8b32073a94dc8151bfe775ffc914ea2bbbb2f36ea97569a58efdf90100000000ffffffff0250c3000000000000225120fd59590b65e9c3db45aa8bba5dd214f8390177cad67ad516443ddee3fcf2f8f16699cfb200000000225120fa30212f6d2c0eccde49abf213bb11390a3bc3688f8e5a6c3d764112cebc36c802483045022100fbf5939f3e49256af6d051ae41de5b14387fea4867e8c84ac71d4a62a31521ba022035f5cd60fc5b4bee77d28e8c8934321d32d3cf06e5b97913bf4e801045928d9f0121034138a58a7e9811197e40718d0b43ff013852eb95d86f1ce1772b2a99ca97d8f600000000"
         
-        
-        guard let tweakedKey = Data(hexString: tweakedKeyHex) else {
-            print("Invalid tweaked key")
-            return false
-        }
-        
-        let expectedTxHash = "b1f172ecc3e8c50245ff4f355f2581015db1382472fccf252bded7fe296b0e8b"
-        
-        guard let txHash = Data(hexString: expectedTxHash),
+        // Calculate the correct transaction hash from the lockup transaction
+            guard let txHash = calculateTransactionHash(from: lockupTxHex),
                   let tweakedKey = Data(hexString: tweakedKeyHex) else {
-                print("❌ Failed to parse hex data")
+                print("❌ Failed to parse hex data or calculate transaction hash")
                 return false
             }
+        
+        print("   txHash TX: \(txHash.hexString)")
 
-        if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: transactionHex) {
+        if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
             print("Found swap output:")
             print("Value: \(swapOutput.value)")
             print("Script: \(swapOutput.script.hexString)")
@@ -156,88 +151,105 @@ class BoltzRefund {
                     network: .regtest
                 )
             
+            claimTx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
+            let serializedTx = claimTx.serialize()
+            
+            print("   Generated TX: \(serializedTx.hexString)")
+            
+            let sigHash = claimTx.hashForWitnessV1(
+                    inputIndex: 0,
+                    prevoutScripts: [swapOutput.script],
+                    prevoutValues: [swapOutput.value]
+                )
+            
+            print("   ✅ SigHash calculation: \(sigHash.hexString)")
+            
+            let messageHashBytes = sigHash.bytes
+            let messageDigest = HashDigest(messageHashBytes)
+            
+            // Generate nonces for each signer
+            let firstNonce = try P256K.MuSig.Nonce.generate(
+                secretKey: ourPrivateKey,
+                publicKey: ourPrivateKey.publicKey,
+                msg32: Array(messageDigest)
+            )
+            
+            print("Our nonce: \(firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined())")
+
+            // Hardcoded values for testing
+            let swapID = "tMmbtMk5yMug"
+            let ourNonceHex = firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined()
+            let preimage = "e8ae0ee61c8603c4760bd56021a5ba8c7173c54ea0018e4826840aef9ca32d6d"
+            
+            // Create claim request
+            let claimRequest = ClaimRequest(
+                index: 0,
+                transaction: serializedTx.hexString,
+                preimage: preimage,
+                pubNonce: ourNonceHex
+            )
+            
+            // Post claim request to Boltz
+            let claimResponse = try await requestClaimAndProcess(swapID: swapID, claimData: claimRequest)
+            
+            if let boltzPubNonce = claimResponse.pubNonce, let boltzPartialSignature = claimResponse.partialSignature {
+                print("Received Boltz pubNonce: \(boltzPubNonce)")
+                print("Received Boltz partialSignature: \(boltzPartialSignature)")
+                
+                // Convert to P256K objects
+                let externalNonce = try P256K.Schnorr.Nonce(hexString: boltzPubNonce)
+                let externalPartialSignature = try P256K.Schnorr.PartialSignature(hexString: boltzPartialSignature)
+                
+                // Aggregate with the external nonce
+                let aggregateWithExternal = try P256K.MuSig.Nonce(aggregating: [externalNonce, firstNonce.pubnonce])
+
+                print("\n=== NONCES ===")
+                print("First Public Nonce: \(firstNonce.hexString)")
+                print("External Nonce: \(externalNonce.hexString)")
+                print("Aggregate with External: \(aggregateWithExternal.hexString)")
+                
+                let firstPartialSignature = try ourPrivateKey.partialSignature(
+                    for: messageDigest,
+                    pubnonce: firstNonce.pubnonce,
+                    secureNonce: firstNonce.secnonce,
+                    publicNonceAggregate: aggregateWithExternal,
+                    publicKeyAggregate: tweakedAggregatedKey
+                )
+
+                dump(firstPartialSignature)
+
+                print("\n=== PARTIAL SIGNATURES ===")
+                print("First Partial Signature: \(firstPartialSignature.dataRepresentation.bytes.map { String(format: "%02x", $0) }.joined())")
+                print("External Partial Signature: \(externalPartialSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
+
+                let aggregateSignature = try P256K.MuSig.aggregateSignatures([externalPartialSignature, firstPartialSignature])
+                
+                let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
+
+                print("Aggregate Signature: \(aggregateSignatureHex)")
+                
+                guard let hardcodedSignature = Data(hexString: aggregateSignatureHex) else {
+                        print("❌ Failed to parse signature")
+                        return false
+                    }
+                
+                claimTx.setWitness(inputIndex: 0, witness: [hardcodedSignature])
+                let finalTx = claimTx.serialize()
+                
+                print("   Generated Final TX: \(finalTx.hexString)")
+            } else {
+                print("Failed to get claim response from Boltz")
+            }
+            
+            
+            
+            
             
             return true
         } else {
             print("No swap output found")
             return false
         }
-        
-        
-        
-        
-        
-        // Create partial signatures
-//        let messageHashBytes = try sighash.bytes
-//        let messageDigest = HashDigest(messageHashBytes)
-//        
-//        // Generate nonces for each signer
-//        let firstNonce = try P256K.MuSig.Nonce.generate(
-//            secretKey: ourPrivateKey,
-//            publicKey: ourPrivateKey.publicKey,
-//            msg32: Array(messageDigest)
-//        )
-//        
-//        print("Our nonce: \(firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined())")
-//
-//        // Hardcoded values for testing
-//        let swapID = "9ncXTzLM821K"
-//        let ourNonceHex = firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined()
-//        let preimage = "bcdfbc02ea3226fb72606979c012247b355768e5a85beb8fee314d54442e519c"
-//        
-//        // Create claim request
-//        let claimRequest = ClaimRequest(
-//            index: 0,
-//            transaction: unsignedTx,
-//            preimage: preimage,
-//            pubNonce: ourNonceHex
-//        )
-//        
-//        // Post claim request to Boltz
-//        let claimResponse = try await requestClaimAndProcess(swapID: swapID, claimData: claimRequest)
-//        
-//        if let boltzPubNonce = claimResponse.pubNonce, let boltzPartialSignature = claimResponse.partialSignature {
-//            print("Received Boltz pubNonce: \(boltzPubNonce)")
-//            print("Received Boltz partialSignature: \(boltzPartialSignature)")
-//            
-//            // Convert to P256K objects
-//            let externalNonce = try P256K.Schnorr.Nonce(hexString: boltzPubNonce)
-//            let externalPartialSignature = try P256K.Schnorr.PartialSignature(hexString: boltzPartialSignature)
-//            
-//            // Aggregate with the external nonce
-//            let aggregateWithExternal = try P256K.MuSig.Nonce(aggregating: [externalNonce, firstNonce.pubnonce])
-//
-//            print("\n=== NONCES ===")
-//            print("First Public Nonce: \(firstNonce.hexString)")
-//            print("External Nonce: \(externalNonce.hexString)")
-//            print("Aggregate with External: \(aggregateWithExternal.hexString)")
-//            
-//            let firstPartialSignature = try ourPrivateKey.partialSignature(
-//                for: messageDigest,
-//                pubnonce: firstNonce.pubnonce,
-//                secureNonce: firstNonce.secnonce,
-//                publicNonceAggregate: aggregateWithExternal,
-//                publicKeyAggregate: tweakedKey
-//            )
-//
-//            dump(firstPartialSignature)
-//
-//            print("\n=== PARTIAL SIGNATURES ===")
-//            print("First Partial Signature: \(firstPartialSignature.dataRepresentation.bytes.map { String(format: "%02x", $0) }.joined())")
-//            print("External Partial Signature: \(externalPartialSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")        
-//
-//            let aggregateSignature = try P256K.MuSig.aggregateSignatures([externalPartialSignature, firstPartialSignature])
-//            
-//            let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
-//
-//            print("Aggregate Signature: \(aggregateSignatureHex)")
-//            
-//            let final_tx = buildTaprootTx(tx: base_tx, signature: aggregateSignatureHex, txid: txids[0], input_index: input_indexs[0]);
-//            
-//            print("final_tx: \(final_tx)")
-//        } else {
-//            print("Failed to get claim response from Boltz")
-//        }
     }
 
     static func tryBoltzClaim() async throws -> Bool {

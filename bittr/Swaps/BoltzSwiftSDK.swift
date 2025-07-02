@@ -23,9 +23,9 @@ extension Data {
         self = data
     }
     
-//    func hexString() -> String {
-//        return map { String(format: "%02x", $0) }.joined()
-//    }
+//   func hexString() -> String {
+//       return map { String(format: "%02x", $0) }.joined()
+//   }
     
     func reversedData() -> Data {
         return Data(self.reversed())
@@ -659,7 +659,7 @@ class BoltzClaimTransaction {
         
         // Inputs
         for input in inputs {
-            data.append(input.txHash) // Use as-is (already in correct format)
+            data.append(input.txHash.reversedData()) // Reverse to big-endian for transaction serialization
             data.append(input.vout.littleEndianBytes)
             data.append(encodeVarInt(0)) // Empty script
             data.append(input.sequence.littleEndianBytes)
@@ -778,9 +778,10 @@ class BoltzClaimTransaction {
         sigMsg.append(locktime.littleEndianBytes)
         
         // sha_prevouts (32): SHA256 of serialization of all input outpoints
+        // For sigHash calculation, use the same format as in transaction serialization
         var prevoutsData = Data()
         for input in inputs {
-            prevoutsData.append(input.txHash)
+            prevoutsData.append(input.txHash.reversedData()) // Same as transaction serialization
             prevoutsData.append(input.vout.littleEndianBytes)
         }
         let shaPrevouts = sha256(prevoutsData)
@@ -853,6 +854,115 @@ class BoltzClaimTransaction {
 
 // MARK: - Helper Functions
 
+func calculateTransactionHash(from rawTransactionHex: String) -> Data? {
+    guard let txData = Data(hexString: rawTransactionHex) else { return nil }
+    
+    // For witness transactions, we need to calculate the hash without witness data
+    // This is the "wtxid" vs "txid" difference
+    var dataWithoutWitness = Data()
+    var offset = 0
+    
+    // Version (4 bytes)
+    guard txData.count >= offset + 4 else { return nil }
+    dataWithoutWitness.append(txData[offset..<offset+4])
+    offset += 4
+    
+    // Check for witness marker
+    let hasWitness = txData.count > offset && txData[offset] == 0x00
+    if hasWitness {
+        offset += 2 // Skip witness marker and flag
+    }
+    
+    // Input count
+    let inputCount = parseVarInt(data: txData, offset: &offset)
+    dataWithoutWitness.append(encodeVarInt(inputCount))
+    
+    // Inputs (without witness data)
+    for _ in 0..<inputCount {
+        // Previous tx hash (32 bytes)
+        guard txData.count >= offset + 32 else { return nil }
+        dataWithoutWitness.append(txData[offset..<offset+32])
+        offset += 32
+        
+        // Previous output index (4 bytes)
+        guard txData.count >= offset + 4 else { return nil }
+        dataWithoutWitness.append(txData[offset..<offset+4])
+        offset += 4
+        
+        // Script length and script
+        let scriptLength = parseVarInt(data: txData, offset: &offset)
+        dataWithoutWitness.append(encodeVarInt(scriptLength))
+        guard txData.count >= offset + Int(scriptLength) else { return nil }
+        dataWithoutWitness.append(txData[offset..<offset+Int(scriptLength)])
+        offset += Int(scriptLength)
+        
+        // Sequence (4 bytes)
+        guard txData.count >= offset + 4 else { return nil }
+        dataWithoutWitness.append(txData[offset..<offset+4])
+        offset += 4
+    }
+    
+    // Output count
+    let outputCount = parseVarInt(data: txData, offset: &offset)
+    dataWithoutWitness.append(encodeVarInt(outputCount))
+    
+    // Outputs
+    for _ in 0..<outputCount {
+        // Value (8 bytes)
+        guard txData.count >= offset + 8 else { return nil }
+        dataWithoutWitness.append(txData[offset..<offset+8])
+        offset += 8
+        
+        // Script length and script
+        let scriptLength = parseVarInt(data: txData, offset: &offset)
+        dataWithoutWitness.append(encodeVarInt(scriptLength))
+        guard txData.count >= offset + Int(scriptLength) else { return nil }
+        dataWithoutWitness.append(txData[offset..<offset+Int(scriptLength)])
+        offset += Int(scriptLength)
+    }
+    
+    // Skip witness data if present (we don't include it in txid calculation)
+    if hasWitness {
+        for _ in 0..<inputCount {
+            let witnessCount = parseVarInt(data: txData, offset: &offset)
+            for _ in 0..<witnessCount {
+                let itemLength = parseVarInt(data: txData, offset: &offset)
+                offset += Int(itemLength)
+            }
+        }
+    }
+    
+    // Locktime (4 bytes)
+    guard txData.count >= offset + 4 else { return nil }
+    dataWithoutWitness.append(txData[offset..<offset+4])
+    
+    // Double SHA256 for transaction hash
+    let firstHash = Data(SHA256.hash(data: dataWithoutWitness))
+    let secondHash = Data(SHA256.hash(data: firstHash))
+    
+    // Return reversed for little-endian format (for use in transaction inputs)
+    return secondHash.reversedData()
+}
+
+private func encodeVarInt(_ value: UInt64) -> Data {
+    var data = Data()
+    
+    if value < 0xfd {
+        data.append(UInt8(value))
+    } else if value <= 0xffff {
+        data.append(0xfd)
+        data.append(UInt16(value).littleEndianBytes)
+    } else if value <= 0xffffffff {
+        data.append(0xfe)
+        data.append(UInt32(value).littleEndianBytes)
+    } else {
+        data.append(0xff)
+        data.append(value.littleEndianBytes)
+    }
+    
+    return data
+}
+
 func targetFee(satPerVbyte: Int, constructTx: (Int) -> BoltzClaimTransaction) -> BoltzClaimTransaction {
     let tx = constructTx(1)
     let vsize = tx.virtualSize()
@@ -885,3 +995,4 @@ func constructClaimTransaction(
     
     return tx
 }
+
