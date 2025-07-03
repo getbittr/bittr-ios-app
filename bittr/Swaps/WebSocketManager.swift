@@ -157,16 +157,31 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
     
     func disconnect() {
+        print("Disconnecting WebSocket...")
         // Stop receiving messages (prevents the error spam)
         webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
         endBackgroundTask()
     }
     
     // Background task handling
     func startBackgroundTask() {
+        // End any existing background task first
+        endBackgroundTask()
+        
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "WebSocketBackgroundTask") {
             // If time expires, end the background task
+            print("Background task expiring, ending WebSocket background task")
             self.endBackgroundTask()
+        }
+        
+        // Set a timeout to automatically end the background task after 25 seconds
+        // (iOS gives us 30 seconds, so we end it early to be safe)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
+            if self?.backgroundTask != .invalid {
+                print("Background task timeout reached, ending WebSocket background task")
+                self?.endBackgroundTask()
+            }
         }
     }
     
@@ -191,8 +206,15 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         } else {
             print("WebSocket closed successfully")
         }
-        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { [weak self] in
-            self?.connect()
+        
+        // End the current background task before attempting to reconnect
+        endBackgroundTask()
+        
+        // Only reconnect if the app is in the foreground
+        if UIApplication.shared.applicationState == .active {
+            DispatchQueue.global().asyncAfter(deadline: .now() + 3) { [weak self] in
+                self?.connect()
+            }
         }
     }
     

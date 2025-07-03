@@ -434,10 +434,20 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                 
                 // Handle the result on main thread
                 DispatchQueue.main.async {
-                    if claimResult {
+                    if claimResult.success {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
                         self.confirmStatusSpinner.stopAnimating()
                         self.webSocketManager?.disconnect()
+                        
+                        // Add the onchain transaction to the UI
+                        if let transactionId = claimResult.transactionId {
+                            SwapManager.addOnchainTransactionToUI(swapID: swapID, transactionId: transactionId, delegate: self)
+                        }
+                        
+                        // Trigger wallet sync to ensure proper swap transaction display
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            LightningNodeService.shared.syncWalletAndLoadTransactions()
+                        }
                     } else {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                     }

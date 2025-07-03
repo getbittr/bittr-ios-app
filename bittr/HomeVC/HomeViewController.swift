@@ -441,6 +441,98 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         LightningNodeService.shared.walletReset()
     }
     
+    func performSwapMatching() {
+        // Manual swap matching for lightning-to-onchain swaps
+        print("Performing manual swap matching...")
+        
+        // Look for lightning and onchain transactions with matching swap descriptions
+        var swapTransactions = NSMutableDictionary()
+        
+        for eachTransaction in self.setTransactions {
+            if eachTransaction.lnDescription.contains("Swap") {
+                if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
+                    existingTransactions += [eachTransaction]
+                    swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
+                } else {
+                    swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
+                }
+            }
+        }
+        
+        // Process completed swaps
+        for (eachSwapID, eachSetOfTransactions) in swapTransactions {
+            if (eachSetOfTransactions as! [Transaction]).count == 2 {
+                // Completed swap found
+                print("Found completed swap: \(eachSwapID)")
+                
+                let swapTransaction = Transaction()
+                swapTransaction.isSwap = true
+                swapTransaction.lnDescription = (eachSwapID as! String)
+                swapTransaction.sent = (eachSetOfTransactions as! [Transaction])[0].received + (eachSetOfTransactions as! [Transaction])[1].received - (eachSetOfTransactions as! [Transaction])[0].sent - (eachSetOfTransactions as! [Transaction])[1].sent
+                
+                if (eachSwapID as! String).contains("onchain to lightning") {
+                    swapTransaction.swapDirection = 0
+                    swapTransaction.isLightning = false
+                    swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap onchain to lightning ", with: "")
+                } else {
+                    swapTransaction.swapDirection = 1
+                    swapTransaction.isLightning = true
+                    swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap lightning to onchain ", with: "")
+                }
+                
+                for eachTransaction in (eachSetOfTransactions as! [Transaction]) {
+                    if eachTransaction.isLightning {
+                        // Lightning payment
+                        swapTransaction.lightningID = eachTransaction.id
+                        swapTransaction.channelId = eachTransaction.channelId
+                        if swapTransaction.swapDirection == 0 {
+                            // Onchain to Lightning
+                            swapTransaction.timestamp = eachTransaction.timestamp
+                            swapTransaction.received = eachTransaction.received
+                        } else {
+                            swapTransaction.sent = eachTransaction.sent
+                        }
+                    } else {
+                        // Onchain transaction
+                        swapTransaction.onchainID = eachTransaction.id
+                        swapTransaction.height = eachTransaction.height
+                        if let actualCurrentHeight = self.coreVC?.currentHeight {
+                            swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
+                        }
+                        if swapTransaction.swapDirection == 1 {
+                            // Lightning to Onchain
+                            swapTransaction.timestamp = eachTransaction.timestamp
+                            swapTransaction.received = eachTransaction.received - eachTransaction.sent
+                        } else {
+                            swapTransaction.sent = eachTransaction.sent - eachTransaction.received
+                        }
+                    }
+                }
+                
+                // Remove the individual transactions and add the combined swap transaction
+                for (index, eachTransaction) in self.setTransactions.enumerated().reversed() {
+                    if eachTransaction.id == swapTransaction.lightningID || eachTransaction.id == swapTransaction.onchainID {
+                        self.setTransactions.remove(at: index)
+                    }
+                }
+                
+                self.setTransactions += [swapTransaction]
+                self.setTransactions.sort { transaction1, transaction2 in
+                    transaction1.timestamp > transaction2.timestamp
+                }
+                
+                // Cache the combined swap transaction
+                CacheManager.storeLightningTransaction(thisTransaction: swapTransaction)
+                
+                print("Successfully combined swap transactions")
+                self.homeTableView.reloadData()
+                return
+            }
+        }
+        
+        print("No completed swaps found for manual matching")
+    }
+    
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         
         // Reload wallet when pulling down the view.

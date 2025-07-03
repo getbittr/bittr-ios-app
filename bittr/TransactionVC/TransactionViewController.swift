@@ -281,6 +281,10 @@ class TransactionViewController: UIViewController {
             self.idLabel.text = self.tappedTransaction.onchainID
             self.openUrlButton.accessibilityIdentifier = self.tappedTransaction.onchainID
             
+            // Show URL button for swap transactions
+            self.openUrlBox.alpha = 1
+            self.openUrlWidth.constant = 35
+            
             // Lightning ID
             self.lightningIDLabel.text = self.tappedTransaction.lightningID
             self.lightningIDHeight.constant = 40

@@ -242,6 +242,11 @@ class SwapManager: NSObject {
                                 }
                                 homeVC.homeTableView.reloadData()
                                 
+                                // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
+                                // so we don't call performSwapMatching here. It will be handled when the lightning
+                                // payment is received via HandlePaymentNotification.swift
+                                
+                                // Call didCompleteOnchainTransaction to set up WebSocket monitoring
                                 swapVC.didCompleteOnchainTransaction(swapDictionary: receivedDictionary)
                             }
                         }
@@ -452,6 +457,10 @@ class SwapManager: NSObject {
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
         
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMddHHmmss"
+        let idString = dateFormatter.string(from: Date())
+        
         let parameters: [String: Any] = [
             "from": "BTC",
             "to": "BTC",
@@ -481,6 +490,7 @@ class SwapManager: NSObject {
                     mutableSwapDictionary.setValue(privateKey, forKey: "privateKey")
                     mutableSwapDictionary.setValue(randomPreimage.hexEncodedString(), forKey: "preimage")
                     mutableSwapDictionary.setValue(destinationAddress, forKey: "destinationAddress")
+                    mutableSwapDictionary.setValue("Swap lightning to onchain \(idString)", forKey: "idstring")
                     
                     // Save swap details to file
                     if let swapID = receivedDictionary["id"] as? String {
@@ -565,6 +575,50 @@ class SwapManager: NSObject {
         }
     }
     
+    static func addOnchainTransactionToUI(swapID: String, transactionId: String, delegate: Any?) {
+        // Load swap details to get the description and user amount
+        guard let swapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
+            print("Could not load swap details for ID: \(swapID)")
+            return
+        }
+        
+        // Create onchain transaction
+        let newTransaction = Transaction()
+        newTransaction.id = transactionId
+        newTransaction.confirmations = 1
+        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+        newTransaction.height = 0 // Will be updated when blockchain syncs
+        newTransaction.received = swapDetails["useramount"] as? Int ?? 0
+        newTransaction.fee = 0
+        newTransaction.sent = 0
+        newTransaction.isLightning = false
+        newTransaction.isBittr = false
+        newTransaction.isSwap = true
+        newTransaction.swapDirection = 1 // Lightning to onchain
+        newTransaction.onchainID = transactionId // Set onchain ID for swap matching
+        
+        // Set swap description
+        if let idString = swapDetails["idstring"] as? String {
+            newTransaction.lnDescription = idString
+            CacheManager.storeInvoiceDescription(hash: transactionId, desc: idString)
+        }
+        
+        // Add to home view controller
+        if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
+            homeVC.setTransactions += [newTransaction]
+            homeVC.setTransactions.sort { transaction1, transaction2 in
+                transaction1.timestamp > transaction2.timestamp
+            }
+            homeVC.homeTableView.reloadData()
+            
+            // Trigger manual swap matching to combine lightning and onchain transactions
+            // For lightning-to-onchain swaps, both transactions should be present now
+            homeVC.performSwapMatching()
+        }
+        
+        print("Added onchain transaction to UI: \(transactionId) with amount: \(newTransaction.received)")
+    }
+    
     static func checkReverseSwapFees(swapDictionary:NSDictionary, delegate:Any?) {
         
         if let receivedInvoice = swapDictionary["invoice"] as? String, let userAmount = swapDictionary["useramount"] as? Int, let delegate = delegate as? SwapViewController {
@@ -615,7 +669,44 @@ class SwapManager: NSObject {
                             if thisPayment.status != .failed {
                                 // Success payment
                                 delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
-                                delegate.addNewPaymentToTable(paymentHash: paymentHash, invoiceAmount: userAmount, delegate: self)
+                                
+                                // Create lightning transaction with swap details
+                                let newTransaction = Transaction()
+                                newTransaction.id = thisPayment.id
+                                newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
+                                newTransaction.received = 0
+                                newTransaction.isLightning = true
+                                newTransaction.isSwap = true
+                                newTransaction.swapDirection = 1 // Lightning to onchain
+                                newTransaction.lightningID = thisPayment.id // Set lightning ID for swap matching
+                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                newTransaction.confirmations = 0
+                                newTransaction.height = 0
+                                newTransaction.isBittr = false
+                                
+                                // Set swap description
+                                if let idString = swapDictionary["idstring"] as? String {
+                                    newTransaction.lnDescription = idString
+                                    CacheManager.storeInvoiceDescription(hash: thisPayment.id, desc: idString)
+                                }
+                                
+                                // Calculate fees
+                                if Int(thisPayment.amountMsat ?? 0)/1000 > userAmount {
+                                    let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - userAmount
+                                    CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
+                                    newTransaction.fee = feesIncurred
+                                } else {
+                                    newTransaction.fee = 0
+                                }
+                                
+                                // Add to home view controller
+                                if let homeVC = delegate.homeVC {
+                                    homeVC.setTransactions += [newTransaction]
+                                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                                        transaction1.timestamp > transaction2.timestamp
+                                    }
+                                    homeVC.homeTableView.reloadData()
+                                }
                                 
                                 if let swapID = swapDictionary["id"] as? String {
                                     delegate.webSocketManager = WebSocketManager()
@@ -631,7 +722,36 @@ class SwapManager: NSObject {
                         } else {
                             // Success alert
                             delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
-                            delegate.addNewPaymentToTable(paymentHash: paymentHash, invoiceAmount: userAmount, delegate: self)
+                            
+                            // Create lightning transaction with swap details
+                            let newTransaction = Transaction()
+                            newTransaction.id = paymentHash
+                            newTransaction.sent = userAmount
+                            newTransaction.received = 0
+                            newTransaction.isLightning = true
+                            newTransaction.isSwap = true
+                            newTransaction.swapDirection = 1 // Lightning to onchain
+                            newTransaction.lightningID = paymentHash // Set lightning ID for swap matching
+                            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                            newTransaction.confirmations = 0
+                            newTransaction.height = 0
+                            newTransaction.isBittr = false
+                            newTransaction.fee = 0
+                            
+                            // Set swap description
+                            if let idString = swapDictionary["idstring"] as? String {
+                                newTransaction.lnDescription = idString
+                                CacheManager.storeInvoiceDescription(hash: paymentHash, desc: idString)
+                            }
+                            
+                            // Add to home view controller
+                            if let homeVC = delegate.homeVC {
+                                homeVC.setTransactions += [newTransaction]
+                                homeVC.setTransactions.sort { transaction1, transaction2 in
+                                    transaction1.timestamp > transaction2.timestamp
+                                }
+                                homeVC.homeTableView.reloadData()
+                            }
                             
                             if let swapID = swapDictionary["id"] as? String {
                                 delegate.webSocketManager = WebSocketManager()

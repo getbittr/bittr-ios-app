@@ -458,6 +458,79 @@ class LightningNodeService {
         }
     }
     
+    /// Lightweight wallet sync that refreshes transactions and balances without full wallet reset
+    /// Use this for refreshing data after operations like swaps, payments, etc.
+    /// For full wallet reset (e.g., after errors), use walletReset() instead
+    func syncWalletAndLoadTransactions() {
+        DispatchQueue.global(qos: .background).async {
+            do {
+                print("Starting lightweight wallet sync...")
+                
+                // Send notification that sync is starting
+                DispatchQueue.main.async {
+                    let notificationDict:[String: Any] = ["action":"start","type":"sync"]
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
+                }
+                
+                // Sync the wallet with the blockchain
+                if let wallet = self.bdkWallet, let blockchain = self.blockchain {
+                    try wallet.sync(blockchain: blockchain, progress: nil)
+                    print("Wallet sync completed.")
+                    
+                    // Get updated balance
+                    self.bdkBalance = Int(try wallet.getBalance().total)
+                    print("Updated onchain balance: \(self.bdkBalance)")
+                    
+                    // Get updated transactions
+                    let walletTransactions = try wallet.listTransactions(includeRaw: false)
+                    let actualWalletTransactions = walletTransactions ?? [TransactionDetails]()
+                    self.varWalletTransactions = actualWalletTransactions
+                    print("Updated onchain transactions: \(actualWalletTransactions.count)")
+                    
+                    // Get current height
+                    let fetchedCurrentHeight = try blockchain.getHeight()
+                    self.currentHeight = Int(fetchedCurrentHeight)
+                    
+                    // Send notification that sync is complete
+                    DispatchQueue.main.async {
+                        let notificationDict:[String: Any] = ["action":"complete","type":"sync"]
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
+                    }
+                    
+                    // Get updated lightning data and send notification
+                    Task {
+                        do {
+                            let channels = try await self.listChannels()
+                            let payments = try await self.listPayments()
+                            
+                            // Send notification with all updated details
+                            let transactionsNotificationDict:[AnyHashable:Any] = [
+                                "transactions": actualWalletTransactions, 
+                                "channels": channels, 
+                                "payments": payments, 
+                                "bdkbalance": self.bdkBalance, 
+                                "currentheight": self.currentHeight
+                            ]
+                            DispatchQueue.main.async {
+                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
+                            }
+                        } catch {
+                            print("Error getting lightning data during sync: \(error.localizedDescription)")
+                        }
+                    }
+                } else {
+                    print("Wallet or blockchain not available for sync")
+                }
+            } catch {
+                print("Error during wallet sync: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    let notificationDict:[String: Any] = ["action":"complete","type":"sync"]
+                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
+                }
+            }
+        }
+    }
+    
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
         let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: description, expirySecs: expirySecs)
         return invoice

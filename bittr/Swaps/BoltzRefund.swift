@@ -6,9 +6,21 @@
 //
 import Musig2Bitcoin
 import P256K
+import Foundation
+import CryptoKit
+import BitcoinDevKit
+
+// MARK: - Claim Result
+
+struct ClaimResult {
+    let success: Bool
+    let transactionId: String?
+}
+
+// MARK: - API Models
 
 class BoltzRefund {
-    static func tryBoltzClaimInternalTransactionGeneration(swapId: String) async throws -> Bool {
+    static func tryBoltzClaimInternalTransactionGeneration(swapId: String) async throws -> ClaimResult {
         if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapId) {
             print("Found swap with invoice: \(swapDetails["invoice"] ?? "unknown")")
             
@@ -62,7 +74,7 @@ class BoltzRefund {
             guard let txHash = calculateTransactionHash(from: lockupTxHex),
                   let tweakedKey = Data(hexString: tweakedKeyHex) else {
                 print("❌ Failed to parse hex data or calculate transaction hash")
-                return false
+                return ClaimResult(success: false, transactionId: nil)
             }
             
             print("   txHash TX: \(txHash.hexString)")
@@ -160,7 +172,7 @@ class BoltzRefund {
                     
                     guard let hardcodedSignature = Data(hexString: aggregateSignatureHex) else {
                         print("❌ Failed to parse signature")
-                        return false
+                        return ClaimResult(success: false, transactionId: nil)
                     }
                     
                     claimTx.setWitness(inputIndex: 0, witness: [hardcodedSignature])
@@ -171,22 +183,22 @@ class BoltzRefund {
                     let broadcastResponse = try await BoltzAPI.broadcastTransaction(transactionHex: finalTx.hexString)
                     if let transactionId = broadcastResponse.transactionIdValue {
                         print("✅ Transaction broadcasted successfully! TXID: \(transactionId)")
-                        return true
+                        return ClaimResult(success: true, transactionId: transactionId)
                     } else {
                         print("❌ Failed to broadcast transaction")
-                        return false
+                        return ClaimResult(success: false, transactionId: nil)
                     }
                 } else {
                     print("Failed to get claim response from Boltz")
-                    return false
+                    return ClaimResult(success: false, transactionId: nil)
                 }
             } else {
                 print("No swap output found")
-                return false
+                return ClaimResult(success: false, transactionId: nil)
             }
         } else {
             print("Could not load swap details for ID: \(swapId)")
-            return false
+            return ClaimResult(success: false, transactionId: nil)
         }
     }
     
