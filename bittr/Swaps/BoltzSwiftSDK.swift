@@ -235,6 +235,21 @@ struct SwapOutput {
     let vout: UInt32
 }
 
+/// Represents a refund output with additional refund-specific data
+struct RefundOutput {
+    let value: UInt64
+    let script: Data
+    let vout: UInt32
+    let keys: [Data]           // Signing keys (claim key, refund key)
+    let cooperative: Bool      // Whether to use cooperative (key-path) spending
+    let txHash: Data          // Transaction hash containing this output
+    
+    /// Convert to SwapOutput for compatibility
+    var swapOutput: SwapOutput {
+        return SwapOutput(value: value, script: script, vout: vout)
+    }
+}
+
 struct RawBitcoinTransactionInput {
     let previousTxHash: Data
     let previousOutputIndex: UInt32
@@ -600,8 +615,13 @@ class BoltzClaimTransaction {
     private var version: UInt32 = 1
     internal var inputs: [(txHash: Data, vout: UInt32, sequence: UInt32)] = []
     internal var outputs: [(value: UInt64, script: Data)] = []
-    private var locktime: UInt32 = 0
+    internal var locktime: UInt32 = 0
     private var witnesses: [[Data]] = []
+    
+    /// Set the transaction locktime (used for refunds with timeouts)
+    func setLocktime(_ locktime: UInt32) {
+        self.locktime = locktime
+    }
     
     init() {}
     
@@ -622,6 +642,28 @@ class BoltzClaimTransaction {
     /// Convenience method to set the signature for a Taproot input
     func setSignature(inputIndex: Int, signature: Data) {
         setWitness(inputIndex: inputIndex, witness: [signature])
+    }
+    
+    /// Enhanced sigHash calculation that supports both claim and refund paths
+    func hashForWitnessV1Refund(
+        inputIndex: Int,
+        prevoutScripts: [Data],
+        prevoutValues: [UInt64],
+        isRefund: Bool = false,
+        leafScript: Data? = nil,  // The actual leaf script (claim or refund)
+        sigHashType: UInt8 = 0x00,
+        hasExtension: Bool = false
+    ) -> Data {
+        
+        // For refunds, we might need different leaf script handling
+        // This is the same as the regular hashForWitnessV1 but with refund-specific options
+        return hashForWitnessV1(
+            inputIndex: inputIndex,
+            prevoutScripts: prevoutScripts,
+            prevoutValues: prevoutValues,
+            sigHashType: sigHashType,
+            hasExtension: hasExtension
+        )
     }
     
     private func encodeVarInt(_ value: UInt64) -> Data {
@@ -1043,5 +1085,95 @@ func computeTapLeafHash(aggregatedPublicKey: P256K.MuSig.PublicKey, claimLeafOut
     )
     
     return tapTweakHash
+}
+
+func constructClaimTransaction(
+    swapOutput: SwapOutput,
+    destinationAddress: String,
+    fee: Int,
+    txHash: Data,
+    network: BitcoinNetwork = .regtest
+) -> BoltzClaimTransaction {
+    let tx = BoltzClaimTransaction()
+    
+    // Add input
+    tx.addInput(txHash: txHash, vout: swapOutput.vout, sequence: 0xfffffffd)
+    
+    // Create destination script using proper address decoding
+    guard let destinationScript = AddressHandler.toOutputScript(address: destinationAddress, network: network) else {
+        fatalError("Invalid destination address: \(destinationAddress)")
+    }
+    
+    // Calculate output value
+    let outputValue = swapOutput.value - UInt64(fee)
+    
+    // Add output
+    tx.addOutput(value: outputValue, script: destinationScript)
+    
+    // Automatically add placeholder witness (64 zero bytes) for unsigned transaction
+    // This ensures correct transaction structure for sigHash calculation
+    tx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
+    
+    return tx
+}
+
+func constructRefundTransaction(
+    refundOutputs: [RefundOutput],
+    destinationAddress: String,
+    timeoutBlockHeight: UInt32,
+    fee: Int,
+    network: BitcoinNetwork = .regtest
+) -> BoltzClaimTransaction {
+    let tx = BoltzClaimTransaction()
+    
+    // Set locktime for refund (required for timelock)
+    tx.setLocktime(timeoutBlockHeight)
+    
+    var totalInputValue: UInt64 = 0
+    
+    // Add all refund inputs
+    for refundOutput in refundOutputs {
+        tx.addInput(txHash: refundOutput.txHash, vout: refundOutput.vout, sequence: 0xfffffffe) // Enable locktime
+        totalInputValue += refundOutput.value
+        
+        // Set appropriate witness based on cooperative flag
+        if refundOutput.cooperative {
+            // Cooperative refund: use key-path spending (dummy 64-byte signature)
+            tx.setWitness(inputIndex: tx.inputs.count - 1, witness: [Data(count: 64)])
+        } else {
+            // Non-cooperative refund: use script-path spending (signature only, no preimage)
+            tx.setWitness(inputIndex: tx.inputs.count - 1, witness: [Data(count: 64)])
+        }
+    }
+    
+    // Create destination script using proper address decoding
+    guard let destinationScript = AddressHandler.toOutputScript(address: destinationAddress, network: network) else {
+        fatalError("Invalid destination address: \(destinationAddress)")
+    }
+    
+    // Calculate output value (total input value minus fee)
+    let outputValue = totalInputValue - UInt64(fee)
+    
+    // Add output
+    tx.addOutput(value: outputValue, script: destinationScript)
+    
+    return tx
+}
+
+/// Convenience function for single refund output (most common case)
+func constructSingleRefundTransaction(
+    refundOutput: RefundOutput,
+    destinationAddress: String,
+    timeoutBlockHeight: UInt32,
+    fee: Int,
+    network: BitcoinNetwork = .regtest
+) -> BoltzClaimTransaction {
+    return constructRefundTransaction(
+        refundOutputs: [refundOutput],
+        destinationAddress: destinationAddress,
+        timeoutBlockHeight: timeoutBlockHeight,
+        fee: fee,
+        network: network
+    )
 }
 
