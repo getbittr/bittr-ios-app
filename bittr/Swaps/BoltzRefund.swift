@@ -9,23 +9,23 @@ import P256K
 
 class BoltzRefund {
     static func tryBoltzClaimInternalTransactionGeneration() async throws -> Bool {
-//        {
-//            "id": "tMmbtMk5yMug",
-//            "invoice": "lnbcrt505610n1p5xtqcgsp5202grajyzmg8kjt37u4r6dqges0jj0stu9n862zduze8fhv6qdtqpp5uc3x9xu25ggkc0q6787fva4apx868qpcq4hsrtr50tpqua0y632sdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgqvmpdeducrxtefpehwxy7yptmwlchhapma9whptyz7wkyy3zg6rvzqsp3y6crp86a8hwthhl3cs5zn096tlpq6s0leh540d77mzujx4qqjs7pe6",
-//            "swapTree": {
-//                "claimLeaf": {
-//                    "version": 192,
-//                    "output": "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
-//                },
-//                "refundLeaf": {
-//                    "version": 192,
-//                    "output": "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
-//                }
-//            },
-//            "lockupAddress": "bcrt1pl4v4jzm9a8pak3d23wa9m5s5lqusza726ead29jy8h0w8l8jlrcsa4h36n",
-//            "refundPublicKey": "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f",
-//            "timeoutBlockHeight": 331
-//        }
+        {
+            "id": "tMmbtMk5yMug",
+            "invoice": "lnbcrt505610n1p5xtqcgsp5202grajyzmg8kjt37u4r6dqges0jj0stu9n862zduze8fhv6qdtqpp5uc3x9xu25ggkc0q6787fva4apx868qpcq4hsrtr50tpqua0y632sdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgqvmpdeducrxtefpehwxy7yptmwlchhapma9whptyz7wkyy3zg6rvzqsp3y6crp86a8hwthhl3cs5zn096tlpq6s0leh540d77mzujx4qqjs7pe6",
+            "swapTree": {
+                "claimLeaf": {
+                    "version": 192,
+                    "output": "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
+                },
+                "refundLeaf": {
+                    "version": 192,
+                    "output": "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
+                }
+            },
+            "lockupAddress": "bcrt1pl4v4jzm9a8pak3d23wa9m5s5lqusza726ead29jy8h0w8l8jlrcsa4h36n",
+            "refundPublicKey": "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f",
+            "timeoutBlockHeight": 331
+        }
         
         let boltzServerPublicKeyBytes = try! "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes
         
@@ -37,7 +37,7 @@ class BoltzRefund {
         // When we created the Swap, we used a private/public key pair from our existing wallet (in production, we should use some funny path not to mix keys)
         // hexPrivateKey: c5c8c3cac9b6c5544f0424849b1387d4868925821f2b39599c3396ccef128436
         // hexPublicKey: 02b45641876412357b35600c5aa6df1d8f598842b6f1f39b5d7f25928aed7374dc
-        let (hexPrivateKey, _hexPublicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+        let (hexPrivateKey, _) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
         
         // In order to aggregate the keys, I re-initialize the same key using P256K.Schnorr.PrivateKey.init but the public/private key still looks the same
         let ourPrivateKeyBytes = try! hexPrivateKey.bytes
@@ -51,19 +51,6 @@ class BoltzRefund {
         print("\n=== AGGREGATED PUBLIC KEY ===")
         print("Aggregated public key: \(aggregatedPublicKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
         print("Aggregated x-only public key: \(aggregatedPublicKey.xonly.bytes.map { String(format: "%02x", $0) }.joined())")
-
-        // --- BIP-341 Taproot tweak computation using swapTree ---
-        // Based on the swapTree structure from the API response:
-        //        "swapTree": {
-        //        "claimLeaf": {
-        //            "version": 192,
-        //            "output": "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
-        //        },
-        //        "refundLeaf": {
-        //            "version": 192,
-        //            "output": "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
-        //        }
-        //    }
         
         // Create the claim leaf hash
         let claimLeafOutput = try "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac".bytes
@@ -140,7 +127,6 @@ class BoltzRefund {
             print("Vout: \(swapOutput.vout)")
             
             let destinationAddress = "bcrt1qekjssnr0rahwxtk0jaeth9x5gyavec7pgkgugh"
-            let swapValue: UInt64 = 50000
             let exactFee = 200
             
             let claimTx = constructClaimTransaction(
@@ -151,7 +137,6 @@ class BoltzRefund {
                     network: .regtest
                 )
             
-            claimTx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
             let serializedTx = claimTx.serialize()
             
             print("   Generated TX: \(serializedTx.hexString)")
@@ -215,8 +200,6 @@ class BoltzRefund {
                     publicNonceAggregate: aggregateWithExternal,
                     publicKeyAggregate: tweakedAggregatedKey
                 )
-
-                dump(firstPartialSignature)
 
                 print("\n=== PARTIAL SIGNATURES ===")
                 print("First Partial Signature: \(firstPartialSignature.dataRepresentation.bytes.map { String(format: "%02x", $0) }.joined())")

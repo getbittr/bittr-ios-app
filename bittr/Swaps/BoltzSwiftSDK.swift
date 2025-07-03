@@ -619,6 +619,11 @@ class BoltzClaimTransaction {
         witnesses[inputIndex] = witness
     }
     
+    /// Convenience method to set the signature for a Taproot input
+    func setSignature(inputIndex: Int, signature: Data) {
+        setWitness(inputIndex: inputIndex, witness: [signature])
+    }
+    
     private func encodeVarInt(_ value: UInt64) -> Data {
         var data = Data()
         
@@ -992,6 +997,10 @@ func constructClaimTransaction(
     
     // Add output
     tx.addOutput(value: outputValue, script: destinationScript)
+    
+    // Automatically add placeholder witness (64 zero bytes) for unsigned transaction
+    // This ensures correct transaction structure for sigHash calculation
+    tx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
     
     return tx
 }
