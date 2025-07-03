@@ -72,7 +72,6 @@ class SwapManager: NSObject {
                 "invoice": invoice,
                 "refundPublicKey": publicKey
             ]
-            // 15 March private key KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur
 
             var apiURL = "https://api.boltz.exchange/v2"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -447,8 +446,11 @@ class SwapManager: NSObject {
         let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
 
         let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+
+        let wallet = LightningNodeService.shared.getWallet()
+        let destinationAddress = try! wallet?.getAddress(addressIndex: .lastUnused).address.asString()
         
-        print("randomPreimageHashHex: \(randomPreimage.hexEncodedString())")
+        print("randomPreimage: \(randomPreimage.hexEncodedString())")
         
         let parameters: [String: Any] = [
             "from": "BTC",
@@ -476,7 +478,15 @@ class SwapManager: NSObject {
                 case .success(let receivedDictionary):
                     let mutableSwapDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                     mutableSwapDictionary.setValue(amountSat, forKey: "useramount")
-                    mutableSwapDictionary.setValue(randomPreimageHashHex, forKey: "preimagehex")
+                    mutableSwapDictionary.setValue(privateKey, forKey: "privateKey")
+                    mutableSwapDictionary.setValue(randomPreimage.hexEncodedString(), forKey: "preimage")
+                    mutableSwapDictionary.setValue(destinationAddress, forKey: "destinationAddress")
+                    
+                    // Save swap details to file
+                    if let swapID = receivedDictionary["id"] as? String {
+                        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: mutableSwapDictionary)
+                    }
+                    
                     self.checkReverseSwapFees(swapDictionary: mutableSwapDictionary, delegate: delegate)
                 }
                 
@@ -495,6 +505,64 @@ class SwapManager: NSObject {
     
     static func sha256Hash(of data: Data) -> Data {
         return Data(SHA256.hash(data: data))
+    }
+    
+    static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
+        do {
+            // Convert NSDictionary to JSON Data
+            let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
+            
+            // Get the documents directory
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
+            
+            // Write the JSON data to file
+            try jsonData.write(to: fileURL)
+            
+            print("Swap details saved to: \(fileURL.path)")
+        } catch {
+            print("Error saving swap details to file: \(error)")
+        }
+    }
+    
+    static func loadSwapDetailsFromFile(swapID: String) -> NSDictionary? {
+        do {
+            // Get the documents directory
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
+            
+            // Read the JSON data from file
+            let jsonData = try Data(contentsOf: fileURL)
+            
+            // Convert JSON Data to NSDictionary
+            if let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary {
+                return dictionary
+            }
+        } catch {
+            print("Error loading swap details from file: \(error)")
+        }
+        return nil
+    }
+    
+    static func updateSwapFileWithLockupTx(swapID: String, lockupTx: String) {
+        do {
+            // Load existing swap details
+            guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
+                print("Could not load existing swap details for ID: \(swapID)")
+                return
+            }
+            
+            // Create a mutable copy and add the lockup transaction
+            let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
+            updatedSwapDetails.setValue(lockupTx, forKey: "lockupTx")
+            
+            // Save the updated swap details back to file
+            saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
+            
+            print("Updated swap file with lockup transaction for ID: \(swapID)")
+        } catch {
+            print("Error updating swap file with lockup transaction: \(error)")
+        }
     }
     
     static func checkReverseSwapFees(swapDictionary:NSDictionary, delegate:Any?) {
@@ -588,26 +656,6 @@ class SwapManager: NSObject {
                     }
                 }
             }
-        }
-    }
-    
-    static func claimOnchainTransaction(swapDictionary:NSDictionary, delegate:Any?) {
-        
-        // As soon as the swap status is "transaction.mempool", the onchain transaction can be claimed.
-        // Claim the onchain transaction.
-        
-        if let boltzPublicKey = swapDictionary["refundPublicKey"] as? String, let randomPreimageHex = swapDictionary["preimagehex"] as? String {
-            
-            // STEPS (see https://docs.boltz.exchange/api/api-v2)
-            // 1. Create a musig signing session with boltzPublicKey and our public key.
-            // 2. Tweak it with the Taptree of the swap scripts.
-            // 3. Get the transactionHex (either already received with the status, or through GET /swap/reverse/{id}/transaction.
-            // 4. Create a claim transaction to be signed cooperatively via a key path spend.
-            // 5. Get the partial signature from Boltz through POST /swap/reverse/{id}/claim with parameters {index: 0, transaction: transactionHex, preimage: randomPreimageHex, pubNonce: Buffer.from(musig.getPublicNonce()).toString('hex')}. We receive pubNonce and partialSignature.
-            // 6. Aggregate the nonces of boltzPublicKey and the received pubNonce.
-            // 7. Sign the claim transaction and add Boltz's partialSignature.
-            // 8. Broadcast the transaction through POST /chain/BTC/transaction with the "hex" of the transaction.
-            
         }
     }
 }

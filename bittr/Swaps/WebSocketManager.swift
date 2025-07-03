@@ -151,7 +151,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
         // Ensure status update is performed on the main thread
         DispatchQueue.main.async {
-            delegate.receivedStatusUpdate(status: receivedStatus)
+            delegate.receivedStatusUpdate(status: receivedStatus, fullMessage: firstArg)
         }
     }
 

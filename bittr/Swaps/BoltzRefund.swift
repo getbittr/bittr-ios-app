@@ -8,198 +8,184 @@ import Musig2Bitcoin
 import P256K
 
 class BoltzRefund {
-    static func tryBoltzClaimInternalTransactionGeneration() async throws -> Bool {
-        //        {
-        //            "id": "tMmbtMk5yMug",
-        //            "invoice": "lnbcrt505610n1p5xtqcgsp5202grajyzmg8kjt37u4r6dqges0jj0stu9n862zduze8fhv6qdtqpp5uc3x9xu25ggkc0q6787fva4apx868qpcq4hsrtr50tpqua0y632sdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgqvmpdeducrxtefpehwxy7yptmwlchhapma9whptyz7wkyy3zg6rvzqsp3y6crp86a8hwthhl3cs5zn096tlpq6s0leh540d77mzujx4qqjs7pe6",
-        //            "swapTree": {
-        //                "claimLeaf": {
-        //                    "version": 192,
-        //                    "output": "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
-        //                },
-        //                "refundLeaf": {
-        //                    "version": 192,
-        //                    "output": "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
-        //                }
-        //            },
-        //            "lockupAddress": "bcrt1pl4v4jzm9a8pak3d23wa9m5s5lqusza726ead29jy8h0w8l8jlrcsa4h36n",
-        //            "refundPublicKey": "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f",
-        //            "timeoutBlockHeight": 331
-        //        }
-        
-        let boltzServerPublicKeyBytes = try! "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes
-        
-        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
-            dataRepresentation: boltzServerPublicKeyBytes,
-            format: .compressed
-        )
-        
-        // When we created the Swap, we used a private/public key pair from our existing wallet (in production, we should use some funny path not to mix keys)
-        // hexPrivateKey: c5c8c3cac9b6c5544f0424849b1387d4868925821f2b39599c3396ccef128436
-        // hexPublicKey: 02b45641876412357b35600c5aa6df1d8f598842b6f1f39b5d7f25928aed7374dc
-        let (hexPrivateKey, _) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
-        
-        // In order to aggregate the keys, I re-initialize the same key using P256K.Schnorr.PrivateKey.init but the public/private key still looks the same
-        let ourPrivateKeyBytes = try! hexPrivateKey.bytes
-        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: ourPrivateKeyBytes)
-        
-        // For some reason, when I want to later on use the getSighash function, that only accepts uncompressed keys, so we're using that as the format here already
-        // Aggregate public keys without sorting
-        let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
-        let aggregatedPublicKey = try P256K.MuSig.aggregate(publicKeys, sortKeys: false)
-        
-        print("\n=== AGGREGATED PUBLIC KEY ===")
-        print("Aggregated public key: \(aggregatedPublicKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
-        print("Aggregated x-only public key: \(aggregatedPublicKey.xonly.bytes.map { String(format: "%02x", $0) }.joined())")
-        
-        let claimLeafOutputHex = "82012088a914e57597162fea42685eba9689190346f9402826da882035c61bbbd4a2c348d64d3c060abdce8249d44c09e20b2d8f0c077a5ee7e3dac8ac"
-        let refundLeafOutputHex = "20611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fad024b01b1"
-        
-        let tapTweakHash = try computeTapLeafHash(aggregatedPublicKey: aggregatedPublicKey, claimLeafOutputHex: claimLeafOutputHex, refundLeafOutputHex: refundLeafOutputHex)
-        
-        print("\n=== TAPROOT TWEAK COMPUTATION ===")
-        //        print("X-only public key for tweak: \(xOnlyPubKey.map { String(format: "%02x", $0) }.joined())")
-        //        print("Claim leaf hash: \(Data(claimLeafHash).map { String(format: "%02x", $0) }.joined())")
-        //        print("Refund leaf hash: \(Data(refundLeafHash).map { String(format: "%02x", $0) }.joined())")
-        //        print("Merkle root: \(Data(merkleRoot).map { String(format: "%02x", $0) }.joined())")
-        print("Tap tweak hash: \(Data(tapTweakHash).map { String(format: "%02x", $0) }.joined())")
-        
-        // Apply the x-only tweak to the aggregated public key's x-only key
-        // For Taproot, we need to use x-only tweaking which properly updates the key aggregation cache
-        let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
-        
-        // Create a new MuSig public key from the tweaked x-only key (preserves the cache)
-        let tweakedAggregatedKey = try aggregatedPublicKey.add(Array(Data(tapTweakHash)))
-        print("Sharon's key: \(tweakedAggregatedKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
-        
-        let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
-        
-        print("\n=== TWEAKED PUBLIC KEY ===")
-        print("Tweaked x-only public key: \(tweakedKeyHex)")
-        //        print("Expected result: fd59590b65e9c3db45aa8bba5dd214f8390177cad67ad516443ddee3fcf2f8f1")
-        
-        let lockupTxHex = "0100000000010198ae895c1b8b32073a94dc8151bfe775ffc914ea2bbbb2f36ea97569a58efdf90100000000ffffffff0250c3000000000000225120fd59590b65e9c3db45aa8bba5dd214f8390177cad67ad516443ddee3fcf2f8f16699cfb200000000225120fa30212f6d2c0eccde49abf213bb11390a3bc3688f8e5a6c3d764112cebc36c802483045022100fbf5939f3e49256af6d051ae41de5b14387fea4867e8c84ac71d4a62a31521ba022035f5cd60fc5b4bee77d28e8c8934321d32d3cf06e5b97913bf4e801045928d9f0121034138a58a7e9811197e40718d0b43ff013852eb95d86f1ce1772b2a99ca97d8f600000000"
-        
-        // Calculate the correct transaction hash from the lockup transaction
-        guard let txHash = calculateTransactionHash(from: lockupTxHex),
-              let tweakedKey = Data(hexString: tweakedKeyHex) else {
-            print("❌ Failed to parse hex data or calculate transaction hash")
-            return false
-        }
-        
-        print("   txHash TX: \(txHash.hexString)")
-        
-        if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
-            print("Found swap output:")
-            print("Value: \(swapOutput.value)")
-            print("Script: \(swapOutput.script.hexString)")
-            print("Vout: \(swapOutput.vout)")
+    static func tryBoltzClaimInternalTransactionGeneration(swapId: String) async throws -> Bool {
+        if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapId) {
+            print("Found swap with invoice: \(swapDetails["invoice"] ?? "unknown")")
             
-            let destinationAddress = "bcrt1qekjssnr0rahwxtk0jaeth9x5gyavec7pgkgugh"
-            let exactFee = 200
+            let boltzServerPublicKeyBytes = try! (swapDetails["refundPublicKey"] as! String).bytes
             
-            let claimTx = constructClaimTransaction(
-                swapOutput: swapOutput,
-                destinationAddress: destinationAddress,
-                fee: exactFee,
-                txHash: txHash,
-                network: .regtest
+            let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
+                dataRepresentation: boltzServerPublicKeyBytes,
+                format: .compressed
             )
             
-            let serializedTx = claimTx.serialize()
+            let hexPrivateKey = try! (swapDetails["privateKey"] as! String).bytes
             
-            print("   Generated TX: \(serializedTx.hexString)")
+            let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
             
-            let sigHash = claimTx.hashForWitnessV1(
-                inputIndex: 0,
-                prevoutScripts: [swapOutput.script],
-                prevoutValues: [swapOutput.value]
+            // Aggregate public keys without sorting
+            let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
+            let aggregatedPublicKey = try P256K.MuSig.aggregate(publicKeys, sortKeys: false)
+            
+            print("\n=== AGGREGATED PUBLIC KEY ===")
+            print("Aggregated public key: \(aggregatedPublicKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
+            print("Aggregated x-only public key: \(aggregatedPublicKey.xonly.bytes.map { String(format: "%02x", $0) }.joined())")
+            
+            let claimLeafOutputHex = ((swapDetails["swapTree"] as! NSDictionary)["claimLeaf"] as! NSDictionary)["output"] as! String
+            let refundLeafOutputHex = ((swapDetails["swapTree"] as! NSDictionary)["refundLeaf"] as! NSDictionary)["output"] as! String
+            
+            
+            let tapTweakHash = try computeTapLeafHash(
+                aggregatedPublicKey: aggregatedPublicKey,
+                claimLeafOutputHex: claimLeafOutputHex,
+                refundLeafOutputHex: refundLeafOutputHex
             )
             
-            print("   ✅ SigHash calculation: \(sigHash.hexString)")
+            print("\n=== TAPROOT TWEAK COMPUTATION ===")
+            print("Tap tweak hash: \(Data(tapTweakHash).map { String(format: "%02x", $0) }.joined())")
             
-            let messageHashBytes = sigHash.bytes
-            let messageDigest = HashDigest(messageHashBytes)
+            // Apply the x-only tweak to the aggregated public key's x-only key
+            // For Taproot, we need to use x-only tweaking which properly updates the key aggregation cache
+            let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
             
-            // Generate nonces for each signer
-            let firstNonce = try P256K.MuSig.Nonce.generate(
-                secretKey: ourPrivateKey,
-                publicKey: ourPrivateKey.publicKey,
-                msg32: Array(messageDigest)
-            )
+            // Create a new MuSig public key from the tweaked x-only key (preserves the cache)
+            let tweakedAggregatedKey = try aggregatedPublicKey.add(Array(Data(tapTweakHash)))
             
-            print("Our nonce: \(firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined())")
+            let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
             
-            // Hardcoded values for testing
-            let swapID = "tMmbtMk5yMug"
-            let ourNonceHex = firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined()
-            let preimage = "e8ae0ee61c8603c4760bd56021a5ba8c7173c54ea0018e4826840aef9ca32d6d"
+            print("\n=== TWEAKED PUBLIC KEY ===")
+            print("Tweaked x-only public key: \(tweakedKeyHex)")
             
-            // Create claim request
-            let claimRequest = ClaimRequest(
-                index: 0,
-                transaction: serializedTx.hexString,
-                preimage: preimage,
-                pubNonce: ourNonceHex
-            )
+            let lockupTxHex = (swapDetails["lockupTx"] as! String)
             
-            // Post claim request to Boltz
-            let claimResponse = try await requestClaimAndProcess(swapID: swapID, claimData: claimRequest)
-            
-            if let boltzPubNonce = claimResponse.pubNonce, let boltzPartialSignature = claimResponse.partialSignature {
-                print("Received Boltz pubNonce: \(boltzPubNonce)")
-                print("Received Boltz partialSignature: \(boltzPartialSignature)")
-                
-                // Convert to P256K objects
-                let externalNonce = try P256K.Schnorr.Nonce(hexString: boltzPubNonce)
-                let externalPartialSignature = try P256K.Schnorr.PartialSignature(hexString: boltzPartialSignature)
-                
-                // Aggregate with the external nonce
-                let aggregateWithExternal = try P256K.MuSig.Nonce(aggregating: [externalNonce, firstNonce.pubnonce])
-                
-                print("\n=== NONCES ===")
-                print("First Public Nonce: \(firstNonce.hexString)")
-                print("External Nonce: \(externalNonce.hexString)")
-                print("Aggregate with External: \(aggregateWithExternal.hexString)")
-                
-                let firstPartialSignature = try ourPrivateKey.partialSignature(
-                    for: messageDigest,
-                    pubnonce: firstNonce.pubnonce,
-                    secureNonce: firstNonce.secnonce,
-                    publicNonceAggregate: aggregateWithExternal,
-                    publicKeyAggregate: tweakedAggregatedKey
-                )
-                
-                print("\n=== PARTIAL SIGNATURES ===")
-                print("First Partial Signature: \(firstPartialSignature.dataRepresentation.bytes.map { String(format: "%02x", $0) }.joined())")
-                print("External Partial Signature: \(externalPartialSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
-                
-                let aggregateSignature = try P256K.MuSig.aggregateSignatures([externalPartialSignature, firstPartialSignature])
-                
-                let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
-                
-                print("Aggregate Signature: \(aggregateSignatureHex)")
-                
-                guard let hardcodedSignature = Data(hexString: aggregateSignatureHex) else {
-                    print("❌ Failed to parse signature")
-                    return false
-                }
-                
-                claimTx.setWitness(inputIndex: 0, witness: [hardcodedSignature])
-                let finalTx = claimTx.serialize()
-                
-                print("   Generated Final TX: \(finalTx.hexString)")
-            } else {
-                print("Failed to get claim response from Boltz")
+            // Calculate the correct transaction hash from the lockup transaction
+            guard let txHash = calculateTransactionHash(from: lockupTxHex),
+                  let tweakedKey = Data(hexString: tweakedKeyHex) else {
+                print("❌ Failed to parse hex data or calculate transaction hash")
+                return false
             }
             
+            print("   txHash TX: \(txHash.hexString)")
             
-            
-            
-            
-            return true
+            if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
+                print("Found swap output:")
+                print("Value: \(swapOutput.value)")
+                print("Script: \(swapOutput.script.hexString)")
+                print("Vout: \(swapOutput.vout)")
+                
+                let destinationAddress = (swapDetails["destinationAddress"] as! String)
+                let exactFee = 200
+                
+                let claimTx = constructClaimTransaction(
+                    swapOutput: swapOutput,
+                    destinationAddress: destinationAddress,
+                    fee: exactFee,
+                    txHash: txHash,
+                    network: .regtest
+                )
+                
+                let serializedTx = claimTx.serialize()
+                
+                print("   Generated TX: \(serializedTx.hexString)")
+                
+                let sigHash = claimTx.hashForWitnessV1(
+                    inputIndex: 0,
+                    prevoutScripts: [swapOutput.script],
+                    prevoutValues: [swapOutput.value]
+                )
+                
+                print("   ✅ SigHash calculation: \(sigHash.hexString)")
+                
+                let messageHashBytes = sigHash.bytes
+                let messageDigest = HashDigest(messageHashBytes)
+                
+                // Generate nonces for each signer
+                let firstNonce = try P256K.MuSig.Nonce.generate(
+                    secretKey: ourPrivateKey,
+                    publicKey: ourPrivateKey.publicKey,
+                    msg32: Array(messageDigest)
+                )
+                
+                print("Our nonce: \(firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined())")
+                
+                // Hardcoded values for testing
+                let swapID = (swapDetails["id"] as! String)
+                let ourNonceHex = firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined()
+                let preimage = (swapDetails["preimage"] as! String)
+                
+                // Create claim request
+                let claimRequest = ClaimRequest(
+                    index: 0,
+                    transaction: serializedTx.hexString,
+                    preimage: preimage,
+                    pubNonce: ourNonceHex
+                )
+                
+                // Post claim request to Boltz
+                let claimResponse = try await requestClaimAndProcess(swapID: swapID, claimData: claimRequest)
+                
+                if let boltzPubNonce = claimResponse.pubNonce, let boltzPartialSignature = claimResponse.partialSignature {
+                    print("Received Boltz pubNonce: \(boltzPubNonce)")
+                    print("Received Boltz partialSignature: \(boltzPartialSignature)")
+                    
+                    // Convert to P256K objects
+                    let externalNonce = try P256K.Schnorr.Nonce(hexString: boltzPubNonce)
+                    let externalPartialSignature = try P256K.Schnorr.PartialSignature(hexString: boltzPartialSignature)
+                    
+                    // Aggregate with the external nonce
+                    let aggregateWithExternal = try P256K.MuSig.Nonce(aggregating: [externalNonce, firstNonce.pubnonce])
+                    
+                    print("\n=== NONCES ===")
+                    print("First Public Nonce: \(firstNonce.hexString)")
+                    print("External Nonce: \(externalNonce.hexString)")
+                    print("Aggregate with External: \(aggregateWithExternal.hexString)")
+                    
+                    let firstPartialSignature = try ourPrivateKey.partialSignature(
+                        for: messageDigest,
+                        pubnonce: firstNonce.pubnonce,
+                        secureNonce: firstNonce.secnonce,
+                        publicNonceAggregate: aggregateWithExternal,
+                        publicKeyAggregate: tweakedAggregatedKey
+                    )
+                    
+                    print("\n=== PARTIAL SIGNATURES ===")
+                    print("First Partial Signature: \(firstPartialSignature.dataRepresentation.bytes.map { String(format: "%02x", $0) }.joined())")
+                    print("External Partial Signature: \(externalPartialSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
+                    
+                    let aggregateSignature = try P256K.MuSig.aggregateSignatures([externalPartialSignature, firstPartialSignature])
+                    
+                    let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
+                    
+                    print("Aggregate Signature: \(aggregateSignatureHex)")
+                    
+                    guard let hardcodedSignature = Data(hexString: aggregateSignatureHex) else {
+                        print("❌ Failed to parse signature")
+                        return false
+                    }
+                    
+                    claimTx.setWitness(inputIndex: 0, witness: [hardcodedSignature])
+                    let finalTx = claimTx.serialize()
+                    
+                    print("   Generated Final TX: \(finalTx.hexString)")
+                    
+                    let broadcastResponse = try await BoltzAPI.broadcastTransaction(transactionHex: finalTx.hexString)
+                    if let transactionId = broadcastResponse.transactionIdValue {
+                        print("✅ Transaction broadcasted successfully! TXID: \(transactionId)")
+                        return true
+                    } else {
+                        print("❌ Failed to broadcast transaction")
+                        return false
+                    }
+                } else {
+                    print("Failed to get claim response from Boltz")
+                    return false
+                }
+            } else {
+                print("No swap output found")
+                return false
+            }
         } else {
-            print("No swap output found")
+            print("Could not load swap details for ID: \(swapId)")
             return false
         }
     }
@@ -371,8 +357,6 @@ class BoltzRefund {
                 publicNonceAggregate: aggregateWithExternal,
                 publicKeyAggregate: tweakedKey
             )
-            
-            dump(firstPartialSignature)
             
             print("\n=== PARTIAL SIGNATURES ===")
             print("First Partial Signature: \(firstPartialSignature.dataRepresentation.bytes.map { String(format: "%02x", $0) }.joined())")

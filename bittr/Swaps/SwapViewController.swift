@@ -386,7 +386,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    func receivedStatusUpdate(status:String) {
+    func receivedStatusUpdate(status:String, fullMessage: [String: Any]) {
         
         self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: status)
         
@@ -404,8 +404,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             
             SwapManager.claimRefund()
         } else if status == "transaction.mempool", self.swapDirection == 1 {
-            // Claim onchain transaction.
-            SwapManager.claimOnchainTransaction(swapDictionary: self.swapDictionary!, delegate: self)
+            // Handle transaction.mempool for reverse swaps
+            if let swapID = self.swapDictionary?["id"] as? String,
+               let transaction = fullMessage["transaction"] as? [String: Any],
+               let transactionHex = transaction["hex"] as? String {
+                handleTransactionMempool(swapID: swapID, transactionHex: transactionHex)
+            }
         } else if status == "transaction.claimed" {
             // Once the transaction.claimed status appears, it's the final status so we can stop spinning
             self.confirmStatusSpinner.stopAnimating()
@@ -416,6 +420,35 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func backgroundTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+    }
+    
+    private func handleTransactionMempool(swapID: String, transactionHex: String) {
+        // Update the swap file with the lockup transaction
+        SwapManager.updateSwapFileWithLockupTx(swapID: swapID, lockupTx: transactionHex)
+        
+        // Claim onchain transaction using async function
+        Task {
+            do {
+                let claimResult = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapId: swapID)
+                print("Claim result: \(claimResult)")
+                
+                // Handle the result on main thread
+                DispatchQueue.main.async {
+                    if claimResult {
+                        self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
+                        self.confirmStatusSpinner.stopAnimating()
+                        self.webSocketManager?.disconnect()
+                    } else {
+                        self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
+                    }
+                }
+            } catch {
+                print("Error claiming transaction: \(error)")
+                DispatchQueue.main.async {
+                    self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
+                }
+            }
+        }
     }
     
     func setLanguage() {
