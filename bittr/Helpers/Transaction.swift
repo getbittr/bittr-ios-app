@@ -30,5 +30,6 @@ class Transaction: NSObject {
     var swapDirection = 0
     var onchainID = ""
     var lightningID = ""
+    var boltzSwapId = ""
     
 }

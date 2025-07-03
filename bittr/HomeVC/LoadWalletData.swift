@@ -191,6 +191,7 @@ extension HomeViewController {
                     } else {
                         // Onchain transaction
                         swapTransaction.onchainID = eachTransaction.id
+                        swapTransaction.boltzSwapId = eachTransaction.boltzSwapId
                         swapTransaction.height = eachTransaction.height
                         if let actualCurrentHeight = self.coreVC?.currentHeight {
                             swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1

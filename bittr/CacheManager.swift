@@ -309,6 +309,7 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
             oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
             oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
+            oneTransaction.setObject(eachTransaction.boltzSwapId, forKey: "boltzSwapId" as NSCopying)
             oneTransaction.setObject(eachTransaction.swapDirection, forKey: "swapdirection" as NSCopying)
             oneTransaction.setObject(eachTransaction.confirmations, forKey: "confirmations" as NSCopying)
             
@@ -372,6 +373,9 @@ class CacheManager: NSObject {
             }
             if let lightningID = eachTransaction["lightningid"] as? String {
                 thisTransaction.lightningID = lightningID
+            }
+            if let boltzSwapId = eachTransaction["boltzSwapId"] as? String {
+                thisTransaction.boltzSwapId = boltzSwapId
             }
             if let swapDirection = eachTransaction["swapdirection"] as? Int {
                 thisTransaction.swapDirection = swapDirection

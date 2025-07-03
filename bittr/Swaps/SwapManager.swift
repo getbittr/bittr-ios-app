@@ -490,6 +490,7 @@ class SwapManager: NSObject {
         newTransaction.isSwap = true
         newTransaction.swapDirection = 1 // Lightning to onchain
         newTransaction.onchainID = transactionId // Set onchain ID for swap matching
+        newTransaction.boltzSwapId = swapID
         
         // Set swap description
         if let idString = swapDetails["idstring"] as? String {
@@ -603,6 +604,7 @@ class SwapManager: NSObject {
                                 }
                                 
                                 if let swapID = swapDictionary["id"] as? String {
+                                    newTransaction.boltzSwapId = swapID
                                     delegate.webSocketManager = WebSocketManager()
                                     delegate.webSocketManager!.delegate = delegate
                                     delegate.webSocketManager!.swapID = swapID
@@ -648,6 +650,7 @@ class SwapManager: NSObject {
                             }
                             
                             if let swapID = swapDictionary["id"] as? String {
+                                newTransaction.boltzSwapId = swapID
                                 delegate.webSocketManager = WebSocketManager()
                                 delegate.webSocketManager!.delegate = delegate
                                 delegate.webSocketManager!.swapID = swapID

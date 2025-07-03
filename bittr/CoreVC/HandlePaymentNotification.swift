@@ -300,6 +300,7 @@ extension CoreViewController {
                                         thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
                                         thisTransaction.lightningID = paymentDetails.id
                                         thisTransaction.onchainID = eachTransaction.id
+                                        thisTransaction.boltzSwapId = eachTransaction.boltzSwapId
                                         thisTransaction.isSwap = true
                                         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
                                         thisTransaction.isLightning = false
