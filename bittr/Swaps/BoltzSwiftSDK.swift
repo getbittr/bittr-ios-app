@@ -1,6 +1,6 @@
 import Foundation
 import CryptoKit
-
+import P256K
 // MARK: - Data Extensions
 
 extension Data {
@@ -1003,5 +1003,45 @@ func constructClaimTransaction(
     tx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
     
     return tx
+}
+
+func computeTapLeafHash(aggregatedPublicKey: P256K.MuSig.PublicKey, claimLeafOutputHex: String, refundLeafOutputHex: String) throws -> HashDigest {
+    // Create the claim leaf hash
+    let claimLeafOutput = try claimLeafOutputHex.bytes
+    let claimLeafHash = try SHA256.taggedHash(
+        tag: "TapLeaf".data(using: .utf8)!,
+        data: Data([0xC0]) + Data(claimLeafOutput).compactSizePrefix
+    )
+    
+    // Create the refund leaf hash
+    let refundLeafOutput = try refundLeafOutputHex.bytes
+    let refundLeafHash = try SHA256.taggedHash(
+        tag: "TapLeaf".data(using: .utf8)!,
+        data: Data([0xC0]) + Data(refundLeafOutput).compactSizePrefix
+    )
+    
+    // Sort the leaves lexicographically and create the merkle root
+    var leftHash, rightHash: Data
+    if claimLeafHash < refundLeafHash {
+        leftHash = Data(claimLeafHash)
+        rightHash = Data(refundLeafHash)
+    } else {
+        leftHash = Data(refundLeafHash)
+        rightHash = Data(claimLeafHash)
+    }
+    
+    let merkleRoot = try SHA256.taggedHash(
+        tag: "TapBranch".data(using: .utf8)!,
+        data: leftHash + rightHash
+    )
+    
+    // Create the tap tweak hash using the x-only public key and merkle root
+    let xOnlyPubKey = aggregatedPublicKey.xonly.bytes
+    let tapTweakHash = try SHA256.taggedHash(
+        tag: "TapTweak".data(using: .utf8)!,
+        data: Data(xOnlyPubKey) + Data(merkleRoot)
+    )
+    
+    return tapTweakHash
 }
 
