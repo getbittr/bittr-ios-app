@@ -225,6 +225,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
          
          if self.stringToNumber(self.amountTextField.text) != 0 {
             if Int(self.stringToNumber(self.amountTextField.text)) > 1000000000000 {
+                self.nextLabel.alpha = 1
                 self.nextSpinner.stopAnimating()
                 // You can't receive or send this much.
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -242,7 +243,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                     }
                 }
             }
-        }   
+        } else {
+            self.nextLabel.alpha = 1
+            self.nextSpinner.stopAnimating()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
     }
     
     @IBAction func pendingSwapTapped(_ sender: UIButton) {

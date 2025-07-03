@@ -1087,36 +1087,6 @@ func computeTapLeafHash(aggregatedPublicKey: P256K.MuSig.PublicKey, claimLeafOut
     return tapTweakHash
 }
 
-func constructClaimTransaction(
-    swapOutput: SwapOutput,
-    destinationAddress: String,
-    fee: Int,
-    txHash: Data,
-    network: BitcoinNetwork = .regtest
-) -> BoltzClaimTransaction {
-    let tx = BoltzClaimTransaction()
-    
-    // Add input
-    tx.addInput(txHash: txHash, vout: swapOutput.vout, sequence: 0xfffffffd)
-    
-    // Create destination script using proper address decoding
-    guard let destinationScript = AddressHandler.toOutputScript(address: destinationAddress, network: network) else {
-        fatalError("Invalid destination address: \(destinationAddress)")
-    }
-    
-    // Calculate output value
-    let outputValue = swapOutput.value - UInt64(fee)
-    
-    // Add output
-    tx.addOutput(value: outputValue, script: destinationScript)
-    
-    // Automatically add placeholder witness (64 zero bytes) for unsigned transaction
-    // This ensures correct transaction structure for sigHash calculation
-    tx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
-    
-    return tx
-}
-
 func constructRefundTransaction(
     refundOutputs: [RefundOutput],
     destinationAddress: String,

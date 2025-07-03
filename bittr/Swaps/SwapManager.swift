@@ -85,10 +85,28 @@ class SwapManager: NSObject {
                     case .failure(let error):
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.nextLabel.alpha = 1
+                                swapVC.nextSpinner.stopAnimating()
+                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     case .success(let receivedDictionary):
+                        if let errorMessage = receivedDictionary["error"] as? String {
+                            DispatchQueue.main.async {
+                                if let swapVC = delegate as? SwapViewController {
+                                    swapVC.nextLabel.alpha = 1
+                                    swapVC.nextSpinner.stopAnimating()
+                                    swapVC.showAlert(
+                                        presentingController: swapVC,
+                                        title: Language.getWord(withID: "error"),
+                                        message: errorMessage,
+                                        buttons: [Language.getWord(withID: "okay")],
+                                        actions: nil
+                                    )
+                                }
+                            }
+                            return
+                        }
                         if receivedDictionary["expectedAmount"] is Int {
                             
                             print(receivedDictionary)
@@ -109,6 +127,8 @@ class SwapManager: NSObject {
             let errorString = handleNodeError(error)
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
+                    swapVC.nextLabel.alpha = 1
+                    swapVC.nextSpinner.stopAnimating()
                     swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 SentrySDK.capture(error: error)
@@ -116,6 +136,8 @@ class SwapManager: NSObject {
         } catch {
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
+                    swapVC.nextLabel.alpha = 1
+                    swapVC.nextSpinner.stopAnimating()
                     swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 SentrySDK.capture(error: error)
@@ -375,10 +397,28 @@ class SwapManager: NSObject {
                 case .failure(let error):
                     DispatchQueue.main.async {
                         if let swapVC = delegate as? SwapViewController {
+                            swapVC.nextLabel.alpha = 1
+                            swapVC.nextSpinner.stopAnimating()
                             swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 case .success(let receivedDictionary):
+                    if let errorMessage = receivedDictionary["error"] as? String {
+                        DispatchQueue.main.async {
+                            if let swapVC = delegate as? SwapViewController {
+                                swapVC.nextLabel.alpha = 1
+                                swapVC.nextSpinner.stopAnimating()
+                                swapVC.showAlert(
+                                    presentingController: swapVC,
+                                    title: Language.getWord(withID: "error"),
+                                    message: errorMessage,
+                                    buttons: [Language.getWord(withID: "okay")],
+                                    actions: nil
+                                )
+                            }
+                        }
+                        return
+                    }
                     let mutableSwapDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                     mutableSwapDictionary.setValue(amountSat, forKey: "useramount")
                     mutableSwapDictionary.setValue(privateKey, forKey: "privateKey")
