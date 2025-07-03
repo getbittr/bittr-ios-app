@@ -286,7 +286,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
                             self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
                             
                             if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
-                                SwapManager.claimRefund()
+                                //TODO RUBEN: Add refund logic here
                             }
                         } else {
                             print("No status received.")
@@ -390,19 +390,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         
         self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: status)
         
-        if status == "transaction.claim.pending" {
-            
-            // When status is transaction.claim.pending, get preimage details from API /swap/submarine/swapID/claim to verify that the Lightning payment has been made.
-            
-            if let swapID = self.swapDictionary?["id"] as? String {
-                SwapManager.checkPreimageDetails(swapID: swapID, delegate: self)
-            }
-            
-        } else if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
+        if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
             
             // Boltz's payment has failed and we want to get a refund our onchain transaction. Get a partial signature through /swap/submarine/swapID/refund. Or a scriptpath refund can be done after the locktime of the swap expires.
-            
-            SwapManager.claimRefund()
+            // TODO RUBEN: Add refund logic here
+
         } else if status == "transaction.mempool", self.swapDirection == 1 {
             // Handle transaction.mempool for reverse swaps
             if let swapID = self.swapDictionary?["id"] as? String,

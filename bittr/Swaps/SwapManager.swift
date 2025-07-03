@@ -297,59 +297,6 @@ class SwapManager: NSObject {
         }
     }
     
-    static func checkPreimageDetails(swapID:String, delegate:Any?) {
-        // Get preimage details from API /swap/submarine/swapID/claim to verify that the Lightning payment has been made.
-        
-        var apiURL = "https://api.boltz.exchange/v2"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            apiURL = "https://api.regtest.getbittr.com/v2"
-        }
-        
-        Task {
-            await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine/\(swapID)/claim", parameters: nil, getOrPost: "GET") { result in
-                
-                switch result {
-                case .failure(let error):
-                    print("Error. \(error.localizedDescription)")
-                case .success(let receivedDictionary):
-                    if let receivedPreimage = receivedDictionary["preimage"] as? String, let receivedPublicNonce = receivedDictionary["pubNonce"] as? String, let receivedPublicKey = receivedDictionary["publicKey"] as? String, let receivedTransactionHash = receivedDictionary["transactionHash"] as? String {
-                        
-                        // Verify that the Lightning payment has been made.
-                        if let swapVC = delegate as? SwapViewController {
-                            if let pendingInvoice = swapVC.pendingInvoice {
-                                if let pendingInvoiceHash = swapVC.getInvoiceHash(invoiceString: pendingInvoice) {
-                                    if let pendingPreimage = LightningNodeService.shared.getPaymentDetails(paymentHash: pendingInvoiceHash)?.kind.preimageAsString {
-                                        
-                                        if pendingPreimage == receivedPreimage {
-                                            // Correct preimage has been verified.
-                                            
-                                            // Send claim details to API /swap/submarine/swapID/claim so that Boltz can claim the onchain funds. If you don't send these, Boltz will eventually broadcast a scriptpath claim instead of a keypath claim.
-                                            
-                                            
-                                        } else {
-                                            // Preimage incorrect.
-                                        }
-                                    } else {
-                                        // Couldn't fetch invoice preimage.
-                                    }
-                                } else {
-                                    // Couldn't get hash for pending invoice.
-                                }
-                            } else {
-                                // No pending invoice has been saved.
-                            }
-                        } else {
-                            // Swap VC not connected.
-                        }
-                    } else {
-                        // Did not receive expected data.
-                    }
-                }
-                
-            }
-        }
-    }
-    
     struct Base58Check {
         static let alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
@@ -389,63 +336,10 @@ class SwapManager: NSObject {
         }
     }
     
-    static func claimRefund() {
-        
-        print("Claim refund triggered.")
-        
-        do {
-            /*let boltzPublicKey = try! P256K.Signing.PublicKey(pemRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f")
-            let myPrivateKey = try! P256K.Signing.PrivateKey(pemRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur").publicKey
-            let combinedPublicKey = try! boltzPublicKey.combine([myPrivateKey], format: .uncompressed)*/
-            
-            /*let combinedKeyString = """
-            -----BEGIN EC PRIVATE KEY-----
-            03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24
-            -----END EC PRIVATE KEY-----
-            """*/
-            
-            /*let publicKey = try P256.Signing.PublicKey(rawRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes).pemRepresentation
-            print("Did generate publicKey")*/
-            
-            let combinedKey = try P256K.Signing.PrivateKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f0304cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24".bytes)
-            print("Did generate combinedKey")
-            let tweak = try "2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1".bytes
-            print("Did generate tweak")
-            let tweakedCombinedKey = try combinedKey.add(tweak)
-            print("Did generate tweakedCombinedKey")
-            
-            let schnorrKey = try P256K.Schnorr.PrivateKey(dataRepresentation: tweakedCombinedKey.dataRepresentation)
-            print("Did generate schnorrKey")
-            
-            /*let boltzSchnorrKey = try! P256K.Schnorr.PublicKey(dataRepresentation: "03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f".bytes, format: .uncompressed)
-            let mySchnorrKey = try! P256K.Schnorr.PrivateKey(dataRepresentation: "KxhGnKyk68TyWQphZ7aPYJ6pspeH3oEadRKenBQaK7sgCo8oZUur".bytes).publicKey*/
-            //let combinedKey = try! P256K.Schnorr.
-            
-            let message = "2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1".data(using: .utf8)!
-            print("Did generate message")
-            let messageHash = SHA256.hash(data: message)
-            print("Did generate messageHash")
-            let firstNonce = try P256K.MuSig.Nonce.generate(secretKey: schnorrKey, publicKey: schnorrKey.publicKey, msg32: Array(messageHash))
-            
-            print("Public nonce")
-            
-        } catch let error as CryptoKit.CryptoKitError {
-            print("628 Error: \(error)")
-        } catch let error as secp256k1Error {
-            print("637 Error: \(error)")
-        } catch {
-            print("630 Error: \(error.localizedDescription)")
-        }
-    }
-    
     
     static func lightningToOnchain(amountSat:Int, delegate:Any?) async {
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
-        
-        // Create random preimage hash
-        // Create a random preimage for the swap; has to have a length of 32 bytes
-        // crypto.sha256(preimage).toString('hex')
         let randomPreimage = self.generateRandomPreimage()
         let randomPreimageHash = self.sha256Hash(of: randomPreimage)
         let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
