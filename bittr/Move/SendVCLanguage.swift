@@ -49,9 +49,10 @@ extension SendViewController {
         self.stackImagePaste.tintColor = Colors.getColor("blackorwhite")
         self.toView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.toTextField.attributedPlaceholder = NSAttributedString(
-            string: Language.getWord(withID: "enteramount"),
+            string: Language.getWord(withID: "enteraddress"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
+        self.toTextField.textColor = Colors.getColor("blackorwhite")
         
         self.availableAmount.textColor = Colors.getColor("blackorwhite")
         self.questionCircle.tintColor = Colors.getColor("blackorwhite")
@@ -59,9 +60,10 @@ extension SendViewController {
         self.btcLabel.textColor = Colors.getColor("blackorwhite")
         self.amountView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.amountTextField.attributedPlaceholder = NSAttributedString(
-            string: Language.getWord(withID: "enteraddress"),
+            string: Language.getWord(withID: "enteramount"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
+        self.amountTextField.textColor = Colors.getColor("blackorwhite")
         
         self.confirmTopLabel.textColor = Colors.getColor("blackorwhite")
         self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")

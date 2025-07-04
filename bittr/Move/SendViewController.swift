@@ -214,7 +214,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         // Text fields
         toTextField.delegate = self
         amountTextField.delegate = self
-        amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        toTextField.autocorrectionType = .no
+        toTextField.autocapitalizationType = .none
+        toTextField.smartQuotesType = .no
+        toTextField.smartDashesType = .no
+        amountTextField.inputAccessoryView = createAmountInputAccessoryView()
         
         // Set colors and language
         self.changeColors()
@@ -234,14 +238,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if forView == "onchain" {
             // Set "Send all" for onchain transactions.
             if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
-                let numberFormatter = NumberFormatter()
-                numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(actualMaximumSendableOnchainBtc)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                let formattedAmount = formatBitcoinAmount(actualMaximumSendableOnchainBtc)
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(formattedAmount) BTC"
             } else {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? 0
-                let numberFormatter = NumberFormatter()
-                numberFormatter.numberStyle = .decimal
-                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber) BTC".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+                let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.btcAmount)
+                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(formattedAmount) BTC"
             }
         } else {
             // Set "Send all" for lightning payments.
@@ -251,6 +253,25 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) 0 satoshis."
             }
         }
+    }
+    
+    func formatBitcoinAmount(_ btcValue: Double) -> String {
+        // Debug: print the values to see what's happening
+        print("Debug - btcValue: \(btcValue)")
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 8
+        formatter.maximumFractionDigits = 8
+        
+        // Handle very small amounts (less than 1 satoshi)
+        if btcValue < 0.00000001 {
+            return "0.00000000"
+        }
+        
+        let result = formatter.string(from: NSNumber(value: btcValue)) ?? "0.00000000"
+        print("Debug - formatted result: \(result)")
+        return result
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -294,11 +315,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.dismiss(animated: true, completion: nil)
     }
     
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        textField.resignFirstResponder()
-        return false
-    }
-    
     @IBAction func amountButtonTapped(_ sender: UIButton) {
         self.amountTextField.becomeFirstResponder()
         self.amountButton.alpha = 0
@@ -310,17 +326,114 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     @objc func doneButtonTapped() {
-        self.amountTextField.resignFirstResponder()
-        self.amountButton.alpha = 1
+        // Only handle amount field since address field doesn't have a Done button
+        if amountTextField.isFirstResponder {
+            // Move to next step
+            amountTextField.resignFirstResponder()
+            self.nextButtonTapped(nextButton)
+        }
     }
+    
+    // MARK: - UITextFieldDelegate
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        // Same logic as doneButtonTapped for return key
+        if textField == toTextField {
+            // If it's a lightning invoice with amount, go straight to confirmation
+            if (textField.text ?? "").prefix(2) == "ln" {
+                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue() {
+                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                        // Invoice has amount, go straight to confirmation
+                        let invoiceAmount = Int(invoiceAmountMilli)/1000
+                        self.amountTextField.text = "\(invoiceAmount)"
+                        self.btcLabel.text = "Sats"
+                        self.selectedCurrency = "satoshis"
+                        self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                        return true
+                    }
+                }
+            }
+            
+            // Otherwise, move to amount field
+            amountTextField.becomeFirstResponder()
+            return true
+        } else if textField == amountTextField {
+            // Move to next step
+            self.nextButtonTapped(nextButton)
+            return true
+        }
+        
+        return false
+    }
+    
+
+    
+    // MARK: - UITextFieldDelegate
+    
+
+    
+    func createAmountInputAccessoryView() -> UIView {
+        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
+        containerView.backgroundColor = Colors.getColor("whiteorblue3")
+        
+        let toolbar = UIToolbar(frame: containerView.bounds)
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        toolbar.backgroundColor = .clear
+        
+        // Currency selection buttons
+        let btcButton = UIBarButtonItem(title: "BTC", style: .plain, target: self, action: #selector(selectBTCCurrency))
+        let satsButton = UIBarButtonItem(title: "Sats", style: .plain, target: self, action: #selector(selectSatsCurrency))
+        let currencyButton = UIBarButtonItem(title: UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR", style: .plain, target: self, action: #selector(selectFiatCurrency))
+        
+        // Style the buttons with better contrast for dark mode
+        // Force black color for better visibility in dark mode
+        let buttonColor = UIColor.black
+        btcButton.tintColor = buttonColor
+        satsButton.tintColor = buttonColor
+        currencyButton.tintColor = buttonColor
+        
+        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: self, action: #selector(doneButtonTapped))
+        doneButton.tintColor = buttonColor
+        
+        toolbar.items = [btcButton, satsButton, currencyButton, flexSpace, doneButton]
+        
+        containerView.addSubview(toolbar)
+        
+        NSLayoutConstraint.activate([
+            toolbar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: containerView.topAnchor),
+            toolbar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+        
+        return containerView
+    }
+    
+    @objc func selectBTCCurrency() {
+        self.btcLabel.text = "BTC"
+        self.selectedCurrency = "bitcoin"
+    }
+    
+    @objc func selectSatsCurrency() {
+        self.btcLabel.text = "Sats"
+        self.selectedCurrency = "satoshis"
+    }
+    
+    @objc func selectFiatCurrency() {
+        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
+        self.btcLabel.text = currency
+        self.selectedCurrency = "currency"
+    }
+    
+
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
         
         if self.onchainOrLightning == "onchain" {
             // Regular
-            let numberFormatter = NumberFormatter()
-            numberFormatter.numberStyle = .decimal
-            self.amountTextField.text = "\(numberFormatter.number(from: "\(self.maximumSendableOnchainBtc ?? self.btcAmount)".fixDecimals())!.decimalValue as NSNumber)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.btcAmount)
+            self.amountTextField.text = formattedAmount
             self.btcLabel.text = "BTC"
             self.selectedCurrency = "bitcoin"
         } else {
@@ -370,6 +483,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.checkSendOnchain()
         } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
             // Confirm lightning payment.
+            
+            // Check if address/invoice field is empty
+            if (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == "" {
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
+            
             if (self.amountTextField.text ?? "") == "" {
                 if (self.toTextField.text ?? "").prefix(2) == "ln" {
                     if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.toTextField.text!).getValue() {
@@ -383,7 +503,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             // Zero invoice.
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
+                    } else {
+                        // Invalid lightning invoice
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
+                } else {
+                    // Not a lightning invoice, amount is required
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
                 // Transfer to satoshis.

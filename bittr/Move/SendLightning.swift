@@ -54,6 +54,14 @@ extension UIViewController {
                         var transactionValue = CGFloat(invoiceAmount)/100000000
                         var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
                         
+                        // Check if we have sufficient Lightning balance
+                        let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.lightningBalanceInSats ?? 0
+                        if invoiceAmount > availableLightningBalance {
+                            // Insufficient Lightning balance
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
+                        
                         sendVC?.temporaryInvoiceText = invoiceText!
                         receiveVC?.temporaryInvoiceText = invoiceText!
                         sendVC?.temporaryInvoiceAmount = invoiceAmount
@@ -80,6 +88,14 @@ extension UIViewController {
                             
                             var transactionValue = CGFloat(invoiceAmount)/100000000
                             var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
+                            
+                            // Check if we have sufficient Lightning balance
+                            let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.lightningBalanceInSats ?? 0
+                            if invoiceAmount > availableLightningBalance {
+                                // Insufficient Lightning balance
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                return
+                            }
                             
                             sendVC?.temporaryInvoiceText = invoiceText!
                             receiveVC?.temporaryInvoiceText = invoiceText!

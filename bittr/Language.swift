@@ -353,7 +353,10 @@ class Language: NSObject {
             "newaddress2": "The current address is unused. Would you like to get a new one anyway?",
             "notificationsrequired": "Notifications Required",
             "notificationsrequiredmessage": "To process swaps, you need to be online and we have to wait for at least one confirmation on the blockchain. We'd like to notify you once your transaction confirms so that you can finalize the swap. Please allow notification permissions in Settings.",
-            "swapstatusupdate": "Your swap status has been updated"
+            "swapstatusupdate": "Your swap status has been updated",
+            "invalidbitcoinaddress": "Invalid Bitcoin address",
+            "insufficientfunds": "Insufficient funds",
+            "lightninginsufficientfunds": "You don't have enough Lightning balance to send this payment.",
         ]
         
         if let foundWord = allWords[withID] {

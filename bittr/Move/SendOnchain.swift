@@ -47,6 +47,15 @@ extension SendViewController {
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0  {
                 
                 // Fields are left empty or the amount if set to zero.
+                var errorMessage = ""
+                
+                if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" {
+                    errorMessage = Language.getWord(withID: "enteraddress")
+                } else if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0 {
+                    errorMessage = Language.getWord(withID: "enteramount")
+                }
+                
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 
             } else if self.onchainAmountInBTC > self.btcAmount {
                 // Insufficient funds available.
@@ -67,7 +76,7 @@ extension SendViewController {
                 }
                 
                 self.confirmAddressLabel.text = invoiceText
-                self.confirmAmountLabel.text = "\(self.onchainAmountInBTC) btc"
+                self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
                 self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
                 
                 if let actualBlockchain = LightningNodeService.shared.getBlockchain(), let actualWallet = LightningNodeService.shared.getWallet() {
@@ -164,11 +173,19 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 
-                                if "\(error)".contains("InsufficientFunds") {
-                                    let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
+                                let errorString = "\(error)"
+                                
+                                if errorString.contains("InsufficientFunds") {
+                                    let condensedMessage = errorString.replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                } else if errorString.contains("address encoding error") {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidbitcoinaddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                } else if errorString.contains("OutputBelowDustLimit") {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "amounttoosmall"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 } else {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    // Show generic error to user, but log the actual error
+                                    print("BDK Error: \(error)")
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "cannotproceed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                                 
                                 SentrySDK.capture(error: error)
@@ -275,7 +292,7 @@ extension SendViewController {
             currencySymbol = "CHF"
             conversionRate = chfAmount ?? 0.0
         }
-        self.confirmAmountLabel.text = "\(self.onchainAmountInBTC) btc"
+        self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
         self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
         
         var thisSelectedFee = self.selectedFee
