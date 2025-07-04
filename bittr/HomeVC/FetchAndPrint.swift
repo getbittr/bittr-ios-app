@@ -17,14 +17,14 @@ extension HomeViewController {
                 let peers = try await LightningNodeService.shared.listPeers()
                 if peers.count == 1 {
                     if peers[0].isConnected == true {
-//                        Task {
-//                            do {
-//                                let result = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration()
-//                                print("Result: \(result)")
-//                            } catch {
-//                                print("Error: \(error)")
-//                            }
-//                        }
+                        Task {
+                            do {
+                                let result = try await BoltzRefund.tryBoltzRefund()
+                                print("Result: \(result)")
+                            } catch {
+                                print("Error: \(error)")
+                            }
+                        }
 
                         print("Did successfully check peer connection.")
                         DispatchQueue.main.async {

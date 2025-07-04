@@ -23,9 +23,9 @@ extension Data {
         self = data
     }
     
-//   func hexString() -> String {
-//       return map { String(format: "%02x", $0) }.joined()
-//   }
+//    func hexString() -> String {
+//        return map { String(format: "%02x", $0) }.joined()
+//    }
     
     func reversedData() -> Data {
         return Data(self.reversed())
@@ -233,6 +233,42 @@ struct SwapOutput {
     let value: UInt64
     let script: Data
     let vout: UInt32
+    
+    /// Convert to RefundOutput for non-cooperative refund (script-path)
+    func toRefundOutput(refundKey: Data, txHash: Data) -> RefundOutput {
+        return RefundOutput(
+            value: value,
+            script: script,
+            vout: vout,
+            keys: [refundKey],
+            cooperative: false,
+            txHash: txHash
+        )
+    }
+    
+    /// Convert to RefundOutput for cooperative refund (key-path)
+    func toCooperativeRefundOutput(claimKey: Data, refundKey: Data, txHash: Data) -> RefundOutput {
+        return RefundOutput(
+            value: value,
+            script: script,
+            vout: vout,
+            keys: [claimKey, refundKey],
+            cooperative: true,
+            txHash: txHash
+        )
+    }
+    
+    /// Convert to RefundOutput (generic, for backward compatibility)
+    func toRefundOutput(keys: [Data], cooperative: Bool, txHash: Data) -> RefundOutput {
+        return RefundOutput(
+            value: value,
+            script: script,
+            vout: vout,
+            keys: keys,
+            cooperative: cooperative,
+            txHash: txHash
+        )
+    }
 }
 
 /// Represents a refund output with additional refund-specific data
@@ -240,7 +276,7 @@ struct RefundOutput {
     let value: UInt64
     let script: Data
     let vout: UInt32
-    let keys: [Data]           // Signing keys (claim key, refund key)
+    let keys: [Data]           // For cooperative: [claimKey, refundKey]. For non-cooperative: [refundKey]
     let cooperative: Bool      // Whether to use cooperative (key-path) spending
     let txHash: Data          // Transaction hash containing this output
     
@@ -1022,12 +1058,20 @@ func constructClaimTransaction(
     destinationAddress: String,
     fee: Int,
     txHash: Data,
-    network: BitcoinNetwork = .regtest
+    network: BitcoinNetwork = .regtest,
+    isRefund: Bool = false,
+    timeoutBlockHeight: UInt32 = 0
 ) -> BoltzClaimTransaction {
     let tx = BoltzClaimTransaction()
     
-    // Add input
-    tx.addInput(txHash: txHash, vout: swapOutput.vout, sequence: 0xfffffffd)
+    // Set locktime for refunds (required for timelock)
+    if isRefund && timeoutBlockHeight > 0 {
+        tx.setLocktime(timeoutBlockHeight)
+    }
+    
+    // Add input with appropriate sequence
+    let sequence: UInt32 = isRefund ? 0xfffffffe : 0xfffffffd  // Different sequence for refund vs claim
+    tx.addInput(txHash: txHash, vout: swapOutput.vout, sequence: sequence)
     
     // Create destination script using proper address decoding
     guard let destinationScript = AddressHandler.toOutputScript(address: destinationAddress, network: network) else {
@@ -1042,6 +1086,7 @@ func constructClaimTransaction(
     
     // Automatically add placeholder witness (64 zero bytes) for unsigned transaction
     // This ensures correct transaction structure for sigHash calculation
+    // Note: The actual witness structure differs between claim and refund, but both start with placeholder
     tx.setWitness(inputIndex: 0, witness: [Data(count: 64)])
     
     return tx
@@ -1094,40 +1139,24 @@ func constructRefundTransaction(
     fee: Int,
     network: BitcoinNetwork = .regtest
 ) -> BoltzClaimTransaction {
-    let tx = BoltzClaimTransaction()
-    
-    // Set locktime for refund (required for timelock)
-    tx.setLocktime(timeoutBlockHeight)
-    
-    var totalInputValue: UInt64 = 0
-    
-    // Add all refund inputs
-    for refundOutput in refundOutputs {
-        tx.addInput(txHash: refundOutput.txHash, vout: refundOutput.vout, sequence: 0xfffffffe) // Enable locktime
-        totalInputValue += refundOutput.value
-        
-        // Set appropriate witness based on cooperative flag
-        if refundOutput.cooperative {
-            // Cooperative refund: use key-path spending (dummy 64-byte signature)
-            tx.setWitness(inputIndex: tx.inputs.count - 1, witness: [Data(count: 64)])
-        } else {
-            // Non-cooperative refund: use script-path spending (signature only, no preimage)
-            tx.setWitness(inputIndex: tx.inputs.count - 1, witness: [Data(count: 64)])
-        }
+    // JavaScript pattern: Just call constructClaimTransaction with isRefund=true
+    // For simplicity, handle single output case (most common)
+    guard let firstRefund = refundOutputs.first else {
+        fatalError("No refund outputs provided")
     }
     
-    // Create destination script using proper address decoding
-    guard let destinationScript = AddressHandler.toOutputScript(address: destinationAddress, network: network) else {
-        fatalError("Invalid destination address: \(destinationAddress)")
-    }
+    // Convert RefundOutput back to SwapOutput (with dummy preimage concept)
+    let swapOutput = firstRefund.swapOutput
     
-    // Calculate output value (total input value minus fee)
-    let outputValue = totalInputValue - UInt64(fee)
-    
-    // Add output
-    tx.addOutput(value: outputValue, script: destinationScript)
-    
-    return tx
+    return constructClaimTransaction(
+        swapOutput: swapOutput,
+        destinationAddress: destinationAddress,
+        fee: fee,
+        txHash: firstRefund.txHash,
+        network: network,
+        isRefund: true,  // This is the key difference!
+        timeoutBlockHeight: timeoutBlockHeight
+    )
 }
 
 /// Convenience function for single refund output (most common case)
@@ -1144,6 +1173,28 @@ func constructSingleRefundTransaction(
         timeoutBlockHeight: timeoutBlockHeight,
         fee: fee,
         network: network
+    )
+}
+
+/// Simplified convenience function that matches JavaScript pattern exactly
+/// Just like JS: constructRefundTransaction([{...swapOutput}], ...)
+func constructSingleRefundTransaction(
+    swapOutput: SwapOutput,
+    txHash: Data,
+    destinationAddress: String,
+    timeoutBlockHeight: UInt32,
+    fee: Int,
+    network: BitcoinNetwork = .regtest
+) -> BoltzClaimTransaction {
+    // Just call constructClaimTransaction with isRefund=true (JavaScript pattern)
+    return constructClaimTransaction(
+        swapOutput: swapOutput,
+        destinationAddress: destinationAddress,
+        fee: fee,
+        txHash: txHash,
+        network: network,
+        isRefund: true,
+        timeoutBlockHeight: timeoutBlockHeight
     )
 }
 
