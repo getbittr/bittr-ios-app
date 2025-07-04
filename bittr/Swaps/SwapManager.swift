@@ -113,6 +113,14 @@ class SwapManager: NSObject {
                             
                             let mutableDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                             mutableDictionary.setValue("Swap onchain to lightning \(idString)", forKey: "idstring")
+                            mutableDictionary.setValue(Int(amountMsat)/1000, forKey: "useramount")
+                            mutableDictionary.setValue(0, forKey: "direction") // 0 for onchain to lightning
+                            mutableDictionary.setValue(privateKey, forKey: "privateKey")
+                            
+                            // Save swap details to file
+                            if let swapID = receivedDictionary["id"] as? String {
+                                self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: mutableDictionary)
+                            }
                             
                             Task {
                                 await self.checkOnchainFees(amountInSatoshis: Int(amountMsat)/1000, createdInvoice: invoice, receivedDictionary: mutableDictionary, delegate: delegate)
@@ -224,6 +232,8 @@ class SwapManager: NSObject {
                 
                 Task {
                     do {
+                        // TODO; remove this, this is just done so the swap will fail
+                        let expectedAmount = expectedAmount - 1000
                         var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                             network = BitcoinDevKit.Network.regtest
@@ -238,6 +248,9 @@ class SwapManager: NSObject {
                         let txid = details.psbt.txid()
                         print("Transaction ID: \(txid)")
                         
+                        // We write the raw transaction to the JSON file of our swap as we need it to potentially claim a refund
+                        SwapManager.updateSwapFileWithLockupTx(swapID: swapID, lockupTx: tx.serialize().map { String(format: "%02hhx", $0) }.joined())
+                        
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             print("Successful transaction.")
                             
@@ -251,6 +264,8 @@ class SwapManager: NSObject {
                             newTransaction.sent = expectedAmount + onchainFees
                             newTransaction.isLightning = false
                             newTransaction.isBittr = false
+                            
+                            
                             
                             if let idString = receivedDictionary["idstring"] as? String {
                                 newTransaction.lnDescription = idString
@@ -318,46 +333,6 @@ class SwapManager: NSObject {
             }
         }
     }
-    
-    struct Base58Check {
-        static let alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-        static func decode(_ input: String) -> Data? {
-            var value = [UInt8](repeating: 0, count: 1)
-
-            for char in input {
-                guard let index = alphabet.firstIndex(of: char)?.utf16Offset(in: alphabet) else {
-                    return nil
-                }
-
-                var carry = index
-                for i in (0..<value.count).reversed() {
-                    carry += Int(value[i]) * 58
-                    value[i] = UInt8(carry & 0xFF)
-                    carry >>= 8
-                }
-
-                while carry > 0 {
-                    value.insert(UInt8(carry & 0xFF), at: 0)
-                    carry >>= 8
-                }
-            }
-
-            let leadingZeros = input.prefix { $0 == "1" }.count
-            value.insert(contentsOf: Array(repeating: 0, count: leadingZeros), at: 0)
-
-            guard value.count >= 4 else { return nil }
-            let checksum = value.suffix(4)
-            let payload = value.dropLast(4)
-
-            let hash = Data(SHA256.hash(data: SHA256.hash(data: Data(payload)).withUnsafeBytes { Data($0) }).withUnsafeBytes { Data($0) })
-            
-            guard hash.prefix(4).map({ $0 }) == Array(checksum) else { return nil }
-
-            return Data(payload)
-        }
-    }
-    
     
     static func lightningToOnchain(amountSat:Int, delegate:Any?) async {
         

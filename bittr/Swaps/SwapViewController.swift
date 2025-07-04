@@ -208,16 +208,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     @IBAction func nextTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        // TODO: Hide after testing
-        /*self.swapDictionary = ["bip21":"bitcoin:bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd?amount=0.00055357&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":55357,"id":"zRX14hgFtYLY","address":"bcrt1p2tkzczfw4y5xqlxngqgt7rx4lv4wwva0k968u0nue2zw03th6zlsvte5zd","swapTree":["claimLeaf":["version":192,"output":"a914df3d48b0e6848a21773b9f08ba0e5fee449853cc882036ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93ac"],"refundLeaf":["version":192,"output":"20da4bdf00584f344ffcaf99f954b5d0ead6124a7269ec404f0ee8ceb12866c315ad021d02b1"]],"claimPublicKey":"0336ab60cdac08b58c176298582076c56a19388f209ca54c5aa6307ef14cdefc93","timeoutBlockHeight":541]
-        self.confirmDirectionLabel.text = self.fromLabel.text
-        self.confirmAmountLabel.text = "55000 sats"
-        self.confirmFeesLabel.text = "510 sats"
-        self.confirmStatusLabel.text = "Sending"
-        self.confirmStatusSpinner.startAnimating()
-        self.switchView("confirm")
-        self.didCompleteOnchainTransaction(swapDictionary:self.swapDictionary!)*/
-        
         if self.nextSpinner.isAnimating { return }
         
         self.nextLabel.alpha = 0
@@ -397,9 +387,19 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: status)
         
         if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
-            
+            self.confirmStatusSpinner.stopAnimating()
             // Boltz's payment has failed and we want to get a refund our onchain transaction. Get a partial signature through /swap/submarine/swapID/refund. Or a scriptpath refund can be done after the locktime of the swap expires.
-            // TODO RUBEN: Add refund logic here
+            if let swapID = self.swapDictionary?["id"] as? String {
+                Task {
+                    do {
+                        let result = try await BoltzRefund.tryBoltzRefund(swapId: swapID)
+                        print("Result: \(result)")
+                    } catch {
+                        print("Error: \(error)")
+                    }
+                }
+            }
+            
 
         } else if status == "transaction.mempool", self.swapDirection == 1 {
             // Handle transaction.mempool for reverse swaps
