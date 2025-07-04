@@ -58,8 +58,39 @@ extension SendViewController {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 
             } else if self.onchainAmountInBTC > self.btcAmount {
-                // Insufficient funds available.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                // Check if we have sufficient Lightning balance for a swap
+                let availableLightningBalance = self.maximumSendableLNSats ?? self.homeVC?.coreVC?.lightningBalanceInSats ?? 0
+                
+                print("DEBUG - Onchain payment validation:")
+                print("  - onchainAmountInBTC: \(self.onchainAmountInBTC)")
+                print("  - btcAmount: \(self.btcAmount)")
+                print("  - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
+                print("  - maximumSendableLNSats: \(self.maximumSendableLNSats ?? -1)")
+                print("  - lightningBalanceInSats: \(self.homeVC?.coreVC?.lightningBalanceInSats ?? -1)")
+                print("  - availableLightningBalance: \(availableLightningBalance)")
+                print("  - Is Lightning balance sufficient? \(availableLightningBalance >= self.onchainAmountInSatoshis)")
+                
+                if availableLightningBalance >= self.onchainAmountInSatoshis {
+                    print("DEBUG - Offering Lightning swap option")
+                    print("DEBUG - Setting pendingOnchainAddress for swap: \(invoiceText ?? "nil")")
+                    print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
+                    // Suggest swap from Lightning to onchain
+                    self.showAlert(
+                        presentingController: self, 
+                        title: Language.getWord(withID: "insufficientfunds"), 
+                        message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(Int(self.btcAmount * 100000000)) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableLightningBalance) satoshis.", 
+                        buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
+                        actions: [nil, #selector(self.swapAndPayOnchain)]
+                    )
+                    // Store the address for the swap
+                    self.pendingOnchainAddress = invoiceText!
+                    print("DEBUG - pendingOnchainAddress is now: \(self.pendingOnchainAddress)")
+                    return
+                } else {
+                    print("DEBUG - Lightning balance insufficient, showing regular insufficient funds message")
+                    // Insufficient funds in both onchain and Lightning
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
             } else {
             
                 self.nextLabel.alpha = 0
@@ -448,6 +479,36 @@ extension SendViewController {
             }
         } else {
             return nil
+        }
+    }
+    
+    @objc func swapAndPayOnchain() {
+        self.hideAlert()
+        print("DEBUG - swapAndPayOnchain called")
+        print("DEBUG - pendingOnchainAddress: \(self.pendingOnchainAddress)")
+        print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
+        // Navigate to swap screen with the pending address using existing segue pattern
+        if let homeVC = self.homeVC {
+            // Store the pending address in a way that can be accessed by the swap screen
+            let pendingAddress = self.pendingOnchainAddress
+            let pendingAmount = self.onchainAmountInSatoshis
+            print("DEBUG - Passing to MoveViewController: address=\(pendingAddress), amount=\(pendingAmount)")
+            // First dismiss the current view controller
+            self.dismiss(animated: true) {
+                // Then navigate through the existing segue pattern
+                homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
+                
+                // After a short delay, trigger the swap button tap to go directly to swap
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if let moveVC = homeVC.presentedViewController as? MoveViewController {
+                        // Set a flag to indicate this is from an onchain payment
+                        moveVC.isFromOnchainPayment = true
+                        moveVC.pendingOnchainAddress = pendingAddress
+                        moveVC.pendingOnchainAmount = pendingAmount
+                        moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
+                    }
+                }
+            }
         }
     }
 }

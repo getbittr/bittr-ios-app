@@ -357,6 +357,7 @@ class Language: NSObject {
             "invalidbitcoinaddress": "Invalid Bitcoin address",
             "insufficientfunds": "Insufficient funds",
             "lightninginsufficientfunds": "You don't have enough Lightning balance to send this payment.",
+            "onchaininsufficientfunds": "You don't have enough onchain balance to send this payment. Your available onchain balance is",
             "swapinsufficientfunds": "However, you have enough regular Bitcoin balance to swap and pay. Your available onchain balance is",
             "swapandpay": "Swap & Pay",
             "invalidinvoice": "Invalid Lightning invoice",

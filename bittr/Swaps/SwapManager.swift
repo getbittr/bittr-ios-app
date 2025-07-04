@@ -388,7 +388,7 @@ class SwapManager: NSObject {
         }
     }
     
-    static func lightningToOnchain(amountSat:Int, delegate:Any?) async {
+    static func lightningToOnchain(amountSat:Int, delegate:Any?, payoutAddress:String? = nil) async {
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
@@ -398,7 +398,16 @@ class SwapManager: NSObject {
         let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
 
         let wallet = LightningNodeService.shared.getWallet()
-        let destinationAddress = try! wallet?.getAddress(addressIndex: .lastUnused).address.asString()
+        
+        // Use provided payout address if available, otherwise get a new unused address
+        let destinationAddress: String?
+        if let payoutAddress = payoutAddress {
+            print("DEBUG - Using provided payout address: \(payoutAddress)")
+            destinationAddress = payoutAddress
+        } else {
+            print("DEBUG - Getting new unused address for payout")
+            destinationAddress = try! wallet?.getAddress(addressIndex: .lastUnused).address.asString()
+        }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
         

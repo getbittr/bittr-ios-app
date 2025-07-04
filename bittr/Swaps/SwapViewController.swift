@@ -83,6 +83,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var isFromBackgroundNotification = false
     var isFromLightningPayment = false
     var pendingLightningInvoice = ""
+    var isFromOnchainPayment = false
+    var pendingOnchainAddress = ""
+    var pendingOnchainAmount = 0
     var pendingSwapData: (swapDictionary: NSDictionary, feeHigh: Float, onchainFees: Int, lightningFees: Int)?
     
     override func viewDidLoad() {
@@ -158,8 +161,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             } else if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
                 // Handle pending Lightning invoice
                 self.handlePendingLightningInvoice()
+            } else if self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty {
+                // Handle pending onchain payment
+                self.handlePendingOnchainPayment()
             }
         }
+        
+        print("DEBUG - SwapViewController loaded. pendingOnchainAddress: \(self.pendingOnchainAddress), pendingOnchainAmount: \(self.pendingOnchainAmount)")
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -421,6 +429,17 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.pendingSwapData = nil
     }
     
+    // Clear pending addresses and invoices when swaps are cancelled or aborted
+    func clearPendingSwapData() {
+        print("DEBUG - Clearing pending swap data")
+        self.pendingOnchainAddress = ""
+        self.pendingLightningInvoice = ""
+        self.pendingOnchainAmount = 0
+        self.isFromLightningPayment = false
+        self.isFromOnchainPayment = false
+        self.pendingSwapData = nil
+    }
+    
     func didCompleteOnchainTransaction(swapDictionary:NSDictionary) {
         
         // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
@@ -658,6 +677,20 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         } else {
             // Invalid invoice
             self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "invalidinvoice"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    private func handlePendingOnchainPayment() {
+        print("DEBUG - handlePendingOnchainPayment called. pendingOnchainAddress: \(self.pendingOnchainAddress), pendingOnchainAmount: \(self.pendingOnchainAmount)")
+        // Set the amount and direction for Lightning to onchain swap
+        self.amountToBeSent = self.pendingOnchainAmount
+        self.amountTextField.text = "\(self.pendingOnchainAmount)"
+        self.swapDirection = 1 // Lightning to onchain
+        self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
+        
+        // Start the swap process
+        Task {
+            await SwapManager.lightningToOnchain(amountSat: self.pendingOnchainAmount, delegate: self, payoutAddress: self.pendingOnchainAddress)
         }
     }
     

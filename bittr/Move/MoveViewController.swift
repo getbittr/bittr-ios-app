@@ -58,6 +58,9 @@ class MoveViewController: UIViewController {
     var isFromBackgroundNotification = false
     var isFromLightningPayment = false
     var pendingLightningInvoice = ""
+    var isFromOnchainPayment = false
+    var pendingOnchainAddress = ""
+    var pendingOnchainAmount = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -119,6 +122,13 @@ class MoveViewController: UIViewController {
                 self.performSegue(withIdentifier: "MoveToSwap", sender: self)
             }
         }
+        
+        // If we're coming from an onchain payment, automatically trigger the swap segue
+        if self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.performSegue(withIdentifier: "MoveToSwap", sender: self)
+            }
+        }
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -167,6 +177,10 @@ class MoveViewController: UIViewController {
                 swapVC.isFromBackgroundNotification = self.isFromBackgroundNotification
                 swapVC.isFromLightningPayment = self.isFromLightningPayment
                 swapVC.pendingLightningInvoice = self.pendingLightningInvoice
+                swapVC.isFromOnchainPayment = self.isFromOnchainPayment
+                swapVC.pendingOnchainAddress = self.pendingOnchainAddress
+                swapVC.pendingOnchainAmount = self.pendingOnchainAmount
+                print("DEBUG - MoveViewController: Performing segue to SwapViewController with address: \(self.pendingOnchainAddress), amount: \(self.pendingOnchainAmount)")
             }
         }
     }

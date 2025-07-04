@@ -158,6 +158,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
     var pendingLightningInvoice = ""
+    var pendingOnchainAddress = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
