@@ -36,7 +36,7 @@ class SwapManager: NSObject {
     // 8. transaction.refunded > User didn't claim onchain transaction in time
     
     
-    static func onchainToLightning(amountMsat:UInt64, delegate:Any?) async {
+    static func onchainToLightning(amountMsat:UInt64, delegate:Any?, existingInvoice:String? = nil) async {
         
         do {
             
@@ -44,12 +44,27 @@ class SwapManager: NSObject {
             dateFormatter.dateFormat = "yyyyMMddHHmmss"
             let idString = dateFormatter.string(from: Date())
             
-            // Create an invoice for the amount we want to move.
-            let invoice = try await LightningNodeService.shared.receivePayment(
-                amountMsat: amountMsat,
-                description: "Swap onchain to lightning \(idString)",
-                expirySecs: 3600
-            )
+            var invoice: String
+            var actualAmountMsat: UInt64 = amountMsat
+            
+            if let existingInvoice = existingInvoice {
+                // Use the existing invoice (for Lightning payment case)
+                invoice = existingInvoice
+                
+                // Parse the existing invoice to get the actual amount
+                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue() {
+                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                        actualAmountMsat = invoiceAmountMilli
+                    }
+                }
+            } else {
+                // Create an invoice for the amount we want to move.
+                invoice = try await LightningNodeService.shared.receivePayment(
+                    amountMsat: amountMsat,
+                    description: "Swap onchain to lightning \(idString)",
+                    expirySecs: 3600
+                )
+            }
             
             // Store invoice in cache.
             DispatchQueue.main.async {
@@ -141,7 +156,7 @@ class SwapManager: NSObject {
                             
                             let mutableDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                             mutableDictionary.setValue("Swap onchain to lightning \(idString)", forKey: "idstring")
-                            mutableDictionary.setValue(Int(amountMsat)/1000, forKey: "useramount")
+                            mutableDictionary.setValue(Int(actualAmountMsat)/1000, forKey: "useramount")
                             mutableDictionary.setValue(0, forKey: "direction") // 0 for onchain to lightning
                             mutableDictionary.setValue(privateKey, forKey: "privateKey")
                             
@@ -151,7 +166,7 @@ class SwapManager: NSObject {
                             }
                             
                             Task {
-                                await self.checkOnchainFees(amountInSatoshis: Int(amountMsat)/1000, createdInvoice: invoice, receivedDictionary: mutableDictionary, delegate: delegate)
+                                await self.checkOnchainFees(amountInSatoshis: Int(actualAmountMsat)/1000, createdInvoice: invoice, receivedDictionary: mutableDictionary, delegate: delegate)
                             }
                         }
                     }
@@ -181,7 +196,7 @@ class SwapManager: NSObject {
         }
     }
     
-    static func checkOnchainFees(amountInSatoshis:Int, createdInvoice:LDKNode.Bolt11Invoice, receivedDictionary:NSDictionary, delegate:Any?) async {
+    static func checkOnchainFees(amountInSatoshis:Int, createdInvoice:Any, receivedDictionary:NSDictionary, delegate:Any?) async {
         
         if let onchainAddress = receivedDictionary["address"] as? String, let expectedAmount = receivedDictionary["expectedAmount"] as? Int, let swapID = receivedDictionary["id"] as? String {
             

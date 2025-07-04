@@ -8,6 +8,7 @@
 import UIKit
 import LDKNode
 import UserNotifications
+import LightningDevKit
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
 
@@ -76,10 +77,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var homeVC:HomeViewController?
     var swapDirection = 0
     var amountToBeSent:Int?
-    var pendingInvoice:Bolt11Invoice?
+    var pendingInvoice:Any?
     var swapDictionary:NSDictionary?
     var webSocketManager:WebSocketManager?
     var isFromBackgroundNotification = false
+    var isFromLightningPayment = false
+    var pendingLightningInvoice = ""
     var pendingSwapData: (swapDictionary: NSDictionary, feeHigh: Float, onchainFees: Int, lightningFees: Int)?
     
     override func viewDidLoad() {
@@ -139,6 +142,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Available amount
         if let actualChannel = self.homeVC?.coreVC?.bittrChannel {
             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(actualChannel.receivableMaximum)")
+        } else {
+            // Fallback if channel is not available
+            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
         }
 
         // Set colors and language
@@ -149,6 +155,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if self.isFromBackgroundNotification {
                 self.checkForOngoingSwap()
+            } else if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
+                // Handle pending Lightning invoice
+                self.handlePendingLightningInvoice()
             }
         }
     }
@@ -237,7 +246,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.nextLabel.alpha = 1
                 self.nextSpinner.stopAnimating()
                 // You can't receive or send this much.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(self.homeVC!.coreVC!.bittrChannel!.receivableMaximum)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                let maxAmount = self.homeVC?.coreVC?.bittrChannel?.receivableMaximum ?? 0
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
                 self.amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
                 if self.swapDirection == 0 {
@@ -343,7 +353,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
     }
     
-    func confirmExpectedFees(feeHigh:Float, onchainFees:Int, lightningFees:Int, swapDictionary:NSDictionary, createdInvoice:Bolt11Invoice) {
+    func confirmExpectedFees(feeHigh:Float, onchainFees:Int, lightningFees:Int, swapDictionary:NSDictionary, createdInvoice:Any) {
         
         self.nextLabel.alpha = 1
         self.nextSpinner.stopAnimating()
@@ -622,6 +632,32 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.webSocketManager!.swapID = swapID
                 self.webSocketManager!.connect()
             }
+        }
+    }
+    
+    private func handlePendingLightningInvoice() {
+        // Parse the pending Lightning invoice to get the amount
+        if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.pendingLightningInvoice).getValue() {
+            if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                let invoiceAmount = Int(invoiceAmountMilli)/1000
+                
+                // Set the amount and direction
+                self.amountToBeSent = invoiceAmount
+                self.amountTextField.text = "\(invoiceAmount)"
+                self.swapDirection = 0 // Onchain to Lightning
+                self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
+                
+                // Start the swap process
+                Task {
+                    await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), delegate: self, existingInvoice: self.pendingLightningInvoice)
+                }
+            } else {
+                // Zero amount invoice - user needs to enter amount
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        } else {
+            // Invalid invoice
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "invalidinvoice"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     

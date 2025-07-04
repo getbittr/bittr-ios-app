@@ -157,6 +157,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var bitcoinQR = ""
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
+    var pendingLightningInvoice = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()

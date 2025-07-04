@@ -57,9 +57,26 @@ extension UIViewController {
                         // Check if we have sufficient Lightning balance
                         let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.lightningBalanceInSats ?? 0
                         if invoiceAmount > availableLightningBalance {
-                            // Insufficient Lightning balance
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            return
+                            // Check if we have sufficient onchain balance for a swap
+                            let availableOnchainBalance = sendVC?.homeVC?.coreVC?.onchainBalanceInSats ?? receiveVC?.homeVC?.coreVC?.onchainBalanceInSats ?? 0
+                            if availableOnchainBalance >= invoiceAmount {
+                                // Suggest swap to Lightning
+                                self.showAlert(
+                                    presentingController: self, 
+                                    title: Language.getWord(withID: "insufficientfunds"), 
+                                    message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableOnchainBalance) satoshis.", 
+                                    buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
+                                    actions: [nil, #selector(self.swapAndPayLightning)]
+                                )
+                                // Store the invoice for the swap
+                                sendVC?.pendingLightningInvoice = invoiceText!
+                                receiveVC?.pendingLightningInvoice = invoiceText!
+                                return
+                            } else {
+                                // Insufficient funds in both Lightning and onchain
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                return
+                            }
                         }
                         
                         sendVC?.temporaryInvoiceText = invoiceText!
@@ -92,9 +109,26 @@ extension UIViewController {
                             // Check if we have sufficient Lightning balance
                             let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.lightningBalanceInSats ?? 0
                             if invoiceAmount > availableLightningBalance {
-                                // Insufficient Lightning balance
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                return
+                                // Check if we have sufficient onchain balance for a swap
+                                let availableOnchainBalance = sendVC?.homeVC?.coreVC?.onchainBalanceInSats ?? receiveVC?.homeVC?.coreVC?.onchainBalanceInSats ?? 0
+                                if availableOnchainBalance >= invoiceAmount {
+                                    // Suggest swap to Lightning
+                                    self.showAlert(
+                                        presentingController: self, 
+                                        title: Language.getWord(withID: "insufficientfunds"), 
+                                        message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableOnchainBalance) satoshis.", 
+                                        buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
+                                        actions: [nil, #selector(self.swapAndPayLightning)]
+                                    )
+                                    // Store the invoice for the swap
+                                    sendVC?.pendingLightningInvoice = invoiceText!
+                                    receiveVC?.pendingLightningInvoice = invoiceText!
+                                    return
+                                } else {
+                                    // Insufficient funds in both Lightning and onchain
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    return
+                                }
                             }
                             
                             sendVC?.temporaryInvoiceText = invoiceText!
@@ -188,6 +222,35 @@ extension UIViewController {
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                     
                     SentrySDK.capture(error: error)
+                }
+            }
+        }
+    }
+    
+    @objc func swapAndPayLightning() {
+        self.hideAlert()
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        // Navigate to swap screen with the pending invoice using existing segue pattern
+        if let homeVC = sendVC?.homeVC ?? receiveVC?.homeVC {
+            // Store the pending invoice in a way that can be accessed by the swap screen
+            let pendingInvoice = sendVC?.pendingLightningInvoice ?? receiveVC?.pendingLightningInvoice ?? ""
+            
+            // First dismiss the current view controller
+            self.dismiss(animated: true) {
+                // Then navigate through the existing segue pattern
+                homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
+                
+                // After a short delay, trigger the swap button tap to go directly to swap
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if let moveVC = homeVC.presentedViewController as? MoveViewController {
+                        // Set a flag to indicate this is from a Lightning payment
+                        moveVC.isFromLightningPayment = true
+                        moveVC.pendingLightningInvoice = pendingInvoice
+                        moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
+                    }
                 }
             }
         }

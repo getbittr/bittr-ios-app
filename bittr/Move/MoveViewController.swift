@@ -56,6 +56,8 @@ class MoveViewController: UIViewController {
     // Home View Controller
     var homeVC:HomeViewController?
     var isFromBackgroundNotification = false
+    var isFromLightningPayment = false
+    var pendingLightningInvoice = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -110,6 +112,13 @@ class MoveViewController: UIViewController {
         conversionInstant.text = currencySymbol + " " + btclnBalanceValue
         
         self.changeColors()
+        
+        // If we're coming from a Lightning payment, automatically trigger the swap segue
+        if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.performSegue(withIdentifier: "MoveToSwap", sender: self)
+            }
+        }
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -156,6 +165,8 @@ class MoveViewController: UIViewController {
             if let swapVC = segue.destination as? SwapViewController {
                 swapVC.homeVC = self.homeVC
                 swapVC.isFromBackgroundNotification = self.isFromBackgroundNotification
+                swapVC.isFromLightningPayment = self.isFromLightningPayment
+                swapVC.pendingLightningInvoice = self.pendingLightningInvoice
             }
         }
     }
