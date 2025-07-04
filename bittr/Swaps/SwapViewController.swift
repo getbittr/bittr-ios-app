@@ -7,8 +7,9 @@
 
 import UIKit
 import LDKNode
+import UserNotifications
 
-class SwapViewController: UIViewController, UITextFieldDelegate {
+class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
 
     // General
     @IBOutlet weak var downButton: UIButton!
@@ -78,9 +79,14 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     var pendingInvoice:Bolt11Invoice?
     var swapDictionary:NSDictionary?
     var webSocketManager:WebSocketManager?
+    var isFromBackgroundNotification = false
+    var pendingSwapData: (swapDictionary: NSDictionary, feeHigh: Float, onchainFees: Int, lightningFees: Int)?
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Add notification observer for swap updates
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotification), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
         
         // Button titles
         self.downButton.setTitle("", for: .normal)
@@ -138,11 +144,24 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         // Set colors and language
         self.changeColors()
         self.setLanguage()
+        
+        // Check if there's an ongoing swap and automatically show it (only if from background notification)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if self.isFromBackgroundNotification {
+                self.checkForOngoingSwap()
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        NotificationCenter.default.removeObserver(self)
     }
     
     @objc func keyboardWillDisappear() {
@@ -253,14 +272,19 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
     
     func switchView(_ toView: String) {
         
+        guard let centerCardLeading = self.centerCardLeading else {
+            print("centerCardLeading is nil, cannot switch view")
+            return
+        }
+        
         if toView == "confirm" {
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.centerCardLeading.constant = 15 - self.view.bounds.width
+                centerCardLeading.constant = 15 - self.view.bounds.width
                 self.view.layoutIfNeeded()
             }
         } else {
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.centerCardLeading.constant = 15
+                centerCardLeading.constant = 15
                 self.view.layoutIfNeeded()
             }
         }
@@ -338,31 +362,53 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         }
         let convertedAmount = "\(Int((CGFloat(self.amountToBeSent ?? 0)/100000000*correctAmount).rounded()))"
         
-        let alert = UIAlertController(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(onchainFees + lightningFees)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.amountToBeSent ?? 0)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)"), preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "proceed"), style: .default, handler: { _ in
-            
-            let updatedDictionary:NSMutableDictionary = swapDictionary.mutableCopy() as! NSMutableDictionary
-            updatedDictionary.setValue(onchainFees + lightningFees, forKey: "totalfees")
-            updatedDictionary.setValue(self.amountToBeSent ?? 0, forKey: "useramount")
-            updatedDictionary.setValue(self.swapDirection, forKey: "direction")
-            self.swapDictionary = updatedDictionary
-            self.homeVC?.coreVC?.ongoingSwapDictionary = updatedDictionary
-            CacheManager.saveLatestSwap(updatedDictionary)
-            self.confirmDirectionLabel.text = self.fromLabel.text
-            self.confirmAmountLabel.text = "\(self.amountToBeSent ?? 0) sats"
-            self.confirmFeesLabel.text = "\(onchainFees + lightningFees) sats"
-            self.confirmStatusLabel.text = "Sending"
-            self.confirmStatusSpinner.startAnimating()
-            self.switchView("confirm")
-            
-            if self.swapDirection == 0 {
-                SwapManager.sendOnchainPayment(feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees, receivedDictionary: self.swapDictionary!, delegate: self)
-            } else {
-                SwapManager.sendLightningPayment(swapDictionary: self.swapDictionary!, delegate: self)
-            }
-        }))
-        self.present(alert, animated: true)
+        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(onchainFees + lightningFees)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.amountToBeSent ?? 0)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)")
+        
+        self.showAlert(
+            presentingController: self,
+            title: Language.getWord(withID: "swapfunds2"),
+            message: message,
+            buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "proceed")],
+            actions: [nil, #selector(self.proceedWithSwap)]
+        )
+        
+        // Store the swap data for the proceed action
+        self.pendingSwapData = (swapDictionary: swapDictionary, feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees)
+    }
+    
+    @objc func proceedWithSwap() {
+        guard let swapData = self.pendingSwapData else { return }
+        
+        // Hide the alert first
+        self.hideAlert()
+        
+        let updatedDictionary:NSMutableDictionary = swapData.swapDictionary.mutableCopy() as! NSMutableDictionary
+        updatedDictionary.setValue(swapData.onchainFees + swapData.lightningFees, forKey: "totalfees")
+        updatedDictionary.setValue(self.amountToBeSent ?? 0, forKey: "useramount")
+        updatedDictionary.setValue(self.swapDirection, forKey: "direction")
+        self.swapDictionary = updatedDictionary
+        self.homeVC?.coreVC?.ongoingSwapDictionary = updatedDictionary
+        CacheManager.saveLatestSwap(updatedDictionary)
+        
+        // Update the swap file with fees
+        if let swapID = swapData.swapDictionary["id"] as? String {
+            SwapManager.updateSwapFileWithFees(swapID: swapID, totalFees: swapData.onchainFees + swapData.lightningFees, userAmount: self.amountToBeSent ?? 0, direction: self.swapDirection)
+        }
+        self.confirmDirectionLabel.text = self.fromLabel.text
+        self.confirmAmountLabel.text = "\(self.amountToBeSent ?? 0) sats"
+        self.confirmFeesLabel.text = "\(swapData.onchainFees + swapData.lightningFees) sats"
+        self.confirmStatusLabel.text = "Sending"
+        self.confirmStatusSpinner.startAnimating()
+        self.switchView("confirm")
+        
+        if self.swapDirection == 0 {
+            SwapManager.sendOnchainPayment(feeHigh: swapData.feeHigh, onchainFees: swapData.onchainFees, lightningFees: swapData.lightningFees, receivedDictionary: self.swapDictionary!, delegate: self)
+        } else {
+            SwapManager.sendLightningPayment(swapDictionary: self.swapDictionary!, delegate: self)
+        }
+        
+        // Clear the pending data
+        self.pendingSwapData = nil
     }
     
     func didCompleteOnchainTransaction(swapDictionary:NSDictionary) {
@@ -420,6 +466,165 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
     }
     
+    @objc func askForPushNotifications() {
+        
+        self.hideAlert()
+        
+        let current = UNUserNotificationCenter.current()
+        current.getNotificationSettings { (settings) in
+            
+            if settings.authorizationStatus == .notDetermined {
+                // User hasn't set their preference yet.
+                
+                current.delegate = self
+                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                    
+                    print("Permission granted: \(granted)")
+                    guard granted else {
+                        return
+                    }
+                    
+                    // Double check that the preference is now authorized.
+                    current.getNotificationSettings { (settings) in
+                        print("Notification settings: \(settings)")
+                        guard settings.authorizationStatus == .authorized else {
+                            return
+                        }
+                        DispatchQueue.main.async {
+                            // Register for notifications.
+                            UIApplication.shared.registerForRemoteNotifications()
+                        }
+                    }
+                }
+            } else if settings.authorizationStatus == .authorized {
+                // User has already authorized notifications.
+                DispatchQueue.main.async {
+                    // Register for notifications.
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+    }
+    
+    @objc func handleSwapNotification(notification: NSNotification) {
+        if let userInfo = notification.userInfo as? [String: Any],
+           let swapID = userInfo["swap_id"] as? String {
+            
+            print("Received swap notification for ID: \(swapID)")
+            
+            // Load swap details from file
+            if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                print("Loaded swap details: \(swapDetails)")
+                
+                // Update the swap dictionary and switch to confirm view
+                self.swapDictionary = swapDetails
+                self.homeVC?.coreVC?.ongoingSwapDictionary = swapDetails
+                
+                // Set up the confirm view with loaded data
+                if let direction = swapDetails["direction"] as? Int {
+                    self.swapDirection = direction
+                }
+                
+                if let userAmount = swapDetails["useramount"] as? Int {
+                    self.amountToBeSent = userAmount
+                }
+                
+                // Ensure view is loaded before accessing UI elements
+                DispatchQueue.main.async {
+                    // Update UI labels
+                    if let idString = swapDetails["idstring"] as? String {
+                        self.confirmDirectionLabel?.text = idString.contains("onchain to lightning") ? 
+                            Language.getWord(withID: "onchaintolightning") : 
+                            Language.getWord(withID: "lightningtoonchain")
+                    }
+                    
+                    if let userAmount = swapDetails["useramount"] as? Int {
+                        self.confirmAmountLabel?.text = "\(userAmount) sats"
+                    }
+                    
+                    if let totalFees = swapDetails["totalfees"] as? Int {
+                        self.confirmFeesLabel?.text = "\(totalFees) sats"
+                    }
+                    
+                    // Set status based on notification data
+                    if let status = userInfo["status"] as? String {
+                        self.confirmStatusLabel?.text = self.userFriendlyStatus(receivedStatus: status)
+                        
+                        // Stop spinner if swap is complete or failed
+                        if status == "transaction.claimed" || status == "invoice.settled" || 
+                           status == "swap.expired" || status == "transaction.failed" {
+                            self.confirmStatusSpinner?.stopAnimating()
+                        }
+                    }
+                    
+                    // Switch to confirm view
+                    self.switchView("confirm")
+                    
+                    // Set up WebSocket if needed
+                    if let swapID = swapDetails["id"] as? String {
+                        self.webSocketManager = WebSocketManager()
+                        self.webSocketManager!.delegate = self
+                        self.webSocketManager!.swapID = swapID
+                        self.webSocketManager!.connect()
+                    }
+                }
+                
+            } else {
+                print("Could not load swap details for ID: \(swapID)")
+            }
+        }
+    }
+    
+    private func checkForOngoingSwap() {
+        // Check if there's an ongoing swap and automatically show it
+        var pendingSwap = self.homeVC?.coreVC?.ongoingSwapDictionary
+        if pendingSwap == nil {
+            pendingSwap = CacheManager.getLatestSwap()
+        }
+        if pendingSwap != nil {
+            self.homeVC?.coreVC?.ongoingSwapDictionary = pendingSwap
+            self.swapDictionary = pendingSwap
+            
+            // Set up the confirm view with loaded data
+            if let direction = pendingSwap?["direction"] as? Int {
+                self.swapDirection = direction
+            }
+            
+            if let userAmount = pendingSwap?["useramount"] as? Int {
+                self.amountToBeSent = userAmount
+            }
+            
+            // Update UI labels
+            if let idString = pendingSwap?["idstring"] as? String {
+                self.confirmDirectionLabel?.text = idString.contains("onchain to lightning") ? 
+                    Language.getWord(withID: "onchaintolightning") : 
+                    Language.getWord(withID: "lightningtoonchain")
+            }
+            
+            if let userAmount = pendingSwap?["useramount"] as? Int {
+                self.confirmAmountLabel?.text = "\(userAmount) sats"
+            }
+            
+            if let totalFees = pendingSwap?["totalfees"] as? Int {
+                self.confirmFeesLabel?.text = "\(totalFees) sats"
+            }
+            
+            // Set initial status
+            self.confirmStatusLabel?.text = Language.getWord(withID: "swapstatuspreparing")
+            
+            // Switch to confirm view
+            self.switchView("confirm")
+            
+            // Set up WebSocket if needed
+            if let swapID = pendingSwap?["id"] as? String {
+                self.webSocketManager = WebSocketManager()
+                self.webSocketManager!.delegate = self
+                self.webSocketManager!.swapID = swapID
+                self.webSocketManager!.connect()
+            }
+        }
+    }
+    
     private func handleTransactionMempool(swapID: String, transactionHex: String) {
         // Update the swap file with the lockup transaction
         SwapManager.updateSwapFileWithLockupTx(swapID: swapID, lockupTx: transactionHex)
@@ -471,7 +676,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
         self.titleStatus.text = Language.getWord(withID: "status")
     }
     
-    func changeColors() {
+    @objc func changeColors() {
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.topLabel.textColor = Colors.getColor("whiteoryellow")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
@@ -498,6 +703,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate {
             string: Language.getWord(withID: "enteramountofsatoshis"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
+        self.amountTextField.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
             self.swapIcon.image = UIImage(named: "iconswap")

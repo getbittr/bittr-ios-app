@@ -349,7 +349,10 @@ class Language: NSObject {
             "reset": "Reset",
             "resetpin": "Reset PIN",
             "newaddress": "new address",
-            "newaddress2": "The current address is unused. Would you like to get a new one anyway?"
+            "newaddress2": "The current address is unused. Would you like to get a new one anyway?",
+            "notificationsrequired": "Notifications Required",
+            "notificationsrequiredmessage": "To process swaps, you need to be online and we have to wait for at least one confirmation on the blockchain. We'd like to notify you once your transaction confirms so that you can finalize the swap. Please allow notification permissions in Settings.",
+            "swapstatusupdate": "Your swap status has been updated"
         ]
         
         if let foundWord = allWords[withID] {

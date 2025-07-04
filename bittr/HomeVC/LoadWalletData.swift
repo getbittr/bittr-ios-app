@@ -711,7 +711,15 @@ extension HomeViewController {
             self.coreVC!.walletHasSynced = true
             self.coreVC!.completeSync(type: "final")
             if self.coreVC!.needsToHandleNotification == true, let actualNotification = self.coreVC!.lightningNotification {
-                self.coreVC!.handlePaymentNotification(notification: actualNotification)
+                // Check if it's a swap notification or payment notification
+                if let userInfo = actualNotification.userInfo as? [String: Any],
+                   let _ = userInfo["swap_id"] as? String {
+                    // It's a swap notification
+                    self.coreVC!.handleSwapNotificationFromBackground(notification: actualNotification)
+                } else {
+                    // It's a payment notification
+                    self.coreVC!.handlePaymentNotification(notification: actualNotification)
+                }
             }
             self.fetchAndPrintPeers()
         } else {

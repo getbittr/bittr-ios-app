@@ -65,12 +65,40 @@ class SwapManager: NSObject {
             
             let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
             
+            // Get device token for webhook URL
+            let deviceToken = CacheManager.getRegistrationToken() ?? ""
+            
+            // Check if we have a registration token (notifications enabled)
+            if deviceToken.isEmpty {
+                DispatchQueue.main.async {
+                    if let swapVC = delegate as? SwapViewController {
+                        swapVC.nextLabel.alpha = 1
+                        swapVC.nextSpinner.stopAnimating()
+                        swapVC.showAlert(
+                            presentingController: swapVC,
+                            title: Language.getWord(withID: "notificationsrequired"),
+                            message: Language.getWord(withID: "notificationsrequiredmessage"),
+                            buttons: [Language.getWord(withID: "okay")],
+                            actions: [#selector(swapVC.askForPushNotifications)]
+                        )
+                    }
+                }
+                return
+            }
+            
+            let webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
+            
             // Create POST API call.
             let parameters: [String: Any] = [
                 "from": "BTC",
                 "to": "BTC",
                 "invoice": invoice,
-                "refundPublicKey": publicKey
+                "refundPublicKey": publicKey,
+                "webhook": [
+                    "url": webhookURL,
+                    "hashSwapId": false
+                    // "status": ["transaction.confirmed"]
+                ]
             ]
 
             var apiURL = "https://api.boltz.exchange/v2"
@@ -233,7 +261,7 @@ class SwapManager: NSObject {
                 Task {
                     do {
                         // TODO; remove this, this is just done so the swap will fail
-                        let expectedAmount = expectedAmount - 1000
+                        // let expectedAmount = expectedAmount - 1000
                         var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                             network = BitcoinDevKit.Network.regtest
@@ -352,12 +380,40 @@ class SwapManager: NSObject {
         dateFormatter.dateFormat = "yyyyMMddHHmmss"
         let idString = dateFormatter.string(from: Date())
         
+        // Get device token for webhook URL
+        let deviceToken = CacheManager.getRegistrationToken() ?? ""
+        
+        // Check if we have a registration token (notifications enabled)
+        if deviceToken.isEmpty {
+            DispatchQueue.main.async {
+                if let swapVC = delegate as? SwapViewController {
+                    swapVC.nextLabel.alpha = 1
+                    swapVC.nextSpinner.stopAnimating()
+                    swapVC.showAlert(
+                        presentingController: swapVC,
+                        title: Language.getWord(withID: "notificationsrequired"),
+                        message: Language.getWord(withID: "notificationsrequiredmessage"),
+                        buttons: [Language.getWord(withID: "okay")],
+                        actions: [#selector(swapVC.askForPushNotifications)]
+                    )
+                }
+            }
+            return
+        }
+        
+        let webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
+        
         let parameters: [String: Any] = [
             "from": "BTC",
             "to": "BTC",
             "claimPublicKey": publicKey,
             "preimageHash": randomPreimageHashHex,
-            "onchainAmount": amountSat
+            "onchainAmount": amountSat,
+            "webhook": [
+                "url": webhookURL,
+                "hashSwapId": false,
+                "status": ["transaction.mempool", "transaction.confirmed", "invoice.settled", "swap.expired", "transaction.failed"]
+            ]
         ]
         
         var apiURL = "https://api.boltz.exchange/v2"
@@ -481,6 +537,29 @@ class SwapManager: NSObject {
             print("Updated swap file with lockup transaction for ID: \(swapID)")
         } catch {
             print("Error updating swap file with lockup transaction: \(error)")
+        }
+    }
+    
+    static func updateSwapFileWithFees(swapID: String, totalFees: Int, userAmount: Int, direction: Int) {
+        do {
+            // Load existing swap details
+            guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
+                print("Could not load existing swap details for ID: \(swapID)")
+                return
+            }
+            
+            // Create a mutable copy and add the fees
+            let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
+            updatedSwapDetails.setValue(totalFees, forKey: "totalfees")
+            updatedSwapDetails.setValue(userAmount, forKey: "useramount")
+            updatedSwapDetails.setValue(direction, forKey: "direction")
+            
+            // Save the updated swap details back to file
+            saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
+            
+            print("Updated swap file with fees for ID: \(swapID)")
+        } catch {
+            print("Error updating swap file with fees: \(error)")
         }
     }
     

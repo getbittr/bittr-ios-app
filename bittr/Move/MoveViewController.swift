@@ -55,6 +55,7 @@ class MoveViewController: UIViewController {
     
     // Home View Controller
     var homeVC:HomeViewController?
+    var isFromBackgroundNotification = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -154,6 +155,7 @@ class MoveViewController: UIViewController {
         } else if segue.identifier == "MoveToSwap" {
             if let swapVC = segue.destination as? SwapViewController {
                 swapVC.homeVC = self.homeVC
+                swapVC.isFromBackgroundNotification = self.isFromBackgroundNotification
             }
         }
     }

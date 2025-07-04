@@ -70,6 +70,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         
+        // Handle the notification content even when app is in foreground
+        let userInfo = notification.request.content.userInfo
+        
+        if let swapData = userInfo["swap_notification"] as? [String: Any] {
+            // Handle swap-specific notifications in foreground
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: swapData) as Notification)
+            }
+        }
+        
         completionHandler(.alert)
     }
     
@@ -78,15 +88,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Print entire userInfo dictionary to console
         print("Received remote notification: \(userInfo)")
         
-        if let actualUserInfo = userInfo as [AnyHashable:Any]? {
-            // Check if it's a Lightning payment or another message.
-            if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: userInfo) as Notification)
-                }
-            } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
+        // Only handle background notifications here, not foreground ones
+        // Foreground notifications are handled in willPresent method
+        if UIApplication.shared.applicationState != .active {
+            if let actualUserInfo = userInfo as [AnyHashable:Any]? {
+                // Check if it's a Lightning payment or another message.
+                if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: userInfo) as Notification)
+                    }
+                } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
+                    }
+                } else if let swapData = userInfo["swap_notification"] as? [String: Any] {
+                    // Handle swap-specific notifications
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: swapData) as Notification)
+                    }
                 }
             }
         }

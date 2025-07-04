@@ -400,5 +400,118 @@ extension CoreViewController {
             actualHomeVC.coreVC?.bittrChannel?.received += newTransaction.received
         }
     }
+    
+        @objc func handleSwapNotificationFromBackground(notification: NSNotification) {
+        // Prevent double handling
+        if self.isHandlingSwapNotification {
+            print("Already handling swap notification, skipping")
+            return
+        }
+        
+        if let userInfo = notification.userInfo as? [String: Any],
+           let swapID = userInfo["swap_id"] as? String {
+            
+            print("Received swap notification from background for ID: \(swapID)")
+            
+            // Check if SwapViewController is already open - if so, ignore the notification
+            if self.isSwapViewControllerOpen() {
+                print("SwapViewController is already open, ignoring notification")
+                return
+            }
+            
+            // Set flag to prevent double handling
+            self.isHandlingSwapNotification = true
+            
+            // Check if user is signed in (PIN has been entered)
+            if self.didBecomeVisible == true {
+                // User is signed in, handle notification immediately
+                self.handleSwapNotificationImmediately(swapID: swapID, userInfo: userInfo)
+            } else {
+                // User hasn't signed in yet, store notification for later
+                self.needsToHandleNotification = true
+                self.wasNotified = true
+                self.lightningNotification = notification
+                
+                // Reset the double handling flag since we're storing for later
+                self.isHandlingSwapNotification = false
+                
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        }
+    }
+    
+    private func handleSwapNotificationImmediately(swapID: String, userInfo: [String: Any]) {
+        // Load swap details from file
+        if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+            print("Loaded swap details from background: \(swapDetails)")
+            
+            // Store the swap details for when SwapViewController is presented
+            self.ongoingSwapDictionary = swapDetails
+            
+            // Clear the notification handling flag and hide pending view
+            self.needsToHandleNotification = false
+            self.pendingSpinner.stopAnimating()
+            self.pendingView.alpha = 0
+            self.blackSignupBackground.alpha = 0
+            
+            // Reset the double handling flag
+            self.isHandlingSwapNotification = false
+            
+            // Go directly to swap screen without showing alert
+            DispatchQueue.main.async {
+                self.openSwapViewController()
+            }
+        } else {
+            // Could not load swap details, clear the notification handling flag
+            self.needsToHandleNotification = false
+            self.pendingSpinner.stopAnimating()
+            self.pendingView.alpha = 0
+            self.blackSignupBackground.alpha = 0
+            
+            // Reset the double handling flag
+            self.isHandlingSwapNotification = false
+        }
+    }
+    
+    @objc func openSwapViewController() {
+        // Use the existing pending swap functionality
+        // The swap details are already stored in ongoingSwapDictionary
+        // We just need to present the SwapViewController and it will handle the pending swap
+        
+        // Try to present through HomeViewController using the existing segue
+        if let homeVC = self.homeVC {
+            homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
+            
+            // After a short delay, trigger the swap button tap to go directly to swap
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if let moveVC = homeVC.presentedViewController as? MoveViewController {
+                    // Set a flag to indicate this is from a background notification
+                    moveVC.isFromBackgroundNotification = true
+                    moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
+                }
+            }
+        }
+    }
+    
+    private func isSwapViewControllerOpen() -> Bool {
+        // Check if SwapViewController is currently presented in the view hierarchy
+        if let homeVC = self.homeVC {
+            // Check if HomeViewController has a presented view controller
+            if let presentedVC = homeVC.presentedViewController {
+                // Check if it's MoveViewController
+                if let moveVC = presentedVC as? MoveViewController {
+                    // Check if MoveViewController has a presented view controller (SwapViewController)
+                    if let swapVC = moveVC.presentedViewController as? SwapViewController {
+                        return true
+                    }
+                }
+                // Check if it's directly SwapViewController
+                if presentedVC is SwapViewController {
+                    return true
+                }
+            }
+        }
+        return false
+    }
 
 }
