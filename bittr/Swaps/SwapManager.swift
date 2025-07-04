@@ -316,10 +316,21 @@ class SwapManager: NSObject {
                             }
                         }
                     } catch {
+                        // Log the exact error for debugging
                         print("Transaction error: \(error.localizedDescription)")
+                        
+                        // Report to Sentry for monitoring
+                        SentrySDK.capture(error: error)
+                        
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                swapVC.showAlert(
+                                    presentingController: swapVC, 
+                                    title: Language.getWord(withID: "paymentfailed"), 
+                                    message: Language.getWord(withID: "paymentfailed3"), 
+                                    buttons: [Language.getWord(withID: "okay")], 
+                                    actions: nil
+                                )
                             }
                         }
                     }

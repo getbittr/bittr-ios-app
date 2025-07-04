@@ -141,6 +141,7 @@ class Language: NSObject {
             "paymentsuccessful": "Payment successful",
             "paymentfailed": "Payment failed",
             "paymentfailed2": "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.",
+            "paymentfailed3": "Unable to send bitcoin payment. Please sync your wallet and try again.",
             "buybitcoin": "buy bitcoin",
             "buysubtitle": "To buy bitcoin, make a transfer from your bank account to ours, with your unique code in the description.",
             "buyempty": "No transfer has been set up. Tap below to create your first one.",
