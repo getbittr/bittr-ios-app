@@ -4,7 +4,6 @@
 //
 //  Created by Ruben Waterman on 20/03/2025.
 //
-import Musig2Bitcoin
 import P256K
 import Foundation
 import CryptoKit
@@ -22,6 +21,7 @@ struct ClaimResult {
 class BoltzRefund {
     static func tryBoltzClaimInternalTransactionGeneration(swapId: String) async throws -> ClaimResult {
         if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapId) {
+            dump(swapDetails)
             print("Found swap with invoice: \(swapDetails["invoice"] ?? "unknown")")
             
             let boltzServerPublicKeyBytes = try! (swapDetails["refundPublicKey"] as! String).bytes

@@ -66,7 +66,7 @@ extension UIViewController {
                                     title: Language.getWord(withID: "insufficientfunds"), 
                                     message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableOnchainBalance) satoshis.", 
                                     buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
-                                    actions: [nil, #selector(self.swapAndPayLightning)]
+                                    actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayLightning)]
                                 )
                                 // Store the invoice for the swap
                                 sendVC?.pendingLightningInvoice = invoiceText!
@@ -225,6 +225,20 @@ extension UIViewController {
                 }
             }
         }
+    }
+    
+    @objc func cancelSwapOffer() {
+        self.hideAlert()
+        print("DEBUG - cancelSwapOffer called, clearing pending data")
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        // Clear the pending data when user cancels the swap offer
+        sendVC?.pendingLightningInvoice = ""
+        receiveVC?.pendingLightningInvoice = ""
+        // Also clear the amount field to make it obvious this is cancelled
+        sendVC?.amountTextField.text = ""   
     }
     
     @objc func swapAndPayLightning() {

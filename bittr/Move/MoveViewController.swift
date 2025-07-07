@@ -181,6 +181,16 @@ class MoveViewController: UIViewController {
                 swapVC.pendingOnchainAddress = self.pendingOnchainAddress
                 swapVC.pendingOnchainAmount = self.pendingOnchainAmount
                 print("DEBUG - MoveViewController: Performing segue to SwapViewController with address: \(self.pendingOnchainAddress), amount: \(self.pendingOnchainAmount)")
+                
+                // Clear the pending data after passing it to prevent it from being reused
+                if self.isFromLightningPayment || self.isFromOnchainPayment {
+                    print("DEBUG - Clearing pending data in MoveViewController after passing to SwapViewController")
+                    self.pendingLightningInvoice = ""
+                    self.pendingOnchainAddress = ""
+                    self.pendingOnchainAmount = 0
+                    self.isFromLightningPayment = false
+                    self.isFromOnchainPayment = false
+                }
             }
         }
     }

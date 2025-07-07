@@ -1,5 +1,5 @@
 {
-  "originHash" : "4c626c07ce6d9fd4a6eb4e103d4b877c353a35e51e2486082d5a6995d9aab05f",
+  "originHash" : "a94f087c8ccce3a0668bfb93fe523a8d0b405d2e83b6ced1ec958d04ae572534",
   "pins" : [
     {
       "identity" : "bdk-swift",
@@ -47,15 +47,6 @@
       }
     },
     {
-      "identity" : "musig2-ios-api",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/chainx-org/musig2-ios-api",
-      "state" : {
-        "revision" : "373c4cec6ba80e1474029f865a851718d675b700",
-        "version" : "2.7.0"
-      }
-    },
-    {
       "identity" : "sentry-cocoa",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/getsentry/sentry-cocoa/",
@@ -78,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RubenWaterman/swift-secp256k1",
       "state" : {
-        "branch" : "ruben",
-        "revision" : "46947269b29e288fb9ebc343ca06c3d21ddd6353"
+        "branch" : "import-signatures-and-nonces",
+        "revision" : "8fc376cb0b6034b844dbcb9b2047eab4cafcaa33"
       }
     }
   ],

@@ -19,7 +19,7 @@ extension HomeViewController {
                     if peers[0].isConnected == true {
 //                        Task {
 //                            do {
-//                                let result = try await BoltzRefund.tryBoltzRefund(swapId: "GSYLoFhs88wG")
+//                                let result = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapId: "a8RP7uGXFShp")
 //                                print("Result: \(result)")
 //                            } catch {
 //                                print("Error: \(error)")

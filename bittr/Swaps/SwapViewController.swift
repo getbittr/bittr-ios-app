@@ -94,6 +94,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Add notification observer for swap updates
         NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotification), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
         
+        // Clear any stale data if this is a manual navigation (not from payment)
+        if !self.isFromLightningPayment && !self.isFromOnchainPayment {
+            print("DEBUG - Manual navigation to swap screen, clearing any stale data")
+            self.clearPendingSwapData()
+        }
+        
         // Button titles
         self.downButton.setTitle("", for: .normal)
         self.centerBackground.setTitle("", for: .normal)
@@ -179,6 +185,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         NotificationCenter.default.removeObserver(self)
+        
+        // Clear swap state when leaving the swap screen
+        // This ensures that if user swipes away the page, swap data is cleared
+        print("DEBUG - Leaving SwapViewController, clearing swap state")
+        self.clearPendingSwapData()
     }
     
     @objc func keyboardWillDisappear() {
@@ -387,11 +398,20 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             title: Language.getWord(withID: "swapfunds2"),
             message: message,
             buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "proceed")],
-            actions: [nil, #selector(self.proceedWithSwap)]
+            actions: [#selector(self.cancelSwapFromFeesAlert), #selector(self.proceedWithSwap)]
         )
         
         // Store the swap data for the proceed action
         self.pendingSwapData = (swapDictionary: swapDictionary, feeHigh: feeHigh, onchainFees: onchainFees, lightningFees: lightningFees)
+    }
+    
+    @objc func cancelSwapFromFeesAlert() {
+        self.hideAlert()
+        print("DEBUG - Swap cancelled from fees alert, clearing all data")
+        // Clear all pending data and reset the UI
+        self.clearPendingSwapData()
+        // Reset the view to the initial state
+        self.switchView("main")
     }
     
     @objc func proceedWithSwap() {
@@ -438,6 +458,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.isFromLightningPayment = false
         self.isFromOnchainPayment = false
         self.pendingSwapData = nil
+        // Clear the amount field to make it obvious this is a fresh swap
+        self.amountTextField.text = ""
+        self.amountToBeSent = nil
     }
     
     func didCompleteOnchainTransaction(swapDictionary:NSDictionary) {

@@ -80,7 +80,7 @@ extension SendViewController {
                         title: Language.getWord(withID: "insufficientfunds"), 
                         message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(Int(self.btcAmount * 100000000)) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableLightningBalance) satoshis.", 
                         buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
-                        actions: [nil, #selector(self.swapAndPayOnchain)]
+                        actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                     )
                     // Store the address for the swap
                     self.pendingOnchainAddress = invoiceText!
@@ -480,6 +480,15 @@ extension SendViewController {
         } else {
             return nil
         }
+    }
+    
+    @objc override func cancelSwapOffer() {
+        self.hideAlert()
+        print("DEBUG - cancelSwapOffer called, clearing pending data")
+        // Clear the pending data when user cancels the swap offer
+        self.pendingOnchainAddress = ""
+        // Also clear the amount field to make it obvious this is cancelled
+        self.amountTextField.text = ""
     }
     
     @objc func swapAndPayOnchain() {
