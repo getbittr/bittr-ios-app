@@ -541,6 +541,13 @@ class LightningNodeService {
         }
     }
     
+    func closeChannel(userChannelId: ChannelId, counterPartyNodeId:PublicKey) throws {
+        try self.ldkNode!.closeChannel(
+            userChannelId: userChannelId,
+            counterpartyNodeId: counterPartyNodeId
+        )
+    }
+    
     func signMessageForPath(path: String, message: String) throws -> String {
         // Create HDNode and derive the path
         try ChainXSContext.createSecp256k1Ctx()

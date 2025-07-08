@@ -94,7 +94,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 DispatchQueue.main.async {
                     if channels.count > 0 {
                         // Wallet cannot be restored with open channels.
-                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
                     } else {
                         // Retore wallet.
                         self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
@@ -143,6 +143,43 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.hideAlert()
         if let actualCoreVC = self.coreVC {
             actualCoreVC.resetApp(nodeIsRunning: true)
+        }
+    }
+    
+    @objc func closeChannelAlert() {
+        self.hideAlert()
+        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelConfirmed)])
+    }
+    
+    @objc func closeChannelConfirmed() {
+        self.hideAlert()
+        Task {
+            do {
+                let closingChannel = try await LightningNodeService.shared.listChannels()[0]
+                try LightningNodeService.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                
+                // Successful channel closure.
+                DispatchQueue.main.async {
+                    self.didCloseChannel()
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            } catch {
+                // Unsuccessful channel closure.
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
+        }
+    }
+    
+    func didCloseChannel() {
+        
+        self.coreVC!.lightningChannels = nil
+        self.coreVC!.bittrChannel = nil
+        self.coreVC!.lightningBalanceInSats = 0
+        
+        if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
+            self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
         }
     }
     
