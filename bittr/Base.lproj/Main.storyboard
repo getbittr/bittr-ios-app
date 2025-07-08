@@ -10089,7 +10089,7 @@
                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
-                                                            <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="2Ti-Tj-yXQ" userLabel="Mnemonic Field 1">
+                                                            <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="2Ti-Tj-yXQ" userLabel="Mnemonic Field 1" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                 <rect key="frame" x="59.999999999999986" y="6.3333333333333144" width="125.00000000000001" height="34"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
@@ -10124,7 +10124,7 @@
                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
-                                                            <textField opaque="NO" tag="2" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="bYw-zL-Mgz" userLabel="Mnemonic Field 2">
+                                                            <textField opaque="NO" tag="2" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="bYw-zL-Mgz" userLabel="Mnemonic Field 2" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                 <rect key="frame" x="59.999999999999986" y="6.3333333333333144" width="125.00000000000001" height="34"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
@@ -10159,7 +10159,7 @@
                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
-                                                            <textField opaque="NO" tag="3" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="CKI-Ze-yMl" userLabel="Mnemonic Field 3">
+                                                            <textField opaque="NO" tag="3" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="CKI-Ze-yMl" userLabel="Mnemonic Field 3" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                 <rect key="frame" x="59.999999999999986" y="6.3333333333333144" width="125.00000000000001" height="34"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
@@ -11936,7 +11936,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="rdO-Nr-ShJ" userLabel="Mnemonic Field 1">
+                                                                            <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="rdO-Nr-ShJ" userLabel="Mnemonic Field 1" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="38.000000000000007" y="2.6666666666666572" width="103.66666666666669" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -11969,7 +11969,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="3" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="14p-My-1ec" userLabel="Mnemonic Field 3">
+                                                                            <textField opaque="NO" tag="3" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="14p-My-1ec" userLabel="Mnemonic Field 3" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="38.000000000000007" y="2.6666666666666572" width="103.66666666666669" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12002,7 +12002,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="5" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="6Fl-my-ff5" userLabel="Mnemonic Field 5">
+                                                                            <textField opaque="NO" tag="5" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="6Fl-my-ff5" userLabel="Mnemonic Field 5" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="38.000000000000007" y="2.6666666666666856" width="103.66666666666669" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12035,7 +12035,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="7" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="Y9a-yI-lQQ" userLabel="Mnemonic Field 7">
+                                                                            <textField opaque="NO" tag="7" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="Y9a-yI-lQQ" userLabel="Mnemonic Field 7" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="38.000000000000007" y="2.6666666666666856" width="103.66666666666669" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12068,7 +12068,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="9" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="mA1-0p-zc0" userLabel="Mnemonic Field 9">
+                                                                            <textField opaque="NO" tag="9" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="mA1-0p-zc0" userLabel="Mnemonic Field 9" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="38.000000000000007" y="2.6666666666666856" width="103.66666666666669" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12101,7 +12101,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="11" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="SXz-Zf-9ot" userLabel="Mnemonic Field 11">
+                                                                            <textField opaque="NO" tag="11" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="SXz-Zf-9ot" userLabel="Mnemonic Field 11" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="38.000000000000007" y="2.6666666666666856" width="103.66666666666669" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12166,7 +12166,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="2" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="8RX-kN-0fb" userLabel="Mnemonic Field 2">
+                                                                            <textField opaque="NO" tag="2" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="8RX-kN-0fb" userLabel="Mnemonic Field 2" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="37.999999999999993" y="2.6666666666666572" width="103.33333333333331" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12199,7 +12199,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="4" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="2qx-th-zd3" userLabel="Mnemonic Field 4">
+                                                                            <textField opaque="NO" tag="4" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="2qx-th-zd3" userLabel="Mnemonic Field 4" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="37.999999999999993" y="2.6666666666666572" width="103.33333333333331" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12232,7 +12232,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="6" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="fJ0-vj-d3U" userLabel="Mnemonic Field 6">
+                                                                            <textField opaque="NO" tag="6" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="fJ0-vj-d3U" userLabel="Mnemonic Field 6" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="37.999999999999993" y="2.6666666666666856" width="103.33333333333331" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12265,7 +12265,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="8" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="cWg-uQ-Fpl" userLabel="Mnemonic Field 8">
+                                                                            <textField opaque="NO" tag="8" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="cWg-uQ-Fpl" userLabel="Mnemonic Field 8" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="37.999999999999993" y="2.6666666666666856" width="103.33333333333331" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12298,7 +12298,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="10" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="Tmc-FP-OSG" userLabel="Mnemonic Field 10">
+                                                                            <textField opaque="NO" tag="10" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="Tmc-FP-OSG" userLabel="Mnemonic Field 10" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="37.999999999999993" y="2.6666666666666856" width="103.33333333333331" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -12331,7 +12331,7 @@
                                                                                 <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
-                                                                            <textField opaque="NO" tag="12" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="qYe-yj-4fc" userLabel="Mnemonic Field 12">
+                                                                            <textField opaque="NO" tag="12" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="qYe-yj-4fc" userLabel="Mnemonic Field 12" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
                                                                                 <rect key="frame" x="37.999999999999993" y="2.6666666666666856" width="103.33333333333331" height="34"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>

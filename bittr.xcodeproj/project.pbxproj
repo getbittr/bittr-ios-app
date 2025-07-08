@@ -124,6 +124,8 @@
 		05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */; };
 		05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */; };
 		3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */; };
+		3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379160592E1D7C6600024560 /* Bip39Words.swift */; };
+		379160602E1D99D300024560 /* MnemonicTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3791605C2E1D99D300024560 /* MnemonicTextField.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
@@ -284,6 +286,8 @@
 		05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup6ViewController.swift; sourceTree = "<group>"; };
 		05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup7ViewController.swift; sourceTree = "<group>"; };
 		3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzSwiftSDK.swift; sourceTree = "<group>"; };
+		379160592E1D7C6600024560 /* Bip39Words.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bip39Words.swift; sourceTree = "<group>"; };
+		3791605C2E1D99D300024560 /* MnemonicTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MnemonicTextField.swift; sourceTree = "<group>"; };
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
@@ -350,6 +354,7 @@
 		050B4BAF2A1BBB6400563F29 /* Signup */ = {
 			isa = PBXGroup;
 			children = (
+				3791605C2E1D99D300024560 /* MnemonicTextField.swift */,
 				050B4BB02A1BBB9600563F29 /* SignupViewController.swift */,
 				050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */,
 				050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */,
@@ -576,6 +581,7 @@
 		05D5D0E82A66835300A1E771 /* Lightning */ = {
 			isa = PBXGroup;
 			children = (
+				379160592E1D7C6600024560 /* Bip39Words.swift */,
 				379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */,
 				05D5D0E62A66825000A1E771 /* LightningNodeService.swift */,
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
@@ -896,6 +902,7 @@
 				05F8DC5B29F2B45F008052B5 /* InfoViewController.swift in Sources */,
 				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
+				379160602E1D99D300024560 /* MnemonicTextField.swift in Sources */,
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */,
 				05AF89762D437073009D629C /* SwapViewController.swift in Sources */,
@@ -920,6 +927,7 @@
 				052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
+				3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */,
 				05E483522D290551007A5834 /* BittrValue.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,

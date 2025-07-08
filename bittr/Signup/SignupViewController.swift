@@ -55,6 +55,23 @@ class SignupViewController: UIViewController {
     
     func moveToPage(_ thisPage:Int) {
         
+        // SECURITY: Prevent access to sensitive pages during PIN reset
+        if self.coreVC?.resettingPin == true {
+            // During PIN reset, only allow access to restore-related pages (0, 1, 2)
+            // Block access to mnemonic display pages (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
+            if thisPage > 2 {
+                print("SECURITY: Blocked access to page \(thisPage) during PIN reset")
+                self.showAlert(
+                    presentingController: self,
+                    title: "Access Restricted",
+                    message: "This option is not available during PIN reset for security reasons.",
+                    buttons: ["OK"],
+                    actions: nil
+                )
+                return
+            }
+        }
+        
         // Check internet connection.
         if !Reachability.isConnectedToNetwork() {
             // User not connected to internet.
@@ -66,21 +83,48 @@ class SignupViewController: UIViewController {
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
         let newChild = storyboard.instantiateViewController(withIdentifier: self.embedViewIdentifiers[thisPage])
         
-        // Set SignupVC for embedding view controller.
+        // Set SignupVC and CoreVC for embedding view controller.
         (newChild as? Restore3ViewController)?.signupVC = self
+        (newChild as? Restore3ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Restore2ViewController)?.signupVC = self
+        (newChild as? Restore2ViewController)?.coreVC = self.coreVC
+        
         (newChild as? RestoreViewController)?.signupVC = self
+        (newChild as? RestoreViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup1ViewController)?.signupVC = self
+        (newChild as? Signup1ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup2ViewController)?.signupVC = self
+        (newChild as? Signup2ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup3ViewController)?.signupVC = self
+        (newChild as? Signup3ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup4ViewController)?.signupVC = self
+        (newChild as? Signup4ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup5ViewController)?.signupVC = self
+        (newChild as? Signup5ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup6ViewController)?.signupVC = self
+        (newChild as? Signup6ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Signup7ViewController)?.signupVC = self
+        (newChild as? Signup7ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Transfer1ViewController)?.signupVC = self
+        (newChild as? Transfer1ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Transfer15ViewController)?.signupVC = self
+        (newChild as? Transfer15ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Transfer2ViewController)?.signupVC = self
+        (newChild as? Transfer2ViewController)?.coreVC = self.coreVC
+        
         (newChild as? Transfer3ViewController)?.signupVC = self
+        (newChild as? Transfer3ViewController)?.coreVC = self.coreVC
         
         // Add new view controller to correct container view.
         self.addChild(newChild)
@@ -90,6 +134,17 @@ class SignupViewController: UIViewController {
         
         // Update current page
         self.currentPage = thisPage
+        
+        // SECURITY: Hide sensitive containers during PIN reset
+        if self.coreVC?.resettingPin == true {
+            // Hide create wallet containers during PIN reset
+            self.createWalletContainer.alpha = 0
+            self.createWalletCheckContainer.alpha = 0
+        } else {
+            // Show create wallet containers during normal flow
+            self.createWalletContainer.alpha = 1
+            self.createWalletCheckContainer.alpha = 1
+        }
         
         // Animate slide to next page
         var duration = 0.3

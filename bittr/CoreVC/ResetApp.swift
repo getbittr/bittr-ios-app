@@ -16,8 +16,8 @@ extension CoreViewController {
         // Set pin reset attempt.
         self.resettingPin = true
         
-        // Launch signup for menmonic check.
-        self.launchSignup(onPage: 3)
+        // Launch signup for mnemonic check.
+        self.launchSignup(onPage: 2)
         
         // Show signup.
         self.showSignupView()
