@@ -71,7 +71,7 @@ extension CoreViewController {
         self.hideAlert()
         
         // TODO: Public?
-        let nodeIds = ["03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc", "03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc"]
+        let nodeIds = ["02006a822bf3bd3e1cfe4acc6b333982d9218a0fbea9131add14360f0569ad17cb", "02006a822bf3bd3e1cfe4acc6b333982d9218a0fbea9131add14360f0569ad17cb"]
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         print("Did start payout process.")
@@ -122,7 +122,7 @@ extension CoreViewController {
                         print("Did create invoice.")
                         
                         DispatchQueue.main.async {
-                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice) {
+                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description) {
                                 let newTimestamp = Int(Date().timeIntervalSince1970)
                                 CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                                 CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
@@ -133,7 +133,7 @@ extension CoreViewController {
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         print("Did sign message.")
                         
-                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
+                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         
                         DispatchQueue.main.async {
@@ -187,7 +187,7 @@ extension CoreViewController {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc", "03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc"]
+        let nodeIds = ["02006a822bf3bd3e1cfe4acc6b333982d9218a0fbea9131add14360f0569ad17cb", "02006a822bf3bd3e1cfe4acc6b333982d9218a0fbea9131add14360f0569ad17cb"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.

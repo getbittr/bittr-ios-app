@@ -87,7 +87,7 @@
 		05C3C09C29CCB55800C1E695 /* bittrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C09B29CCB55800C1E695 /* bittrTests.swift */; };
 		05C3C0A629CCB55800C1E695 /* bittrUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0A529CCB55800C1E695 /* bittrUITests.swift */; };
 		05C3C0A829CCB55800C1E695 /* bittrUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0A729CCB55800C1E695 /* bittrUITestsLaunchTests.swift */; };
-		05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */; };
+		05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		05C3C0B829CCC75600C1E695 /* Montserrat-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C0B729CCC75600C1E695 /* Montserrat-Regular.ttf */; };
 		05C3C0BA29CCC76100C1E695 /* Montserrat-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 05C3C0B929CCC76100C1E695 /* Montserrat-Bold.ttf */; };
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
@@ -96,7 +96,7 @@
 		05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF0FE52D32557300DF2D9F /* GraphView.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
 		05D417972CC930C400B87745 /* ReceiveQRScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D417962CC930B900B87745 /* ReceiveQRScanner.swift */; };
-		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; };
+		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
 		05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */; };
 		05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0ED2A66852D00A1E771 /* Constants.swift */; };
@@ -1487,7 +1487,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.3.0;
+				version = 0.6.1;
 			};
 		};
 		05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */ = {
@@ -1511,7 +1511,7 @@
 			repositoryURL = "https://github.com/bitcoindevkit/bdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 0.31.2;
+				version = 1.2.0;
 			};
 		};
 		05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */ = {

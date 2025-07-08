@@ -98,8 +98,7 @@ class Signup1ViewController: UIViewController {
         } else {
             // Create new mnemonic.
             print("Did not find mnemonic. Creating a new one.")
-            let mnemonic = BitcoinDevKit.Mnemonic.init(wordCount: .words12)
-            mnemonicString = mnemonic.asString()
+            mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         

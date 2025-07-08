@@ -164,7 +164,7 @@ extension UIViewController {
         
         Task {
             do {
-                let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: String(invoiceText.replacingOccurrences(of: " ", with: "")))
+                let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     
                     if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
@@ -291,7 +291,7 @@ extension UIViewController {
         Task {
             do {
                 
-                let paymentHash = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: String(invoiceText.replacingOccurrences(of: " ", with: "")), amount: invoiceAmount)
+                let paymentHash = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     

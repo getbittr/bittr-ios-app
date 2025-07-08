@@ -236,7 +236,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         Task {
             // Get real onchain address.
             let wallet = LightningNodeService.shared.getWallet()
-            let firstAddress = try wallet?.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
+            //let firstAddress = try wallet?.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
+            let firstAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
             
             // Send to Bittr.
             self.createBittrAccount(receivedAddress: firstAddress ?? "", message: message, page: page, iban: iban)

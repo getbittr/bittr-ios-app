@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bitcoindevkit/bdk-swift",
       "state" : {
-        "revision" : "6cc7412e0ead59cf6d51e8b061ce9f8e3ebb180a",
-        "version" : "0.31.2"
+        "revision" : "92ecb88e7568ef77aadefb062382988d12be57dd",
+        "version" : "1.2.0"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
-        "revision" : "bd9bd683201c1597d8930ac4118fa950cedfd56c",
-        "version" : "0.3.0"
+        "revision" : "93858b372c7b450fc90b86d362facd79fe823e45",
+        "version" : "0.6.1"
       }
     },
     {

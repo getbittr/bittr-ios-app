@@ -322,7 +322,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc", "03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc"]
+        let nodeIds = ["02006a822bf3bd3e1cfe4acc6b333982d9218a0fbea9131add14360f0569ad17cb", "02006a822bf3bd3e1cfe4acc6b333982d9218a0fbea9131add14360f0569ad17cb"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.

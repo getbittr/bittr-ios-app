@@ -269,7 +269,7 @@ class BoltzRefund {
             guard let wallet = LightningNodeService.shared.getWallet() else {
                 throw APIError.requestFailed("Wallet not available")
             }
-            let destinationAddress = try wallet.getAddress(addressIndex: .lastUnused).address.asString()
+            let destinationAddress = wallet.nextUnusedAddress(keychain: .external).address.description
             
             let exactFee = 200
             

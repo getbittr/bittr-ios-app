@@ -740,9 +740,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                         }
                         
                         // Trigger wallet sync to ensure proper swap transaction display
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                            LightningNodeService.shared.syncWalletAndLoadTransactions()
-                        }
+//                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//                            LightningNodeService.shared.syncWalletAndLoadTransactions()
+//                        }
                     } else {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                     }

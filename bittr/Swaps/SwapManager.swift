@@ -63,13 +63,13 @@ class SwapManager: NSObject {
                     amountMsat: amountMsat,
                     description: "Swap onchain to lightning \(idString)",
                     expirySecs: 3600
-                )
+                ).description
             }
             
             // Store invoice in cache.
             DispatchQueue.main.async {
                 if let swapVC = delegate as? SwapViewController {
-                    if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice) {
+                    if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description) {
                         let newTimestamp = Int(Date().timeIntervalSince1970)
                         CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                         CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning \(idString)")
@@ -203,13 +203,14 @@ class SwapManager: NSObject {
             let feesForLightningPayment = expectedAmount - amountInSatoshis
             
             // Check what the onchain fees will be for sending this onchain payment.
-            if let actualBlockchain = LightningNodeService.shared.getBlockchain(), let actualWallet = LightningNodeService.shared.getWallet() {
+            if /*let actualBlockchain = LightningNodeService.shared.getBlockchain(),*/ let actualWallet = LightningNodeService.shared.getWallet() {
                 
                 Task {
                     do {
                         // Get current fees for fast onchain transaction.
-                        let high = try actualBlockchain.estimateFee(target: 1)
-                        let feeHigh = Float(Int(high.asSatPerVb()*10))/10
+                        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                        let high = feeEstimates[1]!
+                        let feeHigh = Float(Int(high*10))/10
                         
                         var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -217,10 +218,10 @@ class SwapManager: NSObject {
                         }
                         let address = try Address(address: onchainAddress, network: network)
                         let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(expectedAmount))
+                        let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(expectedAmount)))
                         let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                        let tx = details.psbt.extractTx()
+                        let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                        let tx = try details.extractTx()
                         let size = tx.vsize()
                         
                         // Convert fees.
@@ -234,7 +235,7 @@ class SwapManager: NSObject {
                                 swapVC.confirmExpectedFees(feeHigh: feeHigh, onchainFees: Int(feesForOnchainPayment), lightningFees: feesForLightningPayment, swapDictionary: receivedDictionary, createdInvoice: createdInvoice)
                             }
                         }
-                    } catch let error as BdkError {
+                    }/* catch let error as BdkError {
                         
                         print("BDK error: \(error)")
                         DispatchQueue.main.async {
@@ -252,7 +253,7 @@ class SwapManager: NSObject {
                             
                             SentrySDK.capture(error: error)
                         }
-                    } catch {
+                    }*/ catch {
                         print("Error: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             if let swapVC = delegate as? SwapViewController {
@@ -271,63 +272,71 @@ class SwapManager: NSObject {
         if let onchainAddress = receivedDictionary["address"] as? String, let expectedAmount = receivedDictionary["expectedAmount"] as? Int, let swapID = receivedDictionary["id"] as? String {
             
             // Send onchain transaction.
-            if let actualWallet = LightningNodeService.shared.getWallet(), let actualBlockchain = LightningNodeService.shared.getBlockchain() {
+            if let actualWallet = LightningNodeService.shared.getWallet() {
                 
                 Task {
                     do {
                         // TODO; remove this, this is just done so the swap will fail
                         // let expectedAmount = expectedAmount - 1000
+                        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                        let high = feeEstimates[1]!
+                        let feeHigh = Float(Int(high*10))/10
+
                         var network = BitcoinDevKit.Network.bitcoin
                         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                             network = BitcoinDevKit.Network.regtest
                         }
                         let address = try Address(address: onchainAddress, network: network)
                         let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: UInt64(expectedAmount)).feeRate(satPerVbyte: feeHigh)
+                        let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(expectedAmount))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(feeHigh)))
                         let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details.psbt, signOptions: nil)
-                        let tx = details.psbt.extractTx()
-                        try actualBlockchain.broadcast(transaction: tx)
-                        let txid = details.psbt.txid()
-                        print("Transaction ID: \(txid)")
+                        let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                        let tx = try details.extractTx()
                         
+                        if let client = LightningNodeService.shared.getClient() {
+                            
+                            let txid = try client.transactionBroadcast(tx: tx)
+                            
+                            print("Transaction ID: \(txid)")
+                            
                         // We write the raw transaction to the JSON file of our swap as we need it to potentially claim a refund
                         SwapManager.updateSwapFileWithLockupTx(swapID: swapID, lockupTx: tx.serialize().map { String(format: "%02hhx", $0) }.joined())
                         
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            print("Successful transaction.")
-                            
-                            let newTransaction = Transaction()
-                            newTransaction.id = "\(txid)"
-                            newTransaction.confirmations = 0
-                            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                            newTransaction.height = 0
-                            newTransaction.received = 0
-                            newTransaction.fee = onchainFees
-                            newTransaction.sent = expectedAmount + onchainFees
-                            newTransaction.isLightning = false
-                            newTransaction.isBittr = false
-                            
-                            
-                            
-                            if let idString = receivedDictionary["idstring"] as? String {
-                                newTransaction.lnDescription = idString
-                                CacheManager.storeInvoiceDescription(hash: txid, desc: idString)
-                            }
-                            
-                            if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
-                                homeVC.setTransactions += [newTransaction]
-                                homeVC.setTransactions.sort { transaction1, transaction2 in
-                                    transaction1.timestamp > transaction2.timestamp
-                                }
-                                homeVC.homeTableView.reloadData()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                print("Successful transaction.")
                                 
-                                // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
+                                let newTransaction = Transaction()
+                                newTransaction.id = "\(txid)"
+                                newTransaction.confirmations = 0
+                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                                newTransaction.height = 0
+                                newTransaction.received = 0
+                                newTransaction.fee = onchainFees
+                                newTransaction.sent = expectedAmount + onchainFees
+                                newTransaction.isLightning = false
+                                newTransaction.isBittr = false
+                                
+                            
+                            
+                                if let idString = receivedDictionary["idstring"] as? String {
+                                    newTransaction.lnDescription = idString
+                                    CacheManager.storeInvoiceDescription(hash: txid, desc: idString)
+                                }
+                                
+                                if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
+                                    homeVC.setTransactions += [newTransaction]
+                                    homeVC.setTransactions.sort { transaction1, transaction2 in
+                                        transaction1.timestamp > transaction2.timestamp
+                                    }
+                                    homeVC.homeTableView.reloadData()
+                                    
+                                    // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
                                 // so we don't call performSwapMatching here. It will be handled when the lightning
                                 // payment is received via HandlePaymentNotification.swift
                                 
                                 // Call didCompleteOnchainTransaction to set up WebSocket monitoring
                                 swapVC.didCompleteOnchainTransaction(swapDictionary: receivedDictionary)
+                                }
                             }
                         }
                     } catch {
@@ -406,7 +415,7 @@ class SwapManager: NSObject {
             destinationAddress = payoutAddress
         } else {
             print("DEBUG - Getting new unused address for payout")
-            destinationAddress = try! wallet?.getAddress(addressIndex: .lastUnused).address.asString()
+            destinationAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
@@ -665,7 +674,11 @@ class SwapManager: NSObject {
                         
                         // Confirm fees with user.
                         DispatchQueue.main.async {
-                            delegate.confirmExpectedFees(feeHigh: 0, onchainFees: onchainFees, lightningFees: lightningFees, swapDictionary: swapDictionary, createdInvoice: receivedInvoice)
+                            do {
+                                delegate.confirmExpectedFees(feeHigh: 0, onchainFees: onchainFees, lightningFees: lightningFees, swapDictionary: swapDictionary, createdInvoice: try Bolt11Invoice.fromStr(invoiceStr: receivedInvoice))
+                            } catch {
+                                
+                            }
                         }
                     }
                 }
@@ -685,7 +698,7 @@ class SwapManager: NSObject {
             
             Task {
                 do {
-                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: invoice)
+                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoice))
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
