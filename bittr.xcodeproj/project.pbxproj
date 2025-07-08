@@ -127,17 +127,6 @@
 		376009372D8AC3AF0048A7B6 /* BTCVarInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */; };
 		376009392D8AC3C50048A7B6 /* BTCHashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009382D8AC3C50048A7B6 /* BTCHashing.swift */; };
 		3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */; };
-		379A8C4E2D81738E00C871C5 /* HDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C472D81738E00C871C5 /* HDNode.swift */; };
-		379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C3E2D81738E00C871C5 /* AddressUtils.swift */; };
-		379A8C522D81738E00C871C5 /* DataExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C442D81738E00C871C5 /* DataExt.swift */; };
-		379A8C532D81738E00C871C5 /* StringExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4B2D81738E00C871C5 /* StringExt.swift */; };
-		379A8C552D81738E00C871C5 /* SegwitAddrCoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4A2D81738E00C871C5 /* SegwitAddrCoder.swift */; };
-		379A8C572D81738E00C871C5 /* RIPEMD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C492D81738E00C871C5 /* RIPEMD.swift */; };
-		379A8C582D81738E00C871C5 /* Bech32Segwit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C412D81738E00C871C5 /* Bech32Segwit.swift */; };
-		379A8C592D81738E00C871C5 /* ArrayExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C3F2D81738E00C871C5 /* ArrayExt.swift */; };
-		379A8C5A2D81738E00C871C5 /* DerivationPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C452D81738E00C871C5 /* DerivationPath.swift */; };
-		379A8C5B2D81738E00C871C5 /* Globals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C462D81738E00C871C5 /* Globals.swift */; };
-		379A8C5C2D81738E00C871C5 /* WordListEN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C4C2D81738E00C871C5 /* WordListEN.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
@@ -301,17 +290,6 @@
 		376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCVarInt.swift; sourceTree = "<group>"; };
 		376009382D8AC3C50048A7B6 /* BTCHashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCHashing.swift; sourceTree = "<group>"; };
 		3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzSwiftSDK.swift; sourceTree = "<group>"; };
-		379A8C3E2D81738E00C871C5 /* AddressUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressUtils.swift; sourceTree = "<group>"; };
-		379A8C3F2D81738E00C871C5 /* ArrayExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrayExt.swift; sourceTree = "<group>"; };
-		379A8C412D81738E00C871C5 /* Bech32Segwit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bech32Segwit.swift; sourceTree = "<group>"; };
-		379A8C442D81738E00C871C5 /* DataExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExt.swift; sourceTree = "<group>"; };
-		379A8C452D81738E00C871C5 /* DerivationPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DerivationPath.swift; sourceTree = "<group>"; };
-		379A8C462D81738E00C871C5 /* Globals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Globals.swift; sourceTree = "<group>"; };
-		379A8C472D81738E00C871C5 /* HDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HDNode.swift; sourceTree = "<group>"; };
-		379A8C492D81738E00C871C5 /* RIPEMD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RIPEMD.swift; sourceTree = "<group>"; };
-		379A8C4A2D81738E00C871C5 /* SegwitAddrCoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegwitAddrCoder.swift; sourceTree = "<group>"; };
-		379A8C4B2D81738E00C871C5 /* StringExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringExt.swift; sourceTree = "<group>"; };
-		379A8C4C2D81738E00C871C5 /* WordListEN.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordListEN.swift; sourceTree = "<group>"; };
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
@@ -538,7 +516,6 @@
 			isa = PBXGroup;
 			children = (
 				05ECDAAA2B249768002A410D /* bittr.entitlements */,
-				379A8C4D2D81738E00C871C5 /* ChainXS */,
 				05A8BD752B750422002F0282 /* CoreVC */,
 				05A8BD852B750F28002F0282 /* PinVC */,
 				050B4BAF2A1BBB6400563F29 /* Signup */,
@@ -669,24 +646,6 @@
 				0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */,
 			);
 			path = Settings;
-			sourceTree = "<group>";
-		};
-		379A8C4D2D81738E00C871C5 /* ChainXS */ = {
-			isa = PBXGroup;
-			children = (
-				379A8C3E2D81738E00C871C5 /* AddressUtils.swift */,
-				379A8C3F2D81738E00C871C5 /* ArrayExt.swift */,
-				379A8C412D81738E00C871C5 /* Bech32Segwit.swift */,
-				379A8C442D81738E00C871C5 /* DataExt.swift */,
-				379A8C452D81738E00C871C5 /* DerivationPath.swift */,
-				379A8C462D81738E00C871C5 /* Globals.swift */,
-				379A8C472D81738E00C871C5 /* HDNode.swift */,
-				379A8C492D81738E00C871C5 /* RIPEMD.swift */,
-				379A8C4A2D81738E00C871C5 /* SegwitAddrCoder.swift */,
-				379A8C4B2D81738E00C871C5 /* StringExt.swift */,
-				379A8C4C2D81738E00C871C5 /* WordListEN.swift */,
-			);
-			path = ChainXS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -922,17 +881,6 @@
 				05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */,
 				0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */,
 				05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */,
-				379A8C4E2D81738E00C871C5 /* HDNode.swift in Sources */,
-				379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */,
-				379A8C522D81738E00C871C5 /* DataExt.swift in Sources */,
-				379A8C532D81738E00C871C5 /* StringExt.swift in Sources */,
-				379A8C552D81738E00C871C5 /* SegwitAddrCoder.swift in Sources */,
-				379A8C572D81738E00C871C5 /* RIPEMD.swift in Sources */,
-				379A8C582D81738E00C871C5 /* Bech32Segwit.swift in Sources */,
-				379A8C592D81738E00C871C5 /* ArrayExt.swift in Sources */,
-				379A8C5A2D81738E00C871C5 /* DerivationPath.swift in Sources */,
-				379A8C5B2D81738E00C871C5 /* Globals.swift in Sources */,
-				379A8C5C2D81738E00C871C5 /* WordListEN.swift in Sources */,
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				05622A6B2DB8BA3700D91066 /* CallsManager.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,

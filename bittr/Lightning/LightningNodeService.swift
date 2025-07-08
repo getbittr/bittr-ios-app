@@ -84,10 +84,6 @@ class LightningNodeService {
         
         self.varMnemonicString = mnemonicString
         
-        let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/1'/0'/0/0", message: "Hello World")
-        
-        print("Signature: \(signature)")
-        
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
         switch network {
@@ -626,33 +622,14 @@ class LightningNodeService {
     }
     
     func getPrivatePublicKeyForPath(path: String) throws -> (privateKeyHex: String, publicKeyHex: String) {
-            // Create HDNode and derive the path
-            try ChainXSContext.createSecp256k1Ctx()
-
-            // Create mnemonic object from the stored mnemonic string
-            let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
+            // Determine network based on environment
+            let network: KeyDerivationNetwork = UserDefaults.standard.value(forKey: "envkey") as? Int == 0 ? .testnet : .mainnet
             
-            // Create BIP32 extended root key using the mnemonic
-            let bip32ExtendedRootKey: DescriptorSecretKey
-            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                bip32ExtendedRootKey = DescriptorSecretKey(network: .regtest, mnemonic: mnemonic, password: nil)
-                ChainXSContext.setNetwork(.TEST)
-            } else {
-                bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
-                ChainXSContext.setNetwork(.MAIN)
-            }
+            // Create SimpleKeyDerivation instance with the stored mnemonic
+            let keyDerivation = try SimpleKeyDerivation(mnemonic: self.varMnemonicString, network: network)
             
-            let hdNode = try HDNode(extendedKey: bip32ExtendedRootKey.asString().replacingOccurrences(of: "/*", with: ""))
-            let derivedNode = try hdNode.ckdFromDerivationPath(path)
-            
-            // Get private key in hex format
-            let privateKeyHex = try derivedNode.getKeyOrAddressByKey(PRIV_KEY)
-            
-            // Get public key in hex format
-            let publicKeyHex = try derivedNode.getKeyOrAddressByKey(PUB_KEY)
-
-            print("Private Key (Hex): \(privateKeyHex)")
-            print("Public Key (Hex): \(publicKeyHex)")
+            // Derive keys for the given path
+            let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(path)
 
             return (privateKeyHex, publicKeyHex)
         }
@@ -660,7 +637,7 @@ class LightningNodeService {
         
         func signMessageForPath(path: String, message: String) throws -> String {
             // Get private keys in hex format (to be used in the message signing function)
-            let (privateKey, _publicKey) = try getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+            let (privateKey, _) = try getPrivatePublicKeyForPath(path: path)
 
             return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
         }
