@@ -127,6 +127,15 @@
 		376009372D8AC3AF0048A7B6 /* BTCVarInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */; };
 		376009392D8AC3C50048A7B6 /* BTCHashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376009382D8AC3C50048A7B6 /* BTCHashing.swift */; };
 		3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */; };
+		379160342E1D5F0400024560 /* CacheManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379160332E1D5F0400024560 /* CacheManagerTests.swift */; };
+		379160362E1D5FCA00024560 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 379160352E1D5FCA00024560 /* CodeScanner */; };
+		379160382E1D5FCD00024560 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 379160372E1D5FCD00024560 /* BitcoinDevKit */; };
+		3791603A2E1D5FD100024560 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 379160392E1D5FD100024560 /* LightningDevKit */; };
+		3791603C2E1D5FD400024560 /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 3791603B2E1D5FD400024560 /* SPConfetti */; };
+		379160402E1D5FDD00024560 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 3791603F2E1D5FDD00024560 /* LDKNode */; };
+		379160422E1D5FE700024560 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 379160412E1D5FE700024560 /* LDKNode */; };
+		379160462E1D5FF900024560 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 379160452E1D5FF900024560 /* P256K */; };
+		3791604A2E1D603500024560 /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 379160492E1D603500024560 /* LNURLDecoder */; };
 		379A8C4E2D81738E00C871C5 /* HDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C472D81738E00C871C5 /* HDNode.swift */; };
 		379A8C4F2D81738E00C871C5 /* AddressUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C3E2D81738E00C871C5 /* AddressUtils.swift */; };
 		379A8C522D81738E00C871C5 /* DataExt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C442D81738E00C871C5 /* DataExt.swift */; };
@@ -301,6 +310,7 @@
 		376009362D8AC3AF0048A7B6 /* BTCVarInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCVarInt.swift; sourceTree = "<group>"; };
 		376009382D8AC3C50048A7B6 /* BTCHashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCHashing.swift; sourceTree = "<group>"; };
 		3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzSwiftSDK.swift; sourceTree = "<group>"; };
+		379160332E1D5F0400024560 /* CacheManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManagerTests.swift; sourceTree = "<group>"; };
 		379A8C3E2D81738E00C871C5 /* AddressUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressUtils.swift; sourceTree = "<group>"; };
 		379A8C3F2D81738E00C871C5 /* ArrayExt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrayExt.swift; sourceTree = "<group>"; };
 		379A8C412D81738E00C871C5 /* Bech32Segwit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bech32Segwit.swift; sourceTree = "<group>"; };
@@ -360,7 +370,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				379160422E1D5FE700024560 /* LDKNode in Frameworks */,
+				3791604A2E1D603500024560 /* LNURLDecoder in Frameworks */,
+				379160382E1D5FCD00024560 /* BitcoinDevKit in Frameworks */,
+				379160362E1D5FCA00024560 /* CodeScanner in Frameworks */,
+				379160462E1D5FF900024560 /* P256K in Frameworks */,
+				3791603A2E1D5FD100024560 /* LightningDevKit in Frameworks */,
 				05A21FBB2BE0BB5B000F32A2 /* (null) in Frameworks */,
+				3791603C2E1D5FD400024560 /* SPConfetti in Frameworks */,
+				379160402E1D5FDD00024560 /* LDKNode in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -574,6 +592,7 @@
 		05C3C09A29CCB55800C1E695 /* bittrTests */ = {
 			isa = PBXGroup;
 			children = (
+				379160332E1D5F0400024560 /* CacheManagerTests.swift */,
 				05C3C09B29CCB55800C1E695 /* bittrTests.swift */,
 			);
 			path = bittrTests;
@@ -1025,6 +1044,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				379160342E1D5F0400024560 /* CacheManagerTests.swift in Sources */,
 				05C3C09C29CCB55800C1E695 /* bittrTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1352,11 +1372,11 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtestTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1372,11 +1392,11 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtestTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1391,11 +1411,11 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtestUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1410,11 +1430,11 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtestUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1570,6 +1590,46 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */;
 			productName = LightningDevKit;
+		};
+		379160352E1D5FCA00024560 /* CodeScanner */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D80DFD2BA4170800E2F093 /* XCRemoteSwiftPackageReference "CodeScanner" */;
+			productName = CodeScanner;
+		};
+		379160372E1D5FCD00024560 /* BitcoinDevKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */;
+			productName = BitcoinDevKit;
+		};
+		379160392E1D5FD100024560 /* LightningDevKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D80E062BA4203600E2F093 /* XCRemoteSwiftPackageReference "ldk-swift" */;
+			productName = LightningDevKit;
+		};
+		3791603B2E1D5FD400024560 /* SPConfetti */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */;
+			productName = SPConfetti;
+		};
+		3791603F2E1D5FDD00024560 /* LDKNode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */;
+			productName = LDKNode;
+		};
+		379160412E1D5FE700024560 /* LDKNode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 058928092C00933F00DDB850 /* XCRemoteSwiftPackageReference "ldk-node" */;
+			productName = LDKNode;
+		};
+		379160452E1D5FF900024560 /* P256K */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 37DC0C482E1971B7004E1BE8 /* XCRemoteSwiftPackageReference "swift-secp256k1" */;
+			productName = P256K;
+		};
+		379160492E1D603500024560 /* LNURLDecoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0554035B2CB7EA04006F27CA /* XCRemoteSwiftPackageReference "LNURLDecoder" */;
+			productName = LNURLDecoder;
 		};
 		37DC0C492E1971B7004E1BE8 /* P256K */ = {
 			isa = XCSwiftPackageProductDependency;
