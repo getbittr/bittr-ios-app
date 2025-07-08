@@ -57,12 +57,12 @@ class LightningNodeService {
             listeningAddresses: correctListeningAddresses,
             announcementAddresses: nil,
             nodeAlias: nil,
-            trustedPeers0conf: ["02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3", "02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3"],
+            trustedPeers0conf: ["03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc", "03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc"],
             probingLiquidityLimitMultiplier: UInt64(3),
             anchorChannelsConfig: AnchorChannelsConfig(
                 trustedPeersNoReserve: [
-                    PublicKey("02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3"),
-                    PublicKey("02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3")
+                    PublicKey("03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc"),
+                    PublicKey("03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc")
                 ], perChannelReserveSats: UInt64(1000)),
             sendingParameters: nil
         )
@@ -292,7 +292,7 @@ class LightningNodeService {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3", "02b9f95d30c02871086671b00c98bb7f0aab93c92189805b7e8c254a94f5f009e3"]
+        let nodeIds = ["03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc", "03f33c7727832577800b32c465402f19ea744a3f1e00c5923ec2a7632a9eb3f7dc"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
