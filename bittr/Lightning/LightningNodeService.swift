@@ -600,6 +600,31 @@ class LightningNodeService {
         try FileManager.default.deleteAllContentsInDocumentsDirectory()
     }
     
+    func resetNodeState() {
+        print("🔍 [DEBUG] LightningNodeService - Resetting node state")
+        
+        // Clear node reference
+        self.ldkNode = nil
+        
+        // Clear wallet reference
+        self.bdkWallet = nil
+        
+        // Clear connection reference
+        self.connection = nil
+        
+        // Clear electrum client reference
+        self.electrumClient = nil
+        
+        // Reset other state variables
+        self.xpub = ""
+        self.bdkBalance = 0
+        self.varWalletTransactions = []
+        self.currentHeight = 0
+        self.didProceedBeyondPeerConnection = false
+        
+        print("🔍 [DEBUG] LightningNodeService - Node state reset completed")
+    }
+    
     func listenForEvents() {
         
         DispatchQueue.global(qos: .background).async {

@@ -247,6 +247,8 @@ class Language: NSObject {
             "closechannel2": "If you close your Lightning channel, its funds will be deposited back into your wallet. This is minus any transaction fees.\n\nPlease wait for this transaction to show up, before definitively removing this wallet from your device.",
             "closechannel3": "Your Lightning channel has been closed. Wait for any remaining funds to reappear in your wallet before removing this wallet from your device.",
             "closechannel4": "We could not close your Lightning channel. Please try again.",
+            "closechannel5": "Channel closure initiated. This may take several minutes to complete on the blockchain. You can now proceed with wallet reset.",
+            "restorewallet5": "Channel closure is in progress. You can proceed with wallet reset.",
             "syncingwallet": "Syncing wallet",
             "syncingwallet3": "syncing wallet",
             "syncingwallet2": "Please wait a moment while we're syncing your wallet.",

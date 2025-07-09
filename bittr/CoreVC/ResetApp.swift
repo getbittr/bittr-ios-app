@@ -78,9 +78,31 @@ extension CoreViewController {
                 let channels = try await LightningNodeService.shared.listChannels()
                 DispatchQueue.main.async {
                     if channels.count > 0 {
-                        // Wallet cannot be reset with open channels.
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                        // Check if we've recently initiated channel closure
+                        let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
+                        let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
+                        let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
+                        
+                        // If channel closure was initiated within the last 30 minutes, allow reset
+                        if channelClosingInitiated && timeSinceClosure < 1800 { // 30 minutes
+                            print("🔍 [DEBUG] ResetApp - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                            // Allow wallet reset since channel is in closing process
+                            self.performWalletReset(nodeIsRunning: true)
+                        } else {
+                            // Clear old channel closing state if it's been too long
+                            if channelClosingInitiated && timeSinceClosure >= 1800 {
+                                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                            }
+                            
+                            // Wallet cannot be reset with open channels.
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                        }
                     } else {
+                        // Clear channel closing state since no channels exist
+                        UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                        UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                        
                         // Proceed with wallet reset
                         self.performWalletReset(nodeIsRunning: true)
                     }
@@ -108,10 +130,14 @@ extension CoreViewController {
                     let closingChannel = channels[0]
                     try LightningNodeService.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
                     
+                    // Mark that we've initiated channel closure
+                    UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+                    UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+                    
                     // Successful channel closure.
                     DispatchQueue.main.async {
                         self.didCloseChannel()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel3"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
                     }
                 } else {
                     // No channels to close, proceed with reset
@@ -138,6 +164,10 @@ extension CoreViewController {
         // Reset PIN reset state
         self.resettingPin = false
         
+        // Clear channel closing state
+        UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+        UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+        
         // Clear mnemonic from cache
         let defaults = UserDefaults.standard
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
@@ -148,49 +178,73 @@ extension CoreViewController {
         
         // Remove wallet from device and remove corresponding cached data.
         do {
-            if nodeIsRunning == false {
-                try FileManager.default.deleteAllContentsInDocumentsDirectory()
-            } else {
+            print("🔍 [DEBUG] ResetApp - Starting wallet reset cleanup")
+            
+            // Always try to stop the node first if it exists
+            if LightningNodeService.shared.ldkNode != nil {
+                print("🔍 [DEBUG] ResetApp - Stopping Lightning node")
                 try LightningNodeService.shared.stop()
-                try LightningNodeService.shared.deleteDocuments()
+                print("🔍 [DEBUG] ResetApp - Lightning node stopped successfully")
             }
             
+            // Always clean up documents directory
+            print("🔍 [DEBUG] ResetApp - Cleaning up documents directory")
+            try LightningNodeService.shared.deleteDocuments()
+            print("🔍 [DEBUG] ResetApp - Documents directory cleaned successfully")
+            
+            // Reset node state to clear all references
+            print("🔍 [DEBUG] ResetApp - Resetting node state")
+            LightningNodeService.shared.resetNodeState()
+            print("🔍 [DEBUG] ResetApp - Node state reset completed")
+            
+            // Clear all cached data
+            print("🔍 [DEBUG] ResetApp - Clearing cached data")
             CacheManager.deleteClientInfo()
+            print("🔍 [DEBUG] ResetApp - Cached data cleared successfully")
+            
         } catch let error as NodeError {
-            print(error.localizedDescription)
+            print("❌ [DEBUG] ResetApp - NodeError during cleanup: \(error.localizedDescription)")
+            
+            // Even if node stop fails, try to clean up documents
+            do {
+                print("🔍 [DEBUG] ResetApp - Attempting fallback document cleanup")
+                try LightningNodeService.shared.deleteDocuments()
+                print("🔍 [DEBUG] ResetApp - Fallback document cleanup successful")
+            } catch {
+                print("❌ [DEBUG] ResetApp - Fallback document cleanup failed: \(error.localizedDescription)")
+            }
             
             CacheManager.deleteClientInfo()
-            
-            do {
-                try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
-            } catch {
-                print(error.localizedDescription)
-            }
             
         } catch {
-            print(error.localizedDescription)
+            print("❌ [DEBUG] ResetApp - Error during cleanup: \(error.localizedDescription)")
+            
+            // Even if everything fails, try to clean up documents
+            do {
+                print("🔍 [DEBUG] ResetApp - Attempting final fallback document cleanup")
+                try LightningNodeService.shared.deleteDocuments()
+                print("🔍 [DEBUG] ResetApp - Final fallback document cleanup successful")
+            } catch {
+                print("❌ [DEBUG] ResetApp - Final fallback document cleanup failed: \(error.localizedDescription)")
+            }
             
             CacheManager.deleteClientInfo()
-            
-            do {
-                try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
-            } catch {
-                print(error.localizedDescription)
-            }
         }
         
         // Hide signup view and launch create wallet flow
         // Since we've cleared the PIN, we need to manually show the create wallet flow
         self.hideSignup()
         
-        // Launch signup on create wallet page after a short delay to ensure hideSignup completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Launch signup on create wallet page after a delay to ensure cleanup is complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            print("🔍 [DEBUG] ResetApp - Launching signup after cleanup")
             self.launchSignup(onPage: 3) // Page 3 is create wallet
             self.showSignupView()
         }
     }
     
     func didCloseChannel() {
+        print("🔍 [DEBUG] ResetApp - didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.lightningChannels = nil
         self.bittrChannel = nil
@@ -198,6 +252,32 @@ extension CoreViewController {
         
         if self.homeVC!.balanceLabel.alpha == 1 {
             self.homeVC!.setTotalSats(updateTableAfterConversion: false)
+        }
+        
+        // Trigger a fresh sync to get updated channel data
+        Task {
+            do {
+                print("🔍 [DEBUG] ResetApp - didCloseChannel() - Syncing wallet to get updated channel count")
+                try LightningNodeService.shared.syncWallets()
+                
+                // Get fresh channel data
+                let updatedChannels = try await LightningNodeService.shared.listChannels()
+                print("🔍 [DEBUG] ResetApp - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
+                
+                DispatchQueue.main.async {
+                    // Update the cached channel data
+                    self.lightningChannels = updatedChannels
+                    
+                    // Update balance if needed
+                    if self.homeVC!.balanceLabel.alpha == 1 {
+                        self.homeVC!.setTotalSats(updateTableAfterConversion: false)
+                    }
+                    
+                    print("🔍 [DEBUG] ResetApp - didCloseChannel() - Channel cache updated successfully")
+                }
+            } catch {
+                print("❌ [DEBUG] ResetApp - didCloseChannel() - Error syncing after channel closure: \(error)")
+            }
         }
     }
     

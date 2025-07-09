@@ -89,18 +89,40 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             } else {
                 return
             }
-            Task {
-                let channels = try await LightningNodeService.shared.listChannels()
-                DispatchQueue.main.async {
-                    if channels.count > 0 {
-                        // Wallet cannot be restored with open channels.
-                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
-                    } else {
-                        // Retore wallet.
-                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                    }
-                }
-            }
+                          Task {
+                  let channels = try await LightningNodeService.shared.listChannels()
+                  DispatchQueue.main.async {
+                      if channels.count > 0 {
+                          // Check if we've recently initiated channel closure
+                          let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
+                          let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
+                          let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
+                          
+                          // If channel closure was initiated within the last 30 minutes, allow reset
+                          if channelClosingInitiated && timeSinceClosure < 1800 { // 30 minutes
+                              print("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                              // Allow wallet reset since channel is in closing process
+                              self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                          } else {
+                              // Clear old channel closing state if it's been too long
+                              if channelClosingInitiated && timeSinceClosure >= 1800 {
+                                  UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                                  UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                              }
+                              
+                              // Wallet cannot be restored with open channels.
+                              self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                          }
+                      } else {
+                          // Clear channel closing state since no channels exist
+                          UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                          UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                          
+                          // Retore wallet.
+                          self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                      }
+                  }
+              }
         } else if sender.accessibilityIdentifier == "currency" {
             let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
@@ -158,10 +180,14 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 let closingChannel = try await LightningNodeService.shared.listChannels()[0]
                 try LightningNodeService.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
                 
+                // Mark that we've initiated channel closure
+                UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+                
                 // Successful channel closure.
                 DispatchQueue.main.async {
                     self.didCloseChannel()
-                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.proceedToRestoreAfterChannelClose)])
                 }
             } catch {
                 // Unsuccessful channel closure.
@@ -172,7 +198,14 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         }
     }
     
+    @objc func proceedToRestoreAfterChannelClose() {
+        self.hideAlert()
+        // Trigger the restore wallet flow
+        self.walletRestoreAlert()
+    }
+    
     func didCloseChannel() {
+        print("🔍 [DEBUG] Settings - didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.coreVC!.lightningChannels = nil
         self.coreVC!.bittrChannel = nil
@@ -180,6 +213,32 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         
         if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
             self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
+        }
+        
+        // Trigger a fresh sync to get updated channel data
+        Task {
+            do {
+                print("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
+                try LightningNodeService.shared.syncWallets()
+                
+                // Get fresh channel data
+                let updatedChannels = try await LightningNodeService.shared.listChannels()
+                print("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
+                
+                DispatchQueue.main.async {
+                    // Update the cached channel data
+                    self.coreVC!.lightningChannels = updatedChannels
+                    
+                    // Update balance if needed
+                    if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
+                        self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
+                    }
+                    
+                    print("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")
+                }
+            } catch {
+                print("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
+            }
         }
     }
     
