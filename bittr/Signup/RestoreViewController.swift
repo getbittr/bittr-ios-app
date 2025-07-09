@@ -163,6 +163,12 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             }
         }
         
+        // If this is the 12th field, trigger restore
+        if textField.tag == 12 {
+            restoreButtonTapped(restoreButton)
+            return false
+        }
+        
         // No suggestion to accept, move to next field
         moveToNextField(from: textField)
         return false

@@ -166,7 +166,17 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
-        updateButtonState()
+        // Check if this is the 3rd field and all fields are filled
+        if textField.tag == 3 {
+            let allFieldsHaveText = mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[0] && 
+                                   mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[1] && 
+                                   mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[2]
+            
+            if allFieldsHaveText {
+                // Auto-trigger next button
+                nextButtonTapped(nextButton)
+            }
+        }
     }
     
     func textFieldDidBeginEditing(_ textField: UITextField) {

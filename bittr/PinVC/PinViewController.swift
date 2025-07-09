@@ -144,6 +144,12 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
         
+        // Check if PIN is already at max length (8 digits)
+        if (pinTextField.text?.count ?? 0) >= 8 {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
         // Update text field.
         pinTextField.insertText(String(sender.tag))
         self.pinCollectionView.reloadData()
@@ -165,6 +171,12 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     @IBAction func confirmPinButtonTapped(_ sender: UIButton) {
+        
+        // Check if PIN is empty or too short
+        if (pinTextField.text?.count ?? 0) < 4 {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
         
         if self.embeddingView == "core" {
             
