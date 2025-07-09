@@ -645,6 +645,12 @@ class LightningNodeService {
             counterpartyNodeId: counterPartyNodeId
         )
     }
+
+    func forceCloseChannel(userChannelId: ChannelId, counterPartyNodeId:PublicKey) throws {
+        // TODO: This currently doesn't work properly because the bittr node is in the trusted_peers_no_reserve
+        try self.ldkNode!.forceCloseChannel(userChannelId: userChannelId,
+                                            counterpartyNodeId: counterPartyNodeId, reason: "" )
+    }
     
     func getPrivatePublicKeyForPath(path: String) throws -> (privateKeyHex: String, publicKeyHex: String) {
             // Determine network based on environment

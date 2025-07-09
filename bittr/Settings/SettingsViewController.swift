@@ -99,13 +99,13 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                           let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
                           
                           // If channel closure was initiated within the last 30 minutes, allow reset
-                          if channelClosingInitiated && timeSinceClosure < 1800 { // 30 minutes
+                          if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
                               print("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
                               // Allow wallet reset since channel is in closing process
                               self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
                           } else {
                               // Clear old channel closing state if it's been too long
-                              if channelClosingInitiated && timeSinceClosure >= 1800 {
+                              if channelClosingInitiated && timeSinceClosure >= 120 {
                                   UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
                                   UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
                               }
@@ -191,8 +191,51 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
             } catch {
                 // Unsuccessful channel closure.
+                print("❌ [DEBUG] Settings - Channel closure failed with error: \(error)")
+                print("❌ [DEBUG] Settings - Error type: \(type(of: error))")
+                print("❌ [DEBUG] Settings - Error description: \(error.localizedDescription)")
+                
+                // Log additional error details if available
+                if let nsError = error as NSError? {
+                    print("❌ [DEBUG] Settings - NSError domain: \(nsError.domain)")
+                    print("❌ [DEBUG] Settings - NSError code: \(nsError.code)")
+                    print("❌ [DEBUG] Settings - NSError userInfo: \(nsError.userInfo)")
+                }
+                
                 DispatchQueue.main.async {
-                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                }
+            }
+        }
+    }
+    
+    @objc func forceCloseChannel() {
+        self.hideAlert()
+        Task {
+            do {
+                let closingChannel = try await LightningNodeService.shared.listChannels()[0]
+                
+                // Try force close (unilateral closure)
+                print("🔍 [DEBUG] Settings - Attempting force close for channel: \(closingChannel.userChannelId)")
+                try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                
+                // Mark that we've initiated channel closure
+                UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+                
+                // Successful force close
+                DispatchQueue.main.async {
+                    self.didCloseChannel()
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.proceedToRestoreAfterChannelClose)])
+                }
+                
+            } catch {
+                print("❌ [DEBUG] Settings - Force close failed: \(error)")
+                print("❌ [DEBUG] Settings - Force close error type: \(type(of: error))")
+                print("❌ [DEBUG] Settings - Force close error description: \(error.localizedDescription)")
+                
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }

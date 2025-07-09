@@ -83,14 +83,14 @@ extension CoreViewController {
                         let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
                         let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
                         
-                        // If channel closure was initiated within the last 30 minutes, allow reset
-                        if channelClosingInitiated && timeSinceClosure < 1800 { // 30 minutes
+                        // If channel closure was initiated within the last 2 minutes, allow reset
+                        if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
                             print("🔍 [DEBUG] ResetApp - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
                             // Allow wallet reset since channel is in closing process
                             self.performWalletReset(nodeIsRunning: true)
                         } else {
                             // Clear old channel closing state if it's been too long
-                            if channelClosingInitiated && timeSinceClosure >= 1800 {
+                            if channelClosingInitiated && timeSinceClosure >= 120 {
                                 UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
                                 UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
                             }
@@ -147,8 +147,59 @@ extension CoreViewController {
                 }
             } catch {
                 // Unsuccessful channel closure.
+                print("❌ [DEBUG] ResetApp - Channel closure failed with error: \(error)")
+                print("❌ [DEBUG] ResetApp - Error type: \(type(of: error))")
+                print("❌ [DEBUG] ResetApp - Error description: \(error.localizedDescription)")
+                
+                // Log additional error details if available
+                if let nsError = error as NSError? {
+                    print("❌ [DEBUG] ResetApp - NSError domain: \(nsError.domain)")
+                    print("❌ [DEBUG] ResetApp - NSError code: \(nsError.code)")
+                    print("❌ [DEBUG] ResetApp - NSError userInfo: \(nsError.userInfo)")
+                }
+                
                 DispatchQueue.main.async {
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                }
+            }
+        }
+    }
+    
+    @objc func forceCloseChannel() {
+        self.hideAlert()
+        Task {
+            do {
+                let channels = try await LightningNodeService.shared.listChannels()
+                if channels.count > 0 {
+                    let closingChannel = channels[0]
+                    
+                    // Try force close (unilateral closure)
+                    print("🔍 [DEBUG] ResetApp - Attempting force close for channel: \(closingChannel.userChannelId)")
+                    try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                    
+                    // Mark that we've initiated channel closure
+                    UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+                    UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+                    
+                    // Successful force close
+                    DispatchQueue.main.async {
+                        self.didCloseChannel()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
+                    }
+                    
+                } else {
+                    // No channels to close, proceed with reset
+                    DispatchQueue.main.async {
+                        self.performWalletReset(nodeIsRunning: true)
+                    }
+                }
+            } catch {
+                print("❌ [DEBUG] ResetApp - Force close failed: \(error)")
+                print("❌ [DEBUG] ResetApp - Force close error type: \(type(of: error))")
+                print("❌ [DEBUG] ResetApp - Force close error description: \(error.localizedDescription)")
+                
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }
