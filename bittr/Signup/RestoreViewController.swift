@@ -105,6 +105,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             textField?.returnKeyType = .next
         }
         
+
+        
         self.changeColors()
         self.setWords()
         Task {
@@ -118,15 +120,14 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     override func viewWillAppear(_ animated: Bool) {
         
-        if self.signupVC?.coreVC != nil {
-            if self.signupVC!.coreVC!.resettingPin {
-                self.restoreButtonText.text = Language.getWord(withID: "resetpin")
-            }
-        }
-        
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
     }
+    
+
+    
+
     
     @objc func keyboardWillDisappear() {
         
@@ -313,6 +314,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+
+    
     @IBAction func backButtonTapped(_ sender: UIButton) {
         
         self.view.endEditing(true)
@@ -332,6 +335,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+
+    
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
     }
@@ -343,15 +348,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }
     
-    func changeColors() {
+    @objc func changeColors() {
         
         self.topLabel.textColor = Colors.getColor("blackorwhite")
-        
-        if CacheManager.darkModeIsOn() {
-            self.cancelLabel.textColor = Colors.getColor("blackorwhite")
-        } else {
-            self.cancelLabel.textColor = Colors.getColor("transparentblack")
-        }
+        self.cancelLabel.textColor = Colors.getColor("transparentblack")
 
     }
     

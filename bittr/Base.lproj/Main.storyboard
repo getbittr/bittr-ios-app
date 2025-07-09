@@ -9222,6 +9222,41 @@
                                                             <constraint firstItem="QWT-yj-vjJ" firstAttribute="leading" secondItem="KYh-Yr-FKB" secondAttribute="leading" constant="20" id="yRK-ZO-fwj"/>
                                                         </constraints>
                                                     </view>
+                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cancelButtonContainer" userLabel="Cancel Button Container">
+                                                        <rect key="frame" x="116.66666666666669" y="283" width="160" height="25"/>
+                                                        <subviews>
+                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Cancel" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cancelLabelSignup2">
+                                                                <rect key="frame" x="56.999999999999986" y="6.6666666666666288" width="46" height="14"/>
+                                                                <constraints>
+                                                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="cancelLabelHeightSignup2"/>
+                                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="cancelLabelWidthSignup2"/>
+                                                                </constraints>
+                                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
+                                                                <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="0.6039343828" colorSpace="calibratedRGB"/>
+                                                                <nil key="highlightedColor"/>
+                                                            </label>
+                                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cancelButtonSignup2" userLabel="Cancel Button">
+                                                                <rect key="frame" x="0.0" y="0.0" width="160" height="25"/>
+                                                                <accessibility key="accessibilityConfiguration" identifier="cancel"/>
+                                                                <state key="normal" title="Button"/>
+                                                                <buttonConfiguration key="configuration" style="plain"/>
+                                                                <connections>
+                                                                    <action selector="backButtonTapped:" destination="hqI-2z-0d5" eventType="touchUpInside" id="cancelButtonActionSignup2"/>
+                                                                </connections>
+                                                            </button>
+                                                        </subviews>
+                                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="160" id="cancelContainerWidthSignup2"/>
+                                                            <constraint firstAttribute="height" constant="25" id="cancelContainerHeightSignup2"/>
+                                                            <constraint firstItem="cancelButtonSignup2" firstAttribute="top" secondItem="cancelButtonContainer" secondAttribute="top" id="cancelButtonTopSignup2"/>
+                                                            <constraint firstItem="cancelLabelSignup2" firstAttribute="centerX" secondItem="cancelButtonContainer" secondAttribute="centerX" id="cancelLabelCenterXSignup2"/>
+                                                            <constraint firstAttribute="bottom" secondItem="cancelButtonSignup2" secondAttribute="bottom" id="cancelButtonBottomSignup2"/>
+                                                            <constraint firstItem="cancelLabelSignup2" firstAttribute="centerY" secondItem="cancelButtonContainer" secondAttribute="centerY" constant="1" id="cancelLabelCenterYSignup2"/>
+                                                            <constraint firstItem="cancelButtonSignup2" firstAttribute="leading" secondItem="cancelButtonContainer" secondAttribute="leading" id="cancelButtonLeadingSignup2"/>
+                                                            <constraint firstAttribute="trailing" secondItem="cancelButtonSignup2" secondAttribute="trailing" id="cancelButtonTrailingSignup2"/>
+                                                        </constraints>
+                                                    </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="HyK-IS-pF7" userLabel="Card View">
                                                         <rect key="frame" x="146" y="313" width="101" height="56"/>
                                                         <subviews>
@@ -9287,8 +9322,10 @@
                                                     <constraint firstItem="9ep-r6-KE8" firstAttribute="leading" secondItem="L95-ih-327" secondAttribute="leading" constant="40" id="0HI-4m-KJE"/>
                                                     <constraint firstItem="9ep-r6-KE8" firstAttribute="top" secondItem="L95-ih-327" secondAttribute="top" id="LbN-tZ-9Ih"/>
                                                     <constraint firstItem="KYh-Yr-FKB" firstAttribute="top" secondItem="C4K-sm-Y4n" secondAttribute="bottom" constant="40" id="Psg-gM-Nmp"/>
+                                                    <constraint firstItem="cancelButtonContainer" firstAttribute="centerX" secondItem="L95-ih-327" secondAttribute="centerX" id="cancelContainerCenterXSignup2"/>
+                                                    <constraint firstItem="cancelButtonContainer" firstAttribute="top" secondItem="KYh-Yr-FKB" secondAttribute="bottom" constant="20" id="cancelContainerTopSignup2"/>
                                                     <constraint firstAttribute="trailing" secondItem="9ep-r6-KE8" secondAttribute="trailing" constant="40" id="R0H-tX-5fr"/>
-                                                    <constraint firstItem="HyK-IS-pF7" firstAttribute="top" secondItem="KYh-Yr-FKB" secondAttribute="bottom" constant="50" id="V6f-EF-Mt5"/>
+                                                    <constraint firstItem="HyK-IS-pF7" firstAttribute="top" secondItem="cancelButtonContainer" secondAttribute="bottom" constant="50" id="V6f-EF-Mt5"/>
                                                     <constraint firstItem="C4K-sm-Y4n" firstAttribute="top" secondItem="9ep-r6-KE8" secondAttribute="bottom" constant="30" id="WVB-MK-YOX"/>
                                                     <constraint firstItem="9ep-r6-KE8" firstAttribute="centerX" secondItem="L95-ih-327" secondAttribute="centerX" id="e6E-HZ-Ios"/>
                                                     <constraint firstItem="HyK-IS-pF7" firstAttribute="centerX" secondItem="L95-ih-327" secondAttribute="centerX" id="fxd-zq-PIZ"/>
@@ -9344,6 +9381,8 @@
                         <outlet property="switchOne" destination="Z2R-mr-jnj" id="1Xv-F6-dJ2"/>
                         <outlet property="switchTwo" destination="Yf4-ti-nqh" id="Hda-Bx-BgK"/>
                         <outlet property="topLabel" destination="9ep-r6-KE8" id="BkC-yN-H9p"/>
+                        <outlet property="cancelButton" destination="cancelButtonSignup2" id="cancelButtonOutletSignup2"/>
+                        <outlet property="cancelLabel" destination="cancelLabelSignup2" id="cancelLabelOutletSignup2"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="wLP-X5-e6K" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>

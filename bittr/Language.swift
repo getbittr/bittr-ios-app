@@ -48,6 +48,7 @@ class Language: NSObject {
             "noarticles": "There are no articles.",
             "getsupport": "Get support",
             "restorewallet": "Restore wallet",
+            "wipewallet": "Wipe wallet",
             "privacypolicy": "Privacy Policy",
             "termsandconditions": "Terms & Conditions",
             "currency": "Currency",

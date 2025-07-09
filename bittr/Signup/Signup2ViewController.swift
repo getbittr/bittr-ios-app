@@ -25,6 +25,10 @@ class Signup2ViewController: UIViewController {
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextLabel: UILabel!
     
+    // Cancel button
+    @IBOutlet weak var cancelButton: UIButton!
+    @IBOutlet weak var cancelLabel: UILabel!
+    
     // Article
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
@@ -47,6 +51,7 @@ class Signup2ViewController: UIViewController {
         // Button titles
         self.articleButton.setTitle("", for: .normal)
         self.nextButton.setTitle("", for: .normal)
+        self.cancelButton.setTitle("", for: .normal)
         
         // Card styling
         self.cardView.layer.shadowColor = UIColor.black.cgColor
@@ -88,11 +93,24 @@ class Signup2ViewController: UIViewController {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
     }
     
+    @IBAction func backButtonTapped(_ sender: UIButton) {
+        
+        self.view.endEditing(true)
+        
+        if self.signupVC == nil {
+            return
+        } else {
+            // Go back to wallet choice screen (create or restore)
+            self.signupVC?.moveToPage(3)
+        }
+    }
+    
     func changeColors() {
         
         self.topLabel.textColor = Colors.getColor("blackorwhite")
         self.labelOne.textColor = Colors.getColor("blackorwhite")
         self.labelTwo.textColor = Colors.getColor("blackorwhite")
+        self.cancelLabel.textColor = Colors.getColor("transparentblack")
     }
     
     func setWords() {
@@ -101,6 +119,7 @@ class Signup2ViewController: UIViewController {
         self.labelOne.text = Language.getWord(withID: "checkandconfirm1")
         self.labelTwo.text = Language.getWord(withID: "checkandconfirm2")
         self.nextLabel.text = Language.getWord(withID: "iunderstand")
+        self.cancelLabel.text = Language.getWord(withID: "cancel")
     }
     
 }
