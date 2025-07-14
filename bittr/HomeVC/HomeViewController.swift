@@ -579,6 +579,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.openValueVC()
     }
     
+    @objc func openValueVC() {
+        self.performSegue(withIdentifier: "HomeToValue", sender: self)
+    }
+    
 }
 
 extension String {

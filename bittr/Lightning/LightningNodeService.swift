@@ -424,10 +424,6 @@ class LightningNodeService {
         return bdkWallet
     }
     
-    /*func getBlockchain() -> Blockchain? {
-        return blockchain
-    }*/
-    
     func getXpub() -> String {
         return xpub
     }
