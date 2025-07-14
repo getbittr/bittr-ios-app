@@ -13,7 +13,7 @@ import Sentry
 
 extension HomeViewController {
 
-    func loadWalletData(currentHeight:Int?, lightningChannels:[ChannelDetails]?, bdkBalance:Int?, canonicalTransactions:[CanonicalTx]?, paymentDetails:[PaymentDetails]?) {
+    func loadWalletData() {
         
         // Ensure CoreVC availability.
         if self.coreVC == nil {
@@ -21,33 +21,17 @@ extension HomeViewController {
             return
         }
         
-        // Set current blockchain height.
-        if let actualCurrentHeight = currentHeight {
-            self.coreVC!.bittrWallet.currentHeight = actualCurrentHeight
-        }
-        
-        // Set Lightning channels.
-        if let actualLightningChannels = lightningChannels {
-            self.coreVC!.bittrWallet.lightningChannels = actualLightningChannels
-            
-            // Calculate lightning balance by adding up the values of each channel.
-            self.coreVC!.bittrWallet.satoshisLightning = 0
-            for eachChannel in actualLightningChannels {
-                if eachChannel.outboundCapacityMsat != 0 {
-                    self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
-                }
-            }
-            
-            // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
-            if actualLightningChannels.count == 1 {
-                // Set Bittr Channel.
-                self.setBittrChannel(withChannel: actualLightningChannels[0])
+        // Calculate lightning balance by adding up the values of each channel.
+        self.coreVC!.bittrWallet.satoshisLightning = 0
+        for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+            if eachChannel.outboundCapacityMsat != 0 {
+                self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
             }
         }
         
-        // Set onchain balance.
-        if let actualBdkBalance = bdkBalance {
-            self.coreVC!.bittrWallet.satoshisOnchain = actualBdkBalance
+        // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
+        if self.coreVC!.bittrWallet.lightningChannels.count == 1 {
+            self.setBittrChannel(withChannel: self.coreVC!.bittrWallet.lightningChannels[0])
         }
         
         // Collect transaction IDs to be checked with Bittr API.
@@ -55,7 +39,7 @@ extension HomeViewController {
         
         // Set onchain transactions.
         var receivedTransactions = [CanonicalTx]()
-        if let actualReceivedTransactions = canonicalTransactions {
+        if let actualReceivedTransactions = self.coreVC!.bittrWallet.transactionsOnchain {
             receivedTransactions = actualReceivedTransactions
             // Add all onchain transaction IDs.
             for eachTransaction in actualReceivedTransactions {
@@ -84,7 +68,7 @@ extension HomeViewController {
             
         // Add all Lightning payment IDs that haven't yet been cached.
         var receivedPayments = [PaymentDetails]()
-        if let actualReceivedPayments = paymentDetails {
+        if let actualReceivedPayments = self.coreVC!.bittrWallet.transactionsLightning {
             receivedPayments = actualReceivedPayments
             // Add all lightning payment IDs.
             for eachPayment in actualReceivedPayments {

@@ -15,16 +15,11 @@ class LightningNodeService {
     
     public var ldkNode: Node?
     private var network: LDKNode.Network
-    private let mnemonicKey = ""
     private let storageManager = LightningStorage()
     private var connection: Connection?
     private var electrumClient: ElectrumClient?
     private var bdkWallet: BitcoinDevKit.Wallet?
     private var xpub = ""
-    private var bdkBalance = 0
-    private var varWalletTransactions = [CanonicalTx]()
-    private var varMnemonicString = ""
-    private var currentHeight = 0
     private var didProceedBeyondPeerConnection = false
     private var coreVC:CoreViewController?
     
@@ -67,23 +62,16 @@ class LightningNodeService {
             sendingParameters: nil
         )
         
-        let nodeBuilder = Builder.fromConfig(config: config)
-        
         // Check if mnenomic has already been created.
-        var mnemonicString = ""
-        if let actualMnemonic = CacheManager.getMnemonic() {
-            // Existing wallet.
-            print("Did find mnemonic.")
-            mnemonicString = actualMnemonic
-        } else {
+        var mnemonicString = CacheManager.getMnemonic() ?? ""
+        if mnemonicString == "" {
             // New wallet.
             print("Did not find mnemonic. Creating a new one.")
             mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         
-        self.varMnemonicString = mnemonicString
-        
+        let nodeBuilder = Builder.fromConfig(config: config)
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
         switch network {
@@ -112,17 +100,13 @@ class LightningNodeService {
         
         DispatchQueue.global(qos: .background).async {
             
-            var walletTransactions:[CanonicalTx]?
-            
             // BDK launch.
             do {
-                
-                if /*self.blockchain == nil || */self.bdkWallet == nil {
-                    
+                if self.bdkWallet == nil {
                     print("Will start blockchain and wallet.")
                     
                     // Attempt to create a mnemonic object from the provided mnemonic string.
-                    let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self.varMnemonicString)
+                    let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
                     
                     // Create a BIP32 extended root key using the mnemonic and a nil password
                     var bip32ExtendedRootKey:DescriptorSecretKey
@@ -163,10 +147,6 @@ class LightningNodeService {
                         bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .bitcoin)
                     }
                     
-                    // Set up the local SQLite database for the Bitcoin wallet using the provided file path
-                    //let dbPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("bitcoin_wallet.sqlite")
-                    //let config = SqliteDbConfiguration(path: dbPath.path)
-                    
                     // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
                     var wallet:Wallet
                     self.connection = try Connection.createConnection()
@@ -191,18 +171,6 @@ class LightningNodeService {
                     let electrum = try ElectrumClient(url: electrumUrl)
                     self.electrumClient = electrum
                     
-                    /*let electrum = ElectrumConfig(
-                        url: electrumUrl,
-                        socks5: nil,
-                        retry: 5,
-                        timeout: nil,
-                        stopGap: 10,
-                        validateDomain: electrumUrl.starts(with: "ssl://") // Only validate if using SSL
-                    )
-                    let blockchainConfig = BlockchainConfig.electrum(config: electrum)
-                    let blockchain = try Blockchain(config: blockchainConfig)
-                    self.blockchain = blockchain*/
-                    
                     print("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
                         self.coreVC?.updateSync(action: "complete", type: "bdk")
@@ -211,15 +179,8 @@ class LightningNodeService {
                 }
                 
                 print("Will sync wallet.")
-                // Synchronize the wallet with the blockchain, ensuring transaction data is up to date
-                //try self.bdkWallet!.sync(blockchain: self.blockchain!, progress: nil)
+                // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
                 let syncRequest = try self.bdkWallet!.startFullScan().build()
-                //let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
-                /*let update = try self.electrumClient!.sync(
-                    request: syncRequest,
-                    batchSize: UInt64(25),
-                    fetchPrevTxouts: true
-                )*/
                 let update = try self.electrumClient!.fullScan(
                     request: syncRequest,
                     stopGap: UInt64(25),
@@ -237,23 +198,18 @@ class LightningNodeService {
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
                 // Get the confirmed balance from the wallet
-                //self.bdkBalance = Int(try self.bdkWallet!.getBalance().total)
-                self.bdkBalance = Int(self.bdkWallet!.balance().total.toSat())
+                self.coreVC?.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
                 print("Did fetch onchain balance.")
                 
-                // Retrieve a list of transaction details from the wallet, excluding raw transaction data
-                //walletTransactions = try self.bdkWallet!.listTransactions(includeRaw: false)
-                walletTransactions = self.bdkWallet!.transactions()
-                let sortedTransactions = (walletTransactions ?? [CanonicalTx]()).sorted { (tx1, tx2) in
+                // Retrieve a list of transaction details from the wallet, excluding raw transaction data.
+                self.coreVC?.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
                     return tx1.chainPosition.isBefore(tx2.chainPosition)
                 }
-                self.varWalletTransactions = sortedTransactions
                 print("Did fetch onchain transactions.")
                 
                 // Get current height.
-                let fetchedCurrentHeight = try self.getEsploraClient()!.getHeight()
-                self.currentHeight = Int(fetchedCurrentHeight)
-                print("Current height: \(self.currentHeight)")
+                self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
+                print("Current height: \(self.coreVC?.bittrWallet.currentHeight ?? 0)")
                 
                 // Proceed to next step.
                 Task {
@@ -261,7 +217,7 @@ class LightningNodeService {
                         // We're already connected to peer.
                         DispatchQueue.global(qos: .background).async {
                             self.didProceedBeyondPeerConnection = true
-                            self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                            self.getChannelsAndPayments()
                         }
                     } else {
                         // Connect to peer.
@@ -334,7 +290,7 @@ class LightningNodeService {
                 DispatchQueue.main.async {
                     print("Did disconnect from peer.")
                     if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        self.getChannelsAndPayments()
                         self.didProceedBeyondPeerConnection = true
                     }
                 }
@@ -343,7 +299,7 @@ class LightningNodeService {
                 DispatchQueue.main.async {
                     print("Can't disconnect from peer: \(errorString)")
                     if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        self.getChannelsAndPayments()
                         self.didProceedBeyondPeerConnection = true
                     }
                 }
@@ -351,7 +307,7 @@ class LightningNodeService {
                 DispatchQueue.main.async {
                     print("Can't disconnect from peer: No error message.")
                     if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                        self.getChannelsAndPayments()
                         self.didProceedBeyondPeerConnection = true
                     }
                 }
@@ -364,13 +320,13 @@ class LightningNodeService {
             if result == true {
                 // Could connect to peer.
                 if !self.didProceedBeyondPeerConnection {
-                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    self.getChannelsAndPayments()
                     self.didProceedBeyondPeerConnection = true
                 }
             } else {
                 // Couldn't connect to peer.
                 if !self.didProceedBeyondPeerConnection {
-                    self.getChannelsAndPayments(actualWalletTransactions: self.varWalletTransactions)
+                    self.getChannelsAndPayments()
                     self.didProceedBeyondPeerConnection = true
                 }
             }
@@ -378,7 +334,7 @@ class LightningNodeService {
     }
     
     
-    func getChannelsAndPayments(actualWalletTransactions:[CanonicalTx]) {
+    func getChannelsAndPayments() {
         
         Task {
             do {
@@ -405,7 +361,9 @@ class LightningNodeService {
                 
                 // Send notification with all details.
                 DispatchQueue.main.async {
-                    self.coreVC?.homeVC?.loadWalletData(currentHeight: self.currentHeight, lightningChannels: channels, bdkBalance: self.bdkBalance, canonicalTransactions: actualWalletTransactions, paymentDetails: payments)
+                    self.coreVC?.bittrWallet.lightningChannels = channels
+                    self.coreVC?.bittrWallet.transactionsLightning = payments
+                    self.coreVC?.homeVC?.loadWalletData()
                 }
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
@@ -612,9 +570,6 @@ class LightningNodeService {
         
         // Reset other state variables
         self.xpub = ""
-        self.bdkBalance = 0
-        self.varWalletTransactions = []
-        self.currentHeight = 0
         self.didProceedBeyondPeerConnection = false
         
         print("🔍 [DEBUG] LightningNodeService - Node state reset completed")
@@ -649,25 +604,25 @@ class LightningNodeService {
     }
     
     func getPrivatePublicKeyForPath(path: String) throws -> (privateKeyHex: String, publicKeyHex: String) {
-            // Determine network based on environment
-            let network: KeyDerivationNetwork = UserDefaults.standard.value(forKey: "envkey") as? Int == 0 ? .testnet : .mainnet
+        // Determine network based on environment
+        let network: KeyDerivationNetwork = UserDefaults.standard.value(forKey: "envkey") as? Int == 0 ? .testnet : .mainnet
+        
+        // Create SimpleKeyDerivation instance with the stored mnemonic
+        let keyDerivation = try SimpleKeyDerivation(mnemonic: CacheManager.getMnemonic()!, network: network)
             
-            // Create SimpleKeyDerivation instance with the stored mnemonic
-            let keyDerivation = try SimpleKeyDerivation(mnemonic: self.varMnemonicString, network: network)
-            
-            // Derive keys for the given path
-            let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(path)
+        // Derive keys for the given path
+        let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(path)
 
-            return (privateKeyHex, publicKeyHex)
-        }
+        return (privateKeyHex, publicKeyHex)
+    }
 
         
-        func signMessageForPath(path: String, message: String) throws -> String {
-            // Get private keys in hex format (to be used in the message signing function)
-            let (privateKey, _) = try getPrivatePublicKeyForPath(path: path)
+    func signMessageForPath(path: String, message: String) throws -> String {
+        // Get private keys in hex format (to be used in the message signing function)
+        let (privateKey, _) = try getPrivatePublicKeyForPath(path: path)
 
-            return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
-        }
+        return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
+    }
     
 }
 

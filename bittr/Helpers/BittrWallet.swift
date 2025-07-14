@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import BitcoinDevKit
 
 class BittrWallet: NSObject {
 
@@ -17,6 +18,10 @@ class BittrWallet: NSObject {
     // Channels
     var lightningChannels = [ChannelDetails]()
     var bittrChannel:Channel?
+    
+    // Transactions
+    var transactionsOnchain:[CanonicalTx]?
+    var transactionsLightning:[PaymentDetails]?
     
     // Blockchain
     var currentHeight:Int?
