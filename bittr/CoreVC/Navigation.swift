@@ -74,8 +74,7 @@ extension CoreViewController {
             if let lightningPaymentVC = segue.destination as? LightningPaymentViewController {
                 if let actualTransaction = self.receivedBittrTransaction {
                     lightningPaymentVC.receivedTransaction = actualTransaction
-                    lightningPaymentVC.eurValue = self.eurValue
-                    lightningPaymentVC.chfValue = self.chfValue
+                    lightningPaymentVC.coreVC = self
                 }
             }
         }

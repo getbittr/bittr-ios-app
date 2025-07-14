@@ -134,21 +134,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
     
     // Variables
-    var btcAmount:Double = 0.0
-    var btclnAmount:Double = 0.0
+    var coreVC:CoreViewController?
+    var homeVC:HomeViewController?
     var maximumSendableLNSats:Int?
     var maximumSendableOnchainBtc:Double?
-    var feeLow:Float = 0.0
-    var feeMedium:Float = 0.0
-    var feeHigh:Float = 0.0
-    var eurValue = 0.0
-    var chfValue = 0.0
-    var selectedFee = "medium"
-    var selectedFeeInSats = 0
     var selectedCurrency = "bitcoin"
     var onchainOrLightning = "onchain"
     var completedTransaction:Transaction?
-    var homeVC:HomeViewController?
     var onchainAmountInSatoshis:Int = 0
     var onchainAmountInBTC:CGFloat = 0.0
     var newTxId = ""
@@ -159,6 +151,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var temporaryInvoiceAmount = 0
     var pendingLightningInvoice = ""
     var pendingOnchainAddress = ""
+    
+    // Fees
+    var feeLow:Float = 0.0
+    var feeMedium:Float = 0.0
+    var feeHigh:Float = 0.0
+    var selectedFee = "medium"
+    var selectedFeeInSats = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -244,7 +243,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(formattedAmount) BTC"
             } else {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? 0
-                let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.btcAmount)
+                let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
                 self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(formattedAmount) BTC"
             }
         } else {
@@ -434,7 +433,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if self.onchainOrLightning == "onchain" {
             // Regular
-            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.btcAmount)
+            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
             self.amountTextField.text = formattedAmount
             self.btcLabel.text = "BTC"
             self.selectedCurrency = "bitcoin"
@@ -519,9 +518,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 if self.selectedCurrency == "bitcoin" {
                     satoshisValue = Int((self.stringToNumber(self.amountTextField.text) * 100000000).rounded())
                 } else if self.selectedCurrency == "currency" {
-                    var currencyValue = self.eurValue
+                    var currencyValue = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
                     if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                        currencyValue = self.chfValue
+                        currencyValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
                     }
                     satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/currencyValue)*100000000).rounded())
                 }
@@ -565,8 +564,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if let actualTransactionVC = transactionVC {
                 if let actualCompletedTransaction = self.completedTransaction {
                     actualTransactionVC.tappedTransaction = actualCompletedTransaction
-                    actualTransactionVC.eurValue = (CacheManager.getCachedData(key: "eurvalue") as? CGFloat)!
-                    actualTransactionVC.chfValue = (CacheManager.getCachedData(key: "chfvalue") as? CGFloat)!
+                    actualTransactionVC.coreVC = self.coreVC
                 }
             }
         }

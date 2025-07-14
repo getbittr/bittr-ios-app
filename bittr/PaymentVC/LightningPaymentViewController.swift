@@ -37,9 +37,9 @@ class LightningPaymentViewController: UIViewController {
     @IBOutlet weak var nowLeftLabel: UILabel!
     @IBOutlet weak var nowLabel: UILabel!
     
+    // Variables
     var receivedTransaction:Transaction?
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
+    var coreVC:CoreViewController?
     
     @IBOutlet weak var explanationLabel: UILabel!
     @IBOutlet weak var piggyImageHeight: NSLayoutConstraint!
@@ -77,10 +77,10 @@ class LightningPaymentViewController: UIViewController {
                 self.amountLabel.text = "+ \(addSpacesToString(balanceValue: String(actualTransaction.received)).replacingOccurrences(of: "-", with: "")) sats"
             }
             
-            var correctValue:CGFloat = self.eurValue
+            var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
             var currencySymbol = "€"
             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.chfValue
+                correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
                 currencySymbol = "CHF"
             }
             

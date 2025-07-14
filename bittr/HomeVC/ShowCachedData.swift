@@ -38,12 +38,12 @@ extension HomeViewController {
         
         // Set cached Eur Value.
         if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
-            self.coreVC?.eurValue = cachedEurValue
+            self.coreVC?.bittrWallet.valueInEUR = cachedEurValue
         }
         
         // Set cached Chf Value.
         if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
-            self.coreVC?.chfValue = cachedChfValue
+            self.coreVC?.bittrWallet.valueInCHF = cachedChfValue
         }
         
         // Set cached transactions.

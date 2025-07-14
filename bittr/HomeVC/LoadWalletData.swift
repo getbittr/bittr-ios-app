@@ -26,18 +26,18 @@ extension HomeViewController {
             
             // Set current blockchain height.
             if let actualCurrentHeight = userInfo["currentheight"] as? Int {
-                self.coreVC!.currentHeight = actualCurrentHeight
+                self.coreVC!.bittrWallet.currentHeight = actualCurrentHeight
             }
             
             // Set Lightning channels.
             if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
-                self.coreVC!.lightningChannels = actualLightningChannels
+                self.coreVC!.bittrWallet.lightningChannels = actualLightningChannels
                 
                 // Calculate lightning balance by adding up the values of each channel.
-                self.coreVC!.lightningBalanceInSats = 0
+                self.coreVC!.bittrWallet.satoshisLightning = 0
                 for eachChannel in actualLightningChannels {
                     if eachChannel.outboundCapacityMsat != 0 {
-                        self.coreVC!.lightningBalanceInSats += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
+                        self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
                     }
                 }
                 
@@ -50,7 +50,7 @@ extension HomeViewController {
             
             // Set onchain balance.
             if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
-                self.coreVC!.onchainBalanceInSats = actualBdkBalance
+                self.coreVC!.bittrWallet.satoshisOnchain = actualBdkBalance
             }
             
             // Collect transaction IDs to be checked with Bittr API.
@@ -193,7 +193,7 @@ extension HomeViewController {
                         swapTransaction.onchainID = eachTransaction.id
                         swapTransaction.boltzSwapId = eachTransaction.boltzSwapId
                         swapTransaction.height = eachTransaction.height
-                        if let actualCurrentHeight = self.coreVC?.currentHeight {
+                        if let actualCurrentHeight = self.coreVC?.bittrWallet.currentHeight {
                             swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
                         }
                         if swapTransaction.swapDirection == 1 {
@@ -240,7 +240,7 @@ extension HomeViewController {
         thisChannel.sendableMinimum = Int(withChannel.nextOutboundHtlcMinimumMsat)/1000
         thisChannel.receivableMaximum = Int(withChannel.inboundHtlcMaximumMsat ?? 0)/1000
         
-        self.coreVC?.bittrChannel = thisChannel
+        self.coreVC?.bittrWallet.bittrChannel = thisChannel
     }
     
     
@@ -382,7 +382,7 @@ extension HomeViewController {
         }
         
         // Calculate total balance
-        let totalBalanceSats = self.coreVC!.onchainBalanceInSats + self.coreVC!.lightningBalanceInSats
+        let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
         let totalBalanceSatsString = "\(totalBalanceSats)"
         self.balanceWasFetched = true
         
@@ -548,12 +548,12 @@ extension HomeViewController {
                                 actualChfValue = actualChfValue.fixDecimals()
                                 
                                 // Set updated conversion rates for EUR and CHF.
-                                self.coreVC!.eurValue = self.stringToNumber(actualEurValue)
-                                self.coreVC!.chfValue = self.stringToNumber(actualChfValue)
+                                self.coreVC!.bittrWallet.valueInEUR = self.stringToNumber(actualEurValue)
+                                self.coreVC!.bittrWallet.valueInCHF = self.stringToNumber(actualChfValue)
                                 
                                 // Store updated conversion rates in cache.
-                                CacheManager.updateCachedData(data: self.coreVC!.eurValue, key: "eurvalue")
-                                CacheManager.updateCachedData(data: self.coreVC!.chfValue, key: "chfvalue")
+                                CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
+                                CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
                                 
                                 self.didFetchConversion = true
                                 
@@ -602,10 +602,10 @@ extension HomeViewController {
         if self.coreVC == nil { return "" }
         
         // Use preferred currency.
-        var correctValue:CGFloat = self.coreVC!.eurValue
+        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.coreVC!.chfValue
+            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
             currencySymbol = "CHF"
         }
         
@@ -665,10 +665,10 @@ extension HomeViewController {
         var accumulatedCurrentValue = 0
         
         // Get preferred currency.
-        var correctValue:CGFloat = self.coreVC!.eurValue
+        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.coreVC!.chfValue
+            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
             currencySymbol = "CHF"
         }
         
@@ -829,7 +829,7 @@ extension UIViewController {
             case .confirmed(confirmationBlockTime: let confirmationBlockTime, transitively: let transitively):
                 thisTransaction.timestamp = Int(confirmationBlockTime.confirmationTime)
                 thisTransaction.height = Int(confirmationBlockTime.blockId.height)
-                if let actualCurrentHeight = coreVC?.currentHeight {
+                if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
                     thisTransaction.confirmations = (actualCurrentHeight - thisTransaction.height) + 1
                 }
             }
@@ -851,7 +851,7 @@ extension UIViewController {
             thisTransaction.isLightning = true
             thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: paymentDetails!.id)
             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentDetails!.id)
-            if let actualChannels = coreVC?.lightningChannels {
+            if let actualChannels = coreVC?.bittrWallet.lightningChannels {
                 thisTransaction.channelId = actualChannels[0].channelId
             }
         } else if bittrTransaction != nil {
@@ -873,7 +873,7 @@ extension UIViewController {
             thisTransaction.purchaseAmount = Int(self.stringToNumber(bittrTransaction!.purchaseAmount))
             thisTransaction.currency = bittrTransaction!.currency
             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: bittrTransaction!.txId)
-            if let actualChannels = coreVC?.lightningChannels {
+            if let actualChannels = coreVC?.bittrWallet.lightningChannels {
                 thisTransaction.channelId = actualChannels[0].channelId
             }
         }

@@ -86,9 +86,9 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var descriptionButton: UIButton!
     @IBOutlet weak var lightningIdButton: UIButton!
     
+    // Variables
     var tappedTransaction = Transaction()
-    var eurValue = 0.0
-    var chfValue = 0.0
+    var coreVC:CoreViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -133,10 +133,10 @@ class TransactionViewController: UIViewController {
         
         self.idLabel.text = self.tappedTransaction.id
         
-        var correctValue:CGFloat = self.eurValue
+        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.chfValue
+            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
             currencySymbol = "CHF"
         }
         

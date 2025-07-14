@@ -24,10 +24,6 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var receiveLabel: UILabel!
     
     // Values
-    var fetchedBtcBalance:CGFloat = 0.0
-    var fetchedBtclnBalance:CGFloat = 0.0
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
     var maximumSendableLNSats:Int?
     var maximumReceivableLNSats:Int?
     
@@ -54,6 +50,7 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var labelInstant: UILabel!
     
     // Home View Controller
+    var coreVC:CoreViewController?
     var homeVC:HomeViewController?
     var isFromBackgroundNotification = false
     var isFromLightningPayment = false
@@ -94,12 +91,12 @@ class MoveViewController: UIViewController {
         self.swapView.layer.shadowOpacity = 0.1
         
         // Calculate balance values.
-        let correctBtcBalance:CGFloat = fetchedBtcBalance * 0.00000001
-        let correctBtclnBalance:CGFloat = fetchedBtclnBalance * 0.00000001
-        var correctValue:CGFloat = self.eurValue
+        let correctBtcBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain) * 0.00000001
+        let correctBtclnBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisLightning) * 0.00000001
+        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
         var currencySymbol = "€"
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.chfValue
+            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
             currencySymbol = "CHF"
         }
         var balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*correctValue).rounded()))
@@ -107,9 +104,9 @@ class MoveViewController: UIViewController {
         var btclnBalanceValue = String(Int(((correctBtclnBalance)*correctValue).rounded()))
         
         // Show balance values.
-        satsTotal.text = addSpacesToString(balanceValue: "\(Int(fetchedBtcBalance + fetchedBtclnBalance))") + " sats"
-        satsRegular.text = addSpacesToString(balanceValue: "\(Int(fetchedBtcBalance))") + " sats"
-        satsInstant.text = addSpacesToString(balanceValue: "\(Int(fetchedBtclnBalance))") + " sats"
+        satsTotal.text = addSpacesToString(balanceValue: "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)") + " sats"
+        satsRegular.text = addSpacesToString(balanceValue: "\(self.coreVC!.bittrWallet.satoshisOnchain)") + " sats"
+        satsInstant.text = addSpacesToString(balanceValue: "\(self.coreVC!.bittrWallet.satoshisLightning)") + " sats"
         conversionTotal.text = currencySymbol + " " + balanceValue
         conversionRegular.text = currencySymbol + " " + btcBalanceValue
         conversionInstant.text = currencySymbol + " " + btclnBalanceValue
@@ -149,11 +146,7 @@ class MoveViewController: UIViewController {
             
             let sendVC = segue.destination as? SendViewController
             if let actualSendVC = sendVC {
-                actualSendVC.btcAmount = fetchedBtcBalance.rounded() * 0.00000001
-                actualSendVC.btclnAmount = fetchedBtclnBalance.rounded() * 0.00000001
-                
-                actualSendVC.eurValue = self.eurValue
-                actualSendVC.chfValue = self.chfValue
+                actualSendVC.coreVC = self.coreVC
                 
                 actualSendVC.maximumSendableLNSats = self.maximumSendableLNSats
                 if actualSendVC.maximumSendableLNSats! < 0 {

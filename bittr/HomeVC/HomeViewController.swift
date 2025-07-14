@@ -155,7 +155,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
         
-        self.setConversion(btcValue: CGFloat(self.coreVC!.onchainBalanceInSats + self.coreVC!.lightningBalanceInSats)/100000000, cachedData: false, updateTableAfterConversion: true)
+        self.setConversion(btcValue: CGFloat(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)/100000000, cachedData: false, updateTableAfterConversion: true)
     }
     
     
@@ -332,13 +332,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } else if segue.identifier == "HomeToMove" {
             let moveVC = segue.destination as? MoveViewController
             if let actualMoveVC = moveVC {
-                actualMoveVC.fetchedBtcBalance = CGFloat(self.coreVC!.onchainBalanceInSats)
-                actualMoveVC.fetchedBtclnBalance = CGFloat(self.coreVC!.lightningBalanceInSats)
-                actualMoveVC.eurValue = self.coreVC!.eurValue
-                actualMoveVC.chfValue = self.coreVC!.chfValue
+                actualMoveVC.coreVC = self.coreVC
                 actualMoveVC.homeVC = self
                 
-                if let actualChannels = self.coreVC?.lightningChannels {
+                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
@@ -349,7 +346,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     }
                 }
                 
-                if let actualChannels = self.coreVC?.lightningChannels {
+                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
                         actualMoveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
@@ -359,7 +356,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let sendVC = segue.destination as? SendViewController
             if let actualSendVC = sendVC {
                 
-                if let actualChannels = self.coreVC?.lightningChannels {
+                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
@@ -369,17 +366,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         }
                     }
                 }
-                actualSendVC.btcAmount = CGFloat(self.coreVC!.onchainBalanceInSats).rounded() * 0.00000001
-                actualSendVC.btclnAmount = CGFloat(self.coreVC!.lightningBalanceInSats).rounded() * 0.00000001
-                actualSendVC.eurValue = self.coreVC!.eurValue
-                actualSendVC.chfValue = self.coreVC!.chfValue
+                actualSendVC.coreVC = self.coreVC
                 actualSendVC.homeVC = self
             }
         } else if segue.identifier == "HomeToReceive" {
             let receiveVC = segue.destination as? ReceiveViewController
             if let actualReceiveVC = receiveVC {
                 actualReceiveVC.homeVC = self
-                if let actualChannels = self.coreVC?.lightningChannels {
+                actualReceiveVC.coreVC = self.coreVC
+                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
                         actualReceiveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
@@ -389,8 +384,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let transactionVC = segue.destination as? TransactionViewController
             if let actualTransactionVC = transactionVC {
                 actualTransactionVC.tappedTransaction = self.setTransactions[self.tappedTransaction]
-                actualTransactionVC.eurValue = self.coreVC!.eurValue
-                actualTransactionVC.chfValue = self.coreVC!.chfValue
+                actualTransactionVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "HomeToProfit" {
             let profitVC = segue.destination as? ProfitViewController
@@ -415,8 +409,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.calculatedProfit = 0
         self.calculatedInvestments = 0
         self.calculatedCurrentValue = 0
-        self.coreVC?.onchainBalanceInSats = 0
-        self.coreVC?.lightningBalanceInSats = 0
+        self.coreVC?.bittrWallet.satoshisOnchain = 0
+        self.coreVC?.bittrWallet.satoshisLightning = 0
         
         self.noTransactionsLabel.alpha = 0
         self.balanceCardProfitView.alpha = 0
@@ -498,7 +492,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         swapTransaction.onchainID = eachTransaction.id
                         swapTransaction.boltzSwapId = eachTransaction.boltzSwapId
                         swapTransaction.height = eachTransaction.height
-                        if let actualCurrentHeight = self.coreVC?.currentHeight {
+                        if let actualCurrentHeight = self.coreVC?.bittrWallet.currentHeight {
                             swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
                         }
                         if swapTransaction.swapDirection == 1 {

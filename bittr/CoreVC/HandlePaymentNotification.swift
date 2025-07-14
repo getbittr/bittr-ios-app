@@ -308,7 +308,7 @@ extension CoreViewController {
                                         thisTransaction.sent = eachTransaction.sent - eachTransaction.received
                                         thisTransaction.swapDirection = 0
                                         
-                                        if let actualCurrentHeight = self.currentHeight {
+                                        if let actualCurrentHeight = self.bittrWallet.currentHeight {
                                             thisTransaction.height = actualCurrentHeight
                                             thisTransaction.confirmations = 1
                                         }
@@ -383,21 +383,21 @@ extension CoreViewController {
     
     func addNewTransactionToHomeVC(newTransaction:Transaction) {
         
-        if let actualHomeVC = self.homeVC {
+        if self.homeVC != nil {
             
             // Add payment to HomeVC transactions table.
-            actualHomeVC.setTransactions += [newTransaction]
-            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
+            self.homeVC!.setTransactions += [newTransaction]
+            self.homeVC!.setTransactions.sort { transaction1, transaction2 in
                 transaction1.timestamp > transaction2.timestamp
             }
-            actualHomeVC.homeTableView.reloadData()
+            self.homeVC!.homeTableView.reloadData()
             
             // Update HomeVC balance.
-            actualHomeVC.coreVC?.lightningBalanceInSats += newTransaction.received
-            actualHomeVC.setTotalSats(updateTableAfterConversion: false)
+            self.bittrWallet.satoshisLightning += newTransaction.received
+            self.homeVC!.setTotalSats(updateTableAfterConversion: false)
             
             // Add payment to channel details.
-            actualHomeVC.coreVC?.bittrChannel?.received += newTransaction.received
+            self.bittrWallet.bittrChannel?.received += newTransaction.received
         }
     }
     

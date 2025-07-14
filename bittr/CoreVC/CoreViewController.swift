@@ -108,17 +108,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusFinal: UILabel!
     @IBOutlet weak var syncingStatusTop: NSLayoutConstraint!
     
-    // Wallet details.
-    var currentHeight:Int?
-    var lightningChannels:[ChannelDetails]?
-    var lightningBalanceInSats:Int = 0
-    var onchainBalanceInSats:Int = 0
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
-    
-    // Channel details
-    var bittrChannel:Channel?
-    
     // Client details
     var bittrWallet = BittrWallet()
     

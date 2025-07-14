@@ -127,9 +127,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
     
     // Variables
+    var coreVC:CoreViewController?
+    var homeVC:HomeViewController?
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
-    var homeVC:HomeViewController?
     var completedTransaction:Transaction?
     var newPaymentHash:PaymentHash?
     var newInvoiceAmount:Int?
@@ -435,8 +436,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             if let actualTransactionVC = transactionVC {
                 if let actualCompletedTransaction = self.completedTransaction {
                     actualTransactionVC.tappedTransaction = actualCompletedTransaction
-                    actualTransactionVC.eurValue = (CacheManager.getCachedData(key: "eurvalue") as? CGFloat)!
-                    actualTransactionVC.chfValue = (CacheManager.getCachedData(key: "chfvalue") as? CGFloat)!
+                    actualTransactionVC.coreVC = self.coreVC
                 }
             }
         }

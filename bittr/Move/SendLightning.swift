@@ -38,10 +38,10 @@ extension UIViewController {
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         
-                        var correctValue:CGFloat = CGFloat(sendVC?.eurValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
+                        var correctValue:CGFloat = CGFloat(sendVC?.coreVC?.bittrWallet.valueInEUR ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInEUR ?? 0)
                         var currencySymbol = "€"
                         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                            correctValue = CGFloat(sendVC?.chfValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
+                            correctValue = CGFloat(sendVC?.coreVC?.bittrWallet.valueInCHF ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInCHF ?? 0)
                             currencySymbol = "CHF"
                         }
                         
@@ -55,10 +55,10 @@ extension UIViewController {
                         var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
                         
                         // Check if we have sufficient Lightning balance
-                        let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.lightningBalanceInSats ?? 0
+                        let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
                         if invoiceAmount > availableLightningBalance {
                             // Check if we have sufficient onchain balance for a swap
-                            let availableOnchainBalance = sendVC?.homeVC?.coreVC?.onchainBalanceInSats ?? receiveVC?.homeVC?.coreVC?.onchainBalanceInSats ?? 0
+                            let availableOnchainBalance = sendVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
                             if availableOnchainBalance >= invoiceAmount {
                                 // Suggest swap to Lightning
                                 self.showAlert(
@@ -90,10 +90,10 @@ extension UIViewController {
                         let invoiceAmount = Int(self.stringToNumber(sendVC?.amountTextField.text))
                         if invoiceAmount > 0 {
                             
-                            var correctValue:CGFloat = CGFloat(sendVC?.eurValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
+                            var correctValue:CGFloat = CGFloat(sendVC?.coreVC?.bittrWallet.valueInEUR ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInEUR ?? 0)
                             var currencySymbol = "€"
                             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                                correctValue = CGFloat(sendVC?.chfValue ?? receiveVC?.homeVC?.coreVC?.eurValue ?? 0)
+                                correctValue = CGFloat(sendVC?.coreVC?.bittrWallet.valueInCHF ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInCHF ?? 0)
                                 currencySymbol = "CHF"
                             }
                             
@@ -107,10 +107,10 @@ extension UIViewController {
                             var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
                             
                             // Check if we have sufficient Lightning balance
-                            let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.lightningBalanceInSats ?? 0
+                            let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
                             if invoiceAmount > availableLightningBalance {
                                 // Check if we have sufficient onchain balance for a swap
-                                let availableOnchainBalance = sendVC?.homeVC?.coreVC?.onchainBalanceInSats ?? receiveVC?.homeVC?.coreVC?.onchainBalanceInSats ?? 0
+                                let availableOnchainBalance = sendVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
                                 if availableOnchainBalance >= invoiceAmount {
                                     // Suggest swap to Lightning
                                     self.showAlert(

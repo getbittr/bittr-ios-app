@@ -149,7 +149,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.pendingView.layer.cornerRadius = 13
         
         // Available amount
-        if let actualChannel = self.homeVC?.coreVC?.bittrChannel {
+        if let actualChannel = self.homeVC?.coreVC?.bittrWallet.bittrChannel {
             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(actualChannel.receivableMaximum)")
         } else {
             // Fallback if channel is not available
@@ -265,7 +265,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.nextLabel.alpha = 1
                 self.nextSpinner.stopAnimating()
                 // You can't receive or send this much.
-                let maxAmount = self.homeVC?.coreVC?.bittrChannel?.receivableMaximum ?? 0
+                let maxAmount = self.homeVC?.coreVC?.bittrWallet.bittrChannel?.receivableMaximum ?? 0
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
                 self.amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
@@ -380,9 +380,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.pendingInvoice = createdInvoice
         
         var currency = "€"
-        var correctAmount = self.homeVC!.coreVC!.eurValue
+        var correctAmount = self.homeVC!.coreVC!.bittrWallet.valueInEUR ?? 0.0
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctAmount = self.homeVC!.coreVC!.chfValue
+            correctAmount = self.homeVC!.coreVC!.bittrWallet.valueInCHF ?? 0.0
             currency = "CHF"
         }
         var convertedFees = "\(CGFloat(Int(CGFloat(onchainFees + lightningFees)/100000000*correctAmount*100))/100)".replacingOccurrences(of: ".", with: ",")

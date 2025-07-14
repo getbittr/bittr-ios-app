@@ -35,9 +35,9 @@ extension SendViewController {
             if self.selectedCurrency == "satoshis" {
                 divideBy = 100000000
             } else if self.selectedCurrency == "currency" {
-                divideBy = self.eurValue
+                divideBy = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
                 if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    divideBy = self.chfValue
+                    divideBy = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
                 }
             }
             
@@ -57,16 +57,16 @@ extension SendViewController {
                 
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 
-            } else if self.onchainAmountInBTC > self.btcAmount {
+            } else if self.onchainAmountInBTC > CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 {
                 // Check if we have sufficient Lightning balance for a swap
-                let availableLightningBalance = self.maximumSendableLNSats ?? self.homeVC?.coreVC?.lightningBalanceInSats ?? 0
+                let availableLightningBalance = self.maximumSendableLNSats ?? self.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
                 
                 print("DEBUG - Onchain payment validation:")
                 print("  - onchainAmountInBTC: \(self.onchainAmountInBTC)")
-                print("  - btcAmount: \(self.btcAmount)")
+                print("  - btcAmount: \(CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)")
                 print("  - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
                 print("  - maximumSendableLNSats: \(self.maximumSendableLNSats ?? -1)")
-                print("  - lightningBalanceInSats: \(self.homeVC?.coreVC?.lightningBalanceInSats ?? -1)")
+                print("  - satoshisLightning: \(self.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? -1)")
                 print("  - availableLightningBalance: \(availableLightningBalance)")
                 print("  - Is Lightning balance sufficient? \(availableLightningBalance >= self.onchainAmountInSatoshis)")
                 
@@ -78,8 +78,8 @@ extension SendViewController {
                     self.showAlert(
                         presentingController: self, 
                         title: Language.getWord(withID: "insufficientfunds"), 
-                        message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(Int(self.btcAmount * 100000000)) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableLightningBalance) satoshis.", 
-                        buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
+                        message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(self.coreVC!.bittrWallet.satoshisOnchain) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableLightningBalance) satoshis.",
+                        buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                         actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                     )
                     // Store the address for the swap
@@ -98,12 +98,10 @@ extension SendViewController {
                 
                 var currencySymbol = "€"
                 var conversionRate:CGFloat = 0
-                var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
-                var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
-                conversionRate = eurAmount ?? 0.0
+                conversionRate = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
                 if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
                     currencySymbol = "CHF"
-                    conversionRate = chfAmount ?? 0.0
+                    conversionRate = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
                 }
                 
                 self.confirmAddressLabel.text = invoiceText
@@ -145,7 +143,7 @@ extension SendViewController {
                             print("High: \(self.feeHigh*Float(size)), Medium: \(self.feeMedium*Float(size)), Low: \(self.feeLow*Float(size))")
                             
                             let lowestSats:Float = self.feeLow*Float(size)
-                            let availableSatsForFee:Float = Float((self.btcAmount*100000000) - Double(self.onchainAmountInSatoshis))
+                            let availableSatsForFee:Float = Float(self.coreVC!.bittrWallet.satoshisOnchain - self.onchainAmountInSatoshis)
                             if lowestSats > availableSatsForFee {
                                 // There aren't enough sats available to pay for the cheapest fee.
                                 let availableSatsPerVb:Float = availableSatsForFee / Float(size)
@@ -247,7 +245,7 @@ extension SendViewController {
     func switchFeeSelection(tappedFee:String) {
         // Switch selected fee rate.
         
-        let availableBalance:Int = Int(self.btcAmount*100000000)
+        let availableBalance:Int = self.coreVC!.bittrWallet.satoshisOnchain
         
         switch tappedFee {
         case "fast":
@@ -317,16 +315,14 @@ extension SendViewController {
     @objc func handleAmountChange() {
         self.hideAlert()
         
-        self.amountTextField.text = "\(CGFloat(Int(self.btcAmount*100000000)-self.selectedFeeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+        self.amountTextField.text = "\(CGFloat(self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
         
         var currencySymbol = "€"
         var conversionRate:CGFloat = 0
-        var eurAmount = CacheManager.getCachedData(key: "eurvalue") as? CGFloat
-        var chfAmount = CacheManager.getCachedData(key: "chfvalue") as? CGFloat
-        conversionRate = eurAmount ?? 0.0
+        conversionRate = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
             currencySymbol = "CHF"
-            conversionRate = chfAmount ?? 0.0
+            conversionRate = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
         }
         self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
         self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
@@ -493,8 +489,8 @@ extension SendViewController {
             }*/ catch {
                 if error.localizedDescription.contains("Insufficient funds") {
                     let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7])) * 0.00000001
-                    let requiredCorrection:Double = self.btcAmount - satsReservation
-                    let spendableBtcAmount = self.btcAmount + requiredCorrection
+                    let requiredCorrection:Double = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 - satsReservation
+                    let spendableBtcAmount = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 + requiredCorrection
                     if spendableBtcAmount < 0 {
                         return 0
                     } else {

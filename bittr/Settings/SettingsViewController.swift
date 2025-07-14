@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LDKNode
 
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
@@ -250,9 +251,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     func didCloseChannel() {
         print("🔍 [DEBUG] Settings - didCloseChannel() - Clearing channel cache and triggering sync")
         
-        self.coreVC!.lightningChannels = nil
-        self.coreVC!.bittrChannel = nil
-        self.coreVC!.lightningBalanceInSats = 0
+        self.coreVC!.bittrWallet.lightningChannels = [ChannelDetails]()
+        self.coreVC!.bittrWallet.bittrChannel = nil
+        self.coreVC!.bittrWallet.satoshisLightning = 0
         
         if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
             self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
@@ -270,7 +271,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 
                 DispatchQueue.main.async {
                     // Update the cached channel data
-                    self.coreVC!.lightningChannels = updatedChannels
+                    self.coreVC!.bittrWallet.lightningChannels = updatedChannels
                     
                     // Update balance if needed
                     if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {

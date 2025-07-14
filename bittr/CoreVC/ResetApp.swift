@@ -297,9 +297,9 @@ extension CoreViewController {
     func didCloseChannel() {
         print("🔍 [DEBUG] ResetApp - didCloseChannel() - Clearing channel cache and triggering sync")
         
-        self.lightningChannels = nil
-        self.bittrChannel = nil
-        self.lightningBalanceInSats = 0
+        self.bittrWallet.lightningChannels = [ChannelDetails]()
+        self.bittrWallet.bittrChannel = nil
+        self.bittrWallet.satoshisLightning = 0
         
         if self.homeVC!.balanceLabel.alpha == 1 {
             self.homeVC!.setTotalSats(updateTableAfterConversion: false)
@@ -317,7 +317,7 @@ extension CoreViewController {
                 
                 DispatchQueue.main.async {
                     // Update the cached channel data
-                    self.lightningChannels = updatedChannels
+                    self.bittrWallet.lightningChannels = updatedChannels
                     
                     // Update balance if needed
                     if self.homeVC!.balanceLabel.alpha == 1 {

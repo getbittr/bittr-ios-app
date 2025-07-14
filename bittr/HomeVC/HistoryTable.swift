@@ -34,10 +34,10 @@ extension HomeViewController {
             actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Set conversion
-            var correctValue:CGFloat = self.coreVC!.eurValue
+            var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
             var currencySymbol = "€"
             if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.coreVC!.chfValue
+                correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
                 currencySymbol = "CHF"
             }
             
@@ -96,7 +96,7 @@ extension HomeViewController {
             } else {
                 actualCell.boltImage.alpha = 0
                 
-                if thisTransaction.confirmations < 1 && self.coreVC?.currentHeight != nil {
+                if thisTransaction.confirmations < 1 && self.coreVC?.bittrWallet.currentHeight != nil {
                     // Unconfirmed transaction.
                     actualCell.satsLabel.textColor = Colors.getColor("unconfirmed")
                     actualCell.eurosLabel.textColor = Colors.getColor("unconfirmed")
