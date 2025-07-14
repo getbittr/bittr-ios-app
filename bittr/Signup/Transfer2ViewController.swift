@@ -54,8 +54,6 @@ class Transfer2ViewController: UIViewController {
     let pageArticle1Slug = "when-do-i-receive-my-bitcoin"
     var pageArticle1 = Article()
     
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?

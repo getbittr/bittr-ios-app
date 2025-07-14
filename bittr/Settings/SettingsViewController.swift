@@ -129,14 +129,14 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
                 
                 UserDefaults.standard.set("€", forKey: "currency")
-                let notificationDict:[String: Any] = ["currency":"€"]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
+                self.coreVC?.homeVC?.changeCurrency()
+                self.settingsTableView.reloadData()
             }
             let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
                 
                 UserDefaults.standard.set("CHF", forKey: "currency")
-                let notificationDict:[String: Any] = ["currency":"CHF"]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecurrency"), object: nil, userInfo: notificationDict) as Notification)
+                self.coreVC?.homeVC?.changeCurrency()
+                self.settingsTableView.reloadData()
             }
             let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
             actionSheet.addAction(eurOption)
@@ -151,7 +151,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                     return
                 }
             }
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "openmovevc"), object: nil, userInfo: nil) as Notification)
+            self.coreVC?.homeVC?.moveButtonTapped()
         } else if sender.accessibilityIdentifier == "device" {
             self.performSegue(withIdentifier: "SettingsToDevice", sender: self)
         }

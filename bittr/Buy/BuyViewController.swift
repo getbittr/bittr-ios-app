@@ -33,8 +33,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     var allIbanEntities = [IbanEntity]()
     
     // Articles
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var registerIbanVC:RegisterIbanViewController?
     
@@ -171,12 +169,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 
                 actualRegisterVC.coreVC = self.coreVC
                 self.registerIbanVC = actualRegisterVC
-                if let actualArticles = self.articles {
-                    actualRegisterVC.articles = actualArticles
-                }
-                if let actualImages = self.allImages {
-                    actualRegisterVC.allImages = actualImages
-                }
             }
         }
     }

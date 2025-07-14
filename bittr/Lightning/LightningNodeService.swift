@@ -404,8 +404,9 @@ class LightningNodeService {
                 }
                 
                 // Send notification with all details.
-                let transactionsNotificationDict:[AnyHashable:Any] = ["transactions":actualWalletTransactions, "channels":channels, "payments":payments, "bdkbalance":self.bdkBalance, "currentheight":self.currentHeight]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
+                DispatchQueue.main.async {
+                    self.coreVC?.homeVC?.loadWalletData(currentHeight: self.currentHeight, lightningChannels: channels, bdkBalance: self.bdkBalance, canonicalTransactions: actualWalletTransactions, paymentDetails: payments)
+                }
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
             }

@@ -14,8 +14,6 @@ class RegisterIbanViewController: UIViewController {
     @IBOutlet weak var signup7ContainerViewLeading: NSLayoutConstraint!
     
     // Variables
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var currentPage = 0
     
@@ -62,8 +60,6 @@ class RegisterIbanViewController: UIViewController {
             }
         } else if segue.identifier == "RegisterToTransfer1" {
             if let transfer1VC = segue.destination as? Transfer1ViewController {
-                transfer1VC.articles = self.articles
-                transfer1VC.allImages = self.allImages
                 transfer1VC.coreVC = self.coreVC
                 transfer1VC.ibanVC = self
             }
@@ -74,15 +70,11 @@ class RegisterIbanViewController: UIViewController {
             }
         } else if segue.identifier == "RegisterToTransfer2" {
             if let transfer2VC = segue.destination as? Transfer2ViewController {
-                transfer2VC.articles = self.articles
-                transfer2VC.allImages = self.allImages
                 transfer2VC.coreVC = self.coreVC
                 transfer2VC.ibanVC = self
             }
         } else if segue.identifier == "RegisterToTransfer3" {
             if let transfer3VC = segue.destination as? Transfer3ViewController {
-                transfer3VC.articles = self.articles
-                transfer3VC.allImages = self.allImages
                 transfer3VC.coreVC = self.coreVC
                 transfer3VC.ibanVC = self
             }

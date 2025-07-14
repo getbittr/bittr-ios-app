@@ -18,17 +18,20 @@ class SettingsTableViewCell: UITableViewCell {
     override func awakeFromNib() {
         super.awakeFromNib()
         
-        settingsCardView.layer.cornerRadius = 13
-        settingsCardView.layer.shadowColor = UIColor.black.cgColor
-        settingsCardView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        settingsCardView.layer.shadowRadius = 10.0
-        settingsCardView.layer.shadowOpacity = 0.07
+        // Corner radii.
+        self.settingsCardView.layer.cornerRadius = 13
+        self.settingsCardView.layer.shadowColor = UIColor.black.cgColor
+        self.settingsCardView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.settingsCardView.layer.shadowRadius = 10.0
+        self.settingsCardView.layer.shadowOpacity = 0.07
         
-        settingsButton.setTitle("", for: .normal)
+        // Button titles.
+        self.settingsButton.setTitle("", for: .normal)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
+        // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
+        // Set colors.
         self.changeColors()
     }
     

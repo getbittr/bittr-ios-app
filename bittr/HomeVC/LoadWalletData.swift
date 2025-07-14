@@ -13,10 +13,7 @@ import Sentry
 
 extension HomeViewController {
 
-    @objc func loadWalletData(notification:NSNotification) {
-        
-        // Extract notification data.
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
+    func loadWalletData(currentHeight:Int?, lightningChannels:[ChannelDetails]?, bdkBalance:Int?, canonicalTransactions:[CanonicalTx]?, paymentDetails:[PaymentDetails]?) {
             
             // Ensure CoreVC availability.
             if self.coreVC == nil {
@@ -25,12 +22,12 @@ extension HomeViewController {
             }
             
             // Set current blockchain height.
-            if let actualCurrentHeight = userInfo["currentheight"] as? Int {
+            if let actualCurrentHeight = currentHeight {
                 self.coreVC!.bittrWallet.currentHeight = actualCurrentHeight
             }
             
             // Set Lightning channels.
-            if let actualLightningChannels = userInfo["channels"] as? [ChannelDetails] {
+            if let actualLightningChannels = lightningChannels {
                 self.coreVC!.bittrWallet.lightningChannels = actualLightningChannels
                 
                 // Calculate lightning balance by adding up the values of each channel.
@@ -49,7 +46,7 @@ extension HomeViewController {
             }
             
             // Set onchain balance.
-            if let actualBdkBalance = userInfo["bdkbalance"] as? Int {
+            if let actualBdkBalance = bdkBalance {
                 self.coreVC!.bittrWallet.satoshisOnchain = actualBdkBalance
             }
             
@@ -58,7 +55,7 @@ extension HomeViewController {
             
             // Set onchain transactions.
             var receivedTransactions = [CanonicalTx]()
-            if let actualReceivedTransactions = userInfo["transactions"] as? [CanonicalTx] {
+            if let actualReceivedTransactions = canonicalTransactions {
                 receivedTransactions = actualReceivedTransactions
                 // Add all onchain transaction IDs.
                 for eachTransaction in actualReceivedTransactions {
@@ -87,7 +84,7 @@ extension HomeViewController {
                 
             // Add all Lightning payment IDs that haven't yet been cached.
             var receivedPayments = [PaymentDetails]()
-            if let actualReceivedPayments = userInfo["payments"] as? [PaymentDetails] {
+            if let actualReceivedPayments = paymentDetails {
                 receivedPayments = actualReceivedPayments
                 // Add all lightning payment IDs.
                 for eachPayment in actualReceivedPayments {
@@ -110,7 +107,6 @@ extension HomeViewController {
                     self.updateTransactionHistory(receivedTransactions: receivedTransactions, receivedPayments: receivedPayments)
                 }
             }
-        }
     }
     
     

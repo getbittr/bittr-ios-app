@@ -48,8 +48,6 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
     
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -70,15 +68,6 @@ class Transfer3ViewController: UIViewController {
         self.articleButton.setTitle("", for: .normal)
         self.articleButton2.setTitle("", for: .normal)
         self.backButton.setTitle("", for: .normal)
-        
-        if let actualImages = allImages {
-            if let actualImage = actualImages[pageArticle1Slug] {
-                self.articleImage.image = actualImage
-            }
-            if let actualImage2 = actualImages[pageArticle2Slug] {
-                self.article2Image.image = actualImage2
-            }
-        }
         
         self.changeColors()
         self.setWords()

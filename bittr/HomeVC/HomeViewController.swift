@@ -77,10 +77,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var cachedLightningIds = [String]()
     var tappedTransaction = 0
     
-    // Articles
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
-    
     // Balance calculations
     var balanceWasFetched = false
     
@@ -135,12 +131,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.setWords()
         
         // Notification observers
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateAllImages), name: NSNotification.Name(rawValue: "updateallimages"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(loadWalletData), name: NSNotification.Name(rawValue: "getwalletdata"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(changeCurrency), name: NSNotification.Name(rawValue: "changecurrency"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(resetWallet), name: NSNotification.Name(rawValue: "resetwallet"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(moveButtonTapped), name: NSNotification.Name(rawValue: "openmovevc"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(openValueVC), name: NSNotification.Name(rawValue: "openvalue"), object: nil)
@@ -150,41 +140,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
-    @objc func changeCurrency(notification:NSNotification) {
+    func changeCurrency() {
         
         self.conversionLabel.alpha = 0
         self.balanceSpinner.startAnimating()
-        
         self.setConversion(btcValue: CGFloat(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)/100000000, cachedData: false, updateTableAfterConversion: true)
     }
     
-    
-    @objc func updateAllImages(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImages = userInfo["images"] as? [String:UIImage] {
-                self.allImages = actualImages
-            }
-        }
-    }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            
-            var allArticles = [String:Article]()
-            
-            for (articleid, articledata) in userInfo {
-                if let actualSlug = articleid as? String, let actualArticle = articledata as? Article {
-                    allArticles.updateValue(actualArticle, forKey: actualSlug)
-                }
-            }
-            
-            if allArticles.count != 0 {
-                self.articles = allArticles
-            }
-        }
-    }
     
     override func viewDidLayoutSubviews() {
         
@@ -256,7 +218,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.performSegue(withIdentifier: "HomeToBuy", sender: self)
     }
     
-    @objc func moveButtonTapped() {
+    func moveButtonTapped() {
         
         // Balance Card tapped.
         
@@ -322,12 +284,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let buyVC = segue.destination as? BuyViewController {
                 buyVC.coreVC = self.coreVC
                 self.coreVC!.buyVC = buyVC
-                if let actualArticles = self.articles {
-                    buyVC.articles = actualArticles
-                }
-                if let actualImages = self.allImages {
-                    buyVC.allImages = actualImages
-                }
             }
         } else if segue.identifier == "HomeToMove" {
             let moveVC = segue.destination as? MoveViewController
