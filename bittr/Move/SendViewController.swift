@@ -439,8 +439,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.selectedCurrency = "bitcoin"
         } else {
             // Instant
-            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "limitlightninganswer"),"type":"lightningsendable"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
         }
     }
     

@@ -28,7 +28,7 @@ extension CoreViewController {
             try await Task.sleep(nanoseconds: UInt64(15) * NSEC_PER_SEC)
             startTask.cancel()
             print("Could not start node within 15 seconds.")
-            self.stopLightning(notification: nil, stopNode: true)
+            self.stopLightning(message: nil, stopNode: true)
         }
         
         // Start Bitcoin Dev Kit after successful Lightning node start.
@@ -40,7 +40,7 @@ extension CoreViewController {
                 self.completeSync(type: "ldk")
                 self.startSync(type: "bdk")
                 DispatchQueue.global(qos: .background).async {
-                    LightningNodeService.shared.startBDK()
+                    LightningNodeService.shared.startBDK(coreViewController: self)
                 }
                 self.didStartNode = true
             } catch let error as NodeError {
@@ -51,17 +51,17 @@ extension CoreViewController {
                     self.completeSync(type: "ldk")
                     if self.didStartNode == false {
                         DispatchQueue.global(qos: .background).async {
-                            LightningNodeService.shared.startBDK()
+                            LightningNodeService.shared.startBDK(coreViewController: self)
                         }
                         self.didStartNode = true
                     }
                 } else {
-                    self.stopLightning(notification: nil, stopNode: false)
+                    self.stopLightning(message: nil, stopNode: false)
                 }
             } catch {
                 print("62 Can't start node. \(error.localizedDescription)")
                 timeoutTask.cancel()
-                self.stopLightning(notification: nil, stopNode: false)
+                self.stopLightning(message: nil, stopNode: false)
             }
         }
     }
@@ -72,7 +72,7 @@ extension CoreViewController {
         if let actualNode = LightningNodeService.shared.ldkNode {
             if actualNode.status().isRunning {
                 print("Node is running.")
-                LightningNodeService.shared.startBDK()
+                LightningNodeService.shared.startBDK(coreViewController: self)
             } else {
                 print("Node isn't running. 2")
                 self.startLightning()
@@ -83,14 +83,10 @@ extension CoreViewController {
         }
     }
     
-    @objc func stopLightning(notification:NSNotification?, stopNode:Bool) {
+    func stopLightning(message:String?, stopNode:Bool) {
         
-        if let actualNotification = notification {
-            if let userInfo = actualNotification.userInfo as [AnyHashable:Any]? {
-                if let notificationMessage = userInfo["message"] as? String {
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(notificationMessage)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
-                }
-            }
+        if message != nil {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(message!)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
         } else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
         }

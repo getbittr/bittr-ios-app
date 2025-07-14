@@ -74,6 +74,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     
     // Variables
+    var coreVC:CoreViewController?
     var homeVC:HomeViewController?
     var swapDirection = 0
     var amountToBeSent:Int?
@@ -248,8 +249,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBAction func availableAmountTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "limitlightning"),"answer":Language.getWord(withID: "limitlightninganswer"),"type":"lightningsendable"]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
     }
     
     @IBAction func nextTapped(_ sender: UIButton) {

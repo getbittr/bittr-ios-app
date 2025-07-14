@@ -45,7 +45,6 @@ class SignupViewController: UIViewController {
         
         self.allContainerViews = [self.secondRestorePinContainer, self.firstRestorePinContainer, self.restoreMnemonicContainer, self.createWalletContainer, self.createWalletCheckContainer, self.newMnemonicContainer, self.newMnemonicCheckContainer, self.firstPinContainer, self.secondPinContainer, self.walletReadyContainer, self.bittrSignupContainer, self.bittrEmailVerificationContainer, self.bittrDetailsContainer, self.bittrFinalContainer]
 
-        //NotificationCenter.default.addObserver(self, selector: #selector(nextPageTapped), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(screenshotTaken), name: UIApplication.userDidTakeScreenshotNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
 

@@ -142,30 +142,30 @@ class CoreViewController: UIViewController {
             self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
         }
         
-        
-        // Set corner radii and button titles.
+        // Corner radii.
         self.selectedView.layer.cornerRadius = 13
         self.leftWhite.layer.cornerRadius = 13
         self.middleWhite.layer.cornerRadius = 13
         self.rightWhite.layer.cornerRadius = 13
         self.pendingView.layer.cornerRadius = 13
         self.statusView.layer.cornerRadius = 13
+        
+        // Button titles
         self.leftButton.setTitle("", for: .normal)
         self.middleButton.setTitle("", for: .normal)
         self.rightButton.setTitle("", for: .normal)
+        
+        // Opacities
         self.yellowcurve.alpha = 0.85
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotificationFromBackground), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
+        // Set words.
         self.setWords()
     }
     

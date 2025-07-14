@@ -300,6 +300,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         } else if segue.identifier == "SettingsToDevice" {
             if let deviceVC = segue.destination as? DeviceViewController {
                 if let actualCoreVC = self.coreVC {
+                    deviceVC.coreVC = actualCoreVC
                     if let actualHomeVC = actualCoreVC.homeVC {
                         deviceVC.homeVC = actualHomeVC
                     }

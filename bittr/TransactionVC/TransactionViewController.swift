@@ -384,9 +384,7 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannelfees"),"answer":Language.getWord(withID: "lightningchannelfees2")]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: Language.getWord(withID: "lightningchannelfees2"), type: nil)
     }
     
     @IBAction func openUrlButtonTapped(_ sender: UIButton) {

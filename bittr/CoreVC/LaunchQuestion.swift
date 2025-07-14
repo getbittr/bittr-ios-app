@@ -9,22 +9,14 @@ import UIKit
 
 extension CoreViewController {
 
-    @objc func launchQuestion(notification:NSNotification) {
+    func launchQuestion(question:String, answer:String, type:String?) {
         
         // Launch QuestionVC.
+        self.tappedQuestion = question
+        self.tappedAnswer = answer
+        self.tappedType = type
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let notificationQuestion = userInfo["question"] as? String, let notificationAnswer = userInfo["answer"] as? String {
-                self.tappedQuestion = notificationQuestion
-                self.tappedAnswer = notificationAnswer
-                if let notificationType = userInfo["type"] as? String {
-                    self.tappedType = notificationType
-                } else {
-                    self.tappedType = nil
-                }
-                self.performSegue(withIdentifier: "CoreToQuestion", sender: self)
-            }
-        }
+        self.performSegue(withIdentifier: "CoreToQuestion", sender: self)
     }
     
 }

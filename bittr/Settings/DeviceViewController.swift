@@ -74,6 +74,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var darkModeLabel: UILabel!
     
     // Other VCs
+    var coreVC:CoreViewController?
     var homeVC:HomeViewController?
     var temporaryNotificationToken = ""
     
@@ -377,8 +378,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     @IBAction func channelsButtonTapped(_ sender: UIButton) {
         
-        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannels"),"answer":Language.getWord(withID: "lightningexplanation1"),"type":"lightningexplanation"]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
     @IBAction func darkModeSwitched(_ sender: UISwitch) {

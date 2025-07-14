@@ -91,7 +91,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         // Set notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        //NotificationCenter.default.addObserver(self, selector: #selector(setCheckWords), name: NSNotification.Name(rawValue: "setwords"), object: nil)
     }
     
     func setMnemonic() {

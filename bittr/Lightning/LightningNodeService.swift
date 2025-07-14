@@ -26,6 +26,7 @@ class LightningNodeService {
     private var varMnemonicString = ""
     private var currentHeight = 0
     private var didProceedBeyondPeerConnection = false
+    private var coreVC:CoreViewController?
     
     // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
@@ -103,7 +104,11 @@ class LightningNodeService {
         self.ldkNode = ldkNode
     }
     
-    func startBDK() {
+    func startBDK(coreViewController:CoreViewController?) {
+        
+        if self.coreVC == nil, coreViewController != nil {
+            self.coreVC = coreViewController
+        }
         
         DispatchQueue.global(qos: .background).async {
             
@@ -200,10 +205,8 @@ class LightningNodeService {
                     
                     print("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
-                        let notificationDict:[String: Any] = ["action":"complete","type":"bdk"]
-                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
-                        let notificationDict2:[String: Any] = ["action":"start","type":"sync"]
-                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict2) as Notification)
+                        self.coreVC?.updateSync(action: "complete", type: "bdk")
+                        self.coreVC?.updateSync(action: "start", type: "sync")
                     }
                 }
                 
@@ -228,10 +231,8 @@ class LightningNodeService {
                 
                 print("Did sync wallet.")
                 DispatchQueue.main.async {
-                    let notificationDict3:[String: Any] = ["action":"complete","type":"sync"]
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict3) as Notification)
-                    let notificationDict4:[String: Any] = ["action":"start","type":"final"]
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict4) as Notification)
+                    self.coreVC?.updateSync(action: "complete", type: "sync")
+                    self.coreVC?.updateSync(action: "start", type: "final")
                 }
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that
@@ -270,15 +271,9 @@ class LightningNodeService {
                     }
                 }
                 
-            } /*catch let error as BdkError {
-                print("Some error occurred. \(error)")
-                let notificationDict:[String: Any] = ["message":"We can't seem to connect to the Blockchain. Please check your network."]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
-                SentrySDK.capture(error: error)
-            } */catch {
+            } catch {
                 print("Some error occurred. \(error.localizedDescription)")
-                let notificationDict:[String: Any] = ["message":"\(error.localizedDescription)"]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "stoplightning"), object: nil, userInfo: notificationDict) as Notification)
+                self.coreVC?.stopLightning(message: error.localizedDescription, stopNode: false)
                 SentrySDK.capture(error: error)
             }
         }
@@ -480,7 +475,7 @@ class LightningNodeService {
     
     func walletReset() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.startBDK()
+            self.startBDK(coreViewController: nil)
         }
     }
     
@@ -628,7 +623,8 @@ class LightningNodeService {
         
         DispatchQueue.global(qos: .background).async {
             let event = self.ldkNode!.waitNextEvent()
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil, userInfo: ["event":event]) as Notification)
+            self.coreVC?.ldkEventReceived(event: event)
+            
             do {
                 try self.ldkNode!.eventHandled()
             } catch {

@@ -167,6 +167,7 @@ class MoveViewController: UIViewController {
         } else if segue.identifier == "MoveToSwap" {
             if let swapVC = segue.destination as? SwapViewController {
                 swapVC.homeVC = self.homeVC
+                swapVC.coreVC = self.coreVC
                 swapVC.isFromBackgroundNotification = self.isFromBackgroundNotification
                 swapVC.isFromLightningPayment = self.isFromLightningPayment
                 swapVC.pendingLightningInvoice = self.pendingLightningInvoice
@@ -216,12 +217,10 @@ class MoveViewController: UIViewController {
         
         if self.satsInstant.text?.replacingOccurrences(of: "sats", with: "").replacingOccurrences(of: " ", with: "") == "0" {
             // There is no Lightning channel.
-            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannels"),"answer":Language.getWord(withID: "lightningexplanation1")]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: nil)
         } else {
             // There's a Lightning channel.
-            let notificationDict:[String: Any] = ["question":Language.getWord(withID: "lightningchannel"),"answer":Language.getWord(withID: "lightningexplanation1"),"type":"lightningexplanation"]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
         }
     }
     
