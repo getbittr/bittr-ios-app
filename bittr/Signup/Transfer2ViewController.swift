@@ -142,7 +142,9 @@ class Transfer2ViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        if sender.accessibilityIdentifier != nil {
+            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        }
     }
     
     @IBAction func screenshotButtonTapped(_ sender: UIButton) {

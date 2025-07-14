@@ -14,99 +14,99 @@ import Sentry
 extension HomeViewController {
 
     func loadWalletData(currentHeight:Int?, lightningChannels:[ChannelDetails]?, bdkBalance:Int?, canonicalTransactions:[CanonicalTx]?, paymentDetails:[PaymentDetails]?) {
+        
+        // Ensure CoreVC availability.
+        if self.coreVC == nil {
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
+        // Set current blockchain height.
+        if let actualCurrentHeight = currentHeight {
+            self.coreVC!.bittrWallet.currentHeight = actualCurrentHeight
+        }
+        
+        // Set Lightning channels.
+        if let actualLightningChannels = lightningChannels {
+            self.coreVC!.bittrWallet.lightningChannels = actualLightningChannels
             
-            // Ensure CoreVC availability.
-            if self.coreVC == nil {
-                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
-            
-            // Set current blockchain height.
-            if let actualCurrentHeight = currentHeight {
-                self.coreVC!.bittrWallet.currentHeight = actualCurrentHeight
-            }
-            
-            // Set Lightning channels.
-            if let actualLightningChannels = lightningChannels {
-                self.coreVC!.bittrWallet.lightningChannels = actualLightningChannels
-                
-                // Calculate lightning balance by adding up the values of each channel.
-                self.coreVC!.bittrWallet.satoshisLightning = 0
-                for eachChannel in actualLightningChannels {
-                    if eachChannel.outboundCapacityMsat != 0 {
-                        self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
-                    }
-                }
-                
-                // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
-                if actualLightningChannels.count == 1 {
-                    // Set Bittr Channel.
-                    self.setBittrChannel(withChannel: actualLightningChannels[0])
+            // Calculate lightning balance by adding up the values of each channel.
+            self.coreVC!.bittrWallet.satoshisLightning = 0
+            for eachChannel in actualLightningChannels {
+                if eachChannel.outboundCapacityMsat != 0 {
+                    self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
                 }
             }
             
-            // Set onchain balance.
-            if let actualBdkBalance = bdkBalance {
-                self.coreVC!.bittrWallet.satoshisOnchain = actualBdkBalance
+            // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
+            if actualLightningChannels.count == 1 {
+                // Set Bittr Channel.
+                self.setBittrChannel(withChannel: actualLightningChannels[0])
             }
-            
-            // Collect transaction IDs to be checked with Bittr API.
-            var txIds = [String]()
-            
-            // Set onchain transactions.
-            var receivedTransactions = [CanonicalTx]()
-            if let actualReceivedTransactions = canonicalTransactions {
-                receivedTransactions = actualReceivedTransactions
-                // Add all onchain transaction IDs.
-                for eachTransaction in actualReceivedTransactions {
-                    txIds += [eachTransaction.transaction.computeTxid()]
-                }
+        }
+        
+        // Set onchain balance.
+        if let actualBdkBalance = bdkBalance {
+            self.coreVC!.bittrWallet.satoshisOnchain = actualBdkBalance
+        }
+        
+        // Collect transaction IDs to be checked with Bittr API.
+        var txIds = [String]()
+        
+        // Set onchain transactions.
+        var receivedTransactions = [CanonicalTx]()
+        if let actualReceivedTransactions = canonicalTransactions {
+            receivedTransactions = actualReceivedTransactions
+            // Add all onchain transaction IDs.
+            for eachTransaction in actualReceivedTransactions {
+                txIds += [eachTransaction.transaction.computeTxid()]
             }
-            
-            // Add cached Lightning payments to array.
-            self.newTransactions.removeAll()
-            if let cachedLightningTransactions = CacheManager.getLightningTransactions() {
-                self.newTransactions += cachedLightningTransactions
-                for eachTransaction in self.newTransactions {
-                    self.cachedLightningIds += [eachTransaction.id]
-                    if eachTransaction.isSwap {
-                        self.cachedLightningIds += [eachTransaction.lightningID]
-                        self.cachedLightningIds += [eachTransaction.onchainID]
-                        
-                        for (index, eachNewTransaction) in self.newTransactions.enumerated() {
-                            if eachNewTransaction.id == eachTransaction.lightningID || eachNewTransaction.id == eachTransaction.onchainID {
-                                self.newTransactions.remove(at: index)
-                            }
+        }
+        
+        // Add cached Lightning payments to array.
+        self.newTransactions.removeAll()
+        if let cachedLightningTransactions = CacheManager.getLightningTransactions() {
+            self.newTransactions += cachedLightningTransactions
+            for eachTransaction in self.newTransactions {
+                self.cachedLightningIds += [eachTransaction.id]
+                if eachTransaction.isSwap {
+                    self.cachedLightningIds += [eachTransaction.lightningID]
+                    self.cachedLightningIds += [eachTransaction.onchainID]
+                    
+                    for (index, eachNewTransaction) in self.newTransactions.enumerated() {
+                        if eachNewTransaction.id == eachTransaction.lightningID || eachNewTransaction.id == eachTransaction.onchainID {
+                            self.newTransactions.remove(at: index)
                         }
                     }
                 }
             }
-                
-            // Add all Lightning payment IDs that haven't yet been cached.
-            var receivedPayments = [PaymentDetails]()
-            if let actualReceivedPayments = paymentDetails {
-                receivedPayments = actualReceivedPayments
-                // Add all lightning payment IDs.
-                for eachPayment in actualReceivedPayments {
-                    if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
-                        txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
-                    }
+        }
+            
+        // Add all Lightning payment IDs that haven't yet been cached.
+        var receivedPayments = [PaymentDetails]()
+        if let actualReceivedPayments = paymentDetails {
+            receivedPayments = actualReceivedPayments
+            // Add all lightning payment IDs.
+            for eachPayment in actualReceivedPayments {
+                if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
+                    txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
                 }
             }
-                
-            // Add funding transaction ID.
-            if let cachedFundingTxo = CacheManager.getTxoID() {
-                txIds += [cachedFundingTxo]
+        }
+            
+        // Add funding transaction ID.
+        if let cachedFundingTxo = CacheManager.getTxoID() {
+            txIds += [cachedFundingTxo]
+        }
+            
+        Task {
+            // Check whether transactions were Bittr purchases.
+            await self.fetchTransactionData(txIds:txIds, sendAll: false)
+            
+            DispatchQueue.main.async {
+                self.updateTransactionHistory(receivedTransactions: receivedTransactions, receivedPayments: receivedPayments)
             }
-                
-            Task {
-                // Check whether transactions were Bittr purchases.
-                await self.fetchTransactionData(txIds:txIds, sendAll: false)
-                
-                DispatchQueue.main.async {
-                    self.updateTransactionHistory(receivedTransactions: receivedTransactions, receivedPayments: receivedPayments)
-                }
-            }
+        }
     }
     
     

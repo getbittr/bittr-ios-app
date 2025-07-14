@@ -123,7 +123,9 @@ class Transfer3ViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        if sender.accessibilityIdentifier != nil {
+            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        }
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {

@@ -348,7 +348,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        if sender.accessibilityIdentifier != nil {
+            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        }
     }
     
     @objc func changeColors() {
