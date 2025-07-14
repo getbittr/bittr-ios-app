@@ -86,6 +86,7 @@ class CoreViewController: UIViewController {
     var infoVC:InfoViewController?
     var settingsVC:SettingsViewController?
     var signupVC:SignupViewController?
+    var buyVC:BuyViewController?
     
     // Articles
     var allArticles:[String:Article]?
@@ -119,7 +120,7 @@ class CoreViewController: UIViewController {
     var bittrChannel:Channel?
     
     // Client details
-    var client = Client()
+    var bittrWallet = BittrWallet()
     
     // Syncing status view
     @IBOutlet weak var statusView: UIView!
@@ -143,6 +144,16 @@ class CoreViewController: UIViewController {
         // Save environment key for switching between Dev and Production.
         UserDefaults.standard.set(self.devEnvironment, forKey: "envkey")
         
+        // Load Bittr wallet details.
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        if let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
+            self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
+        }
+        
+        
         // Set corner radii and button titles.
         self.selectedView.layer.cornerRadius = 13
         self.leftWhite.layer.cornerRadius = 13
@@ -156,7 +167,6 @@ class CoreViewController: UIViewController {
         self.yellowcurve.alpha = 0.85
         
         // Add observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotificationFromBackground), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)

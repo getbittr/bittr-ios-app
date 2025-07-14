@@ -50,9 +50,6 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         faqHeader.layer.shadowRadius = 8.0
         faqHeader.layer.shadowOpacity = 0.1
         
-        // Notification observers
-        NotificationCenter.default.addObserver(self, selector: #selector(launchArticle), name: NSNotification.Name(rawValue: "launcharticle"), object: nil)
-        
         // Download articles.
         self.setWords()
         self.getArticles()
@@ -321,16 +318,9 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    @objc func launchArticle(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let articleTag = userInfo["tag"] as? String {
-                
-                self.tappedArticle = articleTag
-                
-                performSegue(withIdentifier: "InfoToArticle", sender: self)
-            }
-        }
+    func launchArticle(articleTag:String) {
+        self.tappedArticle = articleTag
+        performSegue(withIdentifier: "InfoToArticle", sender: self)
     }
     
 }

@@ -36,6 +36,8 @@ class Signup7ViewController: UIViewController {
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
+    
+    // Variables
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
     var embeddedInBuyVC = false
@@ -71,8 +73,9 @@ class Signup7ViewController: UIViewController {
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
         // Close sign up and proceed into wallet.
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        self.signupVC?.coreVC?.setClient()
+        self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
+        self.coreVC!.buyVC?.parseIbanEntities()
+        self.coreVC!.hideSignup()
     }
     
     @IBAction func partnerButtonTapped(_ sender: UIButton) {
@@ -86,10 +89,7 @@ class Signup7ViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
-        
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
     }
     
     func changeColors() {

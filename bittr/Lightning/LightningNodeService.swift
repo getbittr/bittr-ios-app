@@ -20,7 +20,6 @@ class LightningNodeService {
     private var connection: Connection?
     private var electrumClient: ElectrumClient?
     private var bdkWallet: BitcoinDevKit.Wallet?
-    //private var blockchain: Blockchain?
     private var xpub = ""
     private var bdkBalance = 0
     private var varWalletTransactions = [CanonicalTx]()

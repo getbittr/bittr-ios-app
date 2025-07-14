@@ -59,24 +59,15 @@ class CacheManager: NSObject {
     }
     
     
-    static func parseDevice(deviceDict:NSDictionary) -> [Client] {
+    static func parseDevice(deviceDict:NSDictionary) -> BittrWallet {
         
-        var allClients = [Client]()
+        let bittrWallet = BittrWallet()
         
-        for (clientid, clientdata) in deviceDict {
-            
-            let client = Client()
-            
+        for (_, clientdata) in deviceDict {
             if let actualClientDict = clientdata as? NSDictionary {
-                
-                if let actualClientID = clientid as? String {
-                    client.id = actualClientID
-                }
-                if let actualClientOrder = actualClientDict["order"] as? Int {
-                    client.order = actualClientOrder
-                }
-                var ibansInClient = [IbanEntity]()
                 if let actualIbansDict = actualClientDict["ibans"] as? NSDictionary {
+                    
+                    var ibansInClient = [IbanEntity]()
                     
                     for (ibanid, ibandata) in actualIbansDict {
                         
@@ -113,142 +104,113 @@ class CacheManager: NSObject {
                         }
                     }
                     
-                    client.ibanEntities = ibansInClient
-                    client.ibanEntities.sort { iban1, iban2 in
+                    bittrWallet.ibanEntities = ibansInClient
+                    bittrWallet.ibanEntities.sort { iban1, iban2 in
                         iban1.order < iban2.order
                     }
                 }
             }
-            
-            allClients += [client]
         }
         
-        allClients.sort { client1, client2 in
-            client1.order < client2.order
-        }
-        
-        return allClients
+        return bittrWallet
     }
     
     
-    static func addIban(clientID:String,iban:IbanEntity) {
+    static func addIban(iban:IbanEntity) {
         
         var envKey = "proddevice"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envKey = "device"
         }
-        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         
-        if let actualClientsDict = clientsDict {
-            // At least one client already exists.
-            let clients = self.parseDevice(deviceDict: actualClientsDict)
-            for client in clients {
-                if client.id == clientID {
-                    var ibanExists = false
-                    for existingIban in client.ibanEntities {
-                        if existingIban.id == iban.id {
-                            ibanExists = true
-                            existingIban.yourIbanNumber = iban.yourIbanNumber
-                            existingIban.yourEmail = iban.yourEmail
-                        }
-                    }
-                    if ibanExists == false {
-                        // This is a new IBAN entity.
-                        client.ibanEntities += [iban]
-                    }
+        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
+            // Client already exists.
+            
+            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
+            
+            var ibanExists = false
+            for existingIban in bittrWallet.ibanEntities {
+                if existingIban.id == iban.id {
+                    ibanExists = true
+                    existingIban.yourIbanNumber = iban.yourIbanNumber
+                    existingIban.yourEmail = iban.yourEmail
                 }
+            }
+            if ibanExists == false {
+                // This is a new IBAN entity.
+                bittrWallet.ibanEntities += [iban]
             }
             
-            var updatedClientsDict = NSMutableDictionary()
-            for client in clients {
-                var ibansDict = NSMutableDictionary()
-                for existingIban in client.ibanEntities {
-                    ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift], forKey: existingIban.id as NSCopying)
-                }
-                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            let ibansDict = NSMutableDictionary()
+            for existingIban in bittrWallet.ibanEntities {
+                ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift], forKey: existingIban.id as NSCopying)
             }
+            let updatedClientsDict = NSMutableDictionary()
+            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
             UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         } else {
-            // No clients have been added yet.
-            let client = Client()
-            client.id = clientID
-            client.order = 0
-            client.ibanEntities += [iban]
-            
-            let clientsDict:NSDictionary = [client.id:["order":client.order,"ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
+            // No client exists yet.
+            let clientsDict:NSDictionary = ["bittrwallet":["ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
             UserDefaults.standard.set(clientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
+        
     }
     
-    static func addEmailToken(clientID:String, ibanID:String, emailToken:String) {
+    static func addEmailToken(ibanID:String, emailToken:String) {
         
         var envKey = "proddevice"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envKey = "device"
         }
         
-        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualClientsDict = clientsDict {
+        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             
-            let clients = self.parseDevice(deviceDict: actualClientsDict)
+            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
             
-            for client in clients {
-                if client.id == clientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == ibanID {
-                            iban.emailToken = emailToken
-                        }
-                    }
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                if eachIbanEntity.id == ibanID {
+                    eachIbanEntity.emailToken = emailToken
                 }
             }
             
-            var updatedClientsDict = NSMutableDictionary()
-            for client in clients {
-                var ibansDict = NSMutableDictionary()
-                for iban in client.ibanEntities {
-                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken, "ourswift":iban.ourSwift], forKey: iban.id as NSCopying)
-                }
-                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            let ibansDict = NSMutableDictionary()
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift], forKey: eachIbanEntity.id as NSCopying)
             }
+            let updatedClientsDict = NSMutableDictionary()
+            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
             UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
     }
     
-    static func addBittrIban(clientID:String, ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
+    static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
         
         var envKey = "proddevice"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envKey = "device"
         }
         
-        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualClientsDict = clientsDict {
+        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             
-            let clients = self.parseDevice(deviceDict: actualClientsDict)
+            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
             
-            for client in clients {
-                if client.id == clientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == ibanID {
-                            iban.ourIbanNumber = ourIban
-                            iban.yourUniqueCode = yourCode
-                            iban.ourSwift = ourSwift
-                        }
-                    }
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                if eachIbanEntity.id == ibanID {
+                    eachIbanEntity.ourIbanNumber = ourIban
+                    eachIbanEntity.yourUniqueCode = yourCode
+                    eachIbanEntity.ourSwift = ourSwift
                 }
             }
             
-            var updatedClientsDict = NSMutableDictionary()
-            for client in clients {
-                var ibansDict = NSMutableDictionary()
-                for iban in client.ibanEntities {
-                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken, "ourswift":iban.ourSwift], forKey: iban.id as NSCopying)
-                }
-                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            let ibansDict = NSMutableDictionary()
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift], forKey: eachIbanEntity.id as NSCopying)
             }
+            let updatedClientsDict = NSMutableDictionary()
+            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
             UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }

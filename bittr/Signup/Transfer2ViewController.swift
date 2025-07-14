@@ -36,7 +36,6 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var screenshotButton: UIButton!
     @IBOutlet weak var screenshotLabel: UILabel!
     
-    var currentClientID = ""
     var currentIbanID = ""
     
     @IBOutlet weak var ourIbanLabel: UILabel!
@@ -64,21 +63,23 @@ class Transfer2ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        checkView.layer.cornerRadius = 35
-        ibanView.layer.cornerRadius = 13
-        nameView.layer.cornerRadius = 13
-        codeView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        screenshotView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
-        screenshotButton.setTitle("", for: .normal)
-        ibanButton.setTitle("", for: .normal)
-        nameButton.setTitle("", for: .normal)
-        codeButton.setTitle("", for: .normal)
+        // Corner radii.
+        self.checkView.layer.cornerRadius = 35
+        self.ibanView.layer.cornerRadius = 13
+        self.nameView.layer.cornerRadius = 13
+        self.codeView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.screenshotView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        
+        // Button titles.
+        self.nextButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
+        self.screenshotButton.setTitle("", for: .normal)
+        self.ibanButton.setTitle("", for: .normal)
+        self.nameButton.setTitle("", for: .normal)
+        self.codeButton.setTitle("", for: .normal)
         
         // Checkmark elements.
         let viewBorder = CAShapeLayer()
@@ -103,34 +104,19 @@ class Transfer2ViewController: UIViewController {
         
         // Set data received from bittr API.
         if self.signupVC != nil {
-            self.currentClientID = self.signupVC!.currentClientID
             self.currentIbanID = self.signupVC!.currentIbanID
             
             if self.signupVC!.currentCode {
-                var envKey = "proddevice"
-                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    envKey = "device"
-                }
                 
-                let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-                if let actualDeviceDict = deviceDict {
-                    let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-                    for client in clients {
-                        if client.id == self.currentClientID {
-                            for iban in client.ibanEntities {
-                                if iban.id == self.currentIbanID {
-                                    
-                                    self.ourIbanLabel.text = iban.ourIbanNumber
-                                    self.yourCodeLabel.text = iban.yourUniqueCode
-                                    
-                                    self.ibanButton.accessibilityIdentifier = iban.ourIbanNumber
-                                    self.nameButton.accessibilityIdentifier = iban.ourName
-                                    self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
-                                    
-                                    self.signupVC!.coreVC?.setClient()
-                                }
-                            }
-                        }
+                for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+                    if eachIbanEntity.id == self.currentIbanID {
+                        
+                        self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
+                        self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
+                        
+                        self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
+                        self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
+                        self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
                     }
                 }
             }
@@ -158,10 +144,7 @@ class Transfer2ViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
-        
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
     }
     
     @IBAction func screenshotButtonTapped(_ sender: UIButton) {

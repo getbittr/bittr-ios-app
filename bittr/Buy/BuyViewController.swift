@@ -36,6 +36,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var registerIbanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -64,9 +65,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         viewBorder.lineWidth = 1
         self.addAnotherView.layer.addSublayer(viewBorder)
         
-        // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(self.resetClient), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        
         // Set colors and language.
         self.changeColors()
         self.setWords()
@@ -80,29 +78,13 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.allIbanEntities = [IbanEntity]()
         
         if self.coreVC == nil {return}
-        for eachIbanEntity in self.coreVC!.client.ibanEntities {
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
                 self.allIbanEntities += [eachIbanEntity]
             }
         }
         
         self.ibanCollectionView.reloadData()
-    }
-    
-    @objc func resetClient() {
-        
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        
-        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            // Client exists in cache.
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            self.coreVC?.client = clients[0]
-            self.parseIbanEntities()
-        }
     }
     
     override func viewDidLayoutSubviews() {
@@ -188,7 +170,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             if let actualRegisterVC = registerVC {
                 
                 actualRegisterVC.coreVC = self.coreVC
-                actualRegisterVC.currentClientID = self.coreVC!.client.id
+                self.registerIbanVC = actualRegisterVC
                 if let actualArticles = self.articles {
                     actualRegisterVC.articles = actualArticles
                 }

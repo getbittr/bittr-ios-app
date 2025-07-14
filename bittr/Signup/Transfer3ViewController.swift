@@ -29,7 +29,6 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var topLabelTwo: UILabel!
     @IBOutlet weak var topLabelThree: UILabel!
     
-    var currentClientID = ""
     var currentIbanID = ""
     
     // Articles.
@@ -96,7 +95,7 @@ class Transfer3ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
-        var centerViewHeight = centerView.bounds.height
+        let centerViewHeight = centerView.bounds.height
         
         if centerView.bounds.height + 40 > contentView.bounds.height {
             
@@ -111,46 +110,31 @@ class Transfer3ViewController: UIViewController {
     func updateData() {
         
         if self.signupVC != nil {
-            self.currentClientID = self.signupVC!.currentClientID
             self.currentIbanID = self.signupVC!.currentIbanID
         }
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        
-        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            for client in clients {
-                if client.id == self.currentClientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == self.currentIbanID {
-                            
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(iban.ourIbanNumber)\n\(iban.ourName)\n\(iban.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
-                        }
-                    }
-                }
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+            if eachIbanEntity.id == self.currentIbanID {
+                
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(eachIbanEntity.ourIbanNumber)\n\(eachIbanEntity.ourName)\n\(eachIbanEntity.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
             }
         }
     }
     
     @objc func proceedToWallet() {
         self.hideAlert()
-        // Hide signup and proceed into wallet.
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        (self.signupVC?.coreVC ?? self.coreVC!).setClient()
+        
+        // Hide signup
+        self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
+        self.coreVC!.buyVC?.parseIbanEntities()
+        self.coreVC!.hideSignup()
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
-        
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {

@@ -340,7 +340,7 @@ extension CoreViewController {
                     
                     let fundingTxo = "\(event)".split(separator: ",")[4].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " fundingTxo: LDKNode.OutPoint(txid: ", with: "")
                     var depositCodes = [String]()
-                    for eachIbanEntity in self.client.ibanEntities {
+                    for eachIbanEntity in self.bittrWallet.ibanEntities {
                         if eachIbanEntity.yourUniqueCode != "" {
                             depositCodes += [eachIbanEntity.yourUniqueCode]
                         }

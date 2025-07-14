@@ -36,7 +36,6 @@ class SignupViewController: UIViewController {
     var allContainerViews = [UIView]()
     var embedViewIdentifiers = ["Restore3", "Restore2", "Restore", "Signup1", "Signup2", "Signup3", "Signup4", "Signup5", "Signup6", "Signup7", "Transfer1", "Transfer15", "Transfer2", "Transfer"]
     var enteredPin = ""
-    var currentClientID = ""
     var currentIbanID = ""
     var currentCode = false
     var animateTransition = true
@@ -177,10 +176,8 @@ class SignupViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        
         // Open article.
-        let notificationDict:[String: Any] = ["tag":sender.tag]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.tag)")
     }
     
     /*override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

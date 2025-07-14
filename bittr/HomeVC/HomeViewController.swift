@@ -253,7 +253,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func buyButtonTapped(_ sender: UIButton) {
-        performSegue(withIdentifier: "HomeToGoal", sender: self)
+        self.performSegue(withIdentifier: "HomeToBuy", sender: self)
     }
     
     @objc func moveButtonTapped() {
@@ -318,15 +318,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
-        if segue.identifier == "HomeToGoal" {
-            let goalVC = segue.destination as? BuyViewController
-            if let actualGoalVC = goalVC {
-                actualGoalVC.coreVC = self.coreVC
+        if segue.identifier == "HomeToBuy" {
+            if let buyVC = segue.destination as? BuyViewController {
+                buyVC.coreVC = self.coreVC
+                self.coreVC!.buyVC = buyVC
                 if let actualArticles = self.articles {
-                    actualGoalVC.articles = actualArticles
+                    buyVC.articles = actualArticles
                 }
                 if let actualImages = self.allImages {
-                    actualGoalVC.allImages = actualImages
+                    buyVC.allImages = actualImages
                 }
             }
         } else if segue.identifier == "HomeToMove" {

@@ -30,7 +30,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @IBOutlet weak var backgroundButton2: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
     
-    var currentClientID = ""
     var currentIbanID = ""
     
     @IBOutlet weak var nextButtonLabel: UILabel!
@@ -73,7 +72,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     func updateClient() {
         // Register client details.
         if self.signupVC != nil {
-            self.currentClientID = self.signupVC!.currentClientID
             self.currentIbanID = self.signupVC!.currentIbanID
         }
     }
@@ -132,70 +130,55 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         print("Check 2FA started.")
         
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        
-        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            // Some device information exists.
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
             
-            for client in clients {
-                if client.id == self.currentClientID {
-                    
-                    for iban in client.ibanEntities {
-                        if iban.id == self.currentIbanID {
-                            
-                            // Send email and verification code to bittr API.
-                            let parameters: [String: Any] = [
-                                "email_address": iban.yourEmail,
-                                "token_2fa": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-                            ]
-                            
-                            // TODO: Public?
-                            var envUrl = "https://getbittr.com/api/verify/email/check2fa"
-                            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email/check2fa"
-                            }
-                            
-                            Task {
-                                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
-                                    
-                                    switch result {
-                                    case .success(let receivedDictionary):
-                                        let emailToken = receivedDictionary["token"]
-                                        let errorMessage = receivedDictionary["message"]
-                                        if let actualEmailToken = emailToken as? String {
-                                            // Email address verified. Store email token in cache.
-                                            CacheManager.addEmailToken(clientID: self.currentClientID, ibanID: self.currentIbanID, emailToken: actualEmailToken)
-                                            
-                                            DispatchQueue.main.async {
-                                                // Get wallet address.
-                                                self.getAddress(page: self.setSender)
-                                            }
-                                        } else if let actualErrorMessage = errorMessage as? String {
-                                            if actualErrorMessage == "Invalid 2FA verification token provided" {
-                                                DispatchQueue.main.async {
-                                                    self.nextButtonActivityIndicator.stopAnimating()
-                                                    self.nextButtonLabel.alpha = 1
-                                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                                }
-                                            }
-                                        }
-                                    case .failure(let error):
-                                        SentrySDK.capture(error: error)
-                                        DispatchQueue.main.async {
-                                            self.nextButtonActivityIndicator.stopAnimating()
-                                            self.nextButtonLabel.alpha = 1
-                                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                        }
+            if eachIbanEntity.id == self.currentIbanID {
+                
+                // Send email and verification code to bittr API.
+                let parameters: [String: Any] = [
+                    "email_address": eachIbanEntity.yourEmail,
+                    "token_2fa": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+                ]
+                
+                // TODO: Public?
+                var envUrl = "https://getbittr.com/api/verify/email/check2fa"
+                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                    envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email/check2fa"
+                }
+                
+                Task {
+                    await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                        
+                        switch result {
+                        case .success(let receivedDictionary):
+                            let emailToken = receivedDictionary["token"]
+                            let errorMessage = receivedDictionary["message"]
+                            if let actualEmailToken = emailToken as? String {
+                                // Email address verified. Store email token in cache.
+                                CacheManager.addEmailToken(ibanID: self.currentIbanID, emailToken: actualEmailToken)
+                                
+                                DispatchQueue.main.async {
+                                    // Get wallet address.
+                                    self.getAddress(page: self.setSender)
+                                }
+                            } else if let actualErrorMessage = errorMessage as? String {
+                                if actualErrorMessage == "Invalid 2FA verification token provided" {
+                                    DispatchQueue.main.async {
+                                        self.nextButtonActivityIndicator.stopAnimating()
+                                        self.nextButtonLabel.alpha = 1
+                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
-                                    
                                 }
                             }
+                        case .failure(let error):
+                            SentrySDK.capture(error: error)
+                            DispatchQueue.main.async {
+                                self.nextButtonActivityIndicator.stopAnimating()
+                                self.nextButtonLabel.alpha = 1
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            }
                         }
+                        
                     }
                 }
             }
@@ -205,27 +188,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func getAddress(page:String) {
         
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        
-        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            // Some device information exists.
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            for client in clients {
-                if client.id == self.currentClientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == self.currentIbanID {
-                            
-                            let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(iban.emailToken.prefix(32)). IBAN: \(iban.yourIbanNumber)"
-                            let parameters = ["message": message]
-                            
-                            self.createClient(message: message, page: page, iban: iban)
-                        }
-                    }
-                }
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+            if eachIbanEntity.id == self.currentIbanID {
+                
+                let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(eachIbanEntity.emailToken.prefix(32)). IBAN: \(eachIbanEntity.yourIbanNumber)"
+                self.createClient(message: message, page: page, iban: eachIbanEntity)
             }
         }
     }
@@ -236,7 +203,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         Task {
             // Get real onchain address.
             let wallet = LightningNodeService.shared.getWallet()
-            //let firstAddress = try wallet?.getAddress(addressIndex: AddressIndex.peek(index: 0)).address.asString()
             let firstAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
             
             // Send to Bittr.
@@ -296,15 +262,23 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             let dataSwift = actualDataItems["swift"]
                             if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
                                 DispatchQueue.main.async {
-                                    
                                     // Signup successful.
+                                    
                                     // Add bittr details to cache.
-                                    CacheManager.addBittrIban(clientID: self.currentClientID, ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                    CacheManager.addBittrIban(ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                    for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                                        if eachIbanEntity.id == self.currentIbanID {
+                                            self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = actualDataOurIban
+                                            self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = actualDataSwift
+                                            self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = actualDataCode
+                                        }
+                                    }
+                                    
+                                    // Stop spinner.
                                     self.nextButtonActivityIndicator.stopAnimating()
                                     self.nextButtonLabel.alpha = 1
                                     
                                     // Move to next page.
-                                    self.signupVC?.currentClientID = self.currentClientID
                                     self.signupVC?.currentIbanID = self.currentIbanID
                                     self.signupVC?.currentCode = true
                                     self.signupVC?.moveToPage(12)
@@ -353,53 +327,39 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         if self.counter == 0 {
             
-            var envKey = "proddevice"
-            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envKey = "device"
-            }
-            
-            // Prompt bittr API to send new verification code to email address.
-            let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-            if let actualDeviceDict = deviceDict {
-                let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-                for client in clients {
-                    if client.id == self.currentClientID {
-                        for iban in client.ibanEntities {
-                            if iban.id == self.currentIbanID {
-                                
-                                let parameters: [String: Any] = [
-                                    "email": iban.yourEmail,
-                                    "category": "ledger"
-                                ]
-                                
-                                // TODO: Public?
-                                var envUrl = "https://getbittr.com/api/verify/email"
-                                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                    envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
+            for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+                if eachIbanEntity.id == self.currentIbanID {
+                    
+                    let parameters: [String: Any] = [
+                        "email": eachIbanEntity.yourEmail,
+                        "category": "ledger"
+                    ]
+                    
+                    // TODO: Public?
+                    var envUrl = "https://getbittr.com/api/verify/email"
+                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                        envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
+                    }
+                    
+                    Task {
+                        await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                            
+                            switch result {
+                            case .failure(let error):
+                                DispatchQueue.main.async {
+                                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    SentrySDK.capture(error: error)
                                 }
-                                
-                                Task {
-                                    await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
-                                        
-                                        switch result {
-                                        case .failure(let error):
-                                            DispatchQueue.main.async {
-                                                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                                SentrySDK.capture(error: error)
-                                            }
-                                        case .success(let receivedDictionary):
-                                            DispatchQueue.main.async {
-                                                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(iban.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
-                                                
-                                                // Restart counter.
-                                                self.counter = 30
-                                                Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
-                                            }
-                                        }
-                                        
-                                    }
+                            case .success(_):
+                                DispatchQueue.main.async {
+                                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+                                    
+                                    // Restart counter.
+                                    self.counter = 30
+                                    Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
                                 }
                             }
+                            
                         }
                     }
                 }

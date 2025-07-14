@@ -45,11 +45,11 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
         if let actualPreviousPin = self.previousPIN {
             
             if actualPreviousPin == enteredPin {
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-                
-                self.signupVC?.coreVC?.setClient()
                 CacheManager.storePin(pin: actualPreviousPin)
                 self.signupVC?.coreVC?.resettingPin = false
+                self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
+                self.coreVC!.buyVC?.parseIbanEntities()
+                self.coreVC!.hideSignup()
                 
             } else {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)

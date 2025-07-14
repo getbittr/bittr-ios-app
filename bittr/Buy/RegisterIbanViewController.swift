@@ -9,15 +9,15 @@ import UIKit
 
 class RegisterIbanViewController: UIViewController {
     
+    // UI elements
     @IBOutlet weak var downButton: UIButton!
-    var currentPage = 0
-    
     @IBOutlet weak var signup7ContainerViewLeading: NSLayoutConstraint!
     
-    var currentClientID = ""
+    // Variables
     var articles:[String:Article]?
     var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var currentPage = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,8 +25,7 @@ class RegisterIbanViewController: UIViewController {
         // Button titles
         self.downButton.setTitle("", for: .normal)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(downButtonTapped), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
-        
+        // Set colors
         self.changeColors()
     }
     
@@ -63,7 +62,6 @@ class RegisterIbanViewController: UIViewController {
             }
         } else if segue.identifier == "RegisterToTransfer1" {
             if let transfer1VC = segue.destination as? Transfer1ViewController {
-                transfer1VC.currentClientID = self.currentClientID
                 transfer1VC.articles = self.articles
                 transfer1VC.allImages = self.allImages
                 transfer1VC.coreVC = self.coreVC

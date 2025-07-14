@@ -250,7 +250,7 @@ extension HomeViewController {
         
         // Get this user's unique Bittr codes.
         var depositCodes = [String]()
-        for eachIbanEntity in self.coreVC!.client.ibanEntities {
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
                 depositCodes += [eachIbanEntity.yourUniqueCode]
             }
