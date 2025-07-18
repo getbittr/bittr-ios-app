@@ -60,9 +60,6 @@ class BoltzRefund {
             // For Taproot, we need to use x-only tweaking which properly updates the key aggregation cache
             let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
             
-            // Create a new MuSig public key from the tweaked x-only key (preserves the cache)
-            let tweakedAggregatedKey = try aggregatedPublicKey.add(Array(Data(tapTweakHash)))
-            
             let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
             
             print("\n=== TWEAKED PUBLIC KEY ===")
@@ -157,7 +154,7 @@ class BoltzRefund {
                         pubnonce: firstNonce.pubnonce,
                         secureNonce: firstNonce.secnonce,
                         publicNonceAggregate: aggregateWithExternal,
-                        publicKeyAggregate: tweakedAggregatedKey
+                        xonlyKeyAggregate: tweakedXonlyKey
                     )
                     
                     print("\n=== PARTIAL SIGNATURES ===")
@@ -240,9 +237,6 @@ class BoltzRefund {
             // Apply the x-only tweak to the aggregated public key's x-only key
             // For Taproot, we need to use x-only tweaking which properly updates the key aggregation cache
             let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
-            
-            // Create a new MuSig public key from the tweaked x-only key (preserves the cache)
-            let tweakedAggregatedKey = try aggregatedPublicKey.add(Array(Data(tapTweakHash)))
             
             let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
             
@@ -337,7 +331,7 @@ class BoltzRefund {
                     pubnonce: firstNonce.pubnonce,
                     secureNonce: firstNonce.secnonce,
                     publicNonceAggregate: aggregateWithExternal,
-                    publicKeyAggregate: tweakedAggregatedKey
+                    xonlyKeyAggregate: tweakedXonlyKey
                 )
                 
                 print("\n=== PARTIAL SIGNATURES ===")

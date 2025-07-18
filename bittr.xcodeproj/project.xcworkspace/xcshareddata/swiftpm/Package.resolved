@@ -70,7 +70,7 @@
       "location" : "https://github.com/RubenWaterman/swift-secp256k1",
       "state" : {
         "branch" : "import-signatures-and-nonces",
-        "revision" : "8fc376cb0b6034b844dbcb9b2047eab4cafcaa33"
+        "revision" : "c21c2128270863b57b99ec02004d50c0dd9afa52"
       }
     }
   ],
