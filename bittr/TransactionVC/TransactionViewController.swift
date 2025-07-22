@@ -24,6 +24,7 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var profitView: UIView!
     @IBOutlet weak var descriptionView: UIView!
     @IBOutlet weak var lightningIdView: UIView!
+    @IBOutlet weak var swapIdView: UIView!
     
     // Titles
     @IBOutlet weak var amountTitle: UILabel!
@@ -36,6 +37,7 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var valueThenTitle: UILabel!
     @IBOutlet weak var profitTitle: UILabel!
     @IBOutlet weak var noteTitle: UILabel!
+    @IBOutlet weak var swapIDLabel: UILabel!
     
     // Labels
     @IBOutlet weak var dateLabel: UILabel!
@@ -50,12 +52,14 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var boltImage: UIImageView!
     @IBOutlet weak var lightningIDLabel: UILabel!
     @IBOutlet weak var lightningIDTitle: UILabel!
+    @IBOutlet weak var swapIDTitle: UILabel!
     
     // Heights
     @IBOutlet weak var thenViewHeight: NSLayoutConstraint!
     @IBOutlet weak var profitViewHeight: NSLayoutConstraint!
     @IBOutlet weak var descriptionViewHeight: NSLayoutConstraint!
     @IBOutlet weak var lightningIDHeight: NSLayoutConstraint!
+    @IBOutlet weak var swapIdViewHeight: NSLayoutConstraint!
     
     // Transaction ID
     @IBOutlet weak var openUrlBox: UIView!
@@ -85,6 +89,7 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var transactionButton: UIButton!
     @IBOutlet weak var descriptionButton: UIButton!
     @IBOutlet weak var lightningIdButton: UIButton!
+    @IBOutlet weak var swapIdButton: UIButton!
     
     // Variables
     var tappedTransaction = Transaction()
@@ -101,6 +106,7 @@ class TransactionViewController: UIViewController {
         self.questionButton.setTitle("", for: .normal)
         self.lightningIdButton.setTitle("", for: .normal)
         self.openUrlButton.setTitle("", for: .normal)
+        self.swapIdButton.setTitle("", for: .normal)
         
         // Corner radii
         self.bodyView.layer.cornerRadius = 13
@@ -291,9 +297,12 @@ class TransactionViewController: UIViewController {
             self.lightningIdView.alpha = 1
             self.view.layoutIfNeeded()
             
+            // Swap ID
+            self.swapIdView.alpha = 1
+            self.swapIdViewHeight.constant = 40
+            self.swapIDLabel.text = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription) ?? "Unavailable"
+            
             // Description
-            //self.descriptionLabel.text = self.tappedTransaction.id
-            //self.descriptionTitle.text = "Swap ID"
             self.descriptionView.alpha = 0
             NSLayoutConstraint.deactivate([self.descriptionViewHeight])
             self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
@@ -430,6 +439,10 @@ class TransactionViewController: UIViewController {
         // Description
         self.descriptionTitle.textColor = Colors.getColor("blackoryellow")
         self.descriptionLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Swap ID
+        self.swapIDTitle.textColor = Colors.getColor("blackoryellow")
+        self.swapIDLabel.textColor = Colors.getColor("blackorwhite")
         
         // Fees
         self.feesTitle.textColor = Colors.getColor("blackoryellow")

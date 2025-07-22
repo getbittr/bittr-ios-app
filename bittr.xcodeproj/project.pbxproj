@@ -75,6 +75,7 @@
 		05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* MondayError.swift */; };
 		05AF89742D436920009D629C /* SwapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89732D436920009D629C /* SwapManager.swift */; };
 		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
+		05B30E2E2E26281200CF10EC /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B30E2D2E26281200CF10EC /* Swap.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer15ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
@@ -234,6 +235,7 @@
 		05A965C12A6FBE1F00265BE6 /* MondayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MondayError.swift; sourceTree = "<group>"; };
 		05AF89732D436920009D629C /* SwapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapManager.swift; sourceTree = "<group>"; };
 		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
+		05B30E2D2E26281200CF10EC /* Swap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
 		05BFCEB62A3B113E00565E2A /* Transfer15ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer15ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -457,11 +459,11 @@
 		05AF89722D436901009D629C /* Swaps */ = {
 			isa = PBXGroup;
 			children = (
+				05AF89752D437073009D629C /* SwapViewController.swift */,
+				05AF89732D436920009D629C /* SwapManager.swift */,
 				3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */,
 				37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */,
 				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
-				05AF89732D436920009D629C /* SwapManager.swift */,
-				05AF89752D437073009D629C /* SwapViewController.swift */,
 				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
 			);
 			path = Swaps;
@@ -592,6 +594,7 @@
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				052DC6922AA853B700CD59B0 /* Transaction.swift */,
 				05F418ED2BAC1DF0005CFAD0 /* Channel.swift */,
+				05B30E2D2E26281200CF10EC /* Swap.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -931,6 +934,7 @@
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
+				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,

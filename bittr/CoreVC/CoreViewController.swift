@@ -124,9 +124,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var checkmarkSyncing: UIImageView!
     @IBOutlet weak var checkmarkFinal: UIImageView!
     
-    // Swaps
-    var ongoingSwapDictionary:NSDictionary?
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         

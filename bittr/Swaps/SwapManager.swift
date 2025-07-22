@@ -36,7 +36,7 @@ class SwapManager: NSObject {
     // 8. transaction.refunded > User didn't claim onchain transaction in time
     
     
-    static func onchainToLightning(amountMsat:UInt64, delegate:Any?, existingInvoice:String? = nil) async {
+    static func onchainToLightning(amountMsat:UInt64, swapVC:SwapViewController, existingInvoice:String? = nil) async {
         
         do {
             
@@ -68,21 +68,18 @@ class SwapManager: NSObject {
             
             // Store invoice in cache.
             DispatchQueue.main.async {
-                if let swapVC = delegate as? SwapViewController {
-                    if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description) {
-                        let newTimestamp = Int(Date().timeIntervalSince1970)
-                        CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
-                        CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning \(idString)")
-                        print("Did cache invoice data.")
-                    }
+                if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description) {
+                    let newTimestamp = Int(Date().timeIntervalSince1970)
+                    CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning \(idString)")
+                    print("Did cache invoice data.")
                 }
+                
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap onchain to lightning \(idString)"
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.createdInvoice = invoice.description
             }
             
-            // Get next swap index and derive key dynamically
-            let swapIndex = CacheManager.incrementSwapIndex()
-            let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
-            
-            let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+            let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
             
             // Get device token for webhook URL
             let deviceToken = CacheManager.getRegistrationToken() ?? ""
@@ -90,17 +87,15 @@ class SwapManager: NSObject {
             // Check if we have a registration token (notifications enabled)
             if deviceToken.isEmpty {
                 DispatchQueue.main.async {
-                    if let swapVC = delegate as? SwapViewController {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(
-                            presentingController: swapVC,
-                            title: Language.getWord(withID: "notificationsrequired"),
-                            message: Language.getWord(withID: "notificationsrequiredmessage"),
-                            buttons: [Language.getWord(withID: "okay")],
-                            actions: [#selector(swapVC.askForPushNotifications)]
-                        )
-                    }
+                    swapVC.nextLabel.alpha = 1
+                    swapVC.nextSpinner.stopAnimating()
+                    swapVC.showAlert(
+                        presentingController: swapVC,
+                        title: Language.getWord(withID: "notificationsrequired"),
+                        message: Language.getWord(withID: "notificationsrequiredmessage"),
+                        buttons: [Language.getWord(withID: "okay")],
+                        actions: [#selector(swapVC.askForPushNotifications)]
+                    )
                 }
                 return
             }
@@ -116,7 +111,6 @@ class SwapManager: NSObject {
                 "webhook": [
                     "url": webhookURL,
                     "hashSwapId": false
-                    // "status": ["transaction.confirmed"]
                 ]
             ]
 
@@ -131,238 +125,216 @@ class SwapManager: NSObject {
                     switch result {
                     case .failure(let error):
                         DispatchQueue.main.async {
-                            if let swapVC = delegate as? SwapViewController {
-                                swapVC.nextLabel.alpha = 1
-                                swapVC.nextSpinner.stopAnimating()
-                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
+                            swapVC.nextLabel.alpha = 1
+                            swapVC.nextSpinner.stopAnimating()
+                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     case .success(let receivedDictionary):
                         if let errorMessage = receivedDictionary["error"] as? String {
                             DispatchQueue.main.async {
-                                if let swapVC = delegate as? SwapViewController {
+                                swapVC.nextLabel.alpha = 1
+                                swapVC.nextSpinner.stopAnimating()
+                                swapVC.showAlert(
+                                    presentingController: swapVC,
+                                    title: Language.getWord(withID: "error"),
+                                    message: errorMessage,
+                                    buttons: [Language.getWord(withID: "okay")],
+                                    actions: nil
+                                )
+                            }
+                            return
+                        }
+                        
+                        // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
+                            
+                        print(receivedDictionary)
+                        
+                        DispatchQueue.main.async {
+                            if
+                                let onchainAddress = receivedDictionary["address"] as? String,
+                                let expectedAmount = receivedDictionary["expectedAmount"] as? Int,
+                                let swapID = receivedDictionary["id"] as? String,
+                                let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
+                                let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
+                                let claimLeafOutput = claimLeaf["output"] as? String,
+                                let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
+                                let refundLeafOutput = refundLeaf["output"] as? String,
+                                let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
+                                
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzOnchainAddress = onchainAddress
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = expectedAmount
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.claimPublicKey = claimPublicKey
+                                
+                                Task {
+                                    await self.checkOnchainFees(swapVC: swapVC)
+                                }
+                            } else {
+                                // Expected data unavailable.
+                                DispatchQueue.main.async {
                                     swapVC.nextLabel.alpha = 1
                                     swapVC.nextSpinner.stopAnimating()
                                     swapVC.showAlert(
                                         presentingController: swapVC,
                                         title: Language.getWord(withID: "error"),
-                                        message: errorMessage,
+                                        message: Language.getWord(withID: "swaperror2"),
                                         buttons: [Language.getWord(withID: "okay")],
                                         actions: nil
                                     )
                                 }
                             }
-                            return
-                        }
-                        if receivedDictionary["expectedAmount"] is Int {
-                            
-                            print(receivedDictionary)
-                            
-                            let mutableDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
-                            mutableDictionary.setValue("Swap onchain to lightning \(idString)", forKey: "idstring")
-                            mutableDictionary.setValue(Int(actualAmountMsat)/1000, forKey: "useramount")
-                            mutableDictionary.setValue(0, forKey: "direction") // 0 for onchain to lightning
-                            mutableDictionary.setValue(privateKey, forKey: "privateKey")
-                            mutableDictionary.setValue(swapIndex, forKey: "swapIndex")
-                            mutableDictionary.setValue(dynamicPath, forKey: "swapPath")
-                            
-                            // Save swap details to file
-                            if let swapID = receivedDictionary["id"] as? String {
-                                self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: mutableDictionary)
-                            }
-                            
-                            Task {
-                                await self.checkOnchainFees(amountInSatoshis: Int(actualAmountMsat)/1000, createdInvoice: invoice, receivedDictionary: mutableDictionary, delegate: delegate)
-                            }
                         }
                     }
-                    
                 }
             }
-            
         } catch let error as NodeError {
             let errorString = handleNodeError(error)
             DispatchQueue.main.async {
-                if let swapVC = delegate as? SwapViewController {
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+                swapVC.nextLabel.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error)
             }
         } catch {
             DispatchQueue.main.async {
-                if let swapVC = delegate as? SwapViewController {
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+                swapVC.nextLabel.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error)
             }
         }
     }
     
-    static func checkOnchainFees(amountInSatoshis:Int, createdInvoice:Any, receivedDictionary:NSDictionary, delegate:Any?) async {
+    static func checkOnchainFees(swapVC:SwapViewController) async {
         
-        if let onchainAddress = receivedDictionary["address"] as? String, let expectedAmount = receivedDictionary["expectedAmount"] as? Int, let swapID = receivedDictionary["id"] as? String {
+        let ongoingSwap = await swapVC.coreVC!.bittrWallet.ongoingSwap!
             
-            let feesForLightningPayment = expectedAmount - amountInSatoshis
+        let feesForLightningPayment = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
+        
+        // Check what the onchain fees will be for sending this onchain payment.
+        if let actualWallet = LightningNodeService.shared.getWallet() {
             
-            // Check what the onchain fees will be for sending this onchain payment.
-            if /*let actualBlockchain = LightningNodeService.shared.getBlockchain(),*/ let actualWallet = LightningNodeService.shared.getWallet() {
-                
-                Task {
-                    do {
-                        // Get current fees for fast onchain transaction.
-                        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
-                        let high = feeEstimates[1]!
-                        let feeHigh = Float(Int(high*10))/10
-                        
-                        var network = BitcoinDevKit.Network.bitcoin
-                        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                            network = BitcoinDevKit.Network.regtest
-                        }
-                        let address = try Address(address: onchainAddress, network: network)
-                        let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(expectedAmount)))
-                        let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                        let tx = try details.extractTx()
-                        let size = tx.vsize()
-                        
-                        // Convert fees.
-                        let feesForOnchainPayment = CGFloat(feeHigh*Float(size))
-                        let totalFees:Int = feesForLightningPayment + Int(feesForOnchainPayment)
-                        print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(Int(feesForOnchainPayment)).")
-                        
-                        // Confirm fees with user.
-                        DispatchQueue.main.async {
-                            if let swapVC = delegate as? SwapViewController {
-                                swapVC.confirmExpectedFees(feeHigh: feeHigh, onchainFees: Int(feesForOnchainPayment), lightningFees: feesForLightningPayment, swapDictionary: receivedDictionary, createdInvoice: createdInvoice)
-                            }
-                        }
-                    }/* catch let error as BdkError {
-                        
-                        print("BDK error: \(error)")
-                        DispatchQueue.main.async {
-                            
-                            if "\(error)".contains("InsufficientFunds") {
-                                let condensedMessage = "\(error)".replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
-                                if let swapVC = delegate as? SwapViewController {
-                                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                }
-                            } else {
-                                if let swapVC = delegate as? SwapViewController {
-                                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                }
-                            }
-                            
-                            SentrySDK.capture(error: error)
-                        }
-                    }*/ catch {
-                        print("Error: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
-                            if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
-                            SentrySDK.capture(error: error)
-                        }
+            Task {
+                do {
+                    // Get current fees for fast onchain transaction.
+                    let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                    let high = feeEstimates[1]!
+                    let feeHigh = Float(Int(high*10))/10
+                    
+                    var network = BitcoinDevKit.Network.bitcoin
+                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                        network = BitcoinDevKit.Network.regtest
+                    }
+                    let address = try Address(address: ongoingSwap.boltzOnchainAddress!, network: network)
+                    let script = address.scriptPubkey()
+                    let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(ongoingSwap.boltzExpectedAmount!)))
+                    let details = try txBuilder.finish(wallet: actualWallet)
+                    let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                    let tx = try details.extractTx()
+                    let size = tx.vsize()
+                    
+                    // Convert fees.
+                    let feesForOnchainPayment = CGFloat(feeHigh*Float(size))
+                    print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(Int(feesForOnchainPayment)).")
+                    
+                    // Confirm fees with user.
+                    DispatchQueue.main.async {
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = feeHigh
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = Int(feesForOnchainPayment)
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
+                        swapVC.confirmExpectedFees()
+                    }
+                } catch {
+                    print("Error: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error)
                     }
                 }
             }
         }
     }
     
-    static func sendOnchainPayment(feeHigh:Float, onchainFees:Int, lightningFees:Int, receivedDictionary:NSDictionary, delegate:Any?) {
+    static func sendOnchainPayment(swapVC:SwapViewController) {
         
-        if let onchainAddress = receivedDictionary["address"] as? String, let expectedAmount = receivedDictionary["expectedAmount"] as? Int, let swapID = receivedDictionary["id"] as? String {
+        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
             
-            // Send onchain transaction.
-            if let actualWallet = LightningNodeService.shared.getWallet() {
-                
-                Task {
-                    do {
-                        // TODO; remove this, this is just done so the swap will fail
-                        // let expectedAmount = expectedAmount - 1000
-                        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
-                        let high = feeEstimates[1]!
-                        let feeHigh = Float(Int(high*10))/10
-
-                        var network = BitcoinDevKit.Network.bitcoin
-                        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                            network = BitcoinDevKit.Network.regtest
-                        }
-                        let address = try Address(address: onchainAddress, network: network)
-                        let script = address.scriptPubkey()
-                        let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(expectedAmount))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(feeHigh)))
-                        let details = try txBuilder.finish(wallet: actualWallet)
-                        let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                        let tx = try details.extractTx()
+        // Send onchain transaction.
+        if let actualWallet = LightningNodeService.shared.getWallet() {
+            
+            Task {
+                do {
+                    var network = BitcoinDevKit.Network.bitcoin
+                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+                        network = BitcoinDevKit.Network.regtest
+                    }
+                    let address = try Address(address: ongoingSwap.boltzOnchainAddress!, network: network)
+                    let script = address.scriptPubkey()
+                    let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(ongoingSwap.boltzExpectedAmount!))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(ongoingSwap.feeHigh!)))
+                    let details = try txBuilder.finish(wallet: actualWallet)
+                    let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                    let tx = try details.extractTx()
+                    
+                    if let client = LightningNodeService.shared.getClient() {
                         
-                        if let client = LightningNodeService.shared.getClient() {
-                            
-                            let txid = try client.transactionBroadcast(tx: tx)
-                            
-                            print("Transaction ID: \(txid)")
-                            
-                        // We write the raw transaction to the JSON file of our swap as we need it to potentially claim a refund
-                        SwapManager.updateSwapFileWithLockupTx(swapID: swapID, lockupTx: tx.serialize().map { String(format: "%02hhx", $0) }.joined())
+                        let txid = try client.transactionBroadcast(tx: tx)
                         
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                print("Successful transaction.")
-                                
-                                let newTransaction = Transaction()
-                                newTransaction.id = "\(txid)"
-                                newTransaction.confirmations = 0
-                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                                newTransaction.height = 0
-                                newTransaction.received = 0
-                                newTransaction.fee = onchainFees
-                                newTransaction.sent = expectedAmount + onchainFees
-                                newTransaction.isLightning = false
-                                newTransaction.isBittr = false
-                                
+                        print("Transaction ID: \(txid)")
+                    
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            print("Successful transaction.")
                             
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txid
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
                             
-                                if let idString = receivedDictionary["idstring"] as? String {
-                                    newTransaction.lnDescription = idString
-                                    CacheManager.storeInvoiceDescription(hash: txid, desc: idString)
+                            let newTransaction = Transaction()
+                            newTransaction.id = "\(txid)"
+                            newTransaction.confirmations = 0
+                            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                            newTransaction.height = 0
+                            newTransaction.received = 0
+                            newTransaction.fee = ongoingSwap.onchainFees!
+                            newTransaction.sent = ongoingSwap.boltzExpectedAmount! + ongoingSwap.onchainFees!
+                            newTransaction.isLightning = false
+                            newTransaction.isBittr = false
+                            newTransaction.lnDescription = ongoingSwap.dateID
+                            CacheManager.storeInvoiceDescription(hash: txid, desc: ongoingSwap.dateID)
+                            CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+                            
+                            if let homeVC = swapVC.homeVC {
+                                homeVC.setTransactions += [newTransaction]
+                                homeVC.setTransactions.sort { transaction1, transaction2 in
+                                    transaction1.timestamp > transaction2.timestamp
                                 }
-                                
-                                if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
-                                    homeVC.setTransactions += [newTransaction]
-                                    homeVC.setTransactions.sort { transaction1, transaction2 in
-                                        transaction1.timestamp > transaction2.timestamp
-                                    }
-                                    homeVC.homeTableView.reloadData()
-                                    
-                                    // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
-                                // so we don't call performSwapMatching here. It will be handled when the lightning
-                                // payment is received via HandlePaymentNotification.swift
-                                
-                                // Call didCompleteOnchainTransaction to set up WebSocket monitoring
-                                swapVC.didCompleteOnchainTransaction(swapDictionary: receivedDictionary)
-                                }
+                                homeVC.homeTableView.reloadData()
                             }
+                            
+                            // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
+                            // so we don't call performSwapMatching here. It will be handled when the lightning
+                            // payment is received via HandlePaymentNotification.swift
+                            
+                            // Call didCompleteOnchainTransaction to set up WebSocket monitoring
+                            swapVC.didCompleteOnchainTransaction()
                         }
-                    } catch {
-                        // Log the exact error for debugging
-                        print("Transaction error: \(error.localizedDescription)")
-                        
-                        // Report to Sentry for monitoring
-                        SentrySDK.capture(error: error)
-                        
-                        DispatchQueue.main.async {
-                            if let swapVC = delegate as? SwapViewController {
-                                swapVC.showAlert(
-                                    presentingController: swapVC, 
-                                    title: Language.getWord(withID: "paymentfailed"), 
-                                    message: Language.getWord(withID: "paymentfailed3"), 
-                                    buttons: [Language.getWord(withID: "okay")], 
-                                    actions: nil
-                                )
-                            }
-                        }
+                    }
+                } catch {
+                    // Log the exact error for debugging
+                    print("Transaction error: \(error.localizedDescription)")
+                    
+                    // Report to Sentry for monitoring
+                    SentrySDK.capture(error: error)
+                    
+                    DispatchQueue.main.async {
+                        swapVC.showAlert(
+                            presentingController: swapVC,
+                            title: Language.getWord(withID: "paymentfailed"),
+                            message: Language.getWord(withID: "paymentfailed3"),
+                            buttons: [Language.getWord(withID: "okay")],
+                            actions: nil
+                        )
                     }
                 }
             }
@@ -403,7 +375,7 @@ class SwapManager: NSObject {
         }
     }
     
-    static func lightningToOnchain(amountSat:Int, delegate:Any?, payoutAddress:String? = nil) async {
+    static func lightningToOnchain(amountSat:Int, swapVC:SwapViewController, payoutAddress:String? = nil) async {
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
@@ -440,17 +412,15 @@ class SwapManager: NSObject {
         // Check if we have a registration token (notifications enabled)
         if deviceToken.isEmpty {
             DispatchQueue.main.async {
-                if let swapVC = delegate as? SwapViewController {
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(
-                        presentingController: swapVC,
-                        title: Language.getWord(withID: "notificationsrequired"),
-                        message: Language.getWord(withID: "notificationsrequiredmessage"),
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: [#selector(swapVC.askForPushNotifications)]
-                    )
-                }
+                swapVC.nextLabel.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(
+                    presentingController: swapVC,
+                    title: Language.getWord(withID: "notificationsrequired"),
+                    message: Language.getWord(withID: "notificationsrequiredmessage"),
+                    buttons: [Language.getWord(withID: "okay")],
+                    actions: [#selector(swapVC.askForPushNotifications)]
+                )
             }
             return
         }
@@ -481,46 +451,66 @@ class SwapManager: NSObject {
                 switch result {
                 case .failure(let error):
                     DispatchQueue.main.async {
-                        if let swapVC = delegate as? SwapViewController {
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
+                        swapVC.nextLabel.alpha = 1
+                        swapVC.nextSpinner.stopAnimating()
+                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
                         DispatchQueue.main.async {
-                            if let swapVC = delegate as? SwapViewController {
+                            swapVC.nextLabel.alpha = 1
+                            swapVC.nextSpinner.stopAnimating()
+                            swapVC.showAlert(
+                                presentingController: swapVC,
+                                title: Language.getWord(withID: "error"),
+                                message: errorMessage,
+                                buttons: [Language.getWord(withID: "okay")],
+                                actions: nil
+                            )
+                        }
+                        return
+                    }
+                    
+                    // Example success: {id = yes7P5Hn2FD5; invoice = lnbcrt505610n1p58093msp5k4f2jxgmu059lc8awdccdy8ppx9uw0wtxhmwa0ytna48ykpjlu9spp5augg6x7kd2dj2gs0z5lnpj98pvyyf4kpmrtt43sp8vawdrgm7l2qdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq3glstd77evhlg2qywjku4lj4mffufgc2wy6trxsjar5a2mdzp6e9308z4d4prhjs03vegamm7raw0ln5k94l5lz8vu5yewz7hf6w7yqpjqj2mj; lockupAddress = bcrt1p32hqu3ve32x524994sxpewdvdznfjgd0ya2xh40z6x9tj5s2mmusx273a3; refundPublicKey = 035578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3; swapTree = {claimLeaf = {output = 82012088a91475b687397f92783b38c7381725bfcf27d65eef3f8820036f6171920eec6d2f377e4c0ab88960307c7d9d817ddf65585bc28a8334be1aac; version = 192;}; refundLeaf = {output = 205578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3ad024d01b1; version = 192;};}; timeoutBlockHeight = 333;}
+                    
+                    DispatchQueue.main.async {
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = idString
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.preimage = randomPreimage.hexEncodedString()
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.destinationAddress = destinationAddress
+                        
+                        // Save swap details to file
+                        if let swapID = receivedDictionary["id"] as? String,
+                           let boltzInvoice = receivedDictionary["invoice"] as? String,
+                           let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
+                           let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
+                           let claimLeafOutput = claimLeaf["output"] as? String,
+                           let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
+                           let refundLeafOutput = refundLeaf["output"] as? String,
+                           let refundPublicKey = receivedDictionary["refundPublicKey"] as? String {
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzInvoice = boltzInvoice
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.refundPublicKey = refundPublicKey
+                            
+                            self.checkReverseSwapFees(swapVC: swapVC)
+                        } else {
+                            // Expected data unavailable.
+                            DispatchQueue.main.async {
                                 swapVC.nextLabel.alpha = 1
                                 swapVC.nextSpinner.stopAnimating()
                                 swapVC.showAlert(
                                     presentingController: swapVC,
                                     title: Language.getWord(withID: "error"),
-                                    message: errorMessage,
+                                    message: Language.getWord(withID: "swaperror2"),
                                     buttons: [Language.getWord(withID: "okay")],
                                     actions: nil
                                 )
                             }
                         }
-                        return
                     }
-                    let mutableSwapDictionary:NSMutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
-                    mutableSwapDictionary.setValue(amountSat, forKey: "useramount")
-                    mutableSwapDictionary.setValue(privateKey, forKey: "privateKey")
-                    mutableSwapDictionary.setValue(randomPreimage.hexEncodedString(), forKey: "preimage")
-                    mutableSwapDictionary.setValue(destinationAddress, forKey: "destinationAddress")
-                    mutableSwapDictionary.setValue("Swap lightning to onchain \(idString)", forKey: "idstring")
-                    mutableSwapDictionary.setValue(swapIndex, forKey: "swapIndex")
-                    mutableSwapDictionary.setValue(dynamicPath, forKey: "swapPath")
-                    
-                    // Save swap details to file
-                    if let swapID = receivedDictionary["id"] as? String {
-                        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: mutableSwapDictionary)
-                    }
-                    
-                    self.checkReverseSwapFees(swapDictionary: mutableSwapDictionary, delegate: delegate)
                 }
-                
             }
         }
     }
@@ -538,7 +528,7 @@ class SwapManager: NSObject {
         return Data(SHA256.hash(data: data))
     }
     
-    static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
+    /*static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
         do {
             // Convert NSDictionary to JSON Data
             let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
@@ -617,14 +607,12 @@ class SwapManager: NSObject {
         } catch {
             print("Error updating swap file with fees: \(error)")
         }
-    }
+    }*/
     
-
-    
-    static func addOnchainTransactionToUI(swapID: String, transactionId: String, delegate: Any?) {
+    static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapViewController) {
         // Load swap details to get the description and user amount
-        guard let swapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
-            print("Could not load swap details for ID: \(swapID)")
+        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
+            print("Could not load swap details.")
             return
         }
         
@@ -634,7 +622,7 @@ class SwapManager: NSObject {
         newTransaction.confirmations = 1
         newTransaction.timestamp = Int(Date().timeIntervalSince1970)
         newTransaction.height = 0 // Will be updated when blockchain syncs
-        newTransaction.received = swapDetails["useramount"] as? Int ?? 0
+        newTransaction.received = ongoingSwap.satoshisAmount
         newTransaction.fee = 0
         newTransaction.sent = 0
         newTransaction.isLightning = false
@@ -642,16 +630,13 @@ class SwapManager: NSObject {
         newTransaction.isSwap = true
         newTransaction.swapDirection = 1 // Lightning to onchain
         newTransaction.onchainID = transactionId // Set onchain ID for swap matching
-        newTransaction.boltzSwapId = swapID
-        
-        // Set swap description
-        if let idString = swapDetails["idstring"] as? String {
-            newTransaction.lnDescription = idString
-            CacheManager.storeInvoiceDescription(hash: transactionId, desc: idString)
-        }
+        newTransaction.boltzSwapId = ongoingSwap.boltzID!
+        newTransaction.lnDescription = ongoingSwap.dateID
+        CacheManager.storeInvoiceDescription(hash: transactionId, desc: ongoingSwap.dateID)
+        CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
         
         // Add to home view controller
-        if let swapVC = delegate as? SwapViewController, let homeVC = swapVC.homeVC {
+        if let homeVC = swapVC.homeVC {
             homeVC.setTransactions += [newTransaction]
             homeVC.setTransactions.sort { transaction1, transaction2 in
                 transaction1.timestamp > transaction2.timestamp
@@ -666,138 +651,84 @@ class SwapManager: NSObject {
         print("Added onchain transaction to UI: \(transactionId) with amount: \(newTransaction.received)")
     }
     
-    static func checkReverseSwapFees(swapDictionary:NSDictionary, delegate:Any?) {
+    static func checkReverseSwapFees(swapVC:SwapViewController) {
         
-        if let receivedInvoice = swapDictionary["invoice"] as? String, let userAmount = swapDictionary["useramount"] as? Int, let delegate = delegate as? SwapViewController {
-            // Check requested invoice amount.
-            if delegate.checkInternetConnection() {
+        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
+        
+        // Check requested invoice amount.
+        if swapVC.checkInternetConnection() {
+                
+            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: ongoingSwap.boltzInvoice!).getValue() {
+                // Lightning invoice.
+                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                    let invoiceAmount = Int(invoiceAmountMilli)/1000
                     
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: receivedInvoice).getValue() {
-                    // Lightning invoice.
-                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        let invoiceAmount = Int(invoiceAmountMilli)/1000
-                        
-                        // Calculate onchain fees.
-                        let onchainFees:Int = invoiceAmount - userAmount
-                        
-                        // Calculate maximum total routing fees.
-                        let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
-                        let (tryPaymentHash, tryRecipientOnion, tryRouteParams) = invoicePaymentResult.getValue()!
-                        let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
-                        let lightningFees:Int = maximumRoutingFeesMsat/1000
-                        
-                        // Confirm fees with user.
-                        DispatchQueue.main.async {
-                            do {
-                                delegate.confirmExpectedFees(feeHigh: 0, onchainFees: onchainFees, lightningFees: lightningFees, swapDictionary: swapDictionary, createdInvoice: try Bolt11Invoice.fromStr(invoiceStr: receivedInvoice))
-                            } catch {
-                                
-                            }
-                        }
+                    // Calculate onchain fees.
+                    let onchainFees:Int = invoiceAmount - ongoingSwap.satoshisAmount
+                    
+                    // Calculate maximum total routing fees.
+                    let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
+                    let (_, _, tryRouteParams) = invoicePaymentResult.getValue()!
+                    let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
+                    let lightningFees:Int = maximumRoutingFeesMsat/1000
+                    
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
+                    
+                    // Confirm fees with user.
+                    DispatchQueue.main.async {
+                        swapVC.confirmExpectedFees()
                     }
                 }
-            }
-        } else {
-            if let swapVC = delegate as? SwapViewController {
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }
     
-    static func sendLightningPayment(swapDictionary:NSDictionary, delegate:Any?) {
+    static func sendLightningPayment(swapVC:SwapViewController) {
         
         // Fees confirmed by user, pay Boltz invoice.
-        
-        if let delegate = delegate as? SwapViewController, let invoice = swapDictionary["invoice"] as? String, let userAmount = swapDictionary["useramount"] as? Int, let totalFees = swapDictionary["totalfees"] as? Int {
+        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
             
-            Task {
-                do {
-                    let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoice))
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                            
-                            if thisPayment.status != .failed {
-                                // Success payment
-                                delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
-                                
-                                // Create lightning transaction with swap details
-                                let newTransaction = Transaction()
-                                newTransaction.id = thisPayment.id
-                                newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
-                                newTransaction.received = 0
-                                newTransaction.isLightning = true
-                                newTransaction.isSwap = true
-                                newTransaction.swapDirection = 1 // Lightning to onchain
-                                newTransaction.lightningID = thisPayment.id // Set lightning ID for swap matching
-                                newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                                newTransaction.confirmations = 0
-                                newTransaction.height = 0
-                                newTransaction.isBittr = false
-                                
-                                // Set swap description
-                                if let idString = swapDictionary["idstring"] as? String {
-                                    newTransaction.lnDescription = idString
-                                    CacheManager.storeInvoiceDescription(hash: thisPayment.id, desc: idString)
-                                }
-                                
-                                // Calculate fees
-                                if Int(thisPayment.amountMsat ?? 0)/1000 > userAmount {
-                                    let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - userAmount
-                                    CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
-                                    newTransaction.fee = feesIncurred
-                                } else {
-                                    newTransaction.fee = 0
-                                }
-                                
-                                // Add to home view controller
-                                if let homeVC = delegate.homeVC {
-                                    homeVC.setTransactions += [newTransaction]
-                                    homeVC.setTransactions.sort { transaction1, transaction2 in
-                                        transaction1.timestamp > transaction2.timestamp
-                                    }
-                                    homeVC.homeTableView.reloadData()
-                                }
-                                
-                                if let swapID = swapDictionary["id"] as? String {
-                                    newTransaction.boltzSwapId = swapID
-                                    delegate.webSocketManager = WebSocketManager()
-                                    delegate.webSocketManager!.delegate = delegate
-                                    delegate.webSocketManager!.swapID = swapID
-                                    delegate.webSocketManager!.connect()
-                                }
-                            } else {
-                                // Payment came back failed.
-                                delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
-                                delegate.showAlert(presentingController: delegate, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
-                        } else {
-                            // Success alert
-                            delegate.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
+        Task {
+            do {
+                let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                        
+                        if thisPayment.status != .failed {
+                            // Success payment
+                            swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
                             
                             // Create lightning transaction with swap details
                             let newTransaction = Transaction()
-                            newTransaction.id = paymentHash
-                            newTransaction.sent = userAmount
+                            newTransaction.id = thisPayment.id
+                            newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
                             newTransaction.received = 0
                             newTransaction.isLightning = true
                             newTransaction.isSwap = true
                             newTransaction.swapDirection = 1 // Lightning to onchain
-                            newTransaction.lightningID = paymentHash // Set lightning ID for swap matching
+                            newTransaction.lightningID = thisPayment.id // Set lightning ID for swap matching
                             newTransaction.timestamp = Int(Date().timeIntervalSince1970)
                             newTransaction.confirmations = 0
                             newTransaction.height = 0
                             newTransaction.isBittr = false
-                            newTransaction.fee = 0
+                            newTransaction.lnDescription = ongoingSwap.dateID
+                            CacheManager.storeInvoiceDescription(hash: thisPayment.id, desc: ongoingSwap.dateID)
+                            CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
-                            // Set swap description
-                            if let idString = swapDictionary["idstring"] as? String {
-                                newTransaction.lnDescription = idString
-                                CacheManager.storeInvoiceDescription(hash: paymentHash, desc: idString)
+                            // Calculate fees
+                            if Int(thisPayment.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
+                                let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
+                                CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
+                                newTransaction.fee = feesIncurred
+                            } else {
+                                newTransaction.fee = 0
                             }
                             
                             // Add to home view controller
-                            if let homeVC = delegate.homeVC {
+                            if let homeVC = swapVC.homeVC {
                                 homeVC.setTransactions += [newTransaction]
                                 homeVC.setTransactions.sort { transaction1, transaction2 in
                                     transaction1.timestamp > transaction2.timestamp
@@ -805,28 +736,66 @@ class SwapManager: NSObject {
                                 homeVC.homeTableView.reloadData()
                             }
                             
-                            if let swapID = swapDictionary["id"] as? String {
-                                newTransaction.boltzSwapId = swapID
-                                delegate.webSocketManager = WebSocketManager()
-                                delegate.webSocketManager!.delegate = delegate
-                                delegate.webSocketManager!.swapID = swapID
-                                delegate.webSocketManager!.connect()
-                            }
+                            newTransaction.boltzSwapId = ongoingSwap.boltzID!
+                            swapVC.webSocketManager = WebSocketManager()
+                            swapVC.webSocketManager!.delegate = swapVC
+                            swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
+                            swapVC.webSocketManager!.connect()
+                        } else {
+                            // Payment came back failed.
+                            swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
+                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
+                    } else {
+                        // Success alert
+                        swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
+                        
+                        // Create lightning transaction with swap details
+                        let newTransaction = Transaction()
+                        newTransaction.id = paymentHash
+                        newTransaction.sent = ongoingSwap.satoshisAmount
+                        newTransaction.received = 0
+                        newTransaction.isLightning = true
+                        newTransaction.isSwap = true
+                        newTransaction.swapDirection = 1 // Lightning to onchain
+                        newTransaction.lightningID = paymentHash // Set lightning ID for swap matching
+                        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                        newTransaction.confirmations = 0
+                        newTransaction.height = 0
+                        newTransaction.isBittr = false
+                        newTransaction.fee = 0
+                        newTransaction.lnDescription = ongoingSwap.dateID
+                        CacheManager.storeInvoiceDescription(hash: paymentHash, desc: ongoingSwap.dateID)
+                        CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+                        
+                        // Add to home view controller
+                        if let homeVC = swapVC.homeVC {
+                            homeVC.setTransactions += [newTransaction]
+                            homeVC.setTransactions.sort { transaction1, transaction2 in
+                                transaction1.timestamp > transaction2.timestamp
+                            }
+                            homeVC.homeTableView.reloadData()
+                        }
+                        
+                        newTransaction.boltzSwapId = ongoingSwap.boltzID!
+                        swapVC.webSocketManager = WebSocketManager()
+                        swapVC.webSocketManager!.delegate = swapVC
+                        swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
+                        swapVC.webSocketManager!.connect()
                     }
-                } catch let error as NodeError {
-                    let errorString = handleNodeError(error)
-                    DispatchQueue.main.async {
-                        // Error alert for NodeError
-                        delegate.showAlert(presentingController: delegate, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error)
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        // General error alert
-                        delegate.showAlert(presentingController: delegate, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error)
-                    }
+                }
+            } catch let error as NodeError {
+                let errorString = handleNodeError(error)
+                DispatchQueue.main.async {
+                    // Error alert for NodeError
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    // General error alert
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error)
                 }
             }
         }

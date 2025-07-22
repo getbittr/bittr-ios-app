@@ -297,9 +297,9 @@ extension CoreViewController {
                                 thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
                                 thisTransaction.lightningID = paymentDetails.id
                                 thisTransaction.onchainID = eachTransaction.id
-                                thisTransaction.boltzSwapId = eachTransaction.boltzSwapId
                                 thisTransaction.isSwap = true
                                 thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
+                                thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisTransaction.lnDescription) ?? "Unavailable"
                                 thisTransaction.isLightning = false
                                 //let sentAmount:Int = eachTransaction.received + thisTransaction.received - eachTransaction.sent - thisTransaction.sent
                                 thisTransaction.sent = eachTransaction.sent - eachTransaction.received
@@ -432,11 +432,8 @@ extension CoreViewController {
     
     private func handleSwapNotificationImmediately(swapID: String, userInfo: [String: Any]) {
         // Load swap details from file
-        if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
-            print("Loaded swap details from background: \(swapDetails)")
-            
-            // Store the swap details for when SwapViewController is presented
-            self.ongoingSwapDictionary = swapDetails
+        if let ongoingSwap = self.bittrWallet.ongoingSwap ?? CacheManager.getLatestSwap() {
+            print("Loaded swap details from background.")
             
             // Clear the notification handling flag and hide pending view
             self.needsToHandleNotification = false

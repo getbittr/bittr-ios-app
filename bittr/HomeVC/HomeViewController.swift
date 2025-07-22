@@ -434,7 +434,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     if eachTransaction.isLightning {
                         // Lightning payment
                         swapTransaction.lightningID = eachTransaction.id
-                        swapTransaction.boltzSwapId = eachTransaction.boltzSwapId
+                        swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: eachSwapID as! String) ?? "Unavailable"
                         swapTransaction.channelId = eachTransaction.channelId
                         if swapTransaction.swapDirection == 0 {
                             // Onchain to Lightning
@@ -446,7 +446,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     } else {
                         // Onchain transaction
                         swapTransaction.onchainID = eachTransaction.id
-                        swapTransaction.boltzSwapId = eachTransaction.boltzSwapId
+                        swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: eachSwapID as! String) ?? "Unavailable"
                         swapTransaction.height = eachTransaction.height
                         if let actualCurrentHeight = self.coreVC?.bittrWallet.currentHeight {
                             swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1

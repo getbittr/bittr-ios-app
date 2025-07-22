@@ -22,6 +22,7 @@ extension TransactionViewController {
         self.valueThenTitle.text = Language.getWord(withID: "purchasevalue")
         self.profitTitle.text = Language.getWord(withID: "profit")
         self.noteTitle.text = Language.getWord(withID: "addanote")
+        self.swapIDTitle.text = Language.getWord(withID: "swapid")
         
     }
 }
