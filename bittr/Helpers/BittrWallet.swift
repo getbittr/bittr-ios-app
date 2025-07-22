@@ -33,4 +33,7 @@ class BittrWallet: NSObject {
     // Bittr signup
     var ibanEntities = [IbanEntity]()
     
+    // Swaps
+    var ongoingSwap:Swap?
+    
 }

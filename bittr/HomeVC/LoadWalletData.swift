@@ -144,6 +144,7 @@ extension HomeViewController {
                 
                 let swapTransaction = Transaction()
                 swapTransaction.isSwap = true
+                swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: eachSwapID as! String) ?? "Unavailable"
                 swapTransaction.lnDescription = (eachSwapID as! String)
                 swapTransaction.sent = (eachSetOfTransactions as! [Transaction])[0].received + (eachSetOfTransactions as! [Transaction])[1].received - (eachSetOfTransactions as! [Transaction])[0].sent - (eachSetOfTransactions as! [Transaction])[1].sent
                 if (eachSwapID as! String).contains("onchain to lightning") {
@@ -171,7 +172,6 @@ extension HomeViewController {
                     } else {
                         // Onchain transaction
                         swapTransaction.onchainID = eachTransaction.id
-                        swapTransaction.boltzSwapId = eachTransaction.boltzSwapId
                         swapTransaction.height = eachTransaction.height
                         if let actualCurrentHeight = self.coreVC?.bittrWallet.currentHeight {
                             swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
@@ -494,10 +494,10 @@ extension HomeViewController {
             self.coreVC!.startSync(type: "conversion")
             
             // TODO: Public?
-            var envUrl = "https://getbittr.com/api/price/btc"
-            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            let envUrl = "https://getbittr.com/api/price/btc"
+            /*if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
                 envUrl = "https://model-arachnid-viable.ngrok-free.app/price/btc"
-            }
+            }*/
             
             // Get currency conversion rate from Bittr API.
             let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)

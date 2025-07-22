@@ -602,6 +602,33 @@ class CacheManager: NSObject {
         }
     }
     
+    static func storeSwapID(dateID:String, swapID:String) {
+        let defaults = UserDefaults.standard
+        if let cachedSwapIDs = defaults.value(forKey: "swapids") as? NSDictionary {
+            if let actualSwapIDs = cachedSwapIDs.mutableCopy() as? NSMutableDictionary {
+                actualSwapIDs.setObject(swapID, forKey: dateID as NSCopying)
+                defaults.set(actualSwapIDs, forKey: "swapids")
+            }
+        } else {
+            let swapIDs = NSMutableDictionary()
+            swapIDs.setObject(swapID, forKey: dateID as NSCopying)
+            defaults.set(swapIDs, forKey: "swapids")
+        }
+    }
+    
+    static func getSwapID(dateID:String) -> String? {
+        let defaults = UserDefaults.standard
+        if let swapIDs = defaults.value(forKey: "swapids") as? NSDictionary {
+            if let foundSwapID = swapIDs[dateID] as? String {
+                return foundSwapID
+            } else {
+                return nil
+            }
+        } else {
+            return nil
+        }
+    }
+    
     static func storeInvoiceDescription(hash:String, desc:String) {
         
         var envKey = "proddescriptions"
@@ -1035,9 +1062,67 @@ class CacheManager: NSObject {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
     }
     
-    static func saveLatestSwap(_ latestSwap:NSDictionary?) {
+    static func saveLatestSwap(_ latestSwap:Swap?) {
+        
         if latestSwap != nil {
-            UserDefaults.standard.set(latestSwap!, forKey: "ongoingswap")
+            
+            let swapDictionary:NSMutableDictionary = ["dateID":latestSwap!.dateID, "onchainToLightning":latestSwap!.onchainToLightning, "satoshisAmount":latestSwap!.satoshisAmount]
+            if latestSwap!.createdInvoice != nil {
+                swapDictionary.setValue(latestSwap!.createdInvoice!, forKey: "createdInvoice")
+            }
+            if latestSwap!.privateKey != nil {
+                swapDictionary.setValue(latestSwap!.privateKey!, forKey: "privateKey")
+            }
+            if latestSwap!.boltzID != nil {
+                swapDictionary.setValue(latestSwap!.boltzID!, forKey: "boltzID")
+            }
+            if latestSwap!.boltzOnchainAddress != nil {
+                swapDictionary.setValue(latestSwap!.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
+            }
+            if latestSwap!.boltzExpectedAmount != nil {
+                swapDictionary.setValue(latestSwap!.boltzExpectedAmount!, forKey: "boltzExpectedAmount")
+            }
+            if latestSwap!.onchainFees != nil {
+                swapDictionary.setValue(latestSwap!.onchainFees!, forKey: "onchainFees")
+            }
+            if latestSwap!.lightningFees != nil {
+                swapDictionary.setValue(latestSwap!.lightningFees!, forKey: "lightningFees")
+            }
+            if latestSwap!.feeHigh != nil {
+                swapDictionary.setValue(latestSwap!.feeHigh!, forKey: "feeHigh")
+            }
+            if latestSwap!.sentOnchainTransactionID != nil {
+                swapDictionary.setValue(latestSwap!.sentOnchainTransactionID!, forKey: "sentOnchainTransactionID")
+            }
+            if latestSwap!.boltzOnchainAddress != nil {
+                swapDictionary.setValue(latestSwap!.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
+            }
+            if latestSwap!.refundPublicKey != nil {
+                swapDictionary.setValue(latestSwap!.refundPublicKey!, forKey: "refundPublicKey")
+            }
+            if latestSwap!.claimLeafOutput != nil {
+                swapDictionary.setValue(latestSwap!.claimLeafOutput!, forKey: "claimLeafOutput")
+            }
+            if latestSwap!.refundLeafOutput != nil {
+                swapDictionary.setValue(latestSwap!.refundLeafOutput!, forKey: "refundLeafOutput")
+            }
+            if latestSwap!.claimPublicKey != nil {
+                swapDictionary.setValue(latestSwap!.claimPublicKey!, forKey: "claimPublicKey")
+            }
+            if latestSwap!.preimage != nil {
+                swapDictionary.setValue(latestSwap!.preimage!, forKey: "preimage")
+            }
+            if latestSwap!.destinationAddress != nil {
+                swapDictionary.setValue(latestSwap!.destinationAddress!, forKey: "destinationAddress")
+            }
+            if latestSwap!.boltzInvoice != nil {
+                swapDictionary.setValue(latestSwap!.boltzInvoice!, forKey: "boltzInvoice")
+            }
+            if latestSwap!.lockupTx != nil {
+                swapDictionary.setValue(latestSwap!.lockupTx!, forKey: "lockupTx")
+            }
+            
+            UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
         } else {
             if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
                 UserDefaults.standard.removeObject(forKey: "ongoingswap")
@@ -1045,9 +1130,75 @@ class CacheManager: NSObject {
         }
     }
     
-    static func getLatestSwap() -> NSDictionary? {
+    static func getLatestSwap() -> Swap? {
         if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
-            return storedSwap
+            
+            let thisSwap = Swap()
+            if let dateID = storedSwap["dateID"] as? String {
+                thisSwap.dateID = dateID
+            }
+            if let onchainToLightning = storedSwap["onchainToLightning"] as? Bool {
+                thisSwap.onchainToLightning = onchainToLightning
+            }
+            if let satoshisAmount = storedSwap["satoshisAmount"] as? Int {
+                thisSwap.satoshisAmount = satoshisAmount
+            }
+            if let createdInvoice = storedSwap["createdInvoice"] as? String {
+                thisSwap.createdInvoice = createdInvoice
+            }
+            if let privateKey = storedSwap["privateKey"] as? String {
+                thisSwap.privateKey = privateKey
+            }
+            if let boltzID = storedSwap["boltzID"] as? String {
+                thisSwap.boltzID = boltzID
+            }
+            if let boltzOnchainAddress = storedSwap["boltzOnchainAddress"] as? String {
+                thisSwap.boltzOnchainAddress = boltzOnchainAddress
+            }
+            if let boltzExpectedAmount = storedSwap["boltzExpectedAmount"] as? Int {
+                thisSwap.boltzExpectedAmount = boltzExpectedAmount
+            }
+            if let onchainFees = storedSwap["onchainFees"] as? Int {
+                thisSwap.onchainFees = onchainFees
+            }
+            if let lightningFees = storedSwap["lightningFees"] as? Int {
+                thisSwap.lightningFees = lightningFees
+            }
+            if let feeHigh = storedSwap["feeHigh"] as? Float {
+                thisSwap.feeHigh = feeHigh
+            }
+            if let sentOnchainTransactionID = storedSwap["sentOnchainTransactionID"] as? String {
+                thisSwap.sentOnchainTransactionID = sentOnchainTransactionID
+            }
+            if let boltzOnchainAddress = storedSwap["boltzOnchainAddress"] as? String {
+                thisSwap.boltzOnchainAddress = boltzOnchainAddress
+            }
+            if let refundPublicKey = storedSwap["refundPublicKey"] as? String {
+                thisSwap.refundPublicKey = refundPublicKey
+            }
+            if let claimLeafOutput = storedSwap["claimLeafOutput"] as? String {
+                thisSwap.claimLeafOutput = claimLeafOutput
+            }
+            if let refundLeafOutput = storedSwap["refundLeafOutput"] as? String {
+                thisSwap.refundLeafOutput = refundLeafOutput
+            }
+            if let claimPublicKey = storedSwap["claimPublicKey"] as? String {
+                thisSwap.claimPublicKey = claimPublicKey
+            }
+            if let preimage = storedSwap["preimage"] as? String {
+                thisSwap.preimage = preimage
+            }
+            if let destinationAddress = storedSwap["destinationAddress"] as? String {
+                thisSwap.destinationAddress = destinationAddress
+            }
+            if let boltzInvoice = storedSwap["boltzInvoice"] as? String {
+                thisSwap.boltzInvoice = boltzInvoice
+            }
+            if let lockupTx = storedSwap["lockupTx"] as? String {
+                thisSwap.lockupTx = lockupTx
+            }
+            
+            return thisSwap
         } else {
             return nil
         }

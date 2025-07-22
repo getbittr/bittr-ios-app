@@ -340,6 +340,7 @@ class Language: NSObject {
             "fees": "Fees",
             "status": "Status",
             "swaperror1": "We could not initiate this swap. We encountered a problem generating an invoice to pay out.",
+            "swaperror2": "We encountered some issue while processing your swap. No funds have been swapped. Please try again.",
             "swapstatuspreparing": "Preparing",
             "swapstatusawaitingconfirmation": "Waiting to be mined",
             "swapstatusawaitingpayment": "Awaiting payment",
@@ -376,6 +377,7 @@ class Language: NSObject {
             "swapinsufficientfunds": "However, you have enough regular Bitcoin balance to swap and pay. Your available onchain balance is",
             "swapandpay": "Swap & Pay",
             "invalidinvoice": "Invalid Lightning invoice",
+            "swapid": "Swap ID"
         ]
         
         if let foundWord = allWords[withID] {

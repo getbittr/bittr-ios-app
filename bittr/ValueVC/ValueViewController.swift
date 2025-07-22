@@ -121,7 +121,7 @@ class ValueViewController: UIViewController {
             do {
                 var eurUrl = URL(string: "https://getbittr.com/api/price/btc/historical/eur")!
                 if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    eurUrl = URL(string: "https://model-arachnid-viable.ngrok-free.app/price/btc/historical/chf")!
+                    eurUrl = URL(string: "https://getbittr.com/api/price/btc/historical/chf")!
                 }
                 var eurData = Data()
                 if UserDefaults.standard.value(forKey: "currency") as? String == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
@@ -207,7 +207,7 @@ class ValueViewController: UIViewController {
                     if self.homeVC!.currentValue != nil, (self.homeVC?.currentValueFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
                         data = self.homeVC!.currentValue!
                     } else {
-                        let envUrl = URL(string: "https://model-arachnid-viable.ngrok-free.app/price/btc")!
+                        let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
                         (data, _) = try await URLSession.shared.data(from: envUrl)
                         
                         self.homeVC?.currentValue = data

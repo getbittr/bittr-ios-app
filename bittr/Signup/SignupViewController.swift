@@ -174,47 +174,6 @@ class SignupViewController: UIViewController {
         }
     }
     
-    @IBAction func articleButtonTapped(_ sender: UIButton) {
-        // Open article.
-        self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.tag)")
-    }
-    
-    /*override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        
-        switch segue.identifier {
-        case "SignupToSignup1":
-            if let thisVC = segue.destination as? Signup1ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToSignup2":
-            if let thisVC = segue.destination as? Signup2ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToSignup3":
-            if let thisVC = segue.destination as? Signup3ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToSignup4":
-            if let thisVC = segue.destination as? Signup4ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToSignup5":
-            if let thisVC = segue.destination as? Signup5ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToSignup6":
-            if let thisVC = segue.destination as? Signup6ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToSignup7":
-            if let thisVC = segue.destination as? Signup7ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToTransfer1":
-            if let thisVC = segue.destination as? Transfer1ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToTransfer15":
-            if let thisVC = segue.destination as? Transfer15ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToTransfer2":
-            if let thisVC = segue.destination as? Transfer2ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToTransfer3":
-            if let thisVC = segue.destination as? Transfer3ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToRestore":
-            if let thisVC = segue.destination as? RestoreViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToRestore2":
-            if let thisVC = segue.destination as? Restore2ViewController {thisVC.coreVC = self.coreVC}
-        case "SignupToRestore3":
-            if let thisVC = segue.destination as? Restore3ViewController {thisVC.coreVC = self.coreVC}
-        default:
-            if let thisVC = segue.destination as? Signup1ViewController {thisVC.coreVC = self.coreVC}
-        }
-    }*/
-    
     @objc func changeColors() {
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
     }

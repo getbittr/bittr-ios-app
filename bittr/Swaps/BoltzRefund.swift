@@ -19,19 +19,20 @@ struct ClaimResult {
 // MARK: - API Models
 
 class BoltzRefund {
-    static func tryBoltzClaimInternalTransactionGeneration(swapId: String) async throws -> ClaimResult {
-        if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapId) {
-            dump(swapDetails)
-            print("Found swap with invoice: \(swapDetails["invoice"] ?? "unknown")")
+    static func tryBoltzClaimInternalTransactionGeneration(swapVC:SwapViewController) async throws -> ClaimResult {
+        
+        if let ongoingSwap = await swapVC.coreVC?.bittrWallet.ongoingSwap {
             
-            let boltzServerPublicKeyBytes = try! (swapDetails["refundPublicKey"] as! String).bytes
+            print("Found swap with invoice: \(ongoingSwap.boltzInvoice ?? "unknown")")
+            
+            let boltzServerPublicKeyBytes = try! ongoingSwap.refundPublicKey!.bytes
             
             let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
                 dataRepresentation: boltzServerPublicKeyBytes,
                 format: .compressed
             )
             
-            let hexPrivateKey = try! (swapDetails["privateKey"] as! String).bytes
+            let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
             
             let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
             
@@ -43,9 +44,8 @@ class BoltzRefund {
             print("Aggregated public key: \(aggregatedPublicKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
             print("Aggregated x-only public key: \(aggregatedPublicKey.xonly.bytes.map { String(format: "%02x", $0) }.joined())")
             
-            let claimLeafOutputHex = ((swapDetails["swapTree"] as! NSDictionary)["claimLeaf"] as! NSDictionary)["output"] as! String
-            let refundLeafOutputHex = ((swapDetails["swapTree"] as! NSDictionary)["refundLeaf"] as! NSDictionary)["output"] as! String
-            
+            let claimLeafOutputHex = ongoingSwap.claimLeafOutput!
+            let refundLeafOutputHex = ongoingSwap.refundLeafOutput!
             
             let tapTweakHash = try computeTapLeafHash(
                 aggregatedPublicKey: aggregatedPublicKey,
@@ -68,7 +68,7 @@ class BoltzRefund {
             print("\n=== TWEAKED PUBLIC KEY ===")
             print("Tweaked x-only public key: \(tweakedKeyHex)")
             
-            let lockupTxHex = (swapDetails["lockupTx"] as! String)
+            let lockupTxHex = ongoingSwap.lockupTx!
             
             // Calculate the correct transaction hash from the lockup transaction
             guard let txHash = calculateTransactionHash(from: lockupTxHex),
@@ -85,7 +85,7 @@ class BoltzRefund {
                 print("Script: \(swapOutput.script.hexString)")
                 print("Vout: \(swapOutput.vout)")
                 
-                let destinationAddress = (swapDetails["destinationAddress"] as! String)
+                let destinationAddress = ongoingSwap.destinationAddress!
                 let exactFee = 200
                 
                 let claimTx = constructClaimTransaction(
@@ -121,9 +121,9 @@ class BoltzRefund {
                 print("Our nonce: \(firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined())")
                 
                 // Hardcoded values for testing
-                let swapID = (swapDetails["id"] as! String)
+                let swapID = ongoingSwap.boltzID!
                 let ourNonceHex = firstNonce.pubnonce.map { String(format: "%02x", $0) }.joined()
-                let preimage = (swapDetails["preimage"] as! String)
+                let preimage = ongoingSwap.preimage!
                 
                 // Create claim request
                 let claimRequest = ClaimRequest(
@@ -197,23 +197,25 @@ class BoltzRefund {
                 return ClaimResult(success: false, transactionId: nil)
             }
         } else {
-            print("Could not load swap details for ID: \(swapId)")
+            print("Could not load swap details.")
             return ClaimResult(success: false, transactionId: nil)
         }
     }
     
-    static func tryBoltzRefund(swapId: String) async throws -> ClaimResult {
-        if let swapDetails = SwapManager.loadSwapDetailsFromFile(swapID: swapId) {
-            print("Found swap with invoice: \(swapDetails["invoice"] ?? "unknown")")
+    static func tryBoltzRefund(swapVC:SwapViewController) async throws -> ClaimResult {
+        
+        if let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap {
+        
+            print("Found swap with invoice: \(ongoingSwap.createdInvoice ?? "unknown")")
             
-            let boltzServerPublicKeyBytes = try! (swapDetails["claimPublicKey"] as! String).bytes
+            let boltzServerPublicKeyBytes = try! ongoingSwap.claimPublicKey!.bytes
             
             let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
                 dataRepresentation: boltzServerPublicKeyBytes,
                 format: .compressed
             )
             
-            let hexPrivateKey = try! (swapDetails["privateKey"] as! String).bytes
+            let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
             
             let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
             
@@ -225,8 +227,8 @@ class BoltzRefund {
             print("Aggregated public key: \(aggregatedPublicKey.dataRepresentation.map { String(format: "%02x", $0) }.joined())")
             print("Aggregated x-only public key: \(aggregatedPublicKey.xonly.bytes.map { String(format: "%02x", $0) }.joined())")
             
-            let claimLeafOutputHex = ((swapDetails["swapTree"] as! NSDictionary)["claimLeaf"] as! NSDictionary)["output"] as! String
-            let refundLeafOutputHex = ((swapDetails["swapTree"] as! NSDictionary)["refundLeaf"] as! NSDictionary)["output"] as! String
+            let claimLeafOutputHex = ongoingSwap.claimLeafOutput!
+            let refundLeafOutputHex = ongoingSwap.refundLeafOutput!
             
             let tapTweakHash = try computeTapLeafHash(
                 aggregatedPublicKey: aggregatedPublicKey,
@@ -249,7 +251,7 @@ class BoltzRefund {
             print("\n=== TWEAKED PUBLIC KEY ===")
             print("Tweaked x-only public key: \(tweakedKeyHex)")
             
-            let lockupTxHex = (swapDetails["lockupTx"] as! String)
+            let lockupTxHex = ongoingSwap.lockupTx!
             
             // Calculate the correct transaction hash from the lockup transaction
             guard let txHash = calculateTransactionHash(from: lockupTxHex),
@@ -314,7 +316,7 @@ class BoltzRefund {
             )
             
             // Post refund request to Boltz
-            let claimResponse = try await requestRefundAndProcess(swapID: swapId, refundData: refundRequest)
+            let claimResponse = try await requestRefundAndProcess(swapID: ongoingSwap.boltzID!, refundData: refundRequest)
             
             if let boltzPubNonce = claimResponse.pubNonce, let boltzPartialSignature = claimResponse.partialSignature {
                 print("Received Boltz pubNonce: \(boltzPubNonce)")
@@ -377,7 +379,7 @@ class BoltzRefund {
             return ClaimResult(success: false, transactionId: nil)
         }
         } else {
-            print("Could not load swap details for ID: \(swapId)")
+            print("Could not load swap details.")
             return ClaimResult(success: false, transactionId: nil)
         }
     }
