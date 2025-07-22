@@ -79,7 +79,11 @@ class SwapManager: NSObject {
                 swapVC.coreVC!.bittrWallet.ongoingSwap!.createdInvoice = invoice.description
             }
             
-            let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+            // Get next swap index and derive key dynamically
+            let swapIndex = CacheManager.incrementSwapIndex()
+            let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
+            
+            let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: dynamicPath)
             
             // Get device token for webhook URL
             let deviceToken = CacheManager.getRegistrationToken() ?? ""
