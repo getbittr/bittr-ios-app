@@ -78,7 +78,11 @@ class SwapManager: NSObject {
                 }
             }
             
-            let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+            // Get next swap index and derive key dynamically
+            let swapIndex = CacheManager.incrementSwapIndex()
+            let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
+            
+            let (privateKey, publicKey) = try LightningNodeService.shared.getPrivatePublicKeyForPath(path: dynamicPath)
             
             // Get device token for webhook URL
             let deviceToken = CacheManager.getRegistrationToken() ?? ""
@@ -159,6 +163,8 @@ class SwapManager: NSObject {
                             mutableDictionary.setValue(Int(actualAmountMsat)/1000, forKey: "useramount")
                             mutableDictionary.setValue(0, forKey: "direction") // 0 for onchain to lightning
                             mutableDictionary.setValue(privateKey, forKey: "privateKey")
+                            mutableDictionary.setValue(swapIndex, forKey: "swapIndex")
+                            mutableDictionary.setValue(dynamicPath, forKey: "swapPath")
                             
                             // Save swap details to file
                             if let swapID = receivedDictionary["id"] as? String {
@@ -404,7 +410,11 @@ class SwapManager: NSObject {
         let randomPreimageHash = self.sha256Hash(of: randomPreimage)
         let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
 
-        let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: "m/84'/0'/0'/0/0")
+        // Get next swap index and derive key dynamically
+        let swapIndex = CacheManager.incrementSwapIndex()
+        let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
+        
+        let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: dynamicPath)
 
         let wallet = LightningNodeService.shared.getWallet()
         
@@ -500,6 +510,8 @@ class SwapManager: NSObject {
                     mutableSwapDictionary.setValue(randomPreimage.hexEncodedString(), forKey: "preimage")
                     mutableSwapDictionary.setValue(destinationAddress, forKey: "destinationAddress")
                     mutableSwapDictionary.setValue("Swap lightning to onchain \(idString)", forKey: "idstring")
+                    mutableSwapDictionary.setValue(swapIndex, forKey: "swapIndex")
+                    mutableSwapDictionary.setValue(dynamicPath, forKey: "swapPath")
                     
                     // Save swap details to file
                     if let swapID = receivedDictionary["id"] as? String {
@@ -592,10 +604,10 @@ class SwapManager: NSObject {
                 return
             }
             
-            // Create a mutable copy and add the fees
+            // Create a mutable copy and add the fees information
             let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
-            updatedSwapDetails.setValue(totalFees, forKey: "totalfees")
-            updatedSwapDetails.setValue(userAmount, forKey: "useramount")
+            updatedSwapDetails.setValue(totalFees, forKey: "totalFees")
+            updatedSwapDetails.setValue(userAmount, forKey: "userAmount")
             updatedSwapDetails.setValue(direction, forKey: "direction")
             
             // Save the updated swap details back to file
@@ -606,6 +618,8 @@ class SwapManager: NSObject {
             print("Error updating swap file with fees: \(error)")
         }
     }
+    
+
     
     static func addOnchainTransactionToUI(swapID: String, transactionId: String, delegate: Any?) {
         // Load swap details to get the description and user amount

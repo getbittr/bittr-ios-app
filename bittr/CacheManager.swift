@@ -1053,4 +1053,52 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Swap Index Cache
+    
+    static func getSwapIndex() -> Int {
+        var envKey = "prodswapindex"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "swapindex"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedSwapIndex = defaults.value(forKey: envKey) as? Int
+        
+        if let actualCachedSwapIndex = cachedSwapIndex {
+            return actualCachedSwapIndex
+        } else {
+            // Initialize with 0 if no index exists
+            defaults.set(0, forKey: envKey)
+            return 0
+        }
+    }
+    
+    static func incrementSwapIndex() -> Int {
+        var envKey = "prodswapindex"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "swapindex"
+        }
+        
+        let defaults = UserDefaults.standard
+        let currentIndex = getSwapIndex()
+        let newIndex = currentIndex + 1
+        
+        defaults.set(newIndex, forKey: envKey)
+        return newIndex
+    }
+    
+    static func resetSwapIndex() {
+        var envKey = "prodswapindex"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "swapindex"
+        }
+        
+        let defaults = UserDefaults.standard
+        defaults.set(0, forKey: envKey)
+    }
+    
+    static func getCurrentSwapIndex() -> Int {
+        return getSwapIndex()
+    }
+    
 }
