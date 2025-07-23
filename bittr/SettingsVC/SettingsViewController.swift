@@ -81,49 +81,61 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             self.tappedUrl = "https://getbittr.com/support"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
         } else if sender.accessibilityIdentifier == "restore" {
-            if let actualCoreVC = self.coreVC {
-                if actualCoreVC.walletHasSynced == false {
-                    // Wallet isn't ready.
+            
+            if self.coreVC != nil, !self.coreVC!.walletHasSynced {
+                if self.coreVC!.resettingPin {
+                    // The user wants to remove the wallet from the Reset PIN view.
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [nil, #selector(self.walletRemoveAlert)])
+                } else {
+                    // The wallet is syncing.
                     self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    return
                 }
-            } else {
-                return
+            } else if self.coreVC != nil {
+                // Wallet is ready
+                Task {
+                    let channels = try await LightningNodeService.shared.listChannels()
+                    DispatchQueue.main.async {
+                        if channels.count > 0 {
+                            // Check if we've recently initiated channel closure
+                            let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
+                            let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
+                            let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
+                            
+                            // Stop spinner
+                            self.coreVC!.genericSpinner.stopAnimating()
+                            self.coreVC!.fullViewCover.alpha = 0
+                            
+                            // If channel closure was initiated within the last 30 minutes, allow reset
+                            if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
+                                print("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                                // Allow wallet reset since channel is in closing process
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                            } else {
+                                // Clear old channel closing state if it's been too long
+                                if channelClosingInitiated && timeSinceClosure >= 120 {
+                                    UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                                    UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                                }
+                                
+                                // Wallet cannot be restored with open channels.
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                            }
+                        } else {
+                            // Clear channel closing state since no channels exist
+                            UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                            UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                            
+                            if self.coreVC!.resettingPin {
+                                // We're removing the wallet without signing in.
+                                self.walletRestoreConfirmed()
+                            } else {
+                                // Retore wallet.
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                            }
+                        }
+                    }
+                }
             }
-                          Task {
-                  let channels = try await LightningNodeService.shared.listChannels()
-                  DispatchQueue.main.async {
-                      if channels.count > 0 {
-                          // Check if we've recently initiated channel closure
-                          let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
-                          let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
-                          let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
-                          
-                          // If channel closure was initiated within the last 30 minutes, allow reset
-                          if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-                              print("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
-                              // Allow wallet reset since channel is in closing process
-                              self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                          } else {
-                              // Clear old channel closing state if it's been too long
-                              if channelClosingInitiated && timeSinceClosure >= 120 {
-                                  UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                                  UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                              }
-                              
-                              // Wallet cannot be restored with open channels.
-                              self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
-                          }
-                      } else {
-                          // Clear channel closing state since no channels exist
-                          UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                          UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                          
-                          // Retore wallet.
-                          self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                      }
-                  }
-              }
         } else if sender.accessibilityIdentifier == "currency" {
             let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
             let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
@@ -166,6 +178,21 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.hideAlert()
         if let actualCoreVC = self.coreVC {
             actualCoreVC.resetApp(nodeIsRunning: true)
+        }
+    }
+    
+    @objc func walletRemoveAlert() {
+        self.hideAlert()
+        
+        if self.coreVC != nil, !self.coreVC!.walletHasSynced, self.coreVC!.resettingPin {
+            // The user wishes to remove the wallet from the device, without signing in.
+            
+            // Activate spinner.
+            self.coreVC!.fullViewCover.alpha = 0.8
+            self.coreVC!.genericSpinner.startAnimating()
+            
+            // Sync wallet.
+            self.coreVC!.startLightning()
         }
     }
     

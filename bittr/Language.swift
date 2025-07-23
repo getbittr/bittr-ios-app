@@ -377,7 +377,9 @@ class Language: NSObject {
             "swapinsufficientfunds": "However, you have enough regular Bitcoin balance to swap and pay. Your available onchain balance is",
             "swapandpay": "Swap & Pay",
             "invalidinvoice": "Invalid Lightning invoice",
-            "swapid": "Swap ID"
+            "swapid": "Swap ID",
+            "removewalletfromdevice": "Remove wallet",
+            "removewallet1": "Are you sure you want to remove this wallet from your device?\n\nYou can restore the wallet using your recovery phrase."
         ]
         
         if let foundWord = allWords[withID] {

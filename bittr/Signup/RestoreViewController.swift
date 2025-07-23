@@ -53,6 +53,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
     
+    // Remove wallet
+    @IBOutlet weak var removeWalletStack: UIView!
+    @IBOutlet weak var removeWalletStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var removeWalletLabel: UILabel!
+    @IBOutlet weak var removeWalletButton: UIButton!
+    
+    // Restore button
     @IBOutlet weak var restoreButtonText: UILabel!
     @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
     
@@ -76,6 +83,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.backgroundButton2.setTitle("", for: .normal)
         self.backButton.setTitle("", for: .normal)
         self.articleButton.setTitle("", for: .normal)
+        self.removeWalletButton.setTitle("", for: .normal)
         
         // Text fields.
         self.mnemonic1.delegate = self
@@ -105,7 +113,14 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             textField?.returnKeyType = .next
         }
         
-
+        if self.coreVC != nil, self.coreVC!.resettingPin {
+            self.removeWalletStack.alpha = 1
+            self.removeWalletStackHeight.constant = 45
+            self.removeWalletLabel.alpha = 0.5
+        } else {
+            self.removeWalletStack.alpha = 0
+            self.removeWalletStackHeight.constant = 0
+        }
         
         self.changeColors()
         self.setWords()
@@ -116,18 +131,12 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-
-    
     override func viewWillAppear(_ animated: Bool) {
         
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
     }
-    
-
-    
-
     
     @objc func keyboardWillDisappear() {
         
@@ -320,8 +329,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-
-    
     @IBAction func backButtonTapped(_ sender: UIButton) {
         
         self.view.endEditing(true)
@@ -341,7 +348,14 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-
+    @IBAction func removeWalletButtonTapped(_ sender: UIButton) {
+        
+        if self.coreVC != nil, self.coreVC!.settingsVC != nil {
+            let restoreButton = UIButton()
+            restoreButton.accessibilityIdentifier = "restore"
+            self.coreVC!.settingsVC!.settingsTapped(restoreButton)
+        }
+    }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
@@ -363,8 +377,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     func setWords() {
         
         self.topLabel.text = Language.getWord(withID: "enterrecoveryphrase")
-        self.restoreButtonText.text = Language.getWord(withID: "restorewallet")
+        if self.coreVC != nil, self.coreVC!.resettingPin {
+            self.restoreButtonText.text = Language.getWord(withID: "resetpin")
+        } else {
+            self.restoreButtonText.text = Language.getWord(withID: "restorewallet")
+        }
         self.cancelLabel.text = Language.getWord(withID: "cancel")
+        self.removeWalletLabel.text = Language.getWord(withID: "removewalletfromdevice")
     }
     
     // MARK: - UITextFieldDelegate

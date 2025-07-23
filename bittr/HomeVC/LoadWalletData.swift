@@ -681,7 +681,6 @@ extension HomeViewController {
         }
         
         if cachedData == false {
-            //self.headerLabel.text = Language.getWord(withID: "yourwallet")
             self.headerSpinner.stopAnimating()
             
             if self.couldNotFetchConversion == true {
@@ -702,6 +701,14 @@ extension HomeViewController {
                 }
             }
             self.fetchAndPrintPeers()
+            
+            if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
+                
+                // We're removing the wallet from the device.
+                let restoreButton = UIButton()
+                restoreButton.accessibilityIdentifier = "restore"
+                self.coreVC!.settingsVC!.settingsTapped(restoreButton)
+            }
         } else {
             print("Did calculate cached profits.")
         }

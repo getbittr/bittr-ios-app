@@ -284,6 +284,7 @@ extension CoreViewController {
         
         // Hide signup view and launch create wallet flow
         // Since we've cleared the PIN, we need to manually show the create wallet flow
+        self.homeVC!.view.alpha = 0
         self.hideSignup()
         
         // Launch signup on create wallet page after a delay to ensure cleanup is complete
@@ -291,6 +292,14 @@ extension CoreViewController {
             print("🔍 [DEBUG] ResetApp - Launching signup after cleanup")
             self.launchSignup(onPage: 3) // Page 3 is create wallet
             self.showSignupView()
+            
+            // Show HomeVC.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.homeVC!.view.alpha = 1
+                self.resettingPin = false
+                self.genericSpinner.stopAnimating()
+                self.fullViewCover.alpha = 0
+            }
         }
     }
     

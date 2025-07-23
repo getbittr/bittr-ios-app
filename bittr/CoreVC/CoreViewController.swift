@@ -124,6 +124,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var checkmarkSyncing: UIImageView!
     @IBOutlet weak var checkmarkFinal: UIImageView!
     
+    // Generic spinner
+    @IBOutlet weak var fullViewCover: UIView!
+    @IBOutlet weak var genericSpinner: UIActivityIndicatorView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -187,6 +191,7 @@ class CoreViewController: UIViewController {
         self.leftWhite.backgroundColor = Colors.getColor("grey3orblue1")
         self.middleWhite.backgroundColor = Colors.getColor("grey3orblue1")
         self.rightWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        self.fullViewCover.backgroundColor = Colors.getColor("yelloworblue3")
         
         self.lowerTopBar.backgroundColor = Colors.getColor("yelloworblue3")
         self.topBar.backgroundColor = Colors.getColor("transparentyellow")
