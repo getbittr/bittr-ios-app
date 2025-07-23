@@ -433,6 +433,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.confirmStatusSpinner.startAnimating()
         self.switchView("confirm")
         
+        SwapManager.updateSwapFileWithFees(swapID: ongoingSwap.boltzID!, totalFees: ongoingSwap.onchainFees! + ongoingSwap.lightningFees!, userAmount: ongoingSwap.satoshisAmount, direction: self.swapDirection)
+        
         if ongoingSwap.onchainToLightning {
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
@@ -638,6 +640,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.swapDirection = 0 // Onchain to Lightning
                 self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
                 
+                // Create Swap object.
+                self.coreVC!.bittrWallet.ongoingSwap = Swap()
+                self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount = invoiceAmount
+                self.coreVC!.bittrWallet.ongoingSwap!.onchainToLightning = true
+                
                 // Start the swap process
                 Task {
                     await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
@@ -659,6 +666,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.swapDirection = 1 // Lightning to onchain
         self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
         
+        // Create Swap object.
+        self.coreVC!.bittrWallet.ongoingSwap = Swap()
+        self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount = self.pendingOnchainAmount
+        self.coreVC!.bittrWallet.ongoingSwap!.onchainToLightning = false
+        
         // Start the swap process
         Task {
             await SwapManager.lightningToOnchain(amountSat: self.pendingOnchainAmount, swapVC: self, payoutAddress: self.pendingOnchainAddress)
@@ -671,6 +683,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         ongoingSwap.lockupTx = transactionHex
         self.coreVC!.bittrWallet.ongoingSwap!.lockupTx = transactionHex
         CacheManager.saveLatestSwap(ongoingSwap)
+        SwapManager.updateSwapFileWithLockupTx(swapID: ongoingSwap.boltzID!, lockupTx: ongoingSwap.lockupTx!)
         
         // Claim onchain transaction using async function
         Task {

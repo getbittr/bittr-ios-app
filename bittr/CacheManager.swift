@@ -1062,66 +1062,71 @@ class CacheManager: NSObject {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
     }
     
+    static func swapToDictionary(_ thisSwap:Swap) -> NSDictionary {
+        
+        let swapDictionary:NSMutableDictionary = ["dateID":thisSwap.dateID, "onchainToLightning":thisSwap.onchainToLightning, "satoshisAmount":thisSwap.satoshisAmount]
+        if thisSwap.createdInvoice != nil {
+            swapDictionary.setValue(thisSwap.createdInvoice!, forKey: "createdInvoice")
+        }
+        if thisSwap.privateKey != nil {
+            swapDictionary.setValue(thisSwap.privateKey!, forKey: "privateKey")
+        }
+        if thisSwap.boltzID != nil {
+            swapDictionary.setValue(thisSwap.boltzID!, forKey: "boltzID")
+        }
+        if thisSwap.boltzOnchainAddress != nil {
+            swapDictionary.setValue(thisSwap.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
+        }
+        if thisSwap.boltzExpectedAmount != nil {
+            swapDictionary.setValue(thisSwap.boltzExpectedAmount!, forKey: "boltzExpectedAmount")
+        }
+        if thisSwap.onchainFees != nil {
+            swapDictionary.setValue(thisSwap.onchainFees!, forKey: "onchainFees")
+        }
+        if thisSwap.lightningFees != nil {
+            swapDictionary.setValue(thisSwap.lightningFees!, forKey: "lightningFees")
+        }
+        if thisSwap.feeHigh != nil {
+            swapDictionary.setValue(thisSwap.feeHigh!, forKey: "feeHigh")
+        }
+        if thisSwap.sentOnchainTransactionID != nil {
+            swapDictionary.setValue(thisSwap.sentOnchainTransactionID!, forKey: "sentOnchainTransactionID")
+        }
+        if thisSwap.boltzOnchainAddress != nil {
+            swapDictionary.setValue(thisSwap.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
+        }
+        if thisSwap.refundPublicKey != nil {
+            swapDictionary.setValue(thisSwap.refundPublicKey!, forKey: "refundPublicKey")
+        }
+        if thisSwap.claimLeafOutput != nil {
+            swapDictionary.setValue(thisSwap.claimLeafOutput!, forKey: "claimLeafOutput")
+        }
+        if thisSwap.refundLeafOutput != nil {
+            swapDictionary.setValue(thisSwap.refundLeafOutput!, forKey: "refundLeafOutput")
+        }
+        if thisSwap.claimPublicKey != nil {
+            swapDictionary.setValue(thisSwap.claimPublicKey!, forKey: "claimPublicKey")
+        }
+        if thisSwap.preimage != nil {
+            swapDictionary.setValue(thisSwap.preimage!, forKey: "preimage")
+        }
+        if thisSwap.destinationAddress != nil {
+            swapDictionary.setValue(thisSwap.destinationAddress!, forKey: "destinationAddress")
+        }
+        if thisSwap.boltzInvoice != nil {
+            swapDictionary.setValue(thisSwap.boltzInvoice!, forKey: "boltzInvoice")
+        }
+        if thisSwap.lockupTx != nil {
+            swapDictionary.setValue(thisSwap.lockupTx!, forKey: "lockupTx")
+        }
+        
+        return swapDictionary
+    }
+    
     static func saveLatestSwap(_ latestSwap:Swap?) {
         
         if latestSwap != nil {
-            
-            let swapDictionary:NSMutableDictionary = ["dateID":latestSwap!.dateID, "onchainToLightning":latestSwap!.onchainToLightning, "satoshisAmount":latestSwap!.satoshisAmount]
-            if latestSwap!.createdInvoice != nil {
-                swapDictionary.setValue(latestSwap!.createdInvoice!, forKey: "createdInvoice")
-            }
-            if latestSwap!.privateKey != nil {
-                swapDictionary.setValue(latestSwap!.privateKey!, forKey: "privateKey")
-            }
-            if latestSwap!.boltzID != nil {
-                swapDictionary.setValue(latestSwap!.boltzID!, forKey: "boltzID")
-            }
-            if latestSwap!.boltzOnchainAddress != nil {
-                swapDictionary.setValue(latestSwap!.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
-            }
-            if latestSwap!.boltzExpectedAmount != nil {
-                swapDictionary.setValue(latestSwap!.boltzExpectedAmount!, forKey: "boltzExpectedAmount")
-            }
-            if latestSwap!.onchainFees != nil {
-                swapDictionary.setValue(latestSwap!.onchainFees!, forKey: "onchainFees")
-            }
-            if latestSwap!.lightningFees != nil {
-                swapDictionary.setValue(latestSwap!.lightningFees!, forKey: "lightningFees")
-            }
-            if latestSwap!.feeHigh != nil {
-                swapDictionary.setValue(latestSwap!.feeHigh!, forKey: "feeHigh")
-            }
-            if latestSwap!.sentOnchainTransactionID != nil {
-                swapDictionary.setValue(latestSwap!.sentOnchainTransactionID!, forKey: "sentOnchainTransactionID")
-            }
-            if latestSwap!.boltzOnchainAddress != nil {
-                swapDictionary.setValue(latestSwap!.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
-            }
-            if latestSwap!.refundPublicKey != nil {
-                swapDictionary.setValue(latestSwap!.refundPublicKey!, forKey: "refundPublicKey")
-            }
-            if latestSwap!.claimLeafOutput != nil {
-                swapDictionary.setValue(latestSwap!.claimLeafOutput!, forKey: "claimLeafOutput")
-            }
-            if latestSwap!.refundLeafOutput != nil {
-                swapDictionary.setValue(latestSwap!.refundLeafOutput!, forKey: "refundLeafOutput")
-            }
-            if latestSwap!.claimPublicKey != nil {
-                swapDictionary.setValue(latestSwap!.claimPublicKey!, forKey: "claimPublicKey")
-            }
-            if latestSwap!.preimage != nil {
-                swapDictionary.setValue(latestSwap!.preimage!, forKey: "preimage")
-            }
-            if latestSwap!.destinationAddress != nil {
-                swapDictionary.setValue(latestSwap!.destinationAddress!, forKey: "destinationAddress")
-            }
-            if latestSwap!.boltzInvoice != nil {
-                swapDictionary.setValue(latestSwap!.boltzInvoice!, forKey: "boltzInvoice")
-            }
-            if latestSwap!.lockupTx != nil {
-                swapDictionary.setValue(latestSwap!.lockupTx!, forKey: "lockupTx")
-            }
-            
+            let swapDictionary = CacheManager.swapToDictionary(latestSwap!)
             UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
         } else {
             if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {

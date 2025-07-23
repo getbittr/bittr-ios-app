@@ -173,6 +173,8 @@ class SwapManager: NSObject {
                                 swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
                                 swapVC.coreVC!.bittrWallet.ongoingSwap!.claimPublicKey = claimPublicKey
                                 
+                                self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
+                                
                                 Task {
                                     await self.checkOnchainFees(swapVC: swapVC)
                                 }
@@ -293,6 +295,7 @@ class SwapManager: NSObject {
                             
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txid
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
+                            self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
                             
                             let newTransaction = Transaction()
                             newTransaction.id = "\(txid)"
@@ -497,6 +500,7 @@ class SwapManager: NSObject {
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.refundPublicKey = refundPublicKey
+                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
                             
                             self.checkReverseSwapFees(swapVC: swapVC)
                         } else {
@@ -532,7 +536,7 @@ class SwapManager: NSObject {
         return Data(SHA256.hash(data: data))
     }
     
-    /*static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
+    static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
         do {
             // Convert NSDictionary to JSON Data
             let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
@@ -611,7 +615,7 @@ class SwapManager: NSObject {
         } catch {
             print("Error updating swap file with fees: \(error)")
         }
-    }*/
+    }
     
     static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapViewController) {
         // Load swap details to get the description and user amount
