@@ -354,7 +354,7 @@ extension CoreViewController {
                                 if eachTransaction.txId == fundingTxo {
                                     DispatchQueue.main.async {
                                         
-                                        let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                        let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, swapTransaction: nil, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
                                         
                                         self.receivedBittrTransaction = thisTransaction
                                         self.addNewTransactionToHomeVC(newTransaction: thisTransaction)

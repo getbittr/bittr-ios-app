@@ -257,16 +257,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         self.nextLabel.alpha = 0
         self.nextSpinner.startAnimating()
-         
-         if self.stringToNumber(self.amountTextField.text) != 0 {
-            if Int(self.stringToNumber(self.amountTextField.text)) > 1000000000000 {
+        
+        let amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
+        if amountToBeSent != 0 {
+            let maxAmount = self.homeVC?.coreVC?.bittrWallet.bittrChannel?.receivableMaximum ?? 0
+            if amountToBeSent > maxAmount {
+                // You can't receive or send this much.
                 self.nextLabel.alpha = 1
                 self.nextSpinner.stopAnimating()
-                // You can't receive or send this much.
-                let maxAmount = self.homeVC?.coreVC?.bittrWallet.bittrChannel?.receivableMaximum ?? 0
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
-                let amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
                 
                 // Create Swap object.
                 self.coreVC!.bittrWallet.ongoingSwap = Swap()
@@ -287,6 +287,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 }
             }
         } else {
+            // No amount has been entered.
             self.nextLabel.alpha = 1
             self.nextSpinner.stopAnimating()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -417,10 +418,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     }
     
     @objc func proceedWithSwap() {
-        guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
-        
-        // Hide the alert first
         self.hideAlert()
+        
+        guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
         
         // Save ongoing swap to cache.
         CacheManager.saveLatestSwap(ongoingSwap)

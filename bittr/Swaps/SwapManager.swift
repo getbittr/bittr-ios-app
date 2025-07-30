@@ -216,9 +216,7 @@ class SwapManager: NSObject {
     
     static func checkOnchainFees(swapVC:SwapViewController) async {
         
-        let ongoingSwap = await swapVC.coreVC!.bittrWallet.ongoingSwap!
-            
-        let feesForLightningPayment = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
+        guard let ongoingSwap = await swapVC.coreVC!.bittrWallet.ongoingSwap else {return}
         
         // Check what the onchain fees will be for sending this onchain payment.
         if let actualWallet = LightningNodeService.shared.getWallet() {
@@ -230,26 +228,18 @@ class SwapManager: NSObject {
                     let high = feeEstimates[1]!
                     let feeHigh = Float(Int(high*10))/10
                     
-                    var network = BitcoinDevKit.Network.bitcoin
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        network = BitcoinDevKit.Network.regtest
-                    }
-                    let address = try Address(address: ongoingSwap.boltzOnchainAddress!, network: network)
-                    let script = address.scriptPubkey()
-                    let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(ongoingSwap.boltzExpectedAmount!)))
-                    let details = try txBuilder.finish(wallet: actualWallet)
-                    let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                    let tx = try details.extractTx()
-                    let size = tx.vsize()
+                    // Calculate transaction size.
+                    let size = try await swapVC.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet)
                     
-                    // Convert fees.
-                    let feesForOnchainPayment = CGFloat(feeHigh*Float(size))
-                    print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(Int(feesForOnchainPayment)).")
+                    // Calculate fees.
+                    let feesForOnchainPayment:Int = Int(CGFloat(feeHigh*Float(size)))
+                    let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
+                    print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
                     
                     // Confirm fees with user.
                     DispatchQueue.main.async {
                         swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = feeHigh
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = Int(feesForOnchainPayment)
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = feesForOnchainPayment
                         swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
                         swapVC.confirmExpectedFees()
                     }
@@ -273,16 +263,7 @@ class SwapManager: NSObject {
             
             Task {
                 do {
-                    var network = BitcoinDevKit.Network.bitcoin
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        network = BitcoinDevKit.Network.regtest
-                    }
-                    let address = try Address(address: ongoingSwap.boltzOnchainAddress!, network: network)
-                    let script = address.scriptPubkey()
-                    let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(ongoingSwap.boltzExpectedAmount!))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(ongoingSwap.feeHigh!)))
-                    let details = try txBuilder.finish(wallet: actualWallet)
-                    let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                    let tx = try details.extractTx()
+                    let tx = try await swapVC.getTx(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet, selectedVbyte: ongoingSwap.feeHigh!)
                     
                     if let client = LightningNodeService.shared.getClient() {
                         
@@ -293,21 +274,15 @@ class SwapManager: NSObject {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             print("Successful transaction.")
                             
+                            // Update swap object.
+                            ongoingSwap.sentOnchainTransactionID = txid
+                            ongoingSwap.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txid
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
                             self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
                             
-                            let newTransaction = Transaction()
-                            newTransaction.id = "\(txid)"
-                            newTransaction.confirmations = 0
-                            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                            newTransaction.height = 0
-                            newTransaction.received = 0
-                            newTransaction.fee = ongoingSwap.onchainFees!
-                            newTransaction.sent = ongoingSwap.boltzExpectedAmount! + ongoingSwap.onchainFees!
-                            newTransaction.isLightning = false
-                            newTransaction.isBittr = false
-                            newTransaction.lnDescription = ongoingSwap.dateID
+                            // Create transaction object.
+                            let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
                             CacheManager.storeInvoiceDescription(hash: txid, desc: ongoingSwap.dateID)
                             CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
@@ -574,47 +549,42 @@ class SwapManager: NSObject {
     }
     
     static func updateSwapFileWithLockupTx(swapID: String, lockupTx: String) {
-        do {
-            // Load existing swap details
-            guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
-                print("Could not load existing swap details for ID: \(swapID)")
-                return
-            }
-            
-            // Create a mutable copy and add the lockup transaction
-            let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
-            updatedSwapDetails.setValue(lockupTx, forKey: "lockupTx")
-            
-            // Save the updated swap details back to file
-            saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
-            
-            print("Updated swap file with lockup transaction for ID: \(swapID)")
-        } catch {
-            print("Error updating swap file with lockup transaction: \(error)")
+        
+        // Load existing swap details
+        guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
+            print("Could not load existing swap details for ID: \(swapID)")
+            return
         }
+        
+        // Create a mutable copy and add the lockup transaction
+        let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
+        updatedSwapDetails.setValue(lockupTx, forKey: "lockupTx")
+        
+        // Save the updated swap details back to file
+        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
+        
+        print("Updated swap file with lockup transaction for ID: \(swapID)")
+            
     }
     
     static func updateSwapFileWithFees(swapID: String, totalFees: Int, userAmount: Int, direction: Int) {
-        do {
-            // Load existing swap details
-            guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
-                print("Could not load existing swap details for ID: \(swapID)")
-                return
-            }
-            
-            // Create a mutable copy and add the fees information
-            let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
-            updatedSwapDetails.setValue(totalFees, forKey: "totalFees")
-            updatedSwapDetails.setValue(userAmount, forKey: "userAmount")
-            updatedSwapDetails.setValue(direction, forKey: "direction")
-            
-            // Save the updated swap details back to file
-            saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
-            
-            print("Updated swap file with fees for ID: \(swapID)")
-        } catch {
-            print("Error updating swap file with fees: \(error)")
+        
+        // Load existing swap details
+        guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
+            print("Could not load existing swap details for ID: \(swapID)")
+            return
         }
+        
+        // Create a mutable copy and add the fees information
+        let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
+        updatedSwapDetails.setValue(totalFees, forKey: "totalFees")
+        updatedSwapDetails.setValue(userAmount, forKey: "userAmount")
+        updatedSwapDetails.setValue(direction, forKey: "direction")
+        
+        // Save the updated swap details back to file
+        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
+        
+        print("Updated swap file with fees for ID: \(swapID)")
     }
     
     static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapViewController) {
@@ -635,11 +605,9 @@ class SwapManager: NSObject {
         newTransaction.sent = 0
         newTransaction.isLightning = false
         newTransaction.isBittr = false
-        newTransaction.isSwap = true
-        newTransaction.swapDirection = 1 // Lightning to onchain
-        newTransaction.onchainID = transactionId // Set onchain ID for swap matching
-        newTransaction.boltzSwapId = ongoingSwap.boltzID!
         newTransaction.lnDescription = ongoingSwap.dateID
+        
+        // Store transaction details in cache.
         CacheManager.storeInvoiceDescription(hash: transactionId, desc: ongoingSwap.dateID)
         CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
         
@@ -705,24 +673,17 @@ class SwapManager: NSObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
+                        ongoingSwap.sentLightningPaymentID = thisPayment.id
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = thisPayment.id
+                        
                         if thisPayment.status != .failed {
                             // Success payment
                             swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
                             
                             // Create lightning transaction with swap details
-                            let newTransaction = Transaction()
-                            newTransaction.id = thisPayment.id
-                            newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
-                            newTransaction.received = 0
-                            newTransaction.isLightning = true
-                            newTransaction.isSwap = true
-                            newTransaction.swapDirection = 1 // Lightning to onchain
-                            newTransaction.lightningID = thisPayment.id // Set lightning ID for swap matching
-                            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                            newTransaction.confirmations = 0
-                            newTransaction.height = 0
-                            newTransaction.isBittr = false
-                            newTransaction.lnDescription = ongoingSwap.dateID
+                            let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
+                            
+                            // Store transaction details in cache.
                             CacheManager.storeInvoiceDescription(hash: thisPayment.id, desc: ongoingSwap.dateID)
                             CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
@@ -758,21 +719,13 @@ class SwapManager: NSObject {
                         // Success alert
                         swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
                         
+                        ongoingSwap.sentLightningPaymentID = paymentHash
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = paymentHash
+                        
                         // Create lightning transaction with swap details
-                        let newTransaction = Transaction()
-                        newTransaction.id = paymentHash
-                        newTransaction.sent = ongoingSwap.satoshisAmount
-                        newTransaction.received = 0
-                        newTransaction.isLightning = true
-                        newTransaction.isSwap = true
-                        newTransaction.swapDirection = 1 // Lightning to onchain
-                        newTransaction.lightningID = paymentHash // Set lightning ID for swap matching
-                        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                        newTransaction.confirmations = 0
-                        newTransaction.height = 0
-                        newTransaction.isBittr = false
-                        newTransaction.fee = 0
-                        newTransaction.lnDescription = ongoingSwap.dateID
+                        let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
+                        
+                        // Store transaction details in cache.
                         CacheManager.storeInvoiceDescription(hash: paymentHash, desc: ongoingSwap.dateID)
                         CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                         

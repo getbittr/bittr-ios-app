@@ -100,7 +100,7 @@ extension HomeViewController {
         for eachTransaction in receivedTransactions {
             if !self.cachedLightningIds.contains(eachTransaction.transaction.computeTxid()) {
                 // Onchain transaction isn't part of a previously cached swap transaction.
-                let thisTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                let thisTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, swapTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
             }
         }
@@ -109,7 +109,7 @@ extension HomeViewController {
         for eachPayment in receivedPayments {
             // Add succeeded new payments to table.
             if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), eachPayment.status == .succeeded {
-                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, swapTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
             }
@@ -304,7 +304,7 @@ extension HomeViewController {
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                             // This is the funding Txo.
                             
-                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, swapTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                             
                             self.newTransactions += [thisTransaction]
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
@@ -789,7 +789,7 @@ extension PaymentKind {
 
 extension UIViewController {
     
-    func createTransaction(transactionDetails:CanonicalTx?, paymentDetails:PaymentDetails?, bittrTransaction:BittrTransaction?, coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
+    func createTransaction(transactionDetails:CanonicalTx?, paymentDetails:PaymentDetails?, bittrTransaction:BittrTransaction?, swapTransaction:Swap?, coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()
@@ -863,6 +863,26 @@ extension UIViewController {
             if let actualChannels = coreVC?.bittrWallet.lightningChannels {
                 thisTransaction.channelId = actualChannels[0].channelId
             }
+        } else if swapTransaction != nil {
+            
+            // Swap transaction
+            if swapTransaction!.onchainToLightning {
+                thisTransaction.id = swapTransaction!.sentOnchainTransactionID!
+                thisTransaction.sent = swapTransaction!.boltzExpectedAmount! + swapTransaction!.onchainFees!
+                thisTransaction.isLightning = false
+            } else {
+                thisTransaction.id = swapTransaction!.sentLightningPaymentID!
+                thisTransaction.sent = swapTransaction!.satoshisAmount
+                thisTransaction.isLightning = true
+            }
+            thisTransaction.confirmations = 0
+            thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+            thisTransaction.height = 0
+            thisTransaction.received = 0
+            thisTransaction.fee = swapTransaction!.onchainFees!
+            thisTransaction.isBittr = false
+            thisTransaction.lnDescription = swapTransaction!.dateID
+            
         }
         
         // Check if transaction is Bittr.

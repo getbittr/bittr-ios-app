@@ -108,7 +108,7 @@ extension SendViewController {
                 self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
                 self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
                 
-                if /*let actualBlockchain = LightningNodeService.shared.getBlockchain(), */let actualWallet = LightningNodeService.shared.getWallet() {
+                if let actualWallet = LightningNodeService.shared.getWallet() {
                     
                     let actualAddress:String = invoiceText!
                     
@@ -117,9 +117,9 @@ extension SendViewController {
                             
                             let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
                             
-                            let high = feeEstimates[1]! //try LightningNodeService.shared.getClient()!.estimateFee(number: 1)
-                            let medium = feeEstimates[3]! //try LightningNodeService.shared.getClient()!.estimateFee(number: 3)
-                            let low = feeEstimates[6]! //try LightningNodeService.shared.getClient()!.estimateFee(number: 6)
+                            let high = feeEstimates[1]!
+                            let medium = feeEstimates[3]!
+                            let low = feeEstimates[6]!
                             
                             self.feeLow = Float(Int(low*10))/10
                             self.feeMedium = Float(Int(medium*10))/10
@@ -127,17 +127,7 @@ extension SendViewController {
                             
                             print("Adjusted - High: \(self.feeHigh), Medium: \(self.feeMedium), Low: \(self.feeLow)")
                             
-                            var bdkNetwork = BitcoinDevKit.Network.bitcoin
-                            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                                bdkNetwork = BitcoinDevKit.Network.regtest
-                            }
-                            let address = try Address(address: actualAddress, network: bdkNetwork)
-                            let script = address.scriptPubkey()
-                            let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(self.onchainAmountInSatoshis)))
-                            let details = try txBuilder.finish(wallet: actualWallet)
-                            let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                            let tx = try details.extractTx()
-                            let size = tx.vsize()
+                            let size = try self.getSize(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet)
 
                             print("Size: \(String(describing: size))")
                             print("High: \(self.feeHigh*Float(size)), Medium: \(self.feeMedium*Float(size)), Low: \(self.feeLow*Float(size))")
@@ -371,22 +361,14 @@ extension SendViewController {
             
             Task {
                 do {
-                    var bdkNetwork = BitcoinDevKit.Network.bitcoin
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bdkNetwork = BitcoinDevKit.Network.regtest
-                    }
-                    let address = try Address(address: actualAddress, network: bdkNetwork)
-                    let script = address.scriptPubkey()
                     var selectedVbyte:Float = self.feeMedium
                     if self.selectedFee == "low" {
                         selectedVbyte = self.feeLow
                     } else if self.selectedFee == "high" {
                         selectedVbyte = self.feeHigh
                     }
-                    let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(self.onchainAmountInSatoshis))).feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte)))
-                    let details = try txBuilder.finish(wallet: actualWallet)
-                    let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                    let tx = try details.extractTx()
+                    let tx = try self.getTx(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet, selectedVbyte: selectedVbyte)
+                    
                     if let client = LightningNodeService.shared.getClient() {
                         
                         let txid = try client.transactionBroadcast(tx: tx)
@@ -557,5 +539,32 @@ extension UIViewController {
         } else {
             return CGFloat(truncating: formatter.number(from: (thisString ?? "0.0").fixDecimals())!)
         }
+    }
+    
+    func getSize(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet) throws -> UInt64 {
+        
+        let tx = try self.getTx(address: address, amountSats: amountSats, wallet: wallet, selectedVbyte: nil)
+        let size = tx.vsize()
+        
+        return size
+    }
+    
+    func getTx(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
+        
+        var network = BitcoinDevKit.Network.bitcoin
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            network = BitcoinDevKit.Network.regtest
+        }
+        let address = try Address(address: address, network: network)
+        let script = address.scriptPubkey()
+        var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))
+        if selectedVbyte != nil {
+            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte!)))
+        }
+        let details = try txBuilder.finish(wallet: wallet)
+        let _ = try wallet.sign(psbt: details, signOptions: nil)
+        let tx = try details.extractTx()
+        
+        return tx
     }
 }

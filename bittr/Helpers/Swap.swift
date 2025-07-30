@@ -33,6 +33,7 @@ class Swap: NSObject {
     var claimPublicKey:String?
     
     // Lightning to Onchain
+    var sentLightningPaymentID:String?
     var preimage:String?
     var destinationAddress:String?
     var boltzInvoice:String?
