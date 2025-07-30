@@ -68,6 +68,10 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var openUrlButton: UIButton!
     var tappedUrl:String?
     
+    // Swap ID
+    @IBOutlet weak var openSwapImage: UIImageView!
+    @IBOutlet weak var openSwapButton: UIButton!
+    
     // Notes
     @IBOutlet weak var noteLabel: UILabel!
     @IBOutlet weak var noteButton: UIButton!
@@ -403,12 +407,28 @@ class TransactionViewController: UIViewController {
         }
     }
     
+    @IBAction func openSwapTapped(_ sender: UIButton) {
+        if CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription) != nil {
+            self.performSegue(withIdentifier: "TransactionToSwap", sender: self)
+        }
+    }
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "TransactionToWebsite" {
             if let websiteVC = segue.destination as? WebsiteViewController {
                 if let actualTappedUrl = self.tappedUrl {
                     websiteVC.tappedUrl = actualTappedUrl
                 }
+            }
+        } else if segue.identifier == "TransactionToSwap" {
+            if let swapVC = segue.destination as? SwapViewController {
+                swapVC.coreVC = self.coreVC
+                let tappedSwap = Swap()
+                tappedSwap.boltzID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription)!
+                tappedSwap.satoshisAmount = self.tappedTransaction.received
+                tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
+                tappedSwap.lightningFees = 0
+                swapVC.tappedSwapTransaction = tappedSwap
             }
         }
     }
@@ -480,6 +500,7 @@ class TransactionViewController: UIViewController {
         self.noteLabel.textColor = Colors.getColor("blackorwhite")
         self.noteImage.tintColor = Colors.getColor("grey2orwhite")
         self.openUrlImage.tintColor = Colors.getColor("grey2orwhite")
+        self.openSwapImage.tintColor = Colors.getColor("grey2orwhite")
     }
     
 }

@@ -6705,7 +6705,7 @@
                                                                 <rect key="frame" x="10" y="180.00000000000003" width="323" height="0.0"/>
                                                                 <subviews>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="2b409c200664b2f3e8b47d120d2b85eddc6e3681ba34aba8bfa6167b73e3be90" textAlignment="right" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="FKS-42-XAA" userLabel="To Number">
-                                                                        <rect key="frame" x="83.333333333333329" y="-7" width="224.66666666666669" height="14"/>
+                                                                        <rect key="frame" x="83.333333333333329" y="-7" width="194.66666666666669" height="14"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="iNR-xc-Hnb"/>
                                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="tYR-to-sdQ"/>
@@ -6729,11 +6729,11 @@
                                                                         <state key="normal" title="Button"/>
                                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                                     </button>
-                                                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nRY-ty-wm4">
-                                                                        <rect key="frame" x="318" y="0.0" width="5" height="0.0"/>
+                                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nRY-ty-wm4">
+                                                                        <rect key="frame" x="288" y="0.0" width="35" height="0.0"/>
                                                                         <subviews>
                                                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="rectangle.portrait.and.arrow.right" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="WJ2-qK-Wo9" userLabel="Open Url Image">
-                                                                                <rect key="frame" x="-30" y="-10.666666666666668" width="20" height="19.666666666666668"/>
+                                                                                <rect key="frame" x="0.0" y="-10.666666666666668" width="20" height="19.666666666666668"/>
                                                                                 <color key="tintColor" red="0.61694325819999996" green="0.63093821329999999" blue="0.67292307839999999" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                                 <constraints>
                                                                                     <constraint firstAttribute="width" constant="20" id="RKM-02-F0x"/>
@@ -6741,18 +6741,18 @@
                                                                                 </constraints>
                                                                             </imageView>
                                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="PHN-2p-mMl">
-                                                                                <rect key="frame" x="0.0" y="0.0" width="5" height="0.0"/>
+                                                                                <rect key="frame" x="0.0" y="0.0" width="35" height="0.0"/>
                                                                                 <state key="normal" title="Button"/>
                                                                                 <buttonConfiguration key="configuration" style="plain"/>
                                                                                 <connections>
-                                                                                    <action selector="openUrlButtonTapped:" destination="EgO-Th-Xdr" eventType="touchUpInside" id="emg-AP-awi"/>
+                                                                                    <action selector="openSwapTapped:" destination="EgO-Th-Xdr" eventType="touchUpInside" id="aqJ-xf-7I3"/>
                                                                                 </connections>
                                                                             </button>
                                                                         </subviews>
                                                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <constraints>
                                                                             <constraint firstItem="WJ2-qK-Wo9" firstAttribute="centerY" secondItem="nRY-ty-wm4" secondAttribute="centerY" constant="-1" id="0q6-JL-n1L"/>
-                                                                            <constraint firstAttribute="width" constant="5" id="A8z-Rf-4lr"/>
+                                                                            <constraint firstAttribute="width" constant="35" id="A8z-Rf-4lr"/>
                                                                             <constraint firstItem="PHN-2p-mMl" firstAttribute="top" secondItem="nRY-ty-wm4" secondAttribute="top" id="JoU-xh-HMy"/>
                                                                             <constraint firstAttribute="trailing" secondItem="WJ2-qK-Wo9" secondAttribute="trailing" constant="15" id="PpR-3U-bFb"/>
                                                                             <constraint firstAttribute="bottom" secondItem="PHN-2p-mMl" secondAttribute="bottom" id="RKJ-7L-BZ2"/>
@@ -6869,7 +6869,7 @@
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="ECh-jU-4HW" userLabel="Description View">
                                                                 <rect key="frame" x="10" y="260" width="323" height="52"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gPm-Qu-Jle">
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gPm-Qu-Jle">
                                                                         <rect key="frame" x="15" y="14" width="74" height="14"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="Io1-ra-eUc"/>
@@ -6879,8 +6879,8 @@
                                                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="This is a very long and detailed description with lots of words." textAlignment="right" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9Id-y1-aYw" userLabel="Description Text">
-                                                                        <rect key="frame" x="106.66666666666663" y="14" width="201.33333333333337" height="28"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="This is a very long and detailed description with lots of words." textAlignment="right" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9Id-y1-aYw" userLabel="Description Text">
+                                                                        <rect key="frame" x="106.66666666666664" y="14" width="201.33333333333337" height="28"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="3mw-li-HjB"/>
                                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="5" id="6EL-1n-95y"/>
@@ -7239,6 +7239,8 @@
                         <outlet property="noteLabel" destination="7PG-mG-aFP" id="guD-7G-efN"/>
                         <outlet property="noteTitle" destination="gVl-Jq-U0T" id="iw7-VP-H6C"/>
                         <outlet property="nowView" destination="zZ1-Ep-iVe" id="l9E-Jj-EXw"/>
+                        <outlet property="openSwapButton" destination="PHN-2p-mMl" id="Dph-Ve-7jD"/>
+                        <outlet property="openSwapImage" destination="WJ2-qK-Wo9" id="gUw-wG-NZ4"/>
                         <outlet property="openUrlBox" destination="3lW-zJ-Akx" id="IGR-FY-nvz"/>
                         <outlet property="openUrlButton" destination="1h8-Iu-EoD" id="hBe-2g-AYg"/>
                         <outlet property="openUrlImage" destination="G3A-FF-vSq" id="GgY-N5-XdL"/>
@@ -7266,6 +7268,7 @@
                         <outlet property="valueThenLabel" destination="OsV-av-cRr" id="ucK-Fx-mvz"/>
                         <outlet property="valueThenTitle" destination="X7t-0T-Zls" id="W6t-qj-Ijp"/>
                         <segue destination="RcB-fn-UuJ" kind="show" identifier="TransactionToWebsite" id="RLJ-7Z-6Ld"/>
+                        <segue destination="SiB-n5-gpJ" kind="show" identifier="TransactionToSwap" id="JOT-Gg-VC1"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Ss9-ng-68i" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -13771,6 +13774,7 @@
         <segue reference="Owf-uB-9LO"/>
         <segue reference="RLJ-7Z-6Ld"/>
         <segue reference="4mq-9G-b1k"/>
+        <segue reference="JOT-Gg-VC1"/>
         <segue reference="hX6-RE-pvS"/>
         <segue reference="A8J-Ia-44n"/>
     </inferredMetricsTieBreakers>

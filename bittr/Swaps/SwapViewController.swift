@@ -86,6 +86,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var isFromOnchainPayment = false
     var pendingOnchainAddress = ""
     var pendingOnchainAmount = 0
+    var tappedSwapTransaction:Swap?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -169,6 +170,29 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             } else if self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty {
                 // Handle pending onchain payment
                 self.handlePendingOnchainPayment()
+            } else if self.tappedSwapTransaction != nil {
+                // Show swap opened from TransactionVC.
+                if self.tappedSwapTransaction!.onchainToLightning {
+                    self.confirmDirectionLabel.text = "Onchain to Lightning"
+                } else {
+                    self.confirmDirectionLabel.text = "Lightning to Onchain"
+                }
+                self.confirmAmountLabel.text = "\(self.tappedSwapTransaction!.satoshisAmount) sats"
+                self.confirmFeesLabel.text = "\(self.tappedSwapTransaction!.onchainFees! + self.tappedSwapTransaction!.lightningFees!) sats"
+                self.confirmStatusSpinner.startAnimating()
+                self.confirmStatusLabel.text = "Checking"
+                self.switchView("confirm")
+                SwapManager.checkSwapStatus(self.tappedSwapTransaction!.boltzID!) { status in
+                    DispatchQueue.main.async {
+                        self.confirmStatusLabel.alpha = 1
+                        self.confirmStatusSpinner.stopAnimating()
+                        if let receivedStatus = status {
+                            self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
+                        } else {
+                            print("No status received.")
+                        }
+                    }
+                }
             }
         }
         
