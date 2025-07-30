@@ -11,6 +11,7 @@ import WebKit
 class WebsiteViewController: UIViewController, WKUIDelegate {
 
     // UI elements
+    @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var safariButton: UIButton!
     @IBOutlet weak var websiteView: UIView!
@@ -27,6 +28,9 @@ class WebsiteViewController: UIViewController, WKUIDelegate {
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
         webView.uiDelegate = self
         webView.navigationDelegate = self as? WKNavigationDelegate
+        
+        // Set colors
+        self.changeColors()
     }
     
     override func viewDidLoad() {
@@ -73,6 +77,13 @@ class WebsiteViewController: UIViewController, WKUIDelegate {
                 UIApplication.shared.open(websiteUrl! as URL, options: [:], completionHandler: nil)
             }
         }
+    }
+    
+    func changeColors() {
+        
+        self.topBar.backgroundColor = Colors.getColor("yelloworblue1")
+        self.view.backgroundColor = Colors.getColor("whiteorblue2")
+        self.websiteView.backgroundColor = Colors.getColor("whiteorblue2")
     }
     
 }
