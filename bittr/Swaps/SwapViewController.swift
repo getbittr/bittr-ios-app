@@ -64,6 +64,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var titleAmount: UILabel!
     @IBOutlet weak var titleFees: UILabel!
     @IBOutlet weak var titleStatus: UILabel!
+    @IBOutlet weak var statusQuestionIcon: UIImageView!
+    @IBOutlet weak var statusQuestionButton: UIButton!
     
     // Download swap details
     @IBOutlet weak var downloadView: UIView!
@@ -114,6 +116,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.confirmStatusButton.setTitle("", for: .normal)
         self.pendingButton.setTitle("", for: .normal)
         self.downloadButton.setTitle("", for: .normal)
+        self.statusQuestionButton.setTitle("", for: .normal)
         
         // Center card styling
         self.centerCard.layer.cornerRadius = 13
@@ -384,6 +387,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     }
     
     func userFriendlyStatus(receivedStatus:String) -> String {
+        
+        self.statusQuestionButton.accessibilityIdentifier = receivedStatus
         
         switch receivedStatus {
         case "swap.created": return Language.getWord(withID: "swapstatuspreparing")
@@ -776,6 +781,73 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
     }
     
+    @IBAction func statusQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        if let swapStatus = sender.accessibilityIdentifier {
+            
+            var answer = ""
+            
+            switch swapStatus {
+            case "swap.created":
+                if self.swapDirection == 0 {
+                    answer = Language.getWord(withID: "swapquestionswapcreated0")
+                } else {
+                    answer = Language.getWord(withID: "swapquestionswapcreated1")
+                }
+            case "invoice.set":
+                answer = Language.getWord(withID: "swapquestionswapcreated0")
+            case "transaction.mempool":
+                if self.swapDirection == 0 {
+                    answer = Language.getWord(withID: "swapquestiontransactionmempool0")
+                } else {
+                    answer = Language.getWord(withID: "swapquestioncomplete1")
+                }
+            case "transaction.confirmed":
+                if self.swapDirection == 0 {
+                    answer = Language.getWord(withID: "swapquestiontransactionconfirmed0")
+                } else {
+                    answer = Language.getWord(withID: "swapquestioncomplete1")
+                }
+            case "invoice.pending":
+                answer = Language.getWord(withID: "swapquestioninvoicepending0")
+            case "invoice.paid":
+                answer = Language.getWord(withID: "swapquestioncomplete0")
+            case "invoice.failedToPay":
+                answer = Language.getWord(withID: "swapquestioninvoicefailedtopay0")
+            case "transaction.claim.pending":
+                answer = Language.getWord(withID: "swapquestioncomplete0")
+            case "transaction.claimed":
+                answer = Language.getWord(withID: "swapquestioncomplete0")
+            case "swap.expired":
+                if self.swapDirection == 0 {
+                    answer = Language.getWord(withID: "swapquestionexpired0")
+                } else {
+                    answer = Language.getWord(withID: "swapquestionexpired1")
+                }
+            case "transaction.lockupFailed":
+                if self.swapDirection == 0 {
+                    answer = Language.getWord(withID: "swapquestionexpired0")
+                } else {
+                    answer = Language.getWord(withID: "swapquestionexpired1")
+                }
+            case "invoice.settled":
+                answer = Language.getWord(withID: "swapquestioncomplete1")
+            case "invoice.expired":
+                answer = Language.getWord(withID: "swapquestionexpired1")
+            case "transaction.failed":
+                answer = Language.getWord(withID: "swapquestionexpired1")
+            case "transaction.refunded":
+                answer = Language.getWord(withID: "swapquestionexpired1")
+            default: answer = ""
+            }
+            
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "swapquestion"), answer: answer, type: nil)
+        } else {
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "swapquestion"), answer: Language.getWord(withID: "swapquestiongeneric"), type: nil)
+        }
+    }
+    
     func setLanguage() {
         self.topLabel.text = Language.getWord(withID: "swapfunds")
         self.subtitleLabel.text = Language.getWord(withID: "swapsubtitle")
@@ -807,6 +879,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.confirmStatusLabel.textColor = Colors.getColor("blackorwhite")
         self.availableAmountLabel.textColor = Colors.getColor("blackorwhite")
         self.questionMark.tintColor = Colors.getColor("blackorwhite")
+        self.statusQuestionIcon.tintColor = Colors.getColor("blackorwhite")
         self.amountTextField.backgroundColor = Colors.getColor("white0.7orblue2")
         self.fromView.backgroundColor = Colors.getColor("whiteorblue3")
         self.fromLabel.textColor = Colors.getColor("blackorwhite")

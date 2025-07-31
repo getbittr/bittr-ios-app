@@ -379,7 +379,19 @@ class Language: NSObject {
             "invalidinvoice": "Invalid Lightning invoice",
             "swapid": "Swap ID",
             "removewalletfromdevice": "Remove wallet",
-            "removewallet1": "Are you sure you want to remove this wallet from your device?\n\nYou can restore the wallet using your recovery phrase."
+            "removewallet1": "Are you sure you want to remove this wallet from your device?\n\nYou can restore the wallet using your recovery phrase.",
+            "swapquestion": "Swap status",
+            "swapquestionswapcreated0": "We've initiated the swap of your funds from onchain to lightning, but no funds have been moved yet.",
+            "swapquestionswapcreated1": "We've initiated the swap of your funds from lightning to onchain, but no funds have been moved yet.",
+            "swapquestiontransactionmempool0": "In order to swap your funds from onchain to lightning, we (1) perform an onchain transaction, then (2) wait for that transaction to be confirmed on the blockchain, and then (3) receive the funds in your lightning channel.\n\nWe're currently waiting for your onchain transaction to be confirmed on the blockchain.",
+            "swapquestiontransactionconfirmed0": "In order to swap your funds from onchain to lightning, we (1) perform an onchain transaction, then (2) wait for that transaction to be confirmed on the blockchain, and then (3) receive the funds in your lightning channel.\n\nThe onchain transaction has now been confirmed, we're waiting to receive the swapped funds into your lightning channel.",
+            "swapquestioninvoicepending0": "In order to swap your funds from onchain to lightning, we (1) perform an onchain transaction, then (2) wait for that transaction to be confirmed on the blockchain, and then (3) receive the funds in your lightning channel.\n\nThe onchain transaction has now been confirmed, we're waiting to receive the swapped funds into your lightning channel.",
+            "swapquestioninvoicefailedtopay0": "The swap of your funds from onchain to lightning could not be completed.\n\nIn order to swap your funds from onchain to lightning, we (1) perform an onchain transaction, then (2) wait for that transaction to be confirmed on the blockchain, and then (3) receive the funds in your lightning channel.\n\nThe onchain transaction has been paid and confirmed. However, the lightning invoice could not be paid. We're refunding the funds back into your onchain wsllet.",
+            "swapquestioncomplete0": "The swap of your funds from onchain to lightning has been completed.",
+            "swapquestioncomplete1": "The swap of your funds from lightning to onchain has been completed.",
+            "swapquestionexpired0": "The swap of your funds from onchain to lightning was not completed in time. If any funds were sent, they will be refunded into your onchain wallet.",
+            "swapquestionexpired1": "The swap of your funds from lightning to onchain was not completed in time. If any funds were sent, they will be refunded into your lightning channel.",
+            "swapquestiongeneric": "We're checking the current status of your swap."
         ]
         
         if let foundWord = allWords[withID] {
