@@ -65,6 +65,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var titleFees: UILabel!
     @IBOutlet weak var titleStatus: UILabel!
     
+    // Download swap details
+    @IBOutlet weak var downloadView: UIView!
+    @IBOutlet weak var downloadButton: UIButton!
+    
     // Pending stack
     @IBOutlet weak var pendingStack: UIView!
     @IBOutlet weak var pendingStackHeight: NSLayoutConstraint! // 0 or 75
@@ -109,6 +113,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.fromButton.setTitle("", for: .normal)
         self.confirmStatusButton.setTitle("", for: .normal)
         self.pendingButton.setTitle("", for: .normal)
+        self.downloadButton.setTitle("", for: .normal)
         
         // Center card styling
         self.centerCard.layer.cornerRadius = 13
@@ -127,6 +132,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.confirmAmount.layer.cornerRadius = 8
         self.confirmFees.layer.cornerRadius = 8
         self.confirmStatus.layer.cornerRadius = 8
+        self.downloadView.layer.cornerRadius = 8
         
         // Amount text field
         self.amountTextField.delegate = self
@@ -172,6 +178,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.handlePendingOnchainPayment()
             } else if self.tappedSwapTransaction != nil {
                 // Show swap opened from TransactionVC.
+                self.coreVC!.bittrWallet.ongoingSwap = self.tappedSwapTransaction!
                 if self.tappedSwapTransaction!.onchainToLightning {
                     self.confirmDirectionLabel.text = "Onchain to Lightning"
                 } else {
@@ -741,6 +748,31 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                 }
             }
+        }
+    }
+    
+    @IBAction func downloadSwapFileTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        guard let ongoingSwap = self.coreVC!.bittrWallet.ongoingSwap else { return }
+        
+        do {
+            // Get the documents directory
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("\(ongoingSwap.boltzID!).json")
+            
+            // Read the JSON data from file
+            let jsonData = try Data(contentsOf: fileURL)
+            
+            let temporaryFolder = FileManager.default.temporaryDirectory
+            let fileName = "Swap \(ongoingSwap.boltzID!).json"
+            let temporaryFileURL = temporaryFolder.appendingPathComponent(fileName)
+            
+            try jsonData.write(to: temporaryFileURL)
+            let vc = UIActivityViewController(activityItems: [temporaryFileURL], applicationActivities: [])
+            self.present(vc, animated: true, completion: nil)
+        } catch {
+            print("Error loading swap details from file: \(error)")
         }
     }
     
