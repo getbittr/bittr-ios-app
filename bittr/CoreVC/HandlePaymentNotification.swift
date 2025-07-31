@@ -71,7 +71,7 @@ extension CoreViewController {
         self.hideAlert()
         
         // TODO: Public?
-        let nodeIds = ["03a7ff144e9b3797a6a232d8f06043245e98fbb37ff892cb072d21d99dd98d473e", "03a7ff144e9b3797a6a232d8f06043245e98fbb37ff892cb072d21d99dd98d473e"]
+        let nodeIds = ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"]
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         print("Did start payout process.")
@@ -187,7 +187,7 @@ extension CoreViewController {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["03a7ff144e9b3797a6a232d8f06043245e98fbb37ff892cb072d21d99dd98d473e", "03a7ff144e9b3797a6a232d8f06043245e98fbb37ff892cb072d21d99dd98d473e"]
+        let nodeIds = ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"]
         let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.

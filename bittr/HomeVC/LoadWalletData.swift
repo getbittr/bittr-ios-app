@@ -886,7 +886,7 @@ extension UIViewController {
         }
         
         // Check if transaction is Bittr.
-        if (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id), bittrTransaction == nil {
+        if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id), bittrTransaction == nil {
             thisTransaction.isBittr = true
             thisTransaction.purchaseAmount = Int(self.stringToNumber(((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String)))
             thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
