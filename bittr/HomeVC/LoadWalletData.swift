@@ -127,75 +127,7 @@ extension HomeViewController {
         }
         
         // Check for matching swap transactions.
-        var swapTransactions = NSMutableDictionary()
-        for (index, eachTransaction) in self.newTransactions.enumerated() {
-            if eachTransaction.lnDescription.contains("Swap") {
-                if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
-                    existingTransactions += [eachTransaction]
-                    swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
-                } else {
-                    swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
-                }
-            }
-        }
-        for (eachSwapID, eachSetOfTransactions) in swapTransactions {
-            if (eachSetOfTransactions as! [Transaction]).count == 2 {
-                // Completed swap.
-                
-                let swapTransaction = Transaction()
-                swapTransaction.isSwap = true
-                swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: eachSwapID as! String) ?? "Unavailable"
-                swapTransaction.lnDescription = (eachSwapID as! String)
-                swapTransaction.sent = (eachSetOfTransactions as! [Transaction])[0].received + (eachSetOfTransactions as! [Transaction])[1].received - (eachSetOfTransactions as! [Transaction])[0].sent - (eachSetOfTransactions as! [Transaction])[1].sent
-                if (eachSwapID as! String).contains("onchain to lightning") {
-                    swapTransaction.swapDirection = 0
-                    swapTransaction.isLightning = false
-                    swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                } else {
-                    swapTransaction.swapDirection = 1
-                    swapTransaction.isLightning = true
-                    swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap lightning to onchain ", with: "")
-                }
-                
-                for eachTransaction in (eachSetOfTransactions as! [Transaction]) {
-                    if eachTransaction.isLightning {
-                        // Lightning payment
-                        swapTransaction.lightningID = eachTransaction.id
-                        swapTransaction.channelId = eachTransaction.channelId
-                        if swapTransaction.swapDirection == 0 {
-                            // Onchain to Lightning
-                            swapTransaction.timestamp = eachTransaction.timestamp
-                            swapTransaction.received = eachTransaction.received
-                        } else {
-                            swapTransaction.sent = eachTransaction.sent
-                        }
-                    } else {
-                        // Onchain transaction
-                        swapTransaction.onchainID = eachTransaction.id
-                        swapTransaction.height = eachTransaction.height
-                        if let actualCurrentHeight = self.coreVC?.bittrWallet.currentHeight {
-                            swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
-                        }
-                        if swapTransaction.swapDirection == 1 {
-                            // Lightning to Onchain
-                            swapTransaction.timestamp = eachTransaction.timestamp
-                            swapTransaction.received = eachTransaction.received - eachTransaction.sent
-                        } else {
-                            swapTransaction.sent = eachTransaction.sent - eachTransaction.received
-                        }
-                    }
-                }
-                
-                self.newTransactions += [swapTransaction]
-                CacheManager.storeLightningTransaction(thisTransaction: swapTransaction)
-                
-                for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
-                    if eachTransaction.id == swapTransaction.lightningID || eachTransaction.id == swapTransaction.onchainID {
-                        self.newTransactions.remove(at: index)
-                    }
-                }
-            }
-        }
+        self.newTransactions = self.newTransactions.performSwapMatching(coreVC: self.coreVC, storeInCache: true)
         
         // Sort all transactions by date/time.
         self.newTransactions.sort { transaction1, transaction2 in
@@ -871,5 +803,97 @@ extension UIViewController {
         
         // Return new transaction.
         return thisTransaction
+    }
+}
+
+extension [Transaction] {
+    
+    func performSwapMatching(coreVC:CoreViewController?, storeInCache:Bool) -> [Transaction] {
+        
+        // Create a mutable array of Transactions.
+        var currentTransactions = self
+        
+        // Look for lightning and onchain transactions with matching swap descriptions
+        let swapTransactions = NSMutableDictionary()
+        
+        for eachTransaction in currentTransactions {
+            if eachTransaction.lnDescription.contains("Swap") {
+                if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
+                    existingTransactions += [eachTransaction]
+                    swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
+                } else {
+                    swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
+                }
+            }
+        }
+        
+        // Process completed swaps
+        for (eachSwapID, eachSetOfTransactions) in swapTransactions {
+            if (eachSetOfTransactions as! [Transaction]).count == 2 {
+                // Completed swap.
+                print("Found completed swap: \(eachSwapID)")
+                
+                let swapTransaction = Transaction()
+                swapTransaction.isSwap = true
+                swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: eachSwapID as! String) ?? "Unavailable"
+                swapTransaction.lnDescription = (eachSwapID as! String)
+                
+                swapTransaction.sent = (eachSetOfTransactions as! [Transaction])[0].received + (eachSetOfTransactions as! [Transaction])[1].received - (eachSetOfTransactions as! [Transaction])[0].sent - (eachSetOfTransactions as! [Transaction])[1].sent
+                
+                if (eachSwapID as! String).contains("onchain to lightning") {
+                    swapTransaction.swapDirection = 0
+                    swapTransaction.isLightning = false
+                    swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap onchain to lightning ", with: "")
+                } else {
+                    swapTransaction.swapDirection = 1
+                    swapTransaction.isLightning = true
+                    swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap lightning to onchain ", with: "")
+                }
+                
+                for eachTransaction in (eachSetOfTransactions as! [Transaction]) {
+                    if eachTransaction.isLightning {
+                        // Lightning payment
+                        swapTransaction.lightningID = eachTransaction.id
+                        swapTransaction.channelId = eachTransaction.channelId
+                        if swapTransaction.swapDirection == 0 {
+                            // Onchain to Lightning
+                            swapTransaction.timestamp = eachTransaction.timestamp
+                            swapTransaction.received = eachTransaction.received
+                        } else {
+                            swapTransaction.sent = eachTransaction.sent
+                        }
+                    } else {
+                        // Onchain transaction
+                        swapTransaction.onchainID = eachTransaction.id
+                        swapTransaction.height = eachTransaction.height
+                        if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
+                            swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
+                        }
+                        if swapTransaction.swapDirection == 1 {
+                            // Lightning to Onchain
+                            swapTransaction.timestamp = eachTransaction.timestamp
+                            swapTransaction.received = eachTransaction.received - eachTransaction.sent
+                        } else {
+                            swapTransaction.sent = eachTransaction.sent - eachTransaction.received
+                        }
+                    }
+                }
+                
+                // Remove the individual transactions and add the combined swap transaction
+                for (index, eachTransaction) in currentTransactions.enumerated().reversed() {
+                    if eachTransaction.id == swapTransaction.lightningID || eachTransaction.id == swapTransaction.onchainID {
+                        currentTransactions.remove(at: index)
+                    }
+                }
+                
+                currentTransactions += [swapTransaction]
+                
+                if storeInCache {
+                    CacheManager.storeLightningTransaction(thisTransaction: swapTransaction)
+                }
+            }
+        }
+        
+        return currentTransactions
     }
 }

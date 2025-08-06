@@ -435,7 +435,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         let convertedAmount = "\(Int((CGFloat(ongoingSwap.satoshisAmount)/100000000*correctAmount).rounded()))"
         
-        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)").replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)")
+        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)")
         
         self.showAlert(
             presentingController: self,
