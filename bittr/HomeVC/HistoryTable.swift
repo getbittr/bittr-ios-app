@@ -31,7 +31,7 @@ extension HomeViewController {
             if thisTransaction.received - thisTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            actualCell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Set conversion
             var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
@@ -43,7 +43,7 @@ extension HomeViewController {
             
             var transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
             var balanceValue = String(Int((transactionValue*correctValue).rounded()))
-            balanceValue = addSpacesToString(balanceValue: balanceValue).replacingOccurrences(of: "-", with: "")
+            balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             
             actualCell.eurosLabel.text = balanceValue + " " + currencySymbol
             

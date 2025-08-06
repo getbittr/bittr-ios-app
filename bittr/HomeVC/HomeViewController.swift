@@ -185,31 +185,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
-    func addSpacesToString(balanceValue:String) -> String {
-        
-        var balanceValue = balanceValue
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        return balanceValue
-    }
-    
-    
     @IBAction func profitButtonTapped(_ sender: UIButton) {
         performSegue(withIdentifier: "HomeToProfit", sender: self)
     }
@@ -586,6 +561,30 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 }
 
 extension String {
+    
+    func addSpaces() -> String {
+        
+        var balanceValue = self
+        
+        switch balanceValue.count {
+        case 4:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+        case 5:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+        case 6:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+        case 7:
+            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+        case 8:
+            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+        case 9:
+            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+        default:
+            balanceValue = balanceValue[0..<balanceValue.count]
+        }
+        
+        return balanceValue
+    }
 
     var length: Int {
         return count

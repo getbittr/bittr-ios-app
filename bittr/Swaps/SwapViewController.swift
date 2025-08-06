@@ -159,7 +159,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Available amount
         if let actualChannel = self.coreVC?.bittrWallet.bittrChannel {
-            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(actualChannel.receivableMaximum)")
+            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(actualChannel.receivableMaximum)".addSpaces())
         } else {
             // Fallback if channel is not available
             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")

@@ -104,9 +104,9 @@ class MoveViewController: UIViewController {
         var btclnBalanceValue = String(Int(((correctBtclnBalance)*correctValue).rounded()))
         
         // Show balance values.
-        satsTotal.text = addSpacesToString(balanceValue: "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)") + " sats"
-        satsRegular.text = addSpacesToString(balanceValue: "\(self.coreVC!.bittrWallet.satoshisOnchain)") + " sats"
-        satsInstant.text = addSpacesToString(balanceValue: "\(self.coreVC!.bittrWallet.satoshisLightning)") + " sats"
+        satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
+        satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
         conversionTotal.text = currencySymbol + " " + balanceValue
         conversionRegular.text = currencySymbol + " " + btcBalanceValue
         conversionInstant.text = currencySymbol + " " + btclnBalanceValue
@@ -187,30 +187,6 @@ class MoveViewController: UIViewController {
                 }
             }
         }
-    }
-    
-    func addSpacesToString(balanceValue:String) -> String {
-        
-        var balanceValue = balanceValue
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        return balanceValue
     }
     
     @IBAction func channelButtonTapped(_ sender: UIButton) {

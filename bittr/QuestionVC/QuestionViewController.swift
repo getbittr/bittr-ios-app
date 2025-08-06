@@ -59,7 +59,7 @@ class QuestionViewController: UIViewController {
                     
                     self.setChannelChart()
                     
-                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc1")) \(addSpacesToString(balanceValue:"\(actualChannel.size)")) \(Language.getWord(withID: "questionvc2")) \(addSpacesToString(balanceValue:"\(actualChannel.received+actualChannel.punishmentReserve)")) \(Language.getWord(withID: "questionvc3")) \(addSpacesToString(balanceValue:"\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)")) \(Language.getWord(withID: "questionvc4")) \(addSpacesToString(balanceValue:"\(actualChannel.receivableMaximum)")) \(Language.getWord(withID: "questionvc5"))."
+                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc1")) \("\(actualChannel.size)".addSpaces()) \(Language.getWord(withID: "questionvc2")) \("\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc3")) \("\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc4")) \("\(actualChannel.receivableMaximum)".addSpaces()) \(Language.getWord(withID: "questionvc5"))."
                 } else {
                     self.headerLabel.text = Language.getWord(withID: "questionvc6")
                     self.answerLabel.text = Language.getWord(withID: "lightningexplanation1")
@@ -69,7 +69,7 @@ class QuestionViewController: UIViewController {
                     
                     self.setChannelChart()
                     
-                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc7")) \(addSpacesToString(balanceValue:"\(actualChannel.received+actualChannel.punishmentReserve)")) \(Language.getWord(withID: "questionvc8")) \(addSpacesToString(balanceValue:"\(actualChannel.punishmentReserve)")) \(Language.getWord(withID: "questionvc9")) \(addSpacesToString(balanceValue:"\(actualChannel.received)")) \(Language.getWord(withID: "questionvc10")) \(addSpacesToString(balanceValue:"\(actualChannel.size)")) \(Language.getWord(withID: "questionvc11")) \(addSpacesToString(balanceValue:"\(actualChannel.receivableMaximum)")) sats."
+                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc7")) \("\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc8")) \("\(actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc9")) \("\(actualChannel.received)".addSpaces()) \(Language.getWord(withID: "questionvc10")) \("\(actualChannel.size)".addSpaces()) \(Language.getWord(withID: "questionvc11")) \("\(actualChannel.receivableMaximum)".addSpaces()) sats."
                 } else {
                     self.headerLabel.text = Language.getWord(withID: "questionvc12")
                     self.answerLabel.text = Language.getWord(withID: "questionvc13")
@@ -79,7 +79,7 @@ class QuestionViewController: UIViewController {
                     
                     self.setChannelChart()
                     
-                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc7")) \(addSpacesToString(balanceValue:"\(actualChannel.received+actualChannel.punishmentReserve)")) \(Language.getWord(withID: "questionvc14")) \(addSpacesToString(balanceValue:"\(actualChannel.size)")) \(Language.getWord(withID: "questionvc15")) \(addSpacesToString(balanceValue:"\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)")) \(Language.getWord(withID: "questionvc16"))"
+                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc7")) \("\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc14")) \("\(actualChannel.size)".addSpaces()) \(Language.getWord(withID: "questionvc15")) \("\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc16"))"
                 }
             }
         }
@@ -89,36 +89,12 @@ class QuestionViewController: UIViewController {
         self.dismiss(animated: true)
     }
     
-    func addSpacesToString(balanceValue:String) -> String {
-        
-        var balanceValue = balanceValue
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + "." + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + "." + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + "." + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + "." + balanceValue[1..<4] + "." + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + "." + balanceValue[2..<5] + "." + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + "." + balanceValue[3..<6] + "." + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        return balanceValue
-    }
-    
     func setChannelChart() {
         
         let bittrChannel = self.coreVC?.bittrWallet.bittrChannel
-        self.yourBalanceLabel.text = "\(addSpacesToString(balanceValue: "\(bittrChannel!.received+bittrChannel!.punishmentReserve)"))"
-        self.receiveLimitLabel.text = "\(addSpacesToString(balanceValue: "\(bittrChannel!.size - bittrChannel!.received - bittrChannel!.punishmentReserve)"))"
-        self.totalLabel.text = "\(addSpacesToString(balanceValue: "\(bittrChannel!.size)")) \(Language.getWord(withID: "total")), \(addSpacesToString(balanceValue: "\(bittrChannel!.punishmentReserve)")) \(Language.getWord(withID: "reserve"))"
+        self.yourBalanceLabel.text = "\("\(bittrChannel!.received+bittrChannel!.punishmentReserve)".addSpaces())"
+        self.receiveLimitLabel.text = "\("\(bittrChannel!.size - bittrChannel!.received - bittrChannel!.punishmentReserve)".addSpaces())"
+        self.totalLabel.text = "\("\(bittrChannel!.size)".addSpaces()) \(Language.getWord(withID: "total")), \("\(bittrChannel!.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "reserve"))"
         
         NSLayoutConstraint.deactivate([self.balanceBarWidth])
         self.balanceBarWidth = NSLayoutConstraint(item: self.balanceBar, attribute: .width, relatedBy: .equal, toItem: self.barView, attribute: .width, multiplier: CGFloat(bittrChannel!.received+bittrChannel!.punishmentReserve)/CGFloat(bittrChannel!.size), constant: 0)

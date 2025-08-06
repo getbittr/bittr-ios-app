@@ -72,9 +72,9 @@ class LightningPaymentViewController: UIViewController {
             if actualTransaction.received - actualTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            self.amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(actualTransaction.received - actualTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+            self.amountLabel.text = "\(plusSymbol) \(String(actualTransaction.received - actualTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats"
             if actualTransaction.isSwap {
-                self.amountLabel.text = "+ \(addSpacesToString(balanceValue: String(actualTransaction.received)).replacingOccurrences(of: "-", with: "")) sats"
+                self.amountLabel.text = "+ \(String(actualTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats"
             }
             
             var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
@@ -133,30 +133,6 @@ class LightningPaymentViewController: UIViewController {
             UIPasteboard.general.string = actualTransaction.lnDescription
             self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
-    }
-    
-    func addSpacesToString(balanceValue:String) -> String {
-        
-        var balanceValue = balanceValue
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        return balanceValue
     }
     
     func changeColors() {

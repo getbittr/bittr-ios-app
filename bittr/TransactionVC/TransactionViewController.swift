@@ -139,7 +139,7 @@ class TransactionViewController: UIViewController {
         if self.tappedTransaction.received - self.tappedTransaction.sent < 0 {
             plusSymbol = "-"
         }
-        self.amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(self.tappedTransaction.received - self.tappedTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+        self.amountLabel.text = "\(plusSymbol) \(String(self.tappedTransaction.received - self.tappedTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats"
         
         self.idLabel.text = self.tappedTransaction.id
         
@@ -270,7 +270,7 @@ class TransactionViewController: UIViewController {
             
             // Amount
             self.amountTitle.text = "Moved"
-            self.amountLabel.text = "\(addSpacesToString(balanceValue: String(tappedTransaction.received)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            self.amountLabel.text = "\(String(tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Direction
             self.typeTitle.text = "From"
@@ -284,7 +284,7 @@ class TransactionViewController: UIViewController {
             // Fees
             self.feesViewHeight.constant = 40
             self.feesView.alpha = 1
-            self.feesAmount.text = "\(addSpacesToString(balanceValue: String(self.tappedTransaction.sent - self.tappedTransaction.received)).replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            self.feesAmount.text = "\(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Onchain ID
             self.idTitle.text = "Onchain ID"
@@ -343,30 +343,6 @@ class TransactionViewController: UIViewController {
         }))
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
         self.present(alert, animated: true)
-    }
-    
-    func addSpacesToString(balanceValue:String) -> String {
-        
-        var balanceValue = balanceValue
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        return balanceValue
     }
     
     @IBAction func idButtonTapped(_ sender: UIButton) {

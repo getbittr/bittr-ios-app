@@ -367,36 +367,13 @@ extension HomeViewController {
         self.balanceWasFetched = true
         
         // Create balance representation with bold satoshis.
-        var zeros = "0.00 000 00"
-        var numbers = totalBalanceSatsString
+        let allZeros = ["", "0.00 000 00", "0.00 000 0", "0.00 000 ", "0.00 00", "0.00 0", "0.00 ", "0.0", "0."]
+        var zeros = ""
+        var numbers = totalBalanceSatsString.addSpaces()
         
-        switch totalBalanceSatsString.count {
-        case 1:
-            zeros = "0.00 000 00"
-            numbers = totalBalanceSatsString
-        case 2:
-            zeros = "0.00 000 0"
-            numbers = totalBalanceSatsString
-        case 3:
-            zeros = "0.00 000 "
-            numbers = totalBalanceSatsString
-        case 4:
-            zeros = "0.00 00"
-            numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4]
-        case 5:
-            zeros = "0.00 0"
-            numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5]
-        case 6:
-            zeros = "0.00 "
-            numbers = totalBalanceSatsString[0..<3] + " " + totalBalanceSatsString[3..<6]
-        case 7:
-            zeros = "0.0"
-            numbers = totalBalanceSatsString[0] + " " + totalBalanceSatsString[1..<4] + " " + totalBalanceSatsString[4..<7]
-        case 8:
-            zeros = "0."
-            numbers = totalBalanceSatsString[0..<2] + " " + totalBalanceSatsString[2..<5] + " " + totalBalanceSatsString[5..<8]
-        default:
-            zeros = ""
+        if totalBalanceSatsString.count < 9 {
+            zeros = allZeros[totalBalanceSatsString.count]
+        } else {
             numbers = "\(CGFloat(totalBalanceSats)/100000000)".replacingOccurrences(of: ",", with: ".")
             let decimalsCount = numbers.split(separator: ".")[1].count
             var decimalsToAdd = 8 - decimalsCount
@@ -590,7 +567,7 @@ extension HomeViewController {
         }
         
         // Converted balance string.
-        let balanceValue = addSpacesToString(balanceValue: String(Int((btcValue*correctValue).rounded())))
+        let balanceValue = String(Int((btcValue*correctValue).rounded())).addSpaces()
         
         // Set conversion label.
         self.conversionLabel.text = currencySymbol + " " + balanceValue
