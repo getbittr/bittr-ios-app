@@ -70,6 +70,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     // Download swap details
     @IBOutlet weak var downloadView: UIView!
     @IBOutlet weak var downloadButton: UIButton!
+    @IBOutlet weak var downloadIcon: UIImageView!
+    @IBOutlet weak var downloadLabel: UILabel!
     
     // Pending stack
     @IBOutlet weak var pendingStack: UIView!
@@ -187,8 +189,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 } else {
                     self.confirmDirectionLabel.text = "Lightning to Onchain"
                 }
-                self.confirmAmountLabel.text = "\(self.tappedSwapTransaction!.satoshisAmount) sats"
-                self.confirmFeesLabel.text = "\(self.tappedSwapTransaction!.onchainFees! + self.tappedSwapTransaction!.lightningFees!) sats"
+                self.confirmAmountLabel.text = "\(self.tappedSwapTransaction!.satoshisAmount)".addSpaces() + " sats"
+                self.confirmFeesLabel.text = "\(self.tappedSwapTransaction!.onchainFees! + self.tappedSwapTransaction!.lightningFees!)".addSpaces() + " sats"
                 self.confirmStatusSpinner.startAnimating()
                 self.confirmStatusLabel.text = "Checking"
                 self.switchView("confirm")
@@ -463,8 +465,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Update the swap file with fees
         self.confirmDirectionLabel.text = self.fromLabel.text
-        self.confirmAmountLabel.text = "\(ongoingSwap.satoshisAmount) sats"
-        self.confirmFeesLabel.text = "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!) sats"
+        self.confirmAmountLabel.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
+        self.confirmFeesLabel.text = "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)".addSpaces() + " sats"
         self.confirmStatusLabel.text = "Sending"
         self.confirmStatusSpinner.startAnimating()
         self.switchView("confirm")
@@ -602,8 +604,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.confirmDirectionLabel?.text = ongoingSwap.dateID.contains("onchain to lightning") ?
                     Language.getWord(withID: "onchaintolightning") :
                     Language.getWord(withID: "lightningtoonchain")
-                self.confirmAmountLabel?.text = "\(ongoingSwap.satoshisAmount) sats"
-                self.confirmFeesLabel?.text = "\((ongoingSwap.lightningFees ?? 0) + (ongoingSwap.onchainFees ?? 0)) sats"
+                self.confirmAmountLabel?.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
+                self.confirmFeesLabel?.text = "\((ongoingSwap.lightningFees ?? 0) + (ongoingSwap.onchainFees ?? 0))".addSpaces() + " sats"
                 
                 // Set status based on notification data
                 if let status = userInfo["status"] as? String {
@@ -648,8 +650,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.confirmDirectionLabel?.text = pendingSwap!.dateID.contains("onchain to lightning") ?
                 Language.getWord(withID: "onchaintolightning") :
                 Language.getWord(withID: "lightningtoonchain")
-            self.confirmAmountLabel?.text = "\(pendingSwap!.satoshisAmount) sats"
-            self.confirmFeesLabel?.text = "\((pendingSwap!.onchainFees ?? 0) + (pendingSwap!.lightningFees ?? 0)) sats"
+            self.confirmAmountLabel?.text = "\(pendingSwap!.satoshisAmount)".addSpaces() + " sats"
+            self.confirmFeesLabel?.text = "\((pendingSwap!.onchainFees ?? 0) + (pendingSwap!.lightningFees ?? 0))".addSpaces() + " sats"
             
             // Set initial status
             self.confirmStatusLabel?.text = Language.getWord(withID: "swapstatuspreparing")
@@ -858,6 +860,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.titleAmount.text = Language.getWord(withID: "amount")
         self.titleFees.text = Language.getWord(withID: "fees")
         self.titleStatus.text = Language.getWord(withID: "status")
+        self.downloadLabel.text = Language.getWord(withID: "downloadswapfile")
     }
     
     @objc func changeColors() {
@@ -883,6 +886,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.amountTextField.backgroundColor = Colors.getColor("white0.7orblue2")
         self.fromView.backgroundColor = Colors.getColor("whiteorblue3")
         self.fromLabel.textColor = Colors.getColor("blackorwhite")
+        self.downloadLabel.textColor = Colors.getColor("blackorwhite")
         
         self.amountTextField.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enteramountofsatoshis"),
@@ -894,10 +898,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.swapIcon.image = UIImage(named: "iconswap")
             self.confirmTopIcon.image = UIImage(named: "iconswap")
             self.resetIcon.image = UIImage(named: "iconresetwhite")
+            self.downloadIcon.image = UIImage(named: "icondownload")
         } else {
             self.swapIcon.image = UIImage(named: "iconswapwhite")
             self.confirmTopIcon.image = UIImage(named: "iconswapwhite")
             self.resetIcon.image = UIImage(named: "iconreset")
+            self.downloadIcon.image = UIImage(named: "icondownloadblack")
         }
     }
 
