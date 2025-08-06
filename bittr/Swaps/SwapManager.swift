@@ -456,7 +456,7 @@ class SwapManager: NSObject {
                     // Example success: {id = yes7P5Hn2FD5; invoice = lnbcrt505610n1p58093msp5k4f2jxgmu059lc8awdccdy8ppx9uw0wtxhmwa0ytna48ykpjlu9spp5augg6x7kd2dj2gs0z5lnpj98pvyyf4kpmrtt43sp8vawdrgm7l2qdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq3glstd77evhlg2qywjku4lj4mffufgc2wy6trxsjar5a2mdzp6e9308z4d4prhjs03vegamm7raw0ln5k94l5lz8vu5yewz7hf6w7yqpjqj2mj; lockupAddress = bcrt1p32hqu3ve32x524994sxpewdvdznfjgd0ya2xh40z6x9tj5s2mmusx273a3; refundPublicKey = 035578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3; swapTree = {claimLeaf = {output = 82012088a91475b687397f92783b38c7381725bfcf27d65eef3f8820036f6171920eec6d2f377e4c0ab88960307c7d9d817ddf65585bc28a8334be1aac; version = 192;}; refundLeaf = {output = 205578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3ad024d01b1; version = 192;};}; timeoutBlockHeight = 333;}
                     
                     DispatchQueue.main.async {
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = idString
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap lightning to onchain " + idString
                         swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
                         swapVC.coreVC!.bittrWallet.ongoingSwap!.preimage = randomPreimage.hexEncodedString()
                         swapVC.coreVC!.bittrWallet.ongoingSwap!.destinationAddress = destinationAddress

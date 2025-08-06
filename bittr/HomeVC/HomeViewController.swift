@@ -448,9 +448,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     transaction1.timestamp > transaction2.timestamp
                 }
                 
-                // Cache the combined swap transaction
-                CacheManager.storeLightningTransaction(thisTransaction: swapTransaction)
-                
                 print("Successfully combined swap transactions")
                 self.homeTableView.reloadData()
                 return
