@@ -517,11 +517,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 if self.selectedCurrency == "bitcoin" {
                     satoshisValue = Int((self.stringToNumber(self.amountTextField.text) * 100000000).rounded())
                 } else if self.selectedCurrency == "currency" {
-                    var currencyValue = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-                    if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                        currencyValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-                    }
-                    satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/currencyValue)*100000000).rounded())
+                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                    satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/bitcoinValue.currentValue)*100000000).rounded())
                 }
                 self.amountTextField.text = "\(satoshisValue)"
                 self.btcLabel.text = "Sats"
@@ -601,13 +598,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.btcLabel.text = "Sats"
             self.selectedCurrency = "satoshis"
         }
-        var currency = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            currency = "CHF"
-        }
-        let currencyOption = UIAlertAction(title: currency, style: .default) { (action) in
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
             
-            self.btcLabel.text = currency
+            self.btcLabel.text = bitcoinValue.chosenCurrency
             self.selectedCurrency = "currency"
         }
 

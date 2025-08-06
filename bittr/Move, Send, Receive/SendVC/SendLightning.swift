@@ -29,6 +29,8 @@ extension UIViewController {
                 // Invoice field was left empty.
             } else {
                 
+                let bitcoinValue = self.getCorrectBitcoinValue(coreVC: sendVC?.coreVC ?? receiveVC?.coreVC ?? CoreViewController())
+                
                 if invoiceText!.lowercased().contains("lnurl") || self.isValidEmail(invoiceText!.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)) {
                     // LNURL code.
                     self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: sendVC, receiveVC: nil)
@@ -38,13 +40,6 @@ extension UIViewController {
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         
-                        var correctValue:CGFloat = CGFloat(sendVC?.coreVC?.bittrWallet.valueInEUR ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInEUR ?? 0)
-                        var currencySymbol = "€"
-                        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                            correctValue = CGFloat(sendVC?.coreVC?.bittrWallet.valueInCHF ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInCHF ?? 0)
-                            currencySymbol = "CHF"
-                        }
-                        
                         // Calculate maximum total routing fees.
                         let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
                         let (tryPaymentHash, tryRecipientOnion, tryRouteParams) = invoicePaymentResult.getValue()!
@@ -52,7 +47,7 @@ extension UIViewController {
                         let maximumRoutingFeesSat:Int = maximumRoutingFeesMsat/1000
                         
                         var transactionValue = CGFloat(invoiceAmount)/100000000
-                        var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
+                        var convertedValue = String(CGFloat(Int(transactionValue*bitcoinValue.currentValue*100))/100)
                         
                         // Check if we have sufficient Lightning balance
                         let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
@@ -84,18 +79,11 @@ extension UIViewController {
                         sendVC?.temporaryInvoiceAmount = invoiceAmount
                         receiveVC?.temporaryInvoiceAmount = invoiceAmount
                         
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performLightningPayment)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(bitcoinValue.chosenCurrency) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performLightningPayment)])
                     } else {
                         // Zero invoice.
                         let invoiceAmount = Int(self.stringToNumber(sendVC?.amountTextField.text))
                         if invoiceAmount > 0 {
-                            
-                            var correctValue:CGFloat = CGFloat(sendVC?.coreVC?.bittrWallet.valueInEUR ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInEUR ?? 0)
-                            var currencySymbol = "€"
-                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                                correctValue = CGFloat(sendVC?.coreVC?.bittrWallet.valueInCHF ?? receiveVC?.homeVC?.coreVC?.bittrWallet.valueInCHF ?? 0)
-                                currencySymbol = "CHF"
-                            }
                             
                             // Calculate maximum total routing fees.
                             let invoicePaymentResult = Bindings.paymentParametersFromZeroAmountInvoice(invoice: parsedInvoice, amountMsat: UInt64(invoiceAmount*1000))
@@ -104,7 +92,7 @@ extension UIViewController {
                             let maximumRoutingFeesSat:Int = maximumRoutingFeesMsat/1000
                             
                             var transactionValue = CGFloat(invoiceAmount)/100000000
-                            var convertedValue = String(CGFloat(Int(transactionValue*correctValue*100))/100)
+                            var convertedValue = String(CGFloat(Int(transactionValue*bitcoinValue.currentValue*100))/100)
                             
                             // Check if we have sufficient Lightning balance
                             let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
@@ -136,7 +124,7 @@ extension UIViewController {
                             sendVC?.temporaryInvoiceAmount = invoiceAmount
                             receiveVC?.temporaryInvoiceAmount = invoiceAmount
                             
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(currencySymbol) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performZeroLightningPayment)])
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "lightningconfirmation")) \(invoiceAmount) satoshis (\(bitcoinValue.chosenCurrency) \(convertedValue)) \(Language.getWord(withID: "lightningconfirmation2"))?\n\n\(Language.getWord(withID: "lightningconfirmation3")) \(maximumRoutingFeesSat) satoshis.", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performZeroLightningPayment)])
                         }
                     }
                 }

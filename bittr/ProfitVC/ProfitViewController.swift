@@ -27,6 +27,7 @@ class ProfitViewController: UIViewController {
     var totalProfit = 0
     var totalInvestments = 0
     var totalValue = 0
+    var coreVC:CoreViewController?
     
     @IBOutlet weak var totalInvestmentLabel: UILabel!
     @IBOutlet weak var totalValueLabel: UILabel!
@@ -41,14 +42,11 @@ class ProfitViewController: UIViewController {
         self.currentValueView.layer.cornerRadius = 13
         self.profitView.layer.cornerRadius = 13
         
-        var currencySymbol = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            currencySymbol = "CHF"
-        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
-        self.totalInvestmentLabel.text = "\(currencySymbol) \(self.totalInvestments)"
-        self.totalValueLabel.text = "\(currencySymbol) \(self.totalValue)"
-        self.totalProfitLabel.text = "\(currencySymbol) \(self.totalProfit)"
+        self.totalInvestmentLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalInvestments)"
+        self.totalValueLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalValue)"
+        self.totalProfitLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalProfit)"
         
         self.changeColors()
         self.setWords()

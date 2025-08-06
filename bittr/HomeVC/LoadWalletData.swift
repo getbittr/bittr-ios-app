@@ -491,18 +491,13 @@ extension HomeViewController {
         if self.coreVC == nil { return "" }
         
         // Use preferred currency.
-        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-        var currencySymbol = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-            currencySymbol = "CHF"
-        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
         // Converted balance string.
-        let balanceValue = String(Int((btcValue*correctValue).rounded())).addSpaces()
+        let balanceValue = String(Int((btcValue*bitcoinValue.currentValue).rounded())).addSpaces()
         
         // Set conversion label.
-        self.conversionLabel.text = currencySymbol + " " + balanceValue
+        self.conversionLabel.text = bitcoinValue.chosenCurrency + " " + balanceValue
         
         return self.conversionLabel.text ?? ""
     }
@@ -554,36 +549,31 @@ extension HomeViewController {
         var accumulatedCurrentValue = 0
         
         // Get preferred currency.
-        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-        var currencySymbol = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-            currencySymbol = "CHF"
-        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
         if self.setTransactions.count == 0 || bittrTransactionsCount == 0 {
             // There are no transactions.
-            self.showProfitLabel(currencySymbol: currencySymbol, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
+            self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
         } else {
             // There are transactions.
             for eachTransaction in self.setTransactions {
                 if eachTransaction.isBittr == true {
                     let transactionValue = CGFloat(eachTransaction.received)/100000000
-                    let transactionProfit = Int((transactionValue*correctValue).rounded())-eachTransaction.purchaseAmount
+                    let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-eachTransaction.purchaseAmount
                     
                     accumulatedProfit += transactionProfit
                     accumulatedInvestments += eachTransaction.purchaseAmount
-                    accumulatedCurrentValue += Int((transactionValue*correctValue).rounded())
+                    accumulatedCurrentValue += Int((transactionValue*bitcoinValue.currentValue).rounded())
                     
                     handledTransactions += 1
                     
                     if bittrTransactionsCount == handledTransactions {
                         // We're done counting.
-                        self.showProfitLabel(currencySymbol: currencySymbol, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
+                        self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
                     }
                 } else {
                     if bittrTransactionsCount == handledTransactions {
-                        self.showProfitLabel(currencySymbol: currencySymbol, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
+                        self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
                     }
                 }
             }

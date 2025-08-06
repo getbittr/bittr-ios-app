@@ -34,18 +34,13 @@ extension HomeViewController {
             actualCell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Set conversion
-            var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-            var currencySymbol = "€"
-            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-                currencySymbol = "CHF"
-            }
+            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
             
-            var transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
-            var balanceValue = String(Int((transactionValue*correctValue).rounded()))
+            let transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
+            var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             
-            actualCell.eurosLabel.text = balanceValue + " " + currencySymbol
+            actualCell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
             
             // Set gain label
             if thisTransaction.isBittr == true {
@@ -55,9 +50,9 @@ extension HomeViewController {
                 actualCell.swapImage.alpha = 0
                 if thisTransaction.purchaseAmount == 0 {
                     // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
-                    thisTransaction.purchaseAmount = Int((transactionValue*correctValue).rounded())
+                    thisTransaction.purchaseAmount = Int((transactionValue*bitcoinValue.currentValue).rounded())
                 }
-                let relativeGain:Int = Int((CGFloat(Int((transactionValue*correctValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
+                let relativeGain:Int = Int((CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
                 actualCell.gainLabel.text = "\(relativeGain) %"
                 
                 if relativeGain < 0 {

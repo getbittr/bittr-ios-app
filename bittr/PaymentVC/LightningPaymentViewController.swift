@@ -77,20 +77,14 @@ class LightningPaymentViewController: UIViewController {
                 self.amountLabel.text = "+ \(String(actualTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats"
             }
             
-            var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-            var currencySymbol = "€"
-            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-                currencySymbol = "CHF"
-            }
-            
+            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
             var transactionValue = CGFloat(actualTransaction.received-actualTransaction.sent)/100000000
             if actualTransaction.isSwap {
                 transactionValue = CGFloat(actualTransaction.received)/100000000
             }
-            var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
+            var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
             
-            self.nowLabel.text = balanceValue + " " + currencySymbol
+            self.nowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
             if actualTransaction.isBittr == true {
                 

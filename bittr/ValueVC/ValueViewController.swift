@@ -119,20 +119,17 @@ class ValueViewController: UIViewController {
         // Get latest value
         Task {
             do {
-                var eurUrl = URL(string: "https://getbittr.com/api/price/btc/historical/eur")!
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    eurUrl = URL(string: "https://getbittr.com/api/price/btc/historical/chf")!
-                }
+                let eurUrl = URL(string: self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).apiUrl)!
                 var eurData = Data()
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
+                if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
                     
                     eurData = self.homeVC!.chfData!
-                } else if UserDefaults.standard.value(forKey: "currency") as? String != "CHF", self.homeVC?.eurData != nil, (self.homeVC?.eurDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
+                } else if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency != "CHF", self.homeVC?.eurData != nil, (self.homeVC?.eurDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
                     
                     eurData = self.homeVC!.eurData!
                 } else {
                     (eurData, _) = try await URLSession.shared.data(from: eurUrl)
-                    if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                    if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF" {
                         self.homeVC?.chfData = eurData
                         self.homeVC?.chfDataFetched = Date()
                     } else {
@@ -225,7 +222,7 @@ class ValueViewController: UIViewController {
                             self.currentValue = self.stringToNumber(actualEurValue)
                             var preferredCurrency = "€"
                             var valueToDisplay = formattedEurValue
-                            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                            if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF" {
                                 preferredCurrency = "CHF"
                                 valueToDisplay = formattedChfValue
                                 self.currentValue = self.stringToNumber(actualChfValue)

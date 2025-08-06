@@ -423,19 +423,14 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
         
-        var currency = "€"
-        var correctAmount = self.homeVC!.coreVC!.bittrWallet.valueInEUR ?? 0.0
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctAmount = self.homeVC!.coreVC!.bittrWallet.valueInCHF ?? 0.0
-            currency = "CHF"
-        }
-        var convertedFees = "\(CGFloat(Int(CGFloat(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)/100000000*correctAmount*100))/100)".replacingOccurrences(of: ".", with: ",")
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        var convertedFees = "\(CGFloat(Int(CGFloat(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)/100000000*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
         if convertedFees.split(separator: ",")[1].count == 1 {
             convertedFees = convertedFees + "0"
         }
-        let convertedAmount = "\(Int((CGFloat(ongoingSwap.satoshisAmount)/100000000*correctAmount).rounded()))"
+        let convertedAmount = "\(Int((CGFloat(ongoingSwap.satoshisAmount)/100000000*bitcoinValue.currentValue).rounded()))"
         
-        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)").replacingOccurrences(of: "<convertedfees>", with: "\(currency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(currency) \(convertedAmount)")
+        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)").replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
         
         self.showAlert(
             presentingController: self,
@@ -934,4 +929,20 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         return containerView
     }
 
+}
+
+extension UIViewController {
+    
+    func getCorrectBitcoinValue(coreVC:CoreViewController) -> BitcoinValue {
+        
+        let bitcoinValue = BitcoinValue()
+        bitcoinValue.currentValue = coreVC.bittrWallet.valueInEUR ?? 0.0
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            bitcoinValue.currentValue = coreVC.bittrWallet.valueInCHF ?? 0.0
+            bitcoinValue.chosenCurrency = "CHF"
+            bitcoinValue.apiUrl = "https://getbittr.com/api/price/btc/historical/chf"
+        }
+        
+        return bitcoinValue
+    }
 }

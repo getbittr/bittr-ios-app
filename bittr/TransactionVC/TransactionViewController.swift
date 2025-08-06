@@ -143,17 +143,12 @@ class TransactionViewController: UIViewController {
         
         self.idLabel.text = self.tappedTransaction.id
         
-        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-        var currencySymbol = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-            currencySymbol = "CHF"
-        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
         var transactionValue = CGFloat(self.tappedTransaction.received-self.tappedTransaction.sent)/100000000
-        var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
+        var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
         
-        self.valueNowLabel.text = balanceValue + " " + currencySymbol
+        self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
         
         if CacheManager.getTransactionNote(txid: self.tappedTransaction.id) != "" {
             self.noteLabel.text = CacheManager.getTransactionNote(txid: self.tappedTransaction.id)
@@ -172,10 +167,10 @@ class TransactionViewController: UIViewController {
             if self.tappedTransaction.purchaseAmount == 0 {
                 // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
                 self.valueThenLabel.text = self.valueNowLabel.text
-                self.profitLabel.text = "0 \(currencySymbol)"
+                self.profitLabel.text = "0 \(bitcoinValue.chosenCurrency)"
             } else {
-                self.valueThenLabel.text = "\(self.tappedTransaction.purchaseAmount) \(currencySymbol)"
-                self.profitLabel.text = "\(Int((transactionValue*correctValue).rounded())-self.tappedTransaction.purchaseAmount) \(currencySymbol)"
+                self.valueThenLabel.text = "\(self.tappedTransaction.purchaseAmount) \(bitcoinValue.chosenCurrency)"
+                self.profitLabel.text = "\(Int((transactionValue*bitcoinValue.currentValue).rounded())-self.tappedTransaction.purchaseAmount) \(bitcoinValue.chosenCurrency)"
             }
             
             if (profitLabel.text ?? "").contains("-") {
@@ -314,8 +309,8 @@ class TransactionViewController: UIViewController {
             
             // Current value
             transactionValue = CGFloat(self.tappedTransaction.received)/100000000
-            balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
-            self.valueNowLabel.text = balanceValue + " " + currencySymbol
+            balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
+            self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
         }
         
         self.changeColors()

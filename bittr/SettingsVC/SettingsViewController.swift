@@ -55,10 +55,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             actualCell.settingsButton.accessibilityIdentifier = self.settings[indexPath.row]["id"] ?? ""
             
             if self.settings[indexPath.row]["id"] == "currency" {
-                actualCell.currencyLabel.text = "€"
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    actualCell.currencyLabel.text = "CHF"
-                }
+                actualCell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
             } else {
                 actualCell.currencyLabel.text = ""
             }

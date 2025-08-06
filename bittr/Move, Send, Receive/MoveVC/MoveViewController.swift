@@ -93,23 +93,18 @@ class MoveViewController: UIViewController {
         // Calculate balance values.
         let correctBtcBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain) * 0.00000001
         let correctBtclnBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisLightning) * 0.00000001
-        var correctValue:CGFloat = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-        var currencySymbol = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            correctValue = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-            currencySymbol = "CHF"
-        }
-        var balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*correctValue).rounded()))
-        var btcBalanceValue = String(Int(((correctBtcBalance)*correctValue).rounded()))
-        var btclnBalanceValue = String(Int(((correctBtclnBalance)*correctValue).rounded()))
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
+        let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded()))
+        let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
         
         // Show balance values.
         satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
         satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
         satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
-        conversionTotal.text = currencySymbol + " " + balanceValue
-        conversionRegular.text = currencySymbol + " " + btcBalanceValue
-        conversionInstant.text = currencySymbol + " " + btclnBalanceValue
+        conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
+        conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
+        conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
         
         self.changeColors()
         

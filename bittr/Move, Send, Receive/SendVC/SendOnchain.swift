@@ -35,10 +35,7 @@ extension SendViewController {
             if self.selectedCurrency == "satoshis" {
                 divideBy = 100000000
             } else if self.selectedCurrency == "currency" {
-                divideBy = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    divideBy = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-                }
+                divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
             }
             
             self.onchainAmountInSatoshis = Int(((self.stringToNumber(self.amountTextField.text)/divideBy) * 100000000).rounded())
@@ -96,17 +93,11 @@ extension SendViewController {
                 self.nextLabel.alpha = 0
                 self.nextSpinner.startAnimating()
                 
-                var currencySymbol = "€"
-                var conversionRate:CGFloat = 0
-                conversionRate = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                    currencySymbol = "CHF"
-                    conversionRate = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-                }
+                let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
                 
                 self.confirmAddressLabel.text = invoiceText
                 self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
-                self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
+                self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
                 
                 if let actualWallet = LightningNodeService.shared.getWallet() {
                     
@@ -158,24 +149,24 @@ extension SendViewController {
                             self.satsSlow.text = "\(Int(self.feeLow*Float(size))) sats"
                             
                             let fast1 = CGFloat(self.feeHigh*Float(size))
-                            var fastText = "\(CGFloat(Int(((fast1/100000000)*conversionRate)*100))/100)"
+                            var fastText = "\(CGFloat(Int(((fast1/100000000)*bitcoinValue.currentValue)*100))/100)"
                             if fastText.count == 3 {
                                 fastText = fastText + "0"
                             }
                             let medium1 = CGFloat(self.feeMedium*Float(size))
-                            var mediumText = "\(CGFloat(Int(((medium1/100000000)*conversionRate)*100))/100)"
+                            var mediumText = "\(CGFloat(Int(((medium1/100000000)*bitcoinValue.currentValue)*100))/100)"
                             if mediumText.count == 3 {
                                 mediumText = mediumText + "0"
                             }
                             let slow1 = CGFloat(self.feeLow*Float(size))
-                            var slowText = "\(CGFloat(Int(((slow1/100000000)*conversionRate)*100))/100)"
+                            var slowText = "\(CGFloat(Int(((slow1/100000000)*bitcoinValue.currentValue)*100))/100)"
                             if slowText.count == 3 {
                                 slowText = slowText + "0"
                             }
                             
-                            self.eurosFast.text = fastText + " " + currencySymbol
-                            self.eurosMedium.text = mediumText + " " + currencySymbol
-                            self.eurosSlow.text = slowText + " " + currencySymbol
+                            self.eurosFast.text = fastText + " " + bitcoinValue.chosenCurrency
+                            self.eurosMedium.text = mediumText + " " + bitcoinValue.chosenCurrency
+                            self.eurosSlow.text = slowText + " " + bitcoinValue.chosenCurrency
                             
                             DispatchQueue.main.async {
                                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
@@ -307,15 +298,9 @@ extension SendViewController {
         
         self.amountTextField.text = "\(CGFloat(self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
         
-        var currencySymbol = "€"
-        var conversionRate:CGFloat = 0
-        conversionRate = self.coreVC!.bittrWallet.valueInEUR ?? 0.0
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            currencySymbol = "CHF"
-            conversionRate = self.coreVC!.bittrWallet.valueInCHF ?? 0.0
-        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
-        self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*conversionRate)) \(currencySymbol)"
+        self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
         
         var thisSelectedFee = self.selectedFee
         if thisSelectedFee == "high" {

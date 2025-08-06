@@ -52,6 +52,7 @@
 		05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */; };
 		05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */; };
 		0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0595AB082B2EE7E900375498 /* WebsiteViewController.swift */; };
+		059704A72E43515300B56690 /* BitcoinValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 059704A62E43514F00B56690 /* BitcoinValue.swift */; };
 		05980B522A46F76E001F312F /* IbanEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B512A46F76E001F312F /* IbanEntity.swift */; };
 		05980B542A46F7E4001F312F /* BittrWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B532A46F7E4001F312F /* BittrWallet.swift */; };
 		05980B582A46F8DA001F312F /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05980B572A46F8DA001F312F /* CacheManager.swift */; };
@@ -215,6 +216,7 @@
 		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
 		05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveLightning.swift; sourceTree = "<group>"; };
 		0595AB082B2EE7E900375498 /* WebsiteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteViewController.swift; sourceTree = "<group>"; };
+		059704A62E43514F00B56690 /* BitcoinValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinValue.swift; sourceTree = "<group>"; };
 		05980B512A46F76E001F312F /* IbanEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanEntity.swift; sourceTree = "<group>"; };
 		05980B532A46F7E4001F312F /* BittrWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrWallet.swift; sourceTree = "<group>"; };
 		05980B572A46F8DA001F312F /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
@@ -595,6 +597,7 @@
 				052DC6922AA853B700CD59B0 /* Transaction.swift */,
 				05F418ED2BAC1DF0005CFAD0 /* Channel.swift */,
 				05B30E2D2E26281200CF10EC /* Swap.swift */,
+				059704A62E43514F00B56690 /* BitcoinValue.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -772,6 +775,7 @@
 					};
 					05C3C08029CCB55600C1E695 = {
 						CreatedOnToolsVersion = 14.2;
+						LastSwiftMigration = 1640;
 					};
 					05C3C09629CCB55800C1E695 = {
 						CreatedOnToolsVersion = 14.2;
@@ -962,6 +966,7 @@
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
 				0521712A2CB41B1A006C5663 /* TransactionVCLanguage.swift in Sources */,
 				05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */,
+				059704A72E43515300B56690 /* BitcoinValue.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
 				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,
@@ -1234,6 +1239,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 91;
@@ -1264,6 +1270,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -1274,6 +1281,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 91;

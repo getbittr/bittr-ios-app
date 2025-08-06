@@ -323,6 +323,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 actualProfitVC.totalProfit = self.calculatedProfit
                 actualProfitVC.totalValue = self.calculatedCurrentValue
                 actualProfitVC.totalInvestments = self.calculatedInvestments
+                actualProfitVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "HomeToValue" {
             if let valueVC = segue.destination as? ValueViewController {
