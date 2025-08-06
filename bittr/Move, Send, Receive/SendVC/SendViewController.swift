@@ -249,7 +249,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         } else {
             // Set "Send all" for lightning payments.
             if let actualMaxAmount = self.maximumSendableLNSats {
-                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) \(actualMaxAmount) satoshis."
+                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) \(String(actualMaxAmount).addSpaces()) satoshis."
             } else {
                 self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) 0 satoshis."
             }

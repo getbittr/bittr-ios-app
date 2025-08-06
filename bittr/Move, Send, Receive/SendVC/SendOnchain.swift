@@ -470,9 +470,10 @@ extension SendViewController {
                 }
             }*/ catch {
                 if error.localizedDescription.contains("Insufficient funds") {
-                    let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7])) * 0.00000001
-                    let requiredCorrection:Double = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 - satsReservation
-                    let spendableBtcAmount = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 + requiredCorrection
+                    let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7]))
+                    let btcOnchain = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001
+                    let requiredCorrection:Double = btcOnchain - satsReservation
+                    let spendableBtcAmount = btcOnchain + requiredCorrection
                     if spendableBtcAmount < 0 {
                         return 0
                     } else {
