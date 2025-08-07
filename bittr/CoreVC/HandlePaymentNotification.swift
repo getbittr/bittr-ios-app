@@ -262,111 +262,116 @@ extension CoreViewController {
             // Event has already been handled.
             print("Event was handled before.")
             return
-        } else if "\(event)".contains("paymentReceived") {
-            
-            if let actualSpecialData = self.varSpecialData {
-                // This is a Bittr payment, which is being handled separately.
-                CacheManager.didHandleEvent(event: "\(event)")
-                return
-            }
-            
-            let paymentHash = "\(event)".split(separator: ",")[1].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " paymentHash: ", with: "")
-            print("Did extract payment hash. \(paymentHash)")
-            
-            if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+        } else {
+            switch event {
                 
-                print("Did receive payment details.")
+            case .paymentReceived(paymentId: let paymentId, paymentHash: let paymentHash, amountMsat: let amountMsat, customRecords: let customRecords):
                 
-                let thisTransaction = Transaction()
-                thisTransaction.isBittr = false
-                thisTransaction.isLightning = true
-                thisTransaction.id = paymentDetails.id
-                thisTransaction.sent = 0
-                thisTransaction.received = Int(paymentDetails.amountMsat ?? 0)/1000
-                thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                thisTransaction.confirmations = 0
-                thisTransaction.height = 0
-                thisTransaction.fee = 0
+                if self.varSpecialData != nil {
+                    // This is a Bittr payment, which is being handled separately.
+                    CacheManager.didHandleEvent(event: "\(event)")
+                    return
+                }
                 
-                if CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
-                    if self.homeVC != nil {
-                        for (index, eachTransaction) in self.homeVC!.setTransactions.enumerated() {
-                            if eachTransaction.lnDescription.contains("Swap onchain to lightning "), eachTransaction.lnDescription == CacheManager.getInvoiceDescription(hash: paymentHash) {
-                                // This is a swap. This is the matching onchain transaction.
-                                
-                                thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                                thisTransaction.lightningID = paymentDetails.id
-                                thisTransaction.onchainID = eachTransaction.id
-                                thisTransaction.isSwap = true
-                                thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
-                                thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisTransaction.lnDescription) ?? "Unavailable"
-                                thisTransaction.isLightning = false
-                                //let sentAmount:Int = eachTransaction.received + thisTransaction.received - eachTransaction.sent - thisTransaction.sent
-                                thisTransaction.sent = eachTransaction.sent - eachTransaction.received
-                                thisTransaction.swapDirection = 0
-                                
-                                if let actualCurrentHeight = self.bittrWallet.currentHeight {
-                                    thisTransaction.height = actualCurrentHeight
-                                    thisTransaction.confirmations = 1
+                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                    
+                    print("Did receive payment details.")
+                    
+                    let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, swapTransaction: nil, coreVC: self, bittrTransactions: nil)
+                    thisTransaction.isBittr = true
+                    thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                    
+                    if CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
+                        if self.homeVC != nil {
+                            for (index, eachTransaction) in self.homeVC!.setTransactions.enumerated() {
+                                if eachTransaction.lnDescription.contains("Swap onchain to lightning "), eachTransaction.lnDescription == CacheManager.getInvoiceDescription(hash: paymentHash) {
+                                    // This is a swap. This is the matching onchain transaction.
+                                    
+                                    thisTransaction.isSwap = true
+                                    thisTransaction.lightningID = thisTransaction.id
+                                    thisTransaction.onchainID = eachTransaction.id
+                                    thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
+                                    thisTransaction.isBittr = false
+                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
+                                    thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisTransaction.lnDescription) ?? "Unavailable"
+                                    thisTransaction.isLightning = false
+                                    thisTransaction.sent = eachTransaction.sent - eachTransaction.received
+                                    thisTransaction.swapDirection = 0
+                                    
+                                    if let actualCurrentHeight = self.bittrWallet.currentHeight {
+                                        thisTransaction.height = actualCurrentHeight
+                                        thisTransaction.confirmations = 1
+                                    }
+                                    
+                                    self.homeVC!.setTransactions.remove(at: index)
                                 }
-                                
-                                self.homeVC!.setTransactions.remove(at: index)
                             }
                         }
                     }
+                    
+                    self.receivedBittrTransaction = thisTransaction
+                    DispatchQueue.main.async {
+                        CacheManager.didHandleEvent(event: "\(event)")
+                        self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
+                        if !thisTransaction.isSwap {
+                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                        }
+                    }
                 }
+            case .channelClosed(channelId: let channelId, userChannelId: let userChannelId, counterpartyNodeId: let counterpartyNodeId, reason: let reason):
                 
-                self.receivedBittrTransaction = thisTransaction
                 DispatchQueue.main.async {
                     CacheManager.didHandleEvent(event: "\(event)")
-                    self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
-                    self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                    self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: Language.getWord(withID: "closedlightningchannel2"), type: nil)
                 }
-            }
-        } else if "\(event)".contains("channelClosed") {
-            
-            DispatchQueue.main.async {
-                CacheManager.didHandleEvent(event: "\(event)")
-                self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: Language.getWord(withID: "closedlightningchannel2"), type: nil)
-            }
-        } else if "\(event)".contains("channelPending") {
-            
-            CacheManager.didHandleEvent(event: "\(event)")
-            
-            let fundingTxo = "\(event)".split(separator: ",")[4].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " fundingTxo: LDKNode.OutPoint(txid: ", with: "")
-            var depositCodes = [String]()
-            for eachIbanEntity in self.bittrWallet.ibanEntities {
-                if eachIbanEntity.yourUniqueCode != "" {
-                    depositCodes += [eachIbanEntity.yourUniqueCode]
-                }
-            }
-            
-            DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
-                print("Did wait to start API call.")
+            case .channelPending(channelId: let channelId, userChannelId: let userChannelId, formerTemporaryChannelId: let formerTemporaryChannelId, counterpartyNodeId: let counterpartyNodeId, fundingTxo: let fundingTxo):
                 
-                Task {
-                    do {
-                        let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [fundingTxo], depositCodes: depositCodes)
-                        print("Bittr transactions: \(bittrApiTransactions.count)")
-                        
-                        if bittrApiTransactions.count == 1 {
-                            for eachTransaction in bittrApiTransactions {
-                                if eachTransaction.txId == fundingTxo {
-                                    DispatchQueue.main.async {
-                                        
-                                        let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, swapTransaction: nil, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
-                                        
-                                        self.receivedBittrTransaction = thisTransaction
-                                        self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
-                                        self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                CacheManager.didHandleEvent(event: "\(event)")
+                
+                var depositCodes = [String]()
+                for eachIbanEntity in self.bittrWallet.ibanEntities {
+                    if eachIbanEntity.yourUniqueCode != "" {
+                        depositCodes += [eachIbanEntity.yourUniqueCode]
+                    }
+                }
+                
+                DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
+                    print("Did wait to start API call.")
+                    
+                    Task {
+                        do {
+                            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [fundingTxo.txid], depositCodes: depositCodes)
+                            print("Bittr transactions: \(bittrApiTransactions.count)")
+                            
+                            if bittrApiTransactions.count == 1 {
+                                for eachTransaction in bittrApiTransactions {
+                                    if eachTransaction.txId == fundingTxo.txid {
+                                        DispatchQueue.main.async {
+                                            
+                                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, swapTransaction: nil, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                            
+                                            self.receivedBittrTransaction = thisTransaction
+                                            self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
+                                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                                        }
                                     }
                                 }
                             }
+                        } catch {
+                            print("Bittr error: \(error.localizedDescription)")
                         }
-                    } catch {
-                        print("Bittr error: \(error.localizedDescription)")
                     }
                 }
+            case .paymentSuccessful(paymentId: let paymentId, paymentHash: let paymentHash, paymentPreimage: let paymentPreimage, feePaidMsat: let feePaidMsat):
+                return
+            case .paymentFailed(paymentId: let paymentId, paymentHash: let paymentHash, reason: let reason):
+                return
+            case .paymentClaimable(paymentId: let paymentId, paymentHash: let paymentHash, claimableAmountMsat: let claimableAmountMsat, claimDeadline: let claimDeadline, customRecords: let customRecords):
+                return
+            case .paymentForwarded(prevChannelId: let prevChannelId, nextChannelId: let nextChannelId, prevUserChannelId: let prevUserChannelId, nextUserChannelId: let nextUserChannelId, prevNodeId: let prevNodeId, nextNodeId: let nextNodeId, totalFeeEarnedMsat: let totalFeeEarnedMsat, skimmedFeeMsat: let skimmedFeeMsat, claimFromOnchainTx: let claimFromOnchainTx, outboundAmountForwardedMsat: let outboundAmountForwardedMsat):
+                return
+            case .channelReady(channelId: let channelId, userChannelId: let userChannelId, counterpartyNodeId: let counterpartyNodeId):
+                return
             }
         }
     }
@@ -383,11 +388,15 @@ extension CoreViewController {
             self.homeVC!.homeTableView.reloadData()
             
             // Update HomeVC balance.
-            self.bittrWallet.satoshisLightning += newTransaction.received
+            if newTransaction.isSwap {
+                self.bittrWallet.satoshisLightning += (newTransaction.received - newTransaction.sent)
+            } else {
+                self.bittrWallet.satoshisLightning += newTransaction.received
+            }
             self.homeVC!.setTotalSats(updateTableAfterConversion: false)
             
             // Add payment to channel details.
-            self.bittrWallet.bittrChannel?.received += newTransaction.received
+            self.bittrWallet.bittrChannel?.received += (newTransaction.received - newTransaction.sent)
         }
     }
     
