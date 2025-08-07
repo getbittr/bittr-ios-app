@@ -286,13 +286,8 @@ class SwapManager: NSObject {
                             CacheManager.storeInvoiceDescription(hash: txid, desc: ongoingSwap.dateID)
                             CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
-                            if let homeVC = swapVC.homeVC {
-                                homeVC.setTransactions += [newTransaction]
-                                homeVC.setTransactions.sort { transaction1, transaction2 in
-                                    transaction1.timestamp > transaction2.timestamp
-                                }
-                                homeVC.homeTableView.reloadData()
-                            }
+                            // Add to Home table.
+                            swapVC.homeVC?.addTransaction(newTransaction)
                             
                             // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
                             // so we don't call performSwapMatching here. It will be handled when the lightning
@@ -475,6 +470,7 @@ class SwapManager: NSObject {
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.refundPublicKey = refundPublicKey
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = randomPreimageHashHex
                             self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
                             
                             self.checkReverseSwapFees(swapVC: swapVC)
@@ -612,17 +608,11 @@ class SwapManager: NSObject {
         CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
         
         // Add to home view controller
-        if let homeVC = swapVC.homeVC {
-            homeVC.setTransactions += [newTransaction]
-            homeVC.setTransactions.sort { transaction1, transaction2 in
-                transaction1.timestamp > transaction2.timestamp
-            }
-            homeVC.homeTableView.reloadData()
-            
-            // Trigger manual swap matching to combine lightning and onchain transactions
-            // For lightning-to-onchain swaps, both transactions should be present now
-            homeVC.performSwapMatching()
-        }
+        swapVC.homeVC?.addTransaction(newTransaction)
+        
+        // Trigger manual swap matching to combine lightning and onchain transactions
+        // For lightning-to-onchain swaps, both transactions should be present now
+        swapVC.homeVC?.performSwapMatching()
         
         print("Added onchain transaction to UI: \(transactionId) with amount: \(newTransaction.received)")
     }
@@ -671,79 +661,41 @@ class SwapManager: NSObject {
                 let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                        
-                        ongoingSwap.sentLightningPaymentID = thisPayment.id
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = thisPayment.id
-                        
-                        if thisPayment.status != .failed {
-                            // Success payment
-                            swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
-                            
-                            // Create lightning transaction with swap details
-                            let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
-                            
-                            // Store transaction details in cache.
-                            CacheManager.storeInvoiceDescription(hash: thisPayment.id, desc: ongoingSwap.dateID)
-                            CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-                            
-                            // Calculate fees
-                            if Int(thisPayment.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
-                                let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
-                                CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
-                                newTransaction.fee = feesIncurred
-                            } else {
-                                newTransaction.fee = 0
-                            }
-                            
-                            // Add to home view controller
-                            if let homeVC = swapVC.homeVC {
-                                homeVC.setTransactions += [newTransaction]
-                                homeVC.setTransactions.sort { transaction1, transaction2 in
-                                    transaction1.timestamp > transaction2.timestamp
-                                }
-                                homeVC.homeTableView.reloadData()
-                            }
-                            
-                            newTransaction.boltzSwapId = ongoingSwap.boltzID!
-                            swapVC.webSocketManager = WebSocketManager()
-                            swapVC.webSocketManager!.delegate = swapVC
-                            swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
-                            swapVC.webSocketManager!.connect()
-                        } else {
-                            // Payment came back failed.
-                            swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
-                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    } else {
-                        // Success alert
-                        swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
-                        
-                        ongoingSwap.sentLightningPaymentID = paymentHash
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = paymentHash
-                        
-                        // Create lightning transaction with swap details
-                        let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
-                        
-                        // Store transaction details in cache.
-                        CacheManager.storeInvoiceDescription(hash: paymentHash, desc: ongoingSwap.dateID)
-                        CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-                        
-                        // Add to home view controller
-                        if let homeVC = swapVC.homeVC {
-                            homeVC.setTransactions += [newTransaction]
-                            homeVC.setTransactions.sort { transaction1, transaction2 in
-                                transaction1.timestamp > transaction2.timestamp
-                            }
-                            homeVC.homeTableView.reloadData()
-                        }
-                        
-                        newTransaction.boltzSwapId = ongoingSwap.boltzID!
-                        swapVC.webSocketManager = WebSocketManager()
-                        swapVC.webSocketManager!.delegate = swapVC
-                        swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
-                        swapVC.webSocketManager!.connect()
+                    
+                    let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash)
+                    if thisPayment != nil, thisPayment!.status == .failed {
+                        // Payment came back failed.
+                        swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
+                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        return
                     }
+                    
+                    // Success payment
+                    swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
+                    
+                    // Create lightning transaction with swap details
+                    let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
+                    
+                    // Store transaction details in cache.
+                    CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+                    CacheManager.storeInvoiceDescription(hash: paymentHash, desc: ongoingSwap.dateID)
+                    
+                    // Calculate fees
+                    if Int(thisPayment?.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
+                        let feesIncurred = (Int(thisPayment?.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
+                        CacheManager.storePaymentFees(hash: paymentHash, fees: feesIncurred)
+                        newTransaction.fee = feesIncurred
+                    } else {
+                        newTransaction.fee = 0
+                    }
+                    
+                    // Add to home view controller
+                    swapVC.homeVC?.addTransaction(newTransaction)
+                    
+                    swapVC.webSocketManager = WebSocketManager()
+                    swapVC.webSocketManager!.delegate = swapVC
+                    swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
+                    swapVC.webSocketManager!.connect()
                 }
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)

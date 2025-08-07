@@ -402,13 +402,8 @@ extension SendViewController {
         
         self.completedTransaction = newTransaction
         
-        if let actualHomeVC = self.homeVC {
-            actualHomeVC.setTransactions += [newTransaction]
-            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                transaction1.timestamp > transaction2.timestamp
-            }
-            actualHomeVC.homeTableView.reloadData()
-        }
+        // Add to Home table.
+        self.homeVC?.addTransaction(newTransaction)
         
         self.performSegue(withIdentifier: "SendToTransaction", sender: self)
         

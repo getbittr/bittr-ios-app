@@ -90,22 +90,7 @@ class MoveViewController: UIViewController {
         self.swapView.layer.shadowRadius = 8
         self.swapView.layer.shadowOpacity = 0.1
         
-        // Calculate balance values.
-        let correctBtcBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain) * 0.00000001
-        let correctBtclnBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisLightning) * 0.00000001
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
-        let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded()))
-        let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
-        
-        // Show balance values.
-        satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
-        satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
-        satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
-        conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
-        conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
-        conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
-        
+        self.updateLabels()
         self.changeColors()
         
         // If we're coming from a Lightning payment, automatically trigger the swap segue
@@ -121,6 +106,25 @@ class MoveViewController: UIViewController {
                 self.performSegue(withIdentifier: "MoveToSwap", sender: self)
             }
         }
+    }
+    
+    func updateLabels() {
+        
+        // Calculate balance values.
+        let correctBtcBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain) * 0.00000001
+        let correctBtclnBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisLightning) * 0.00000001
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
+        let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded()))
+        let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
+        
+        // Show balance values.
+        satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
+        satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
+        conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
+        conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {

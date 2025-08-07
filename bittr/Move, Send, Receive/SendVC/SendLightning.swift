@@ -369,32 +369,14 @@ extension UIViewController {
             
             if let sendVC = delegate as? SendViewController {
                 sendVC.completedTransaction = newTransaction
-                if let homeVC = sendVC.homeVC {
-                    homeVC.setTransactions += [newTransaction]
-                    homeVC.setTransactions.sort { transaction1, transaction2 in
-                        transaction1.timestamp > transaction2.timestamp
-                    }
-                    homeVC.homeTableView.reloadData()
-                }
+                sendVC.homeVC?.addTransaction(newTransaction)
                 sendVC.performSegue(withIdentifier: "SendToTransaction", sender: self)
             } else if let receiveVC = delegate as? ReceiveViewController {
                 receiveVC.completedTransaction = newTransaction
-                if let homeVC = receiveVC.homeVC {
-                    homeVC.setTransactions += [newTransaction]
-                    homeVC.setTransactions.sort { transaction1, transaction2 in
-                        transaction1.timestamp > transaction2.timestamp
-                    }
-                    homeVC.homeTableView.reloadData()
-                }
+                receiveVC.homeVC?.addTransaction(newTransaction)
                 receiveVC.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
             } else if let swapVC = delegate as? SwapViewController {
-                if let homeVC = swapVC.homeVC {
-                    homeVC.setTransactions += [newTransaction]
-                    homeVC.setTransactions.sort { transaction1, transaction2 in
-                        transaction1.timestamp > transaction2.timestamp
-                    }
-                    homeVC.homeTableView.reloadData()
-                }
+                swapVC.homeVC?.addTransaction(newTransaction)
             }
             
         }

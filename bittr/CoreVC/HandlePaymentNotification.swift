@@ -270,39 +270,12 @@ extension CoreViewController {
                     thisTransaction.isBittr = true
                     thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
                     
-                    if CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
-                        if self.homeVC != nil {
-                            for (index, eachTransaction) in self.homeVC!.setTransactions.enumerated() {
-                                if eachTransaction.lnDescription.contains("Swap onchain to lightning "), eachTransaction.lnDescription == CacheManager.getInvoiceDescription(hash: paymentHash) {
-                                    // This is a swap. This is the matching onchain transaction.
-                                    
-                                    thisTransaction.isSwap = true
-                                    thisTransaction.lightningID = thisTransaction.id
-                                    thisTransaction.onchainID = eachTransaction.id
-                                    thisTransaction.id = eachTransaction.lnDescription.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                                    thisTransaction.isBittr = false
-                                    thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentHash)
-                                    thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisTransaction.lnDescription) ?? "Unavailable"
-                                    thisTransaction.isLightning = false
-                                    thisTransaction.sent = eachTransaction.sent - eachTransaction.received
-                                    thisTransaction.swapDirection = 0
-                                    
-                                    if let actualCurrentHeight = self.bittrWallet.currentHeight {
-                                        thisTransaction.height = actualCurrentHeight
-                                        thisTransaction.confirmations = 1
-                                    }
-                                    
-                                    self.homeVC!.setTransactions.remove(at: index)
-                                }
-                            }
-                        }
-                    }
-                    
                     self.receivedBittrTransaction = thisTransaction
+                    
                     DispatchQueue.main.async {
                         CacheManager.didHandleEvent(event: "\(event)")
                         self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
-                        if !thisTransaction.isSwap {
+                        if !CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     }
@@ -370,19 +343,7 @@ extension CoreViewController {
         if self.homeVC != nil {
             
             // Add payment to HomeVC transactions table.
-            self.homeVC!.setTransactions += [newTransaction]
-            self.homeVC!.setTransactions.sort { transaction1, transaction2 in
-                transaction1.timestamp > transaction2.timestamp
-            }
-            self.homeVC!.homeTableView.reloadData()
-            
-            // Update HomeVC balance.
-            if newTransaction.isSwap {
-                self.bittrWallet.satoshisLightning += (newTransaction.received - newTransaction.sent)
-            } else {
-                self.bittrWallet.satoshisLightning += newTransaction.received
-            }
-            self.homeVC!.setTotalSats(updateTableAfterConversion: false)
+            self.homeVC!.addTransaction(newTransaction)
             
             // Add payment to channel details.
             self.bittrWallet.bittrChannel?.received += (newTransaction.received - newTransaction.sent)

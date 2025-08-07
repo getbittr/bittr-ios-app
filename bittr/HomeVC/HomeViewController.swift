@@ -87,6 +87,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     // Cove View Controller
     var coreVC:CoreViewController?
+    var moveVC:MoveViewController?
     
     // Bitcoin historical data
     var eurData:Data?
@@ -261,25 +262,25 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.coreVC!.buyVC = buyVC
             }
         } else if segue.identifier == "HomeToMove" {
-            let moveVC = segue.destination as? MoveViewController
-            if let actualMoveVC = moveVC {
-                actualMoveVC.coreVC = self.coreVC
-                actualMoveVC.homeVC = self
+            if let moveVC = segue.destination as? MoveViewController {
+                moveVC.coreVC = self.coreVC
+                moveVC.homeVC = self
+                self.moveVC = moveVC
                 
                 if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
                         let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
                         let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
-                        actualMoveVC.maximumSendableLNSats = outboundCapacitySats
-                        if actualMoveVC.maximumSendableLNSats! < 0 {
-                            actualMoveVC.maximumSendableLNSats = 0
+                        moveVC.maximumSendableLNSats = outboundCapacitySats
+                        if moveVC.maximumSendableLNSats! < 0 {
+                            moveVC.maximumSendableLNSats = 0
                         }
                     }
                 }
                 
                 if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
-                        actualMoveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
+                        moveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
                 }
             }
@@ -365,6 +366,32 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.coreVC?.checkmarkFinal.alpha = 0
         
         LightningNodeService.shared.walletReset()
+    }
+    
+    func addTransaction(_ thisTransaction:Transaction) {
+        
+        // Add new transaction.
+        self.setTransactions += [thisTransaction]
+        self.setTransactions = self.setTransactions.performSwapMatching(coreVC: self.coreVC!, storeInCache: false)
+        
+        // Sort transactions array.
+        self.setTransactions.sort { transaction1, transaction2 in
+            transaction1.timestamp > transaction2.timestamp
+        }
+        
+        // Reload table.
+        self.homeTableView.reloadData()
+        
+        // Update balance.
+        if thisTransaction.isLightning {
+            self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+        } else {
+            self.coreVC!.bittrWallet.satoshisOnchain += (thisTransaction.received - thisTransaction.sent)
+        }
+        
+        // Update balance label.
+        self.setTotalSats(updateTableAfterConversion: false)
+        self.moveVC?.updateLabels()
     }
     
     func performSwapMatching() {

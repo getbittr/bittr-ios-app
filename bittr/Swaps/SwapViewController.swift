@@ -291,18 +291,15 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         if self.nextSpinner.isAnimating { return }
         
-        self.nextLabel.alpha = 0
-        self.nextSpinner.startAnimating()
-        
         let amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
         if amountToBeSent != 0 {
             let maxAmount = self.homeVC?.coreVC?.bittrWallet.bittrChannel?.receivableMaximum ?? 0
             if amountToBeSent > maxAmount {
                 // You can't receive or send this much.
-                self.nextLabel.alpha = 1
-                self.nextSpinner.stopAnimating()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
+                self.nextLabel.alpha = 0
+                self.nextSpinner.startAnimating()
                 
                 // Create Swap object.
                 self.coreVC!.bittrWallet.ongoingSwap = Swap()
@@ -324,8 +321,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             }
         } else {
             // No amount has been entered.
-            self.nextLabel.alpha = 1
-            self.nextSpinner.stopAnimating()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
