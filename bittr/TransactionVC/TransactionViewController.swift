@@ -399,6 +399,10 @@ class TransactionViewController: UIViewController {
                 tappedSwap.satoshisAmount = self.tappedTransaction.received
                 tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
                 tappedSwap.lightningFees = 0
+                tappedSwap.onchainToLightning = true
+                if self.tappedTransaction.swapDirection == 1 {
+                    tappedSwap.onchainToLightning = false
+                }
                 swapVC.tappedSwapTransaction = tappedSwap
             }
         }

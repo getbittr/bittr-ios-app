@@ -248,24 +248,13 @@ extension CoreViewController {
         
         print("Event found. \(event)")
         
-        // Examples of receivable event notifications:
-        
-        // channelPending(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", formerTemporaryChannelId: "89797af9337335cd2400bdc1e37d1abefc114081fa7912e4e780b3d13254768d", counterpartyNodeId: "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12", fundingTxo: LDKNode.OutPoint(txid: "8a1127134c0729e4336ccf0a2ed0ee55f32dedfd875ce7ade23200923ebafb7b", vout: 0))
-        
-        // channelReady(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
-        
-        // paymentReceived(paymentHash: "3ca1c72b360d1d1124ff0e9dafcce7165b79c342d0f159ac431088b8c5487d6c", amountMsat: 30745000)
-        
-        // channelClosed(channelId: "df5d5b9b7d10c4e12bb01f50a8fcffc6112b612dcbecdbcf65bb3fea8b89ee32", userChannelId: "46771750509148822319613831140583118455", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
-        
         if CacheManager.hasHandledEvent(event: "\(event)") {
             // Event has already been handled.
             print("Event was handled before.")
-            return
         } else {
+            // New event.
             switch event {
-                
-            case .paymentReceived(paymentId: let paymentId, paymentHash: let paymentHash, amountMsat: let amountMsat, customRecords: let customRecords):
+            case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
                 if self.varSpecialData != nil {
                     // This is a Bittr payment, which is being handled separately.
@@ -318,13 +307,13 @@ extension CoreViewController {
                         }
                     }
                 }
-            case .channelClosed(channelId: let channelId, userChannelId: let userChannelId, counterpartyNodeId: let counterpartyNodeId, reason: let reason):
+            case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: _):
                 
                 DispatchQueue.main.async {
                     CacheManager.didHandleEvent(event: "\(event)")
                     self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: Language.getWord(withID: "closedlightningchannel2"), type: nil)
                 }
-            case .channelPending(channelId: let channelId, userChannelId: let userChannelId, formerTemporaryChannelId: let formerTemporaryChannelId, counterpartyNodeId: let counterpartyNodeId, fundingTxo: let fundingTxo):
+            case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
                 
                 CacheManager.didHandleEvent(event: "\(event)")
                 
@@ -362,15 +351,15 @@ extension CoreViewController {
                         }
                     }
                 }
-            case .paymentSuccessful(paymentId: let paymentId, paymentHash: let paymentHash, paymentPreimage: let paymentPreimage, feePaidMsat: let feePaidMsat):
+            case .paymentSuccessful(paymentId: _, paymentHash: _, paymentPreimage: _, feePaidMsat: _):
                 return
-            case .paymentFailed(paymentId: let paymentId, paymentHash: let paymentHash, reason: let reason):
+            case .paymentFailed(paymentId: _, paymentHash: _, reason: _):
                 return
-            case .paymentClaimable(paymentId: let paymentId, paymentHash: let paymentHash, claimableAmountMsat: let claimableAmountMsat, claimDeadline: let claimDeadline, customRecords: let customRecords):
+            case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):
                 return
-            case .paymentForwarded(prevChannelId: let prevChannelId, nextChannelId: let nextChannelId, prevUserChannelId: let prevUserChannelId, nextUserChannelId: let nextUserChannelId, prevNodeId: let prevNodeId, nextNodeId: let nextNodeId, totalFeeEarnedMsat: let totalFeeEarnedMsat, skimmedFeeMsat: let skimmedFeeMsat, claimFromOnchainTx: let claimFromOnchainTx, outboundAmountForwardedMsat: let outboundAmountForwardedMsat):
+            case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
                 return
-            case .channelReady(channelId: let channelId, userChannelId: let userChannelId, counterpartyNodeId: let counterpartyNodeId):
+            case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
                 return
             }
         }
@@ -400,7 +389,8 @@ extension CoreViewController {
         }
     }
     
-        @objc func handleSwapNotificationFromBackground(notification: NSNotification) {
+    @objc func handleSwapNotificationFromBackground(notification: NSNotification) {
+        
         // Prevent double handling
         if self.isHandlingSwapNotification {
             print("Already handling swap notification, skipping")
@@ -441,7 +431,7 @@ extension CoreViewController {
     
     private func handleSwapNotificationImmediately(swapID: String, userInfo: [String: Any]) {
         // Load swap details from file
-        if let ongoingSwap = self.bittrWallet.ongoingSwap ?? CacheManager.getLatestSwap() {
+        if (self.bittrWallet.ongoingSwap ?? CacheManager.getLatestSwap()) != nil {
             print("Loaded swap details from background.")
             
             // Clear the notification handling flag and hide pending view
