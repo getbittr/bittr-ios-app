@@ -400,8 +400,11 @@ class SwapManager: NSObject {
         }
         
         
-        // TODO: Add Production URL?
-        let webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
+        // TODO: Public?
+        var webhookURL = "https://getbittr.com/api/webhook/boltz/\(deviceToken)"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
+        }
         
         let parameters: [String: Any] = [
             "from": "BTC",
