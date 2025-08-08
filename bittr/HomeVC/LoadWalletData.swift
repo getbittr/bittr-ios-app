@@ -57,7 +57,7 @@ extension HomeViewController {
                     self.cachedLightningIds += [eachTransaction.lightningID]
                     self.cachedLightningIds += [eachTransaction.onchainID]
                     
-                    for (index, eachNewTransaction) in self.newTransactions.enumerated() {
+                    for (index, eachNewTransaction) in self.newTransactions.enumerated().reversed() {
                         if eachNewTransaction.id == eachTransaction.lightningID || eachNewTransaction.id == eachTransaction.onchainID {
                             self.newTransactions.remove(at: index)
                         }
@@ -108,10 +108,12 @@ extension HomeViewController {
         // Create lightning transaction entities.
         for eachPayment in receivedPayments {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), eachPayment.status == .succeeded {
+            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || eachPayment.status == .pending) {
                 let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, swapTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
-                CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                if eachPayment.status == .succeeded {
+                    CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                }
             }
             
             // Make sure there are no duplicate transactions.

@@ -318,7 +318,7 @@ class SwapManager: NSObject {
         }
     }
     
-    static func checkSwapStatus(_ swapID:String, completion: @escaping (String?) -> Void) {
+    static func checkSwapStatus(_ swapID:String, completion: @escaping (NSDictionary?) -> Void) {
         
         /* {
          "status":"transaction.mempool",
@@ -343,11 +343,8 @@ class SwapManager: NSObject {
                         completion(nil)
                     }
                 case .success(let receivedDictionary):
-                    if let receivedStatus = receivedDictionary["status"] as? String {
-                        completion(receivedStatus)
-                    }
+                    completion(receivedDictionary)
                 }
-                
             }
         }
     }
@@ -402,6 +399,8 @@ class SwapManager: NSObject {
             return
         }
         
+        
+        // TODO: Add Production URL?
         let webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
         
         let parameters: [String: Any] = [
@@ -470,7 +469,7 @@ class SwapManager: NSObject {
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
                             swapVC.coreVC!.bittrWallet.ongoingSwap!.refundPublicKey = refundPublicKey
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = randomPreimageHashHex
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = randomPreimage.hexEncodedString()
                             self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
                             
                             self.checkReverseSwapFees(swapVC: swapVC)

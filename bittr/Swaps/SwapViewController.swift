@@ -183,23 +183,29 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.handlePendingOnchainPayment()
             } else if self.tappedSwapTransaction != nil {
                 // Show swap opened from TransactionVC.
-                self.coreVC!.bittrWallet.ongoingSwap = self.tappedSwapTransaction!
-                if self.tappedSwapTransaction!.onchainToLightning {
+                guard let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: self.tappedSwapTransaction!.boltzID!) else { return }
+                self.coreVC!.bittrWallet.ongoingSwap = CacheManager.dictionaryToSwap(swapDictionary)
+                guard let ongoingSwap = self.coreVC!.bittrWallet.ongoingSwap else { return }
+                
+                if ongoingSwap.onchainToLightning {
                     self.confirmDirectionLabel.text = "Onchain to Lightning"
+                    self.swapDirection = 0
                 } else {
                     self.confirmDirectionLabel.text = "Lightning to Onchain"
+                    self.swapDirection = 1
                 }
-                self.confirmAmountLabel.text = "\(self.tappedSwapTransaction!.satoshisAmount)".addSpaces() + " sats"
-                self.confirmFeesLabel.text = "\(self.tappedSwapTransaction!.onchainFees! + self.tappedSwapTransaction!.lightningFees!)".addSpaces() + " sats"
+                
+                self.confirmAmountLabel.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
+                self.confirmFeesLabel.text = "\((ongoingSwap.onchainFees ?? self.tappedSwapTransaction!.onchainFees ?? 0) + (ongoingSwap.lightningFees ?? self.tappedSwapTransaction!.lightningFees ?? 0))".addSpaces() + " sats"
                 self.confirmStatusSpinner.startAnimating()
                 self.confirmStatusLabel.text = "Checking"
                 self.switchView("confirm")
-                SwapManager.checkSwapStatus(self.tappedSwapTransaction!.boltzID!) { status in
+                SwapManager.checkSwapStatus(ongoingSwap.boltzID!) { dictionary in
                     DispatchQueue.main.async {
                         self.confirmStatusLabel.alpha = 1
                         self.confirmStatusSpinner.stopAnimating()
-                        if let receivedStatus = status {
-                            self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
+                        if dictionary != nil, let receivedStatus = dictionary!["status"] as? String {
+                            self.receivedStatusUpdate(status: receivedStatus, fullMessage: dictionary! as! [String : Any])
                         } else {
                             print("No status received.")
                         }
@@ -363,11 +369,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.resetIcon.alpha = 0
             
             if let swapID = self.coreVC?.bittrWallet.ongoingSwap?.boltzID {
-                SwapManager.checkSwapStatus(swapID) { status in
+                SwapManager.checkSwapStatus(swapID) { dictionary in
                     DispatchQueue.main.async {
                         self.confirmStatusLabel.alpha = 1
                         self.resetIcon.alpha = 1
-                        if let receivedStatus = status {
+                        if dictionary != nil, let receivedStatus = dictionary!["status"] as? String {
                             
                             self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
                             
@@ -525,7 +531,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             // Once the transaction.claimed status appears, it's the final status so we can stop spinning
             self.confirmStatusSpinner.stopAnimating()
             // We should also close the websocket connection and stop the background task
-            self.webSocketManager!.disconnect()
+            self.webSocketManager?.disconnect()
         }
     }
     

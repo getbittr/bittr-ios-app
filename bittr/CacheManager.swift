@@ -1135,73 +1135,79 @@ class CacheManager: NSObject {
         }
     }
     
+    static func dictionaryToSwap(_ dictionary:NSDictionary) -> Swap {
+        
+        let thisSwap = Swap()
+        if let dateID = dictionary["dateID"] as? String {
+            thisSwap.dateID = dateID
+        }
+        if let onchainToLightning = dictionary["onchainToLightning"] as? Bool {
+            thisSwap.onchainToLightning = onchainToLightning
+        }
+        if let satoshisAmount = dictionary["satoshisAmount"] as? Int {
+            thisSwap.satoshisAmount = satoshisAmount
+        }
+        if let createdInvoice = dictionary["createdInvoice"] as? String {
+            thisSwap.createdInvoice = createdInvoice
+        }
+        if let privateKey = dictionary["privateKey"] as? String {
+            thisSwap.privateKey = privateKey
+        }
+        if let boltzID = dictionary["boltzID"] as? String {
+            thisSwap.boltzID = boltzID
+        }
+        if let boltzOnchainAddress = dictionary["boltzOnchainAddress"] as? String {
+            thisSwap.boltzOnchainAddress = boltzOnchainAddress
+        }
+        if let boltzExpectedAmount = dictionary["boltzExpectedAmount"] as? Int {
+            thisSwap.boltzExpectedAmount = boltzExpectedAmount
+        }
+        if let onchainFees = dictionary["onchainFees"] as? Int {
+            thisSwap.onchainFees = onchainFees
+        }
+        if let lightningFees = dictionary["lightningFees"] as? Int {
+            thisSwap.lightningFees = lightningFees
+        }
+        if let feeHigh = dictionary["feeHigh"] as? Float {
+            thisSwap.feeHigh = feeHigh
+        }
+        if let sentOnchainTransactionID = dictionary["sentOnchainTransactionID"] as? String {
+            thisSwap.sentOnchainTransactionID = sentOnchainTransactionID
+        }
+        if let boltzOnchainAddress = dictionary["boltzOnchainAddress"] as? String {
+            thisSwap.boltzOnchainAddress = boltzOnchainAddress
+        }
+        if let refundPublicKey = dictionary["refundPublicKey"] as? String {
+            thisSwap.refundPublicKey = refundPublicKey
+        }
+        if let claimLeafOutput = dictionary["claimLeafOutput"] as? String {
+            thisSwap.claimLeafOutput = claimLeafOutput
+        }
+        if let refundLeafOutput = dictionary["refundLeafOutput"] as? String {
+            thisSwap.refundLeafOutput = refundLeafOutput
+        }
+        if let claimPublicKey = dictionary["claimPublicKey"] as? String {
+            thisSwap.claimPublicKey = claimPublicKey
+        }
+        if let preimage = dictionary["preimage"] as? String {
+            thisSwap.preimage = preimage
+        }
+        if let destinationAddress = dictionary["destinationAddress"] as? String {
+            thisSwap.destinationAddress = destinationAddress
+        }
+        if let boltzInvoice = dictionary["boltzInvoice"] as? String {
+            thisSwap.boltzInvoice = boltzInvoice
+        }
+        if let lockupTx = dictionary["lockupTx"] as? String {
+            thisSwap.lockupTx = lockupTx
+        }
+        return thisSwap
+    }
+    
     static func getLatestSwap() -> Swap? {
         if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
             
-            let thisSwap = Swap()
-            if let dateID = storedSwap["dateID"] as? String {
-                thisSwap.dateID = dateID
-            }
-            if let onchainToLightning = storedSwap["onchainToLightning"] as? Bool {
-                thisSwap.onchainToLightning = onchainToLightning
-            }
-            if let satoshisAmount = storedSwap["satoshisAmount"] as? Int {
-                thisSwap.satoshisAmount = satoshisAmount
-            }
-            if let createdInvoice = storedSwap["createdInvoice"] as? String {
-                thisSwap.createdInvoice = createdInvoice
-            }
-            if let privateKey = storedSwap["privateKey"] as? String {
-                thisSwap.privateKey = privateKey
-            }
-            if let boltzID = storedSwap["boltzID"] as? String {
-                thisSwap.boltzID = boltzID
-            }
-            if let boltzOnchainAddress = storedSwap["boltzOnchainAddress"] as? String {
-                thisSwap.boltzOnchainAddress = boltzOnchainAddress
-            }
-            if let boltzExpectedAmount = storedSwap["boltzExpectedAmount"] as? Int {
-                thisSwap.boltzExpectedAmount = boltzExpectedAmount
-            }
-            if let onchainFees = storedSwap["onchainFees"] as? Int {
-                thisSwap.onchainFees = onchainFees
-            }
-            if let lightningFees = storedSwap["lightningFees"] as? Int {
-                thisSwap.lightningFees = lightningFees
-            }
-            if let feeHigh = storedSwap["feeHigh"] as? Float {
-                thisSwap.feeHigh = feeHigh
-            }
-            if let sentOnchainTransactionID = storedSwap["sentOnchainTransactionID"] as? String {
-                thisSwap.sentOnchainTransactionID = sentOnchainTransactionID
-            }
-            if let boltzOnchainAddress = storedSwap["boltzOnchainAddress"] as? String {
-                thisSwap.boltzOnchainAddress = boltzOnchainAddress
-            }
-            if let refundPublicKey = storedSwap["refundPublicKey"] as? String {
-                thisSwap.refundPublicKey = refundPublicKey
-            }
-            if let claimLeafOutput = storedSwap["claimLeafOutput"] as? String {
-                thisSwap.claimLeafOutput = claimLeafOutput
-            }
-            if let refundLeafOutput = storedSwap["refundLeafOutput"] as? String {
-                thisSwap.refundLeafOutput = refundLeafOutput
-            }
-            if let claimPublicKey = storedSwap["claimPublicKey"] as? String {
-                thisSwap.claimPublicKey = claimPublicKey
-            }
-            if let preimage = storedSwap["preimage"] as? String {
-                thisSwap.preimage = preimage
-            }
-            if let destinationAddress = storedSwap["destinationAddress"] as? String {
-                thisSwap.destinationAddress = destinationAddress
-            }
-            if let boltzInvoice = storedSwap["boltzInvoice"] as? String {
-                thisSwap.boltzInvoice = boltzInvoice
-            }
-            if let lockupTx = storedSwap["lockupTx"] as? String {
-                thisSwap.lockupTx = lockupTx
-            }
+            let thisSwap = self.dictionaryToSwap(storedSwap)
             
             return thisSwap
         } else {

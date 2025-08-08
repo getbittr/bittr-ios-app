@@ -311,6 +311,26 @@ class TransactionViewController: UIViewController {
             transactionValue = CGFloat(self.tappedTransaction.received)/100000000
             balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
             self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
+        } else if self.tappedTransaction.lnDescription.contains("Swap ") {
+            // This is an incomplete Swap transaction. Either onchain or lightning.
+            
+            // Swap ID
+            self.swapIdView.alpha = 1
+            self.swapIdViewHeight.constant = 40
+            self.swapIDLabel.text = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription) ?? "Unavailable"
+            
+            // Description
+            self.descriptionView.alpha = 0
+            NSLayoutConstraint.deactivate([self.descriptionViewHeight])
+            self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.descriptionViewHeight])
+            
+            // Swap direction
+            if self.tappedTransaction.lnDescription.contains("onchain to lightning") {
+                self.tappedTransaction.swapDirection = 0
+            } else {
+                self.tappedTransaction.swapDirection = 1
+            }
         }
         
         self.changeColors()
@@ -396,9 +416,15 @@ class TransactionViewController: UIViewController {
                 swapVC.coreVC = self.coreVC
                 let tappedSwap = Swap()
                 tappedSwap.boltzID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription)!
-                tappedSwap.satoshisAmount = self.tappedTransaction.received
-                tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
-                tappedSwap.lightningFees = 0
+                if self.tappedTransaction.isSwap {
+                    tappedSwap.satoshisAmount = self.tappedTransaction.received
+                    tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
+                    tappedSwap.lightningFees = 0
+                } else {
+                    tappedSwap.satoshisAmount = self.tappedTransaction.sent - self.tappedTransaction.fee
+                    tappedSwap.onchainFees = 0
+                    tappedSwap.lightningFees = self.tappedTransaction.fee
+                }
                 tappedSwap.onchainToLightning = true
                 if self.tappedTransaction.swapDirection == 1 {
                     tappedSwap.onchainToLightning = false
