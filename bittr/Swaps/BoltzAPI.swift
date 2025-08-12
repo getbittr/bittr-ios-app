@@ -64,12 +64,13 @@ enum BoltzAPIError: Error {
 // MARK: - BoltzAPI Class
 
 class BoltzAPI {
-    static let baseURL = "https://api.regtest.getbittr.com/v2/swap/submarine/"
-    static let reverseBaseURL = "https://api.regtest.getbittr.com/v2/swap/reverse/"
+    static var baseURL: String {
+        return EnvironmentConfig.boltzBaseURL
+    }
     
     // Generic POST request method
     static func post<T: Codable, U: Codable>(endpoint: String, body: T, completion: @escaping (Result<U, BoltzAPIError>) -> Void) {
-        guard let url = URL(string: baseURL + endpoint) else {
+        guard let url = URL(string: baseURL + "/swap/submarine/" + endpoint) else {
             completion(.failure(.invalidURL))
             return
         }
@@ -110,7 +111,7 @@ class BoltzAPI {
     
     // Generic POST request method for reverse swaps
     static func postReverse<T: Codable, U: Codable>(endpoint: String, body: T, completion: @escaping (Result<U, BoltzAPIError>) -> Void) {
-        guard let url = URL(string: reverseBaseURL + endpoint) else {
+        guard let url = URL(string: baseURL + "/swap/reverse/" + endpoint) else {
             completion(.failure(.invalidURL))
             return
         }
@@ -161,7 +162,6 @@ class BoltzAPI {
     
     // Broadcast transaction method
     static func broadcastTransaction(transactionHex: String, completion: @escaping (Result<BroadcastResponse, BoltzAPIError>) -> Void) {
-        let baseURL = "https://api.regtest.getbittr.com/v2"
         guard let url = URL(string: "\(baseURL)/chain/BTC/transaction") else {
             completion(.failure(.invalidURL))
             return

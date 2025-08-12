@@ -12,8 +12,8 @@ import LDKNodeFFI
 
 class CoreViewController: UIViewController {
 
-    // 0 is Dev. 1 is Prod. ALSO change the network in LightningNodeService.
-    var devEnvironment = 0
+    // Environment is now automatically determined by build configuration
+    // No need to manually set devEnvironment - it's handled by EnvironmentConfig
     
     // Startup animation elements
     @IBOutlet weak var coin1: UIImageView!
@@ -131,15 +131,11 @@ class CoreViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Save environment key for switching between Dev and Production.
-        UserDefaults.standard.set(self.devEnvironment, forKey: "envkey")
+        // Environment is now handled by EnvironmentConfig based on build configuration
         
         // Load Bittr wallet details.
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        if let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
+        let deviceKey = EnvironmentConfig.cacheKey(for: "device")
+        if let deviceDict = UserDefaults.standard.value(forKey: deviceKey) as? NSDictionary {
             self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
         }
         

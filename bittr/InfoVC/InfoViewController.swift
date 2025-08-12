@@ -57,11 +57,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func getArticles() {
         
-        // TODO: Public?
-        var envUrl = "https://getbittr.com/api/articles"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envUrl = "https://getbittr.com/api/articles"
-        }
+        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/articles"
         
         let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
         

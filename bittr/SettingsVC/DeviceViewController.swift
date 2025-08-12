@@ -321,14 +321,9 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.peerSpinner.startAnimating()
         self.peerButton.isUserInteractionEnabled = false
         
-        // TODO: Public?
-        // .testnet and .bitcoin
-        let nodeIds = ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"]
-        let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
-        
         // Connect to Lightning peer.
-        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
-        let address = addresses[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
+        let nodeId = EnvironmentConfig.lightningNodeId
+        let address = EnvironmentConfig.lightningNodeAddress
         
         let connectTask = Task {
             do {

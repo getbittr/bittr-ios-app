@@ -221,11 +221,7 @@ extension CoreViewController {
         
         // Clear mnemonic from cache
         let defaults = UserDefaults.standard
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            defaults.removeObject(forKey: "mnemonic")
-        } else {
-            defaults.removeObject(forKey: "prodmnemonic")
-        }
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
         
         // Remove wallet from device and remove corresponding cached data.
         do {

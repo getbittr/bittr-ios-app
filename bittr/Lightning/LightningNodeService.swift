@@ -23,10 +23,9 @@ class LightningNodeService {
     private var didProceedBeyondPeerConnection = false
     private var coreVC:CoreViewController?
     
-    // In order to switch between Development and Production, change the network here between .testnet and .bitcoin. ALSO change devEnvironment in CoreViewController between 0 for Dev and 1 for Production.
     class var shared: LightningNodeService {
         struct Singleton {
-            static let instance = LightningNodeService(network: .regtest)
+            static let instance = LightningNodeService(network: EnvironmentConfig.ldkNetwork)
         }
         return Singleton.instance
     }
@@ -40,11 +39,7 @@ class LightningNodeService {
         
         try? FileManager.deleteLDKNodeLogLatestFile()
         
-        // TODO: Public?
-        var correctListeningAddresses = ["0.0.0.0:9735"]
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            correctListeningAddresses = ["0.0.0.0:19735"]
-        }
+        let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
         
         let config = Config(
             storageDirPath: storageManager.getDocumentsDirectory(),
@@ -52,12 +47,12 @@ class LightningNodeService {
             listeningAddresses: correctListeningAddresses,
             announcementAddresses: nil,
             nodeAlias: nil,
-            trustedPeers0conf: ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"],
+            trustedPeers0conf: ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
             probingLiquidityLimitMultiplier: UInt64(3),
             anchorChannelsConfig: AnchorChannelsConfig(
                 trustedPeersNoReserve: [
                     PublicKey("03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"),
-                    PublicKey("03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6")
+                    PublicKey("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12")
                 ], perChannelReserveSats: UInt64(1000)),
             sendingParameters: nil
         )
@@ -76,15 +71,15 @@ class LightningNodeService {
         
         switch network {
         case .bitcoin:
-            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.bitcoin)
-            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace, config: nil)
+            nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.bitcoin)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.bitcoinMempoolspace, config: nil)
         case .regtest:
-            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.regtest, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.regtest, config: nil)
         case .signet:
-            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.signet, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.signet, config: nil)
         case .testnet:
-            nodeBuilder.setGossipSourceRgs(rgsServerUrl: Constants.Config.RGSServerURLNetwork.testnet)
-            nodeBuilder.setChainSourceEsplora(serverUrl: Constants.Config.EsploraServerURLNetwork.testnet, config: nil)
+            nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.testnet)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: nil)
         }
         
         let ldkNode = try nodeBuilder.build()
@@ -109,20 +104,10 @@ class LightningNodeService {
                     let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
                     
                     // Create a BIP32 extended root key using the mnemonic and a nil password
-                    var bip32ExtendedRootKey:DescriptorSecretKey
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bip32ExtendedRootKey = DescriptorSecretKey(network: .regtest, mnemonic: mnemonic, password: nil)
-                    } else {
-                        bip32ExtendedRootKey = DescriptorSecretKey(network: .bitcoin, mnemonic: mnemonic, password: nil)
-                    }
+                    let bip32ExtendedRootKey = DescriptorSecretKey(network: EnvironmentConfig.isDevelopment ? .regtest : .bitcoin, mnemonic: mnemonic, password: nil)
                     
                     // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
-                    var bip84ExternalDescriptor:Descriptor
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .regtest)
-                    } else {
-                        bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: .bitcoin)
-                    }
+                    let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.isDevelopment ? .regtest : .bitcoin)
                     
                     // Get XPUB.
                     let descriptor = bip84ExternalDescriptor.description
@@ -140,12 +125,7 @@ class LightningNodeService {
                     }
                     
                     // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
-                    var bip84InternalDescriptor:Descriptor
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .regtest)
-                    } else {
-                        bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: .bitcoin)
-                    }
+                    let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
                     
                     // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
                     var wallet:Wallet
@@ -155,20 +135,11 @@ class LightningNodeService {
                         return
                     }
                     
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .regtest, connection: self.connection!)
-                    } else {
-                        wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: .bitcoin, connection: self.connection!)
-                    }
+                    wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
                     self.bdkWallet = wallet
                     
-                    // TODO: Public?
                     // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
-                    var electrumUrl = "ssl://electrum.blockstream.info:50002"
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        electrumUrl = "tcp://regtest.getbittr.com:19001"
-                    }
-                    let electrum = try ElectrumClient(url: electrumUrl)
+                    let electrum = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                     self.electrumClient = electrum
                     
                     print("Did initiate wallet and blockchain.")
@@ -240,14 +211,9 @@ class LightningNodeService {
         
         self.didProceedBeyondPeerConnection = false
         
-        // TODO: Public?
-        // .testnet and .bitcoin
-        let nodeIds = ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"]
-        let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
-        
         // Connect to Lightning peer.
-        let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
-        let address = addresses[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1] // Extract this from your peer string
+        let nodeId = EnvironmentConfig.lightningNodeId
+        let address = EnvironmentConfig.lightningNodeAddress
         
         let connectTask = Task {
             do {
@@ -538,11 +504,7 @@ class LightningNodeService {
     }
     
     func getEsploraClient() -> EsploraClient? {
-        var esploraUrl = Constants.Config.EsploraServerURLNetwork.Bitcoin.bitcoin_mempoolspace
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            esploraUrl = Constants.Config.EsploraServerURLNetwork.regtest
-        }
-        return EsploraClient(url: esploraUrl)
+        return EsploraClient(url: EnvironmentConfig.esploraURL)
     }
     
     func deleteDocuments() throws {
@@ -601,7 +563,7 @@ class LightningNodeService {
     
     func getPrivatePublicKeyForPath(path: String) throws -> (privateKeyHex: String, publicKeyHex: String) {
         // Determine network based on environment
-        let network: KeyDerivationNetwork = UserDefaults.standard.value(forKey: "envkey") as? Int == 0 ? .testnet : .mainnet
+        let network: KeyDerivationNetwork = EnvironmentConfig.isDevelopment ? .testnet : .mainnet
         
         // Create SimpleKeyDerivation instance with the stored mnemonic
         let keyDerivation = try SimpleKeyDerivation(mnemonic: CacheManager.getMnemonic()!, network: network)

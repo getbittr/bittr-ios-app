@@ -13,43 +13,25 @@ class CacheManager: NSObject {
     static func deleteClientInfo() {
         
         let defaults = UserDefaults.standard
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            defaults.removeObject(forKey: "device")
-            defaults.removeObject(forKey: "cache")
-            defaults.removeObject(forKey: "pin")
-            defaults.removeObject(forKey: "mnemonic")
-            defaults.removeObject(forKey: "lastaddress")
-            defaults.removeObject(forKey: "lightning")
-            self.resetFailedPinAttempts()
-        } else {
-            defaults.removeObject(forKey: "proddevice")
-            defaults.removeObject(forKey: "prodcache")
-            defaults.removeObject(forKey: "prodpin")
-            defaults.removeObject(forKey: "prodmnemonic")
-            defaults.removeObject(forKey: "prodlastaddress")
-            defaults.removeObject(forKey: "prodlightning")
-            self.resetFailedPinAttempts()
-        }
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "device"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "cache"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "pin"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lastaddress"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
+        self.resetFailedPinAttempts()
     }
     
     static func deleteCache() {
         
         let defaults = UserDefaults.standard
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            defaults.removeObject(forKey: "cache")
-        } else {
-            defaults.removeObject(forKey: "prodcache")
-        }
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "cache"))
     }
     
     static func deleteLightningTransactions() {
         
         let defaults = UserDefaults.standard
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            defaults.removeObject(forKey: "lightning")
-        } else {
-            defaults.removeObject(forKey: "prodlightning")
-        }
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
     }
     
     static func emptyImage() {
@@ -118,10 +100,7 @@ class CacheManager: NSObject {
     
     static func addIban(iban:IbanEntity) {
         
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
+        let envKey = EnvironmentConfig.deviceCacheKey
         
         if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             // Client already exists.
@@ -160,10 +139,7 @@ class CacheManager: NSObject {
     
     static func addEmailToken(ibanID:String, emailToken:String) {
         
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
+        let envKey = EnvironmentConfig.deviceCacheKey
         
         if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             
@@ -188,10 +164,7 @@ class CacheManager: NSObject {
     
     static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
         
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
+        let envKey = EnvironmentConfig.deviceCacheKey
         
         if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             
@@ -357,10 +330,7 @@ class CacheManager: NSObject {
     
     static func storeLightningTransaction(thisTransaction:Transaction) {
         
-        var envKey = "prodlightning"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "lightning"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "lightning")
         
         let defaults = UserDefaults.standard
         let existingCache = defaults.value(forKey: envKey) as? NSDictionary
@@ -384,10 +354,7 @@ class CacheManager: NSObject {
     
     static func getLightningTransactions() -> [Transaction]? {
         
-        var envKey = "prodlightning"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "lightning"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "lightning")
         
         let defaults = UserDefaults.standard
         let cachedData = defaults.value(forKey: envKey) as? NSDictionary
@@ -407,10 +374,7 @@ class CacheManager: NSObject {
     
     static func updateCachedData(data:Any, key:String) {
         
-        var envKey = "prodcache"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "cache"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "cache")
         
         let defaults = UserDefaults.standard
         let existingCache = defaults.value(forKey: envKey) as? NSDictionary
@@ -500,10 +464,7 @@ class CacheManager: NSObject {
     
     static func getCachedData(key:String) -> Any? {
         
-        var envKey = "prodcache"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "cache"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "cache")
         
         let defaults = UserDefaults.standard
         let cachedData = defaults.value(forKey: envKey) as? NSDictionary
@@ -579,10 +540,7 @@ class CacheManager: NSObject {
     
     static func storeInvoiceTimestamp(hash:String, timestamp:Int) {
         
-        var envKey = "prodhashes"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "hashes"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "hashes")
         
         let defaults = UserDefaults.standard
         let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
@@ -631,10 +589,7 @@ class CacheManager: NSObject {
     
     static func storeInvoiceDescription(hash:String, desc:String) {
         
-        var envKey = "proddescriptions"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "descriptions"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
         
         let defaults = UserDefaults.standard
         let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
@@ -654,10 +609,7 @@ class CacheManager: NSObject {
     
     static func storeTransactionNote(txid:String, note:String) {
         
-        var envKey = "prodtransactionnotes"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "transactionnotes"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
         
         let defaults = UserDefaults.standard
         let cachedTransactionNotes = defaults.value(forKey: envKey) as? NSDictionary
@@ -677,10 +629,7 @@ class CacheManager: NSObject {
     
     static func storePaymentFees(hash:String, fees:Int) {
         
-        var envKey = "prodlightningfees"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "lightningfees"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "lightningfees")
         
         let defaults = UserDefaults.standard
         let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
@@ -702,10 +651,7 @@ class CacheManager: NSObject {
     
     static func getInvoiceTimestamp(hash:String) -> Int {
         
-        var envKey = "prodhashes"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "hashes"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "hashes")
         
         let defaults = UserDefaults.standard
         let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
@@ -726,10 +672,7 @@ class CacheManager: NSObject {
     
     static func getInvoiceDescription(hash:String) -> String {
         
-        var envKey = "proddescriptions"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "descriptions"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
         
         let defaults = UserDefaults.standard
         let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
@@ -748,10 +691,7 @@ class CacheManager: NSObject {
     
     static func getLightningFees(hash:String) -> Int {
         
-        var envKey = "prodlightningfees"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "lightningfees"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "lightningfees")
         
         let defaults = UserDefaults.standard
         let cachedFees = defaults.value(forKey: envKey) as? NSDictionary
@@ -770,10 +710,7 @@ class CacheManager: NSObject {
     
     static func getTransactionNote(txid:String) -> String {
         
-        var envKey = "prodtransactionnotes"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "transactionnotes"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
         
         let defaults = UserDefaults.standard
         let cachedNotes = defaults.value(forKey: envKey) as? NSDictionary
@@ -792,10 +729,7 @@ class CacheManager: NSObject {
     
     static func storeMnemonic(mnemonic:String) {
         
-        var envKey = "prodmnemonic"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "mnemonic"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
         
         let defaults = UserDefaults.standard
         defaults.set(mnemonic, forKey: envKey)
@@ -803,10 +737,7 @@ class CacheManager: NSObject {
     
     static func getMnemonic() -> String? {
         
-        var envKey = "prodmnemonic"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "mnemonic"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
         
         let defaults = UserDefaults.standard
         let cachedMnemonic = defaults.value(forKey: envKey) as? String
@@ -820,10 +751,7 @@ class CacheManager: NSObject {
     
     static func storePin(pin:String) {
         
-        var envKey = "prodpin"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "pin"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "pin")
         
         let defaults = UserDefaults.standard
         defaults.set(pin, forKey: envKey)
@@ -831,10 +759,7 @@ class CacheManager: NSObject {
     
     static func getPin() -> String? {
         
-        var envKey = "prodpin"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "pin"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "pin")
         
         let defaults = UserDefaults.standard
         let cachedPin = defaults.value(forKey: envKey) as? String
@@ -848,10 +773,7 @@ class CacheManager: NSObject {
     
     static func storeTxoID(txoID:String) {
         
-        var envKey = "prodtxoid"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "txoid"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "txoid")
         
         let defaults = UserDefaults.standard
         defaults.set(txoID, forKey: envKey)
@@ -859,10 +781,7 @@ class CacheManager: NSObject {
     
     static func getTxoID() -> String? {
         
-        var envKey = "prodtxoid"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "txoid"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "txoid")
         
         let defaults = UserDefaults.standard
         let cachedTxoID = defaults.value(forKey: envKey) as? String
@@ -876,10 +795,7 @@ class CacheManager: NSObject {
     
     static func updateSentToBittr(txids:[String]) {
         
-        var envKey = "prodsenttobittr"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "senttobittr"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "senttobittr")
         
         let defaults = UserDefaults.standard
         let cachedSentToBittr = defaults.value(forKey: envKey) as? [String]
@@ -897,10 +813,7 @@ class CacheManager: NSObject {
     
     static func getSentToBittr() -> [String]? {
         
-        var envKey = "prodsenttobittr"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "senttobittr"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "senttobittr")
         
         let defaults = UserDefaults.standard
         let cachedSentToBittr = defaults.value(forKey: envKey) as? [String]
@@ -914,10 +827,7 @@ class CacheManager: NSObject {
     
     static func storeLastAddress(newAddress:String) {
         
-        var envKey = "prodlastaddress"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "lastaddress"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "lastaddress")
         
         let defaults = UserDefaults.standard
         defaults.set(newAddress, forKey: envKey)
@@ -925,10 +835,7 @@ class CacheManager: NSObject {
     
     static func getLastAddress() -> String? {
         
-        var envKey = "prodlastaddress"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "lastaddress"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "lastaddress")
         
         let defaults = UserDefaults.standard
         let cachedLastAddress = defaults.value(forKey: envKey) as? String
@@ -941,10 +848,7 @@ class CacheManager: NSObject {
     
     static func getFailedPinAttempts() -> Int {
         
-        var envKey = "prodfailedattempts"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "failedattempts"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
         
         let defaults = UserDefaults.standard
         let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
@@ -957,10 +861,7 @@ class CacheManager: NSObject {
     
     static func increaseFailedPinAttempts() {
         
-        var envKey = "prodfailedattempts"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "failedattempts"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
         
         let defaults = UserDefaults.standard
         let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
@@ -974,10 +875,7 @@ class CacheManager: NSObject {
     
     static func resetFailedPinAttempts() {
         
-        var envKey = "prodfailedattempts"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "failedattempts"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
         
         let defaults = UserDefaults.standard
         defaults.set(0, forKey: envKey)
@@ -1218,10 +1116,7 @@ class CacheManager: NSObject {
     // MARK: - Swap Index Cache
     
     static func getSwapIndex() -> Int {
-        var envKey = "prodswapindex"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "swapindex"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "swapindex")
         
         let defaults = UserDefaults.standard
         let cachedSwapIndex = defaults.value(forKey: envKey) as? Int
@@ -1236,10 +1131,7 @@ class CacheManager: NSObject {
     }
     
     static func incrementSwapIndex() -> Int {
-        var envKey = "prodswapindex"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "swapindex"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "swapindex")
         
         let defaults = UserDefaults.standard
         let currentIndex = getSwapIndex()
@@ -1250,10 +1142,7 @@ class CacheManager: NSObject {
     }
     
     static func resetSwapIndex() {
-        var envKey = "prodswapindex"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "swapindex"
-        }
+        let envKey = EnvironmentConfig.cacheKey(for: "swapindex")
         
         let defaults = UserDefaults.standard
         defaults.set(0, forKey: envKey)

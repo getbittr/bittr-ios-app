@@ -100,7 +100,6 @@
 		05D5D0E72A66825000A1E771 /* LightningNodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* LightningNodeService.swift */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
 		05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */; };
-		05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0ED2A66852D00A1E771 /* Constants.swift */; };
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
@@ -127,6 +126,7 @@
 		3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379160592E1D7C6600024560 /* Bip39Words.swift */; };
 		379160602E1D99D300024560 /* MnemonicTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3791605C2E1D99D300024560 /* MnemonicTextField.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
+		37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
 		37DC0C4A2E1971B7004E1BE8 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 37DC0C492E1971B7004E1BE8 /* P256K */; };
@@ -264,7 +264,6 @@
 		05D5D0E62A66825000A1E771 /* LightningNodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningNodeService.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
 		05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileManager+Extensions.swift"; sourceTree = "<group>"; };
-		05D5D0ED2A66852D00A1E771 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E4834F2D29049D007A5834 /* ValueViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValueViewController.swift; sourceTree = "<group>"; };
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
@@ -289,6 +288,7 @@
 		379160592E1D7C6600024560 /* Bip39Words.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bip39Words.swift; sourceTree = "<group>"; };
 		3791605C2E1D99D300024560 /* MnemonicTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MnemonicTextField.swift; sourceTree = "<group>"; };
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
+		37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentConfig.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -590,6 +590,7 @@
 		05C3C0B429CCBFDD00C1E695 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */,
 				05980B532A46F7E4001F312F /* BittrWallet.swift */,
 				05980B512A46F76E001F312F /* IbanEntity.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
@@ -610,7 +611,6 @@
 				05D5D0E62A66825000A1E771 /* LightningNodeService.swift */,
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
 				05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */,
-				05D5D0ED2A66852D00A1E771 /* Constants.swift */,
 				05A965C12A6FBE1F00265BE6 /* MondayError.swift */,
 			);
 			path = Lightning;
@@ -698,6 +698,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 05C3C0AB29CCB55800C1E695 /* Build configuration list for PBXNativeTarget "bittr" */;
 			buildPhases = (
+				37A484C02E4BAF9A0027A348 /* ShellScript */,
 				05C3C07D29CCB55600C1E695 /* Sources */,
 				05C3C07E29CCB55600C1E695 /* Frameworks */,
 				05C3C07F29CCB55600C1E695 /* Resources */,
@@ -859,6 +860,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		37A484C02E4BAF9A0027A348 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+				"",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\n\n# Script to set environment based on git branch\n# This script should be run as a build phase in Xcode\n\n# Get the current branch name\nBRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)\n\n# Set environment based on branch\nif [[ \"$BRANCH_NAME\" == \"develop\" || \"$BRANCH_NAME\" == \"upgrade\" ]]; then\n    echo \"Setting environment to PRODUCTION for branch: $BRANCH_NAME\"\n    ENVIRONMENT=\"production\"\n    BUNDLE_ID=\"com.bittr.bittr\"\n    APP_NAME=\"bittr\"\nelse\n    echo \"Setting environment to DEVELOPMENT for branch: $BRANCH_NAME\"\n    ENVIRONMENT=\"development\"\n    BUNDLE_ID=\"com.bittr.bittrRegtest\"\n    APP_NAME=\"bittrRegtest\"\nfi\n\n# Use SRCROOT if available (Xcode build), otherwise use current directory\nTARGET_DIR=\"${SRCROOT:-$(pwd)}/bittr\"\n\n# Create a simple environment file that can be read at runtime\necho \"$ENVIRONMENT\" > \"$TARGET_DIR/environment.txt\"\n\n# Modify the Info.plist file directly\nINFO_PLIST=\"$TARGET_DIR/Info.plist\"\n\nif [ -f \"$INFO_PLIST\" ]; then\n    # Use PlistBuddy to modify the Info.plist\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleIdentifier $BUNDLE_ID\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName $APP_NAME\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleName $APP_NAME\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :ENVIRONMENT $ENVIRONMENT\" \"$INFO_PLIST\" 2>/dev/null || true\n    \n    echo \"Modified Info.plist with new bundle ID and app name\"\nelse\n    echo \"Warning: Info.plist not found at $INFO_PLIST\"\nfi\n\necho \"Environment set to: $ENVIRONMENT\"\necho \"Bundle ID set to: $BUNDLE_ID\"\necho \"App name set to: $APP_NAME\"\n";
+		};
 		BDB9C584C6434C5EA1249EE8 /* Upload Debug Symbols to Sentry */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -969,7 +989,6 @@
 				059704A72E43515300B56690 /* BitcoinValue.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
-				05D5D0EE2A66852D00A1E771 /* Constants.swift in Sources */,
 				05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */,
 				05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */,
 				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,
@@ -985,6 +1004,7 @@
 				0521712C2CB41D37006C5663 /* InfoVCLanguage.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
+				37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */,
 				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
 				05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */,
 			);
@@ -1070,7 +1090,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtest.BittrWidget";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -1103,7 +1123,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtest.BittrWidget";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1247,7 +1267,7 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "bittr regtest";
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
@@ -1289,7 +1309,7 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "bittr regtest";
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";

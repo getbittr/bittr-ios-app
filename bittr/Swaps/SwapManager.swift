@@ -104,7 +104,7 @@ class SwapManager: NSObject {
                 return
             }
             
-            let webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
+            let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
             
             // Create POST API call.
             let parameters: [String: Any] = [
@@ -118,10 +118,7 @@ class SwapManager: NSObject {
                 ]
             ]
 
-            var apiURL = "https://api.boltz.exchange/v2"
-            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                apiURL = "https://api.regtest.getbittr.com/v2"
-            }
+            let apiURL = EnvironmentConfig.boltzBaseURL
             
             Task {
                 await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: "POST") { result in
@@ -329,10 +326,7 @@ class SwapManager: NSObject {
          } */
         
         // Create GET API call.
-        var apiURL = "https://api.boltz.exchange/v2"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            apiURL = "https://api.regtest.getbittr.com/v2"
-        }
+        let apiURL = EnvironmentConfig.boltzBaseURL
     
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/\(swapID)", parameters: nil, getOrPost: "GET") { result in
@@ -400,11 +394,7 @@ class SwapManager: NSObject {
         }
         
         
-        // TODO: Public?
-        var webhookURL = "https://getbittr.com/api/webhook/boltz/\(deviceToken)"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            webhookURL = "https://model-arachnid-viable.ngrok-free.app/webhook/boltz/\(deviceToken)"
-        }
+        let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
         
         let parameters: [String: Any] = [
             "from": "BTC",
@@ -419,10 +409,7 @@ class SwapManager: NSObject {
             ]
         ]
         
-        var apiURL = "https://api.boltz.exchange/v2"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            apiURL = "https://api.regtest.getbittr.com/v2"
-        }
+        let apiURL = EnvironmentConfig.boltzBaseURL
         
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: "POST") { result in
