@@ -1,0 +1,341 @@
+//
+//  SettingsViewController.swift
+//  bittr
+//
+//  Created by Tom Melters on 21/04/2023.
+//
+
+import UIKit
+import LDKNode
+
+class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+
+    // UI elements
+    @IBOutlet weak var settingsTableView: UITableView!
+    @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var appVersion: UILabel!
+    
+    // Variables
+    var coreVC:CoreViewController?
+    var tappedUrl:String?
+    let settings = [["label":"getsupport", "icon":"envelope", "id":"support"],["label":"restorewallet", "icon":"banknote", "id":"restore"],["label":"privacypolicy", "icon":"checkmark.shield", "id":"privacy"],["label":"termsandconditions", "icon":"book.pages", "id":"terms"],["label":"currency", "icon":"dollarsign.circle", "id":"currency"],["label":"walletandbalance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]]
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        self.setWords()
+        
+        // Table view
+        settingsTableView.delegate = self
+        settingsTableView.dataSource = self
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        self.changeColors()
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
+        settingsTableViewHeight.constant = CGFloat(settings.count * 60)
+        
+        return settings.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let cell = tableView.dequeueReusableCell(withIdentifier: "SettingsCell", for: indexPath) as? SettingsTableViewCell
+        
+        if let actualCell = cell {
+            
+            actualCell.layer.zPosition = CGFloat(indexPath.row)
+            actualCell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
+            actualCell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
+            actualCell.settingsCardLabel.text = Language.getWord(withID: self.settings[indexPath.row]["label"] ?? "Unnamed")
+            actualCell.settingsButton.accessibilityIdentifier = self.settings[indexPath.row]["id"] ?? ""
+            
+            if self.settings[indexPath.row]["id"] == "currency" {
+                actualCell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
+            } else {
+                actualCell.currencyLabel.text = ""
+            }
+            
+            return actualCell
+        }
+        
+        return UITableViewCell()
+    }
+    
+    @IBAction func settingsTapped(_ sender: UIButton) {
+        
+        if sender.accessibilityIdentifier == "privacy" {
+            self.tappedUrl = "https://getbittr.com/privacy-policy"
+            self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
+        } else if sender.accessibilityIdentifier == "terms" {
+            self.tappedUrl = "https://getbittr.com/terms-and-conditions"
+            self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
+        } else if sender.accessibilityIdentifier == "support" {
+            self.tappedUrl = "https://getbittr.com/support"
+            self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
+        } else if sender.accessibilityIdentifier == "restore" {
+            
+            if self.coreVC != nil, !self.coreVC!.walletHasSynced {
+                if self.coreVC!.resettingPin {
+                    // The user wants to remove the wallet from the Reset PIN view.
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [nil, #selector(self.walletRemoveAlert)])
+                } else {
+                    // The wallet is syncing.
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            } else if self.coreVC != nil {
+                // Wallet is ready
+                Task {
+                    let channels = try await LightningNodeService.shared.listChannels()
+                    DispatchQueue.main.async {
+                        if channels.count > 0 {
+                            // Check if we've recently initiated channel closure
+                            let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
+                            let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
+                            let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
+                            
+                            // Stop spinner
+                            self.coreVC!.genericSpinner.stopAnimating()
+                            self.coreVC!.fullViewCover.alpha = 0
+                            
+                            // If channel closure was initiated within the last 30 minutes, allow reset
+                            if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
+                                print("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                                // Allow wallet reset since channel is in closing process
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                            } else {
+                                // Clear old channel closing state if it's been too long
+                                if channelClosingInitiated && timeSinceClosure >= 120 {
+                                    UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                                    UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                                }
+                                
+                                // Wallet cannot be restored with open channels.
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                            }
+                        } else {
+                            // Clear channel closing state since no channels exist
+                            UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                            UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                            
+                            if self.coreVC!.resettingPin {
+                                // We're removing the wallet without signing in.
+                                self.walletRestoreConfirmed()
+                            } else {
+                                // Retore wallet.
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                            }
+                        }
+                    }
+                }
+            }
+        } else if sender.accessibilityIdentifier == "currency" {
+            let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+            let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
+                
+                UserDefaults.standard.set("€", forKey: "currency")
+                self.coreVC?.homeVC?.changeCurrency()
+                self.settingsTableView.reloadData()
+            }
+            let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
+                
+                UserDefaults.standard.set("CHF", forKey: "currency")
+                self.coreVC?.homeVC?.changeCurrency()
+                self.settingsTableView.reloadData()
+            }
+            let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
+            actionSheet.addAction(eurOption)
+            actionSheet.addAction(chfOption)
+            actionSheet.addAction(cancelAction)
+            present(actionSheet, animated: true, completion: nil)
+        } else if sender.accessibilityIdentifier == "wallets" {
+            if let actualCoreVC = self.coreVC {
+                if actualCoreVC.walletHasSynced == false {
+                    // Wallet isn't ready.
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    return
+                }
+            }
+            self.coreVC?.homeVC?.moveButtonTapped()
+        } else if sender.accessibilityIdentifier == "device" {
+            self.performSegue(withIdentifier: "SettingsToDevice", sender: self)
+        }
+    }
+    
+    @objc func walletRestoreAlert() {
+        self.hideAlert()
+        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreConfirmed)])
+    }
+    
+    @objc func walletRestoreConfirmed() {
+        self.hideAlert()
+        if let actualCoreVC = self.coreVC {
+            actualCoreVC.resetApp(nodeIsRunning: true)
+        }
+    }
+    
+    @objc func walletRemoveAlert() {
+        self.hideAlert()
+        
+        if self.coreVC != nil, !self.coreVC!.walletHasSynced, self.coreVC!.resettingPin {
+            // The user wishes to remove the wallet from the device, without signing in.
+            
+            // Activate spinner.
+            self.coreVC!.fullViewCover.alpha = 0.8
+            self.coreVC!.genericSpinner.startAnimating()
+            
+            // Sync wallet.
+            self.coreVC!.startLightning()
+        }
+    }
+    
+    @objc func closeChannelAlert() {
+        self.hideAlert()
+        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelConfirmed)])
+    }
+    
+    @objc func closeChannelConfirmed() {
+        self.hideAlert()
+        Task {
+            do {
+                let closingChannel = try await LightningNodeService.shared.listChannels()[0]
+                try LightningNodeService.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                
+                // Mark that we've initiated channel closure
+                UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+                
+                // Successful channel closure.
+                DispatchQueue.main.async {
+                    self.didCloseChannel()
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.proceedToRestoreAfterChannelClose)])
+                }
+            } catch {
+                // Unsuccessful channel closure.
+                print("❌ [DEBUG] Settings - Channel closure failed with error: \(error)")
+                print("❌ [DEBUG] Settings - Error type: \(type(of: error))")
+                print("❌ [DEBUG] Settings - Error description: \(error.localizedDescription)")
+                
+                // Log additional error details if available
+                if let nsError = error as NSError? {
+                    print("❌ [DEBUG] Settings - NSError domain: \(nsError.domain)")
+                    print("❌ [DEBUG] Settings - NSError code: \(nsError.code)")
+                    print("❌ [DEBUG] Settings - NSError userInfo: \(nsError.userInfo)")
+                }
+                
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                }
+            }
+        }
+    }
+    
+    @objc func forceCloseChannel() {
+        self.hideAlert()
+        Task {
+            do {
+                let closingChannel = try await LightningNodeService.shared.listChannels()[0]
+                
+                // Try force close (unilateral closure)
+                print("🔍 [DEBUG] Settings - Attempting force close for channel: \(closingChannel.userChannelId)")
+                try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                
+                // Mark that we've initiated channel closure
+                UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+                
+                // Successful force close
+                DispatchQueue.main.async {
+                    self.didCloseChannel()
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.proceedToRestoreAfterChannelClose)])
+                }
+                
+            } catch {
+                print("❌ [DEBUG] Settings - Force close failed: \(error)")
+                print("❌ [DEBUG] Settings - Force close error type: \(type(of: error))")
+                print("❌ [DEBUG] Settings - Force close error description: \(error.localizedDescription)")
+                
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
+        }
+    }
+    
+    @objc func proceedToRestoreAfterChannelClose() {
+        self.hideAlert()
+        // Trigger the restore wallet flow
+        self.walletRestoreAlert()
+    }
+    
+    func didCloseChannel() {
+        print("🔍 [DEBUG] Settings - didCloseChannel() - Clearing channel cache and triggering sync")
+        
+        self.coreVC!.bittrWallet.lightningChannels = [ChannelDetails]()
+        self.coreVC!.bittrWallet.bittrChannel = nil
+        self.coreVC!.bittrWallet.satoshisLightning = 0
+        
+        if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
+            self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
+        }
+        
+        // Trigger a fresh sync to get updated channel data
+        Task {
+            do {
+                print("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
+                try LightningNodeService.shared.syncWallets()
+                
+                // Get fresh channel data
+                let updatedChannels = try await LightningNodeService.shared.listChannels()
+                print("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
+                
+                DispatchQueue.main.async {
+                    // Update the cached channel data
+                    self.coreVC!.bittrWallet.lightningChannels = updatedChannels
+                    
+                    // Update balance if needed
+                    if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
+                        self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
+                    }
+                    
+                    print("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")
+                }
+            } catch {
+                print("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
+            }
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "SettingsToWebsite" {
+            
+            let websiteVC = segue.destination as? WebsiteViewController
+            if let actualWebsiteVC = websiteVC {
+                if let actualTappedUrl = self.tappedUrl {
+                    
+                    actualWebsiteVC.tappedUrl = actualTappedUrl
+                }
+            }
+        } else if segue.identifier == "SettingsToDevice" {
+            if let deviceVC = segue.destination as? DeviceViewController {
+                if let actualCoreVC = self.coreVC {
+                    deviceVC.coreVC = actualCoreVC
+                    if let actualHomeVC = actualCoreVC.homeVC {
+                        deviceVC.homeVC = actualHomeVC
+                    }
+                }
+            }
+        }
+    }
+    
+    @objc func changeColors() {
+        
+        self.appVersion.textColor = Colors.getColor("appversion")
+    }
+    
+}

@@ -29,7 +29,7 @@ extension CoreViewController {
                     if self.wasNotified == false {
                         // App was open when notification came in.
                         self.varSpecialData = specialData
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
@@ -47,7 +47,7 @@ extension CoreViewController {
                     self.wasNotified = true
                     self.lightningNotification = notification
                     
-                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
                 // No special key, so this is a normal notification.
@@ -71,7 +71,7 @@ extension CoreViewController {
         self.hideAlert()
         
         // TODO: Public?
-        let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
+        let nodeIds = ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"]
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
         
         print("Did start payout process.")
@@ -102,14 +102,14 @@ extension CoreViewController {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else if peers[0].nodeId == nodeId, peers[0].isConnected == false {
                     DispatchQueue.main.async {
                         self.pendingSpinner.stopAnimating()
                         self.pendingView.alpha = 0
                         self.blackSignupBackground.alpha = 0
-                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else {
                     
@@ -122,7 +122,7 @@ extension CoreViewController {
                         print("Did create invoice.")
                         
                         DispatchQueue.main.async {
-                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice) {
+                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description) {
                                 let newTimestamp = Int(Date().timeIntervalSince1970)
                                 CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
                                 CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
@@ -133,7 +133,7 @@ extension CoreViewController {
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         print("Did sign message.")
                         
-                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice, signature: lightningSignature, pubkey: pubkey)
+                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         
                         DispatchQueue.main.async {
@@ -163,11 +163,10 @@ extension CoreViewController {
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
-                            
                             if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                             } else {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
                             }
                         }
                     }
@@ -178,7 +177,7 @@ extension CoreViewController {
             self.pendingSpinner.stopAnimating()
             self.pendingView.alpha = 0
             self.blackSignupBackground.alpha = 0
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
         }
     }
     
@@ -188,8 +187,8 @@ extension CoreViewController {
         
         // TODO: Public?
         // .testnet and .bitcoin
-        let nodeIds = ["026d74bf2a035b8a14ea7c59f6a0698d019720e812421ec02762fdbf064c3bc326", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"]
-        let addresses = ["109.205.181.232:9735", "86.104.228.24:9735"]
+        let nodeIds = ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"]
+        let addresses = ["31.58.51.17:9735", "31.58.51.17:9735"]
         
         // Connect to Lightning peer.
         let nodeId = nodeIds[UserDefaults.standard.value(forKey: "envkey") as? Int ?? 1]
@@ -245,133 +244,221 @@ extension CoreViewController {
         }
     }
     
-    @objc func ldkEventReceived(notification:NSNotification) {
+    func ldkEventReceived(event:LDKNode.Event) {
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            // Check for the event information.
-            if let event = userInfo["event"] as? LDKNode.Event {
-                print("Event found. \(event)")
+        print("Event found. \(event)")
+        
+        if CacheManager.hasHandledEvent(event: "\(event)") {
+            // Event has already been handled.
+            print("Event was handled before.")
+        } else {
+            // New event.
+            switch event {
+            case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
-                // Examples of receivable event notifications:
-                
-                // channelPending(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", formerTemporaryChannelId: "89797af9337335cd2400bdc1e37d1abefc114081fa7912e4e780b3d13254768d", counterpartyNodeId: "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12", fundingTxo: LDKNode.OutPoint(txid: "8a1127134c0729e4336ccf0a2ed0ee55f32dedfd875ce7ade23200923ebafb7b", vout: 0))
-                
-                // channelReady(channelId: "7bfbba3e920032e2ade75c87fded2df355eed02e0acf6c33e429074c1327118a", userChannelId: "59143365509798668266523725445259806253", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
-                
-                // paymentReceived(paymentHash: "3ca1c72b360d1d1124ff0e9dafcce7165b79c342d0f159ac431088b8c5487d6c", amountMsat: 30745000)
-                
-                // channelClosed(channelId: "df5d5b9b7d10c4e12bb01f50a8fcffc6112b612dcbecdbcf65bb3fea8b89ee32", userChannelId: "46771750509148822319613831140583118455", counterpartyNodeId: Optional("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"))
-                
-                if CacheManager.hasHandledEvent(event: "\(event)") {
-                    // Event has already been handled.
-                    print("Event was handled before.")
+                if self.varSpecialData != nil {
+                    // This is a Bittr payment, which is being handled separately.
+                    CacheManager.didHandleEvent(event: "\(event)")
                     return
-                } else if "\(event)".contains("paymentReceived") {
+                }
+                
+                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
-                    if let actualSpecialData = self.varSpecialData {
-                        // This is a Bittr payment, which is being handled separately.
+                    print("Did receive payment details.")
+                    
+                    let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, swapTransaction: nil, coreVC: self, bittrTransactions: nil)
+                    thisTransaction.isBittr = true
+                    thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
+                    
+                    self.receivedBittrTransaction = thisTransaction
+                    
+                    DispatchQueue.main.async {
                         CacheManager.didHandleEvent(event: "\(event)")
-                        return
-                    }
-                    
-                    let paymentHash = "\(event)".split(separator: ",")[1].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " paymentHash: ", with: "")
-                    print("Did extract payment hash. \(paymentHash)")
-                    
-                    if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                        
-                        print("Did receive payment details.")
-                        
-                        let thisTransaction = Transaction()
-                        thisTransaction.isBittr = false
-                        thisTransaction.isLightning = true
-                        thisTransaction.id = paymentDetails.id
-                        thisTransaction.sent = 0
-                        thisTransaction.received = Int(paymentDetails.amountMsat ?? 0)/1000
-                        thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                        thisTransaction.confirmations = 0
-                        thisTransaction.height = 0
-                        thisTransaction.fee = 0
-                        
-                        self.receivedBittrTransaction = thisTransaction
-                        DispatchQueue.main.async {
-                            CacheManager.didHandleEvent(event: "\(event)")
-                            self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
+                        self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
+                        if !CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     }
-                } else if "\(event)".contains("channelClosed") {
-                    
-                    DispatchQueue.main.async {
-                        
-                        CacheManager.didHandleEvent(event: "\(event)")
-                        let notificationDict:[String: Any] = ["question":Language.getWord(withID: "closedlightningchannel"),"answer":Language.getWord(withID: "closedlightningchannel2")]
-                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
-                    }
-                } else if "\(event)".contains("channelPending") {
-                    
+                }
+            case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: _):
+                
+                DispatchQueue.main.async {
                     CacheManager.didHandleEvent(event: "\(event)")
-                    
-                    let fundingTxo = "\(event)".split(separator: ",")[4].replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: " fundingTxo: LDKNode.OutPoint(txid: ", with: "")
-                    var depositCodes = [String]()
-                    for eachIbanEntity in self.client.ibanEntities {
-                        if eachIbanEntity.yourUniqueCode != "" {
-                            depositCodes += [eachIbanEntity.yourUniqueCode]
-                        }
-                    }
-                    
-                    DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
-                        print("Did wait to start API call.")
-                        
-                        Task {
-                            do {
-                                let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [fundingTxo], depositCodes: depositCodes)
-                                print("Bittr transactions: \(bittrApiTransactions.count)")
-                                
-                                if bittrApiTransactions.count == 1 {
-                                    for eachTransaction in bittrApiTransactions {
-                                        if eachTransaction.txId == fundingTxo {
-                                            DispatchQueue.main.async {
-                                                
-                                                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
-                                                
-                                                self.receivedBittrTransaction = thisTransaction
-                                                self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
-                                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
-                                            }
-                                        }
-                                    }
-                                }
-                            } catch {
-                                print("Bittr error: \(error.localizedDescription)")
-                            }
-                        }
+                    self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: Language.getWord(withID: "closedlightningchannel2"), type: nil)
+                }
+            case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
+                
+                CacheManager.didHandleEvent(event: "\(event)")
+                
+                var depositCodes = [String]()
+                for eachIbanEntity in self.bittrWallet.ibanEntities {
+                    if eachIbanEntity.yourUniqueCode != "" {
+                        depositCodes += [eachIbanEntity.yourUniqueCode]
                     }
                 }
                 
-            } else {
-                print("No event.")
+                DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
+                    print("Did wait to start API call.")
+                    
+                    Task {
+                        do {
+                            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [fundingTxo.txid], depositCodes: depositCodes)
+                            print("Bittr transactions: \(bittrApiTransactions.count)")
+                            
+                            if bittrApiTransactions.count == 1 {
+                                for eachTransaction in bittrApiTransactions {
+                                    if eachTransaction.txId == fundingTxo.txid {
+                                        DispatchQueue.main.async {
+                                            
+                                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, swapTransaction: nil, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                            
+                                            self.receivedBittrTransaction = thisTransaction
+                                            self.addNewTransactionToHomeVC(newTransaction: thisTransaction)
+                                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                                        }
+                                    }
+                                }
+                            }
+                        } catch {
+                            print("Bittr error: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            case .paymentSuccessful(paymentId: _, paymentHash: _, paymentPreimage: _, feePaidMsat: _):
+                return
+            case .paymentFailed(paymentId: _, paymentHash: _, reason: _):
+                return
+            case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):
+                return
+            case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
+                return
+            case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
+                return
             }
         }
     }
     
     func addNewTransactionToHomeVC(newTransaction:Transaction) {
         
-        if let actualHomeVC = self.homeVC {
+        if self.homeVC != nil {
             
             // Add payment to HomeVC transactions table.
-            actualHomeVC.setTransactions += [newTransaction]
-            actualHomeVC.setTransactions.sort { transaction1, transaction2 in
-                transaction1.timestamp > transaction2.timestamp
-            }
-            actualHomeVC.homeTableView.reloadData()
-            
-            // Update HomeVC balance.
-            actualHomeVC.coreVC?.lightningBalanceInSats += newTransaction.received
-            actualHomeVC.setTotalSats(updateTableAfterConversion: false)
+            self.homeVC!.addTransaction(newTransaction)
             
             // Add payment to channel details.
-            actualHomeVC.coreVC?.bittrChannel?.received += newTransaction.received
+            self.bittrWallet.bittrChannel?.received += (newTransaction.received - newTransaction.sent)
         }
+    }
+    
+    @objc func handleSwapNotificationFromBackground(notification: NSNotification) {
+        
+        // Prevent double handling
+        if self.isHandlingSwapNotification {
+            print("Already handling swap notification, skipping")
+            return
+        }
+        
+        if let userInfo = notification.userInfo as? [String: Any],
+           let swapID = userInfo["swap_id"] as? String {
+            
+            print("Received swap notification from background for ID: \(swapID)")
+            
+            // Check if SwapViewController is already open - if so, ignore the notification
+            if self.isSwapViewControllerOpen() {
+                print("SwapViewController is already open, ignoring notification")
+                return
+            }
+            
+            // Set flag to prevent double handling
+            self.isHandlingSwapNotification = true
+            
+            // Check if user is signed in (PIN has been entered)
+            if self.didBecomeVisible == true {
+                // User is signed in, handle notification immediately
+                self.handleSwapNotificationImmediately(swapID: swapID, userInfo: userInfo)
+            } else {
+                // User hasn't signed in yet, store notification for later
+                self.needsToHandleNotification = true
+                self.wasNotified = true
+                self.lightningNotification = notification
+                
+                // Reset the double handling flag since we're storing for later
+                self.isHandlingSwapNotification = false
+                
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        }
+    }
+    
+    private func handleSwapNotificationImmediately(swapID: String, userInfo: [String: Any]) {
+        // Load swap details from file
+        if (self.bittrWallet.ongoingSwap ?? CacheManager.getLatestSwap()) != nil {
+            print("Loaded swap details from background.")
+            
+            // Clear the notification handling flag and hide pending view
+            self.needsToHandleNotification = false
+            self.pendingSpinner.stopAnimating()
+            self.pendingView.alpha = 0
+            self.blackSignupBackground.alpha = 0
+            
+            // Reset the double handling flag
+            self.isHandlingSwapNotification = false
+            
+            // Go directly to swap screen without showing alert
+            DispatchQueue.main.async {
+                self.openSwapViewController()
+            }
+        } else {
+            // Could not load swap details, clear the notification handling flag
+            self.needsToHandleNotification = false
+            self.pendingSpinner.stopAnimating()
+            self.pendingView.alpha = 0
+            self.blackSignupBackground.alpha = 0
+            
+            // Reset the double handling flag
+            self.isHandlingSwapNotification = false
+        }
+    }
+    
+    @objc func openSwapViewController() {
+        // Use the existing pending swap functionality
+        // The swap details are already stored in ongoingSwapDictionary
+        // We just need to present the SwapViewController and it will handle the pending swap
+        
+        // Try to present through HomeViewController using the existing segue
+        if let homeVC = self.homeVC {
+            homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
+            
+            // After a short delay, trigger the swap button tap to go directly to swap
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if let moveVC = homeVC.presentedViewController as? MoveViewController {
+                    // Set a flag to indicate this is from a background notification
+                    moveVC.isFromBackgroundNotification = true
+                    moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
+                }
+            }
+        }
+    }
+    
+    private func isSwapViewControllerOpen() -> Bool {
+        // Check if SwapViewController is currently presented in the view hierarchy
+        if let homeVC = self.homeVC {
+            // Check if HomeViewController has a presented view controller
+            if let presentedVC = homeVC.presentedViewController {
+                // Check if it's MoveViewController
+                if let moveVC = presentedVC as? MoveViewController {
+                    // Check if MoveViewController has a presented view controller (SwapViewController)
+                    if let swapVC = moveVC.presentedViewController as? SwapViewController {
+                        return true
+                    }
+                }
+                // Check if it's directly SwapViewController
+                if presentedVC is SwapViewController {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
 }

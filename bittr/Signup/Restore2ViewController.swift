@@ -11,6 +11,7 @@ class Restore2ViewController: UIViewController, UITextFieldDelegate {
 
     // Set pin for restored wallet.
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,11 +20,15 @@ class Restore2ViewController: UIViewController, UITextFieldDelegate {
     func nextButtonTapped(enteredPin:String) {
         
         if enteredPin.count > 3 {
-            let notificationDict:[String: Any] = ["page":"-4"]
+            
+            self.signupVC?.enteredPin = enteredPin
+            self.signupVC?.moveToPage(0)
+            
+            /*let notificationDict:[String: Any] = ["page":"-4"]
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
             
             let pinNotificationDict:[String: Any] = ["previouspin":enteredPin]
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "previouspin"), object: nil, userInfo: pinNotificationDict) as Notification)
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "previouspin"), object: nil, userInfo: pinNotificationDict) as Notification)*/
         }
     }
     

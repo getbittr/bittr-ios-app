@@ -18,9 +18,7 @@ extension CoreViewController {
                 
                 let headerText = notificationData["header_text"] as? String ?? "oops"
                 let bodyText = notificationData["body_text"] as? String ?? Language.getWord(withID: "bittrnotificationfail")
-                
-                let notificationDict:[String: Any] = ["question":headerText,"answer":bodyText]
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "question"), object: nil, userInfo: notificationDict) as Notification)
+                self.launchQuestion(question: headerText, answer: bodyText, type: nil)
             }
         }
     }

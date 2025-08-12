@@ -10,6 +10,7 @@ import Foundation
 class BittrService {
 
     static let shared = BittrService()
+    private let baseURL = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
     private let session = URLSession(configuration: .default)
     
     func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
@@ -17,7 +18,7 @@ class BittrService {
         // TODO: Public?
         var envUrl:String = "https://getbittr.com/api/payout/lightning"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envUrl = "https://staging.getbittr.com/api/payout/lightning"
+            envUrl = "https://model-arachnid-viable.ngrok-free.app/payout/lightning"
         }
         
         var urlComponents = URLComponents(string: envUrl)!
@@ -70,7 +71,7 @@ class BittrService {
             let lightningPubKey = LightningNodeService.shared.nodeId()
             
             // TODO: Public?
-            var envUrl = URL(string: "https://staging.getbittr.com/api/")!
+            var envUrl = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
             if UserDefaults.standard.value(forKey: "envkey") as? Int != 0 {
                 envUrl = URL(string: "https://getbittr.com/api/")!
             }

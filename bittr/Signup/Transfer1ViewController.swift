@@ -46,7 +46,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var nextButtonLabel: UILabel!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
-    var currentClientID = ""
     var currentIbanID = ""
     
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
@@ -55,81 +54,39 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     let pageArticle1Slug = "supported-countries"
     var pageArticle1 = Article()
     
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        ibanView.layer.cornerRadius = 13
-        emailView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        ibanButton.setTitle("", for: .normal)
-        emailButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        backgroundButton2.setTitle("", for: .normal)
-        skipButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
+        // Corner radii
+        self.ibanView.layer.cornerRadius = 13
+        self.emailView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        
+        // Button titles
+        self.ibanButton.setTitle("", for: .normal)
+        self.emailButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.backgroundButton2.setTitle("", for: .normal)
+        self.skipButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
         
         // Text fields.
-        ibanTextField.delegate = self
-        emailTextField.delegate = self
-        
-        // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        
-        if let actualArticles = articles {
-            if let actualArticle = actualArticles[pageArticle1Slug] {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.articleImage.image = UIImage(data: actualData)
-                    }
-                    if self.articleImage.image != nil {
-                        self.spinner1.stopAnimating()
-                    }
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-        
-        if let actualImages = allImages {
-            if let actualImage = actualImages[pageArticle1Slug] {
-                self.articleImage.image = actualImage
-            }
-        }
+        self.ibanTextField.delegate = self
+        self.emailTextField.delegate = self
         
         self.changeColors()
         self.setWords()
-    }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-    }
-    
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
+        Task {
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
@@ -157,138 +114,67 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             self.nextButtonLabel.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
             
-            var envKey = "proddevice"
-            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envKey = "device"
-            }
-            
-            // Store new client details in cache.
-            let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-            if let actualDeviceDict = deviceDict {
-                // Client exists in cache.
-                let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
+            if self.currentIbanID != "" {
                 
-                if self.currentClientID != "", self.currentIbanID != "" {
-                    // We're updating information to an existing IBAN entity.
-                    for client in clients {
-                        if client.id == self.currentClientID {
-                            for iban in client.ibanEntities {
-                                if iban.id == self.currentIbanID {
-                                    iban.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    iban.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
-                                    
-                                    CacheManager.addIban(clientID: self.currentClientID, iban: iban)
-                                }
-                            }
-                        }
+                // We're updating information to an existing IBAN entity.
+                for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                    if eachIbanEntity.id == self.currentIbanID {
+                        eachIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+                        eachIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
+                        self.coreVC!.bittrWallet.ibanEntities[index] = eachIbanEntity
+                        CacheManager.addIban(iban: eachIbanEntity)
                     }
-                } else if self.currentClientID != "", self.currentIbanID == "" {
-                    // We're adding another IBAN to an existing client.
-                    for client in clients {
-                        if client.id == self.currentClientID {
-                            let newIbanEntity = IbanEntity()
-                            newIbanEntity.order = client.ibanEntities.count
-                            newIbanEntity.id = UUID().uuidString
-                            newIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-                            newIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
-                            client.ibanEntities += [newIbanEntity]
-                            CacheManager.addIban(clientID: client.id, iban: newIbanEntity)
-                            
-                            self.currentIbanID = newIbanEntity.id
-                        }
-                    }
-                } else if self.currentClientID == "", clients.count == 1 {
-                    self.currentClientID = clients[0].id
-                    self.currentIbanID = clients[0].ibanEntities[0].id
-                    clients[0].ibanEntities[0].yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
-                    clients[0].ibanEntities[0].yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-                    CacheManager.addIban(clientID: self.currentClientID, iban: clients[0].ibanEntities[0])
                 }
+                
             } else {
-                // No clients exist yet in cache.
-                let newClient = Client()
-                newClient.order = 0
-                newClient.id = UUID().uuidString
+                
+                // We're adding a new IBAN entity.
                 let newIbanEntity = IbanEntity()
-                newIbanEntity.order = 0
+                newIbanEntity.order = self.coreVC!.bittrWallet.ibanEntities.count
                 newIbanEntity.id = UUID().uuidString
                 newIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
                 newIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
-                newClient.ibanEntities += [newIbanEntity]
-                CacheManager.addIban(clientID: newClient.id, iban: newIbanEntity)
+                self.coreVC!.bittrWallet.ibanEntities += [newIbanEntity]
+                CacheManager.addIban(iban: newIbanEntity)
                 
-                self.currentClientID = newClient.id
-                self.currentIbanID = newIbanEntity.id
             }
             
             // Send email to bittr API for email verification. Bittr will send email.
-            let parameters = [
-              [
-                "key": "email",
-                "value": self.emailTextField.text!,
-                "type": "text"
-              ],
-              [
-                "key": "category",
-                "value": "ledger",
-                "type": "text"
-              ]] as [[String : Any]]
-            
-            let boundary = "Boundary-\(UUID().uuidString)"
-            var body = ""
-            var error: Error? = nil
-            for param in parameters {
-                if param["disabled"] == nil {
-                    let paramName = param["key"]!
-                    body += "--\(boundary)\r\n"
-                    body += "Content-Disposition:form-data; name=\"\(paramName)\""
-                    if param["contentType"] != nil {
-                        body += "\r\nContent-Type: \(param["contentType"] as! String)"
-                    }
-                    let paramType = param["type"] as! String
-                    if paramType == "text" {
-                        let paramValue = param["value"] as! String
-                        body += "\r\n\r\n\(paramValue)\r\n"
-                    }
-                }
-            }
-            body += "--\(boundary)--\r\n";
-            let postData = body.data(using: .utf8)
+            let parameters: [String: Any] = [
+                "email": self.emailTextField.text!,
+                "category": "ios"
+            ]
             
             // TODO: Public?
             var envUrl = "https://getbittr.com/api/verify/email"
             if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envUrl = "https://staging.getbittr.com/api/verify/email"
+                envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
             }
             
-            var request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-            request.addValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            request.httpMethod = "POST"
-            request.httpBody = postData
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data else {
-                    print(String(describing: error))
-                    DispatchQueue.main.async {
-                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        if let actualError = error {
-                            SentrySDK.capture(error: actualError)
+            Task {
+                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                    
+                    switch result {
+                    case .success(_):
+                        DispatchQueue.main.async {
+                            // Move to next page.
+                            self.signupVC?.moveToPage(11)
+                            self.ibanVC?.moveToPage(11)
+                            
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
+                        }
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            SentrySDK.capture(error: error)
                         }
                     }
-                    return
-                }
-                // Response received from Bittr API.
-                
-                DispatchQueue.main.async {
-                    // Send details to next signup page.
-                    let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier, "client":self.currentClientID, "iban":self.currentIbanID]
-                    // Move to next page.
-                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
-                    self.nextButtonActivityIndicator.stopAnimating()
-                    self.nextButtonLabel.alpha = 1
+                    
                 }
             }
-            task.resume()
-            
         }
     }
     
@@ -296,13 +182,14 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
-        self.showAlert(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
     }
     
     @objc func alertGoToWallet() {
         self.hideAlert()
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "restorewallet"), object: nil, userInfo: nil) as Notification)
-        self.coreVC?.setClient()
+        self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
+        self.coreVC!.buyVC?.parseIbanEntities()
+        self.coreVC!.hideSignup()
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
@@ -376,10 +263,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
-        
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+        if sender.accessibilityIdentifier != nil {
+            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        }
     }
     
     func changeColors() {

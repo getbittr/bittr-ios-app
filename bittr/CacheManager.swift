@@ -59,24 +59,15 @@ class CacheManager: NSObject {
     }
     
     
-    static func parseDevice(deviceDict:NSDictionary) -> [Client] {
+    static func parseDevice(deviceDict:NSDictionary) -> BittrWallet {
         
-        var allClients = [Client]()
+        let bittrWallet = BittrWallet()
         
-        for (clientid, clientdata) in deviceDict {
-            
-            let client = Client()
-            
+        for (_, clientdata) in deviceDict {
             if let actualClientDict = clientdata as? NSDictionary {
-                
-                if let actualClientID = clientid as? String {
-                    client.id = actualClientID
-                }
-                if let actualClientOrder = actualClientDict["order"] as? Int {
-                    client.order = actualClientOrder
-                }
-                var ibansInClient = [IbanEntity]()
                 if let actualIbansDict = actualClientDict["ibans"] as? NSDictionary {
+                    
+                    var ibansInClient = [IbanEntity]()
                     
                     for (ibanid, ibandata) in actualIbansDict {
                         
@@ -113,142 +104,113 @@ class CacheManager: NSObject {
                         }
                     }
                     
-                    client.ibanEntities = ibansInClient
-                    client.ibanEntities.sort { iban1, iban2 in
+                    bittrWallet.ibanEntities = ibansInClient
+                    bittrWallet.ibanEntities.sort { iban1, iban2 in
                         iban1.order < iban2.order
                     }
                 }
             }
-            
-            allClients += [client]
         }
         
-        allClients.sort { client1, client2 in
-            client1.order < client2.order
-        }
-        
-        return allClients
+        return bittrWallet
     }
     
     
-    static func addIban(clientID:String,iban:IbanEntity) {
+    static func addIban(iban:IbanEntity) {
         
         var envKey = "proddevice"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envKey = "device"
         }
-        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
         
-        if let actualClientsDict = clientsDict {
-            // At least one client already exists.
-            let clients = self.parseDevice(deviceDict: actualClientsDict)
-            for client in clients {
-                if client.id == clientID {
-                    var ibanExists = false
-                    for existingIban in client.ibanEntities {
-                        if existingIban.id == iban.id {
-                            ibanExists = true
-                            existingIban.yourIbanNumber = iban.yourIbanNumber
-                            existingIban.yourEmail = iban.yourEmail
-                        }
-                    }
-                    if ibanExists == false {
-                        // This is a new IBAN entity.
-                        client.ibanEntities += [iban]
-                    }
+        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
+            // Client already exists.
+            
+            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
+            
+            var ibanExists = false
+            for existingIban in bittrWallet.ibanEntities {
+                if existingIban.id == iban.id {
+                    ibanExists = true
+                    existingIban.yourIbanNumber = iban.yourIbanNumber
+                    existingIban.yourEmail = iban.yourEmail
                 }
+            }
+            if ibanExists == false {
+                // This is a new IBAN entity.
+                bittrWallet.ibanEntities += [iban]
             }
             
-            var updatedClientsDict = NSMutableDictionary()
-            for client in clients {
-                var ibansDict = NSMutableDictionary()
-                for existingIban in client.ibanEntities {
-                    ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift], forKey: existingIban.id as NSCopying)
-                }
-                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            let ibansDict = NSMutableDictionary()
+            for existingIban in bittrWallet.ibanEntities {
+                ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift], forKey: existingIban.id as NSCopying)
             }
+            let updatedClientsDict = NSMutableDictionary()
+            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
             UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         } else {
-            // No clients have been added yet.
-            let client = Client()
-            client.id = clientID
-            client.order = 0
-            client.ibanEntities += [iban]
-            
-            let clientsDict:NSDictionary = [client.id:["order":client.order,"ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
+            // No client exists yet.
+            let clientsDict:NSDictionary = ["bittrwallet":["ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
             UserDefaults.standard.set(clientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
+        
     }
     
-    static func addEmailToken(clientID:String, ibanID:String, emailToken:String) {
+    static func addEmailToken(ibanID:String, emailToken:String) {
         
         var envKey = "proddevice"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envKey = "device"
         }
         
-        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualClientsDict = clientsDict {
+        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             
-            let clients = self.parseDevice(deviceDict: actualClientsDict)
+            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
             
-            for client in clients {
-                if client.id == clientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == ibanID {
-                            iban.emailToken = emailToken
-                        }
-                    }
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                if eachIbanEntity.id == ibanID {
+                    eachIbanEntity.emailToken = emailToken
                 }
             }
             
-            var updatedClientsDict = NSMutableDictionary()
-            for client in clients {
-                var ibansDict = NSMutableDictionary()
-                for iban in client.ibanEntities {
-                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken, "ourswift":iban.ourSwift], forKey: iban.id as NSCopying)
-                }
-                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            let ibansDict = NSMutableDictionary()
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift], forKey: eachIbanEntity.id as NSCopying)
             }
+            let updatedClientsDict = NSMutableDictionary()
+            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
             UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
     }
     
-    static func addBittrIban(clientID:String, ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
+    static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
         
         var envKey = "proddevice"
         if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
             envKey = "device"
         }
         
-        let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualClientsDict = clientsDict {
+        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
             
-            let clients = self.parseDevice(deviceDict: actualClientsDict)
+            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
             
-            for client in clients {
-                if client.id == clientID {
-                    for iban in client.ibanEntities {
-                        if iban.id == ibanID {
-                            iban.ourIbanNumber = ourIban
-                            iban.yourUniqueCode = yourCode
-                            iban.ourSwift = ourSwift
-                        }
-                    }
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                if eachIbanEntity.id == ibanID {
+                    eachIbanEntity.ourIbanNumber = ourIban
+                    eachIbanEntity.yourUniqueCode = yourCode
+                    eachIbanEntity.ourSwift = ourSwift
                 }
             }
             
-            var updatedClientsDict = NSMutableDictionary()
-            for client in clients {
-                var ibansDict = NSMutableDictionary()
-                for iban in client.ibanEntities {
-                    ibansDict.setObject(["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken, "ourswift":iban.ourSwift], forKey: iban.id as NSCopying)
-                }
-                updatedClientsDict.setObject(["order":client.order, "ibans":ibansDict], forKey: client.id as NSCopying)
+            let ibansDict = NSMutableDictionary()
+            for eachIbanEntity in bittrWallet.ibanEntities {
+                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift], forKey: eachIbanEntity.id as NSCopying)
             }
+            let updatedClientsDict = NSMutableDictionary()
+            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
             UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
         }
@@ -306,6 +268,12 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.channelId, forKey: "channelId" as NSCopying)
             oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
             oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
+            oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
+            oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
+            oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
+            oneTransaction.setObject(eachTransaction.boltzSwapId, forKey: "boltzSwapId" as NSCopying)
+            oneTransaction.setObject(eachTransaction.swapDirection, forKey: "swapdirection" as NSCopying)
+            oneTransaction.setObject(eachTransaction.confirmations, forKey: "confirmations" as NSCopying)
             
             transactionsDict += [oneTransaction]
         }
@@ -358,6 +326,24 @@ class CacheManager: NSObject {
             }
             if let transactionLnDescription = eachTransaction["lnDescription"] as? String {
                 thisTransaction.lnDescription = transactionLnDescription
+            }
+            if let isSwap = eachTransaction["isswap"] as? Bool {
+                thisTransaction.isSwap = isSwap
+            }
+            if let onchainID = eachTransaction["onchainid"] as? String {
+                thisTransaction.onchainID = onchainID
+            }
+            if let lightningID = eachTransaction["lightningid"] as? String {
+                thisTransaction.lightningID = lightningID
+            }
+            if let boltzSwapId = eachTransaction["boltzSwapId"] as? String {
+                thisTransaction.boltzSwapId = boltzSwapId
+            }
+            if let swapDirection = eachTransaction["swapdirection"] as? Int {
+                thisTransaction.swapDirection = swapDirection
+            }
+            if let confirmations = eachTransaction["confirmations"] as? Int {
+                thisTransaction.confirmations = confirmations
             }
             
             if thisTransaction.timestamp != 0 {
@@ -613,6 +599,33 @@ class CacheManager: NSObject {
             actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
             defaults.set(actualMutableHashes, forKey: envKey)
             print("Timestamp cached.")
+        }
+    }
+    
+    static func storeSwapID(dateID:String, swapID:String) {
+        let defaults = UserDefaults.standard
+        if let cachedSwapIDs = defaults.value(forKey: "swapids") as? NSDictionary {
+            if let actualSwapIDs = cachedSwapIDs.mutableCopy() as? NSMutableDictionary {
+                actualSwapIDs.setObject(swapID, forKey: dateID as NSCopying)
+                defaults.set(actualSwapIDs, forKey: "swapids")
+            }
+        } else {
+            let swapIDs = NSMutableDictionary()
+            swapIDs.setObject(swapID, forKey: dateID as NSCopying)
+            defaults.set(swapIDs, forKey: "swapids")
+        }
+    }
+    
+    static func getSwapID(dateID:String) -> String? {
+        let defaults = UserDefaults.standard
+        if let swapIDs = defaults.value(forKey: "swapids") as? NSDictionary {
+            if let foundSwapID = swapIDs[dateID] as? String {
+                return foundSwapID
+            } else {
+                return nil
+            }
+        } else {
+            return nil
         }
     }
     
@@ -1047,6 +1060,207 @@ class CacheManager: NSObject {
     static func changeLanguage(_ toLanguage:String) {
         UserDefaults.standard.set(toLanguage, forKey: "language")
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
+    }
+    
+    static func swapToDictionary(_ thisSwap:Swap) -> NSDictionary {
+        
+        let swapDictionary:NSMutableDictionary = ["dateID":thisSwap.dateID, "onchainToLightning":thisSwap.onchainToLightning, "satoshisAmount":thisSwap.satoshisAmount]
+        if thisSwap.createdInvoice != nil {
+            swapDictionary.setValue(thisSwap.createdInvoice!, forKey: "createdInvoice")
+        }
+        if thisSwap.privateKey != nil {
+            swapDictionary.setValue(thisSwap.privateKey!, forKey: "privateKey")
+        }
+        if thisSwap.boltzID != nil {
+            swapDictionary.setValue(thisSwap.boltzID!, forKey: "boltzID")
+        }
+        if thisSwap.boltzOnchainAddress != nil {
+            swapDictionary.setValue(thisSwap.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
+        }
+        if thisSwap.boltzExpectedAmount != nil {
+            swapDictionary.setValue(thisSwap.boltzExpectedAmount!, forKey: "boltzExpectedAmount")
+        }
+        if thisSwap.onchainFees != nil {
+            swapDictionary.setValue(thisSwap.onchainFees!, forKey: "onchainFees")
+        }
+        if thisSwap.lightningFees != nil {
+            swapDictionary.setValue(thisSwap.lightningFees!, forKey: "lightningFees")
+        }
+        if thisSwap.feeHigh != nil {
+            swapDictionary.setValue(thisSwap.feeHigh!, forKey: "feeHigh")
+        }
+        if thisSwap.sentOnchainTransactionID != nil {
+            swapDictionary.setValue(thisSwap.sentOnchainTransactionID!, forKey: "sentOnchainTransactionID")
+        }
+        if thisSwap.boltzOnchainAddress != nil {
+            swapDictionary.setValue(thisSwap.boltzOnchainAddress!, forKey: "boltzOnchainAddress")
+        }
+        if thisSwap.refundPublicKey != nil {
+            swapDictionary.setValue(thisSwap.refundPublicKey!, forKey: "refundPublicKey")
+        }
+        if thisSwap.claimLeafOutput != nil {
+            swapDictionary.setValue(thisSwap.claimLeafOutput!, forKey: "claimLeafOutput")
+        }
+        if thisSwap.refundLeafOutput != nil {
+            swapDictionary.setValue(thisSwap.refundLeafOutput!, forKey: "refundLeafOutput")
+        }
+        if thisSwap.claimPublicKey != nil {
+            swapDictionary.setValue(thisSwap.claimPublicKey!, forKey: "claimPublicKey")
+        }
+        if thisSwap.preimage != nil {
+            swapDictionary.setValue(thisSwap.preimage!, forKey: "preimage")
+        }
+        if thisSwap.destinationAddress != nil {
+            swapDictionary.setValue(thisSwap.destinationAddress!, forKey: "destinationAddress")
+        }
+        if thisSwap.boltzInvoice != nil {
+            swapDictionary.setValue(thisSwap.boltzInvoice!, forKey: "boltzInvoice")
+        }
+        if thisSwap.lockupTx != nil {
+            swapDictionary.setValue(thisSwap.lockupTx!, forKey: "lockupTx")
+        }
+        
+        return swapDictionary
+    }
+    
+    static func saveLatestSwap(_ latestSwap:Swap?) {
+        
+        if latestSwap != nil {
+            let swapDictionary = CacheManager.swapToDictionary(latestSwap!)
+            UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
+        } else {
+            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
+                UserDefaults.standard.removeObject(forKey: "ongoingswap")
+            }
+        }
+    }
+    
+    static func dictionaryToSwap(_ dictionary:NSDictionary) -> Swap {
+        
+        let thisSwap = Swap()
+        if let dateID = dictionary["dateID"] as? String {
+            thisSwap.dateID = dateID
+        }
+        if let onchainToLightning = dictionary["onchainToLightning"] as? Bool {
+            thisSwap.onchainToLightning = onchainToLightning
+        }
+        if let satoshisAmount = dictionary["satoshisAmount"] as? Int {
+            thisSwap.satoshisAmount = satoshisAmount
+        }
+        if let createdInvoice = dictionary["createdInvoice"] as? String {
+            thisSwap.createdInvoice = createdInvoice
+        }
+        if let privateKey = dictionary["privateKey"] as? String {
+            thisSwap.privateKey = privateKey
+        }
+        if let boltzID = dictionary["boltzID"] as? String {
+            thisSwap.boltzID = boltzID
+        }
+        if let boltzOnchainAddress = dictionary["boltzOnchainAddress"] as? String {
+            thisSwap.boltzOnchainAddress = boltzOnchainAddress
+        }
+        if let boltzExpectedAmount = dictionary["boltzExpectedAmount"] as? Int {
+            thisSwap.boltzExpectedAmount = boltzExpectedAmount
+        }
+        if let onchainFees = dictionary["onchainFees"] as? Int {
+            thisSwap.onchainFees = onchainFees
+        }
+        if let lightningFees = dictionary["lightningFees"] as? Int {
+            thisSwap.lightningFees = lightningFees
+        }
+        if let feeHigh = dictionary["feeHigh"] as? Float {
+            thisSwap.feeHigh = feeHigh
+        }
+        if let sentOnchainTransactionID = dictionary["sentOnchainTransactionID"] as? String {
+            thisSwap.sentOnchainTransactionID = sentOnchainTransactionID
+        }
+        if let boltzOnchainAddress = dictionary["boltzOnchainAddress"] as? String {
+            thisSwap.boltzOnchainAddress = boltzOnchainAddress
+        }
+        if let refundPublicKey = dictionary["refundPublicKey"] as? String {
+            thisSwap.refundPublicKey = refundPublicKey
+        }
+        if let claimLeafOutput = dictionary["claimLeafOutput"] as? String {
+            thisSwap.claimLeafOutput = claimLeafOutput
+        }
+        if let refundLeafOutput = dictionary["refundLeafOutput"] as? String {
+            thisSwap.refundLeafOutput = refundLeafOutput
+        }
+        if let claimPublicKey = dictionary["claimPublicKey"] as? String {
+            thisSwap.claimPublicKey = claimPublicKey
+        }
+        if let preimage = dictionary["preimage"] as? String {
+            thisSwap.preimage = preimage
+        }
+        if let destinationAddress = dictionary["destinationAddress"] as? String {
+            thisSwap.destinationAddress = destinationAddress
+        }
+        if let boltzInvoice = dictionary["boltzInvoice"] as? String {
+            thisSwap.boltzInvoice = boltzInvoice
+        }
+        if let lockupTx = dictionary["lockupTx"] as? String {
+            thisSwap.lockupTx = lockupTx
+        }
+        return thisSwap
+    }
+    
+    static func getLatestSwap() -> Swap? {
+        if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
+            
+            let thisSwap = self.dictionaryToSwap(storedSwap)
+            
+            return thisSwap
+        } else {
+            return nil
+        }
+    }
+    
+    // MARK: - Swap Index Cache
+    
+    static func getSwapIndex() -> Int {
+        var envKey = "prodswapindex"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "swapindex"
+        }
+        
+        let defaults = UserDefaults.standard
+        let cachedSwapIndex = defaults.value(forKey: envKey) as? Int
+        
+        if let actualCachedSwapIndex = cachedSwapIndex {
+            return actualCachedSwapIndex
+        } else {
+            // Initialize with 0 if no index exists
+            defaults.set(0, forKey: envKey)
+            return 0
+        }
+    }
+    
+    static func incrementSwapIndex() -> Int {
+        var envKey = "prodswapindex"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "swapindex"
+        }
+        
+        let defaults = UserDefaults.standard
+        let currentIndex = getSwapIndex()
+        let newIndex = currentIndex + 1
+        
+        defaults.set(newIndex, forKey: envKey)
+        return newIndex
+    }
+    
+    static func resetSwapIndex() {
+        var envKey = "prodswapindex"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "swapindex"
+        }
+        
+        let defaults = UserDefaults.standard
+        defaults.set(0, forKey: envKey)
+    }
+    
+    static func getCurrentSwapIndex() -> Int {
+        return getSwapIndex()
     }
     
 }

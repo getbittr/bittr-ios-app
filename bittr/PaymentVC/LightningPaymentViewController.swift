@@ -10,11 +10,13 @@ import SPConfetti
 
 class LightningPaymentViewController: UIViewController {
 
+    // General
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
-    
     @IBOutlet weak var bodyView: UIView!
+    
+    // Date
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var dateLabel: UILabel!
     
@@ -35,9 +37,9 @@ class LightningPaymentViewController: UIViewController {
     @IBOutlet weak var nowLeftLabel: UILabel!
     @IBOutlet weak var nowLabel: UILabel!
     
+    // Variables
     var receivedTransaction:Transaction?
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
+    var coreVC:CoreViewController?
     
     @IBOutlet weak var explanationLabel: UILabel!
     @IBOutlet weak var piggyImageHeight: NSLayoutConstraint!
@@ -46,11 +48,11 @@ class LightningPaymentViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        downButton.setTitle("", for: .normal)
-        descriptionButton.setTitle("", for: .normal)
-        headerView.layer.cornerRadius = 13
-        bodyView.layer.cornerRadius = 13
-        dateView.layer.cornerRadius = 7
+        self.downButton.setTitle("", for: .normal)
+        self.descriptionButton.setTitle("", for: .normal)
+        self.headerView.layer.cornerRadius = 13
+        self.bodyView.layer.cornerRadius = 13
+        self.dateView.layer.cornerRadius = 7
         
         self.changeColors()
         self.setWords()
@@ -63,26 +65,26 @@ class LightningPaymentViewController: UIViewController {
             dateFormatter.dateFormat = "dd MMM yyyy HH:mm"
             let transactionDateString = dateFormatter.string(from: transactionDate)
             
-            dateLabel.text = transactionDateString
+            self.dateLabel.text = transactionDateString
             
             // Set sats.
             var plusSymbol = "+"
             if actualTransaction.received - actualTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            amountLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(actualTransaction.received - actualTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
-            
-            var correctValue:CGFloat = self.eurValue
-            var currencySymbol = "€"
-            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.chfValue
-                currencySymbol = "CHF"
+            self.amountLabel.text = "\(plusSymbol) \(String(actualTransaction.received - actualTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats"
+            if actualTransaction.isSwap {
+                self.amountLabel.text = "+ \(String(actualTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats"
             }
             
+            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
             var transactionValue = CGFloat(actualTransaction.received-actualTransaction.sent)/100000000
-            var balanceValue = String(Int((transactionValue*correctValue).rounded())).replacingOccurrences(of: "-", with: "")
+            if actualTransaction.isSwap {
+                transactionValue = CGFloat(actualTransaction.received)/100000000
+            }
+            var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
             
-            self.nowLabel.text = balanceValue + " " + currencySymbol
+            self.nowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
             if actualTransaction.isBittr == true {
                 
@@ -93,6 +95,9 @@ class LightningPaymentViewController: UIViewController {
             } else {
                 
                 self.descriptionLabel.text = actualTransaction.id
+                if actualTransaction.isSwap {
+                    self.descriptionLabel.text = actualTransaction.lightningID
+                }
                 self.explanationLabel.text = Language.getWord(withID: "newpayment")
                 self.idLabel.text = Language.getWord(withID: "id")
                 self.piggyImageHeight.constant = 0
@@ -120,32 +125,8 @@ class LightningPaymentViewController: UIViewController {
         if let actualTransaction = self.receivedTransaction {
             
             UIPasteboard.general.string = actualTransaction.lnDescription
-            self.showAlert(title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: actualTransaction.lnDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
-    }
-    
-    func addSpacesToString(balanceValue:String) -> String {
-        
-        var balanceValue = balanceValue
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        return balanceValue
     }
     
     func changeColors() {

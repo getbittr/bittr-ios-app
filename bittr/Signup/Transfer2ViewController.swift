@@ -36,7 +36,6 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var screenshotButton: UIButton!
     @IBOutlet weak var screenshotLabel: UILabel!
     
-    var currentClientID = ""
     var currentIbanID = ""
     
     @IBOutlet weak var ourIbanLabel: UILabel!
@@ -55,28 +54,30 @@ class Transfer2ViewController: UIViewController {
     let pageArticle1Slug = "when-do-i-receive-my-bitcoin"
     var pageArticle1 = Article()
     
-    var articles:[String:Article]?
-    var allImages:[String:UIImage]?
     var coreVC:CoreViewController?
+    var signupVC:SignupViewController?
+    var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii and button titles.
-        checkView.layer.cornerRadius = 35
-        ibanView.layer.cornerRadius = 13
-        nameView.layer.cornerRadius = 13
-        codeView.layer.cornerRadius = 13
-        nextView.layer.cornerRadius = 13
-        cardView.layer.cornerRadius = 13
-        screenshotView.layer.cornerRadius = 13
-        imageContainer.layer.cornerRadius = 13
-        nextButton.setTitle("", for: .normal)
-        articleButton.setTitle("", for: .normal)
-        screenshotButton.setTitle("", for: .normal)
-        ibanButton.setTitle("", for: .normal)
-        nameButton.setTitle("", for: .normal)
-        codeButton.setTitle("", for: .normal)
+        // Corner radii.
+        self.checkView.layer.cornerRadius = 35
+        self.ibanView.layer.cornerRadius = 13
+        self.nameView.layer.cornerRadius = 13
+        self.codeView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 13
+        self.cardView.layer.cornerRadius = 13
+        self.screenshotView.layer.cornerRadius = 13
+        self.imageContainer.layer.cornerRadius = 13
+        
+        // Button titles.
+        self.nextButton.setTitle("", for: .normal)
+        self.articleButton.setTitle("", for: .normal)
+        self.screenshotButton.setTitle("", for: .normal)
+        self.ibanButton.setTitle("", for: .normal)
+        self.nameButton.setTitle("", for: .normal)
+        self.codeButton.setTitle("", for: .normal)
         
         // Checkmark elements.
         let viewBorder = CAShapeLayer()
@@ -87,96 +88,33 @@ class Transfer2ViewController: UIViewController {
         viewBorder.lineWidth = 2
         self.checkView.layer.addSublayer(viewBorder)
         
-        // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(updateData), name: NSNotification.Name(rawValue: "signupnext"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setSignupArticles), name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setArticleImage), name: NSNotification.Name(rawValue: "setimage\(pageArticle1Slug)"), object: nil)
-        
-        if let actualArticles = articles {
-            if let actualArticle = actualArticles[pageArticle1Slug] {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                    if let actualData = CacheManager.getImage(key: self.pageArticle1.image) {
-                        self.articleImage.image = UIImage(data: actualData)
-                    }
-                    if self.articleImage.image != nil {
-                        self.spinner1.stopAnimating()
-                    }
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
-        }
-        
-        if let actualImages = allImages {
-            if let actualImage = actualImages[pageArticle1Slug] {
-                self.articleImage.image = actualImage
-            }
-        }
-        
         self.changeColors()
         self.setWords()
-    }
-    
-    @objc func setSignupArticles(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualArticle = userInfo[pageArticle1Slug] as? Article {
-                self.pageArticle1 = actualArticle
-                DispatchQueue.main.async {
-                    self.articleTitle.text = self.pageArticle1.title
-                }
-                self.articleButton.accessibilityIdentifier = self.pageArticle1Slug
-            }
+        self.updateData()
+        Task {
+            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
+                self.pageArticle1 = article ?? Article()
+            })
         }
     }
     
-    @objc func setArticleImage(notification:NSNotification) {
-        
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let actualImage = userInfo["image"] as? UIImage {
-                self.spinner1.stopAnimating()
-                self.articleImage.image = actualImage
-            }
-        }
-    }
-    
-    
-    @objc func updateData(notification:NSNotification) {
+    func updateData() {
         
         // Set data received from bittr API.
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            if let clientID = userInfo["client"] as? String, let ibanID = userInfo["iban"] as? String {
-                self.currentClientID = clientID
-                self.currentIbanID = ibanID
+        if self.signupVC != nil {
+            self.currentIbanID = self.signupVC!.currentIbanID
+            
+            if self.signupVC!.currentCode {
                 
-                if userInfo["code"] as? Bool == true {
-                    
-                    var envKey = "proddevice"
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        envKey = "device"
-                    }
-                    
-                    let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-                    if let actualDeviceDict = deviceDict {
-                        let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-                        for client in clients {
-                            if client.id == self.currentClientID {
-                                for iban in client.ibanEntities {
-                                    if iban.id == self.currentIbanID {
-                                        
-                                        self.ourIbanLabel.text = iban.ourIbanNumber
-                                        self.yourCodeLabel.text = iban.yourUniqueCode
-                                        
-                                        self.ibanButton.accessibilityIdentifier = iban.ourIbanNumber
-                                        self.nameButton.accessibilityIdentifier = iban.ourName
-                                        self.codeButton.accessibilityIdentifier = iban.yourUniqueCode
-                                        
-                                        self.coreVC?.setClient()
-                                    }
-                                }
-                            }
-                        }
+                for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+                    if eachIbanEntity.id == self.currentIbanID {
+                        
+                        self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
+                        self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
+                        
+                        self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
+                        self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
+                        self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
                     }
                 }
             }
@@ -186,9 +124,9 @@ class Transfer2ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
-        var centerViewHeight = centerView.bounds.height
+        let centerViewHeight = self.centerView.bounds.height
         
-        if centerView.bounds.height + 40 > contentView.bounds.height {
+        if self.centerView.bounds.height + 40 > self.contentView.bounds.height {
             
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 60)
@@ -199,16 +137,14 @@ class Transfer2ViewController: UIViewController {
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)
+        self.signupVC?.moveToPage(13)
+        self.ibanVC?.moveToPage(13)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        
-        let notificationDict:[String: Any] = ["tag":sender.accessibilityIdentifier]
-        
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "launcharticle"), object: nil, userInfo: notificationDict) as Notification)
+        if sender.accessibilityIdentifier != nil {
+            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        }
     }
     
     @IBAction func screenshotButtonTapped(_ sender: UIButton) {
@@ -236,9 +172,9 @@ class Transfer2ViewController: UIViewController {
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         
         if error == nil {
-            self.showAlert(title: Language.getWord(withID: "saved"), message: Language.getWord(withID: "screenshot2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "saved"), message: Language.getWord(withID: "screenshot2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "screenshot3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "screenshot3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -246,7 +182,7 @@ class Transfer2ViewController: UIViewController {
         
         // Copy details to clipboard.
         UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func changeColors() {

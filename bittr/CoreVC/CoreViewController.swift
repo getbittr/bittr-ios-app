@@ -13,7 +13,7 @@ import LDKNodeFFI
 class CoreViewController: UIViewController {
 
     // 0 is Dev. 1 is Prod. ALSO change the network in LightningNodeService.
-    var devEnvironment = 1
+    var devEnvironment = 0
     
     // Startup animation elements
     @IBOutlet weak var coin1: UIImageView!
@@ -67,6 +67,7 @@ class CoreViewController: UIViewController {
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
     var newMnemonic:[String]?
+    var resettingPin = false
     
     // Variables for notification handling
     var didBecomeVisible = false
@@ -78,12 +79,14 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pendingLabel: UILabel!
     var varSpecialData:[String: Any]?
     var receivedBittrTransaction:Transaction?
+    var isHandlingSwapNotification = false
     
     // Connection to VCs
     var homeVC:HomeViewController?
     var infoVC:InfoViewController?
     var settingsVC:SettingsViewController?
     var signupVC:SignupViewController?
+    var buyVC:BuyViewController?
     
     // Articles
     var allArticles:[String:Article]?
@@ -103,20 +106,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusBlockchain: UILabel!
     @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
-    
-    // Wallet details.
-    var currentHeight:Int?
-    var lightningChannels:[ChannelDetails]?
-    var lightningBalanceInSats:Int = 0
-    var onchainBalanceInSats:Int = 0
-    var eurValue:CGFloat = 0.0
-    var chfValue:CGFloat = 0.0
-    
-    // Channel details
-    var bittrChannel:Channel?
+    @IBOutlet weak var syncingStatusTop: NSLayoutConstraint!
     
     // Client details
-    var client = Client()
+    var bittrWallet = BittrWallet()
     
     // Syncing status view
     @IBOutlet weak var statusView: UIView!
@@ -131,62 +124,65 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var checkmarkSyncing: UIImageView!
     @IBOutlet weak var checkmarkFinal: UIImageView!
     
+    // Generic spinner
+    @IBOutlet weak var fullViewCover: UIView!
+    @IBOutlet weak var genericSpinner: UIActivityIndicatorView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Save environment key for switching between Dev and Production.
-        UserDefaults.standard.set(devEnvironment, forKey: "envkey")
+        UserDefaults.standard.set(self.devEnvironment, forKey: "envkey")
         
-        // Set corner radii and button titles.
-        selectedView.layer.cornerRadius = 13
-        leftWhite.layer.cornerRadius = 13
-        middleWhite.layer.cornerRadius = 13
-        rightWhite.layer.cornerRadius = 13
-        pendingView.layer.cornerRadius = 13
-        statusView.layer.cornerRadius = 13
-        leftButton.setTitle("", for: .normal)
-        middleButton.setTitle("", for: .normal)
-        rightButton.setTitle("", for: .normal)
-        yellowcurve.alpha = 0.85
+        // Load Bittr wallet details.
+        var envKey = "proddevice"
+        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
+            envKey = "device"
+        }
+        if let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
+            self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
+        }
+        
+        // Corner radii.
+        self.selectedView.layer.cornerRadius = 13
+        self.leftWhite.layer.cornerRadius = 13
+        self.middleWhite.layer.cornerRadius = 13
+        self.rightWhite.layer.cornerRadius = 13
+        self.pendingView.layer.cornerRadius = 13
+        self.statusView.layer.cornerRadius = 13
+        
+        // Button titles
+        self.leftButton.setTitle("", for: .normal)
+        self.middleButton.setTitle("", for: .normal)
+        self.rightButton.setTitle("", for: .normal)
+        
+        // Opacities
+        self.yellowcurve.alpha = 0.85
         
         // Add observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(hideSignup), name: NSNotification.Name(rawValue: "restorewallet"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(stopLightning), name: NSNotification.Name(rawValue: "stoplightning"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(launchQuestion), name: NSNotification.Name(rawValue: "question"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateSync), name: NSNotification.Name(rawValue: "updatesync"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(ldkEventReceived), name: NSNotification.Name(rawValue: "ldkEventReceived"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotificationFromBackground), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
+        // Set words.
         self.setWords()
-        
-        // Determine whether to show pin view or signup view.
-        if CacheManager.getPin() != nil {
-            // Wallet exists. Launch pin.
-            self.signupAlpha = 0
-            self.blackSignupAlpha = 0
-            // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
-            
-        } else {
-            // No wallet exists yet. Load SignupVC ahead of intro animation completion.
-            
-            let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
-            let newChild = storyboard.instantiateViewController(withIdentifier: "Signup")
-            (newChild as! SignupViewController).coreVC = self
-            self.addChild(newChild)
-            newChild.view.frame.size = self.signupContainerView.frame.size
-            self.signupContainerView.addSubview(newChild.view)
-            newChild.didMove(toParent: self)
-        }
     }
     
     @IBAction func blackSignupButtonTapped(_ sender: UIButton) {
-        self.blackSignupBackground.alpha = 0
-        self.statusView.alpha = 0
-        self.blackSignupButton.alpha = 0
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            NSLayoutConstraint.deactivate([self.syncingStatusTop])
+            self.syncingStatusTop = NSLayoutConstraint(item: self.statusView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.syncingStatusTop])
+            self.blackSignupBackground.alpha = 0
+            self.view.layoutIfNeeded()
+        }) { _ in
+            self.statusView.alpha = 0
+            self.blackSignupButton.alpha = 0
+        }
     }
     
     @objc func changeColors() {
@@ -195,6 +191,7 @@ class CoreViewController: UIViewController {
         self.leftWhite.backgroundColor = Colors.getColor("grey3orblue1")
         self.middleWhite.backgroundColor = Colors.getColor("grey3orblue1")
         self.rightWhite.backgroundColor = Colors.getColor("grey3orblue1")
+        self.fullViewCover.backgroundColor = Colors.getColor("yelloworblue3")
         
         self.lowerTopBar.backgroundColor = Colors.getColor("yelloworblue3")
         self.topBar.backgroundColor = Colors.getColor("transparentyellow")

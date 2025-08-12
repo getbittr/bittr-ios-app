@@ -79,7 +79,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if self.embeddingView == "core" {
             self.topLabel.text = Language.getWord(withID: "enteryourpincode")
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
-            self.restoreButtonLabel.text = Language.getWord(withID: "restorewallet")
+            self.restoreButtonLabel.text = Language.getWord(withID: "forgotpin")
             self.restoreButtonView.alpha = 1
         } else if self.embeddingView == "signup5" {
             self.topLabel.text = Language.getWord(withID: "setapin")
@@ -144,6 +144,12 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
         
+        // Check if PIN is already at max length (8 digits)
+        if (pinTextField.text?.count ?? 0) >= 8 {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
         // Update text field.
         pinTextField.insertText(String(sender.tag))
         self.pinCollectionView.reloadData()
@@ -166,18 +172,24 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     @IBAction func confirmPinButtonTapped(_ sender: UIButton) {
         
+        // Check if PIN is empty or too short
+        if (pinTextField.text?.count ?? 0) < 4 {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
         if self.embeddingView == "core" {
             
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
-                self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 if let actualCoreVC = self.coreVC {
                     actualCoreVC.resetApp(nodeIsRunning: false)
                 }
@@ -195,34 +207,26 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 } else {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
-                    self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 }
             } else {
                 // No pin found in storage.
                 print("No pin found in storage.")
             }
         } else if self.embeddingView == "signup5" {
-            
             if let actualSignup5VC = self.upperViewController as? Signup5ViewController {
-                
                 actualSignup5VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         } else if self.embeddingView == "signup6" {
-            
             if let actualSignup6VC = self.upperViewController as? Signup6ViewController {
-                
                 actualSignup6VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         } else if self.embeddingView == "restore2" {
-            
             if let actualRestore2VC = self.upperViewController as? Restore2ViewController {
-                
                 actualRestore2VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         } else if self.embeddingView == "restore3" {
-            
             if let actualRestore3VC = self.upperViewController as? Restore3ViewController {
-                
                 actualRestore3VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
             }
         }
@@ -236,40 +240,25 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
         
         if self.embeddingView == "core" {
-            
-            self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.secondRestoreAlert)])
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "reset")], actions: [nil, #selector(self.startPinReset)])
         } else if self.embeddingView == "signup5" {
             return
         } else if self.embeddingView == "signup6" {
-            
             if let actualSignup6VC = self.upperViewController as? Signup6ViewController {
-                
                 actualSignup6VC.backButtonTapped()
             }
         } else if self.embeddingView == "restore2" {
             return
         } else if self.embeddingView == "restore3" {
-            
             if let actualRestore3VC = self.upperViewController as? Restore3ViewController {
-                
                 actualRestore3VC.backButtonTapped()
             }
         }
-        
     }
     
-    @objc func secondRestoreAlert() {
+    @objc func startPinReset() {
         self.hideAlert()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.confirmRestore)])
-        }
-    }
-    
-    @objc func confirmRestore() {
-        self.hideAlert()
-        if let actualCoreVC = self.coreVC {
-            actualCoreVC.resetApp(nodeIsRunning: false)
-        }
+        self.coreVC!.startPinReset()
     }
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {

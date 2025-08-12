@@ -31,32 +31,28 @@ extension HomeViewController {
             if thisTransaction.received - thisTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            actualCell.satsLabel.text = "\(plusSymbol) \(addSpacesToString(balanceValue: String(thisTransaction.received - thisTransaction.sent)).replacingOccurrences(of: "-", with: "")) sats"
+            actualCell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Set conversion
-            var correctValue:CGFloat = self.coreVC!.eurValue
-            var currencySymbol = "€"
-            if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-                correctValue = self.coreVC!.chfValue
-                currencySymbol = "CHF"
-            }
+            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
             
-            var transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
-            var balanceValue = String(Int((transactionValue*correctValue).rounded()))
-            balanceValue = addSpacesToString(balanceValue: balanceValue).replacingOccurrences(of: "-", with: "")
+            let transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
+            var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
+            balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             
-            actualCell.eurosLabel.text = balanceValue + " " + currencySymbol
+            actualCell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
             
             // Set gain label
             if thisTransaction.isBittr == true {
                 actualCell.updateBoltTrailing(position: "left")
                 actualCell.bittrImage.alpha = 1
                 actualCell.gainView.alpha = 1
+                actualCell.swapImage.alpha = 0
                 if thisTransaction.purchaseAmount == 0 {
                     // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
-                    thisTransaction.purchaseAmount = Int((transactionValue*correctValue).rounded())
+                    thisTransaction.purchaseAmount = Int((transactionValue*bitcoinValue.currentValue).rounded())
                 }
-                let relativeGain:Int = Int((CGFloat(Int((transactionValue*correctValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
+                let relativeGain:Int = Int((CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
                 actualCell.gainLabel.text = "\(relativeGain) %"
                 
                 if relativeGain < 0 {
@@ -73,10 +69,19 @@ extension HomeViewController {
                     actualCell.gainLabel.textColor = Colors.getColor("profittext")
                 }
             } else {
-                actualCell.updateBoltTrailing(position: "right")
-                actualCell.bittrImage.alpha = 0
-                actualCell.gainView.alpha = 0
-                actualCell.gainLabel.text = ""
+                if thisTransaction.isSwap || thisTransaction.lnDescription.contains("Swap") {
+                    actualCell.swapImage.alpha = 1
+                    actualCell.updateBoltTrailing(position: "middle")
+                    actualCell.bittrImage.alpha = 0
+                    actualCell.gainView.alpha = 0
+                    actualCell.gainLabel.text = ""
+                } else {
+                    actualCell.updateBoltTrailing(position: "right")
+                    actualCell.bittrImage.alpha = 0
+                    actualCell.gainView.alpha = 0
+                    actualCell.gainLabel.text = ""
+                    actualCell.swapImage.alpha = 0
+                }
             }
             
             if thisTransaction.isLightning == true {
@@ -86,7 +91,7 @@ extension HomeViewController {
             } else {
                 actualCell.boltImage.alpha = 0
                 
-                if thisTransaction.confirmations < 1 && self.coreVC?.currentHeight != nil {
+                if thisTransaction.confirmations < 1 && self.coreVC?.bittrWallet.currentHeight != nil {
                     // Unconfirmed transaction.
                     actualCell.satsLabel.textColor = Colors.getColor("unconfirmed")
                     actualCell.eurosLabel.textColor = Colors.getColor("unconfirmed")

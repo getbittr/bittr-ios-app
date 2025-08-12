@@ -16,9 +16,9 @@ struct Constants {
                 static let bitcoin_blockstream = "https://blockstream.info/api"
                 static let bitcoin_mempoolspace = "https://mempool.space/api"
             }
-            static let regtest = "http://ldk-node.tnull.de:3002"
+            static let regtest = "https://esplora.regtest.getbittr.com/api"
             static let signet = "https://mutinynet.com/api"
-            static let testnet = "https://mempool.space/testnet/api"
+            static let testnet = "https://mempool.space/testnet4/api"
         }
         
         struct RGSServerURLNetwork {

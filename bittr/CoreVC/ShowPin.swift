@@ -12,9 +12,6 @@ extension CoreViewController {
     func correctPin(spinner:UIActivityIndicatorView) {
         // The correct pin has been entered in the PinVC and the wallet is ready to be synced and shown.
         
-        // Load client details.
-        self.setClient()
-        
         // Start wallet.
         self.startLightning()
         
@@ -43,23 +40,6 @@ extension CoreViewController {
                 self.blackSignupBackground.alpha = 0.2
             }
         }
-    }
-    
-    
-    func setClient() {
-        
-        var envKey = "proddevice"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envKey = "device"
-        }
-        
-        let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary
-        if let actualDeviceDict = deviceDict {
-            // Client exists in cache.
-            let clients:[Client] = CacheManager.parseDevice(deviceDict: actualDeviceDict)
-            self.client = clients[0]
-        }
-        
     }
     
     

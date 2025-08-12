@@ -11,7 +11,6 @@ class ProfitViewController: UIViewController {
 
     // General
     @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var subtitleLabel: UILabel!
     
@@ -28,6 +27,7 @@ class ProfitViewController: UIViewController {
     var totalProfit = 0
     var totalInvestments = 0
     var totalValue = 0
+    var coreVC:CoreViewController?
     
     @IBOutlet weak var totalInvestmentLabel: UILabel!
     @IBOutlet weak var totalValueLabel: UILabel!
@@ -36,21 +36,17 @@ class ProfitViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        downButton.setTitle("", for: .normal)
-        headerView.layer.cornerRadius = 13
-        investedView.layer.cornerRadius = 13
-        divestedView.layer.cornerRadius = 13
-        currentValueView.layer.cornerRadius = 13
-        profitView.layer.cornerRadius = 13
+        self.downButton.setTitle("", for: .normal)
+        self.investedView.layer.cornerRadius = 13
+        self.divestedView.layer.cornerRadius = 13
+        self.currentValueView.layer.cornerRadius = 13
+        self.profitView.layer.cornerRadius = 13
         
-        var currencySymbol = "€"
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            currencySymbol = "CHF"
-        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
-        self.totalInvestmentLabel.text = "\(currencySymbol) \(self.totalInvestments)"
-        self.totalValueLabel.text = "\(currencySymbol) \(self.totalValue)"
-        self.totalProfitLabel.text = "\(currencySymbol) \(self.totalProfit)"
+        self.totalInvestmentLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalInvestments)"
+        self.totalValueLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalValue)"
+        self.totalProfitLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalProfit)"
         
         self.changeColors()
         self.setWords()

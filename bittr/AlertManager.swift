@@ -7,14 +7,13 @@
 
 import UIKit
 
+private var thisVC:UIViewController?
+
 extension UIViewController {
     
-    func showAlert(title:String, message:String, buttons:[String], actions:[Selector?]?) {
-        /*DispatchQueue.main.async {
-         let alert = UIAlertController(title: alertTitle, message: alertMessage, preferredStyle: .alert)
-         alert.addAction(UIAlertAction(title: alertButton, style: .cancel, handler: nil))
-         self.present(alert, animated: true)
-         }*/
+    func showAlert(presentingController:UIViewController, title:String, message:String, buttons:[String], actions:[Selector?]?) {
+        
+        thisVC = presentingController
         
         DispatchQueue.main.async {
             
@@ -23,12 +22,12 @@ extension UIViewController {
             darkBackground.translatesAutoresizingMaskIntoConstraints = false
             darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
             darkBackground.accessibilityIdentifier = "alertview"
-            self.view.addSubview(darkBackground)
-            let darkBackgroundTop = NSLayoutConstraint(item: darkBackground, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
-            let darkBackgroundBottom = NSLayoutConstraint(item: darkBackground, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            let darkBackgroundLeft = NSLayoutConstraint(item: darkBackground, attribute: .leading, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
-            let darkBackgroundRight = NSLayoutConstraint(item: darkBackground, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
-            self.view.addConstraints([darkBackgroundTop, darkBackgroundLeft, darkBackgroundRight, darkBackgroundBottom])
+            presentingController.view.addSubview(darkBackground)
+            let darkBackgroundTop = NSLayoutConstraint(item: darkBackground, attribute: .top, relatedBy: .equal, toItem: presentingController.view, attribute: .top, multiplier: 1, constant: 0)
+            let darkBackgroundBottom = NSLayoutConstraint(item: darkBackground, attribute: .bottom, relatedBy: .equal, toItem: presentingController.view, attribute: .bottom, multiplier: 1, constant: 0)
+            let darkBackgroundLeft = NSLayoutConstraint(item: darkBackground, attribute: .leading, relatedBy: .equal, toItem: presentingController.view, attribute: .leading, multiplier: 1, constant: 0)
+            let darkBackgroundRight = NSLayoutConstraint(item: darkBackground, attribute: .trailing, relatedBy: .equal, toItem: presentingController.view, attribute: .trailing, multiplier: 1, constant: 0)
+            presentingController.view.addConstraints([darkBackgroundTop, darkBackgroundLeft, darkBackgroundRight, darkBackgroundBottom])
             
             // Card
             let yellowCard = UIView()
@@ -41,11 +40,12 @@ extension UIViewController {
             yellowCard.layer.shadowOpacity = 0.1
             yellowCard.clipsToBounds = false
             darkBackground.addSubview(yellowCard)
-            let yellowCardCenterY = NSLayoutConstraint(item: yellowCard, attribute: .centerY, relatedBy: .equal, toItem: darkBackground, attribute: .centerY, multiplier: 1, constant: 0)
-            let yellowCardLeft = NSLayoutConstraint(item: yellowCard, attribute: .leading, relatedBy: .equal, toItem: darkBackground, attribute: .leading, multiplier: 1, constant: 30)
-            let yellowCardRight = NSLayoutConstraint(item: yellowCard, attribute: .trailing, relatedBy: .equal, toItem: darkBackground, attribute: .trailing, multiplier: 1, constant: -30)
-            let yellowCardHeight = NSLayoutConstraint(item: yellowCard, attribute: .height, relatedBy: .lessThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: self.view.bounds.height)
-            darkBackground.addConstraints([yellowCardCenterY, yellowCardLeft, yellowCardRight])
+            let yellowCardTop = NSLayoutConstraint(item: yellowCard, attribute: .top, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
+            var yellowCardBottom = NSLayoutConstraint()
+            let yellowCardLeft = NSLayoutConstraint(item: yellowCard, attribute: .leading, relatedBy: .equal, toItem: darkBackground, attribute: .leading, multiplier: 1, constant: 0)
+            let yellowCardRight = NSLayoutConstraint(item: yellowCard, attribute: .trailing, relatedBy: .equal, toItem: darkBackground, attribute: .trailing, multiplier: 1, constant: 0)
+            let yellowCardHeight = NSLayoutConstraint(item: yellowCard, attribute: .height, relatedBy: .lessThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: presentingController.view.bounds.height)
+            darkBackground.addConstraints([yellowCardTop, yellowCardLeft, yellowCardRight, yellowCardBottom])
             yellowCard.addConstraint(yellowCardHeight)
             
             // Icon
@@ -53,15 +53,15 @@ extension UIViewController {
             alertIcon.translatesAutoresizingMaskIntoConstraints = false
             alertIcon.contentMode = .scaleAspectFit
             if CacheManager.darkModeIsOn() {
-                alertIcon.image = UIImage(named: "iconmailboxyellow")
+                alertIcon.image = UIImage(named: "iconbellyellow")
             } else {
-                alertIcon.image = UIImage(named: "iconmailboxwhite")
+                alertIcon.image = UIImage(named: "iconbellwhite")
             }
             yellowCard.addSubview(alertIcon)
             let alertIconTop = NSLayoutConstraint(item: alertIcon, attribute: .top, relatedBy: .equal, toItem: yellowCard, attribute: .top, multiplier: 1, constant: 19)
             let alertIconLeft = NSLayoutConstraint(item: alertIcon, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 20)
-            let alertIconHeight = NSLayoutConstraint(item: alertIcon, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 21)
-            let alertIconWidth = NSLayoutConstraint(item: alertIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 21)
+            let alertIconHeight = NSLayoutConstraint(item: alertIcon, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 18)
+            let alertIconWidth = NSLayoutConstraint(item: alertIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 18)
             yellowCard.addConstraints([alertIconTop, alertIconLeft])
             alertIcon.addConstraints([alertIconHeight, alertIconWidth])
             
@@ -70,7 +70,7 @@ extension UIViewController {
             headerLabel.translatesAutoresizingMaskIntoConstraints = false
             headerLabel.numberOfLines = 1
             headerLabel.font = UIFont(name: "Gilroy-Bold", size: 18)
-            headerLabel.text = Language.getWord(withID: "message")
+            headerLabel.text = title.lowercased()
             headerLabel.textColor = Colors.getColor("whiteoryellow")
             yellowCard.addSubview(headerLabel)
             let headerLabelCenterY = NSLayoutConstraint(item: headerLabel, attribute: .centerY, relatedBy: .equal, toItem: alertIcon, attribute: .centerY, multiplier: 1, constant: 0)
@@ -128,7 +128,7 @@ extension UIViewController {
             closeButton.addConstraints([closeButtonWidth, closeButtonHeight])
             
             // Message title
-            let titleLabel = UILabel()
+            /*let titleLabel = UILabel()
             titleLabel.translatesAutoresizingMaskIntoConstraints = false
             titleLabel.numberOfLines = 1
             titleLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
@@ -141,7 +141,7 @@ extension UIViewController {
             let titleLabelHeight = NSLayoutConstraint(item: titleLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             let titleLabelWidth = NSLayoutConstraint(item: titleLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             yellowCard.addConstraints([titleLabelTop, titleLabelCenterX])
-            titleLabel.addConstraints([titleLabelHeight, titleLabelWidth])
+            titleLabel.addConstraints([titleLabelHeight, titleLabelWidth])*/
             
             // Message
             let messageLabel = UILabel()
@@ -152,7 +152,7 @@ extension UIViewController {
             messageLabel.textColor = Colors.getColor("blackorwhite")
             messageLabel.textAlignment = .center
             yellowCard.addSubview(messageLabel)
-            let messageLabelTop = NSLayoutConstraint(item: messageLabel, attribute: .top, relatedBy: .equal, toItem: titleLabel, attribute: .bottom, multiplier: 1, constant: 8)
+            let messageLabelTop = NSLayoutConstraint(item: messageLabel, attribute: .top, relatedBy: .equal, toItem: alertIcon, attribute: .bottom, multiplier: 1, constant: 25)
             let messageLabelLeft = NSLayoutConstraint(item: messageLabel, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 40)
             let messageLabelRight = NSLayoutConstraint(item: messageLabel, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -40)
             let messageLabelHeight = NSLayoutConstraint(item: messageLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
@@ -168,12 +168,12 @@ extension UIViewController {
             let buttonsStackHeight = NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
             let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 10)
             let buttonsStackRight = NSLayoutConstraint(item: buttonsStack, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -10)
-            let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: 0)
+            let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: -50)
             let buttonsStackTop = NSLayoutConstraint(item: buttonsStack, attribute: .top, relatedBy: .equal, toItem: messageLabel, attribute: .bottom, multiplier: 1, constant: 35)
             yellowCard.addConstraints([buttonsStackLeft, buttonsStackRight, buttonsStackBottom, buttonsStackTop])
             buttonsStack.addConstraint(buttonsStackHeight)
             
-            self.view.layoutIfNeeded()
+            presentingController.view.layoutIfNeeded()
             
             for (index, eachButton) in buttons.enumerated() {
                 
@@ -238,14 +238,30 @@ extension UIViewController {
                 yellowCard.addConstraints([mainButtonTop, mainButtonLeft, mainButtonRight, mainButtonBottom])
             }
             
-            self.view.layoutIfNeeded()
+            presentingController.view.layoutIfNeeded()
+            
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+                NSLayoutConstraint.deactivate([yellowCardTop])
+                yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([yellowCardBottom])
+                presentingController.view.layoutIfNeeded()
+            }) { _ in
+                UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                    NSLayoutConstraint.deactivate([yellowCardBottom])
+                    yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 13)
+                    NSLayoutConstraint.activate([yellowCardBottom])
+                    presentingController.view.layoutIfNeeded()
+                }
+            }
         }
     }
     
     @objc func hideAlert() {
-        for eachView in self.view.subviews {
-            if eachView.accessibilityIdentifier == "alertview" {
-                eachView.removeFromSuperview()
+        if thisVC != nil {
+            for eachView in thisVC!.view.subviews {
+                if eachView.accessibilityIdentifier == "alertview" {
+                    eachView.removeFromSuperview()
+                }
             }
         }
     }

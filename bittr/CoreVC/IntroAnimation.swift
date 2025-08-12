@@ -14,6 +14,20 @@ extension CoreViewController {
         secondCoin.layer.cornerRadius = firstCoin.bounds.height / 2
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        
+        // Determine whether to show pin view or signup view.
+        if CacheManager.getPin() != nil {
+            // Wallet exists. Launch pin.
+            self.signupAlpha = 0
+            self.blackSignupAlpha = 0
+            // If signupAlpha is 0, the intro animation will display the PinVC upon completion. Otherwise, it will display the SignupVC.
+        } else {
+            // No wallet exists yet. Load SignupVC ahead of intro animation completion.
+            self.launchSignup(onPage: 3)
+        }
+    }
+    
     override func viewDidAppear(_ animated: Bool) {
         
         // Set correct height constraint for menu bar.
@@ -77,7 +91,7 @@ extension CoreViewController {
                             // Check internet connection.
                             if !Reachability.isConnectedToNetwork() {
                                 // User not connected to internet.
-                                self.showAlert(title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                     }

@@ -1,13 +1,13 @@
 {
-  "originHash" : "426111853c115c7aca430f675daa7616d70c5f617293a09ecc6f950c8ecc8b37",
+  "originHash" : "a94f087c8ccce3a0668bfb93fe523a8d0b405d2e83b6ced1ec958d04ae572534",
   "pins" : [
     {
       "identity" : "bdk-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bitcoindevkit/bdk-swift",
       "state" : {
-        "revision" : "6cc7412e0ead59cf6d51e8b061ce9f8e3ebb180a",
-        "version" : "0.31.2"
+        "revision" : "92ecb88e7568ef77aadefb062382988d12be57dd",
+        "version" : "1.2.0"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-node/",
       "state" : {
-        "branch" : "main",
-        "revision" : "6d8382bca81f148f06e02d13e602ea9dcb6be4b6"
+        "revision" : "93858b372c7b450fc90b86d362facd79fe823e45",
+        "version" : "0.6.1"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lightningdevkit/ldk-swift/",
       "state" : {
-        "revision" : "c57a07c915ddf9e7459b5f11002b56e072e9cfd5",
-        "version" : "0.0.124"
+        "revision" : "b36f37fc216ae83eb8fdc625ae3c85ea4158a7d6",
+        "version" : "0.0.125"
       }
     },
     {
@@ -67,10 +67,10 @@
     {
       "identity" : "swift-secp256k1",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/21-DOT-DEV/swift-secp256k1",
+      "location" : "https://github.com/RubenWaterman/swift-secp256k1",
       "state" : {
-        "revision" : "57ce9af6db14e0114af631ace25231a9d0ccccbd",
-        "version" : "0.18.0"
+        "branch" : "import-signatures-and-nonces",
+        "revision" : "c21c2128270863b57b99ec02004d50c0dd9afa52"
       }
     }
   ],
