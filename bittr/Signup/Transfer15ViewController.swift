@@ -140,11 +140,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "token_2fa": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
                 ]
                 
-                // TODO: Public?
-                var envUrl = "https://getbittr.com/api/verify/email/check2fa"
-                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email/check2fa"
-                }
+                let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email/check2fa"
                 
                 Task {
                     await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
@@ -216,13 +212,12 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         let lightningPubKey = LightningNodeService.shared.nodeId()
         let xpub = LightningNodeService.shared.getXpub()
         
-        let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/1'/0'/0/0", message: message)
+        let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)
         
         Task {
             do {
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: message)
                 
-                // TODO: Public?
                 let parameters: [String: Any] = [
                     "email": iban.yourEmail,
                     "email_token": iban.emailToken,
@@ -240,12 +235,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "skip_xpub_usage_check": "true",
                     "ios_device_token": CacheManager.getRegistrationToken() ?? ""
                 ]
-                
-                // TODO: Public?
-                var envUrl = "https://getbittr.com/api/customer"
-                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    envUrl = "https://model-arachnid-viable.ngrok-free.app/customer"
-                }
+
+                let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/customer"
                 
                 await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
                     
@@ -335,11 +326,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         "category": "ledger"
                     ]
                     
-                    // TODO: Public?
-                    var envUrl = "https://getbittr.com/api/verify/email"
-                    if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                        envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
-                    }
+                    let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
                     
                     Task {
                         await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in

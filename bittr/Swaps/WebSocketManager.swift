@@ -13,7 +13,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     var delegate: Any?
     var swapID:String?
     var webSocketTask: URLSessionWebSocketTask?
-    var url = URL(string: "wss://api.boltz.exchange/v2/ws")!
+    var url = URL(string: EnvironmentConfig.webSocketURL)!
     var session: URLSession?
     var backgroundTask: UIBackgroundTaskIdentifier = .invalid
         
@@ -50,9 +50,6 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         // Start background task
         startBackgroundTask()
         
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            url = URL(string: "wss://api.regtest.getbittr.com/v2/ws")!
-        }
         // Establish WebSocket connection
         webSocketTask = session.webSocketTask(with: url)
         webSocketTask?.resume()

@@ -362,60 +362,6 @@ public class SimpleKeyDerivation {
             secp256k1_ec_seckey_verify(secp256k1Context, bytes.bindMemory(to: UInt8.self).baseAddress!) == 1
         }
     }
-    
-    // Test function to verify the key derivation
-    public static func testKeyDerivation() {
-        let testMnemonic = "void super old faith primary cradle behave crucial vault minor walk random"
-        let testPath = "m/84'/1'/0'/0/0"
-        let expectedPrivateKey = "4b596bede18150db341c9b1a71e1549bb69e3669805895ff8ad8ca873f76be09"
-        let expectedPublicKey = "038338ab3db0f0e1ed78e295e4074197e6a0ab97195013690ecdf5a37998211049"
-        
-        do {
-            // Test with BDK directly first
-            let bdkMnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: testMnemonic)
-            let bip32ExtendedRootKey = DescriptorSecretKey(network: .regtest, mnemonic: bdkMnemonic, password: nil)
-            
-            print("=== BDK REFERENCE TEST ===")
-            print("BDK Root Key: \(bip32ExtendedRootKey.asString())")
-            
-            // Now test our implementation with the same logic as the actual function
-            let actualNetwork: KeyDerivationNetwork = UserDefaults.standard.value(forKey: "envkey") as? Int == 0 ? .testnet : .mainnet
-            print("Actual network from environment: \(actualNetwork)")
-            
-            let keyDerivation = try SimpleKeyDerivation(mnemonic: testMnemonic, network: actualNetwork)
-            
-            // Test seed generation first
-            let masterSeed = try keyDerivation.createMasterSeed(from: Data())
-            print("=== SEED GENERATION TEST ===")
-            print("Master seed (first 32 bytes): \(masterSeed.prefix(32).hexString)")
-            print("Chain code (last 32 bytes): \(masterSeed.suffix(32).hexString)")
-            
-            // Test path parsing
-            let pathComponents = try keyDerivation.parseDerivationPath(testPath)
-            print("=== PATH PARSING TEST ===")
-            print("Path components: \(pathComponents.map { String(format: "0x%08x", $0) })")
-            
-            let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(testPath)
-            
-            let signature = try! BitcoinMessage.sign(message: "Hello World", privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
-            
-            print("=== KEY DERIVATION TEST ===")
-            print("Mnemonic: \(testMnemonic)")
-            print("Path: \(testPath)")
-            print("Expected Private Key: \(expectedPrivateKey)")
-            print("Actual Private Key:   \(privateKeyHex)")
-            print("Private Key Match: \(privateKeyHex.lowercased() == expectedPrivateKey.lowercased())")
-            print("")
-            print("Expected Public Key: \(expectedPublicKey)")
-            print("Actual Public Key:   \(publicKeyHex)")
-            print("Public Key Match: \(publicKeyHex.lowercased() == expectedPublicKey.lowercased())")
-            print("=== END TEST ===")
-            print("Signature: \(signature)")
-            
-        } catch {
-            print("Test failed with error: \(error)")
-        }
-    }
 }
 
 // MARK: - Extensions for Base58 and Hex String conversions

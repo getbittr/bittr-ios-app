@@ -1058,7 +1058,7 @@ func constructClaimTransaction(
     destinationAddress: String,
     fee: Int,
     txHash: Data,
-    network: BitcoinNetwork = .regtest,
+    network: BitcoinNetwork,
     isRefund: Bool = false,
     timeoutBlockHeight: UInt32 = 0
 ) -> BoltzClaimTransaction {

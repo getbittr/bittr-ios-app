@@ -423,10 +423,7 @@ extension SendViewController {
         if let actualWallet = LightningNodeService.shared.getWallet() {
             do {
                 let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
-                var bdkNetwork = BitcoinDevKit.Network.bitcoin
-                if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                    bdkNetwork = BitcoinDevKit.Network.regtest
-                }
+                let bdkNetwork = EnvironmentConfig.bitcoinDevKitNetwork
                 let address = try Address(address: actualAddress, network: bdkNetwork)
                 let script = address.scriptPubkey()
                 let actualAmount:Int = Int(actualWallet.balance().trustedSpendable.toSat())
@@ -532,10 +529,7 @@ extension UIViewController {
     
     func getTx(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
         
-        var network = BitcoinDevKit.Network.bitcoin
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            network = BitcoinDevKit.Network.regtest
-        }
+        let network = EnvironmentConfig.bitcoinDevKitNetwork
         let address = try Address(address: address, network: network)
         let script = address.scriptPubkey()
         var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))

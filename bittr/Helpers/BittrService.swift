@@ -10,16 +10,10 @@ import Foundation
 class BittrService {
 
     static let shared = BittrService()
-    private let baseURL = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
     private let session = URLSession(configuration: .default)
     
     func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
-        
-        // TODO: Public?
-        var envUrl:String = "https://getbittr.com/api/payout/lightning"
-        if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-            envUrl = "https://model-arachnid-viable.ngrok-free.app/payout/lightning"
-        }
+        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/payout/lightning"
         
         var urlComponents = URLComponents(string: envUrl)!
         urlComponents.queryItems = [
@@ -70,13 +64,9 @@ class BittrService {
             
             let lightningPubKey = LightningNodeService.shared.nodeId()
             
-            // TODO: Public?
-            var envUrl = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
-            if UserDefaults.standard.value(forKey: "envkey") as? Int != 0 {
-                envUrl = URL(string: "https://getbittr.com/api/")!
-            }
+            let envUrl = URL(string: EnvironmentConfig.bittrAPIBaseURL)!
             
-            var urlComponents = URLComponents(url: envUrl.appendingPathComponent("transaction_info"), resolvingAgainstBaseURL: false)!
+            var urlComponents = URLComponents(url: envUrl.appendingPathComponent("/transaction_info"), resolvingAgainstBaseURL: false)!
             urlComponents.queryItems = [
                 URLQueryItem(name: "tx_ids", value: txIdsString),
                 URLQueryItem(name: "deposit_codes", value: depositCodesString),

@@ -145,11 +145,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 "category": "ios"
             ]
             
-            // TODO: Public?
-            var envUrl = "https://getbittr.com/api/verify/email"
-            if UserDefaults.standard.value(forKey: "envkey") as? Int == 0 {
-                envUrl = "https://model-arachnid-viable.ngrok-free.app/verify/email"
-            }
+            let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
             
             Task {
                 await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in

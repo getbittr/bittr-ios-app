@@ -19,9 +19,17 @@ struct ClaimResult {
 // MARK: - API Models
 
 class BoltzRefund {
+    // Environment-aware network selection
+    static var network: BitcoinNetwork {
+        return EnvironmentConfig.network
+    }
+    
     static func tryBoltzClaimInternalTransactionGeneration(swapVC:SwapViewController) async throws -> ClaimResult {
+        print("🚀 BoltzRefund.tryBoltzClaimInternalTransactionGeneration called")
         
         if let ongoingSwap = await swapVC.coreVC?.bittrWallet.ongoingSwap {
+            print("✅ Found ongoing swap with ID: \(ongoingSwap.boltzID ?? "nil")")
+            print("📄 Swap details: \(ongoingSwap.dateID ?? "nil")")
             
             print("Found swap with invoice: \(ongoingSwap.boltzInvoice ?? "unknown")")
             
@@ -90,7 +98,7 @@ class BoltzRefund {
                     destinationAddress: destinationAddress,
                     fee: exactFee,
                     txHash: txHash,
-                    network: .regtest
+                    network: network
                 )
                 
                 let serializedTx = claimTx.serialize()
@@ -274,7 +282,8 @@ class BoltzRefund {
                   txHash: txHash,                // Hash of lockup transaction
                   destinationAddress: destinationAddress,     // Where to send refunded funds
                   timeoutBlockHeight: 0,          // Block height when refund becomes valid
-                  fee: exactFee                             // Transaction fee in satoshis
+                  fee: exactFee,                  // Transaction fee in satoshis
+                  network: network
               )
             
             let serializedTx = refundTx.serialize()

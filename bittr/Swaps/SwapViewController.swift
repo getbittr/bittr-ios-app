@@ -369,22 +369,67 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.resetIcon.alpha = 0
             
             if let swapID = self.coreVC?.bittrWallet.ongoingSwap?.boltzID {
+                print("🔍 Checking swap status for ID: \(swapID)")
+                print("🔄 Current swap direction: \(self.swapDirection)")
+                print("📊 Ongoing swap details: \(self.coreVC?.bittrWallet.ongoingSwap?.dateID ?? "nil")")
+                
                 SwapManager.checkSwapStatus(swapID) { dictionary in
                     DispatchQueue.main.async {
                         self.confirmStatusLabel.alpha = 1
                         self.resetIcon.alpha = 1
+                        
+                        print("📡 Received swap status response: \(dictionary ?? [:])")
+                        
                         if dictionary != nil, let receivedStatus = dictionary!["status"] as? String {
+                            print("✅ Status received: \(receivedStatus)")
+                            print("🔄 Current swap direction: \(self.swapDirection)")
                             
                             self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
                             
                             if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
+                                print("❌ Swap failed with status: \(receivedStatus)")
                                 //TODO RUBEN: Add refund logic here
+                            } else if receivedStatus == "transaction.confirmed" || receivedStatus == "invoice.settled" {
+                                print("✅ Transaction confirmed!")
+                                print("🔍 Checking if swapDirection == 1: \(self.swapDirection == 1)")
+                                
+                                if self.swapDirection == 1 {
+                                    print("🔄 Processing lightning to onchain swap")
+                                    if let transaction = dictionary!["transaction"] as? [String: Any] {
+                                        print("📄 Transaction data: \(transaction)")
+                                        if let transactionHex = transaction["hex"] as? String {
+                                            print("🔗 Transaction hex found, length: \(transactionHex.count)")
+                                            self.handleTransactionMempool(transactionHex: transactionHex)
+                                        } else {
+                                            print("❌ No transaction hex found in response")
+                                        }
+                                    } else {
+                                        print("❌ No transaction data found in response")
+                                        
+                                        // Fallback: Try to load lockup transaction from JSON file
+                                        print("🔄 Attempting to load lockup transaction from JSON file...")
+                                        if let swapID = self.coreVC?.bittrWallet.ongoingSwap?.boltzID,
+                                           let jsonLockupTx = self.loadLockupTxFromFile(swapID: swapID) {
+                                            print("✅ Found lockup transaction in JSON file, processing...")
+                                            self.handleTransactionMempool(transactionHex: jsonLockupTx)
+                                        } else {
+                                            print("❌ No lockup transaction found in JSON file either")
+                                        }
+                                    }
+                                } else {
+                                    print("ℹ️ Not a lightning to onchain swap (direction: \(self.swapDirection))")
+                                }
+                            } else {
+                                print("ℹ️ Other status received: \(receivedStatus)")
                             }
                         } else {
-                            print("No status received.")
+                            print("❌ No status received or invalid response format")
+                            print("📄 Full response: \(dictionary ?? [:])")
                         }
                     }
                 }
+            } else {
+                print("❌ No swap ID found in ongoing swap")
             }
         }
     }
@@ -712,18 +757,29 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     }
     
     private func handleTransactionMempool(transactionHex: String) {
+        print("🔧 handleTransactionMempool called with transaction hex length: \(transactionHex.count)")
+        
         // Update the swap file with the lockup transaction
-        guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
+        guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { 
+            print("❌ No ongoing swap found")
+            return 
+        }
+        
+        print("✅ Found ongoing swap with ID: \(ongoingSwap.boltzID ?? "nil")")
+        
         ongoingSwap.lockupTx = transactionHex
         self.coreVC!.bittrWallet.ongoingSwap!.lockupTx = transactionHex
         CacheManager.saveLatestSwap(ongoingSwap)
         SwapManager.updateSwapFileWithLockupTx(swapID: ongoingSwap.boltzID!, lockupTx: ongoingSwap.lockupTx!)
         
+        print("💾 Updated swap file with lockup transaction")
+        
         // Claim onchain transaction using async function
         Task {
             do {
+                print("🚀 Starting Boltz claim process...")
                 let claimResult = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapVC: self)
-                print("Claim result: \(claimResult)")
+                print("✅ Claim result: \(claimResult)")
                 
                 // Handle the result on main thread
                 DispatchQueue.main.async {
@@ -930,6 +986,45 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         return containerView
     }
 
+    // MARK: - JSON File Helper
+    
+    private func loadLockupTxFromFile(swapID: String) -> String? {
+        print("🔍 Loading lockup transaction from file: \(swapID).json")
+        
+        do {
+            // Get the documents directory
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
+            
+            // Check if file exists
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                print("❌ Swap file not found at: \(fileURL.path)")
+                return nil
+            }
+            
+            // Read the JSON data from file
+            let jsonData = try Data(contentsOf: fileURL)
+            
+            // Convert JSON Data to NSDictionary
+            guard let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary else {
+                print("❌ Failed to parse JSON from file")
+                return nil
+            }
+            
+            // Extract lockup transaction
+            if let lockupTx = dictionary["lockupTx"] as? String {
+                print("✅ Found lockup transaction in JSON file")
+                return lockupTx
+            } else {
+                print("❌ No lockup transaction found in JSON file")
+                return nil
+            }
+            
+        } catch {
+            print("❌ Error loading lockup transaction from file: \(error)")
+            return nil
+        }
+    }
 }
 
 extension UIViewController {
