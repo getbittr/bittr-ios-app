@@ -48,7 +48,7 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         }
         
         // Download image if needed
-        if oneArticleImage.image == nil {
+        if oneArticleImage.image == nil, self.article?.image != "" {
             
             self.imageSpinner.startAnimating()
             let session = URLSession(configuration: .default)

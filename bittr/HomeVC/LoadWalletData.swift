@@ -404,7 +404,7 @@ extension HomeViewController {
             
             self.coreVC!.startSync(type: "conversion")
             
-            let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/price/btc"
+            let envUrl = "https://getbittr.com/api/price/btc"
             
             // Get currency conversion rate from Bittr API.
             let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)

@@ -309,7 +309,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let thisImage = self.allImages[self.tappedArticle] {
                 oneArticleVC.headerImage = thisImage
             }
-            article = self.everyArticle[self.tappedArticle] ?? Article()
+            article = self.coreVC?.allArticles?[self.tappedArticle] ?? Article()
             oneArticleVC.article = article
         }
     }

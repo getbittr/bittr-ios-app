@@ -170,7 +170,7 @@ extension UIViewController {
             return completion(.success(coreVC.allArticles![withSlug]!))
         } else {
             Task {
-                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: "POST") { result in
+                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: "GET") { result in
                     
                     switch result {
                     case .success(let receivedDictionary):
