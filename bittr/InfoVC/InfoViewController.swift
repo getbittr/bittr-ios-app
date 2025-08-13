@@ -57,65 +57,53 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func getArticles() {
         
-        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/articles"
-        
-        let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data else {
-                print("Articles request error: " + String(describing: error))
-                DispatchQueue.main.async {
-                    if let actualError = error {
-                        SentrySDK.capture(error: actualError)
-                    }
-                }
-                return
-            }
+        if self.coreVC?.allArticles == nil {
             
-            var dataDictionary:NSDictionary?
-            if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                do {
-                    dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                    if let actualDataDict = dataDictionary {
-                        if let actualArticles = actualDataDict["articles"] as? NSDictionary {
+            Task {
+                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: "GET") { result in
+                    
+                    switch result {
+                    case .success(let receivedDictionary):
+                        if let actualArticles = receivedDictionary["articles"] as? NSDictionary {
                             
                             self.everyArticle = self.parseArticles(articles: actualArticles)
                             self.coreVC?.allArticles = self.everyArticle
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setsignuparticles"), object: nil, userInfo: self.everyArticle) as Notification)
                             
-                            // Divide articles into two categories.
-                            for (_, articledata) in self.everyArticle {
-                                if articledata.category == "General", articledata.isVisible == true {
-                                    self.faqArticles += [articledata]
-                                } else {
-                                    if articledata.isVisible == true {
-                                        self.newsArticles += [articledata]
-                                    }
-                                }
-                            }
-                            
-                            // Update articles table.
                             DispatchQueue.main.async {
-                                self.faqArticles.sort { article1, article2 in
-                                    article1.order < article2.order
-                                }
-                                self.newsArticles.sort { article1, article2 in
-                                    article1.order < article2.order
-                                }
-                                self.infoTableView.reloadData()
-                                self.articlesCollectionView.reloadData()
+                                self.updateArticlesTable()
                             }
                         }
-                    }
-                } catch let error as NSError {
-                    print("Articles request error: " + error.localizedDescription)
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error)
+                    case .failure(let error):
+                        return
                     }
                 }
             }
+        } else {
+            self.updateArticlesTable()
         }
-        task.resume()
+    }
+    
+    func updateArticlesTable() {
+        
+        for (_, articledata) in self.everyArticle {
+            if articledata.category == "General", articledata.isVisible == true {
+                self.faqArticles += [articledata]
+            } else {
+                if articledata.isVisible == true {
+                    self.newsArticles += [articledata]
+                }
+            }
+        }
+        
+        // Update articles table.
+        self.faqArticles.sort { article1, article2 in
+            article1.order < article2.order
+        }
+        self.newsArticles.sort { article1, article2 in
+            article1.order < article2.order
+        }
+        self.infoTableView.reloadData()
+        self.articlesCollectionView.reloadData()
     }
     
     override func viewDidLayoutSubviews() {
