@@ -47,13 +47,10 @@ class LightningNodeService {
             listeningAddresses: correctListeningAddresses,
             announcementAddresses: nil,
             nodeAlias: nil,
-            trustedPeers0conf: ["03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6", "036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12"],
+            trustedPeers0conf: [EnvironmentConfig.lightningNodeId],
             probingLiquidityLimitMultiplier: UInt64(3),
             anchorChannelsConfig: AnchorChannelsConfig(
-                trustedPeersNoReserve: [
-                    PublicKey("03e46857c6c24302d7231ff42770728cc0f86296473d174f70cfca90b640dc2fd6"),
-                    PublicKey("036956f49ef3db863e6f4dc34f24ace19be177168a0870e83fcaf6e7a683832b12")
-                ], perChannelReserveSats: UInt64(1000)),
+                trustedPeersNoReserve: [ PublicKey(EnvironmentConfig.lightningNodeId) ], perChannelReserveSats: UInt64(1000)),
             sendingParameters: nil
         )
         
