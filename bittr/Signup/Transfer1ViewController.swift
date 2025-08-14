@@ -90,6 +90,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+    func triggerIbanAutoFocus() {
+        // Auto-focus on IBAN field when triggered from previous page
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.ibanTextField.becomeFirstResponder()
+        }
+    }
+    
     @IBAction func ibanButtonTapped(_ sender: UIButton) {
         
         // Launch IBAN text field.
@@ -156,6 +163,11 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                             // Move to next page.
                             self.signupVC?.moveToPage(11)
                             self.ibanVC?.moveToPage(11)
+                            
+                            // Trigger auto-focus on OTP field after navigation
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                self.ibanVC?.transfer15VC?.triggerOtpAutoFocus()
+                            }
                             
                             self.nextButtonActivityIndicator.stopAnimating()
                             self.nextButtonLabel.alpha = 1

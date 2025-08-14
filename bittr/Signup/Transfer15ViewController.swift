@@ -75,6 +75,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.hasAutoTriggered = false
     }
     
+    func triggerOtpAutoFocus() {
+        // Auto-focus on OTP field when triggered from previous page
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.codeTextField.becomeFirstResponder()
+        }
+    }
+    
     func updateClient() {
         // Register client details.
         if self.signupVC != nil {

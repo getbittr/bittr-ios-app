@@ -16,6 +16,8 @@ class RegisterIbanViewController: UIViewController {
     // Variables
     var coreVC:CoreViewController?
     var currentPage = 0
+    var transfer1VC: Transfer1ViewController?
+    var transfer15VC: Transfer15ViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -62,11 +64,13 @@ class RegisterIbanViewController: UIViewController {
             if let transfer1VC = segue.destination as? Transfer1ViewController {
                 transfer1VC.coreVC = self.coreVC
                 transfer1VC.ibanVC = self
+                self.transfer1VC = transfer1VC
             }
         } else if segue.identifier == "RegisterToTransfer15" {
             if let transfer15VC = segue.destination as? Transfer15ViewController {
                 transfer15VC.coreVC = self.coreVC
                 transfer15VC.ibanVC = self
+                self.transfer15VC = transfer15VC
             }
         } else if segue.identifier == "RegisterToTransfer2" {
             if let transfer2VC = segue.destination as? Transfer2ViewController {
