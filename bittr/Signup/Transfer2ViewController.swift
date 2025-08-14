@@ -118,11 +118,26 @@ class Transfer2ViewController: UIViewController {
                     }
                 }
             }
+        } else {
+            // Fallback: get the most recent IBAN entity
+            if let mostRecentIban = self.coreVC?.bittrWallet.ibanEntities.last {
+                self.currentIbanID = mostRecentIban.id
+                
+                self.ourIbanLabel.text = mostRecentIban.ourIbanNumber
+                self.yourCodeLabel.text = mostRecentIban.yourUniqueCode
+                
+                self.ibanButton.accessibilityIdentifier = mostRecentIban.ourIbanNumber
+                self.nameButton.accessibilityIdentifier = mostRecentIban.ourName
+                self.codeButton.accessibilityIdentifier = mostRecentIban.yourUniqueCode
+            }
         }
     }
     
     
     override func viewDidAppear(_ animated: Bool) {
+        
+        // Make sure data is updated
+        self.updateData()
         
         let centerViewHeight = self.centerView.bounds.height
         

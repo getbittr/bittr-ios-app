@@ -84,6 +84,9 @@ class Transfer3ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
+        // Make sure currentIbanID is set
+        self.updateData()
+        
         let centerViewHeight = centerView.bounds.height
         
         if centerView.bounds.height + 40 > contentView.bounds.height {
@@ -100,6 +103,11 @@ class Transfer3ViewController: UIViewController {
         
         if self.signupVC != nil {
             self.currentIbanID = self.signupVC!.currentIbanID
+        } else {
+            // Fallback: get the most recent IBAN entity
+            if let mostRecentIban = self.coreVC?.bittrWallet.ibanEntities.last {
+                self.currentIbanID = mostRecentIban.id
+            }
         }
     }
     

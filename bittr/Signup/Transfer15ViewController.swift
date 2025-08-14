@@ -73,6 +73,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         // Register client details.
         if self.signupVC != nil {
             self.currentIbanID = self.signupVC!.currentIbanID
+        } else {
+            // Fallback: get the most recent IBAN entity
+            if let mostRecentIban = self.coreVC?.bittrWallet.ibanEntities.last {
+                self.currentIbanID = mostRecentIban.id
+            }
         }
     }
     
@@ -128,7 +133,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func check2Fa() {
         
-        print("Check 2FA started.")
+        // Make sure currentIbanID is set
+        self.updateClient()
         
         for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
             
@@ -152,6 +158,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             if let actualEmailToken = emailToken as? String {
                                 // Email address verified. Store email token in cache.
                                 CacheManager.addEmailToken(ibanID: self.currentIbanID, emailToken: actualEmailToken)
+                                
+                                // Update the in-memory IBAN entity with the new email token
+                                for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                                    if eachIbanEntity.id == self.currentIbanID {
+                                        self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
+                                        break
+                                    }
+                                }
                                 
                                 DispatchQueue.main.async {
                                     // Get wallet address.
@@ -179,6 +193,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
             }
         }
+
     }
     
     
@@ -199,7 +214,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         Task {
             // Get real onchain address.
             let wallet = LightningNodeService.shared.getWallet()
-            let firstAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
+            let firstAddress = wallet?.peekAddress(keychain: .external, index: 0).address.description
             
             // Send to Bittr.
             self.createBittrAccount(receivedAddress: firstAddress ?? "", message: message, page: page, iban: iban)
@@ -223,7 +238,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "email_token": iban.emailToken,
                     "bitcoin_address": receivedAddress,
                     "initial_address_type": "extended",
-                    "category": "ledger",
+                    "category": "ios",
                     "bitcoin_message": message,
                     "bitcoin_signature": signature,
                     "iban": iban.yourIbanNumber,
@@ -270,9 +285,19 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.nextButtonLabel.alpha = 1
                                     
                                     // Move to next page.
-                                    self.signupVC?.currentIbanID = self.currentIbanID
-                                    self.signupVC?.currentCode = true
-                                    self.signupVC?.moveToPage(12)
+                                    if self.signupVC != nil {
+                                        self.signupVC?.currentIbanID = self.currentIbanID
+                                        self.signupVC?.currentCode = true
+                                        self.signupVC?.moveToPage(12)
+                                    } else {
+                                        // Fallback for when accessed through RegisterIbanViewController
+                                        if self.ibanVC != nil {
+                                            self.ibanVC?.moveToPage(12)
+                                        } else {
+                                            // Show success message since we can't navigate
+                                            self.showAlert(presentingController: self, title: "Success", message: "Your account has been created successfully!", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        }
+                                    }
                                 }
                             }
                         } else if let actualApiMessage = receivedDictionary["message"] as? String {
@@ -323,7 +348,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                     let parameters: [String: Any] = [
                         "email": eachIbanEntity.yourEmail,
-                        "category": "ledger"
+                        "category": "ios"
                     ]
                     
                     let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
