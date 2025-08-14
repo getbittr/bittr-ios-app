@@ -39,6 +39,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     var setSender = ""
     var start2Fa = false
+    var hasAutoTriggered = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -60,6 +61,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         // Email code text field.
         self.codeTextField.delegate = self
         self.codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        // Enable iOS keyboard suggestions for verification codes from email/SMS
+        self.codeTextField.textContentType = .oneTimeCode
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
@@ -67,6 +70,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.changeColors()
         self.setWords()
         self.updateClient()
+        
+        // Reset auto-trigger flag
+        self.hasAutoTriggered = false
     }
     
     func updateClient() {
@@ -106,7 +112,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             let current = UNUserNotificationCenter.current()
             current.getNotificationSettings { (settings) in
                 
-                self.setSender = sender.accessibilityIdentifier!
+                // Use a default value if accessibilityIdentifier is nil (for auto-triggered calls)
+                self.setSender = sender.accessibilityIdentifier ?? "auto"
                 
                 if settings.authorizationStatus == .notDetermined {
                     // Notifications preference hasn't been set yet.
@@ -441,6 +448,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         self.updateButtonColor()
+        
+        // If code field is active and confirm button is enabled, trigger confirmation
+        if textField == self.codeTextField && self.nextView.backgroundColor == UIColor.black {
+            self.nextButtonTapped(UIButton())
+            return true
+        }
+        
         return false
     }
     
@@ -448,8 +462,40 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.updateButtonColor()
     }
     
+    func textFieldDidChangeSelection(_ textField: UITextField) {
+        self.updateButtonColor()
+        
+        // Check if we should auto-trigger after text changes
+        if textField == self.codeTextField {
+            let trimmedText = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            
+            if trimmedText.count >= 6 && self.nextView.backgroundColor == UIColor.black && !self.hasAutoTriggered {
+                self.hasAutoTriggered = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.nextButtonTapped(UIButton())
+                }
+            }
+        }
+    }
+    
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         self.updateButtonColor()
+        
+        // Auto-trigger when 6 digits are entered
+        if textField == self.codeTextField {
+            let currentText = textField.text ?? ""
+            let newText = (currentText as NSString).replacingCharacters(in: range, with: string)
+            let trimmedText = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // If we have 6 or more digits and the button is enabled, auto-trigger
+            if trimmedText.count >= 6 && self.nextView.backgroundColor == UIColor.black && !self.hasAutoTriggered {
+                self.hasAutoTriggered = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.nextButtonTapped(UIButton())
+                }
+            }
+        }
+        
         return true
     }
     

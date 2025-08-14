@@ -230,6 +230,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         updateButtonColor()
         
+        // If email field is active and verify button is enabled, trigger verification
+        if textField == self.emailTextField && self.nextView.backgroundColor == UIColor.black {
+            self.nextButtonTapped(UIButton())
+            return true
+        }
+        
         if let nextField = textField.superview?.superview?.viewWithTag(textField.tag + 1) as? UITextField {
             nextField.becomeFirstResponder()
         } else {
