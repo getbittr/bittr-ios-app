@@ -11,13 +11,26 @@ class RegisterIbanViewController: UIViewController {
     
     // UI elements
     @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var signup7ContainerViewLeading: NSLayoutConstraint!
+    
+    // Container views
+    @IBOutlet weak var walletReadyContainer: UIView!
+    @IBOutlet weak var bittrSignupContainer: UIView!
+    @IBOutlet weak var bittrEmailVerificationContainer: UIView!
+    @IBOutlet weak var bittrDetailsContainer: UIView!
+    @IBOutlet weak var bittrFinalContainer: UIView!
+    
+    // Leading constraint
+    @IBOutlet weak var containerViewsLeading: NSLayoutConstraint!
     
     // Variables
     var coreVC:CoreViewController?
     var currentPage = 0
     var transfer1VC: Transfer1ViewController?
     var transfer15VC: Transfer15ViewController?
+    var currentIbanID = ""
+    var allContainerViews = [UIView]()
+    var embedViewIdentifiers = ["Signup7", "Transfer1", "Transfer15", "Transfer2", "Transfer3"]
+    var animateTransition = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,6 +40,11 @@ class RegisterIbanViewController: UIViewController {
         
         // Set colors
         self.changeColors()
+        
+        // Container views
+        self.allContainerViews = [self.walletReadyContainer, self.bittrSignupContainer, self.bittrEmailVerificationContainer, self.bittrDetailsContainer, self.bittrFinalContainer]
+        self.animateTransition = false
+        self.moveToPage(0)
     }
     
     func moveToPage(_ thisPage:Int) {
@@ -38,51 +56,59 @@ class RegisterIbanViewController: UIViewController {
             return
         }
         
-        let navigateToPage = thisPage - 9
-        let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
+        // Identify new view controller.
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        let newChild = storyboard.instantiateViewController(withIdentifier: self.embedViewIdentifiers[thisPage])
         
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            self.signup7ContainerViewLeading.constant = -viewWidth*CGFloat(navigateToPage)
+        (newChild as? Signup7ViewController)?.ibanVC = self
+        (newChild as? Signup7ViewController)?.coreVC = self.coreVC
+        
+        (newChild as? Transfer1ViewController)?.ibanVC = self
+        (newChild as? Transfer1ViewController)?.coreVC = self.coreVC
+        
+        (newChild as? Transfer15ViewController)?.ibanVC = self
+        (newChild as? Transfer15ViewController)?.coreVC = self.coreVC
+        
+        (newChild as? Transfer2ViewController)?.ibanVC = self
+        (newChild as? Transfer2ViewController)?.coreVC = self.coreVC
+        
+        (newChild as? Transfer3ViewController)?.ibanVC = self
+        (newChild as? Transfer3ViewController)?.coreVC = self.coreVC
+        
+        // Add new view controller to correct container view.
+        self.addChild(newChild)
+        newChild.view.frame.size = self.allContainerViews[thisPage].frame.size
+        self.allContainerViews[thisPage].addSubview(newChild.view)
+        newChild.didMove(toParent: self)
+        
+        // Update current page
+        self.currentPage = thisPage
+        
+        // Animate slide to next page
+        var duration = 0.3
+        if !self.animateTransition {
+            duration = 0
+        }
+        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseInOut) {
+            self.containerViewsLeading.constant = UIScreen.main.bounds.width * CGFloat(-thisPage)
             self.view.layoutIfNeeded()
+        } completion: { _ in
+            
+            // Remove previous view from its container.
+            for (index, eachContainer) in self.allContainerViews.enumerated() {
+                if index != thisPage, eachContainer.subviews.count > 0 {
+                    for eachSubview in eachContainer.subviews {
+                        eachSubview.removeFromSuperview()
+                    }
+                }
+            }
+            self.animateTransition = true
         }
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
         
         self.dismiss(animated: true, completion: nil)
-    }
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        
-        if segue.identifier == "RegisterToSignup7" {
-            if let signup7VC = segue.destination as? Signup7ViewController {
-                signup7VC.embeddedInBuyVC = true
-                signup7VC.coreVC = self.coreVC
-                signup7VC.ibanVC = self
-            }
-        } else if segue.identifier == "RegisterToTransfer1" {
-            if let transfer1VC = segue.destination as? Transfer1ViewController {
-                transfer1VC.coreVC = self.coreVC
-                transfer1VC.ibanVC = self
-                self.transfer1VC = transfer1VC
-            }
-        } else if segue.identifier == "RegisterToTransfer15" {
-            if let transfer15VC = segue.destination as? Transfer15ViewController {
-                transfer15VC.coreVC = self.coreVC
-                transfer15VC.ibanVC = self
-                self.transfer15VC = transfer15VC
-            }
-        } else if segue.identifier == "RegisterToTransfer2" {
-            if let transfer2VC = segue.destination as? Transfer2ViewController {
-                transfer2VC.coreVC = self.coreVC
-                transfer2VC.ibanVC = self
-            }
-        } else if segue.identifier == "RegisterToTransfer3" {
-            if let transfer3VC = segue.destination as? Transfer3ViewController {
-                transfer3VC.coreVC = self.coreVC
-                transfer3VC.ibanVC = self
-            }
-        }
     }
     
     func changeColors() {

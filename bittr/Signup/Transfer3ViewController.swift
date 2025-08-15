@@ -29,8 +29,6 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var topLabelTwo: UILabel!
     @IBOutlet weak var topLabelThree: UILabel!
     
-    var currentIbanID = ""
-    
     // Articles.
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
@@ -71,7 +69,6 @@ class Transfer3ViewController: UIViewController {
         
         self.changeColors()
         self.setWords()
-        self.updateData()
         Task {
             await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
                 self.pageArticle1 = article ?? Article()
@@ -83,9 +80,6 @@ class Transfer3ViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        
-        // Make sure currentIbanID is set
-        self.updateData()
         
         let centerViewHeight = centerView.bounds.height
         
@@ -99,22 +93,12 @@ class Transfer3ViewController: UIViewController {
         }
     }
     
-    func updateData() {
-        
-        if self.signupVC != nil {
-            self.currentIbanID = self.signupVC!.currentIbanID
-        } else {
-            // Fallback: get the most recent IBAN entity
-            if let mostRecentIban = self.coreVC?.bittrWallet.ibanEntities.last {
-                self.currentIbanID = mostRecentIban.id
-            }
-        }
-    }
-    
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
+        
         for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.id == self.currentIbanID {
+            if eachIbanEntity.id == currentIbanID {
                 
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(eachIbanEntity.ourIbanNumber)\n\(eachIbanEntity.ourName)\n\(eachIbanEntity.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
             }
@@ -138,7 +122,7 @@ class Transfer3ViewController: UIViewController {
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(12)
-        self.ibanVC?.moveToPage(12)
+        self.ibanVC?.moveToPage(3)
     }
     
     func changeColors() {

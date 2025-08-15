@@ -36,8 +36,6 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var screenshotButton: UIButton!
     @IBOutlet weak var screenshotLabel: UILabel!
     
-    var currentIbanID = ""
-    
     @IBOutlet weak var ourIbanLabel: UILabel!
     @IBOutlet weak var yourCodeLabel: UILabel!
     @IBOutlet weak var titleOurIBAN: UILabel!
@@ -101,34 +99,17 @@ class Transfer2ViewController: UIViewController {
     func updateData() {
         
         // Set data received from bittr API.
-        if self.signupVC != nil {
-            self.currentIbanID = self.signupVC!.currentIbanID
-            
-            if self.signupVC!.currentCode {
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
+        
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+            if eachIbanEntity.id == currentIbanID {
                 
-                for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-                    if eachIbanEntity.id == self.currentIbanID {
-                        
-                        self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
-                        self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
-                        
-                        self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
-                        self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
-                        self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
-                    }
-                }
-            }
-        } else {
-            // Fallback: get the most recent IBAN entity
-            if let mostRecentIban = self.coreVC?.bittrWallet.ibanEntities.last {
-                self.currentIbanID = mostRecentIban.id
+                self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
+                self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
                 
-                self.ourIbanLabel.text = mostRecentIban.ourIbanNumber
-                self.yourCodeLabel.text = mostRecentIban.yourUniqueCode
-                
-                self.ibanButton.accessibilityIdentifier = mostRecentIban.ourIbanNumber
-                self.nameButton.accessibilityIdentifier = mostRecentIban.ourName
-                self.codeButton.accessibilityIdentifier = mostRecentIban.yourUniqueCode
+                self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
+                self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
+                self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
             }
         }
     }
@@ -153,7 +134,7 @@ class Transfer2ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(13)
-        self.ibanVC?.moveToPage(13)
+        self.ibanVC?.moveToPage(4)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

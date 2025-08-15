@@ -30,8 +30,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @IBOutlet weak var backgroundButton2: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
     
-    var currentIbanID = ""
-    
     @IBOutlet weak var nextButtonLabel: UILabel!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
@@ -69,7 +67,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         self.changeColors()
         self.setWords()
-        self.updateClient()
         
         // Reset auto-trigger flag
         self.hasAutoTriggered = false
@@ -79,18 +76,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         // Auto-focus on OTP field when triggered from previous page
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.codeTextField.becomeFirstResponder()
-        }
-    }
-    
-    func updateClient() {
-        // Register client details.
-        if self.signupVC != nil {
-            self.currentIbanID = self.signupVC!.currentIbanID
-        } else {
-            // Fallback: get the most recent IBAN entity
-            if let mostRecentIban = self.coreVC?.bittrWallet.ibanEntities.last {
-                self.currentIbanID = mostRecentIban.id
-            }
         }
     }
     
@@ -147,12 +132,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func check2Fa() {
         
-        // Make sure currentIbanID is set
-        self.updateClient()
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            
-            if eachIbanEntity.id == self.currentIbanID {
+        for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+            if eachIbanEntity.id == currentIbanID {
                 
                 // Send email and verification code to bittr API.
                 let parameters: [String: Any] = [
@@ -171,15 +154,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             let errorMessage = receivedDictionary["message"]
                             if let actualEmailToken = emailToken as? String {
                                 // Email address verified. Store email token in cache.
-                                CacheManager.addEmailToken(ibanID: self.currentIbanID, emailToken: actualEmailToken)
+                                CacheManager.addEmailToken(ibanID: eachIbanEntity.id, emailToken: actualEmailToken)
                                 
                                 // Update the in-memory IBAN entity with the new email token
-                                for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                                    if eachIbanEntity.id == self.currentIbanID {
-                                        self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
-                                        break
-                                    }
-                                }
+                                self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
                                 
                                 DispatchQueue.main.async {
                                     // Get wallet address.
@@ -213,8 +191,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func getAddress(page:String) {
         
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.id == self.currentIbanID {
+            if eachIbanEntity.id == currentIbanID {
                 
                 let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(eachIbanEntity.emailToken.prefix(32)). IBAN: \(eachIbanEntity.yourIbanNumber)"
                 self.createClient(message: message, page: page, iban: eachIbanEntity)
@@ -285,9 +264,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     // Signup successful.
                                     
                                     // Add bittr details to cache.
-                                    CacheManager.addBittrIban(ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                    CacheManager.addBittrIban(ibanID: iban.id, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
                                     for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                                        if eachIbanEntity.id == self.currentIbanID {
+                                        if eachIbanEntity.id == iban.id {
                                             self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = actualDataOurIban
                                             self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = actualDataSwift
                                             self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = actualDataCode
@@ -299,19 +278,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.nextButtonLabel.alpha = 1
                                     
                                     // Move to next page.
-                                    if self.signupVC != nil {
-                                        self.signupVC?.currentIbanID = self.currentIbanID
-                                        self.signupVC?.currentCode = true
-                                        self.signupVC?.moveToPage(12)
-                                    } else {
-                                        // Fallback for when accessed through RegisterIbanViewController
-                                        if self.ibanVC != nil {
-                                            self.ibanVC?.moveToPage(12)
-                                        } else {
-                                            // Show success message since we can't navigate
-                                            self.showAlert(presentingController: self, title: "Success", message: "Your account has been created successfully!", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                        }
-                                    }
+                                    self.signupVC?.moveToPage(12)
+                                    self.ibanVC?.moveToPage(3)
                                 }
                             }
                         } else if let actualApiMessage = receivedDictionary["message"] as? String {
@@ -347,7 +315,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @objc func backToPreviousPage() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
-        self.ibanVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(1)
     }
     
     
@@ -357,8 +325,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         if self.counter == 0 {
             
+            let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
             for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-                if eachIbanEntity.id == self.currentIbanID {
+                if eachIbanEntity.id == currentIbanID {
                     
                     let parameters: [String: Any] = [
                         "email": eachIbanEntity.yourEmail,
@@ -399,7 +368,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @objc func backToChangeEmail() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
-        self.ibanVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(1)
     }
     
     
