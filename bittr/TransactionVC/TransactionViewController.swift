@@ -393,7 +393,7 @@ class TransactionViewController: UIViewController {
     
     @IBAction func openUrlButtonTapped(_ sender: UIButton) {
         if let thisUrl = sender.accessibilityIdentifier {
-            self.tappedUrl = "https://mempool.space/tx/\(thisUrl)?mode=details"
+            self.tappedUrl = "\(EnvironmentConfig.explorerURL)/tx/\(thisUrl)?mode=details"
             self.performSegue(withIdentifier: "TransactionToWebsite", sender: self)
         }
     }

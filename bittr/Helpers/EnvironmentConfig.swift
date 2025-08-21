@@ -104,6 +104,11 @@ struct EnvironmentConfig {
     static var esploraURL: String {
         isDevelopment ? "https://esplora.regtest.getbittr.com/api" : "https://mempool.space/api"
     }
+
+    /// Block explorer URL based on environment
+    static var explorerURL: String {
+        isDevelopment ? "https://esplora.regtest.getbittr.com" : "https://mempool.space"
+    }
     
     /// RGS Server URL based on environment
     static var rgsServerURL: String {
