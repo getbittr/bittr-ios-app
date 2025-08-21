@@ -30,7 +30,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewBoth: UIView!
     @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
-    @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Main - Switch view
@@ -91,15 +90,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var bothAmountView: UIView!
     @IBOutlet weak var bothAmountTextField: UITextField!
     @IBOutlet weak var bothAmountButton: UIButton!
-    @IBOutlet weak var bothAddView: UIView!
-    @IBOutlet weak var bothAddButton: UIButton!
     
     // Description view
     @IBOutlet weak var bothDescriptionView: UIView!
     @IBOutlet weak var bothDescriptionTextField: UITextField!
     @IBOutlet weak var bothDescriptionButton: UIButton!
-    @IBOutlet weak var bothDescriptionAddView: UIView!
-    @IBOutlet weak var bothDescriptionAddButton: UIButton!
     
     // QR Scanner
     @IBOutlet weak var qrScannerView: UIView!
@@ -155,8 +150,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.copyInvoiceButton.setTitle("", for: .normal)
         self.scanQrButton.setTitle("", for: .normal)
         self.qrScannerBackgroundButton.setTitle("", for: .normal)
-        self.bothAddButton.setTitle("", for: .normal)
-        self.bothDescriptionAddButton.setTitle("", for: .normal)
         
         // Corner radii
         self.qrView.layer.cornerRadius = 13
@@ -167,8 +160,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.switchView.layer.cornerRadius = 13
         self.bothAmountView.layer.cornerRadius = 13
         self.bothDescriptionView.layer.cornerRadius = 13
-        self.bothAddView.layer.cornerRadius = 8
-        self.bothDescriptionAddView.layer.cornerRadius = 8
         self.createView.layer.cornerRadius = 13
         self.lnConfirmationQRView.layer.cornerRadius = 13
         self.lnConfirmationAddressView.layer.cornerRadius = 13
@@ -184,9 +175,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.bothDescriptionTextField.delegate = self
         
         // Receivable sats label
-        /*if let actualReceivableLN = maximumReceivableLNSats {
-            self.receivableLNLabel.text = "\(Language.getWord(withID: "youcanreceive")) \(actualReceivableLN) satoshis."
-        }*/
+        self.setShadows(forView: self.qrView)
+        self.setShadows(forView: self.bothQrView)
+        self.setShadows(forView: self.lnConfirmationQRView)
         
         // Create QR code
         self.resetQRs(resetAddress: false)
@@ -200,6 +191,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         // Set colors and language.
         self.setWords()
         self.changeColors()
+    }
+    
+    func setShadows(forView:UIView) {
+        forView.layer.shadowColor = UIColor.black.cgColor
+        forView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        forView.layer.shadowRadius = 10.0
+        forView.layer.shadowOpacity = 0.1
     }
     
     func resetQRs(resetAddress:Bool) {
@@ -394,11 +392,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBAction func bothDescriptionButtonTapped(_ sender: UIButton) {
         self.bothDescriptionTextField.becomeFirstResponder()
         self.bothDescriptionButton.alpha = 0
-    }
-    
-    @IBAction func bothAddButtonTapped(_ sender: UIButton) {
-        self.view.endEditing(true)
-        self.resetQRs(resetAddress: false)
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
