@@ -52,7 +52,13 @@ extension HomeViewController {
                     // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
                     thisTransaction.purchaseAmount = Int((transactionValue*bitcoinValue.currentValue).rounded())
                 }
-                let relativeGain:Int = Int((CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100)
+                let relativeGain:Int = {
+                    if thisTransaction.purchaseAmount == 0 {
+                        return 0
+                    }
+                    let calculatedGain = (CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100
+                    return Int(calculatedGain.isFinite ? calculatedGain : 0)
+                }()
                 actualCell.gainLabel.text = "\(relativeGain) %"
                 
                 if relativeGain < 0 {

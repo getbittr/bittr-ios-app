@@ -34,10 +34,9 @@ class SignupViewController: UIViewController {
     var currentPage = 0
     var coreVC:CoreViewController?
     var allContainerViews = [UIView]()
-    var embedViewIdentifiers = ["Restore3", "Restore2", "Restore", "Signup1", "Signup2", "Signup3", "Signup4", "Signup5", "Signup6", "Signup7", "Transfer1", "Transfer15", "Transfer2", "Transfer"]
+    var embedViewIdentifiers = ["Restore3", "Restore2", "Restore", "Signup1", "Signup2", "Signup3", "Signup4", "Signup5", "Signup6", "Signup7", "Transfer1", "Transfer15", "Transfer2", "Transfer3"]
     var enteredPin = ""
     var currentIbanID = ""
-    var currentCode = false
     var animateTransition = true
     
     override func viewDidLoad() {

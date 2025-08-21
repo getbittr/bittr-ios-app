@@ -78,6 +78,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: swapData) as Notification)
             }
+        } else if let lightningAddressData = userInfo["lightning_address_notification"] as? [String: Any] {
+            // Handle lightning address payment requests in foreground
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
+            }
         }
         
         completionHandler(.alert)
@@ -105,6 +110,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     // Handle swap-specific notifications
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: swapData) as Notification)
+                    }
+                } else if let lightningAddressData = userInfo["lightning_address_notification"] as? [String: Any] {
+                    // Handle lightning address payment requests
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
                     }
                 }
             }

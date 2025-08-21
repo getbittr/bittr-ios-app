@@ -36,8 +36,6 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var screenshotButton: UIButton!
     @IBOutlet weak var screenshotLabel: UILabel!
     
-    var currentIbanID = ""
-    
     @IBOutlet weak var ourIbanLabel: UILabel!
     @IBOutlet weak var yourCodeLabel: UILabel!
     @IBOutlet weak var titleOurIBAN: UILabel!
@@ -101,28 +99,26 @@ class Transfer2ViewController: UIViewController {
     func updateData() {
         
         // Set data received from bittr API.
-        if self.signupVC != nil {
-            self.currentIbanID = self.signupVC!.currentIbanID
-            
-            if self.signupVC!.currentCode {
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
+        
+        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+            if eachIbanEntity.id == currentIbanID {
                 
-                for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-                    if eachIbanEntity.id == self.currentIbanID {
-                        
-                        self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
-                        self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
-                        
-                        self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
-                        self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
-                        self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
-                    }
-                }
+                self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
+                self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
+                
+                self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
+                self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
+                self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
             }
         }
     }
     
     
     override func viewDidAppear(_ animated: Bool) {
+        
+        // Make sure data is updated
+        self.updateData()
         
         let centerViewHeight = self.centerView.bounds.height
         
@@ -138,7 +134,7 @@ class Transfer2ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(13)
-        self.ibanVC?.moveToPage(13)
+        self.ibanVC?.moveToPage(4)
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

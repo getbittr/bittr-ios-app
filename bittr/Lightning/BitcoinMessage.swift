@@ -80,8 +80,6 @@ class BitcoinMessage {
         // Get recovery ID (0-3)
         var recoveryId = compactRep.recoveryId & 3
         
-        print("segwitType: \(segwitType)")
-        
         // Adjust recovery ID based on segwit type
         switch segwitType {
         case .p2wpkh:
@@ -91,8 +89,6 @@ class BitcoinMessage {
         case .none:
             recoveryId += 4      // Add 4 for compressed
         }
-        
-        print ("Recovery ID: \(recoveryId)")
         
         // Create final signature format
         var signatureData = Data()

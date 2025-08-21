@@ -46,8 +46,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var nextButtonLabel: UILabel!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
-    var currentIbanID = ""
-    
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
@@ -90,6 +88,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+    func triggerIbanAutoFocus() {
+        // Auto-focus on IBAN field when triggered from previous page
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.ibanTextField.becomeFirstResponder()
+        }
+    }
+    
     @IBAction func ibanButtonTapped(_ sender: UIButton) {
         
         // Launch IBAN text field.
@@ -114,11 +119,13 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             self.nextButtonLabel.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
             
-            if self.currentIbanID != "" {
+            let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
+            
+            if currentIbanID != "" {
                 
                 // We're updating information to an existing IBAN entity.
                 for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                    if eachIbanEntity.id == self.currentIbanID {
+                    if eachIbanEntity.id == currentIbanID {
                         eachIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
                         eachIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
                         self.coreVC!.bittrWallet.ibanEntities[index] = eachIbanEntity
@@ -136,7 +143,8 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 newIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
                 self.coreVC!.bittrWallet.ibanEntities += [newIbanEntity]
                 CacheManager.addIban(iban: newIbanEntity)
-                
+                self.signupVC?.currentIbanID = newIbanEntity.id
+                self.ibanVC?.currentIbanID = newIbanEntity.id
             }
             
             // Send email to bittr API for email verification. Bittr will send email.
@@ -155,7 +163,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                         DispatchQueue.main.async {
                             // Move to next page.
                             self.signupVC?.moveToPage(11)
-                            self.ibanVC?.moveToPage(11)
+                            self.ibanVC?.moveToPage(2)
+                            
+                            // Trigger auto-focus on OTP field after navigation
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                self.ibanVC?.transfer15VC?.triggerOtpAutoFocus()
+                            }
                             
                             self.nextButtonActivityIndicator.stopAnimating()
                             self.nextButtonLabel.alpha = 1
@@ -229,6 +242,12 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         
         updateButtonColor()
+        
+        // If email field is active and verify button is enabled, trigger verification
+        if textField == self.emailTextField && self.nextView.backgroundColor == UIColor.black {
+            self.nextButtonTapped(UIButton())
+            return true
+        }
         
         if let nextField = textField.superview?.superview?.viewWithTag(textField.tag + 1) as? UITextField {
             nextField.becomeFirstResponder()

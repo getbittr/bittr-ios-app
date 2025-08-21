@@ -106,7 +106,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusBlockchain: UILabel!
     @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
-    @IBOutlet weak var syncingStatusTop: NSLayoutConstraint!
+    @IBOutlet weak var syncStack: UIView!
+    @IBOutlet weak var syncViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var syncViewLowerBackground: UIView!
+    @IBOutlet weak var syncCloseButton: UIButton!
     
     // Client details
     var bittrWallet = BittrWallet()
@@ -151,6 +154,7 @@ class CoreViewController: UIViewController {
         self.leftButton.setTitle("", for: .normal)
         self.middleButton.setTitle("", for: .normal)
         self.rightButton.setTitle("", for: .normal)
+        self.syncCloseButton.setTitle("", for: .normal)
         
         // Opacities
         self.yellowcurve.alpha = 0.85
@@ -159,6 +163,7 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotificationFromBackground), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleLightningAddressNotification), name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
@@ -170,15 +175,17 @@ class CoreViewController: UIViewController {
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
             
-            NSLayoutConstraint.deactivate([self.syncingStatusTop])
-            self.syncingStatusTop = NSLayoutConstraint(item: self.statusView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.syncingStatusTop])
+            self.syncViewBottom.constant = 0
             self.blackSignupBackground.alpha = 0
             self.view.layoutIfNeeded()
         }) { _ in
             self.statusView.alpha = 0
             self.blackSignupButton.alpha = 0
         }
+    }
+    
+    @IBAction func closeSyncTapped(_ sender: UIButton) {
+        self.hideSyncView()
     }
     
     @objc func changeColors() {
@@ -220,6 +227,103 @@ class CoreViewController: UIViewController {
         self.statusBlockchain.text = Language.getWord(withID: "initiatewallet")
         self.statusSyncing.text = Language.getWord(withID: "syncwallet")
         self.statusFinal.text = Language.getWord(withID: "finalcalculations")
+    }
+    
+    @objc func handleLightningAddressNotification(notification: NSNotification) {
+        
+        if let userInfo = notification.userInfo as? [String: Any] {
+            print("Received lightning address notification: \(userInfo)")
+            
+            // Extract the notification data
+            guard let amountMsats = userInfo["amount_msats"] as? Int,
+                  let metadata = userInfo["metadata"] as? String,
+                  let timeSent = userInfo["time_sent"] as? String,
+                  let username = userInfo["username"] as? String,
+                  let endpoint = userInfo["endpoint"] as? String else {
+                print("Missing required data in lightning address notification")
+                return
+            }
+            
+            // Calculate SHA256 hash from metadata
+            let descriptionHash = metadata.sha256()
+            
+            // Check if user is signed in
+            if self.didBecomeVisible == true {
+                // User is signed in, handle notification immediately
+                self.handleLightningAddressNotificationImmediately(amountMsats: amountMsats, descriptionHash: descriptionHash, timeSent: timeSent, username: username, endpoint: endpoint)
+            } else {
+                // User hasn't signed in yet, store notification for later
+                self.needsToHandleNotification = true
+                self.wasNotified = true
+                self.lightningNotification = notification
+                
+                self.showAlert(presentingController: self, title: "Payment Request", message: "Someone wants to pay you \(amountMsats/1000) satoshis! Please sign in to accept the payment.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        }
+    }
+    
+    private func handleLightningAddressNotificationImmediately(amountMsats: Int, descriptionHash: String, timeSent: String, username: String, endpoint: String) {
+        
+        // Show loading UI
+        self.pendingLabel.text = "Generating invoice..."
+        self.pendingSpinner.startAnimating()
+        self.pendingView.alpha = 1
+        self.blackSignupBackground.alpha = 0.2
+        
+        Task {
+            do {
+                let invoice = try await LightningNodeService.shared.receivePaymentWithHash(
+                    amountMsat: UInt64(amountMsats),
+                    descriptionHash: descriptionHash,
+                    expirySecs: 3600
+                )
+                
+                print("Generated invoice for lightning address payment: \(invoice.description)")
+                
+                // Post the invoice to the specified endpoint
+                let parameters: [String: Any] = [
+                    "invoice": invoice.description,
+                    "amount_msats": amountMsats,
+                    "description_hash": descriptionHash,
+                    "time_sent": timeSent,
+                    "username": username
+                ]
+                
+                await CallsManager.makeApiCall(url: endpoint, parameters: parameters, getOrPost: "POST") { result in
+                    
+                    DispatchQueue.main.async {
+                        // Hide loading UI
+                        self.pendingSpinner.stopAnimating()
+                        self.pendingView.alpha = 0
+                        self.blackSignupBackground.alpha = 0
+                        
+                        switch result {
+                        case .success(let receivedDictionary):
+                            print("Successfully posted invoice to endpoint: \(receivedDictionary)")
+                            // No alert needed - user will receive payment notification soon
+                            
+                        case .failure(let error):
+                            print("Failed to post invoice to endpoint: \(error)")
+                            // Show error message with support contact
+                            self.showAlert(presentingController: self, title: "Payment Request Failed", message: "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    }
+                }
+                
+            } catch {
+                print("Failed to generate invoice for lightning address payment: \(error)")
+                
+                DispatchQueue.main.async {
+                    // Hide loading UI
+                    self.pendingSpinner.stopAnimating()
+                    self.pendingView.alpha = 0
+                    self.blackSignupBackground.alpha = 0
+                    
+                    // Show error message with support contact
+                    self.showAlert(presentingController: self, title: "Payment Request Failed", message: "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
+        }
     }
     
 }

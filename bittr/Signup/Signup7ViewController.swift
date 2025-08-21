@@ -85,7 +85,13 @@ class Signup7ViewController: UIViewController {
         
         // Proceed to bittr signup.
         self.signupVC?.moveToPage(10)
-        self.ibanVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(1)
+        
+        // Trigger auto-focus on IBAN field after navigation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Use the stored reference to Transfer1ViewController
+            self.ibanVC?.transfer1VC?.triggerIbanAutoFocus()
+        }
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

@@ -30,8 +30,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @IBOutlet weak var backgroundButton2: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
     
-    var currentIbanID = ""
-    
     @IBOutlet weak var nextButtonLabel: UILabel!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
@@ -39,6 +37,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     var setSender = ""
     var start2Fa = false
+    var hasAutoTriggered = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -60,19 +59,23 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         // Email code text field.
         self.codeTextField.delegate = self
         self.codeTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        // Enable iOS keyboard suggestions for verification codes from email/SMS
+        self.codeTextField.textContentType = .oneTimeCode
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
         
         self.changeColors()
         self.setWords()
-        self.updateClient()
+        
+        // Reset auto-trigger flag
+        self.hasAutoTriggered = false
     }
     
-    func updateClient() {
-        // Register client details.
-        if self.signupVC != nil {
-            self.currentIbanID = self.signupVC!.currentIbanID
+    func triggerOtpAutoFocus() {
+        // Auto-focus on OTP field when triggered from previous page
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.codeTextField.becomeFirstResponder()
         }
     }
     
@@ -101,7 +104,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             let current = UNUserNotificationCenter.current()
             current.getNotificationSettings { (settings) in
                 
-                self.setSender = sender.accessibilityIdentifier!
+                // Use a default value if accessibilityIdentifier is nil (for auto-triggered calls)
+                self.setSender = sender.accessibilityIdentifier ?? "auto"
                 
                 if settings.authorizationStatus == .notDetermined {
                     // Notifications preference hasn't been set yet.
@@ -128,11 +132,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func check2Fa() {
         
-        print("Check 2FA started.")
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            
-            if eachIbanEntity.id == self.currentIbanID {
+        for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+            if eachIbanEntity.id == currentIbanID {
                 
                 // Send email and verification code to bittr API.
                 let parameters: [String: Any] = [
@@ -151,7 +154,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             let errorMessage = receivedDictionary["message"]
                             if let actualEmailToken = emailToken as? String {
                                 // Email address verified. Store email token in cache.
-                                CacheManager.addEmailToken(ibanID: self.currentIbanID, emailToken: actualEmailToken)
+                                CacheManager.addEmailToken(ibanID: eachIbanEntity.id, emailToken: actualEmailToken)
+                                
+                                // Update the in-memory IBAN entity with the new email token
+                                self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
                                 
                                 DispatchQueue.main.async {
                                     // Get wallet address.
@@ -179,13 +185,15 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
             }
         }
+
     }
     
     
     func getAddress(page:String) {
         
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.id == self.currentIbanID {
+            if eachIbanEntity.id == currentIbanID {
                 
                 let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(eachIbanEntity.emailToken.prefix(32)). IBAN: \(eachIbanEntity.yourIbanNumber)"
                 self.createClient(message: message, page: page, iban: eachIbanEntity)
@@ -199,7 +207,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         Task {
             // Get real onchain address.
             let wallet = LightningNodeService.shared.getWallet()
-            let firstAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
+            let firstAddress = wallet?.peekAddress(keychain: .external, index: 0).address.description
             
             // Send to Bittr.
             self.createBittrAccount(receivedAddress: firstAddress ?? "", message: message, page: page, iban: iban)
@@ -223,7 +231,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "email_token": iban.emailToken,
                     "bitcoin_address": receivedAddress,
                     "initial_address_type": "extended",
-                    "category": "ledger",
+                    "category": "ios",
                     "bitcoin_message": message,
                     "bitcoin_signature": signature,
                     "iban": iban.yourIbanNumber,
@@ -256,9 +264,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     // Signup successful.
                                     
                                     // Add bittr details to cache.
-                                    CacheManager.addBittrIban(ibanID: self.currentIbanID, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                    CacheManager.addBittrIban(ibanID: iban.id, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
                                     for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                                        if eachIbanEntity.id == self.currentIbanID {
+                                        if eachIbanEntity.id == iban.id {
                                             self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = actualDataOurIban
                                             self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = actualDataSwift
                                             self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = actualDataCode
@@ -270,9 +278,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.nextButtonLabel.alpha = 1
                                     
                                     // Move to next page.
-                                    self.signupVC?.currentIbanID = self.currentIbanID
-                                    self.signupVC?.currentCode = true
                                     self.signupVC?.moveToPage(12)
+                                    self.ibanVC?.moveToPage(3)
                                 }
                             }
                         } else if let actualApiMessage = receivedDictionary["message"] as? String {
@@ -308,7 +315,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @objc func backToPreviousPage() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
-        self.ibanVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(1)
     }
     
     
@@ -318,12 +325,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         if self.counter == 0 {
             
+            let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
             for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-                if eachIbanEntity.id == self.currentIbanID {
+                if eachIbanEntity.id == currentIbanID {
                     
                     let parameters: [String: Any] = [
                         "email": eachIbanEntity.yourEmail,
-                        "category": "ledger"
+                        "category": "ios"
                     ]
                     
                     let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
@@ -360,7 +368,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @objc func backToChangeEmail() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
-        self.ibanVC?.moveToPage(10)
+        self.ibanVC?.moveToPage(1)
     }
     
     
@@ -416,6 +424,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         self.updateButtonColor()
+        
+        // If code field is active and confirm button is enabled, trigger confirmation
+        if textField == self.codeTextField && self.nextView.backgroundColor == UIColor.black {
+            self.nextButtonTapped(UIButton())
+            return true
+        }
+        
         return false
     }
     
@@ -423,8 +438,40 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.updateButtonColor()
     }
     
+    func textFieldDidChangeSelection(_ textField: UITextField) {
+        self.updateButtonColor()
+        
+        // Check if we should auto-trigger after text changes
+        if textField == self.codeTextField {
+            let trimmedText = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            
+            if trimmedText.count >= 6 && self.nextView.backgroundColor == UIColor.black && !self.hasAutoTriggered {
+                self.hasAutoTriggered = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.nextButtonTapped(UIButton())
+                }
+            }
+        }
+    }
+    
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         self.updateButtonColor()
+        
+        // Auto-trigger when 6 digits are entered
+        if textField == self.codeTextField {
+            let currentText = textField.text ?? ""
+            let newText = (currentText as NSString).replacingCharacters(in: range, with: string)
+            let trimmedText = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // If we have 6 or more digits and the button is enabled, auto-trigger
+            if trimmedText.count >= 6 && self.nextView.backgroundColor == UIColor.black && !self.hasAutoTriggered {
+                self.hasAutoTriggered = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.nextButtonTapped(UIButton())
+                }
+            }
+        }
+        
         return true
     }
     
