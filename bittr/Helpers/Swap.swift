@@ -23,6 +23,7 @@ class Swap: NSObject {
     var onchainFees:Int?
     var lightningFees:Int?
     var feeHigh:Float?
+    var claimTransactionFee:Int? // Fee for claiming lightning-to-onchain swaps
     
     // Onchain to Lightning
     var sentOnchainTransactionID:String?

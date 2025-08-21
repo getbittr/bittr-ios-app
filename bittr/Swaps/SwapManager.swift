@@ -345,6 +345,11 @@ class SwapManager: NSObject {
     
     static func lightningToOnchain(amountSat:Int, swapVC:SwapViewController, payoutAddress:String? = nil) async {
         
+        // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
+        // We need to add the claim transaction fee to ensure they receive exactly what they input
+        let claimTransactionFee = try? await BoltzRefund.calculateClaimOrRefundTransactionFee()
+        let onchainAmountWithFee = amountSat + (claimTransactionFee ?? 0)
+        
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
         let randomPreimageHash = self.sha256Hash(of: randomPreimage)
@@ -401,7 +406,7 @@ class SwapManager: NSObject {
             "to": "BTC",
             "claimPublicKey": publicKey,
             "preimageHash": randomPreimageHashHex,
-            "onchainAmount": amountSat,
+            "onchainAmount": onchainAmountWithFee, // Use amount with fee included
             "webhook": [
                 "url": webhookURL,
                 "hashSwapId": false,
@@ -619,7 +624,13 @@ class SwapManager: NSObject {
                     let invoiceAmount = Int(invoiceAmountMilli)/1000
                     
                     // Calculate onchain fees.
-                    let onchainFees:Int = invoiceAmount - ongoingSwap.satoshisAmount
+                    // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
+                    // The invoice amount includes Boltz fees, so we need to calculate the actual on-chain amount
+                    let finalOnchainAmount = ongoingSwap.satoshisAmount // This is what the user wants to receive
+                    let onchainFees:Int = invoiceAmount - finalOnchainAmount
+                    
+                    // Note: The claim transaction fee is already included in the on-chain amount requested
+                    // so the user will receive exactly the amount they input
                     
                     // Calculate maximum total routing fees.
                     let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
@@ -627,13 +638,32 @@ class SwapManager: NSObject {
                     let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
                     let lightningFees:Int = maximumRoutingFeesMsat/1000
                     
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
-                    
-                    // Confirm fees with user.
-                    DispatchQueue.main.async {
-                        swapVC.confirmExpectedFees()
+                    // Calculate claim transaction fee
+                    Task {
+                        do {
+                            let claimTransactionFee = try await BoltzRefund.calculateClaimOrRefundTransactionFee()
+                            
+                            DispatchQueue.main.async {
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.claimTransactionFee = claimTransactionFee
+                                
+                                // Confirm fees with user.
+                                swapVC.confirmExpectedFees()
+                            }
+                        } catch {
+                            print("❌ Failed to calculate claim transaction fee: \(error)")
+                            // Fallback to default fee calculation without claim transaction fee
+                            DispatchQueue.main.async {
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
+                                swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
+                                
+                                // Confirm fees with user.
+                                swapVC.confirmExpectedFees()
+                            }
+                        }
                     }
                 }
             }
@@ -641,17 +671,19 @@ class SwapManager: NSObject {
     }
     
     static func sendLightningPayment(swapVC:SwapViewController) {
-        
         // Fees confirmed by user, pay Boltz invoice.
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
+        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { 
+            print("❌ No ongoing swap found in sendLightningPayment")
+            return 
+        }
             
         Task {
             do {
                 let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    
                     let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash)
+                    
                     if thisPayment != nil, thisPayment!.status == .failed {
                         // Payment came back failed.
                         swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")

@@ -196,7 +196,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 }
                 
                 self.confirmAmountLabel.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
-                self.confirmFeesLabel.text = "\((ongoingSwap.onchainFees ?? self.tappedSwapTransaction!.onchainFees ?? 0) + (ongoingSwap.lightningFees ?? self.tappedSwapTransaction!.lightningFees ?? 0))".addSpaces() + " sats"
+                let totalFees = (ongoingSwap.onchainFees ?? self.tappedSwapTransaction!.onchainFees ?? 0) + (ongoingSwap.lightningFees ?? self.tappedSwapTransaction!.lightningFees ?? 0) + (ongoingSwap.claimTransactionFee ?? 0)
+                self.confirmFeesLabel.text = "\(totalFees)".addSpaces() + " sats"
                 self.confirmStatusSpinner.startAnimating()
                 self.confirmStatusLabel.text = "Checking"
                 self.switchView("confirm")
@@ -470,13 +471,19 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
         
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        var convertedFees = "\(CGFloat(Int(CGFloat(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)/100000000*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
+        
+        // Calculate total fees including claim transaction fee for lightning-to-onchain swaps
+        // For lightning-to-onchain swaps, the claim transaction fee is included in the on-chain amount
+        // so the user receives exactly what they input
+        let totalFees = ongoingSwap.onchainFees! + ongoingSwap.lightningFees! + (ongoingSwap.claimTransactionFee ?? 0)
+        
+        var convertedFees = "\(CGFloat(Int(CGFloat(totalFees)/100000000*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
         if convertedFees.split(separator: ",")[1].count == 1 {
             convertedFees = convertedFees + "0"
         }
         let convertedAmount = "\(Int((CGFloat(ongoingSwap.satoshisAmount)/100000000*bitcoinValue.currentValue).rounded()))"
         
-        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)").replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
+        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)").replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
         
         self.showAlert(
             presentingController: self,
@@ -489,7 +496,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     @objc func cancelSwapFromFeesAlert() {
         self.hideAlert()
-        print("DEBUG - Swap cancelled from fees alert, clearing all data")
         // Clear all pending data and reset the UI
         self.clearPendingSwapData()
         // Reset the view to the initial state
@@ -507,12 +513,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Update the swap file with fees
         self.confirmDirectionLabel.text = self.fromLabel.text
         self.confirmAmountLabel.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
-        self.confirmFeesLabel.text = "\(ongoingSwap.onchainFees! + ongoingSwap.lightningFees!)".addSpaces() + " sats"
+        let totalFees = (ongoingSwap.onchainFees ?? 0) + (ongoingSwap.lightningFees ?? 0) + (ongoingSwap.claimTransactionFee ?? 0)
+        self.confirmFeesLabel.text = "\(totalFees)".addSpaces() + " sats"
         self.confirmStatusLabel.text = "Sending"
         self.confirmStatusSpinner.startAnimating()
         self.switchView("confirm")
         
-        SwapManager.updateSwapFileWithFees(swapID: ongoingSwap.boltzID!, totalFees: ongoingSwap.onchainFees! + ongoingSwap.lightningFees!, userAmount: ongoingSwap.satoshisAmount, direction: self.swapDirection)
+        SwapManager.updateSwapFileWithFees(swapID: ongoingSwap.boltzID!, totalFees: totalFees, userAmount: ongoingSwap.satoshisAmount, direction: self.swapDirection)
         
         if ongoingSwap.onchainToLightning {
             SwapManager.sendOnchainPayment(swapVC: self)
@@ -523,7 +530,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     // Clear pending addresses and invoices when swaps are cancelled or aborted
     func clearPendingSwapData() {
-        print("DEBUG - Clearing pending swap data")
         self.coreVC!.bittrWallet.ongoingSwap = nil
         CacheManager.saveLatestSwap(nil)
         self.pendingOnchainAddress = ""
@@ -692,7 +698,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 Language.getWord(withID: "onchaintolightning") :
                 Language.getWord(withID: "lightningtoonchain")
             self.confirmAmountLabel?.text = "\(pendingSwap!.satoshisAmount)".addSpaces() + " sats"
-            self.confirmFeesLabel?.text = "\((pendingSwap!.onchainFees ?? 0) + (pendingSwap!.lightningFees ?? 0))".addSpaces() + " sats"
+            let totalFees = (pendingSwap!.onchainFees ?? 0) + (pendingSwap!.lightningFees ?? 0) + (pendingSwap!.claimTransactionFee ?? 0)
+            self.confirmFeesLabel?.text = "\(totalFees)".addSpaces() + " sats"
             
             // Set initial status
             self.confirmStatusLabel?.text = Language.getWord(withID: "swapstatuspreparing")

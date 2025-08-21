@@ -769,7 +769,7 @@ extension UIViewController {
                 thisTransaction.isLightning = false
             } else {
                 thisTransaction.id = swapTransaction!.sentLightningPaymentID!
-                thisTransaction.sent = swapTransaction!.satoshisAmount + (swapTransaction!.onchainFees ?? 0) + (swapTransaction!.lightningFees ?? 0)
+                thisTransaction.sent = swapTransaction!.satoshisAmount + (swapTransaction!.onchainFees ?? 0) + (swapTransaction!.lightningFees ?? 0) + (swapTransaction!.claimTransactionFee ?? 0)
                 thisTransaction.isLightning = true
             }
             thisTransaction.confirmations = 0

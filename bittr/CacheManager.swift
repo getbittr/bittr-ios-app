@@ -987,6 +987,9 @@ class CacheManager: NSObject {
         if thisSwap.feeHigh != nil {
             swapDictionary.setValue(thisSwap.feeHigh!, forKey: "feeHigh")
         }
+        if thisSwap.claimTransactionFee != nil {
+            swapDictionary.setValue(thisSwap.claimTransactionFee!, forKey: "claimTransactionFee")
+        }
         if thisSwap.sentOnchainTransactionID != nil {
             swapDictionary.setValue(thisSwap.sentOnchainTransactionID!, forKey: "sentOnchainTransactionID")
         }
@@ -1068,6 +1071,9 @@ class CacheManager: NSObject {
         }
         if let feeHigh = dictionary["feeHigh"] as? Float {
             thisSwap.feeHigh = feeHigh
+        }
+        if let claimTransactionFee = dictionary["claimTransactionFee"] as? Int {
+            thisSwap.claimTransactionFee = claimTransactionFee
         }
         if let sentOnchainTransactionID = dictionary["sentOnchainTransactionID"] as? String {
             thisSwap.sentOnchainTransactionID = sentOnchainTransactionID
