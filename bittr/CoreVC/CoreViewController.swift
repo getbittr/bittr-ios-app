@@ -106,7 +106,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusBlockchain: UILabel!
     @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
-    @IBOutlet weak var syncingStatusTop: NSLayoutConstraint!
+    @IBOutlet weak var syncStack: UIView!
+    @IBOutlet weak var syncViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var syncViewLowerBackground: UIView!
+    @IBOutlet weak var syncCloseButton: UIButton!
     
     // Client details
     var bittrWallet = BittrWallet()
@@ -151,6 +154,7 @@ class CoreViewController: UIViewController {
         self.leftButton.setTitle("", for: .normal)
         self.middleButton.setTitle("", for: .normal)
         self.rightButton.setTitle("", for: .normal)
+        self.syncCloseButton.setTitle("", for: .normal)
         
         // Opacities
         self.yellowcurve.alpha = 0.85
@@ -171,15 +175,17 @@ class CoreViewController: UIViewController {
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
             
-            NSLayoutConstraint.deactivate([self.syncingStatusTop])
-            self.syncingStatusTop = NSLayoutConstraint(item: self.statusView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.syncingStatusTop])
+            self.syncViewBottom.constant = 0
             self.blackSignupBackground.alpha = 0
             self.view.layoutIfNeeded()
         }) { _ in
             self.statusView.alpha = 0
             self.blackSignupButton.alpha = 0
         }
+    }
+    
+    @IBAction func closeSyncTapped(_ sender: UIButton) {
+        self.hideSyncView()
     }
     
     @objc func changeColors() {

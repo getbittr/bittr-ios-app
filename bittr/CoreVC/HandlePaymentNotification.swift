@@ -252,16 +252,11 @@ extension CoreViewController {
                 if self.varSpecialData != nil {
                     // This is a Bittr payment, which is being handled separately.
                     CacheManager.didHandleEvent(event: "\(event)")
-                    return
-                }
-                
-                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                } else if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     print("Did receive payment details.")
                     
                     let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, swapTransaction: nil, coreVC: self, bittrTransactions: nil)
-                    thisTransaction.isBittr = true
-                    thisTransaction.timestamp = Int(Date().timeIntervalSince1970)
                     
                     self.receivedBittrTransaction = thisTransaction
                     

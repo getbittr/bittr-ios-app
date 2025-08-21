@@ -103,42 +103,40 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             self.restoreButtonView.alpha = 1
         }
         
-        // Corner radii and button titles.
-        confirmPinView.layer.cornerRadius = 13
-        confirmPinButton.setTitle("", for: .normal)
-        restoreWalletButton.setTitle("", for: .normal)
-        button1.setTitle("", for: .normal)
-        button2.setTitle("", for: .normal)
-        button3.setTitle("", for: .normal)
-        button4.setTitle("", for: .normal)
-        button5.setTitle("", for: .normal)
-        button6.setTitle("", for: .normal)
-        button7.setTitle("", for: .normal)
-        button8.setTitle("", for: .normal)
-        button9.setTitle("", for: .normal)
-        button0.setTitle("", for: .normal)
-        buttonBackspace.setTitle("", for: .normal)
+        // Corner radii
+        self.confirmPinView.layer.cornerRadius = 13
         
+        // Button titles
+        let allButtons = [self.confirmPinButton, self.restoreWalletButton, self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, self.button7, self.button8, self.button9, self.button0, self.buttonBackspace]
+        for eachButton in allButtons {
+            eachButton?.setTitle("", for: .normal)
+        }
+        
+        // Text field
         pinTextField.delegate = self
         
+        // Get correct pin
         if let actualPin = CacheManager.getPin() {
             self.correctPin = actualPin
         }
         
         // Configure button backgrounds.
-        allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
-        for eachBackground in allBackgrounds! {
+        self.allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
+        for eachBackground in self.allBackgrounds! {
             eachBackground.layer.cornerRadius = 45
         }
         
+        // Button labels
         self.allLabels = [self.label1, self.label2, self.label3, self.label4, self.label5, self.label6, self.label7, self.label8, self.label9, self.label0]
         
+        // Observers
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
-        // Collection view.
+        // Collection view
         self.pinCollectionView.delegate = self
         self.pinCollectionView.dataSource = self
         
+        // Set colors
         self.changeColors()
     }
     
@@ -151,7 +149,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
         
         // Update text field.
-        pinTextField.insertText(String(sender.tag))
+        self.pinTextField.insertText(String(sender.tag))
         self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -162,7 +160,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func backspaceButtonTapped(_ sender: UIButton) {
         
         // Update text field.
-        pinTextField.deleteBackward()
+        self.pinTextField.deleteBackward()
         self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

@@ -108,7 +108,7 @@ extension HomeViewController {
         // Create lightning transaction entities.
         for eachPayment in receivedPayments {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || eachPayment.status == .pending) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (eachPayment.amountMsat ?? 0) > 0)) {
                 let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, swapTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 if eachPayment.status == .succeeded {
@@ -735,8 +735,8 @@ extension UIViewController {
             thisTransaction.isLightning = true
             thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: paymentDetails!.id)
             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentDetails!.id)
-            if let actualChannels = coreVC?.bittrWallet.lightningChannels {
-                thisTransaction.channelId = actualChannels[0].channelId
+            if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
+                thisTransaction.channelId = actualChannels.first!.channelId
             }
         } else if bittrTransaction != nil {
             
