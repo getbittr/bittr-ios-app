@@ -10,6 +10,7 @@ import LDKNode
 import BitcoinDevKit
 import LDKNodeFFI
 import Sentry
+import CryptoKit
 
 class LightningNodeService {
     
@@ -479,6 +480,12 @@ class LightningNodeService {
         return invoice
     }
     
+    func receivePaymentWithHash(amountMsat: UInt64, descriptionHash: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
+        let invoiceDescription = Bolt11InvoiceDescription.hash(hash: descriptionHash)
+        let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
+        return invoice
+    }
+    
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
         let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice, sendingParameters: nil)
         return paymentHash
@@ -667,5 +674,13 @@ extension ChainPosition {
                 ? blockTime1.blockId.height > blockTime2.blockId.height
                 : (transitively1 != nil) && (transitively2 == nil)
         }
+    }
+}
+
+extension String {    
+    func sha256() -> String {
+        let data = self.data(using: .utf8)!
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
     }
 }
