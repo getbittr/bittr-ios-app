@@ -477,27 +477,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }
         } else {
-            if let actualCoreVC = self.coreVC {
-                actualCoreVC.statusView.alpha = 1
-                actualCoreVC.blackSignupButton.alpha = 1
-                
-                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
-                    
-                    NSLayoutConstraint.deactivate([actualCoreVC.syncingStatusTop])
-                    actualCoreVC.syncingStatusTop = NSLayoutConstraint(item: actualCoreVC.statusView, attribute: .bottom, relatedBy: .equal, toItem: actualCoreVC.view, attribute: .bottom, multiplier: 1, constant: 0)
-                    NSLayoutConstraint.activate([actualCoreVC.syncingStatusTop])
-                    actualCoreVC.blackSignupBackground.alpha = 0.2
-                    actualCoreVC.view.layoutIfNeeded()
-                }) { _ in
-                    UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                        
-                        NSLayoutConstraint.deactivate([actualCoreVC.syncingStatusTop])
-                        actualCoreVC.syncingStatusTop = NSLayoutConstraint(item: actualCoreVC.statusView, attribute: .bottom, relatedBy: .equal, toItem: actualCoreVC.view, attribute: .bottom, multiplier: 1, constant: 13)
-                        NSLayoutConstraint.activate([actualCoreVC.syncingStatusTop])
-                        actualCoreVC.view.layoutIfNeeded()
-                    }
-                }
-            }
+            self.coreVC?.showSyncView()
         }
     }
     

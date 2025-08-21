@@ -9,6 +9,37 @@ import UIKit
 
 extension CoreViewController {
 
+    func showSyncView() {
+        
+        self.syncViewBottom.constant = self.statusView.frame.height + self.view.safeAreaInsets.bottom
+        self.view.layoutIfNeeded()
+        
+        self.syncStack.alpha = 1
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            self.syncViewBottom.constant = -10
+            self.syncStack.backgroundColor = UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: 0.2)
+            self.view.layoutIfNeeded()
+        }) { _ in
+            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                self.syncViewBottom.constant = 0
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
+    func hideSyncView() {
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            self.syncViewBottom.constant = self.statusView.frame.height + self.view.safeAreaInsets.bottom
+            self.syncStack.backgroundColor = UIColor.clear
+            self.view.layoutIfNeeded()
+        }) { _ in
+            self.syncStack.alpha = 0
+        }
+    }
+    
     func updateSync(action:String, type:String) {
         
         if action == "start" {

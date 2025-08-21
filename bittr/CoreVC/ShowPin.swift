@@ -38,6 +38,10 @@ extension CoreViewController {
                 self.pendingSpinner.startAnimating()
                 self.pendingView.alpha = 1
                 self.blackSignupBackground.alpha = 0.2
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.showSyncView()
+                }
             }
         }
     }

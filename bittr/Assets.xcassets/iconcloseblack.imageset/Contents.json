@@ -1,15 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "piggy2.png",
+      "filename" : "iconcloseblack.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "filename" : "iconcloseblack@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "iconcloseblack@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
