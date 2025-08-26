@@ -15,11 +15,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     // Home table view
     @IBOutlet weak var homeTableView: UITableView!
-    @IBOutlet weak var tableSpinner: UIActivityIndicatorView!
     @IBOutlet weak var noTransactionsLabel: UILabel!
     
     // Table view header elements
-    @IBOutlet weak var balanceView: UIView!
     @IBOutlet weak var backgroundColorView: UIView!
     @IBOutlet weak var backgroundColorTopView: UIView!
     @IBOutlet weak var yellowCurve: UIImageView!
@@ -33,7 +31,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var satsLabel: UILabel!
     @IBOutlet weak var satsLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var conversionLabel: UILabel!
-    @IBOutlet weak var balanceSpinner: UIActivityIndicatorView!
     @IBOutlet weak var balanceCardButton: UIButton!
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
@@ -144,7 +141,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func changeCurrency() {
         
         self.conversionLabel.alpha = 0
-        self.balanceSpinner.startAnimating()
         self.setConversion(btcValue: CGFloat(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)/100000000, cachedData: false, updateTableAfterConversion: true)
     }
     
@@ -154,23 +150,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Set correct top constraint and table insets.
         var bottomInset:CGFloat = 80
         var headerViewTopConstant:CGFloat = 85
-        if #available(iOS 13.0, *) {
-            if let window = UIApplication.shared.windows.first {
-                if window.safeAreaInsets.bottom == 0 {
-                    bottomInset = 130
-                    headerViewTopConstant = 110
-                }
-            }
-        } else if #available(iOS 11.0, *) {
-            if let window = UIApplication.shared.keyWindow {
-                if window.safeAreaInsets.bottom == 0 {
-                    bottomInset = 130
-                    headerViewTopConstant = 110
-                }
-            }
+        if self.coreVC!.view.safeAreaInsets.bottom == 0 {
+            bottomInset = 130
+            headerViewTopConstant = 110
         }
-        homeTableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
-        balanceCardTop.constant = headerViewTopConstant
+        self.homeTableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
+        self.balanceCardTop.constant = headerViewTopConstant
         
         // Set header view.
         if let newHeaderView = homeTableView.tableHeaderView {
@@ -352,9 +337,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.bitcoinSign.alpha = 0
         self.satsLabel.alpha = 0
         self.conversionLabel.alpha = 0
-        self.balanceSpinner.startAnimating()
         self.homeTableView.reloadData()
-        self.tableSpinner.startAnimating()
         
         self.headerSpinner.startAnimating()
         self.headerProblemImage.alpha = 0
@@ -381,6 +364,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Reload table.
         self.homeTableView.reloadData()
+        self.noTransactionsLabel.alpha = 0
         
         // Update balance.
         if thisTransaction.isLightning {

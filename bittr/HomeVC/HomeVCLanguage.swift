@@ -50,9 +50,6 @@ extension HomeViewController {
         self.balanceCard.backgroundColor = Colors.getColor("yelloworblue2")
         self.conversionLabel.textColor = Colors.getColor("black0.5orwhite0.5")
         
-        self.tableSpinner.color = Colors.getColor("blackorwhite")
-        self.balanceSpinner.color = Colors.getColor("blackorwhite")
-        
         self.satsLabel.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {

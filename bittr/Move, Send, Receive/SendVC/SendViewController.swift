@@ -144,8 +144,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var onchainAmountInSatoshis:Int = 0
     var onchainAmountInBTC:CGFloat = 0.0
     var newTxId = ""
-    var newPaymentHash:PaymentHash?
-    var newInvoiceAmount:Int?
     var bitcoinQR = ""
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
@@ -611,14 +609,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         actionSheet.addAction(currencyOption)
         actionSheet.addAction(cancelAction)
         present(actionSheet, animated: true, completion: nil)
-    }
-    
-    @objc func addNewPayment() {
-        if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
-            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, delegate: self)
-            self.newInvoiceAmount = nil
-            self.newPaymentHash = nil
-        }
     }
     
 }
