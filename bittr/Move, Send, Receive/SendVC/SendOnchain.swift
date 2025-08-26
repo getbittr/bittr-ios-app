@@ -25,7 +25,7 @@ extension SendViewController {
             if invoiceText != nil {
                 if invoiceText!.lowercased().contains("lnurl") {
                     // LNURL.
-                    self.confirmLightningTransaction(lnurlinvoice: invoiceText!, sendVC: self, receiveVC: nil)
+                    self.confirmLightningTransaction(lnurlinvoice: invoiceText!, sendVC: self, receiveVC: nil, lnurlNote: nil)
                     return
                 }
             }

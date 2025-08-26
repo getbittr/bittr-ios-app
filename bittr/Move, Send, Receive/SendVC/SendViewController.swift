@@ -349,7 +349,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         self.amountTextField.text = "\(invoiceAmount)"
                         self.btcLabel.text = "Sats"
                         self.selectedCurrency = "satoshis"
-                        self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                        self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
                         return true
                     }
                 }
@@ -498,7 +498,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             self.amountTextField.text = "\(invoiceAmount)"
                             self.btcLabel.text = "Sats"
                             self.selectedCurrency = "satoshis"
-                            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
                         } else {
                             // Zero invoice.
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -523,7 +523,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.amountTextField.text = "\(satoshisValue)"
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = "satoshis"
-                self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
             }
         } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
             // Hide QR scanner, show onchain.

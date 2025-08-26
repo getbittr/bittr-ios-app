@@ -16,7 +16,7 @@ import Sentry
 
 extension UIViewController {
     
-    func confirmLightningTransaction(lnurlinvoice:String?, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+    func confirmLightningTransaction(lnurlinvoice:String?, sendVC:SendViewController?, receiveVC:ReceiveViewController?, lnurlNote:String?) {
         
         if self.checkInternetConnection() {
             var invoiceText = sendVC?.toTextField.text
