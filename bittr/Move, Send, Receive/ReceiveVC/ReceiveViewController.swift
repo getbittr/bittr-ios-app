@@ -126,6 +126,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var completedTransaction:Transaction?
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
+    var temporaryInvoiceNote:String?
     var pendingLightningInvoice = ""
     var didDoublecheckLastUsedAddress = false
     
