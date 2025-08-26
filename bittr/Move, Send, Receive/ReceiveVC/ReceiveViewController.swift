@@ -124,8 +124,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
     var completedTransaction:Transaction?
-    var newPaymentHash:PaymentHash?
-    var newInvoiceAmount:Int?
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
     var pendingLightningInvoice = ""
@@ -434,14 +432,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
                     actualTransactionVC.coreVC = self.coreVC
                 }
             }
-        }
-    }
-    
-    @objc func addNewPayment() {
-        if self.newPaymentHash != nil, self.newInvoiceAmount != nil {
-            self.addNewPaymentToTable(paymentHash: newPaymentHash!, invoiceAmount: self.newInvoiceAmount!, delegate: self)
-            self.newInvoiceAmount = nil
-            self.newPaymentHash = nil
         }
     }
     

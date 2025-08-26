@@ -158,22 +158,7 @@ extension UIViewController {
                     if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
                         if thisPayment.status != .failed {
-                            
-                            var thisAction:Selector?
-                            if sendVC != nil {
-                                sendVC!.newPaymentHash = paymentHash
-                                sendVC!.newInvoiceAmount = invoiceAmount
-                                thisAction = #selector(sendVC!.addNewPayment)
-                            } else if receiveVC != nil {
-                                receiveVC!.newPaymentHash = paymentHash
-                                receiveVC!.newInvoiceAmount = invoiceAmount
-                                thisAction = #selector(receiveVC!.addNewPayment)
-                            }
-                            
-                            if thisAction != nil {
-                                // Success alert
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
-                            }
+                            (sendVC ?? receiveVC!).addNewPaymentToTable(paymentHash: paymentHash, invoiceAmount: invoiceAmount, delegate: (sendVC ?? receiveVC!))
                         } else {
                             // Payment came back failed.
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -286,22 +271,7 @@ extension UIViewController {
                     if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                         
                         if thisPayment.status != .failed {
-                            
-                            var thisAction:Selector?
-                            if sendVC != nil {
-                                sendVC!.newPaymentHash = paymentHash
-                                sendVC!.newInvoiceAmount = invoiceAmount
-                                thisAction = #selector(sendVC!.addNewPayment)
-                            } else if receiveVC != nil {
-                                receiveVC!.newPaymentHash = paymentHash
-                                receiveVC!.newInvoiceAmount = invoiceAmount
-                                thisAction = #selector(receiveVC!.addNewPayment)
-                            }
-                            
-                            if thisAction != nil {
-                                // Success alert
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: [thisAction!])
-                            }
+                            (sendVC ?? receiveVC!).addNewPaymentToTable(paymentHash: paymentHash, invoiceAmount: invoiceAmount, delegate: (sendVC ?? receiveVC!))
                         } else {
                             // Payment came back failed.
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)

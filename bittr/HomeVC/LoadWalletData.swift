@@ -388,7 +388,6 @@ extension HomeViewController {
             CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
             
             // Show label.
-            self.balanceSpinner.stopAnimating()
             self.conversionLabel.alpha = 1
             
             if updateTableAfterConversion {
@@ -450,7 +449,6 @@ extension HomeViewController {
                                     CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
                                     
                                     // Show conversion label.
-                                    self.balanceSpinner.stopAnimating()
                                     self.conversionLabel.alpha = 1
                                     
                                     if updateTableAfterConversion {
@@ -505,7 +503,6 @@ extension HomeViewController {
         
         self.homeTableView.reloadData()
         self.homeTableView.alpha = 1
-        self.tableSpinner.stopAnimating()
         
         if self.setTransactions.count == 0 {
             let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID: "notransactions1"))</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID: "buy"))</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID:"notransactions2"))</span></center>"

@@ -180,32 +180,7 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                             }
-                        }/* catch let error as BdkError {
-                            
-                            print("BDK error: \(error)")
-                            DispatchQueue.main.async {
-                                
-                                self.nextLabel.alpha = 1
-                                self.nextSpinner.stopAnimating()
-                                
-                                let errorString = "\(error)"
-                                
-                                if errorString.contains("InsufficientFunds") {
-                                    let condensedMessage = errorString.replacingOccurrences(of: "InsufficientFunds(message: \"", with: "").replacingOccurrences(of: "\")", with: "")
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). \(condensedMessage).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                } else if errorString.contains("address encoding error") {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidbitcoinaddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                } else if errorString.contains("OutputBelowDustLimit") {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "amounttoosmall"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                } else {
-                                    // Show generic error to user, but log the actual error
-                                    print("BDK Error: \(error)")
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "cannotproceed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                }
-                                
-                                SentrySDK.capture(error: error)
-                            }
-                        }*/ catch {
+                        } catch {
                             print("Error: \(error.localizedDescription)")
                             DispatchQueue.main.async {
                                 self.nextLabel.alpha = 1
@@ -432,20 +407,7 @@ extension SendViewController {
                 let _ = try actualWallet.sign(psbt: details, signOptions: nil)
                 
                 return nil
-            }/* catch let error as BdkError {
-                if "\(error)".contains("InsufficientFunds") {
-                    let satsReservation:Double = self.stringToNumber(String("\(error)".split(separator: " ")[7])) * 0.00000001
-                    let requiredCorrection:Double = self.btcAmount - satsReservation
-                    let spendableBtcAmount = self.btcAmount + requiredCorrection
-                    if spendableBtcAmount < 0 {
-                        return 0
-                    } else {
-                        return spendableBtcAmount
-                    }
-                } else {
-                    return nil
-                }
-            }*/ catch {
+            } catch {
                 if error.localizedDescription.contains("Insufficient funds") {
                     let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7]))
                     let btcOnchain = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001
