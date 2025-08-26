@@ -119,12 +119,12 @@ class MoveViewController: UIViewController {
         let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
         
         // Show balance values.
-        satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
-        satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
-        satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
-        conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
-        conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
-        conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
+        self.satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        self.satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
+        self.satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        self.conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
+        self.conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
+        self.conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -142,26 +142,16 @@ class MoveViewController: UIViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "MoveToSend" {
-            
-            let sendVC = segue.destination as? SendViewController
-            if let actualSendVC = sendVC {
-                actualSendVC.coreVC = self.coreVC
-                
-                actualSendVC.maximumSendableLNSats = self.maximumSendableLNSats
-                if actualSendVC.maximumSendableLNSats! < 0 {
-                    actualSendVC.maximumSendableLNSats = 0
-                }
-                
-                if let actualHomeVC = self.homeVC {
-                    actualSendVC.homeVC = actualHomeVC
-                }
+            if let sendVC = segue.destination as? SendViewController {
+                sendVC.coreVC = self.coreVC
+                sendVC.maximumSendableLNSats = self.maximumSendableLNSats
+                sendVC.homeVC = self.homeVC
             }
         } else if segue.identifier == "MoveToReceive" {
-            
-            let receiveVC = segue.destination as? ReceiveViewController
-            if let actualReceiveVC = receiveVC {
-                actualReceiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
-                actualReceiveVC.homeVC = self.homeVC
+            if let receiveVC = segue.destination as? ReceiveViewController {
+                receiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
+                receiveVC.homeVC = self.homeVC
+                receiveVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "MoveToSwap" {
             if let swapVC = segue.destination as? SwapViewController {
@@ -190,7 +180,7 @@ class MoveViewController: UIViewController {
     
     @IBAction func channelButtonTapped(_ sender: UIButton) {
         
-        if self.satsInstant.text?.replacingOccurrences(of: "sats", with: "").replacingOccurrences(of: " ", with: "") == "0" {
+        if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: nil)
         } else {
@@ -200,7 +190,13 @@ class MoveViewController: UIViewController {
     }
     
     @IBAction func swapButtonTapped(_ sender: UIButton) {
-        self.performSegue(withIdentifier: "MoveToSwap", sender: self)
+        
+        if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
+            // There is no Lightning channel.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "instantpayments"), message: Language.getWord(withID: "questionvc13"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        } else {
+            self.performSegue(withIdentifier: "MoveToSwap", sender: self)
+        }
     }
     
 }

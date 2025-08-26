@@ -64,7 +64,7 @@ extension ReceiveViewController {
             var invoiceToDisplay:String?
             var onchainAddressToDisplay:String?
             var amountInBTC:CGFloat = 0
-            var enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+            let enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
             
             if self.bothAmountTextField.text != nil, self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
                 // An amount has been entered. Create a regular invoice.

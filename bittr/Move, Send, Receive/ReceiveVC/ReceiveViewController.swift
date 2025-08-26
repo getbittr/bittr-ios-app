@@ -29,7 +29,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewBoth: UIView!
-    @IBOutlet weak var centerViewBothCenterY: NSLayoutConstraint!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Main - Switch view
@@ -43,9 +42,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var labelInstant: UILabel!
     @IBOutlet weak var iconLightning: UIImageView!
     @IBOutlet weak var iconLightningLeading: NSLayoutConstraint!
-    @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
     @IBOutlet weak var labelBothLeading: NSLayoutConstraint!
-    @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
     @IBOutlet weak var switchSelectionLeading: NSLayoutConstraint!
     @IBOutlet weak var switchSelectionTrailing: NSLayoutConstraint!
     
@@ -229,6 +226,27 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        
+        if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
+            // User has no Lightning channels. Show Regular QR only.
+            
+            // Dim labels
+            self.labelBoth.alpha = 0.3
+            self.labelInstant.alpha = 0.3
+            self.iconLightning.alpha = 0.3
+            
+            // Fix constraints
+            self.centerViewRegularTrailing.constant = self.view.bounds.width
+            self.labelBothLeading.constant = 30
+            self.iconLightningLeading.constant = 17
+            
+            NSLayoutConstraint.deactivate([self.switchSelectionLeading, self.switchSelectionTrailing])
+            self.switchSelectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: self.labelRegular, attribute: .leading, multiplier: 1, constant: -15)
+            self.switchSelectionTrailing = NSLayoutConstraint(item: self.switchSelectionView, attribute: .trailing, relatedBy: .equal, toItem: self.labelRegular, attribute: .trailing, multiplier: 1, constant: 15)
+            NSLayoutConstraint.activate([self.switchSelectionLeading, self.switchSelectionTrailing])
+            
+            self.view.layoutIfNeeded()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -237,7 +255,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
             NSLayoutConstraint.activate([self.contentViewHeight])
-            self.centerViewBothCenterY.constant = 0
             self.view.layoutIfNeeded()
         }
     }
@@ -314,51 +331,37 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     @IBAction func switchTapped(_ sender: UIButton) {
         
-        var leadingConstraint = self.labelRegular
+        if self.coreVC!.bittrWallet.lightningChannels.count == 0, sender.accessibilityIdentifier != "regular" {
+            // User doesn't have any Lightning channels.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "instantpayments"), message: Language.getWord(withID: "questionvc13"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
+        // Both
+        var leadingConstraint = self.labelBoth
         var leadingConstant:CGFloat = -15
-        var regularConstraint:CGFloat = 20
-        var bothConstraint:CGFloat = 30
-        var instantConstraint:CGFloat = 20
-        var iconLightningConstraint:CGFloat = 25
+        var bothConstraint:CGFloat = 28
+        var iconLightningConstraint:CGFloat = 28
+        var viewWidth:CGFloat = 0
         if sender.accessibilityIdentifier == "regular" {
             // Regular
             leadingConstraint = self.labelRegular
             leadingConstant = -15
             bothConstraint = 30
             iconLightningConstraint = 17
+            viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
         } else if sender.accessibilityIdentifier == "instant" {
             // Instant
             leadingConstraint = self.labelInstant
             leadingConstant = -35
             bothConstraint = 20
             iconLightningConstraint = 30
-        } else {
-            // Both
-            leadingConstraint = self.labelBoth
-            leadingConstant = -15
-            bothConstraint = 28
-            iconLightningConstraint = 28
+            viewWidth = -self.view.safeAreaLayoutGuide.layoutFrame.size.width
         }
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             
-            var viewWidth:CGFloat = 0
-            var centerViewBottomConstant:CGFloat = 100
-            if sender.accessibilityIdentifier == "regular" {
-                viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
-                centerViewBottomConstant = 0
-            } else if sender.accessibilityIdentifier == "both" {
-                viewWidth = 0
-                centerViewBottomConstant = 0
-            } else {
-                viewWidth = -self.view.safeAreaLayoutGuide.layoutFrame.size.width
-                centerViewBottomConstant = 0
-            }
             self.centerViewRegularTrailing.constant = viewWidth
-            self.centerViewBothCenterY.constant = centerViewBottomConstant
-            
-            self.labelRegularLeading.constant = regularConstraint
-            self.labelInstantTrailing.constant = instantConstraint
             self.labelBothLeading.constant = bothConstraint
             self.iconLightningLeading.constant = iconLightningConstraint
             
