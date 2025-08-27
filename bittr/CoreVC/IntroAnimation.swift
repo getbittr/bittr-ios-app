@@ -31,17 +31,9 @@ extension CoreViewController {
     override func viewDidAppear(_ animated: Bool) {
         
         // Set correct height constraint for menu bar.
-        if #available(iOS 13.0, *) {
-            if let window = UIApplication.shared.windows.first {
-                if window.safeAreaInsets.bottom == 0 {
-                    self.menuBarViewHeight.constant = 68
-                }
-            }
-        } else if #available(iOS 11.0, *) {
-            if let window = UIApplication.shared.keyWindow {
-                if window.safeAreaInsets.bottom == 0 {
-                    self.menuBarViewHeight.constant = 68
-                }
+        if let window = UIApplication.shared.windows.first {
+            if window.safeAreaInsets.bottom == 0 {
+                self.menuBarViewHeight.constant = 68
             }
         }
         

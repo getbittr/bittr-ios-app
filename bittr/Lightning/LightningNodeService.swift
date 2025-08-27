@@ -31,7 +31,6 @@ class LightningNodeService {
         return Singleton.instance
     }
     
-    
     init(network: LDKNode.Network) {
         self.network = network
     }
@@ -51,7 +50,8 @@ class LightningNodeService {
             trustedPeers0conf: [EnvironmentConfig.lightningNodeId],
             probingLiquidityLimitMultiplier: UInt64(3),
             anchorChannelsConfig: AnchorChannelsConfig(
-                trustedPeersNoReserve: [ PublicKey(EnvironmentConfig.lightningNodeId) ], perChannelReserveSats: UInt64(1000)),
+                trustedPeersNoReserve: [ PublicKey(EnvironmentConfig.lightningNodeId) ],
+                perChannelReserveSats: UInt64(1000)),
             sendingParameters: nil
         )
         
@@ -380,6 +380,40 @@ class LightningNodeService {
         )
     }
     
+    func lightSync() {
+        
+        DispatchQueue.global(qos: .background).async {
+            do {
+                print("Will light sync wallet.")
+                // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
+                let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
+                let update = try self.electrumClient!.sync(
+                    request: syncRequest,
+                    batchSize: UInt64(25),
+                    fetchPrevTxouts: true
+                )
+                try self.bdkWallet!.applyUpdate(update: update)
+                let _ = try self.bdkWallet!.persist(connection: self.connection!)
+                
+                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) {
+                    
+                    self.coreVC!.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
+                    self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
+                    self.coreVC!.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
+                        return tx1.chainPosition.isBefore(tx2.chainPosition)
+                    }
+                    
+                    DispatchQueue.main.async {
+                        self.coreVC!.homeVC!.loadWalletData()
+                        self.coreVC!.homeVC!.moveVC?.updateLabels()
+                    }
+                }
+            } catch {
+                print("Error completing light sync: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     func syncWallets() throws {
         try ldkNode!.syncWallets()
     }
@@ -397,79 +431,6 @@ class LightningNodeService {
             self.startBDK(coreViewController: nil)
         }
     }
-    
-    /// Lightweight wallet sync that refreshes transactions and balances without full wallet reset
-    /// Use this for refreshing data after operations like swaps, payments, etc.
-    /// For full wallet reset (e.g., after errors), use walletReset() instead
-//    func syncWalletAndLoadTransactions() {
-//        DispatchQueue.global(qos: .background).async {
-//            do {
-//                print("Starting lightweight wallet sync...")
-//                
-//                // Send notification that sync is starting
-//                DispatchQueue.main.async {
-//                    let notificationDict:[String: Any] = ["action":"start","type":"sync"]
-//                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
-//                }
-//                
-//                // Sync the wallet with the blockchain
-//                if let wallet = self.bdkWallet, let blockchain = self.blockchain {
-//                    try wallet.sync(blockchain: blockchain, progress: nil)
-//                    print("Wallet sync completed.")
-//                    
-//                    // Get updated balance
-//                    self.bdkBalance = Int(try wallet.getBalance().total)
-//                    print("Updated onchain balance: \(self.bdkBalance)")
-//                    
-//                    // Get updated transactions
-//                    let walletTransactions = try wallet.listTransactions(includeRaw: false)
-//                    let actualWalletTransactions = walletTransactions ?? [TransactionDetails]()
-//                    self.varWalletTransactions = actualWalletTransactions
-//                    print("Updated onchain transactions: \(actualWalletTransactions.count)")
-//                    
-//                    // Get current height
-//                    let fetchedCurrentHeight = try blockchain.getHeight()
-//                    self.currentHeight = Int(fetchedCurrentHeight)
-//                    
-//                    // Send notification that sync is complete
-//                    DispatchQueue.main.async {
-//                        let notificationDict:[String: Any] = ["action":"complete","type":"sync"]
-//                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
-//                    }
-//                    
-//                    // Get updated lightning data and send notification
-//                    Task {
-//                        do {
-//                            let channels = try await self.listChannels()
-//                            let payments = try await self.listPayments()
-//                            
-//                            // Send notification with all updated details
-//                            let transactionsNotificationDict:[AnyHashable:Any] = [
-//                                "transactions": actualWalletTransactions, 
-//                                "channels": channels, 
-//                                "payments": payments, 
-//                                "bdkbalance": self.bdkBalance, 
-//                                "currentheight": self.currentHeight
-//                            ]
-//                            DispatchQueue.main.async {
-//                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "getwalletdata"), object: nil, userInfo: transactionsNotificationDict) as Notification)
-//                            }
-//                        } catch {
-//                            print("Error getting lightning data during sync: \(error.localizedDescription)")
-//                        }
-//                    }
-//                } else {
-//                    print("Wallet or blockchain not available for sync")
-//                }
-//            } catch {
-//                print("Error during wallet sync: \(error.localizedDescription)")
-//                DispatchQueue.main.async {
-//                    let notificationDict:[String: Any] = ["action":"complete","type":"sync"]
-//                    NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "updatesync"), object: nil, userInfo: notificationDict) as Notification)
-//                }
-//            }
-//        }
-//    }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
         let invoiceDescription = Bolt11InvoiceDescription.direct(description: description)
@@ -494,9 +455,7 @@ class LightningNodeService {
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
-        
         if let invoiceDetails = ldkNode!.payment(paymentId: paymentHash) {
-            //let invoiceAmountInt = Int(invoiceAmount)
             return invoiceDetails
         } else {
             return nil

@@ -49,6 +49,7 @@
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
 		058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */; };
+		058FA76D2E5EAB26001A68DA /* BackgroundSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */; };
 		05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */; };
 		05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */; };
 		0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0595AB082B2EE7E900375498 /* WebsiteViewController.swift */; };
@@ -214,6 +215,7 @@
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCollectionViewCell.swift; sourceTree = "<group>"; };
+		058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSync.swift; sourceTree = "<group>"; };
 		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
 		05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveLightning.swift; sourceTree = "<group>"; };
 		0595AB082B2EE7E900375498 /* WebsiteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteViewController.swift; sourceTree = "<group>"; };
@@ -422,6 +424,7 @@
 				05A8BD812B750A8F002F0282 /* ResetApp.swift */,
 				05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */,
 				056911102BC3E16800BD047B /* SyncingStatus.swift */,
+				058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */,
 			);
 			path = CoreVC;
 			sourceTree = "<group>";
@@ -988,6 +991,7 @@
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */,
 				0595AB092B2EE7E900375498 /* WebsiteViewController.swift in Sources */,
+				058FA76D2E5EAB26001A68DA /* BackgroundSync.swift in Sources */,
 				0521712A2CB41B1A006C5663 /* TransactionVCLanguage.swift in Sources */,
 				05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */,
 				059704A72E43515300B56690 /* BitcoinValue.swift in Sources */,

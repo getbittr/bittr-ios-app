@@ -364,6 +364,12 @@ extension HomeViewController {
                 // Convert balance to EUR / CHF.
                 self.setConversion(btcValue: CGFloat(totalBalanceSats)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
                 
+                // Start timer
+                if self.coreVC!.walletSync == nil {
+                    self.coreVC!.walletSync = BackgroundSync()
+                    self.coreVC!.walletSync!.start()
+                }
+                
             } catch let e as NSError {
                 print("Couldn't fetch text: \(e.localizedDescription)")
             }

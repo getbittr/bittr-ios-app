@@ -235,8 +235,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBAction func transactionButtonTapped(_ sender: UIButton) {
         
         self.tappedTransaction = sender.tag
-        
-        performSegue(withIdentifier: "HomeToTransaction", sender: self)
+        self.performSegue(withIdentifier: "HomeToTransaction", sender: self)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -347,6 +346,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.coreVC?.checkmarkSyncing.alpha = 0
         self.coreVC?.spinnerSyncing.startAnimating()
         self.coreVC?.checkmarkFinal.alpha = 0
+        
+        if self.coreVC!.walletSync != nil {
+            self.coreVC!.walletSync!.stop()
+            self.coreVC!.walletSync = nil
+        }
         
         LightningNodeService.shared.walletReset()
     }

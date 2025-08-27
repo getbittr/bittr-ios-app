@@ -113,6 +113,7 @@ class CoreViewController: UIViewController {
     
     // Client details
     var bittrWallet = BittrWallet()
+    var walletSync:BackgroundSync?
     
     // Syncing status view
     @IBOutlet weak var statusView: UIView!
@@ -169,6 +170,13 @@ class CoreViewController: UIViewController {
         
         // Set words.
         self.setWords()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if self.walletSync != nil {
+            self.walletSync!.stop()
+            self.walletSync = nil
+        }
     }
     
     @IBAction func blackSignupButtonTapped(_ sender: UIButton) {
