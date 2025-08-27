@@ -133,8 +133,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if self.allIbanEntities.count > 0 {
             self.emptyLabel.alpha = 0
             self.continueView.alpha = 0
-            self.addAnotherView.alpha = 1
-            self.addAnotherButton.alpha = 1
+            //self.addAnotherView.alpha = 1
+            //self.addAnotherButton.alpha = 1
             self.addAnotherViewTop.constant = 40
             self.view.layoutIfNeeded()
             
@@ -142,8 +142,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         } else {
             self.emptyLabel.alpha = 1
             self.continueView.alpha = 1
-            self.addAnotherView.alpha = 0
-            self.addAnotherButton.alpha = 0
+            //self.addAnotherView.alpha = 0
+            //self.addAnotherButton.alpha = 0
             self.addAnotherViewTop.constant = -100
             self.view.layoutIfNeeded()
             
@@ -184,6 +184,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.addAnotherLabel.textColor = Colors.getColor("blackorwhite")
+        self.emptyLabel.textColor = Colors.getColor("blackorwhite")
     }
     
     func setWords() {
