@@ -329,6 +329,7 @@ class BoltzRefund {
                 let broadcastResponse = try await BoltzAPI.broadcastTransaction(transactionHex: finalTx.hexString)
                 if let transactionId = broadcastResponse.transactionIdValue {
                     print("✅ Transaction broadcasted successfully! TXID: \(transactionId)")
+                    CacheManager.storeInvoiceDescription(hash: transactionId, desc: ongoingSwap.dateID)
                     return ClaimResult(success: true, transactionId: transactionId)
                 } else {
                     print("❌ Failed to broadcast transaction")
