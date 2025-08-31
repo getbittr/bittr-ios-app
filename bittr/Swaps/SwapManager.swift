@@ -279,16 +279,11 @@ class SwapManager: NSObject {
                             self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
                             
                             // Create transaction object.
-                            let newTransaction = swapVC.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: nil, swapTransaction: ongoingSwap, coreVC: nil, bittrTransactions: nil)
                             CacheManager.storeInvoiceDescription(hash: txid, desc: ongoingSwap.dateID)
                             CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
-                            // Add to Home table.
-                            swapVC.homeVC?.addTransaction(newTransaction)
-                            
-                            // For onchain-to-lightning swaps, the lightning transaction hasn't been received yet
-                            // so we don't call performSwapMatching here. It will be handled when the lightning
-                            // payment is received via HandlePaymentNotification.swift
+                            // Update Home table.
+                            LightningNodeService.shared.lightSync { _ in }
                             
                             // Call didCompleteOnchainTransaction to set up WebSocket monitoring
                             swapVC.didCompleteOnchainTransaction()

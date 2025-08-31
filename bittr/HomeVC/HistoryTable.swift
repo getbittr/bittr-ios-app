@@ -21,7 +21,6 @@ extension HomeViewController {
             dateFormatter.timeZone = TimeZone.current
             dateFormatter.dateFormat = "MMM dd"
             let transactionDateString = dateFormatter.string(from: transactionDate)
-            
             cell.dayLabel.text = transactionDateString
             
             // Set sats.
@@ -33,11 +32,9 @@ extension HomeViewController {
             
             // Set conversion
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-            
             let transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
-            
             cell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
             
             // Set gain label
@@ -76,6 +73,7 @@ extension HomeViewController {
                 if thisTransaction.isSwap || thisTransaction.lnDescription.contains("Swap") {
                     cell.swapImage.alpha = 1
                     cell.updateBoltTrailing(position: "middle")
+                    cell.boltImage.alpha = 0
                     cell.bittrImage.alpha = 0
                     cell.gainView.alpha = 0
                     cell.gainLabel.text = ""
@@ -94,7 +92,9 @@ extension HomeViewController {
             }
             
             if thisTransaction.isLightning == true {
-                cell.boltImage.alpha = 1
+                if !thisTransaction.isSwap {
+                    cell.boltImage.alpha = 1
+                }
                 cell.satsLabel.textColor = Colors.getColor("blackorwhite")
                 cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
             } else {
