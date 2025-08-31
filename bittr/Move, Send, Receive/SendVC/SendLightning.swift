@@ -322,20 +322,14 @@ extension UIViewController {
         
         if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
             
-            let newTransaction = Transaction()
-            newTransaction.id = thisPayment.id
-            newTransaction.sent = Int(thisPayment.amountMsat ?? 0)/1000
-            newTransaction.received = 0
-            newTransaction.isLightning = true
-            newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-            newTransaction.confirmations = 0
-            newTransaction.height = 0
-            newTransaction.isBittr = false
+            var coreVC:CoreViewController?
+            if let sendVC = delegate as? SendViewController { coreVC = sendVC.coreVC } else if let receiveVC = delegate as? ReceiveViewController { coreVC = receiveVC.coreVC } else if let swapVC = delegate as? SwapViewController { coreVC = swapVC.coreVC }
+            let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: thisPayment, bittrTransaction: nil, coreVC: coreVC, bittrTransactions: nil)
             
             if Int(thisPayment.amountMsat ?? 0)/1000 > invoiceAmount {
                 // Fees were incurred.
                 let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - invoiceAmount
-                CacheManager.storePaymentFees(hash: thisPayment.id, fees: feesIncurred)
+                CacheManager.storePaymentFees(hash: thisPayment.kind.preimageAsString ?? thisPayment.id, fees: feesIncurred)
                 newTransaction.fee = feesIncurred
             } else {
                 newTransaction.fee = 0
@@ -343,22 +337,22 @@ extension UIViewController {
             
             if let sendVC = delegate as? SendViewController {
                 if sendVC.temporaryInvoiceNote != nil {
-                    CacheManager.storeTransactionNote(txid: thisPayment.id, note: sendVC.temporaryInvoiceNote!)
+                    CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: sendVC.temporaryInvoiceNote!)
                     sendVC.temporaryInvoiceNote = nil
                 }
                 sendVC.completedTransaction = newTransaction
-                sendVC.homeVC?.addTransaction(newTransaction)
+                sendVC.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
                 sendVC.performSegue(withIdentifier: "SendToTransaction", sender: self)
             } else if let receiveVC = delegate as? ReceiveViewController {
                 if receiveVC.temporaryInvoiceNote != nil {
-                    CacheManager.storeTransactionNote(txid: thisPayment.id, note: receiveVC.temporaryInvoiceNote!)
+                    CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: receiveVC.temporaryInvoiceNote!)
                     receiveVC.temporaryInvoiceNote = nil
                 }
                 receiveVC.completedTransaction = newTransaction
-                receiveVC.homeVC?.addTransaction(newTransaction)
+                receiveVC.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
                 receiveVC.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
             } else if let swapVC = delegate as? SwapViewController {
-                swapVC.homeVC?.addTransaction(newTransaction)
+                swapVC.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
             }
             
         }

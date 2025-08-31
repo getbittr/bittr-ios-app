@@ -799,11 +799,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                         if let transactionId = claimResult.transactionId {
                             SwapManager.addOnchainTransactionToUI(transactionId: transactionId, swapVC: self)
                         }
-                        
-                        // Trigger wallet sync to ensure proper swap transaction display
-//                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-//                            LightningNodeService.shared.syncWalletAndLoadTransactions()
-//                        }
                     } else {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                     }

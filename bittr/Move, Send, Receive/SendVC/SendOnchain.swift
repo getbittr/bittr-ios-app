@@ -362,7 +362,7 @@ extension SendViewController {
             if success, self.coreVC?.bittrWallet.transactionsOnchain != nil {
                 for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain! {
                     if eachTransaction.transaction.computeTxid() == self.newTxId {
-                        self.completedTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, swapTransaction: nil, coreVC: self.coreVC!, bittrTransactions: nil)
+                        self.completedTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC!, bittrTransactions: nil)
                         self.performSegue(withIdentifier: "SendToTransaction", sender: self)
                     }
                 }
