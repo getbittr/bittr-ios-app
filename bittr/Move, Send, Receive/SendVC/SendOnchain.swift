@@ -358,32 +358,18 @@ extension SendViewController {
     @objc func addNewTxToTable() {
         self.hideAlert()
         
-        let newTransaction = Transaction()
-        newTransaction.id = "\(self.newTxId)"
-        newTransaction.confirmations = 0
-        newTransaction.timestamp = Int(Date().timeIntervalSince1970)
-        newTransaction.height = 0
-        newTransaction.received = 0
-        var satsLabel = self.satsMedium
-        if self.selectedFee == "low" {
-            satsLabel = self.satsSlow
-        } else if self.selectedFee == "high" {
-            satsLabel = self.satsFast
+        LightningNodeService.shared.lightSync() { success in
+            if success, self.coreVC?.bittrWallet.transactionsOnchain != nil {
+                for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain! {
+                    if eachTransaction.transaction.computeTxid() == self.newTxId {
+                        self.completedTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, swapTransaction: nil, coreVC: self.coreVC!, bittrTransactions: nil)
+                        self.performSegue(withIdentifier: "SendToTransaction", sender: self)
+                    }
+                }
+            }
         }
-        newTransaction.fee = Int(self.stringToNumber(satsLabel!.text!.replacingOccurrences(of: " sats", with: "")))
-        newTransaction.sent = self.onchainAmountInSatoshis + newTransaction.fee
-        newTransaction.isLightning = false
-        newTransaction.isBittr = false
-        
-        self.completedTransaction = newTransaction
-        
-        // Add to Home table.
-        self.homeVC?.addTransaction(newTransaction)
-        
-        self.performSegue(withIdentifier: "SendToTransaction", sender: self)
         
         self.resetFields()
-        
         // Slide back to leftmost scroll view.
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.scrollViewTrailing])

@@ -380,7 +380,7 @@ class LightningNodeService {
         )
     }
     
-    func lightSync() {
+    func lightSync(completion: @escaping (Bool) -> Void) {
         
         DispatchQueue.global(qos: .background).async {
             do {
@@ -406,10 +406,14 @@ class LightningNodeService {
                     DispatchQueue.main.async {
                         self.coreVC!.homeVC!.loadWalletData()
                         self.coreVC!.homeVC!.moveVC?.updateLabels()
+                        completion(true)
                     }
+                } else {
+                    completion(false)
                 }
             } catch {
                 print("Error completing light sync: \(error.localizedDescription)")
+                DispatchQueue.main.async { completion(false) }
             }
         }
     }
