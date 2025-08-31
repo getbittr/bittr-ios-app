@@ -242,6 +242,7 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
             oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
             oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
+            oneTransaction.setObject(eachTransaction.swapHasSucceeded, forKey: "swaphassucceeded" as NSCopying)
             oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
             oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
             oneTransaction.setObject(eachTransaction.boltzSwapId, forKey: "boltzSwapId" as NSCopying)
@@ -302,6 +303,9 @@ class CacheManager: NSObject {
             }
             if let isSwap = eachTransaction["isswap"] as? Bool {
                 thisTransaction.isSwap = isSwap
+            }
+            if let swapHasSucceeded = eachTransaction["swaphassucceeded"] as? Bool {
+                thisTransaction.swapHasSucceeded = swapHasSucceeded
             }
             if let onchainID = eachTransaction["onchainid"] as? String {
                 thisTransaction.onchainID = onchainID

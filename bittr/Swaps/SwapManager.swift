@@ -604,10 +604,6 @@ class SwapManager: NSObject {
         // Add to home view controller
         swapVC.homeVC?.addTransaction(newTransaction)
         
-        // Trigger manual swap matching to combine lightning and onchain transactions
-        // For lightning-to-onchain swaps, both transactions should be present now
-        swapVC.homeVC?.performSwapMatching()
-        
         print("Added onchain transaction to UI: \(transactionId) with amount: \(newTransaction.received)")
     }
     

@@ -27,6 +27,7 @@ class Transaction: NSObject {
     
     // Swaps
     var isSwap = false
+    var swapHasSucceeded = true
     var swapDirection = 0
     var onchainID = ""
     var lightningID = ""

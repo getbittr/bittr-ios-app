@@ -11,9 +11,7 @@ extension HomeViewController {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "HistoryCell", for: indexPath) as? HistoryTableViewCell
-        
-        if let actualCell = cell {
+        if let cell = tableView.dequeueReusableCell(withIdentifier: "HistoryCell", for: indexPath) as? HistoryTableViewCell {
             
             let thisTransaction = self.setTransactions[indexPath.row]
             
@@ -24,14 +22,14 @@ extension HomeViewController {
             dateFormatter.dateFormat = "MMM dd"
             let transactionDateString = dateFormatter.string(from: transactionDate)
             
-            actualCell.dayLabel.text = transactionDateString
+            cell.dayLabel.text = transactionDateString
             
             // Set sats.
             var plusSymbol = "+"
             if thisTransaction.received - thisTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            actualCell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            cell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Set conversion
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
@@ -40,14 +38,14 @@ extension HomeViewController {
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             
-            actualCell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
+            cell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
             
             // Set gain label
             if thisTransaction.isBittr == true {
-                actualCell.updateBoltTrailing(position: "left")
-                actualCell.bittrImage.alpha = 1
-                actualCell.gainView.alpha = 1
-                actualCell.swapImage.alpha = 0
+                cell.updateBoltTrailing(position: "left")
+                cell.bittrImage.alpha = 1
+                cell.gainView.alpha = 1
+                cell.swapImage.alpha = 0
                 if thisTransaction.purchaseAmount == 0 {
                     // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
                     thisTransaction.purchaseAmount = Int((transactionValue*bitcoinValue.currentValue).rounded())
@@ -59,61 +57,66 @@ extension HomeViewController {
                     let calculatedGain = (CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - thisTransaction.purchaseAmount) / CGFloat(thisTransaction.purchaseAmount)) * 100
                     return Int(calculatedGain.isFinite ? calculatedGain : 0)
                 }()
-                actualCell.gainLabel.text = "\(relativeGain) %"
+                cell.gainLabel.text = "\(relativeGain) %"
                 
                 if relativeGain < 0 {
                     // Loss.
-                    actualCell.arrowImage.image = UIImage(systemName: "arrow.down")
-                    actualCell.gainView.backgroundColor = Colors.getColor("lossbackground")
-                    actualCell.arrowImage.tintColor = Colors.getColor("losstext")
-                    actualCell.gainLabel.textColor = Colors.getColor("losstext")
+                    cell.arrowImage.image = UIImage(systemName: "arrow.down")
+                    cell.gainView.backgroundColor = Colors.getColor("lossbackground")
+                    cell.arrowImage.tintColor = Colors.getColor("losstext")
+                    cell.gainLabel.textColor = Colors.getColor("losstext")
                 } else {
                     // Profit.
-                    actualCell.arrowImage.image = UIImage(systemName: "arrow.up")
-                    actualCell.gainView.backgroundColor = Colors.getColor("profitbackground")
-                    actualCell.arrowImage.tintColor = Colors.getColor("profittext")
-                    actualCell.gainLabel.textColor = Colors.getColor("profittext")
+                    cell.arrowImage.image = UIImage(systemName: "arrow.up")
+                    cell.gainView.backgroundColor = Colors.getColor("profitbackground")
+                    cell.arrowImage.tintColor = Colors.getColor("profittext")
+                    cell.gainLabel.textColor = Colors.getColor("profittext")
                 }
             } else {
                 if thisTransaction.isSwap || thisTransaction.lnDescription.contains("Swap") {
-                    actualCell.swapImage.alpha = 1
-                    actualCell.updateBoltTrailing(position: "middle")
-                    actualCell.bittrImage.alpha = 0
-                    actualCell.gainView.alpha = 0
-                    actualCell.gainLabel.text = ""
+                    cell.swapImage.alpha = 1
+                    cell.updateBoltTrailing(position: "middle")
+                    cell.bittrImage.alpha = 0
+                    cell.gainView.alpha = 0
+                    cell.gainLabel.text = ""
+                    if thisTransaction.swapHasSucceeded {
+                        cell.swapImage.image = UIImage(named: "iconswapblue")
+                    } else {
+                        cell.swapImage.image = UIImage(named: "iconswapgrey")
+                    }
                 } else {
-                    actualCell.updateBoltTrailing(position: "right")
-                    actualCell.bittrImage.alpha = 0
-                    actualCell.gainView.alpha = 0
-                    actualCell.gainLabel.text = ""
-                    actualCell.swapImage.alpha = 0
+                    cell.updateBoltTrailing(position: "right")
+                    cell.bittrImage.alpha = 0
+                    cell.gainView.alpha = 0
+                    cell.gainLabel.text = ""
+                    cell.swapImage.alpha = 0
                 }
             }
             
             if thisTransaction.isLightning == true {
-                actualCell.boltImage.alpha = 1
-                actualCell.satsLabel.textColor = Colors.getColor("blackorwhite")
-                actualCell.eurosLabel.textColor = Colors.getColor("blackorwhite")
+                cell.boltImage.alpha = 1
+                cell.satsLabel.textColor = Colors.getColor("blackorwhite")
+                cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
             } else {
-                actualCell.boltImage.alpha = 0
+                cell.boltImage.alpha = 0
                 
                 if thisTransaction.confirmations < 1 && self.coreVC?.bittrWallet.currentHeight != nil {
                     // Unconfirmed transaction.
-                    actualCell.satsLabel.textColor = Colors.getColor("unconfirmed")
-                    actualCell.eurosLabel.textColor = Colors.getColor("unconfirmed")
+                    cell.satsLabel.textColor = Colors.getColor("unconfirmed")
+                    cell.eurosLabel.textColor = Colors.getColor("unconfirmed")
                 } else {
                     // Confirmed transaction
-                    actualCell.satsLabel.textColor = Colors.getColor("blackorwhite")
-                    actualCell.eurosLabel.textColor = Colors.getColor("blackorwhite")
+                    cell.satsLabel.textColor = Colors.getColor("blackorwhite")
+                    cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
                 }
             }
             
             // Set button
-            actualCell.transactionButton.tag = indexPath.row
+            cell.transactionButton.tag = indexPath.row
             
-            actualCell.layer.zPosition = CGFloat(indexPath.row)
+            cell.layer.zPosition = CGFloat(indexPath.row)
             
-            return actualCell
+            return cell
         }
         
         return UITableViewCell()

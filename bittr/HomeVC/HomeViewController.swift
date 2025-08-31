@@ -382,23 +382,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.moveVC?.updateLabels()
     }
     
-    func performSwapMatching() {
-        // Manual swap matching for lightning-to-onchain swaps
-        print("Performing manual swap matching...")
-        
-        // Look for lightning and onchain transactions with matching swap descriptions
-        self.setTransactions = self.setTransactions.performSwapMatching(coreVC: self.coreVC, storeInCache: false)
-        
-        // Sort and reload table
-        self.setTransactions.sort { transaction1, transaction2 in
-            transaction1.timestamp > transaction2.timestamp
-        }
-        self.homeTableView.reloadData()
-        
-        // Store transactions in cache.
-        CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
-    }
-    
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         
         // Reload wallet when pulling down the view.

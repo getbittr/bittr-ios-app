@@ -871,9 +871,28 @@ extension [Transaction] {
                     }
                 }
                 
+                if !(eachSetOfTransactions as! [Transaction])[0].isLightning, !(eachSetOfTransactions as! [Transaction])[1].isLightning {
+                    // Both transactions are onchain. This is a failed normal swap.
+                    swapTransaction.timestamp = (eachSetOfTransactions as! [Transaction])[0].timestamp
+                    swapTransaction.sent = (eachSetOfTransactions as! [Transaction])[0].sent + (eachSetOfTransactions as! [Transaction])[1].sent
+                    swapTransaction.received = (eachSetOfTransactions as! [Transaction])[0].received + (eachSetOfTransactions as! [Transaction])[1].received
+                    swapTransaction.swapHasSucceeded = false
+                    
+                    if ((eachSetOfTransactions as! [Transaction])[0].received - (eachSetOfTransactions as! [Transaction])[0].sent) < ((eachSetOfTransactions as! [Transaction])[1].received - (eachSetOfTransactions as! [Transaction])[1].sent) {
+                        // The 2nd transaction is the refund.
+                        swapTransaction.onchainID = (eachSetOfTransactions as! [Transaction])[0].id
+                        swapTransaction.lightningID = (eachSetOfTransactions as! [Transaction])[1].id
+                    } else {
+                        // The 1st transaction is the refund.
+                        swapTransaction.onchainID = (eachSetOfTransactions as! [Transaction])[1].id
+                        swapTransaction.lightningID = (eachSetOfTransactions as! [Transaction])[0].id
+                    }
+                }
+                
                 // Remove the individual transactions and add the combined swap transaction
+                let transactionIDs = [(eachSetOfTransactions as! [Transaction])[0].id, (eachSetOfTransactions as! [Transaction])[1].id]
                 for (index, eachTransaction) in currentTransactions.enumerated().reversed() {
-                    if eachTransaction.id == swapTransaction.lightningID || eachTransaction.id == swapTransaction.onchainID {
+                    if transactionIDs.contains(eachTransaction.id) {
                         currentTransactions.remove(at: index)
                     }
                 }

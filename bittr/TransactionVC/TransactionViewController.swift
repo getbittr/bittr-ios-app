@@ -68,6 +68,12 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var openUrlButton: UIButton!
     var tappedUrl:String?
     
+    // Refund ID
+    @IBOutlet weak var refundUrlBox: UIView!
+    @IBOutlet weak var refundUrlImage: UIImageView!
+    @IBOutlet weak var refundUrlButton: UIButton!
+    @IBOutlet weak var refundUrlWidth: NSLayoutConstraint! // 5 or 35
+    
     // Swap ID
     @IBOutlet weak var openSwapImage: UIImageView!
     @IBOutlet weak var openSwapButton: UIButton!
@@ -110,6 +116,7 @@ class TransactionViewController: UIViewController {
         self.questionButton.setTitle("", for: .normal)
         self.lightningIdButton.setTitle("", for: .normal)
         self.openUrlButton.setTitle("", for: .normal)
+        self.refundUrlButton.setTitle("", for: .normal)
         self.swapIdButton.setTitle("", for: .normal)
         
         // Corner radii
@@ -264,16 +271,26 @@ class TransactionViewController: UIViewController {
         if self.tappedTransaction.isSwap {
             
             // Amount
-            self.amountTitle.text = "Moved"
-            self.amountLabel.text = "\(String(tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            self.amountTitle.text = Language.getWord(withID: "moved")
+            if self.tappedTransaction.swapHasSucceeded {
+                self.amountLabel.text = "\(String(tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            } else if self.tappedTransaction.swapDirection == 0 {
+                // Normal swap has failed.
+                self.amountLabel.text = "0 sats"
+                self.lightningIDTitle.text = Language.getWord(withID: "refundid")
+                self.refundUrlBox.alpha = 1
+                self.refundUrlWidth.constant = 35
+                self.view.layoutIfNeeded()
+                self.refundUrlButton.accessibilityIdentifier = self.tappedTransaction.lightningID
+            }
             
             // Direction
-            self.typeTitle.text = "From"
+            self.typeTitle.text = Language.getWord(withID: "from")
             self.boltImage.alpha = 0
             if tappedTransaction.swapDirection == 0 {
-                self.typeLabel.text = "Onchain to Lightning"
+                self.typeLabel.text = Language.getWord(withID: "onchaintolightning")
             } else {
-                self.typeLabel.text = "Lightning to Onchain"
+                self.typeLabel.text = Language.getWord(withID: "lightningtoonchain")
             }
             
             // Fees
@@ -308,7 +325,11 @@ class TransactionViewController: UIViewController {
             NSLayoutConstraint.activate([self.descriptionViewHeight])
             
             // Current value
-            transactionValue = CGFloat(self.tappedTransaction.received)/100000000
+            if self.tappedTransaction.swapHasSucceeded {
+                transactionValue = CGFloat(self.tappedTransaction.received)/100000000
+            } else {
+                transactionValue = CGFloat(self.tappedTransaction.sent - self.tappedTransaction.received)/100000000
+            }
             balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
             self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
         } else if self.tappedTransaction.lnDescription.contains("Swap ") {
@@ -501,6 +522,7 @@ class TransactionViewController: UIViewController {
         self.noteLabel.textColor = Colors.getColor("blackorwhite")
         self.noteImage.tintColor = Colors.getColor("grey2orwhite")
         self.openUrlImage.tintColor = Colors.getColor("grey2orwhite")
+        self.refundUrlImage.tintColor = Colors.getColor("grey2orwhite")
         self.openSwapImage.tintColor = Colors.getColor("grey2orwhite")
     }
     
