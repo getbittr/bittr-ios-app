@@ -274,6 +274,8 @@ class TransactionViewController: UIViewController {
             self.amountTitle.text = Language.getWord(withID: "moved")
             if self.tappedTransaction.swapStatus == .succeeded {
                 self.amountLabel.text = "\(String(tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            } else if self.tappedTransaction.swapStatus == .pending {
+                self.amountLabel.text = "\(String(tappedTransaction.received - tappedTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             } else if self.tappedTransaction.swapDirection == .onchainToLightning {
                 // Normal swap has failed.
                 self.amountLabel.text = "0 sats"
@@ -294,9 +296,11 @@ class TransactionViewController: UIViewController {
             }
             
             // Fees
-            self.feesViewHeight.constant = 40
-            self.feesView.alpha = 1
-            self.feesAmount.text = "\(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            if self.tappedTransaction.swapStatus != .pending {
+                self.feesViewHeight.constant = 40
+                self.feesView.alpha = 1
+                self.feesAmount.text = "\(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            }
             
             // Onchain ID
             self.idTitle.text = "Onchain ID"
@@ -332,26 +336,6 @@ class TransactionViewController: UIViewController {
             }
             balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
             self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
-        } else if self.tappedTransaction.lnDescription.contains("Swap ") {
-            // This is an incomplete Swap transaction. Either onchain or lightning.
-            
-            // Swap ID
-            self.swapIdView.alpha = 1
-            self.swapIdViewHeight.constant = 40
-            self.swapIDLabel.text = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription) ?? "Unavailable"
-            
-            // Description
-            self.descriptionView.alpha = 0
-            NSLayoutConstraint.deactivate([self.descriptionViewHeight])
-            self.descriptionViewHeight = NSLayoutConstraint(item: self.descriptionView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.descriptionViewHeight])
-            
-            // Swap direction
-            if self.tappedTransaction.lnDescription.contains("onchain to lightning") {
-                self.tappedTransaction.swapDirection = .onchainToLightning
-            } else {
-                self.tappedTransaction.swapDirection = .lightningToOnchain
-            }
         }
         
         self.changeColors()

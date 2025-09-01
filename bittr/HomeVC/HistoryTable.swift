@@ -70,7 +70,7 @@ extension HomeViewController {
                     cell.gainLabel.textColor = Colors.getColor("profittext")
                 }
             } else {
-                if thisTransaction.isSwap || thisTransaction.lnDescription.contains("Swap") {
+                if thisTransaction.isSwap {
                     cell.swapImage.alpha = 1
                     cell.updateBoltTrailing(position: "middle")
                     cell.boltImage.alpha = 0
@@ -94,6 +94,8 @@ extension HomeViewController {
             if thisTransaction.isLightning == true {
                 if !thisTransaction.isSwap {
                     cell.boltImage.alpha = 1
+                } else {
+                    cell.boltImage.alpha = 0
                 }
                 cell.satsLabel.textColor = Colors.getColor("blackorwhite")
                 cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
