@@ -272,7 +272,7 @@ class TransactionViewController: UIViewController {
             
             // Amount
             self.amountTitle.text = Language.getWord(withID: "moved")
-            if self.tappedTransaction.swapHasSucceeded {
+            if self.tappedTransaction.swapStatus == .succeeded {
                 self.amountLabel.text = "\(String(tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             } else if self.tappedTransaction.swapDirection == .onchainToLightning {
                 // Normal swap has failed.
@@ -325,7 +325,7 @@ class TransactionViewController: UIViewController {
             NSLayoutConstraint.activate([self.descriptionViewHeight])
             
             // Current value
-            if self.tappedTransaction.swapHasSucceeded {
+            if self.tappedTransaction.swapStatus == .succeeded {
                 transactionValue = CGFloat(self.tappedTransaction.received)/100000000
             } else {
                 transactionValue = CGFloat(self.tappedTransaction.sent - self.tappedTransaction.received)/100000000

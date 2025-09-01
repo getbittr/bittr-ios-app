@@ -242,7 +242,13 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
             oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
             oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
-            oneTransaction.setObject(eachTransaction.swapHasSucceeded, forKey: "swaphassucceeded" as NSCopying)
+            var swapStatus = ""
+            switch eachTransaction.swapStatus {
+            case .pending: swapStatus = "pending"
+            case .succeeded: swapStatus = "succeeded"
+            case .failed: swapStatus = "failed"
+            }
+            oneTransaction.setObject(swapStatus, forKey: "swapstatus" as NSCopying)
             oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
             oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
             oneTransaction.setObject(eachTransaction.boltzSwapId, forKey: "boltzSwapId" as NSCopying)
@@ -308,8 +314,10 @@ class CacheManager: NSObject {
             if let isSwap = eachTransaction["isswap"] as? Bool {
                 thisTransaction.isSwap = isSwap
             }
-            if let swapHasSucceeded = eachTransaction["swaphassucceeded"] as? Bool {
-                thisTransaction.swapHasSucceeded = swapHasSucceeded
+            if let swapStatus = eachTransaction["swapstatus"] as? String {
+                if swapStatus == "pending" { thisTransaction.swapStatus = .pending } else
+                if swapStatus == "failed" { thisTransaction.swapStatus = .failed } else
+                { thisTransaction.swapStatus = .succeeded }
             }
             if let onchainID = eachTransaction["onchainid"] as? String {
                 thisTransaction.onchainID = onchainID

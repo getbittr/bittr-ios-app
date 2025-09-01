@@ -77,7 +77,7 @@ extension HomeViewController {
                     cell.bittrImage.alpha = 0
                     cell.gainView.alpha = 0
                     cell.gainLabel.text = ""
-                    if thisTransaction.swapHasSucceeded {
+                    if thisTransaction.swapStatus == .succeeded {
                         cell.swapImage.image = UIImage(named: "iconswapblue")
                     } else {
                         cell.swapImage.image = UIImage(named: "iconswapgrey")
