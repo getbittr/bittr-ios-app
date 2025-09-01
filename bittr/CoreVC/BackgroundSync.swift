@@ -22,7 +22,7 @@ class BackgroundSync {
     }
     
     func lightSync() {
-        LightningNodeService.shared.lightSync() { _ in }
+        LightningNodeService.shared.lightSync(force: false) { _ in }
     }
     
     func stop() {

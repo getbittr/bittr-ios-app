@@ -283,7 +283,7 @@ class SwapManager: NSObject {
                             CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
                             // Update Home table.
-                            LightningNodeService.shared.lightSync { _ in }
+                            LightningNodeService.shared.lightSync(force: false) { _ in }
                             
                             // Call didCompleteOnchainTransaction to set up WebSocket monitoring
                             swapVC.didCompleteOnchainTransaction()
@@ -585,7 +585,7 @@ class SwapManager: NSObject {
         
         // Light sync wallet to add transaction to table.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            LightningNodeService.shared.lightSync() { _ in }
+            LightningNodeService.shared.lightSync(force: true) { _ in }
         }
     }
     

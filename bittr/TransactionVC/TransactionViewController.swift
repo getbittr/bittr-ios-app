@@ -153,7 +153,7 @@ class TransactionViewController: UIViewController {
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
         var transactionValue = CGFloat(self.tappedTransaction.received-self.tappedTransaction.sent)/100000000
-        var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
+        var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "").addSpaces()
         
         self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
         
@@ -334,7 +334,7 @@ class TransactionViewController: UIViewController {
             } else {
                 transactionValue = CGFloat(self.tappedTransaction.sent - self.tappedTransaction.received)/100000000
             }
-            balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
+            balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "").addSpaces()
             self.valueNowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
         }
         

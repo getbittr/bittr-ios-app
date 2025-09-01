@@ -358,7 +358,7 @@ extension SendViewController {
     @objc func addNewTxToTable() {
         self.hideAlert()
         
-        LightningNodeService.shared.lightSync() { success in
+        LightningNodeService.shared.lightSync(force: false) { success in
             if success, self.coreVC?.bittrWallet.transactionsOnchain != nil {
                 for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain! {
                     if eachTransaction.transaction.computeTxid() == self.newTxId {

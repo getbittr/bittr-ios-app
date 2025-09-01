@@ -380,7 +380,7 @@ class LightningNodeService {
         )
     }
     
-    func lightSync(completion: @escaping (Bool) -> Void) {
+    func lightSync(force:Bool, completion: @escaping (Bool) -> Void) {
         
         DispatchQueue.global(qos: .background).async {
             do {
@@ -395,7 +395,7 @@ class LightningNodeService {
                 try self.bdkWallet!.applyUpdate(update: update)
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) {
+                if force || self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) {
                     
                     self.coreVC!.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
                     self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
@@ -409,7 +409,7 @@ class LightningNodeService {
                         completion(true)
                     }
                 } else {
-                    completion(false)
+                    DispatchQueue.main.async { completion(false) }
                 }
             } catch {
                 print("Error completing light sync: \(error.localizedDescription)")
