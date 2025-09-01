@@ -86,7 +86,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var homeVC:HomeViewController?
     
     // Swap details
-    var swapDirection = 0
+    var swapDirection:SwapDirection = .onchainToLightning
     var webSocketManager:WebSocketManager?
     var isFromBackgroundNotification = false
     var isFromLightningPayment = false
@@ -187,12 +187,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.coreVC!.bittrWallet.ongoingSwap = CacheManager.dictionaryToSwap(swapDictionary)
                 guard let ongoingSwap = self.coreVC!.bittrWallet.ongoingSwap else { return }
                 
-                if ongoingSwap.onchainToLightning {
-                    self.confirmDirectionLabel.text = "Onchain to Lightning"
-                    self.swapDirection = 0
-                } else {
-                    self.confirmDirectionLabel.text = "Lightning to Onchain"
-                    self.swapDirection = 1
+                self.swapDirection = ongoingSwap.swapDirection
+                self.confirmDirectionLabel.text = Language.getWord(withID: "onchaintolightning")
+                if ongoingSwap.swapDirection == .lightningToOnchain {
+                    self.confirmDirectionLabel.text = Language.getWord(withID: "lightningtoonchain")
                 }
                 
                 self.confirmAmountLabel.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
@@ -273,12 +271,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         let onchainToLightning = UIAlertAction(title: Language.getWord(withID: "onchaintolightning"), style: .default) { (action) in
             
             self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
-            self.swapDirection = 0
+            self.swapDirection = .onchainToLightning
         }
         let lightningToOnchain = UIAlertAction(title: Language.getWord(withID: "lightningtoonchain"), style: .default) { (action) in
             
             self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
-            self.swapDirection = 1
+            self.swapDirection = .lightningToOnchain
         }
         let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
         actionSheet.addAction(onchainToLightning)
@@ -312,16 +310,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.coreVC!.bittrWallet.ongoingSwap = Swap()
                 self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount = amountToBeSent
                 
-                if self.swapDirection == 0 {
-                    // Onchain to Lightning.
-                    self.coreVC!.bittrWallet.ongoingSwap!.onchainToLightning = true
-                    Task {
+                self.coreVC!.bittrWallet.ongoingSwap!.swapDirection = self.swapDirection
+                Task {
+                    if self.swapDirection == .onchainToLightning {
                         await SwapManager.onchainToLightning(amountMsat: UInt64(amountToBeSent*1000), swapVC: self)
-                    }
-                } else {
-                    // Lightning to Onchain
-                    self.coreVC!.bittrWallet.ongoingSwap!.onchainToLightning = false
-                    Task {
+                    } else {
                         await SwapManager.lightningToOnchain(amountSat: amountToBeSent, swapVC: self)
                     }
                 }
@@ -392,9 +385,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                                 //TODO RUBEN: Add refund logic here
                             } else if receivedStatus == "transaction.confirmed" || receivedStatus == "invoice.settled" {
                                 print("✅ Transaction confirmed!")
-                                print("🔍 Checking if swapDirection == 1: \(self.swapDirection == 1)")
+                                print("🔍 Checking if swapDirection == .lightningToOnchain: \(self.swapDirection == .lightningToOnchain)")
                                 
-                                if self.swapDirection == 1 {
+                                if self.swapDirection == .lightningToOnchain {
                                     print("🔄 Processing lightning to onchain swap")
                                     if let transaction = dictionary!["transaction"] as? [String: Any] {
                                         print("📄 Transaction data: \(transaction)")
@@ -443,7 +436,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         case "swap.created": return Language.getWord(withID: "swapstatuspreparing")
         case "invoice.set": return Language.getWord(withID: "swapstatuspreparing")
         case "transaction.mempool": return Language.getWord(withID: "swapstatusawaitingconfirmation")
-        case "transaction.confirmed": if self.swapDirection == 0 {
+        case "transaction.confirmed": if self.swapDirection == .onchainToLightning {
             return Language.getWord(withID: "swapstatusawaitingpayment")
         } else {
             return Language.getWord(withID: "swapstatusswapcomplete")
@@ -519,9 +512,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.confirmStatusSpinner.startAnimating()
         self.switchView("confirm")
         
-        SwapManager.updateSwapFileWithFees(swapID: ongoingSwap.boltzID!, totalFees: totalFees, userAmount: ongoingSwap.satoshisAmount, direction: self.swapDirection)
+        var direction = 0
+        if self.swapDirection == .lightningToOnchain { direction = 1 }
+        SwapManager.updateSwapFileWithFees(swapID: ongoingSwap.boltzID!, totalFees: totalFees, userAmount: ongoingSwap.satoshisAmount, direction: direction)
         
-        if ongoingSwap.onchainToLightning {
+        if ongoingSwap.swapDirection == .onchainToLightning {
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
             SwapManager.sendLightningPayment(swapVC: self)
@@ -572,7 +567,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     print("Error: \(error)")
                 }
             }
-        } else if status == "transaction.mempool", self.swapDirection == 1 {
+        } else if status == "transaction.mempool", self.swapDirection == .lightningToOnchain {
             // Handle transaction.mempool for reverse swaps
             if let transaction = fullMessage["transaction"] as? [String: Any],
                let transactionHex = transaction["hex"] as? String {
@@ -639,11 +634,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
             
             // Set up the confirm view with loaded data
-            if ongoingSwap.onchainToLightning {
-                self.swapDirection = 0
-            } else {
-                self.swapDirection = 1
-            }
+            self.swapDirection = ongoingSwap.swapDirection
             
             // Ensure view is loaded before accessing UI elements
             DispatchQueue.main.async {
@@ -687,11 +678,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.coreVC?.bittrWallet.ongoingSwap = pendingSwap
             
             // Set up the confirm view with loaded data
-            if pendingSwap!.onchainToLightning {
-                self.swapDirection = 0
-            } else {
-                self.swapDirection = 1
-            }
+            self.swapDirection = pendingSwap!.swapDirection
             
             // Update UI labels
             self.confirmDirectionLabel?.text = pendingSwap!.dateID.contains("onchain to lightning") ?
@@ -723,13 +710,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 
                 // Set the amount and direction
                 self.amountTextField.text = "\(invoiceAmount)"
-                self.swapDirection = 0 // Onchain to Lightning
+                self.swapDirection = .onchainToLightning
                 self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
                 
                 // Create Swap object.
                 self.coreVC!.bittrWallet.ongoingSwap = Swap()
                 self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount = invoiceAmount
-                self.coreVC!.bittrWallet.ongoingSwap!.onchainToLightning = true
+                self.coreVC!.bittrWallet.ongoingSwap!.swapDirection = .onchainToLightning
                 
                 // Start the swap process
                 Task {
@@ -749,13 +736,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         print("DEBUG - handlePendingOnchainPayment called. pendingOnchainAddress: \(self.pendingOnchainAddress), pendingOnchainAmount: \(self.pendingOnchainAmount)")
         // Set the amount and direction for Lightning to onchain swap
         self.amountTextField.text = "\(self.pendingOnchainAmount)"
-        self.swapDirection = 1 // Lightning to onchain
+        self.swapDirection = .lightningToOnchain
         self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
         
         // Create Swap object.
         self.coreVC!.bittrWallet.ongoingSwap = Swap()
         self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount = self.pendingOnchainAmount
-        self.coreVC!.bittrWallet.ongoingSwap!.onchainToLightning = false
+        self.coreVC!.bittrWallet.ongoingSwap!.swapDirection = .lightningToOnchain
         
         // Start the swap process
         Task {
@@ -846,7 +833,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             
             switch swapStatus {
             case "swap.created":
-                if self.swapDirection == 0 {
+                if self.swapDirection == .onchainToLightning {
                     answer = Language.getWord(withID: "swapquestionswapcreated0")
                 } else {
                     answer = Language.getWord(withID: "swapquestionswapcreated1")
@@ -854,13 +841,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             case "invoice.set":
                 answer = Language.getWord(withID: "swapquestionswapcreated0")
             case "transaction.mempool":
-                if self.swapDirection == 0 {
+                if self.swapDirection == .onchainToLightning {
                     answer = Language.getWord(withID: "swapquestiontransactionmempool0")
                 } else {
                     answer = Language.getWord(withID: "swapquestioncomplete1")
                 }
             case "transaction.confirmed":
-                if self.swapDirection == 0 {
+                if self.swapDirection == .onchainToLightning {
                     answer = Language.getWord(withID: "swapquestiontransactionconfirmed0")
                 } else {
                     answer = Language.getWord(withID: "swapquestioncomplete1")
@@ -876,13 +863,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             case "transaction.claimed":
                 answer = Language.getWord(withID: "swapquestioncomplete0")
             case "swap.expired":
-                if self.swapDirection == 0 {
+                if self.swapDirection == .onchainToLightning {
                     answer = Language.getWord(withID: "swapquestionexpired0")
                 } else {
                     answer = Language.getWord(withID: "swapquestionexpired1")
                 }
             case "transaction.lockupFailed":
-                if self.swapDirection == 0 {
+                if self.swapDirection == .onchainToLightning {
                     answer = Language.getWord(withID: "swapquestionexpired0")
                 } else {
                     answer = Language.getWord(withID: "swapquestionexpired1")

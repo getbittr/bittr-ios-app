@@ -10,7 +10,7 @@ import UIKit
 class Swap: NSObject {
 
     var dateID = ""
-    var onchainToLightning = true
+    var swapDirection:SwapDirection = .onchainToLightning
     var satoshisAmount:Int = 0
     var createdInvoice:String?
     var privateKey:String?

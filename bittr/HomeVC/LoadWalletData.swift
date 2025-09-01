@@ -830,11 +830,11 @@ extension [Transaction] {
                     swapTransaction.sent = (eachSetOfTransactions as! [Transaction])[0].received + (eachSetOfTransactions as! [Transaction])[1].received - (eachSetOfTransactions as! [Transaction])[0].sent - (eachSetOfTransactions as! [Transaction])[1].sent
                     
                     if (eachSwapID as! String).contains("onchain to lightning") {
-                        swapTransaction.swapDirection = 0
+                        swapTransaction.swapDirection = .onchainToLightning
                         swapTransaction.isLightning = false
                         swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap onchain to lightning ", with: "")
                     } else {
-                        swapTransaction.swapDirection = 1
+                        swapTransaction.swapDirection = .lightningToOnchain
                         swapTransaction.isLightning = true
                         swapTransaction.id = (eachSwapID as! String).replacingOccurrences(of: "Swap lightning to onchain ", with: "")
                     }
@@ -844,7 +844,7 @@ extension [Transaction] {
                             // Lightning payment
                             swapTransaction.lightningID = eachTransaction.id
                             swapTransaction.channelId = eachTransaction.channelId
-                            if swapTransaction.swapDirection == 0 {
+                            if swapTransaction.swapDirection == .onchainToLightning {
                                 // Onchain to Lightning
                                 swapTransaction.timestamp = eachTransaction.timestamp
                                 swapTransaction.received = eachTransaction.received
@@ -858,7 +858,7 @@ extension [Transaction] {
                             if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
                                 swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
                             }
-                            if swapTransaction.swapDirection == 1 {
+                            if swapTransaction.swapDirection == .lightningToOnchain {
                                 // Lightning to Onchain
                                 swapTransaction.timestamp = eachTransaction.timestamp
                                 swapTransaction.received = eachTransaction.received - eachTransaction.sent

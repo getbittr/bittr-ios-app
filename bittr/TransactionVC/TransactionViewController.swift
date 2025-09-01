@@ -274,7 +274,7 @@ class TransactionViewController: UIViewController {
             self.amountTitle.text = Language.getWord(withID: "moved")
             if self.tappedTransaction.swapHasSucceeded {
                 self.amountLabel.text = "\(String(tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
-            } else if self.tappedTransaction.swapDirection == 0 {
+            } else if self.tappedTransaction.swapDirection == .onchainToLightning {
                 // Normal swap has failed.
                 self.amountLabel.text = "0 sats"
                 self.lightningIDTitle.text = Language.getWord(withID: "refundid")
@@ -287,7 +287,7 @@ class TransactionViewController: UIViewController {
             // Direction
             self.typeTitle.text = Language.getWord(withID: "from")
             self.boltImage.alpha = 0
-            if tappedTransaction.swapDirection == 0 {
+            if tappedTransaction.swapDirection == .onchainToLightning {
                 self.typeLabel.text = Language.getWord(withID: "onchaintolightning")
             } else {
                 self.typeLabel.text = Language.getWord(withID: "lightningtoonchain")
@@ -348,9 +348,9 @@ class TransactionViewController: UIViewController {
             
             // Swap direction
             if self.tappedTransaction.lnDescription.contains("onchain to lightning") {
-                self.tappedTransaction.swapDirection = 0
+                self.tappedTransaction.swapDirection = .onchainToLightning
             } else {
-                self.tappedTransaction.swapDirection = 1
+                self.tappedTransaction.swapDirection = .lightningToOnchain
             }
         }
         
@@ -446,10 +446,7 @@ class TransactionViewController: UIViewController {
                     tappedSwap.onchainFees = 0
                     tappedSwap.lightningFees = self.tappedTransaction.fee
                 }
-                tappedSwap.onchainToLightning = true
-                if self.tappedTransaction.swapDirection == 1 {
-                    tappedSwap.onchainToLightning = false
-                }
+                tappedSwap.swapDirection = self.tappedTransaction.swapDirection
                 swapVC.tappedSwapTransaction = tappedSwap
             }
         }

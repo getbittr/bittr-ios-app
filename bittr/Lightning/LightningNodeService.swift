@@ -319,7 +319,7 @@ class LightningNodeService {
                 for (index, eachPayment) in payments.enumerated().reversed() {
                     switch eachPayment.kind {
                     case .onchain(txid: _, status: _): payments.remove(at: index)
-                    default: print("Lightning payment.")
+                    default: break
                     }
                 }
                 
