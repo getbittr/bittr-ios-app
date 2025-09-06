@@ -211,16 +211,18 @@ extension HomeViewController {
             }
         }
         
-        print("TxIds being sent to Bittr: \(newTxIds.count)")
-        
         if newTxIds.count == 0 {
             // No new txIDs need to be checked with the Bittr API.
+            print("There are no new TxIds being sent to Bittr.")
             return false
         } else if depositCodes.count == 0 {
             // There are no deposit codes registered to this device.
+            print("No TxIds are being sent to Bittr, because there are no deposit codes registered to this device.")
             return false
         } else {
             // Some new txIDs need to be checked with the Bittr API.
+            print("Will send \(newTxIds.count) TxIds to Bittr.")
+            
             do {
                 let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
                 print("Bittr transactions: \(bittrApiTransactions.count)")
@@ -677,10 +679,8 @@ extension PaymentKind {
             return preimage
         case .spontaneous(_, let preimage):
             return preimage
-        //case .bolt12Offer(hash: _, let preimage, secret: _, offerId: _):
         case .bolt12Offer(hash: _, preimage: let preimage, secret: _, offerId: _, payerNote: _, quantity: _):
             return preimage
-        //case .bolt12Refund(hash: _, let preimage, secret: _):
         case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
             return preimage
         }

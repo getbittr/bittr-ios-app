@@ -392,8 +392,16 @@ class Language: NSObject {
             "downloadswapfile": "Download details",
             "instantpayments": "Instant payments",
             "refundid": "Refund ID",
+            "lightningid": "Lightning ID",
+            "onchainid": "Onchain ID",
             "moved": "Moved",
-            "from": "From"
+            "from": "From",
+            "swapstatus": "Swap status",
+            "swapsucceeded": "Complete",
+            "swappending": "Pending",
+            "swapfailed": "Failed and refunded",
+            "expecting": "Expecting",
+            "note": "Note"
         ]
         
         if let foundWord = allWords[withID] {
