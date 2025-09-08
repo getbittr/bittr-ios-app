@@ -380,7 +380,7 @@ class LightningNodeService {
         )
     }
     
-    func lightSync(force:Bool, completion: @escaping (Bool) -> Void) {
+    func lightSync(completion: @escaping (Bool) -> Void) {
         
         DispatchQueue.global(qos: .background).async {
             do {
@@ -395,12 +395,15 @@ class LightningNodeService {
                 try self.bdkWallet!.applyUpdate(update: update)
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
                 
-                if force || self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) {
+                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) || (self.coreVC!.bittrWallet.transactionsOnchain?.count ?? 0) != self.bdkWallet!.transactions().count {
                     
                     self.coreVC!.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
                     self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
                     self.coreVC!.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
                         return tx1.chainPosition.isBefore(tx2.chainPosition)
+                    }
+                    Task {
+                        self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
                     }
                     
                     DispatchQueue.main.async {
