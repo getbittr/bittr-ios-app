@@ -114,9 +114,9 @@ class MoveViewController: UIViewController {
         let correctBtcBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain) * 0.00000001
         let correctBtclnBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisLightning) * 0.00000001
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
-        let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded()))
-        let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded()))
+        let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
+        let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
+        let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         
         // Show balance values.
         self.satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"

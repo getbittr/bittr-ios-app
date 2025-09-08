@@ -319,7 +319,7 @@ class LightningNodeService {
                 for (index, eachPayment) in payments.enumerated().reversed() {
                     switch eachPayment.kind {
                     case .onchain(txid: _, status: _): payments.remove(at: index)
-                    default: print("Lightning payment.")
+                    default: break
                     }
                 }
                 
@@ -380,7 +380,7 @@ class LightningNodeService {
         )
     }
     
-    func lightSync() {
+    func lightSync(completion: @escaping (Bool) -> Void) {
         
         DispatchQueue.global(qos: .background).async {
             do {
@@ -395,21 +395,28 @@ class LightningNodeService {
                 try self.bdkWallet!.applyUpdate(update: update)
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) {
+                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) || (self.coreVC!.bittrWallet.transactionsOnchain?.count ?? 0) != self.bdkWallet!.transactions().count {
                     
                     self.coreVC!.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
                     self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
                     self.coreVC!.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
                         return tx1.chainPosition.isBefore(tx2.chainPosition)
                     }
+                    Task {
+                        self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
+                    }
                     
                     DispatchQueue.main.async {
                         self.coreVC!.homeVC!.loadWalletData()
                         self.coreVC!.homeVC!.moveVC?.updateLabels()
+                        completion(true)
                     }
+                } else {
+                    DispatchQueue.main.async { completion(false) }
                 }
             } catch {
                 print("Error completing light sync: \(error.localizedDescription)")
+                DispatchQueue.main.async { completion(false) }
             }
         }
     }

@@ -47,6 +47,7 @@
 		0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2722A0531470007891F /* ReceiveViewController.swift */; };
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
+		057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
 		058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */; };
 		058FA76D2E5EAB26001A68DA /* BackgroundSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */; };
@@ -214,6 +215,7 @@
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapVCLanguage.swift; sourceTree = "<group>"; };
 		058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCollectionViewCell.swift; sourceTree = "<group>"; };
 		058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSync.swift; sourceTree = "<group>"; };
 		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
@@ -472,6 +474,7 @@
 				37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */,
 				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
 				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
+				057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */,
 			);
 			path = Swaps;
 			sourceTree = "<group>";
@@ -962,6 +965,7 @@
 				055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
+				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,

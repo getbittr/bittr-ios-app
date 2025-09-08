@@ -27,9 +27,21 @@ class Transaction: NSObject {
     
     // Swaps
     var isSwap = false
-    var swapDirection = 0
+    var swapStatus:SwapStatus = .succeeded
+    var swapDirection:SwapDirection = .onchainToLightning
     var onchainID = ""
     var lightningID = ""
     var boltzSwapId = ""
     
+}
+
+enum SwapDirection {
+    case onchainToLightning
+    case lightningToOnchain
+}
+
+enum SwapStatus {
+    case pending
+    case succeeded
+    case failed
 }

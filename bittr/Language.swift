@@ -390,7 +390,18 @@ class Language: NSObject {
             "swapquestionexpired1": "The swap of your funds from lightning to onchain was not completed in time. If any funds were sent, they will be refunded into your lightning channel.",
             "swapquestiongeneric": "We're checking the current status of your swap.",
             "downloadswapfile": "Download details",
-            "instantpayments": "Instant payments"
+            "instantpayments": "Instant payments",
+            "refundid": "Refund ID",
+            "lightningid": "Lightning ID",
+            "onchainid": "Onchain ID",
+            "moved": "Moved",
+            "from": "From",
+            "swapstatus": "Swap status",
+            "swapsucceeded": "Complete",
+            "swappending": "Pending",
+            "swapfailed": "Failed and refunded",
+            "expecting": "Expecting",
+            "note": "Note"
         ]
         
         if let foundWord = allWords[withID] {

@@ -355,11 +355,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         LightningNodeService.shared.walletReset()
     }
     
-    func addTransaction(_ thisTransaction:Transaction) {
+    func addLightningTransaction(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
         // Add new transaction.
         self.setTransactions += [thisTransaction]
-        self.setTransactions = self.setTransactions.performSwapMatching(coreVC: self.coreVC!, storeInCache: false)
+        self.setTransactions = self.setTransactions.performSwapMatching(coreVC: self.coreVC!)
         
         // Sort transactions array.
         self.setTransactions.sort { transaction1, transaction2 in
@@ -370,33 +370,19 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.noTransactionsLabel.alpha = 0
         
-        // Update balance.
-        if thisTransaction.isLightning {
-            self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
-        } else {
-            self.coreVC!.bittrWallet.satoshisOnchain += (thisTransaction.received - thisTransaction.sent)
+        // Update balance and transactions.
+        self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+        if paymentDetails != nil {
+            if self.coreVC!.bittrWallet.transactionsLightning != nil {
+                self.coreVC!.bittrWallet.transactionsLightning! += [paymentDetails!]
+            } else {
+                self.coreVC!.bittrWallet.transactionsLightning = [paymentDetails!]
+            }
         }
         
         // Update balance label.
         self.setTotalSats(updateTableAfterConversion: false)
         self.moveVC?.updateLabels()
-    }
-    
-    func performSwapMatching() {
-        // Manual swap matching for lightning-to-onchain swaps
-        print("Performing manual swap matching...")
-        
-        // Look for lightning and onchain transactions with matching swap descriptions
-        self.setTransactions = self.setTransactions.performSwapMatching(coreVC: self.coreVC, storeInCache: false)
-        
-        // Sort and reload table
-        self.setTransactions.sort { transaction1, transaction2 in
-            transaction1.timestamp > transaction2.timestamp
-        }
-        self.homeTableView.reloadData()
-        
-        // Store transactions in cache.
-        CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

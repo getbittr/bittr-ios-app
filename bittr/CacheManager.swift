@@ -242,10 +242,21 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
             oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
             oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
+            var swapStatus = ""
+            switch eachTransaction.swapStatus {
+            case .pending: swapStatus = "pending"
+            case .succeeded: swapStatus = "succeeded"
+            case .failed: swapStatus = "failed"
+            }
+            oneTransaction.setObject(swapStatus, forKey: "swapstatus" as NSCopying)
             oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
             oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
             oneTransaction.setObject(eachTransaction.boltzSwapId, forKey: "boltzSwapId" as NSCopying)
-            oneTransaction.setObject(eachTransaction.swapDirection, forKey: "swapdirection" as NSCopying)
+            if eachTransaction.swapDirection == .onchainToLightning {
+                oneTransaction.setObject(0, forKey: "swapdirection" as NSCopying)
+            } else {
+                oneTransaction.setObject(1, forKey: "swapdirection" as NSCopying)
+            }
             oneTransaction.setObject(eachTransaction.confirmations, forKey: "confirmations" as NSCopying)
             
             transactionsDict += [oneTransaction]
@@ -303,6 +314,11 @@ class CacheManager: NSObject {
             if let isSwap = eachTransaction["isswap"] as? Bool {
                 thisTransaction.isSwap = isSwap
             }
+            if let swapStatus = eachTransaction["swapstatus"] as? String {
+                if swapStatus == "pending" { thisTransaction.swapStatus = .pending } else
+                if swapStatus == "failed" { thisTransaction.swapStatus = .failed } else
+                { thisTransaction.swapStatus = .succeeded }
+            }
             if let onchainID = eachTransaction["onchainid"] as? String {
                 thisTransaction.onchainID = onchainID
             }
@@ -313,7 +329,11 @@ class CacheManager: NSObject {
                 thisTransaction.boltzSwapId = boltzSwapId
             }
             if let swapDirection = eachTransaction["swapdirection"] as? Int {
-                thisTransaction.swapDirection = swapDirection
+                if swapDirection == 0 {
+                    thisTransaction.swapDirection = .onchainToLightning
+                } else {
+                    thisTransaction.swapDirection = .lightningToOnchain
+                }
             }
             if let confirmations = eachTransaction["confirmations"] as? Int {
                 thisTransaction.confirmations = confirmations
@@ -962,7 +982,9 @@ class CacheManager: NSObject {
     
     static func swapToDictionary(_ thisSwap:Swap) -> NSDictionary {
         
-        let swapDictionary:NSMutableDictionary = ["dateID":thisSwap.dateID, "onchainToLightning":thisSwap.onchainToLightning, "satoshisAmount":thisSwap.satoshisAmount]
+        var onchainToLightning = true
+        if thisSwap.swapDirection == .lightningToOnchain { onchainToLightning = false }
+        let swapDictionary:NSMutableDictionary = ["dateID":thisSwap.dateID, "onchainToLightning":onchainToLightning, "satoshisAmount":thisSwap.satoshisAmount]
         if thisSwap.createdInvoice != nil {
             swapDictionary.setValue(thisSwap.createdInvoice!, forKey: "createdInvoice")
         }
@@ -1043,7 +1065,10 @@ class CacheManager: NSObject {
             thisSwap.dateID = dateID
         }
         if let onchainToLightning = dictionary["onchainToLightning"] as? Bool {
-            thisSwap.onchainToLightning = onchainToLightning
+            thisSwap.swapDirection = .onchainToLightning
+            if !onchainToLightning {
+                thisSwap.swapDirection = .lightningToOnchain
+            }
         }
         if let satoshisAmount = dictionary["satoshisAmount"] as? Int {
             thisSwap.satoshisAmount = satoshisAmount

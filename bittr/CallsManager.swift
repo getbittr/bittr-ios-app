@@ -42,7 +42,7 @@ class CallsManager: NSObject {
                     return
                 }
                 
-                print("Data received: \(String(data:data, encoding:.utf8)!)")
+                print("Received data.")
                 
                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
                     do {
