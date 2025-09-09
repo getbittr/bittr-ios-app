@@ -14,7 +14,7 @@ extension SendViewController {
         self.amountTextField.text = nil
     }
     
-    func hideScannerView(forView:String) {
+    func hideScannerView(forView:OnchainOrLightning) {
         
         if let actualCaptureSession = captureSession {
             actualCaptureSession.stopRunning()
@@ -31,7 +31,7 @@ extension SendViewController {
         self.setSendAllLabel(forView: forView)
         self.availableAmount.alpha = 1
         
-        if forView == "onchain" {
+        if forView == .onchain {
             self.toLabel.text = Language.getWord(withID: "addressandamount")
             self.toTextField.placeholder = Language.getWord(withID: "enteraddress")
         } else {
@@ -43,7 +43,7 @@ extension SendViewController {
         var leadingConstant:CGFloat = -15
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            if forView == "onchain" {
+            if forView == .onchain {
                 self.availableAmountCenterX.constant = 0
                 self.questionCircle.alpha = 0
                 self.labelRegularLeading.constant = 20

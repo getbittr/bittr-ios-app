@@ -139,7 +139,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var maximumSendableLNSats:Int?
     var maximumSendableOnchainBtc:Double?
     var selectedCurrency = "bitcoin"
-    var onchainOrLightning = "onchain"
+    var onchainOrLightning:OnchainOrLightning = .onchain
     var completedTransaction:Transaction?
     var onchainAmountInSatoshis:Int = 0
     var onchainAmountInBTC:CGFloat = 0.0
@@ -224,7 +224,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         // Set colors and language
         self.changeColors()
         self.setWords()
-        self.setSendAllLabel(forView: "onchain")
+        self.setSendAllLabel(forView: .onchain)
     }
     
     func setShadows(forView:UIView) {
@@ -234,9 +234,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         forView.layer.shadowOpacity = 0.1
     }
     
-    func setSendAllLabel(forView:String) {
+    func setSendAllLabel(forView:OnchainOrLightning) {
         
-        if forView == "onchain" {
+        if forView == .onchain {
             // Set "Send all" for onchain transactions.
             if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
                 let formattedAmount = formatBitcoinAmount(actualMaximumSendableOnchainBtc)
@@ -431,7 +431,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
         
-        if self.onchainOrLightning == "onchain" {
+        if self.onchainOrLightning == .onchain {
             // Regular
             let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
             self.amountTextField.text = formattedAmount
@@ -478,10 +478,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "onchain" {
+        if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == .onchain {
             // Check onchain transaction.
             self.checkSendOnchain()
-        } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == "lightning" {
+        } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == .lightning {
             // Confirm lightning payment.
             
             // Check if address/invoice field is empty
@@ -525,12 +525,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.selectedCurrency = "satoshis"
                 self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
             }
-        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "onchain" {
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == .onchain {
             // Hide QR scanner, show onchain.
-            self.hideScannerView(forView: "onchain")
-        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == "lightning" {
+            self.hideScannerView(forView: .onchain)
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == .lightning {
             // Hide QR scanner, show lightning.
-            self.hideScannerView(forView: "lightning")
+            self.hideScannerView(forView: .lightning)
         }
     }
     
@@ -577,7 +577,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
         
         // Switch view.
-        self.onchainOrLightning = sender.accessibilityIdentifier ?? self.onchainOrLightning
+        if sender.accessibilityIdentifier != nil {
+            if sender.accessibilityIdentifier! == "onchain" {
+                self.onchainOrLightning = .onchain
+            } else {
+                self.onchainOrLightning = .lightning
+            }
+        }
         self.hideScannerView(forView: self.onchainOrLightning)
     }
     
@@ -649,4 +655,9 @@ extension String {
     func fixDecimals() -> String {
         return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }
+}
+
+enum OnchainOrLightning {
+    case onchain
+    case lightning
 }

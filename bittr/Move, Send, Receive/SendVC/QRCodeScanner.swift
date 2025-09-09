@@ -103,15 +103,15 @@ extension SendViewController {
         
         print("Code: " + code)
         
-        var addressType = "onchain"
+        var addressType:OnchainOrLightning = .onchain
         
         // Check bitcoin or lightning in code to switch view if needed.
         if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
             // This is a Bitcoin QR.
-            addressType = "lightning"
+            addressType = .lightning
         } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
             // This is a Lightning invoice.
-            addressType = "lightning"
+            addressType = .lightning
         } else {
             // Unsure about the code.
             addressType = self.onchainOrLightning
@@ -163,14 +163,13 @@ extension SendViewController {
                                 self.amountTextField.text = "\(invoiceAmount)"
                                 self.btcLabel.text = "Sats"
                                 self.selectedCurrency = "satoshis"
-                                addressType = "lightning"
-                                //self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                                addressType = .lightning
                             }
                         } else {
                             // Zero invoice.
                             self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
                             self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
-                            addressType = "lightning"
+                            addressType = .lightning
                         }
                     }
                 }
