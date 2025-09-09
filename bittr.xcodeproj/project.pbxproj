@@ -26,6 +26,7 @@
 		052A2A842A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */; };
 		052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052DC6922AA853B700CD59B0 /* Transaction.swift */; };
 		052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052EC7472D63254B00170FE4 /* WebSocketManager.swift */; };
+		053021AC2E7017A400B23226 /* CoreVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AB2E7017A000B23226 /* CoreVCLanguage.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		053190E429FD659B0072CE76 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
@@ -194,6 +195,7 @@
 		052A2A832A0E604F00DE2FE4 /* ArticleCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleCollectionViewCell.swift; sourceTree = "<group>"; };
 		052DC6922AA853B700CD59B0 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		052EC7472D63254B00170FE4 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
+		053021AB2E7017A000B23226 /* CoreVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreVCLanguage.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
 		053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Regular.ttf"; sourceTree = "<group>"; };
@@ -417,6 +419,7 @@
 			isa = PBXGroup;
 			children = (
 				05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */,
+				053021AB2E7017A000B23226 /* CoreVCLanguage.swift */,
 				05A8BD762B750446002F0282 /* IntroAnimation.swift */,
 				05A8BD792B750567002F0282 /* Navigation.swift */,
 				05A8BD7B2B750838002F0282 /* ShowPin.swift */,
@@ -1001,6 +1004,7 @@
 				059704A72E43515300B56690 /* BitcoinValue.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
+				053021AC2E7017A400B23226 /* CoreVCLanguage.swift in Sources */,
 				05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */,
 				05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */,
 				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,

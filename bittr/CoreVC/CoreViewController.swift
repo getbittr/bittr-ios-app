@@ -196,47 +196,6 @@ class CoreViewController: UIViewController {
         self.hideSyncView()
     }
     
-    @objc func changeColors() {
-        
-        self.view.backgroundColor = Colors.getColor("grey3orblue1")
-        self.leftWhite.backgroundColor = Colors.getColor("grey3orblue1")
-        self.middleWhite.backgroundColor = Colors.getColor("grey3orblue1")
-        self.rightWhite.backgroundColor = Colors.getColor("grey3orblue1")
-        self.fullViewCover.backgroundColor = Colors.getColor("yelloworblue3")
-        
-        self.lowerTopBar.backgroundColor = Colors.getColor("yelloworblue3")
-        self.topBar.backgroundColor = Colors.getColor("transparentyellow")
-        
-        if CacheManager.darkModeIsOn() {
-            // Dark mode is on.
-            self.leftImageUnselected.image = UIImage(named: "buttonpigwhite")
-            self.middleImageUnselected.image = UIImage(named: "buttonmagazinewhite")
-            self.rightImageUnselected.image = UIImage(named: "buttonsettingswhite")
-            self.yellowcurve.image = UIImage(named: "yellowcurvedark")
-            self.lowerYellowcurve.image = UIImage(named: "yellowcurvedark")
-            self.bittrText.image = UIImage(named: "bittrtextwhite")
-            self.finalLogo.image = UIImage(named: "logodarkmode80")
-        } else {
-            // Dark mode is off.
-            self.leftImageUnselected.image = UIImage(named: "buttonpigblack")
-            self.middleImageUnselected.image = UIImage(named: "buttonmagazineblack")
-            self.rightImageUnselected.image = UIImage(named: "buttonsettingsblack")
-            self.lowerYellowcurve.image = UIImage(named: "yellowcurve")
-            self.yellowcurve.image = UIImage(named: "yellowcurve")
-            self.bittrText.image = UIImage(named: "bittrtext")
-            self.finalLogo.image = UIImage(named: "logo80")
-        }
-    }
-    
-    @objc func setWords() {
-        
-        self.statusConversion.text = Language.getWord(withID: "fetchconversionrates")
-        self.statusLightning.text = Language.getWord(withID: "startlightningnode")
-        self.statusBlockchain.text = Language.getWord(withID: "initiatewallet")
-        self.statusSyncing.text = Language.getWord(withID: "syncwallet")
-        self.statusFinal.text = Language.getWord(withID: "finalcalculations")
-    }
-    
     @objc func handleLightningAddressNotification(notification: NSNotification) {
         
         if let userInfo = notification.userInfo as? [String: Any] {
@@ -265,7 +224,7 @@ class CoreViewController: UIViewController {
                 self.wasNotified = true
                 self.lightningNotification = notification
                 
-                self.showAlert(presentingController: self, title: "Payment Request", message: "Someone wants to pay you \(amountMsats/1000) satoshis! Please sign in to accept the payment.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(amountMsats/1000)), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }
@@ -313,7 +272,7 @@ class CoreViewController: UIViewController {
                         case .failure(let error):
                             print("Failed to post invoice to endpoint: \(error)")
                             // Show error message with support contact
-                            self.showAlert(presentingController: self, title: "Payment Request Failed", message: "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 }
@@ -328,7 +287,7 @@ class CoreViewController: UIViewController {
                     self.blackSignupBackground.alpha = 0
                     
                     // Show error message with support contact
-                    self.showAlert(presentingController: self, title: "Payment Request Failed", message: "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }

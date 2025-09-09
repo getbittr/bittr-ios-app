@@ -134,25 +134,23 @@ extension CoreViewController {
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         
-                        DispatchQueue.main.async {
-                            
-                            let receivedTransaction = Transaction()
-                            receivedTransaction.received = Int(amountMsat)/1000
-                            receivedTransaction.sent = 0
-                            receivedTransaction.isLightning = true
-                            receivedTransaction.isBittr = true
-                            receivedTransaction.lnDescription = notificationId
-                            receivedTransaction.timestamp = Int(Date().timeIntervalSince1970)
-                            receivedTransaction.id = payoutResponse.preImage ?? "Unavailable"
-                            
-                            self.receivedBittrTransaction = receivedTransaction
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                             
                             self.pendingSpinner.stopAnimating()
                             self.pendingView.alpha = 0
                             self.blackSignupBackground.alpha = 0
                             
-                            self.addNewTransactionToHomeVC(newTransaction: receivedTransaction, thisPayment: nil)
-                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                                
+                                let receivedTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
+                                receivedTransaction.isBittr = true
+                                receivedTransaction.lnDescription = notificationId
+                                
+                                self.receivedBittrTransaction = receivedTransaction
+                                
+                                self.addNewTransactionToHomeVC(newTransaction: receivedTransaction, thisPayment: paymentDetails)
+                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                            }
                         }
                     } catch {
                         print("Error occurred: \(error.localizedDescription)")

@@ -399,7 +399,11 @@ class Language: NSObject {
             "swappending": "Pending",
             "swapfailed": "Failed and refunded",
             "expecting": "Expecting",
-            "note": "Note"
+            "note": "Note",
+            "paymentrequestfailed": "Payment Request Failed",
+            "paymentrequestfailed2": "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com.",
+            "paymentrequest": "Payment Request",
+            "paymentrequest2": "Someone wants to pay you <amount> satoshis! Please sign in to accept the payment."
         ]
         
         if let foundWord = allWords[withID] {

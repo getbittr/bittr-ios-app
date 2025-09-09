@@ -197,7 +197,6 @@ extension UIViewController {
         
         Task {
             do {
-                
                 let invoice = try await LightningNodeService.shared.receivePayment(
                     amountMsat: UInt64(amount),
                     description: "",
