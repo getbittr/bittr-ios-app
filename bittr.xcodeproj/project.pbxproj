@@ -27,6 +27,7 @@
 		052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052DC6922AA853B700CD59B0 /* Transaction.swift */; };
 		052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052EC7472D63254B00170FE4 /* WebSocketManager.swift */; };
 		053021AC2E7017A400B23226 /* CoreVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AB2E7017A000B23226 /* CoreVCLanguage.swift */; };
+		053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		053190E429FD659B0072CE76 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
@@ -196,6 +197,7 @@
 		052DC6922AA853B700CD59B0 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		052EC7472D63254B00170FE4 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		053021AB2E7017A000B23226 /* CoreVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreVCLanguage.swift; sourceTree = "<group>"; };
+		053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleLightningAddressNotification.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
 		053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Regular.ttf"; sourceTree = "<group>"; };
@@ -426,6 +428,7 @@
 				05A8BD7D2B7509BD002F0282 /* StartLightning.swift */,
 				05A8BD7F2B750A40002F0282 /* HandlePaymentNotification.swift */,
 				05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */,
+				053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */,
 				05A8BD812B750A8F002F0282 /* ResetApp.swift */,
 				05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */,
 				056911102BC3E16800BD047B /* SyncingStatus.swift */,
@@ -992,6 +995,7 @@
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
+				053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */,
 				05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
