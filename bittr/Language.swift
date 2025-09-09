@@ -403,7 +403,9 @@ class Language: NSObject {
             "paymentrequestfailed": "Payment Request Failed",
             "paymentrequestfailed2": "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com.",
             "paymentrequest": "Payment Request",
-            "paymentrequest2": "Someone wants to pay you <amount> satoshis! Please sign in to accept the payment."
+            "paymentrequest2": "Someone wants to pay you <amount> satoshis! Please sign in to accept the payment.",
+            "notification": "Notification",
+            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect."
         ]
         
         if let foundWord = allWords[withID] {

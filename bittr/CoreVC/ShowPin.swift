@@ -32,7 +32,7 @@ extension CoreViewController {
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
             self.didBecomeVisible = true
-            if self.needsToHandleNotification == true {
+            if self.needsToHandleNotification {
                 // A notification will be handled after syncing the wallet.
                 self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
                 self.pendingSpinner.startAnimating()

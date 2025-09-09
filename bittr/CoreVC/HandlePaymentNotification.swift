@@ -23,7 +23,7 @@ extension CoreViewController {
                 
                 CacheManager.storeLatestNotification(specialData: specialData)
                 
-                if self.didBecomeVisible == true {
+                if self.didBecomeVisible {
                     // User has signed in.
                     
                     if self.wasNotified == false {
@@ -52,7 +52,17 @@ extension CoreViewController {
             } else {
                 // No special key, so this is a normal notification.
                 print("No special key found in notification.")
+                self.pendingSpinner.stopAnimating()
+                self.pendingView.alpha = 0
+                self.blackSignupBackground.alpha = 0
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "notification"), message: Language.getWord(withID: "notificationhandlingfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
+        } else {
+            // Hide loading UI
+            self.pendingSpinner.stopAnimating()
+            self.pendingView.alpha = 0
+            self.blackSignupBackground.alpha = 0
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "notification"), message: Language.getWord(withID: "notificationhandlingfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     

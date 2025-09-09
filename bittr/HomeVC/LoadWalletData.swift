@@ -585,13 +585,17 @@ extension HomeViewController {
         if cachedData == false {
             self.headerSpinner.stopAnimating()
             
-            if self.couldNotFetchConversion == true {
+            // Check if conversion rates have been fetched successfully.
+            if self.couldNotFetchConversion {
                 self.headerProblemImage.alpha = 1
             }
             
+            // Stop sync status spinner.
             self.coreVC!.walletHasSynced = true
             self.coreVC!.completeSync(type: "final")
-            if self.coreVC!.needsToHandleNotification == true, let actualNotification = self.coreVC!.lightningNotification {
+            
+            // Check if notification needs handling.
+            if self.coreVC!.needsToHandleNotification, let actualNotification = self.coreVC!.lightningNotification {
                 // Check if it's a swap notification or payment notification
                 if let userInfo = actualNotification.userInfo as? [String: Any],
                    let _ = userInfo["swap_id"] as? String {
@@ -602,10 +606,12 @@ extension HomeViewController {
                     self.coreVC!.handlePaymentNotification(notification: actualNotification)
                 }
             }
+            
+            // Check if peer connection has been successful.
             self.fetchAndPrintPeers()
             
+            // Check if wallet is being removed from device.
             if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
-                
                 // We're removing the wallet from the device.
                 let restoreButton = UIButton()
                 restoreButton.accessibilityIdentifier = "restore"
