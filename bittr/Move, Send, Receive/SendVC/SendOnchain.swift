@@ -134,14 +134,14 @@ extension SendViewController {
                                 self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
                                 self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
                                 self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
-                                self.selectedFee = "low"
+                                self.selectedFee = .low
                             } else {
                                 self.slowTimeLabel.text = "1 day"
                                 
                                 self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
                                 self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
                                 self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-                                self.selectedFee = "medium"
+                                self.selectedFee = .medium
                             }
                             
                             self.satsFast.text = "\(Int(self.feeHigh*Float(size))) sats"
@@ -198,59 +198,49 @@ extension SendViewController {
     }
     
     
-    func switchFeeSelection(tappedFee:String) {
+    func switchFeeSelection(tappedFee:SelectedFee) {
         // Switch selected fee rate.
         
         let availableBalance:Int = self.coreVC!.bittrWallet.satoshisOnchain
         
         switch tappedFee {
-        case "fast":
+        case .high:
             let feeInSats = Int(self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")))
             self.selectedFeeInSats = feeInSats
             
-            if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
+            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = Colors.getColor("whiteorblue3")
                 self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
                 self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-                self.selectedFee = "high"
+                self.selectedFee = .high
                 
                 if self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                     
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
-        case "medium":
+        case .medium:
             let feeInSats = Int(self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")))
             self.selectedFeeInSats = feeInSats
             
-            if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
+            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
                 self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
                 self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
                 self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-                self.selectedFee = "medium"
+                self.selectedFee = .medium
                 
                 if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                     
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
-        case "slow":
+        case .low:
             self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
             self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
             self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
-            self.selectedFee = "low"
+            self.selectedFee = .low
             
             if self.stringToNumber(self.satsSlow.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
-                
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            }
-        default:
-            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-            self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
-            self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-            self.selectedFee = "medium"
-            
-            if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
                 
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
@@ -258,7 +248,7 @@ extension SendViewController {
     }
     
     
-    func checkFeeAvailability(tappedFee:String, feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
+    func checkFeeAvailability(feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
         
         if feeInSats + actualAmount > availableBalance {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: "\(Language.getWord(withID: "youravailablebalance")) (\(availableBalance) sats) \(Language.getWord(withID: "isinsufficient")).", buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
@@ -277,18 +267,14 @@ extension SendViewController {
         self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
         self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
         
-        var thisSelectedFee = self.selectedFee
-        if thisSelectedFee == "high" {
-            thisSelectedFee = "fast"
-        }
-        self.switchFeeSelection(tappedFee:thisSelectedFee)
+        self.switchFeeSelection(tappedFee:self.selectedFee)
     }
     
     func confirmSendOnchain() {
         // Send onchain transaction.
         // Check whether selected fee is appropriate.
         
-        if self.slowTimeLabel.text == "Slow" && self.selectedFee == "low" {
+        if self.slowTimeLabel.text == "Slow" && self.selectedFee == .low {
             // Selected fee is very low.
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [Language.getWord(withID: "changefee"), Language.getWord(withID: "continue")], actions: [nil, #selector(self.proceedWithOnchainConfirmation)])
         } else {
@@ -300,9 +286,9 @@ extension SendViewController {
         self.hideAlert()
         
         var feeSatoshis = (self.satsMedium.text ?? "no").replacingOccurrences(of: " sats", with: "")
-        if self.selectedFee == "low" {
+        if self.selectedFee == .low {
             feeSatoshis = (self.satsSlow.text ?? "no").replacingOccurrences(of: " sats", with: "")
-        } else if self.selectedFee == "high" {
+        } else if self.selectedFee == .high {
             feeSatoshis = (self.satsFast.text ?? "no").replacingOccurrences(of: " sats", with: "")
         }
         
@@ -322,9 +308,9 @@ extension SendViewController {
             Task {
                 do {
                     var selectedVbyte:Float = self.feeMedium
-                    if self.selectedFee == "low" {
+                    if self.selectedFee == .low {
                         selectedVbyte = self.feeLow
-                    } else if self.selectedFee == "high" {
+                    } else if self.selectedFee == .high {
                         selectedVbyte = self.feeHigh
                     }
                     let tx = try self.getTx(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet, selectedVbyte: selectedVbyte)

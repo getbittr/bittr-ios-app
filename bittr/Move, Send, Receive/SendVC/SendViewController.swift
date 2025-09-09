@@ -156,7 +156,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var feeLow:Float = 0.0
     var feeMedium:Float = 0.0
     var feeHigh:Float = 0.0
-    var selectedFee = "medium"
+    var selectedFee:SelectedFee = .medium
     var selectedFeeInSats = 0
     
     override func viewDidLoad() {
@@ -588,7 +588,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     @IBAction func feeButtonTapped(_ sender: UIButton) {
-        self.switchFeeSelection(tappedFee: sender.accessibilityIdentifier!)
+        if sender.accessibilityIdentifier! == "high" {
+            self.switchFeeSelection(tappedFee: .high)
+        } else if sender.accessibilityIdentifier! == "medium" {
+            self.switchFeeSelection(tappedFee: .medium)
+        } else {
+            self.switchFeeSelection(tappedFee: .low)
+        }
     }
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
@@ -662,4 +668,10 @@ enum SelectedCurrency {
     case bitcoin
     case satoshis
     case currency
+}
+
+enum SelectedFee {
+    case low
+    case medium
+    case high
 }
