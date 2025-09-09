@@ -45,10 +45,10 @@ extension UIViewController {
                         let convertedValue = String(CGFloat(Int(transactionValue*bitcoinValue.currentValue*100))/100)
                         
                         // Check if we have sufficient Lightning balance
-                        let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
+                        var availableLightningBalance = (sendVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? receiveVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                         if invoiceAmount > availableLightningBalance {
                             // Check if we have sufficient onchain balance for a swap
-                            let availableOnchainBalance = sendVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
+                            let availableOnchainBalance = sendVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
                             if availableOnchainBalance >= invoiceAmount {
                                 // Suggest swap to Lightning
                                 self.showAlert(
@@ -88,10 +88,10 @@ extension UIViewController {
                             let convertedValue = String(CGFloat(Int(transactionValue*bitcoinValue.currentValue*100))/100)
                             
                             // Check if we have sufficient Lightning balance
-                            let availableLightningBalance = sendVC?.maximumSendableLNSats ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
+                            let availableLightningBalance = (sendVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? receiveVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                             if invoiceAmount > availableLightningBalance {
                                 // Check if we have sufficient onchain balance for a swap
-                                let availableOnchainBalance = sendVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
+                                let availableOnchainBalance = sendVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
                                 if availableOnchainBalance >= invoiceAmount {
                                     // Suggest swap to Lightning
                                     self.showAlert(
@@ -241,7 +241,7 @@ extension UIViewController {
         let receiveVC = self as? ReceiveViewController
         
         // Navigate to swap screen with the pending invoice using existing segue pattern
-        if let homeVC = sendVC?.homeVC ?? receiveVC?.homeVC {
+        if let homeVC = sendVC?.coreVC?.homeVC ?? receiveVC?.homeVC {
             // Store the pending invoice in a way that can be accessed by the swap screen
             let pendingInvoice = sendVC?.pendingLightningInvoice ?? receiveVC?.pendingLightningInvoice ?? ""
             
@@ -284,7 +284,7 @@ extension UIViewController {
                 sendVC.temporaryInvoiceNote = nil
             }
             sendVC.completedTransaction = newTransaction
-            sendVC.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
+            sendVC.coreVC?.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
             sendVC.performSegue(withIdentifier: "SendToTransaction", sender: self)
         } else if let receiveVC = delegate as? ReceiveViewController {
             if receiveVC.temporaryInvoiceNote != nil {

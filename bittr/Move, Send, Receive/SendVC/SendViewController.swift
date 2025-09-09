@@ -135,22 +135,24 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     // Variables
     var coreVC:CoreViewController?
-    var homeVC:HomeViewController?
-    var maximumSendableLNSats:Int?
     var maximumSendableOnchainBtc:Double?
-    var selectedCurrency:SelectedCurrency = .bitcoin
-    var onchainOrLightning:OnchainOrLightning = .onchain
     var completedTransaction:Transaction?
     var onchainAmountInSatoshis:Int = 0
     var onchainAmountInBTC:CGFloat = 0.0
     var newTxId = ""
     var bitcoinQR = ""
+    var pendingLightningInvoice = ""
+    var pendingOnchainAddress = ""
+    
+    // User selected variables
+    var selectedCurrency:SelectedCurrency = .bitcoin
+    var onchainOrLightning:OnchainOrLightning = .onchain
+    
+    // Temporary invoice variables
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
     var temporaryInvoiceNote:String?
     var temporaryIsZeroAmountInvoice = false
-    var pendingLightningInvoice = ""
-    var pendingOnchainAddress = ""
     
     // Fees
     var feeLow:Float = 0.0
@@ -238,21 +240,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if forView == .onchain {
             // Set "Send all" for onchain transactions.
-            if let actualMaximumSendableOnchainBtc = self.maximumSendableOnchainBtc {
-                let formattedAmount = formatBitcoinAmount(actualMaximumSendableOnchainBtc)
-                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(formattedAmount) BTC"
-            } else {
-                self.maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? 0
-                let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
-                self.availableAmount.text = "\(Language.getWord(withID:"sendall")) \(formattedAmount) BTC"
+            if self.maximumSendableOnchainBtc == nil {
+                self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? 0
             }
+            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
+            self.availableAmount.text = Language.getWord(withID:"sendall").replacingOccurrences(of: "<amount>", with: formattedAmount)
         } else {
             // Set "Send all" for lightning payments.
-            if let actualMaxAmount = self.maximumSendableLNSats {
-                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) \(String(actualMaxAmount).addSpaces()) satoshis."
-            } else {
-                self.availableAmount.text = "\(Language.getWord(withID:"youcansend")) 0 satoshis."
-            }
+            self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: String((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000).addSpaces())
         }
     }
     
@@ -426,8 +421,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.btcLabel.text = currency
         self.selectedCurrency = .currency
     }
-    
-
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
         

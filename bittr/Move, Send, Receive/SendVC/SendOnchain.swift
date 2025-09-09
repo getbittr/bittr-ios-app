@@ -56,14 +56,14 @@ extension SendViewController {
                 
             } else if self.onchainAmountInBTC > CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 {
                 // Check if we have sufficient Lightning balance for a swap
-                let availableLightningBalance = self.maximumSendableLNSats ?? self.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
+                let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                 
                 print("DEBUG - Onchain payment validation:")
                 print("  - onchainAmountInBTC: \(self.onchainAmountInBTC)")
                 print("  - btcAmount: \(CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)")
                 print("  - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
-                print("  - maximumSendableLNSats: \(self.maximumSendableLNSats ?? -1)")
-                print("  - satoshisLightning: \(self.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? -1)")
+                print("  - maximumSendableLNSats: \((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000)")
+                print("  - satoshisLightning: \(self.coreVC?.bittrWallet.satoshisLightning ?? -1)")
                 print("  - availableLightningBalance: \(availableLightningBalance)")
                 print("  - Is Lightning balance sufficient? \(availableLightningBalance >= self.onchainAmountInSatoshis)")
                 
@@ -365,7 +365,7 @@ extension SendViewController {
         }
     }
     
-    func getMaximumSendableSats() -> Double? {
+    func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
         
         if let actualWallet = LightningNodeService.shared.getWallet() {
             do {
@@ -373,8 +373,7 @@ extension SendViewController {
                 let bdkNetwork = EnvironmentConfig.bitcoinDevKitNetwork
                 let address = try Address(address: actualAddress, network: bdkNetwork)
                 let script = address.scriptPubkey()
-                let actualAmount:Int = Int(actualWallet.balance().trustedSpendable.toSat())
-                let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(actualAmount)))
+                let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(coreVC.bittrWallet.satoshisOnchain)))
                 let details = try txBuilder.finish(wallet: actualWallet)
                 let _ = try actualWallet.sign(psbt: details, signOptions: nil)
                 
@@ -414,7 +413,7 @@ extension SendViewController {
         print("DEBUG - pendingOnchainAddress: \(self.pendingOnchainAddress)")
         print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
         // Navigate to swap screen with the pending address using existing segue pattern
-        if let homeVC = self.homeVC {
+        if let homeVC = self.coreVC?.homeVC {
             // Store the pending address in a way that can be accessed by the swap screen
             let pendingAddress = self.pendingOnchainAddress
             let pendingAmount = self.onchainAmountInSatoshis

@@ -24,7 +24,6 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var receiveLabel: UILabel!
     
     // Values
-    var maximumSendableLNSats:Int?
     var maximumReceivableLNSats:Int?
     
     // Views
@@ -144,8 +143,6 @@ class MoveViewController: UIViewController {
         if segue.identifier == "MoveToSend" {
             if let sendVC = segue.destination as? SendViewController {
                 sendVC.coreVC = self.coreVC
-                sendVC.maximumSendableLNSats = self.maximumSendableLNSats
-                sendVC.homeVC = self.homeVC
             }
         } else if segue.identifier == "MoveToReceive" {
             if let receiveVC = segue.destination as? ReceiveViewController {

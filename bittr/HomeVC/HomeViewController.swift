@@ -253,37 +253,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
                 if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
                     if actualChannels.count > 0 {
-                        let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
-                        let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
-                        moveVC.maximumSendableLNSats = outboundCapacitySats
-                        if moveVC.maximumSendableLNSats! < 0 {
-                            moveVC.maximumSendableLNSats = 0
-                        }
-                    }
-                }
-                
-                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
-                    if actualChannels.count > 0 {
                         moveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
                     }
                 }
             }
         } else if segue.identifier == "HomeToSend" {
-            let sendVC = segue.destination as? SendViewController
-            if let actualSendVC = sendVC {
-                
-                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
-                    if actualChannels.count > 0 {
-                        let outboundCapacitySats = Int(actualChannels[0].outboundCapacityMsat/1000)
-                        let punishmentReserveSats = Int(actualChannels[0].unspendablePunishmentReserve ?? 0)
-                        actualSendVC.maximumSendableLNSats = outboundCapacitySats
-                        if actualSendVC.maximumSendableLNSats! < 0 {
-                            actualSendVC.maximumSendableLNSats = 0
-                        }
-                    }
-                }
-                actualSendVC.coreVC = self.coreVC
-                actualSendVC.homeVC = self
+            if let sendVC = segue.destination as? SendViewController {
+                sendVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "HomeToReceive" {
             let receiveVC = segue.destination as? ReceiveViewController
