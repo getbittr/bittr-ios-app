@@ -402,9 +402,7 @@ class LightningNodeService {
                     self.coreVC!.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
                         return tx1.chainPosition.isBefore(tx2.chainPosition)
                     }
-                    Task {
-                        self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
-                    }
+                    Task { self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels() }
                     
                     DispatchQueue.main.async {
                         self.coreVC!.homeVC!.loadWalletData()
