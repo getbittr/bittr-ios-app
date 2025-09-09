@@ -370,12 +370,7 @@ extension SendViewController {
         if let actualWallet = LightningNodeService.shared.getWallet() {
             do {
                 let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
-                let bdkNetwork = EnvironmentConfig.bitcoinDevKitNetwork
-                let address = try Address(address: actualAddress, network: bdkNetwork)
-                let script = address.scriptPubkey()
-                let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(coreVC.bittrWallet.satoshisOnchain)))
-                let details = try txBuilder.finish(wallet: actualWallet)
-                let _ = try actualWallet.sign(psbt: details, signOptions: nil)
+                let details = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
                 
                 return nil
             } catch {
@@ -462,6 +457,14 @@ extension UIViewController {
     
     func getTx(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
         
+        let details = try self.getPsbt(address: address, amountSats: amountSats, wallet: wallet, selectedVbyte: selectedVbyte)
+        let tx = try details.extractTx()
+        
+        return tx
+    }
+    
+    func getPsbt(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Psbt {
+        
         let network = EnvironmentConfig.bitcoinDevKitNetwork
         let address = try Address(address: address, network: network)
         let script = address.scriptPubkey()
@@ -471,8 +474,8 @@ extension UIViewController {
         }
         let details = try txBuilder.finish(wallet: wallet)
         let _ = try wallet.sign(psbt: details, signOptions: nil)
-        let tx = try details.extractTx()
         
-        return tx
+        return details
     }
+    
 }
