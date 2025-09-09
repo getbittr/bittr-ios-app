@@ -162,7 +162,7 @@ extension SendViewController {
                                 self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
                                 self.amountTextField.text = "\(invoiceAmount)"
                                 self.btcLabel.text = "Sats"
-                                self.selectedCurrency = "satoshis"
+                                self.selectedCurrency = .satoshis
                                 addressType = .lightning
                             }
                         } else {
@@ -201,7 +201,7 @@ extension SendViewController {
                                     let invoiceAmount = Int(invoiceAmountMilli)/1000
                                     self.amountTextField.text = "\(invoiceAmount)"
                                     self.btcLabel.text = "Sats"
-                                    self.selectedCurrency = "satoshis"
+                                    self.selectedCurrency = .satoshis
                                 } else {
                                     self.amountTextField.text = nil
                                 }

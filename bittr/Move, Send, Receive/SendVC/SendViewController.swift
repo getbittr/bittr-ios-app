@@ -138,7 +138,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var homeVC:HomeViewController?
     var maximumSendableLNSats:Int?
     var maximumSendableOnchainBtc:Double?
-    var selectedCurrency = "bitcoin"
+    var selectedCurrency:SelectedCurrency = .bitcoin
     var onchainOrLightning:OnchainOrLightning = .onchain
     var completedTransaction:Transaction?
     var onchainAmountInSatoshis:Int = 0
@@ -348,7 +348,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         self.amountTextField.text = "\(invoiceAmount)"
                         self.btcLabel.text = "Sats"
-                        self.selectedCurrency = "satoshis"
+                        self.selectedCurrency = .satoshis
                         self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
                         return true
                     }
@@ -413,18 +413,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @objc func selectBTCCurrency() {
         self.btcLabel.text = "BTC"
-        self.selectedCurrency = "bitcoin"
+        self.selectedCurrency = .bitcoin
     }
     
     @objc func selectSatsCurrency() {
         self.btcLabel.text = "Sats"
-        self.selectedCurrency = "satoshis"
+        self.selectedCurrency = .satoshis
     }
     
     @objc func selectFiatCurrency() {
         let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
         self.btcLabel.text = currency
-        self.selectedCurrency = "currency"
+        self.selectedCurrency = .currency
     }
     
 
@@ -436,7 +436,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
             self.amountTextField.text = formattedAmount
             self.btcLabel.text = "BTC"
-            self.selectedCurrency = "bitcoin"
+            self.selectedCurrency = .bitcoin
         } else {
             // Instant
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
@@ -497,7 +497,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                             let invoiceAmount = Int(invoiceAmountMilli)/1000
                             self.amountTextField.text = "\(invoiceAmount)"
                             self.btcLabel.text = "Sats"
-                            self.selectedCurrency = "satoshis"
+                            self.selectedCurrency = .satoshis
                             self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
                         } else {
                             // Zero invoice.
@@ -514,15 +514,15 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             } else {
                 // Transfer to satoshis.
                 var satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
-                if self.selectedCurrency == "bitcoin" {
+                if self.selectedCurrency == .bitcoin {
                     satoshisValue = Int((self.stringToNumber(self.amountTextField.text) * 100000000).rounded())
-                } else if self.selectedCurrency == "currency" {
+                } else if self.selectedCurrency == .currency {
                     let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
                     satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/bitcoinValue.currentValue)*100000000).rounded())
                 }
                 self.amountTextField.text = "\(satoshisValue)"
                 self.btcLabel.text = "Sats"
-                self.selectedCurrency = "satoshis"
+                self.selectedCurrency = .satoshis
                 self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
             }
         } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == .onchain {
@@ -595,22 +595,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
-            
             self.btcLabel.text = "BTC"
-            self.selectedCurrency = "bitcoin"
+            self.selectedCurrency = .bitcoin
         }
         let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
-            
             self.btcLabel.text = "Sats"
-            self.selectedCurrency = "satoshis"
+            self.selectedCurrency = .satoshis
         }
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
-            
             self.btcLabel.text = bitcoinValue.chosenCurrency
-            self.selectedCurrency = "currency"
+            self.selectedCurrency = .currency
         }
-
         let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
         actionSheet.addAction(btcOption)
         actionSheet.addAction(satsOption)
@@ -660,4 +656,10 @@ extension String {
 enum OnchainOrLightning {
     case onchain
     case lightning
+}
+
+enum SelectedCurrency {
+    case bitcoin
+    case satoshis
+    case currency
 }

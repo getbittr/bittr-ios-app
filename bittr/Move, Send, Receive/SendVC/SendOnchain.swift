@@ -20,7 +20,7 @@ extension SendViewController {
         // Slide from leftmost to rightmost scroll view.
         
         if self.checkInternetConnection() {
-            var invoiceText = self.toTextField.text
+            let invoiceText = self.toTextField.text
             
             if invoiceText != nil {
                 if invoiceText!.lowercased().contains("lnurl") {
@@ -32,9 +32,9 @@ extension SendViewController {
             
             // Transfer to bitcoin.
             var divideBy:CGFloat = 1
-            if self.selectedCurrency == "satoshis" {
+            if self.selectedCurrency == .satoshis {
                 divideBy = 100000000
-            } else if self.selectedCurrency == "currency" {
+            } else if self.selectedCurrency == .currency {
                 divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
             }
             
