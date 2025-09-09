@@ -138,7 +138,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var maximumSendableOnchainBtc:Double?
     var completedTransaction:Transaction?
     var onchainAmountInSatoshis:Int = 0
-    var onchainAmountInBTC:CGFloat = 0.0
     var newTxId = ""
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
@@ -243,7 +242,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if self.maximumSendableOnchainBtc == nil {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? 0
             }
-            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
+            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC())
             self.availableAmount.text = Language.getWord(withID:"sendall").replacingOccurrences(of: "<amount>", with: formattedAmount)
         } else {
             // Set "Send all" for lightning payments.
@@ -426,7 +425,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if self.onchainOrLightning == .onchain {
             // Regular
-            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)
+            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC())
             self.amountTextField.text = formattedAmount
             self.btcLabel.text = "BTC"
             self.selectedCurrency = .bitcoin
@@ -508,10 +507,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 // Transfer to satoshis.
                 var satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
                 if self.selectedCurrency == .bitcoin {
-                    satoshisValue = Int((self.stringToNumber(self.amountTextField.text) * 100000000).rounded())
+                    satoshisValue = self.stringToNumber(self.amountTextField.text).inSatoshis()
                 } else if self.selectedCurrency == .currency {
                     let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-                    satoshisValue = Int(((self.stringToNumber(self.amountTextField.text)/bitcoinValue.currentValue)*100000000).rounded())
+                    satoshisValue = (self.stringToNumber(self.amountTextField.text)/bitcoinValue.currentValue).inSatoshis()
                 }
                 self.amountTextField.text = "\(satoshisValue)"
                 self.btcLabel.text = "Sats"

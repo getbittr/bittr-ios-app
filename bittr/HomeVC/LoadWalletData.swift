@@ -310,7 +310,7 @@ extension HomeViewController {
         if totalBalanceSatsString.count < 9 {
             zeros = allZeros[totalBalanceSatsString.count]
         } else {
-            numbers = "\(CGFloat(totalBalanceSats)/100000000)".replacingOccurrences(of: ",", with: ".")
+            numbers = "\(totalBalanceSats.inBTC())".replacingOccurrences(of: ",", with: ".")
             let decimalsCount = numbers.split(separator: ".")[1].count
             var decimalsToAdd = 8 - decimalsCount
             while decimalsToAdd > 0 {
@@ -364,7 +364,7 @@ extension HomeViewController {
                 CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
                 
                 // Convert balance to EUR / CHF.
-                self.setConversion(btcValue: CGFloat(totalBalanceSats)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
+                self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
                 
                 // Start timer
                 if self.coreVC!.walletSync == nil {
@@ -561,7 +561,7 @@ extension HomeViewController {
             // There are transactions.
             for eachTransaction in self.setTransactions {
                 if eachTransaction.isBittr == true {
-                    let transactionValue = CGFloat(eachTransaction.received)/100000000
+                    let transactionValue = eachTransaction.received.inBTC()
                     let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-eachTransaction.purchaseAmount
                     
                     accumulatedProfit += transactionProfit
@@ -752,7 +752,7 @@ extension UIViewController {
             // Bittr funding transaction.
             thisTransaction.id = bittrTransaction!.txId
             thisTransaction.sent = 0
-            thisTransaction.received = Int(self.stringToNumber(bittrTransaction!.bitcoinAmount)*100000000)
+            thisTransaction.received = self.stringToNumber(bittrTransaction!.bitcoinAmount).inSatoshis()
             thisTransaction.isLightning = true
             thisTransaction.isFundingTransaction = true
             

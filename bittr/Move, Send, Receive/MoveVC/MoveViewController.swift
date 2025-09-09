@@ -110,8 +110,8 @@ class MoveViewController: UIViewController {
     func updateLabels() {
         
         // Calculate balance values.
-        let correctBtcBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain) * 0.00000001
-        let correctBtclnBalance:CGFloat = CGFloat(self.coreVC!.bittrWallet.satoshisLightning) * 0.00000001
+        let correctBtcBalance:CGFloat = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+        let correctBtclnBalance:CGFloat = self.coreVC!.bittrWallet.satoshisLightning.inBTC()
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded())).addSpaces()

@@ -141,7 +141,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func changeCurrency() {
         
         self.conversionLabel.alpha = 0
-        self.setConversion(btcValue: CGFloat(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)/100000000, cachedData: false, updateTableAfterConversion: true)
+        self.setConversion(btcValue: (self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning).inBTC(), cachedData: false, updateTableAfterConversion: true)
     }
     
     

@@ -27,8 +27,10 @@ extension UIViewController {
                 // Invoice field was left empty.
             } else {
                 
+                // Get current bitcoin value.
                 let bitcoinValue = self.getCorrectBitcoinValue(coreVC: sendVC?.coreVC ?? receiveVC?.coreVC ?? CoreViewController())
                 
+                // Check for LNURL address.
                 if invoiceText!.lowercased().contains("lnurl") || self.isValidEmail(invoiceText!.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)) {
                     // LNURL code.
                     self.handleLNURL(code: invoiceText!.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: sendVC, receiveVC: nil)
@@ -36,38 +38,24 @@ extension UIViewController {
                 } else if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText!).getValue() {
                     // Lightning invoice.
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        let invoiceAmount = Int(invoiceAmountMilli)/1000
                         
                         // Calculate maximum total routing fees.
                         let maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
                         
-                        let transactionValue = CGFloat(invoiceAmount)/100000000
+                        // Convert invoice amount.
+                        let invoiceAmount = Int(invoiceAmountMilli)/1000
+                        let transactionValue = invoiceAmount.inBTC()
                         let convertedValue = String(CGFloat(Int(transactionValue*bitcoinValue.currentValue*100))/100)
                         
                         // Check if we have sufficient Lightning balance
-                        var availableLightningBalance = (sendVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? receiveVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
+                        let availableLightningBalance = (sendVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? receiveVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                         if invoiceAmount > availableLightningBalance {
                             // Check if we have sufficient onchain balance for a swap
-                            let availableOnchainBalance = sendVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
-                            if availableOnchainBalance >= invoiceAmount {
-                                // Suggest swap to Lightning
-                                self.showAlert(
-                                    presentingController: self, 
-                                    title: Language.getWord(withID: "insufficientfunds"), 
-                                    message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableOnchainBalance) satoshis.", 
-                                    buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
-                                    actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayLightning)]
-                                )
-                                // Store the invoice for the swap
-                                sendVC?.pendingLightningInvoice = invoiceText!
-                                receiveVC?.pendingLightningInvoice = invoiceText!
-                            } else {
-                                // Insufficient funds in both Lightning and onchain
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
+                            self.checkAvailableOnchainBalance(invoiceAmount: invoiceAmount, availableLightningBalance: availableLightningBalance, invoiceText: invoiceText)
                             return
                         }
                         
+                        // Proceed with invoice payment.
                         sendVC?.temporaryInvoiceText = invoiceText!
                         receiveVC?.temporaryInvoiceText = invoiceText!
                         sendVC?.temporaryInvoiceAmount = invoiceAmount
@@ -75,7 +63,12 @@ extension UIViewController {
                         sendVC?.temporaryInvoiceNote = lnurlNote
                         receiveVC?.temporaryInvoiceNote = lnurlNote
                         
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "lightningconfirmation").replacingOccurrences(of: "<amount>", with: String(invoiceAmount)).replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency).replacingOccurrences(of: "<convertedamount>", with: convertedValue).replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performLightningPayment)])
+                        self.showAlert(
+                            presentingController: self,
+                            title: Language.getWord(withID: "sendtransaction"),
+                            message: Language.getWord(withID: "lightningconfirmation").replacingOccurrences(of: "<amount>", with: String(invoiceAmount)).replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency).replacingOccurrences(of: "<convertedamount>", with: convertedValue).replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)),
+                            buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")],
+                            actions: [#selector(self.cancelLightningPayment), #selector(self.performLightningPayment)])
                     } else {
                         // Zero invoice.
                         let invoiceAmount = Int(self.stringToNumber(sendVC?.amountTextField.text))
@@ -84,32 +77,17 @@ extension UIViewController {
                             // Calculate maximum total routing fees.
                             let maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: UInt64(invoiceAmount*1000))
                             
-                            let transactionValue = CGFloat(invoiceAmount)/100000000
+                            // Convert invoice amount.
+                            let transactionValue = invoiceAmount.inBTC()
                             let convertedValue = String(CGFloat(Int(transactionValue*bitcoinValue.currentValue*100))/100)
                             
-                            // Check if we have sufficient Lightning balance
+                            // Check if we have sufficient Lightning balance.
                             let availableLightningBalance = (sendVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? receiveVC?.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                             if invoiceAmount > availableLightningBalance {
-                                // Check if we have sufficient onchain balance for a swap
-                                let availableOnchainBalance = sendVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
-                                if availableOnchainBalance >= invoiceAmount {
-                                    // Suggest swap to Lightning
-                                    self.showAlert(
-                                        presentingController: self, 
-                                        title: Language.getWord(withID: "insufficientfunds"), 
-                                        message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableOnchainBalance) satoshis.", 
-                                        buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")], 
-                                        actions: [nil, #selector(self.swapAndPayLightning)]
-                                    )
-                                    // Store the invoice for the swap
-                                    sendVC?.pendingLightningInvoice = invoiceText!
-                                    receiveVC?.pendingLightningInvoice = invoiceText!
-                                    return
-                                } else {
-                                    // Insufficient funds in both Lightning and onchain
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                    return
-                                }
+                                // Insufficient Lightning balance.
+                                // Check if we have sufficient onchain balance for a swap.
+                                self.checkAvailableOnchainBalance(invoiceAmount: invoiceAmount, availableLightningBalance: availableLightningBalance, invoiceText: invoiceText)
+                                return
                             }
                             
                             sendVC?.temporaryInvoiceText = invoiceText!
@@ -121,11 +99,42 @@ extension UIViewController {
                             sendVC?.temporaryIsZeroAmountInvoice = true
                             receiveVC?.temporaryIsZeroAmountInvoice = true
                             
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "lightningconfirmation").replacingOccurrences(of: "<amount>", with: String(invoiceAmount)).replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency).replacingOccurrences(of: "<convertedamount>", with: convertedValue).replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performLightningPayment)])
+                            self.showAlert(
+                                presentingController: self,
+                                title: Language.getWord(withID: "sendtransaction"),
+                                message: Language.getWord(withID: "lightningconfirmation").replacingOccurrences(of: "<amount>", with: String(invoiceAmount)).replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency).replacingOccurrences(of: "<convertedamount>", with: convertedValue).replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)),
+                                buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")],
+                                actions: [#selector(self.cancelLightningPayment), #selector(self.performLightningPayment)])
                         }
                     }
                 }
             }
+        } else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    func checkAvailableOnchainBalance(invoiceAmount:Int, availableLightningBalance:UInt64, invoiceText:String?) {
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        let availableOnchainBalance = sendVC?.coreVC?.bittrWallet.satoshisOnchain ?? receiveVC?.homeVC?.coreVC?.bittrWallet.satoshisOnchain ?? 0
+        if availableOnchainBalance >= invoiceAmount {
+            // Suggest swap to Lightning
+            self.showAlert(
+                presentingController: self,
+                title: Language.getWord(withID: "insufficientfunds"),
+                message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance)) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)"),
+                buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
+                actions: [nil, #selector(self.swapAndPayLightning)]
+            )
+            // Store the invoice for the swap
+            sendVC?.pendingLightningInvoice = invoiceText!
+            receiveVC?.pendingLightningInvoice = invoiceText!
+        } else {
+            // Insufficient funds in both Lightning and onchain
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -143,6 +152,22 @@ extension UIViewController {
         let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
         let maximumRoutingFeesSat:Int = maximumRoutingFeesMsat/1000
         return maximumRoutingFeesSat
+    }
+    
+    @objc func cancelLightningPayment() {
+        self.hideAlert()
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        sendVC?.temporaryInvoiceText = ""
+        receiveVC?.temporaryInvoiceText = ""
+        sendVC?.temporaryInvoiceAmount = 0
+        receiveVC?.temporaryInvoiceAmount = 0
+        sendVC?.temporaryInvoiceNote = nil
+        receiveVC?.temporaryInvoiceNote = nil
+        sendVC?.temporaryIsZeroAmountInvoice = false
+        receiveVC?.temporaryIsZeroAmountInvoice = false
     }
     
     @objc func performLightningPayment() {
@@ -197,23 +222,17 @@ extension UIViewController {
                 let errorString = handleNodeError(error)
                 DispatchQueue.main.async {
                     // Error alert for NodeError
-                    
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
-                    
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    
                     SentrySDK.capture(error: error)
                 }
             } catch {
                 DispatchQueue.main.async {
                     // General error alert
-                    
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
-                    
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    
                     SentrySDK.capture(error: error)
                 }
             }
@@ -266,9 +285,16 @@ extension UIViewController {
     func addNewPaymentToTable(thisPayment:PaymentDetails, invoiceAmount:Int, delegate:Any?) {
         self.hideAlert()
         
-        let coreVC = (delegate as? SendViewController)?.coreVC ?? (delegate as? ReceiveViewController)?.coreVC ?? (delegate as? SwapViewController)?.coreVC
+        // Set view controllers.
+        let sendVC = delegate as? SendViewController
+        let receiveVC = delegate as? ReceiveViewController
+        let swapVC = delegate as? SwapViewController
+        let coreVC = sendVC?.coreVC ?? receiveVC?.coreVC ?? swapVC?.coreVC
+        
+        // Create transaction.
         let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: thisPayment, bittrTransaction: nil, coreVC: coreVC, bittrTransactions: nil)
         
+        // Calculate and cache transaction fees.
         if Int(thisPayment.amountMsat ?? 0)/1000 > invoiceAmount {
             // Fees were incurred.
             let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - invoiceAmount
@@ -278,24 +304,18 @@ extension UIViewController {
             newTransaction.fee = 0
         }
         
-        if let sendVC = delegate as? SendViewController {
-            if sendVC.temporaryInvoiceNote != nil {
-                CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: sendVC.temporaryInvoiceNote!)
-                sendVC.temporaryInvoiceNote = nil
-            }
-            sendVC.completedTransaction = newTransaction
-            sendVC.coreVC?.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
-            sendVC.performSegue(withIdentifier: "SendToTransaction", sender: self)
-        } else if let receiveVC = delegate as? ReceiveViewController {
-            if receiveVC.temporaryInvoiceNote != nil {
-                CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: receiveVC.temporaryInvoiceNote!)
-                receiveVC.temporaryInvoiceNote = nil
-            }
-            receiveVC.completedTransaction = newTransaction
-            receiveVC.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
-            receiveVC.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
-        } else if let swapVC = delegate as? SwapViewController {
-            swapVC.homeVC?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
+        // Cache invoice note.
+        if let temporaryInvoiceNote = (sendVC?.temporaryInvoiceNote ?? receiveVC?.temporaryInvoiceNote) {
+            CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: temporaryInvoiceNote)
+            sendVC?.temporaryInvoiceNote = nil
+            receiveVC?.temporaryInvoiceNote = nil
         }
+        
+        // Add invoice to Transactions table.
+        sendVC?.completedTransaction = newTransaction
+        receiveVC?.completedTransaction = newTransaction
+        (sendVC?.coreVC?.homeVC ?? receiveVC?.coreVC?.homeVC ?? swapVC?.homeVC)?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
+        sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
+        receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
     }
 }
