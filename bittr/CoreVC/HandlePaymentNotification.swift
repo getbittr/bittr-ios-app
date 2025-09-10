@@ -161,7 +161,7 @@ extension CoreViewController {
                                 
                                 self.receivedBittrTransaction = receivedTransaction
                                 
-                                self.addNewTransactionToHomeVC(newTransaction: receivedTransaction, thisPayment: paymentDetails)
+                                self.homeVC?.addLightningTransaction(thisTransaction: receivedTransaction, paymentDetails: paymentDetails)
                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                             }
                         }
@@ -273,7 +273,7 @@ extension CoreViewController {
                     
                     DispatchQueue.main.async {
                         CacheManager.didHandleEvent(event: "\(event)")
-                        self.addNewTransactionToHomeVC(newTransaction: thisTransaction, thisPayment: paymentDetails)
+                        self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
                         if !CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
@@ -312,7 +312,7 @@ extension CoreViewController {
                                             let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
                                             
                                             self.receivedBittrTransaction = thisTransaction
-                                            self.addNewTransactionToHomeVC(newTransaction: thisTransaction, thisPayment: nil)
+                                            self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
                                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                                         }
                                     }
@@ -334,18 +334,6 @@ extension CoreViewController {
             case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
                 return
             }
-        }
-    }
-    
-    func addNewTransactionToHomeVC(newTransaction:Transaction, thisPayment:PaymentDetails?) {
-        
-        if self.homeVC != nil {
-            
-            // Add payment to HomeVC transactions table.
-            self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
-            
-            // Add payment to channel details.
-            self.bittrWallet.bittrChannel?.received += (newTransaction.received - newTransaction.sent)
         }
     }
     

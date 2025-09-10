@@ -348,6 +348,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Update balance and transactions.
         self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+        self.coreVC!.bittrWallet.bittrChannel?.received += (thisTransaction.received - thisTransaction.sent)
+        Task {
+            do {
+                self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
+            } catch {
+                print("Could not fetch channels.")
+            }
+        }
         if paymentDetails != nil {
             if self.coreVC!.bittrWallet.transactionsLightning != nil {
                 self.coreVC!.bittrWallet.transactionsLightning! += [paymentDetails!]
