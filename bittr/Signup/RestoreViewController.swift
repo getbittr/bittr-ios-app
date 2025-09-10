@@ -273,11 +273,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                     self.signupVC?.moveToPage(1)
                                 } else {
                                     // Entered mnemonic is incorrect.
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             } else {
                                 // No existing mnenonic is available.
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         } else {
                             print("Wallet restore mode detected")
