@@ -32,7 +32,7 @@ extension HomeViewController {
             
             // Set conversion
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-            let transactionValue = CGFloat(thisTransaction.received - thisTransaction.sent)/100000000
+            let transactionValue = (thisTransaction.received - thisTransaction.sent).inBTC()
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             cell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"

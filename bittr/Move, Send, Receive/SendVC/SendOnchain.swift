@@ -20,50 +20,45 @@ extension SendViewController {
         // Slide from leftmost to rightmost scroll view.
         
         if self.checkInternetConnection() {
-            var invoiceText = self.toTextField.text
+            // Set invoice text from text field.
+            let invoiceText = self.toTextField.text
             
-            if invoiceText != nil {
-                if invoiceText!.lowercased().contains("lnurl") {
-                    // LNURL.
-                    self.confirmLightningTransaction(lnurlinvoice: invoiceText!, sendVC: self, receiveVC: nil, lnurlNote: nil)
-                    return
-                }
+            // Check for LNURL address.
+            if invoiceText != nil, invoiceText!.lowercased().contains("lnurl") {
+                // Handle LNURL.
+                self.confirmLightningTransaction(lnurlinvoice: invoiceText!, sendVC: self, receiveVC: nil, lnurlNote: nil)
+                return
             }
             
             // Transfer to bitcoin.
-            var divideBy:CGFloat = 1
-            if self.selectedCurrency == "satoshis" {
-                divideBy = 100000000
-            } else if self.selectedCurrency == "currency" {
-                divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
+            var divideBy:CGFloat
+            switch self.selectedCurrency {
+            case .bitcoin: divideBy = 1
+            case .satoshis: divideBy = 100000000
+            case .currency: divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
             }
-            
-            self.onchainAmountInSatoshis = Int(((self.stringToNumber(self.amountTextField.text)/divideBy) * 100000000).rounded())
-            self.onchainAmountInBTC = CGFloat(self.onchainAmountInSatoshis)/100000000
+            self.onchainAmountInSatoshis = (self.stringToNumber(self.amountTextField.text)/divideBy).inSatoshis()
             
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0  {
                 
-                // Fields are left empty or the amount if set to zero.
+                // Fields are left empty or the amount is set to zero.
                 var errorMessage = ""
-                
                 if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" {
                     errorMessage = Language.getWord(withID: "enteraddress")
                 } else if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0 {
                     errorMessage = Language.getWord(withID: "enteramount")
                 }
-                
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 
-            } else if self.onchainAmountInBTC > CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001 {
+            } else if self.onchainAmountInSatoshis > self.coreVC!.bittrWallet.satoshisOnchain {
                 // Check if we have sufficient Lightning balance for a swap
-                let availableLightningBalance = self.maximumSendableLNSats ?? self.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? 0
+                let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                 
                 print("DEBUG - Onchain payment validation:")
-                print("  - onchainAmountInBTC: \(self.onchainAmountInBTC)")
-                print("  - btcAmount: \(CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001)")
+                print("  - btcAmount: \(self.coreVC!.bittrWallet.satoshisOnchain.inBTC())")
                 print("  - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
-                print("  - maximumSendableLNSats: \(self.maximumSendableLNSats ?? -1)")
-                print("  - satoshisLightning: \(self.homeVC?.coreVC?.bittrWallet.satoshisLightning ?? -1)")
+                print("  - maximumSendableLNSats: \((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000)")
+                print("  - satoshisLightning: \(self.coreVC?.bittrWallet.satoshisLightning ?? -1)")
                 print("  - availableLightningBalance: \(availableLightningBalance)")
                 print("  - Is Lightning balance sufficient? \(availableLightningBalance >= self.onchainAmountInSatoshis)")
                 
@@ -75,108 +70,80 @@ extension SendViewController {
                     self.showAlert(
                         presentingController: self, 
                         title: Language.getWord(withID: "insufficientfunds"), 
-                        message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(self.coreVC!.bittrWallet.satoshisOnchain) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableLightningBalance) satoshis.",
+                        message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(self.coreVC!.bittrWallet.satoshisOnchain)) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)"),
                         buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                         actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                     )
                     // Store the address for the swap
                     self.pendingOnchainAddress = invoiceText!
                     print("DEBUG - pendingOnchainAddress is now: \(self.pendingOnchainAddress)")
-                    return
                 } else {
                     print("DEBUG - Lightning balance insufficient, showing regular insufficient funds message")
                     // Insufficient funds in both onchain and Lightning
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
-            
+                // Start button animation.
                 self.nextLabel.alpha = 0
                 self.nextSpinner.startAnimating()
                 
+                // Set confirmation labels.
                 let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-                
                 self.confirmAddressLabel.text = invoiceText
-                self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
-                self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
+                self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInSatoshis.inBTC())) BTC"
+                self.confirmEuroLabel.text = "\(Int(self.onchainAmountInSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
                 
+                // Create transaction.
                 if let actualWallet = LightningNodeService.shared.getWallet() {
-                    
                     let actualAddress:String = invoiceText!
                     
                     Task {
                         do {
-                            
+                            // Get estimated fees.
                             let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                            self.feeLow = Float(Int(feeEstimates[6]!*10))/10
+                            self.feeMedium = Float(Int(feeEstimates[3]!*10))/10
+                            self.feeHigh = Float(Int(feeEstimates[1]!*10))/10
                             
-                            let high = feeEstimates[1]!
-                            let medium = feeEstimates[3]!
-                            let low = feeEstimates[6]!
-                            
-                            self.feeLow = Float(Int(low*10))/10
-                            self.feeMedium = Float(Int(medium*10))/10
-                            self.feeHigh = Float(Int(high*10))/10
-                            
-                            print("Adjusted - High: \(self.feeHigh), Medium: \(self.feeMedium), Low: \(self.feeLow)")
-                            
+                            // Get transaction size.
                             let size = try self.getSize(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet)
-
-                            print("Size: \(String(describing: size))")
                             print("High: \(self.feeHigh*Float(size)), Medium: \(self.feeMedium*Float(size)), Low: \(self.feeLow*Float(size))")
                             
+                            // Calculate lowest sats.
                             let lowestSats:Float = self.feeLow*Float(size)
                             let availableSatsForFee:Float = Float(self.coreVC!.bittrWallet.satoshisOnchain - self.onchainAmountInSatoshis)
                             if lowestSats > availableSatsForFee {
                                 // There aren't enough sats available to pay for the cheapest fee.
                                 let availableSatsPerVb:Float = availableSatsForFee / Float(size)
                                 self.feeLow = Float(Int(availableSatsPerVb * 10))/10
-                                self.slowTimeLabel.text = "Slow"
                                 
-                                self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-                                self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
-                                self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
-                                self.selectedFee = "low"
+                                self.slowTimeLabel.text = "Slow"
+                                self.highlightView(selectedFee: .low)
+                                self.selectedFee = .low
                             } else {
                                 self.slowTimeLabel.text = "1 day"
-                                
-                                self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-                                self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
-                                self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-                                self.selectedFee = "medium"
+                                self.highlightView(selectedFee: .medium)
+                                self.selectedFee = .medium
                             }
                             
+                            // Set satoshis text.
                             self.satsFast.text = "\(Int(self.feeHigh*Float(size))) sats"
                             self.satsMedium.text = "\(Int(self.feeMedium*Float(size))) sats"
                             self.satsSlow.text = "\(Int(self.feeLow*Float(size))) sats"
                             
-                            let fast1 = CGFloat(self.feeHigh*Float(size))
-                            var fastText = "\(CGFloat(Int(((fast1/100000000)*bitcoinValue.currentValue)*100))/100)"
-                            if fastText.count == 3 {
-                                fastText = fastText + "0"
-                            }
-                            let medium1 = CGFloat(self.feeMedium*Float(size))
-                            var mediumText = "\(CGFloat(Int(((medium1/100000000)*bitcoinValue.currentValue)*100))/100)"
-                            if mediumText.count == 3 {
-                                mediumText = mediumText + "0"
-                            }
-                            let slow1 = CGFloat(self.feeLow*Float(size))
-                            var slowText = "\(CGFloat(Int(((slow1/100000000)*bitcoinValue.currentValue)*100))/100)"
-                            if slowText.count == 3 {
-                                slowText = slowText + "0"
-                            }
+                            // Set converted text.
+                            self.eurosFast.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeHigh, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
+                            self.eurosMedium.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeMedium, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
+                            self.eurosSlow.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeLow, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
                             
-                            self.eurosFast.text = fastText + " " + bitcoinValue.chosenCurrency
-                            self.eurosMedium.text = mediumText + " " + bitcoinValue.chosenCurrency
-                            self.eurosSlow.text = slowText + " " + bitcoinValue.chosenCurrency
-                            
+                            // Animation from main view to confirm view.
                             DispatchQueue.main.async {
                                 UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                                    
                                     NSLayoutConstraint.deactivate([self.scrollViewTrailing])
                                     self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
                                     NSLayoutConstraint.activate([self.scrollViewTrailing])
                                     self.view.layoutIfNeeded()
                                 }
-                                
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                             }
@@ -185,80 +152,79 @@ extension SendViewController {
                             DispatchQueue.main.async {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
-                                
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                
                                 SentrySDK.capture(error: error)
                             }
                         }
                     }
                 }
             }
+        } else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
+    func convertFees(transactionSize:UInt64, satsPerVbyte:Float, bitcoinValue:BitcoinValue) -> String {
+        let satsValue = CGFloat(satsPerVbyte*Float(transactionSize))
+        var satsText = "\(CGFloat(Int((satsValue.inBTC()*bitcoinValue.currentValue)*100))/100)"
+        if satsText.count == 3 || String(satsText.split(separator: Locale.current.decimalSeparator!)[1]).count == 1 {
+            satsText = satsText + "0"
+        }
+        return satsText
+    }
     
-    func switchFeeSelection(tappedFee:String) {
+    func switchFeeSelection(tappedFee:SelectedFee) {
         // Switch selected fee rate.
         
-        let availableBalance:Int = self.coreVC!.bittrWallet.satoshisOnchain
-        
         switch tappedFee {
-        case "fast":
+        case .high:
             let feeInSats = Int(self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")))
             self.selectedFeeInSats = feeInSats
             
-            if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
-                self.fastView.backgroundColor = Colors.getColor("whiteorblue3")
-                self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
-                self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-                self.selectedFee = "high"
-                
-                if self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
-                    
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: self.coreVC!.bittrWallet.satoshisOnchain) {
+                self.highlightView(selectedFee: .high)
+                self.checkHighFeeRate(satsText: self.satsFast.text!)
             }
-        case "medium":
+        case .medium:
             let feeInSats = Int(self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")))
             self.selectedFeeInSats = feeInSats
             
-            if self.checkFeeAvailability(tappedFee:tappedFee, feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: availableBalance) {
-                self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-                self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
-                self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-                self.selectedFee = "medium"
-                
-                if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
-                    
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+            if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: self.coreVC!.bittrWallet.satoshisOnchain) {
+                self.highlightView(selectedFee: .medium)
+                self.checkHighFeeRate(satsText: self.satsMedium.text!)
             }
-        case "slow":
-            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-            self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
-            self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
-            self.selectedFee = "low"
-            
-            if self.stringToNumber(self.satsSlow.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
-                
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            }
-        default:
-            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-            self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
-            self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-            self.selectedFee = "medium"
-            
-            if self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
-                
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            }
+        case .low:
+            self.highlightView(selectedFee: .low)
+            self.checkHighFeeRate(satsText: self.satsSlow.text!)
         }
     }
     
+    func highlightView(selectedFee:SelectedFee) {
+        self.selectedFee = selectedFee
+        switch selectedFee {
+        case .low:
+            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.slowView.backgroundColor = Colors.getColor("whiteorblue3")
+        case .medium:
+            self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
+            self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
+        case .high:
+            self.fastView.backgroundColor = Colors.getColor("whiteorblue3")
+            self.mediumView.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
+        }
+    }
     
-    func checkFeeAvailability(tappedFee:String, feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
+    func checkHighFeeRate(satsText:String) {
+        // Check if selected fee rate is too high.
+        if self.stringToNumber(satsText.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    func checkFeeAvailability(feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
         
         if feeInSats + actualAmount > availableBalance {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: "\(Language.getWord(withID: "youravailablebalance")) (\(availableBalance) sats) \(Language.getWord(withID: "isinsufficient")).", buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
@@ -271,24 +237,20 @@ extension SendViewController {
     @objc func handleAmountChange() {
         self.hideAlert()
         
-        self.amountTextField.text = "\(CGFloat(self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats)/100000000)".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+        self.amountTextField.text = "\((self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats).inBTC())".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
         
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInBTC)) BTC"
-        self.confirmEuroLabel.text = "\(Int(self.onchainAmountInBTC*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
+        self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInSatoshis.inBTC())) BTC"
+        self.confirmEuroLabel.text = "\(Int(self.onchainAmountInSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
         
-        var thisSelectedFee = self.selectedFee
-        if thisSelectedFee == "high" {
-            thisSelectedFee = "fast"
-        }
-        self.switchFeeSelection(tappedFee:thisSelectedFee)
+        self.switchFeeSelection(tappedFee:self.selectedFee)
     }
     
     func confirmSendOnchain() {
         // Send onchain transaction.
         // Check whether selected fee is appropriate.
         
-        if self.slowTimeLabel.text == "Slow" && self.selectedFee == "low" {
+        if self.slowTimeLabel.text == "Slow" && self.selectedFee == .low {
             // Selected fee is very low.
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [Language.getWord(withID: "changefee"), Language.getWord(withID: "continue")], actions: [nil, #selector(self.proceedWithOnchainConfirmation)])
         } else {
@@ -299,40 +261,54 @@ extension SendViewController {
     @objc func proceedWithOnchainConfirmation() {
         self.hideAlert()
         
-        var feeSatoshis = (self.satsMedium.text ?? "no").replacingOccurrences(of: " sats", with: "")
-        if self.selectedFee == "low" {
-            feeSatoshis = (self.satsSlow.text ?? "no").replacingOccurrences(of: " sats", with: "")
-        } else if self.selectedFee == "high" {
-            feeSatoshis = (self.satsFast.text ?? "no").replacingOccurrences(of: " sats", with: "")
+        var feeSatoshis:String
+        switch self.selectedFee {
+        case .low: feeSatoshis = (self.satsSlow.text ?? "no").replacingOccurrences(of: " sats", with: "")
+        case .medium: feeSatoshis = (self.satsMedium.text ?? "no").replacingOccurrences(of: " sats", with: "")
+        case .high: feeSatoshis = (self.satsFast.text ?? "no").replacingOccurrences(of: " sats", with: "")
         }
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: "\(Language.getWord(withID: "sendconfirmation")) \(self.onchainAmountInBTC) btc, \(Language.getWord(withID: "sendconfirmation2")) \(feeSatoshis) satoshis, \(Language.getWord(withID: "to")) \(self.confirmAddressLabel.text ?? Language.getWord(withID: "thisaddress"))?", buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
+        self.showAlert(
+            presentingController: self,
+            title: Language.getWord(withID: "sendtransaction"),
+            message: Language.getWord(withID: "sendconfirmation")
+                .replacingOccurrences(of: "<amount>", with: "\(self.onchainAmountInSatoshis.inBTC())")
+                .replacingOccurrences(of: "<fees>", with: feeSatoshis)
+                .replacingOccurrences(of: "<address>", with: self.confirmAddressLabel.text ?? Language.getWord(withID: "thisaddress")),
+            buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")],
+            actions: [nil, #selector(self.performOnchainTransaction)]
+        )
     }
     
     @objc func performOnchainTransaction() {
         self.hideAlert()
         
+        // Start spinner.
         self.sendLabel.alpha = 0
         self.sendSpinner.startAnimating()
         
-        if let actualWallet = LightningNodeService.shared.getWallet()/*, let actualBlockchain = LightningNodeService.shared.getBlockchain()*/ {
+        // Get wallet.
+        if let actualWallet = LightningNodeService.shared.getWallet() {
             
+            // Get address.
             let actualAddress:String = self.confirmAddressLabel.text!
             
+            // Get fees.
+            var selectedVbyte:Float
+            switch self.selectedFee {
+            case .low: selectedVbyte = self.feeLow
+            case .medium: selectedVbyte = self.feeMedium
+            case .high: selectedVbyte = self.feeHigh
+            }
+            
+            // Create transaction.
             Task {
                 do {
-                    var selectedVbyte:Float = self.feeMedium
-                    if self.selectedFee == "low" {
-                        selectedVbyte = self.feeLow
-                    } else if self.selectedFee == "high" {
-                        selectedVbyte = self.feeHigh
-                    }
                     let tx = try self.getTx(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet, selectedVbyte: selectedVbyte)
-                    
                     if let client = LightningNodeService.shared.getClient() {
                         
+                        // Broadcast transaction.
                         let txid = try client.transactionBroadcast(tx: tx)
-                        
                         print("Transaction ID: \(txid)")
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -343,14 +319,27 @@ extension SendViewController {
                             
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
                         }
+                    } else {
+                        DispatchQueue.main.async {
+                            print("Client not available.")
+                            self.sendLabel.alpha = 1
+                            self.sendSpinner.stopAnimating()
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
                     }
                 } catch {
                     print("Transaction error: \(error.localizedDescription)")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    DispatchQueue.main.async {
+                        self.sendLabel.alpha = 1
+                        self.sendSpinner.stopAnimating()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
                 }
             }
         } else {
-            print("Wallet or Blockchain instance not available.")
+            print("Wallet instance not available.")
+            self.sendLabel.alpha = 1
+            self.sendSpinner.stopAnimating()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
@@ -379,24 +368,17 @@ extension SendViewController {
         }
     }
     
-    func getMaximumSendableSats() -> Double? {
+    func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
         
         if let actualWallet = LightningNodeService.shared.getWallet() {
             do {
                 let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
-                let bdkNetwork = EnvironmentConfig.bitcoinDevKitNetwork
-                let address = try Address(address: actualAddress, network: bdkNetwork)
-                let script = address.scriptPubkey()
-                let actualAmount:Int = Int(actualWallet.balance().trustedSpendable.toSat())
-                let txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(actualAmount)))
-                let details = try txBuilder.finish(wallet: actualWallet)
-                let _ = try actualWallet.sign(psbt: details, signOptions: nil)
-                
+                _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
                 return nil
             } catch {
                 if error.localizedDescription.contains("Insufficient funds") {
                     let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7]))
-                    let btcOnchain = CGFloat(self.coreVC!.bittrWallet.satoshisOnchain)*0.00000001
+                    let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
                     let requiredCorrection:Double = btcOnchain - satsReservation
                     let spendableBtcAmount = btcOnchain + requiredCorrection
                     if spendableBtcAmount < 0 {
@@ -428,7 +410,7 @@ extension SendViewController {
         print("DEBUG - pendingOnchainAddress: \(self.pendingOnchainAddress)")
         print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
         // Navigate to swap screen with the pending address using existing segue pattern
-        if let homeVC = self.homeVC {
+        if let homeVC = self.coreVC?.homeVC {
             // Store the pending address in a way that can be accessed by the swap screen
             let pendingAddress = self.pendingOnchainAddress
             let pendingAmount = self.onchainAmountInSatoshis
@@ -477,6 +459,14 @@ extension UIViewController {
     
     func getTx(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
         
+        let details = try self.getPsbt(address: address, amountSats: amountSats, wallet: wallet, selectedVbyte: selectedVbyte)
+        let tx = try details.extractTx()
+        
+        return tx
+    }
+    
+    func getPsbt(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Psbt {
+        
         let network = EnvironmentConfig.bitcoinDevKitNetwork
         let address = try Address(address: address, network: network)
         let script = address.scriptPubkey()
@@ -486,8 +476,24 @@ extension UIViewController {
         }
         let details = try txBuilder.finish(wallet: wallet)
         let _ = try wallet.sign(psbt: details, signOptions: nil)
-        let tx = try details.extractTx()
         
-        return tx
+        return details
+    }
+    
+}
+
+extension Int {
+    func inBTC() -> CGFloat {
+        return (CGFloat(self) / 100_000_000)
+    }
+}
+
+extension CGFloat {
+    func inSatoshis() -> Int {
+        return Int((self * 100_000_000).rounded())
+    }
+    
+    func inBTC() -> CGFloat {
+        return (self / 100_000_000)
     }
 }

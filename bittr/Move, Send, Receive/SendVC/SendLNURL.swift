@@ -49,44 +49,36 @@ extension UIViewController {
                             print("Tag: \(receivedTag)")
                             
                             if receivedTag == "payRequest" {
-                                if let receivedCallback = actualDataDict["callback"] as? String {
-                                    if let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
+                                if let receivedCallback = actualDataDict["callback"] as? String, let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
                                         
-                                        // Check if this LNURL contains a description.
-                                        var receivedDescription:String?
-                                        if let receivedMetadata = actualDataDict["metadata"] as? String {
-                                            if let metadataData = receivedMetadata.data(using: .utf8) {
-                                                if let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
-                                                    for eachDataPair in parsedMetadata {
-                                                        if eachDataPair.count == 2 {
-                                                            if eachDataPair[0] == "text/plain" {
-                                                                receivedDescription = eachDataPair[1]
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                    // Check if this LNURL contains a description.
+                                    var receivedDescription:String?
+                                    if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
+                                        for eachDataPair in parsedMetadata {
+                                            if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
+                                                receivedDescription = eachDataPair[1]
                                             }
                                         }
-                                        
-                                        DispatchQueue.main.async {
-                                            if minSendable == maxSendable {
-                                                // Min and max are the same.
-                                                self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
-                                            } else {
-                                                // Min and max are different. Choose amount.
-                                                let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1"))".replacingOccurrences(of: "<minsendable>", with: "\(minSendable/1000)").replacingOccurrences(of: "<maxsendable>", with: "\(maxSendable/1000)"), preferredStyle: .alert)
-                                                alert.addTextField { (textField) in
-                                                    textField.keyboardType = .numberPad
-                                                }
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                                    
-                                                    let amountText = Int(self.stringToNumber(alert.textFields![0].text ?? "0")) * 1000
-                                                    
-                                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
-                                                }))
-                                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                                self.present(alert, animated: true)
+                                    }
+                                    
+                                    DispatchQueue.main.async {
+                                        if minSendable == maxSendable {
+                                            // Min and max are the same.
+                                            self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
+                                        } else {
+                                            // Min and max are different. Choose amount.
+                                            let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1"))".replacingOccurrences(of: "<minsendable>", with: "\(minSendable/1000)").replacingOccurrences(of: "<maxsendable>", with: "\(maxSendable/1000)"), preferredStyle: .alert)
+                                            alert.addTextField { (textField) in
+                                                textField.keyboardType = .numberPad
                                             }
+                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
+                                                
+                                                let amountText = Int(self.stringToNumber(alert.textFields![0].text ?? "0")) * 1000
+                                                
+                                                self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
+                                            }))
+                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                                            self.present(alert, animated: true)
                                         }
                                     }
                                 }
@@ -205,7 +197,6 @@ extension UIViewController {
         
         Task {
             do {
-                
                 let invoice = try await LightningNodeService.shared.receivePayment(
                     amountMsat: UInt64(amount),
                     description: "",

@@ -611,10 +611,7 @@ class SwapManager: NSObject {
                     // so the user will receive exactly the amount they input
                     
                     // Calculate maximum total routing fees.
-                    let invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
-                    let (_, _, tryRouteParams) = invoicePaymentResult.getValue()!
-                    let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
-                    let lightningFees:Int = maximumRoutingFeesMsat/1000
+                    let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
                     
                     // Calculate claim transaction fee
                     Task {

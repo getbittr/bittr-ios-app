@@ -103,15 +103,15 @@ extension SendViewController {
         
         print("Code: " + code)
         
-        var addressType = "onchain"
+        var addressType:OnchainOrLightning = .onchain
         
         // Check bitcoin or lightning in code to switch view if needed.
         if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
             // This is a Bitcoin QR.
-            addressType = "lightning"
+            addressType = .lightning
         } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
             // This is a Lightning invoice.
-            addressType = "lightning"
+            addressType = .lightning
         } else {
             // Unsure about the code.
             addressType = self.onchainOrLightning
@@ -152,7 +152,7 @@ extension SendViewController {
                     if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningCode.replacingOccurrences(of: "lightning=", with: "")).getValue() {
                         if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                             let invoiceAmount = Int(invoiceAmountMilli)/1000
-                            if invoiceAmount > self.maximumSendableLNSats ?? 0 {
+                            if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000 {
                                 // We can't send this much in Lightning. Send onchain.
                                 self.handleScannedOrPastedString(bitcoinCode, scanned: scanned)
                                 return
@@ -162,15 +162,14 @@ extension SendViewController {
                                 self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
                                 self.amountTextField.text = "\(invoiceAmount)"
                                 self.btcLabel.text = "Sats"
-                                self.selectedCurrency = "satoshis"
-                                addressType = "lightning"
-                                //self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil)
+                                self.selectedCurrency = .satoshis
+                                addressType = .lightning
                             }
                         } else {
                             // Zero invoice.
                             self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
                             self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
-                            addressType = "lightning"
+                            addressType = .lightning
                         }
                     }
                 }
@@ -202,7 +201,7 @@ extension SendViewController {
                                     let invoiceAmount = Int(invoiceAmountMilli)/1000
                                     self.amountTextField.text = "\(invoiceAmount)"
                                     self.btcLabel.text = "Sats"
-                                    self.selectedCurrency = "satoshis"
+                                    self.selectedCurrency = .satoshis
                                 } else {
                                     self.amountTextField.text = nil
                                 }

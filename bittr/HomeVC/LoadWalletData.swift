@@ -310,7 +310,7 @@ extension HomeViewController {
         if totalBalanceSatsString.count < 9 {
             zeros = allZeros[totalBalanceSatsString.count]
         } else {
-            numbers = "\(CGFloat(totalBalanceSats)/100000000)".replacingOccurrences(of: ",", with: ".")
+            numbers = "\(totalBalanceSats.inBTC())".replacingOccurrences(of: ",", with: ".")
             let decimalsCount = numbers.split(separator: ".")[1].count
             var decimalsToAdd = 8 - decimalsCount
             while decimalsToAdd > 0 {
@@ -364,7 +364,7 @@ extension HomeViewController {
                 CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
                 
                 // Convert balance to EUR / CHF.
-                self.setConversion(btcValue: CGFloat(totalBalanceSats)/100000000, cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
+                self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
                 
                 // Start timer
                 if self.coreVC!.walletSync == nil {
@@ -561,7 +561,7 @@ extension HomeViewController {
             // There are transactions.
             for eachTransaction in self.setTransactions {
                 if eachTransaction.isBittr == true {
-                    let transactionValue = CGFloat(eachTransaction.received)/100000000
+                    let transactionValue = eachTransaction.received.inBTC()
                     let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-eachTransaction.purchaseAmount
                     
                     accumulatedProfit += transactionProfit
@@ -585,13 +585,17 @@ extension HomeViewController {
         if cachedData == false {
             self.headerSpinner.stopAnimating()
             
-            if self.couldNotFetchConversion == true {
+            // Check if conversion rates have been fetched successfully.
+            if self.couldNotFetchConversion {
                 self.headerProblemImage.alpha = 1
             }
             
+            // Stop sync status spinner.
             self.coreVC!.walletHasSynced = true
             self.coreVC!.completeSync(type: "final")
-            if self.coreVC!.needsToHandleNotification == true, let actualNotification = self.coreVC!.lightningNotification {
+            
+            // Check if notification needs handling.
+            if self.coreVC!.needsToHandleNotification, let actualNotification = self.coreVC!.lightningNotification {
                 // Check if it's a swap notification or payment notification
                 if let userInfo = actualNotification.userInfo as? [String: Any],
                    let _ = userInfo["swap_id"] as? String {
@@ -602,10 +606,12 @@ extension HomeViewController {
                     self.coreVC!.handlePaymentNotification(notification: actualNotification)
                 }
             }
+            
+            // Check if peer connection has been successful.
             self.fetchAndPrintPeers()
             
+            // Check if wallet is being removed from device.
             if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
-                
                 // We're removing the wallet from the device.
                 let restoreButton = UIButton()
                 restoreButton.accessibilityIdentifier = "restore"
@@ -746,7 +752,7 @@ extension UIViewController {
             // Bittr funding transaction.
             thisTransaction.id = bittrTransaction!.txId
             thisTransaction.sent = 0
-            thisTransaction.received = Int(self.stringToNumber(bittrTransaction!.bitcoinAmount)*100000000)
+            thisTransaction.received = self.stringToNumber(bittrTransaction!.bitcoinAmount).inSatoshis()
             thisTransaction.isLightning = true
             thisTransaction.isFundingTransaction = true
             

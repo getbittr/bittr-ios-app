@@ -78,9 +78,9 @@ class LightningPaymentViewController: UIViewController {
             }
             
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-            var transactionValue = CGFloat(actualTransaction.received-actualTransaction.sent)/100000000
+            var transactionValue = (actualTransaction.received-actualTransaction.sent).inBTC()
             if actualTransaction.isSwap {
-                transactionValue = CGFloat(actualTransaction.received)/100000000
+                transactionValue = actualTransaction.received.inBTC()
             }
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "")
             

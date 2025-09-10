@@ -470,11 +470,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // so the user receives exactly what they input
         let totalFees = ongoingSwap.onchainFees! + ongoingSwap.lightningFees! + (ongoingSwap.claimTransactionFee ?? 0)
         
-        var convertedFees = "\(CGFloat(Int(CGFloat(totalFees)/100000000*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
+        var convertedFees = "\(CGFloat(Int(totalFees.inBTC()*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
         if convertedFees.split(separator: ",")[1].count == 1 {
             convertedFees = convertedFees + "0"
         }
-        let convertedAmount = "\(Int((CGFloat(ongoingSwap.satoshisAmount)/100000000*bitcoinValue.currentValue).rounded()))"
+        let convertedAmount = "\(Int((ongoingSwap.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
         
         let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)").replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
         

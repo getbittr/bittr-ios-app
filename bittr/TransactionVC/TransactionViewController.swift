@@ -350,12 +350,12 @@ class TransactionViewController: UIViewController {
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         if self.tappedTransaction.isSwap {
             // Swap.
-            let transactionValue = CGFloat(self.tappedTransaction.sent - self.tappedTransaction.received)/100000000
+            let transactionValue = (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
             let balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
         } else {
             // Onchain or Lightning transaction.
-            let transactionValue = CGFloat(self.tappedTransaction.received-self.tappedTransaction.sent)/100000000
+            let transactionValue = (self.tappedTransaction.received-self.tappedTransaction.sent).inBTC()
             let balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
