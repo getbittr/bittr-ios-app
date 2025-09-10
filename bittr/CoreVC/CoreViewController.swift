@@ -70,13 +70,13 @@ class CoreViewController: UIViewController {
     var resettingPin = false
     
     // Variables for notification handling
-    var didBecomeVisible = false
-    var needsToHandleNotification = false
-    var wasNotified = false
-    var lightningNotification:NSNotification?
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     @IBOutlet weak var pendingLabel: UILabel!
+    var userDidSignIn = false
+    var needsToHandleNotification = false
+    var wasNotified = false
+    var lightningNotification:NSNotification?
     var varSpecialData:[String: Any]?
     var receivedBittrTransaction:Transaction?
     var isHandlingSwapNotification = false
@@ -135,11 +135,8 @@ class CoreViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Environment is now handled by EnvironmentConfig based on build configuration
-        
         // Load Bittr wallet details.
-        let deviceKey = EnvironmentConfig.cacheKey(for: "device")
-        if let deviceDict = UserDefaults.standard.value(forKey: deviceKey) as? NSDictionary {
+        if let deviceDict = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "device")) as? NSDictionary {
             self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
         }
         
@@ -170,6 +167,17 @@ class CoreViewController: UIViewController {
         
         // Set words.
         self.setWords()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        if CacheManager.getPin() != nil {
+            // Show PinVC.
+            self.signupAlpha = 0
+            self.blackSignupAlpha = 0
+        } else {
+            // Show SignupVC.
+            self.launchSignup(onPage: 3)
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {

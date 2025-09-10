@@ -31,13 +31,11 @@ extension CoreViewController {
         } completion: { finished in
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
-            self.didBecomeVisible = true
+            self.userDidSignIn = true
             if self.needsToHandleNotification {
                 // A notification will be handled after syncing the wallet.
                 self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-                self.pendingSpinner.startAnimating()
-                self.pendingView.alpha = 1
-                self.blackSignupBackground.alpha = 0.2
+                self.showPendingView()
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self.showSyncView()
@@ -58,7 +56,7 @@ extension CoreViewController {
             self.view.layoutIfNeeded()
         } completion: { finished in
             self.signupContainerView.alpha = 0
-            self.didBecomeVisible = true
+            self.userDidSignIn = true
             
             // Remove signup view from container.
             if self.signupContainerView.subviews.count == 1 {

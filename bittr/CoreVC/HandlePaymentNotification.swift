@@ -23,19 +23,17 @@ extension CoreViewController {
                 
                 CacheManager.storeLatestNotification(specialData: specialData)
                 
-                if self.didBecomeVisible {
+                if self.userDidSignIn {
                     // User has signed in.
                     
-                    if self.wasNotified == false {
+                    if !self.wasNotified {
                         // App was open when notification came in.
                         self.varSpecialData = specialData
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-                        self.pendingSpinner.startAnimating()
-                        self.pendingView.alpha = 1
-                        self.blackSignupBackground.alpha = 0.2
+                        self.showPendingView()
                         
                         self.varSpecialData = specialData
                         self.facilitateNotificationPayout()
@@ -55,26 +53,32 @@ extension CoreViewController {
             } else {
                 // No special key, so this is a normal notification.
                 print("No special key found in notification.")
-                self.pendingSpinner.stopAnimating()
-                self.pendingView.alpha = 0
-                self.blackSignupBackground.alpha = 0
+                self.hidePendingView()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "notification"), message: Language.getWord(withID: "notificationhandlingfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
             // Hide loading UI
-            self.pendingSpinner.stopAnimating()
-            self.pendingView.alpha = 0
-            self.blackSignupBackground.alpha = 0
+            self.hidePendingView()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "notification"), message: Language.getWord(withID: "notificationhandlingfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
+    }
+    
+    func hidePendingView() {
+        self.pendingSpinner.stopAnimating()
+        self.pendingView.alpha = 0
+        self.blackSignupBackground.alpha = 0
+    }
+    
+    func showPendingView() {
+        self.pendingSpinner.startAnimating()
+        self.pendingView.alpha = 1
+        self.blackSignupBackground.alpha = 0.2
     }
     
     @objc func triggerPayout() {
         self.hideAlert()
         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-        self.pendingSpinner.startAnimating()
-        self.pendingView.alpha = 1
-        self.blackSignupBackground.alpha = 0.2
+        self.showPendingView()
         self.facilitateNotificationPayout()
         self.needsToHandleNotification = false
     }
@@ -110,16 +114,12 @@ extension CoreViewController {
                 print("Did list peers.")
                 if peers.count == 0 {
                     DispatchQueue.main.async {
-                        self.pendingSpinner.stopAnimating()
-                        self.pendingView.alpha = 0
-                        self.blackSignupBackground.alpha = 0
+                        self.hidePendingView()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else if peers[0].nodeId == nodeId, peers[0].isConnected == false {
                     DispatchQueue.main.async {
-                        self.pendingSpinner.stopAnimating()
-                        self.pendingView.alpha = 0
-                        self.blackSignupBackground.alpha = 0
+                        self.hidePendingView()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else {
@@ -149,9 +149,7 @@ extension CoreViewController {
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                             
-                            self.pendingSpinner.stopAnimating()
-                            self.pendingView.alpha = 0
-                            self.blackSignupBackground.alpha = 0
+                            self.hidePendingView()
                             
                             if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
                                 
@@ -169,9 +167,7 @@ extension CoreViewController {
                         print("Error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             SentrySDK.capture(error: error)
-                            self.pendingSpinner.stopAnimating()
-                            self.pendingView.alpha = 0
-                            self.blackSignupBackground.alpha = 0
+                            self.hidePendingView()
                             if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                             } else {
@@ -183,9 +179,7 @@ extension CoreViewController {
             }
         } else {
             print("Required data not found in notification.")
-            self.pendingSpinner.stopAnimating()
-            self.pendingView.alpha = 0
-            self.blackSignupBackground.alpha = 0
+            self.hidePendingView()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
         }
     }
@@ -360,7 +354,7 @@ extension CoreViewController {
             self.isHandlingSwapNotification = true
             
             // Check if user is signed in (PIN has been entered)
-            if self.didBecomeVisible == true {
+            if self.userDidSignIn {
                 // User is signed in, handle notification immediately
                 self.handleSwapNotificationImmediately(swapID: swapID, userInfo: userInfo)
             } else {
@@ -384,9 +378,7 @@ extension CoreViewController {
             
             // Clear the notification handling flag and hide pending view
             self.needsToHandleNotification = false
-            self.pendingSpinner.stopAnimating()
-            self.pendingView.alpha = 0
-            self.blackSignupBackground.alpha = 0
+            self.hidePendingView()
             
             // Reset the double handling flag
             self.isHandlingSwapNotification = false
@@ -398,9 +390,7 @@ extension CoreViewController {
         } else {
             // Could not load swap details, clear the notification handling flag
             self.needsToHandleNotification = false
-            self.pendingSpinner.stopAnimating()
-            self.pendingView.alpha = 0
-            self.blackSignupBackground.alpha = 0
+            self.hidePendingView()
             
             // Reset the double handling flag
             self.isHandlingSwapNotification = false

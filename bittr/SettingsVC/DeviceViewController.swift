@@ -279,32 +279,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     }
     
     @IBAction func notificationButtonTapped(_ sender: UIButton) {
-        
-        if let actualHomeVC = self.homeVC {
-            if let actualCoreVC = actualHomeVC.coreVC {
-                if actualCoreVC.varSpecialData != nil {
-                    actualCoreVC.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-                    actualCoreVC.pendingSpinner.startAnimating()
-                    actualCoreVC.pendingView.alpha = 1
-                    actualCoreVC.blackSignupBackground.alpha = 0.2
-                    actualCoreVC.facilitateNotificationPayout()
-                    self.dismiss(animated: true)
-                } else {
-                    if let actualSpecialData = CacheManager.getLatestNotification() {
-                        actualCoreVC.varSpecialData = actualSpecialData
-                        actualCoreVC.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-                        actualCoreVC.pendingSpinner.startAnimating()
-                        actualCoreVC.pendingView.alpha = 1
-                        actualCoreVC.blackSignupBackground.alpha = 0.2
-                        actualCoreVC.facilitateNotificationPayout()
-                        self.dismiss(animated: true)
-                    } else {
-                        self.showNotificationAlert()
-                    }
-                }
-            } else {
-                self.showNotificationAlert()
+        if self.homeVC != nil, self.homeVC!.coreVC != nil, (self.homeVC!.coreVC!.varSpecialData != nil || CacheManager.getLatestNotification() != nil) {
+            if self.homeVC!.coreVC!.varSpecialData == nil {
+                self.homeVC!.coreVC!.varSpecialData = CacheManager.getLatestNotification()!
             }
+            self.homeVC!.coreVC!.pendingLabel.text = Language.getWord(withID: "receivingpayment")
+            self.homeVC!.coreVC!.showPendingView()
+            self.homeVC!.coreVC!.facilitateNotificationPayout()
+            self.dismiss(animated: true)
         } else {
             self.showNotificationAlert()
         }
