@@ -49,6 +49,9 @@ extension CoreViewController {
                     
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
+            } else if userInfo["payment_request_id"] is String {
+                // LNURL
+                self.handleLightningAddressNotification(notification: notification)
             } else {
                 // No special key, so this is a normal notification.
                 print("No special key found in notification.")
