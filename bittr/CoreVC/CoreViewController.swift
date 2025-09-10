@@ -162,6 +162,8 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotificationFromBackground), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleLightningAddressNotification), name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleLightningURI), name: NSNotification.Name(rawValue: "handleLightningURI"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
@@ -202,6 +204,150 @@ class CoreViewController: UIViewController {
     
     @IBAction func closeSyncTapped(_ sender: UIButton) {
         self.hideSyncView()
+    }
+    
+    func checkForPendingURIs() {
+        
+        // Check for pending Bitcoin URI
+        if let bitcoinData = UserDefaults.standard.object(forKey: "pendingBitcoinURI") as? [String: Any],
+           let address = bitcoinData["address"] as? String,
+           let amount = bitcoinData["amount"] as? String,
+           let label = bitcoinData["label"] as? String {
+            
+            UserDefaults.standard.removeObject(forKey: "pendingBitcoinURI")
+            self.navigateToSendScreenWithBitcoinURI(address: address, amount: amount, label: label)
+            return
+        }
+        
+        // Check for pending Lightning URI
+        if let lightningData = UserDefaults.standard.object(forKey: "pendingLightningURI") as? [String: Any],
+           let invoice = lightningData["invoice"] as? String {
+            
+            UserDefaults.standard.removeObject(forKey: "pendingLightningURI")
+            self.navigateToSendScreenWithLightningURI(invoice: invoice)
+            return
+        }
+    }
+    
+    private func navigateToSendScreenWithBitcoinURI(address: String, amount: String, label: String) {
+        
+        // Navigate to send screen via HomeViewController
+        if let homeVC = self.homeVC {
+            // Check if there's already a send screen open and dismiss it first
+            if let existingSendVC = homeVC.presentedViewController {
+                print("Dismissing existing send screen before opening new one")
+                existingSendVC.dismiss(animated: false) {
+                    // After dismissing, open the new send screen
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        self.openNewSendScreenWithBitcoinURI(homeVC: homeVC, address: address, amount: amount, label: label)
+                    }
+                }
+            } else {
+                // No existing send screen, open directly
+                self.openNewSendScreenWithBitcoinURI(homeVC: homeVC, address: address, amount: amount, label: label)
+            }
+        }
+    }
+    
+    private func openNewSendScreenWithBitcoinURI(homeVC: HomeViewController, address: String, amount: String, label: String) {
+        // Store the URI data in HomeViewController so it can be passed during segue
+        homeVC.pendingBitcoinURI = (address: address, amount: amount, label: label)
+        homeVC.performSegue(withIdentifier: "HomeToSend", sender: homeVC)
+    }
+    
+    private func navigateToSendScreenWithLightningURI(invoice: String) {
+        
+        // Navigate to send screen via HomeViewController
+        if let homeVC = self.homeVC {
+            // Check if there's already a send screen open and dismiss it first
+            if let existingSendVC = homeVC.presentedViewController {
+                print("Dismissing existing send screen before opening new one")
+                existingSendVC.dismiss(animated: false) {
+                    // After dismissing, open the new send screen
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        self.openNewSendScreenWithLightningURI(homeVC: homeVC, invoice: invoice)
+                    }
+                }
+            } else {
+                // No existing send screen, open directly
+                self.openNewSendScreenWithLightningURI(homeVC: homeVC, invoice: invoice)
+            }
+        }
+    }
+    
+    private func openNewSendScreenWithLightningURI(homeVC: HomeViewController, invoice: String) {
+        // Store the URI data in HomeViewController so it can be passed during segue
+        homeVC.pendingLightningURI = invoice
+        homeVC.performSegue(withIdentifier: "HomeToSend", sender: homeVC)
+    }
+    
+    @objc func handleBitcoinURI(notification: NSNotification) {
+        
+        guard let userInfo = notification.userInfo as? [String: Any],
+              let address = userInfo["address"] as? String,
+              !address.isEmpty else {
+            print("Invalid Bitcoin URI data")
+            return
+        }
+        
+        let amount = userInfo["amount"] as? String ?? ""
+        let label = userInfo["label"] as? String ?? ""
+        
+        print("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
+        
+        // Check if user is signed in
+        if self.userDidSignIn {
+            // User is signed in, navigate to send screen immediately
+            self.navigateToSendScreenWithBitcoinURI(address: address, amount: amount, label: label)
+        } else {
+            // User hasn't signed in yet, store URI data for later
+            self.storeBitcoinURIData(address: address, amount: amount, label: label)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    @objc func handleLightningURI(notification: NSNotification) {
+        
+        guard let userInfo = notification.userInfo as? [String: Any],
+              let invoice = userInfo["invoice"] as? String,
+              !invoice.isEmpty else {
+            print("Invalid Lightning URI data")
+            return
+        }
+        
+        print("Handling Lightning URI - Invoice: \(invoice)")
+        
+        // Check if user is signed in
+        if self.userDidSignIn {
+            // User is signed in, navigate to send screen immediately
+            self.navigateToSendScreenWithLightningURI(invoice: invoice)
+        } else {
+            // User hasn't signed in yet, store URI data for later
+            self.storeLightningURIData(invoice: invoice)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    private func storeBitcoinURIData(address: String, amount: String, label: String) {
+        
+        let uriData: [String: Any] = [
+            "type": "bitcoin",
+            "address": address,
+            "amount": amount,
+            "label": label
+        ]
+        
+        UserDefaults.standard.set(uriData, forKey: "pendingBitcoinURI")
+    }
+    
+    private func storeLightningURIData(invoice: String) {
+        
+        let uriData: [String: Any] = [
+            "type": "lightning",
+            "invoice": invoice
+        ]
+        
+        UserDefaults.standard.set(uriData, forKey: "pendingLightningURI")
     }
     
 }

@@ -143,6 +143,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var pendingLightningInvoice = ""
     var pendingOnchainAddress = ""
     
+    // Pending URI data from segue
+    var pendingBitcoinURI: (address: String, amount: String, label: String)?
+    var pendingLightningURI: String?
+    
     // User selected variables
     var selectedCurrency:SelectedCurrency = .bitcoin
     var onchainOrLightning:OnchainOrLightning = .onchain
@@ -226,6 +230,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.changeColors()
         self.setWords()
         self.setSendAllLabel(forView: .onchain)
+        
+        // Handle pending URI data from segue
+        if let bitcoinURI = self.pendingBitcoinURI {
+            self.setAddressFromURI(address: bitcoinURI.address, amount: bitcoinURI.amount, label: bitcoinURI.label)
+            self.pendingBitcoinURI = nil // Clear after handling
+        }
+        
+        if let lightningURI = self.pendingLightningURI {
+            self.setInvoiceFromURI(invoice: lightningURI)
+            self.pendingLightningURI = nil // Clear after handling
+        }
     }
     
     func setShadows(forView:UIView) {
@@ -483,7 +498,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             }
             
             if (self.amountTextField.text ?? "") == "" {
-                if (self.toTextField.text ?? "").prefix(2) == "ln" {
+                if (self.toTextField.text ?? "").lowercased().hasPrefix("ln") {
                     if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.toTextField.text!).getValue() {
                         if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                             let invoiceAmount = Int(invoiceAmountMilli)/1000
@@ -611,6 +626,55 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         actionSheet.addAction(currencyOption)
         actionSheet.addAction(cancelAction)
         present(actionSheet, animated: true, completion: nil)
+    }
+    
+    // MARK: - URI Handling Methods
+    
+    func setAddressFromURI(address: String, amount: String, label: String) {
+        
+        // Set the address in the text field
+        self.toTextField.text = address
+        
+        // Set the amount if provided
+        if !amount.isEmpty {
+            self.amountTextField.text = amount
+        }
+        
+        print("Set Bitcoin address from URI: \(address), amount: \(amount), label: \(label)")
+    }
+    
+    func setInvoiceFromURI(invoice: String) {
+        
+        // First, switch to instant (Lightning) mode
+        // Look for the instant button and tap it programmatically
+        if let instantButton = self.instantButton {
+            instantButton.sendActions(for: .touchUpInside)
+        }
+        
+        // Wait a moment for the mode switch to complete, then set the invoice
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Set the invoice in the text field
+            self.toTextField.text = invoice
+            
+            // Parse the Lightning invoice to extract the amount
+            if invoice.lowercased().hasPrefix("ln") {
+                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue() {
+                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                        let invoiceAmount = Int(invoiceAmountMilli)/1000
+                        self.amountTextField.text = "\(invoiceAmount)"
+                        self.btcLabel.text = "Sats"
+                        self.selectedCurrency = .satoshis
+                        print("Extracted amount from Lightning invoice: \(invoiceAmount) sats")
+                    } else {
+                        print("Lightning invoice has no amount (zero amount invoice)")
+                    }
+                } else {
+                    print("Failed to parse Lightning invoice")
+                }
+            }
+            
+            print("Set Lightning invoice from URI: \(invoice)")
+        }
     }
     
 }

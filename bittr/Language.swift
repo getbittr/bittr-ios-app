@@ -227,6 +227,7 @@ class Language: NSObject {
             "newbittrpayment": "You're receiving a new payment! Tap Okay to receive it now and continue what you're doing after.",
             "receivingpayment": "receiving payment",
             "pleasesignin": "Please sign in and wait a moment to receive your payment.",
+            "pleasesignintosend": "Please sign in to send this payment.",
             "couldntconnect": "We couldn't connect to Bittr. Please try again.",
             "bittrpayoutfail": "The notification did not contain the data needed to complete your payout.",
             "closedlightningchannel": "closed lightning channel",
@@ -402,8 +403,7 @@ class Language: NSObject {
             "paymentrequest": "Payment Request",
             "paymentrequest2": "Someone wants to pay you <amount> satoshis! Please sign in to accept the payment.",
             "notification": "Notification",
-            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect.",
-            "generatinginvoice": "Generating invoice..."
+            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect."
         ]
         
         if let foundWord = allWords[withID] {
