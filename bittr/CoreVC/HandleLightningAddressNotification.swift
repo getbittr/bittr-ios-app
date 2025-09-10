@@ -45,7 +45,7 @@ extension CoreViewController {
     private func handleLightningAddressNotificationImmediately(amountMsats: Int, descriptionHash: String, timeSent: String, username: String, endpoint: String) {
         
         // Show loading UI
-        self.pendingLabel.text = "Generating invoice..."
+        self.pendingLabel.text = Language.getWord(withID: "generatinginvoice")
         self.showPendingView()
         
         Task {

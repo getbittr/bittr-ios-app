@@ -110,7 +110,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 if settings.authorizationStatus == .notDetermined {
                     // Notifications preference hasn't been set yet.
                     DispatchQueue.main.async {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
+                        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
                     }
                 } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
                     // Notifications preference has been set but token hasn't been cached.
@@ -168,7 +168,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     DispatchQueue.main.async {
                                         self.nextButtonActivityIndicator.stopAnimating()
                                         self.nextButtonLabel.alpha = 1
-                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
                                 }
                             }
@@ -177,7 +177,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             DispatchQueue.main.async {
                                 self.nextButtonActivityIndicator.stopAnimating()
                                 self.nextButtonLabel.alpha = 1
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
                         
@@ -251,7 +251,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     switch result {
                     case .failure(let error):
                         DispatchQueue.main.async {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             SentrySDK.capture(error: error)
                         }
                     case .success(let receivedDictionary):
@@ -290,13 +290,13 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.nextButtonLabel.alpha = 1
                                     self.codeTextField.text = nil
                                     
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                                    self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
                                 } else {
                                     self.nextButtonActivityIndicator.stopAnimating()
                                     self.nextButtonLabel.alpha = 1
                                     self.codeTextField.text = nil
                                     
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                                    self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
                                 }
                             }
                         }
@@ -331,6 +331,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                     let parameters: [String: Any] = [
                         "email": eachIbanEntity.yourEmail,
+                        "iban": eachIbanEntity.yourIbanNumber,
                         "category": "ios"
                     ]
                     
@@ -342,16 +343,26 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             switch result {
                             case .failure(let error):
                                 DispatchQueue.main.async {
-                                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     SentrySDK.capture(error: error)
                                 }
-                            case .success(_):
+                            case .success(let json):
                                 DispatchQueue.main.async {
-                                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
-                                    
-                                    // Restart counter.
-                                    self.counter = 30
-                                    Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
+                                    // Check if the response contains an error message
+                                    if let success = json["success"] as? Bool,
+                                       success == false,
+                                       let message = json["message"] as? String {
+                                        
+                                        // IBAN validation failed
+                                        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    } else {
+                                        // Success - show resend confirmation
+                                        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+                                        
+                                        // Restart counter.
+                                        self.counter = 30
+                                        Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
+                                    }
                                 }
                             }
                             
@@ -361,7 +372,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             }
         } else {
             // Timer is still counting down.
-            self.showAlert(presentingController: self.coreVC ?? self, title: "", message: Language.getWord(withID: "resendcode2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+            self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: "", message: Language.getWord(withID: "resendcode2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
         }
     }
     

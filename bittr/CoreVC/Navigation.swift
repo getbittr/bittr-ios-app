@@ -11,27 +11,11 @@ extension CoreViewController {
 
     @IBAction func menuButtonTapped(_ sender: UIButton) {
         
-        var centerXConstant:CGFloat = 0
-        let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
-        var leadingConstant:CGFloat = 0
-        
-        switch sender.accessibilityIdentifier {
-        case "left":
-            centerXConstant = -99;
-            leadingConstant = 0
-        case "middle":
-            centerXConstant = 0;
-            leadingConstant = -1 * viewWidth
-        case "right":
-            centerXConstant = 100;
-            leadingConstant = -2 * viewWidth
-        default:
-            centerXConstant = -99;
-            leadingConstant = 0
-        }
+        let centerConstants:[CGFloat] = [-99, 0, 100]
+        let centerXConstant = centerConstants[sender.tag]
+        let leadingConstant = CGFloat(sender.tag * -1) * self.view.safeAreaLayoutGuide.layoutFrame.size.width
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            
             self.selectedViewCenterX.constant = centerXConstant
             self.homeContainerViewLeading.constant = leadingConstant
             self.homeContainerViewTrailing.constant = leadingConstant
@@ -66,9 +50,7 @@ extension CoreViewController {
                 questionVC.headerText = self.tappedQuestion
                 questionVC.answerText = self.tappedAnswer
                 questionVC.coreVC = self
-                if let actualTappedType = self.tappedType {
-                    questionVC.questionType = actualTappedType
-                }
+                questionVC.questionType = self.tappedType
             }
         } else if segue.identifier == "CoreToLightning" {
             if let lightningPaymentVC = segue.destination as? LightningPaymentViewController {

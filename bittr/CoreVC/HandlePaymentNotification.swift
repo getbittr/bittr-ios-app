@@ -112,18 +112,12 @@ extension CoreViewController {
                 
                 let peers = try await LightningNodeService.shared.listPeers()
                 print("Did list peers.")
-                if peers.count == 0 {
-                    DispatchQueue.main.async {
-                        self.hidePendingView()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
-                    }
-                } else if peers[0].nodeId == nodeId, peers[0].isConnected == false {
+                if peers.count == 0 || (peers[0].nodeId == nodeId && !peers[0].isConnected) {
                     DispatchQueue.main.async {
                         self.hidePendingView()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 } else {
-                    
                     do {
                         let invoice = try await LightningNodeService.shared.receivePayment(
                             amountMsat: amountMsat,
@@ -148,7 +142,6 @@ extension CoreViewController {
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                            
                             self.hidePendingView()
                             
                             if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
@@ -251,22 +244,18 @@ extension CoreViewController {
             print("Event was handled before.")
         } else {
             // New event.
+            CacheManager.didHandleEvent(event: "\(event)")
+            
             switch event {
             case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
-                if self.varSpecialData != nil {
-                    // This is a Bittr payment, which is being handled separately.
-                    CacheManager.didHandleEvent(event: "\(event)")
-                } else if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                if self.varSpecialData == nil, let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     print("Did receive payment details.")
-                    
                     let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
-                    
                     self.receivedBittrTransaction = thisTransaction
                     
                     DispatchQueue.main.async {
-                        CacheManager.didHandleEvent(event: "\(event)")
                         self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
                         if !CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
@@ -274,14 +263,10 @@ extension CoreViewController {
                     }
                 }
             case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: _):
-                
                 DispatchQueue.main.async {
-                    CacheManager.didHandleEvent(event: "\(event)")
                     self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: Language.getWord(withID: "closedlightningchannel2"), type: nil)
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
-                
-                CacheManager.didHandleEvent(event: "\(event)")
                 
                 var depositCodes = [String]()
                 for eachIbanEntity in self.bittrWallet.ibanEntities {
@@ -372,28 +357,19 @@ extension CoreViewController {
     }
     
     private func handleSwapNotificationImmediately(swapID: String, userInfo: [String: Any]) {
+        
+        self.needsToHandleNotification = false
+        self.isHandlingSwapNotification = false
+        self.hidePendingView()
+        
         // Load swap details from file
         if (self.bittrWallet.ongoingSwap ?? CacheManager.getLatestSwap()) != nil {
             print("Loaded swap details from background.")
-            
-            // Clear the notification handling flag and hide pending view
-            self.needsToHandleNotification = false
-            self.hidePendingView()
-            
-            // Reset the double handling flag
-            self.isHandlingSwapNotification = false
             
             // Go directly to swap screen without showing alert
             DispatchQueue.main.async {
                 self.openSwapViewController()
             }
-        } else {
-            // Could not load swap details, clear the notification handling flag
-            self.needsToHandleNotification = false
-            self.hidePendingView()
-            
-            // Reset the double handling flag
-            self.isHandlingSwapNotification = false
         }
     }
     

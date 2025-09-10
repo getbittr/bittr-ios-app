@@ -100,7 +100,7 @@ class Transfer3ViewController: UIViewController {
         for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
             if eachIbanEntity.id == currentIbanID {
                 
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(eachIbanEntity.ourIbanNumber)\n\(eachIbanEntity.ourName)\n\(eachIbanEntity.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
+                self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(eachIbanEntity.ourIbanNumber)\n\(eachIbanEntity.ourName)\n\(eachIbanEntity.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
             }
         }
     }

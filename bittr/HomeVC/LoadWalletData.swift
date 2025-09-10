@@ -409,7 +409,7 @@ extension HomeViewController {
             // Conversion rate hasn't yet been fetched.
             print("Did start currency conversion.")
             
-            self.coreVC!.startSync(type: "conversion")
+            self.coreVC!.startSync(type: .conversion)
             
             let envUrl = "https://getbittr.com/api/price/btc"
             
@@ -468,7 +468,7 @@ extension HomeViewController {
                                     }
                                     
                                     // Complete sync.
-                                    self.coreVC!.completeSync(type: "conversion")
+                                    self.coreVC!.completeSync(type: .conversion)
                                 }
                             }
                         }
@@ -592,7 +592,7 @@ extension HomeViewController {
             
             // Stop sync status spinner.
             self.coreVC!.walletHasSynced = true
-            self.coreVC!.completeSync(type: "final")
+            self.coreVC!.completeSync(type: .final)
             
             // Check if notification needs handling.
             if self.coreVC!.needsToHandleNotification, let actualNotification = self.coreVC!.lightningNotification {

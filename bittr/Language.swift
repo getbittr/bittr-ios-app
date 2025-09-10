@@ -227,6 +227,7 @@ class Language: NSObject {
             "newbittrpayment": "You're receiving a new payment! Tap Okay to receive it now and continue what you're doing after.",
             "receivingpayment": "receiving payment",
             "pleasesignin": "Please sign in and wait a moment to receive your payment.",
+            "pleasesignintosend": "Please sign in to send this payment.",
             "couldntconnect": "We couldn't connect to Bittr. Please try again.",
             "bittrpayoutfail": "The notification did not contain the data needed to complete your payout.",
             "closedlightningchannel": "closed lightning channel",
