@@ -147,9 +147,10 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 self.ibanVC?.currentIbanID = newIbanEntity.id
             }
             
-            // Send email to bittr API for email verification. Bittr will send email.
+            // Send email and IBAN to bittr API for verification. Bittr will send email and validate IBAN.
             let parameters: [String: Any] = [
                 "email": self.emailTextField.text!,
+                "iban": self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: ""),
                 "category": "ios"
             ]
             
@@ -159,19 +160,30 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
                     
                     switch result {
-                    case .success(_):
+                    case .success(let json):
                         DispatchQueue.main.async {
-                            // Move to next page.
-                            self.signupVC?.moveToPage(11)
-                            self.ibanVC?.moveToPage(2)
-                            
-                            // Trigger auto-focus on OTP field after navigation
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                self.ibanVC?.transfer15VC?.triggerOtpAutoFocus()
+                            // Check if the response contains an error message
+                            if let success = json["success"] as? Bool,
+                               success == false,
+                               let message = json["message"] as? String {
+                                
+                                // IBAN validation failed
+                                self.nextButtonActivityIndicator.stopAnimating()
+                                self.nextButtonLabel.alpha = 1
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            } else {
+                                // Success - move to next page
+                                self.signupVC?.moveToPage(11)
+                                self.ibanVC?.moveToPage(2)
+                                
+                                // Trigger auto-focus on OTP field after navigation
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    self.ibanVC?.transfer15VC?.triggerOtpAutoFocus()
+                                }
+                                
+                                self.nextButtonActivityIndicator.stopAnimating()
+                                self.nextButtonLabel.alpha = 1
                             }
-                            
-                            self.nextButtonActivityIndicator.stopAnimating()
-                            self.nextButtonLabel.alpha = 1
                         }
                     case .failure(let error):
                         DispatchQueue.main.async {

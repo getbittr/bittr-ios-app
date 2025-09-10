@@ -331,6 +331,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                     let parameters: [String: Any] = [
                         "email": eachIbanEntity.yourEmail,
+                        "iban": eachIbanEntity.yourIbanNumber,
                         "category": "ios"
                     ]
                     
@@ -345,13 +346,23 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     SentrySDK.capture(error: error)
                                 }
-                            case .success(_):
+                            case .success(let json):
                                 DispatchQueue.main.async {
-                                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
-                                    
-                                    // Restart counter.
-                                    self.counter = 30
-                                    Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
+                                    // Check if the response contains an error message
+                                    if let success = json["success"] as? Bool,
+                                       success == false,
+                                       let message = json["message"] as? String {
+                                        
+                                        // IBAN validation failed
+                                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    } else {
+                                        // Success - show resend confirmation
+                                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+                                        
+                                        // Restart counter.
+                                        self.counter = 30
+                                        Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
+                                    }
                                 }
                             }
                             
