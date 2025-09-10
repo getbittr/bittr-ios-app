@@ -28,7 +28,7 @@ extension CoreViewController {
             let descriptionHash = metadata.sha256()
             
             // Check if user is signed in
-            if self.didBecomeVisible == true {
+            if self.userDidSignIn {
                 // User is signed in, handle notification immediately
                 self.handleLightningAddressNotificationImmediately(amountMsats: amountMsats, descriptionHash: descriptionHash, timeSent: timeSent, username: username, endpoint: endpoint)
             } else {
@@ -46,9 +46,7 @@ extension CoreViewController {
         
         // Show loading UI
         self.pendingLabel.text = "Generating invoice..."
-        self.pendingSpinner.startAnimating()
-        self.pendingView.alpha = 1
-        self.blackSignupBackground.alpha = 0.2
+        self.showPendingView()
         
         Task {
             do {
@@ -72,10 +70,7 @@ extension CoreViewController {
                 await CallsManager.makeApiCall(url: endpoint, parameters: parameters, getOrPost: "POST") { result in
                     
                     DispatchQueue.main.async {
-                        // Hide loading UI
-                        self.pendingSpinner.stopAnimating()
-                        self.pendingView.alpha = 0
-                        self.blackSignupBackground.alpha = 0
+                        self.hidePendingView()
                         
                         switch result {
                         case .success(let receivedDictionary):
@@ -95,9 +90,7 @@ extension CoreViewController {
                 
                 DispatchQueue.main.async {
                     // Hide loading UI
-                    self.pendingSpinner.stopAnimating()
-                    self.pendingView.alpha = 0
-                    self.blackSignupBackground.alpha = 0
+                    self.hidePendingView()
                     
                     // Show error message with support contact
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)

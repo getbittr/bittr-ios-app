@@ -167,7 +167,7 @@ extension SendViewController {
     func convertFees(transactionSize:UInt64, satsPerVbyte:Float, bitcoinValue:BitcoinValue) -> String {
         let satsValue = CGFloat(satsPerVbyte*Float(transactionSize))
         var satsText = "\(CGFloat(Int((satsValue.inBTC()*bitcoinValue.currentValue)*100))/100)"
-        if satsText.count == 3 || String(satsText.split(separator: Locale.current.decimalSeparator!)[1]).count == 1 {
+        if String(satsText.fixDecimals().split(separator: Locale.current.decimalSeparator!)[1]).count == 1 {
             satsText = satsText + "0"
         }
         return satsText
