@@ -142,8 +142,8 @@ class LightningNodeService {
                     
                     print("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
-                        self.coreVC?.updateSync(action: "complete", type: "bdk")
-                        self.coreVC?.updateSync(action: "start", type: "sync")
+                        self.coreVC?.updateSync(action: "complete", type: .bdk)
+                        self.coreVC?.updateSync(action: "start", type: .sync)
                     }
                 }
                 
@@ -161,8 +161,8 @@ class LightningNodeService {
                 
                 print("Did sync wallet.")
                 DispatchQueue.main.async {
-                    self.coreVC?.updateSync(action: "complete", type: "sync")
-                    self.coreVC?.updateSync(action: "start", type: "final")
+                    self.coreVC?.updateSync(action: "complete", type: .sync)
+                    self.coreVC?.updateSync(action: "start", type: .final)
                 }
                 
                 // Uncomment the following lines to get the on-chain balance (although LDK also does that

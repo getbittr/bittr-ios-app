@@ -40,7 +40,7 @@ extension CoreViewController {
         }
     }
     
-    func updateSync(action:String, type:String) {
+    func updateSync(action:String, type:SyncType) {
         
         if action == "start" {
             self.startSync(type: type)
@@ -49,47 +49,51 @@ extension CoreViewController {
         }
     }
     
-    func startSync(type:String) {
+    func startSync(type:SyncType) {
         switch type {
-        case "conversion":
+        case .conversion:
             self.spinnerConversion.startAnimating()
             self.checkmarkConversion.alpha = 0
-        case "ldk":
+        case .ldk:
             self.spinnerLDK.startAnimating()
             self.checkmarkLDK.alpha = 0
-        case "bdk":
+        case .bdk:
             self.spinnerBDK.startAnimating()
             self.checkmarkBDK.alpha = 0
-        case "sync":
+        case .sync:
             self.spinnerSyncing.startAnimating()
             self.checkmarkSyncing.alpha = 0
-        case "final":
+        case .final:
             self.spinnerFinal.startAnimating()
             self.checkmarkFinal.alpha = 0
-        default:
-            print("No type received.")
         }
     }
     
-    func completeSync(type:String) {
+    func completeSync(type:SyncType) {
         switch type {
-        case "conversion":
+        case .conversion:
             self.spinnerConversion.stopAnimating()
             self.checkmarkConversion.alpha = 1
-        case "ldk":
+        case .ldk:
             self.spinnerLDK.stopAnimating()
             self.checkmarkLDK.alpha = 1
-        case "bdk":
+        case .bdk:
             self.spinnerBDK.stopAnimating()
             self.checkmarkBDK.alpha = 1
-        case "sync":
+        case .sync:
             self.spinnerSyncing.stopAnimating()
             self.checkmarkSyncing.alpha = 1
-        case "final":
+        case .final:
             self.spinnerFinal.stopAnimating()
             self.checkmarkFinal.alpha = 1
-        default:
-            print("No type received.")
         }
     }
+}
+
+enum SyncType {
+    case conversion
+    case ldk
+    case bdk
+    case sync
+    case final
 }

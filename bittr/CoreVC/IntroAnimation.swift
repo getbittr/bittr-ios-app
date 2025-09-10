@@ -17,10 +17,8 @@ extension CoreViewController {
     override func viewDidAppear(_ animated: Bool) {
         
         // Set correct height constraint for menu bar.
-        if let window = UIApplication.shared.windows.first {
-            if window.safeAreaInsets.bottom == 0 {
-                self.menuBarViewHeight.constant = 68
-            }
+        if self.view.safeAreaInsets.bottom == 0 {
+            self.menuBarViewHeight.constant = 68
         }
         
         // Start startup animation sequence.

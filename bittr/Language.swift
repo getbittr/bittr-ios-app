@@ -402,7 +402,8 @@ class Language: NSObject {
             "paymentrequest": "Payment Request",
             "paymentrequest2": "Someone wants to pay you <amount> satoshis! Please sign in to accept the payment.",
             "notification": "Notification",
-            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect."
+            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect.",
+            "generatinginvoice": "Generating invoice..."
         ]
         
         if let foundWord = allWords[withID] {
