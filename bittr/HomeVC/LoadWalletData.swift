@@ -757,7 +757,7 @@ extension UIViewController {
             thisTransaction.isFundingTransaction = true
             
             let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
             let transactionDate = formatter.date(from:bittrTransaction!.datetime)!
             let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
             thisTransaction.timestamp = transactionTimestamp

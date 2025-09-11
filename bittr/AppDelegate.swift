@@ -73,7 +73,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Handle the notification content even when app is in foreground
         let userInfo = notification.request.content.userInfo
         
-        if let swapData = userInfo["swap_notification"] as? [String: Any] {
+        if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
+            // Handle Lightning payment notifications in foreground
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: userInfo) as Notification)
+            }
+        } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
+            // Handle Bittr notifications in foreground
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
+            }
+        } else if let swapData = userInfo["swap_notification"] as? [String: Any] {
             // Handle swap-specific notifications in foreground
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: swapData) as Notification)

@@ -124,7 +124,7 @@ struct EnvironmentConfig {
     
     /// Lightning node addresses based on environment
     static var lightningNodeAddress: String {
-        isDevelopment ? "31.58.51.17:29735" : "86.104.228.24:9735"
+        isDevelopment ? "31.58.51.17:19735" : "86.104.228.24:9735"
     }
     
     // MARK: - Cache Configuration
