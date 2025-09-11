@@ -100,7 +100,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 // Check if it's a Lightning payment or another message.
                 if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: userInfo) as Notification)  
+                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: userInfo) as Notification)
                     }
                 } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
