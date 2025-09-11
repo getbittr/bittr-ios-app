@@ -893,7 +893,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\n\n# Script to set environment based on git branch\n# This script should be run as a build phase in Xcode\n\n# Get the current branch name\nBRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)\n\n# Set environment based on branch\nif [[ \"$BRANCH_NAME\" == \"develop\" || \"$BRANCH_NAME\" == \"upgrade\" ]]; then\n    echo \"Setting environment to PRODUCTION for branch: $BRANCH_NAME\"\n    ENVIRONMENT=\"production\"\n    BUNDLE_ID=\"com.bittr.bittr\"\n    APP_NAME=\"bittr\"\n    WIDGET_BUNDLE_ID=\"com.bittr.bittr.BittrWidget\"\nelse\n    echo \"Setting environment to DEVELOPMENT for branch: $BRANCH_NAME\"\n    ENVIRONMENT=\"development\"\n    BUNDLE_ID=\"com.bittr.bittrRegtest\"\n    APP_NAME=\"bittrRegtest\"\n    WIDGET_BUNDLE_ID=\"com.bittr.bittr-regtest.BittrWidget\"\nfi\n\n# Use SRCROOT if available (Xcode build), otherwise use current directory\nTARGET_DIR=\"${SRCROOT:-$(pwd)}/bittr\"\n\n# Create a simple environment file that can be read at runtime\necho \"$ENVIRONMENT\" > \"$TARGET_DIR/environment.txt\"\n\n# Modify the Info.plist file directly\nINFO_PLIST=\"$TARGET_DIR/Info.plist\"\n\nif [ -f \"$INFO_PLIST\" ]; then\n    # Use PlistBuddy to modify the Info.plist\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleIdentifier $BUNDLE_ID\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName $APP_NAME\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleName $APP_NAME\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :ENVIRONMENT $ENVIRONMENT\" \"$INFO_PLIST\" 2>/dev/null || true\n    \n    echo \"Modified Info.plist with new bundle ID and app name\"\nelse\n    echo \"Warning: Info.plist not found at $INFO_PLIST\"\nfi\n\n# Only modify the Xcode project file when running manually (not as a build phase)\nif [ -z \"$SRCROOT\" ]; then\n    # Also modify the Xcode project file to update INFOPLIST_KEY_CFBundleDisplayName\n    PROJECT_FILE=\"$(pwd)/bittr.xcodeproj/project.pbxproj\"\n    \n    if [ -f \"$PROJECT_FILE\" ]; then\n        # Use sed to replace the INFOPLIST_KEY_CFBundleDisplayName value (handle both quoted and unquoted)\n        sed -i '' \"s/INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;]*;/INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;/g\" \"$PROJECT_FILE\"\n        echo \"Modified project.pbxproj with new app name: $APP_NAME\"\n        \n        # Update the BittrWidget bundle identifier (handle both quoted and unquoted)\n        sed -i '' \"s/PRODUCT_BUNDLE_IDENTIFIER = \\\"com\\.bittr\\.bittr[^.]*\\.BittrWidget\\\"/PRODUCT_BUNDLE_IDENTIFIER = \\\"$WIDGET_BUNDLE_ID\\\"/g\" \"$PROJECT_FILE\"\n        sed -i '' \"s/PRODUCT_BUNDLE_IDENTIFIER = com\\.bittr\\.bittr[^.]*\\.BittrWidget;/PRODUCT_BUNDLE_IDENTIFIER = $WIDGET_BUNDLE_ID;/g\" \"$PROJECT_FILE\"\n        echo \"Modified project.pbxproj with new widget bundle ID: $WIDGET_BUNDLE_ID\"\n    else\n        echo \"Warning: project.pbxproj not found at $PROJECT_FILE\"\n    fi\nelse\n    echo \"Running as build phase - skipping project file modifications\"\nfi\n\necho \"Environment set to: $ENVIRONMENT\"\necho \"Bundle ID set to: $BUNDLE_ID\"\necho \"App name set to: $APP_NAME\"\necho \"Widget Bundle ID set to: $WIDGET_BUNDLE_ID\"\n";
+			shellScript = "#!/bin/bash\n\n# Script to set environment based on git branch\n# This script should be run as a build phase in Xcode\n\n# Get the current branch name\nBRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)\n\n# Set environment based on branch\nif [[ \"$BRANCH_NAME\" == \"develop\" || \"$BRANCH_NAME\" == \"upgrade\" ]]; then\n    echo \"Setting environment to PRODUCTION for branch: $BRANCH_NAME\"\n    ENVIRONMENT=\"production\"\n    BUNDLE_ID=\"com.bittr.bittr\"\n    APP_NAME=\"bittr\"\n    WIDGET_BUNDLE_ID=\"com.bittr.bittr.BittrWidget\"\nelse\n    echo \"Setting environment to DEVELOPMENT for branch: $BRANCH_NAME\"\n    ENVIRONMENT=\"development\"\n    BUNDLE_ID=\"com.bittr.bittrRegtest\"\n    APP_NAME=\"bittrRegtest\"\n    WIDGET_BUNDLE_ID=\"com.bittr.bittr-regtest.BittrWidget\"\nfi\n\n# Use SRCROOT if available (Xcode build), otherwise use current directory\nTARGET_DIR=\"${SRCROOT:-$(pwd)}/bittr\"\n\n# Create a simple environment file that can be read at runtime\necho \"$ENVIRONMENT\" > \"$TARGET_DIR/environment.txt\"\n\n# Modify the Info.plist file directly\nINFO_PLIST=\"$TARGET_DIR/Info.plist\"\n\nif [ -f \"$INFO_PLIST\" ]; then\n    # Use PlistBuddy to modify the Info.plist\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleIdentifier $BUNDLE_ID\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName $APP_NAME\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundleName $APP_NAME\" \"$INFO_PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :ENVIRONMENT $ENVIRONMENT\" \"$INFO_PLIST\" 2>/dev/null || true\n    \n    echo \"Modified Info.plist with new bundle ID and app name\"\nelse\n    echo \"Warning: Info.plist not found at $INFO_PLIST\"\nfi\n\n# Only modify the Xcode project file when running manually (not as a build phase)\nif [ -z \"$SRCROOT\" ]; then\n    # Also modify the Xcode project file to update INFOPLIST_KEY_CFBundleDisplayName\n    PROJECT_FILE=\"$(pwd)/bittr.xcodeproj/project.pbxproj\"\n    \n    if [ -f \"$PROJECT_FILE\" ]; then\n        # Use sed to replace the INFOPLIST_KEY_CFBundleDisplayName value (handle both quoted and unquoted)\n        sed -i '' \"s/INFOPLIST_KEY_CFBundleDisplayName = bittr;]*;/INFOPLIST_KEY_CFBundleDisplayName = bittr;/g\" \"$PROJECT_FILE\"\n        echo \"Modified project.pbxproj with new app name: $APP_NAME\"\n        \n        # Update the BittrWidget bundle identifier (handle both quoted and unquoted)\n        sed -i '' \"s/PRODUCT_BUNDLE_IDENTIFIER = \\\"com\\.bittr\\.bittr[^.]*\\.BittrWidget\\\"/PRODUCT_BUNDLE_IDENTIFIER = \\\"$WIDGET_BUNDLE_ID\\\"/g\" \"$PROJECT_FILE\"\n        sed -i '' \"s/PRODUCT_BUNDLE_IDENTIFIER = com\\.bittr\\.bittr[^.]*\\.BittrWidget;/PRODUCT_BUNDLE_IDENTIFIER = $WIDGET_BUNDLE_ID;/g\" \"$PROJECT_FILE\"\n        echo \"Modified project.pbxproj with new widget bundle ID: $WIDGET_BUNDLE_ID\"\n    else\n        echo \"Warning: project.pbxproj not found at $PROJECT_FILE\"\n    fi\nelse\n    echo \"Running as build phase - skipping project file modifications\"\nfi\n\necho \"Environment set to: $ENVIRONMENT\"\necho \"Bundle ID set to: $BUNDLE_ID\"\necho \"App name set to: $APP_NAME\"\necho \"Widget Bundle ID set to: $WIDGET_BUNDLE_ID\"\n";
 		};
 		BDB9C584C6434C5EA1249EE8 /* Upload Debug Symbols to Sentry */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1100,7 +1100,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BittrWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1110,7 +1110,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrRegtest.BittrWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -1133,7 +1133,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BittrWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1143,7 +1143,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrRegtest.BittrWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1287,7 +1287,7 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
@@ -1304,7 +1304,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrRegtest;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1329,7 +1329,7 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
@@ -1346,7 +1346,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrRegtest;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1364,11 +1364,11 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1384,11 +1384,11 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1403,11 +1403,11 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -1422,11 +1422,11 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = GFR2R8MM32;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tommelters.bittrUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
