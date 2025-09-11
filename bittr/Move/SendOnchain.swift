@@ -38,7 +38,10 @@ extension SendViewController {
                 divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
             }
             
-            self.onchainAmountInSatoshis = Int(((self.stringToNumber(self.amountTextField.text)/divideBy) * 100000000).rounded())
+            let amount = self.stringToNumber(self.amountTextField.text)/divideBy
+            let decimal = Decimal(Double(amount))
+            let satoshis = decimal * Decimal(100000000)
+            self.onchainAmountInSatoshis = Int(truncating: satoshis as NSDecimalNumber)
             self.onchainAmountInBTC = CGFloat(self.onchainAmountInSatoshis)/100000000
             
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0  {

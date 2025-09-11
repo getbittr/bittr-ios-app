@@ -101,8 +101,10 @@ extension CoreViewController {
         // Extract required data from specialData
         if let notificationId = specialData["notification_id"] as? String {
             let bitcoinAmountString = specialData["bitcoin_amount"] as? String ?? "0"
-            let bitcoinAmount = Double(bitcoinAmountString) ?? 0.0
-            let amountMsat = UInt64(bitcoinAmount * 100_000_000_000)
+            print("Bitcoin amount: \(bitcoinAmountString)")
+            let bitcoinAmount = Decimal(string: bitcoinAmountString) ?? Decimal(0)
+            let amountMsat = UInt64(truncating: (bitcoinAmount * Decimal(100_000_000_000)) as NSDecimalNumber)
+            print("Amount msat: \(amountMsat)")
             
             let pubkey = LightningNodeService.shared.nodeId()
             print("Did get public key.")

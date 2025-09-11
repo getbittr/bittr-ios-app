@@ -490,7 +490,9 @@ extension Int {
 
 extension CGFloat {
     func inSatoshis() -> Int {
-        return Int((self * 100_000_000).rounded())
+        let decimal = Decimal(Double(self))
+        let satoshis = decimal * Decimal(100_000_000)
+        return Int(truncating: satoshis as NSDecimalNumber)
     }
     
     func inBTC() -> CGFloat {
