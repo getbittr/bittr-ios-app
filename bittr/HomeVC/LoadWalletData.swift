@@ -734,16 +734,16 @@ extension UIViewController {
             
             // Lightning payment.
             thisTransaction.id = paymentDetails!.kind.preimageAsString ?? paymentDetails!.id
-            thisTransaction.note = CacheManager.getTransactionNote(txid: paymentDetails!.id)
+            thisTransaction.note = CacheManager.getTransactionNote(txid: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
             if paymentDetails!.direction == .inbound {
                 thisTransaction.received = Int(paymentDetails!.amountMsat ?? 0)/1000
             } else {
                 thisTransaction.sent = Int(paymentDetails!.amountMsat ?? 0)/1000
-                thisTransaction.fee = CacheManager.getLightningFees(hash: paymentDetails!.id)
+                thisTransaction.fee = CacheManager.getLightningFees(hash: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
             }
             thisTransaction.isLightning = true
-            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(hash: paymentDetails!.id)
-            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentDetails!.id)
+            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
+            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
             if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
                 thisTransaction.channelId = actualChannels.first!.channelId
             }

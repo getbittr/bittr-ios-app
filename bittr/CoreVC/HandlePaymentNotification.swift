@@ -131,7 +131,7 @@ extension CoreViewController {
                         DispatchQueue.main.async {
                             if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description) {
                                 let newTimestamp = Int(Date().timeIntervalSince1970)
-                                CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                                CacheManager.storeInvoiceTimestamp(preimage: invoiceHash, timestamp: newTimestamp)
                                 CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
                                 print("Did cache invoice data.")
                             }
@@ -311,7 +311,7 @@ extension CoreViewController {
                     // Create transaction item.
                     let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
                     if feePaidMsat != nil, Int(feePaidMsat!/1000) > 0 {
-                        CacheManager.storePaymentFees(hash: paymentDetails.kind.preimageAsString ?? paymentDetails.id, fees: Int(feePaidMsat!/1000))
+                        CacheManager.storePaymentFees(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, fees: Int(feePaidMsat!/1000))
                         newTransaction.fee = Int(feePaidMsat!/1000)
                     }
                     

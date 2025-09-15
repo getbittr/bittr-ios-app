@@ -558,7 +558,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func storeInvoiceTimestamp(hash:String, timestamp:Int) {
+    static func storeInvoiceTimestamp(preimage:String, timestamp:Int) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "hashes")
         
@@ -567,14 +567,14 @@ class CacheManager: NSObject {
         if let actualCachedHashes = cachedHashes {
             // Hashes have been cached.
             if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
-                actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
+                actualMutableHashes.setObject(timestamp, forKey: preimage as NSCopying)
                 defaults.set(actualMutableHashes, forKey: envKey)
                 print("Timestamp cached.")
             }
         } else {
             // No hashes have been cached.
             let actualMutableHashes = NSMutableDictionary()
-            actualMutableHashes.setObject(timestamp, forKey: hash as NSCopying)
+            actualMutableHashes.setObject(timestamp, forKey: preimage as NSCopying)
             defaults.set(actualMutableHashes, forKey: envKey)
             print("Timestamp cached.")
         }
@@ -647,7 +647,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func storePaymentFees(hash:String, fees:Int) {
+    static func storePaymentFees(preimage:String, fees:Int) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "lightningfees")
         
@@ -656,20 +656,20 @@ class CacheManager: NSObject {
         if let actualCachedHashes = cachedHashes {
             // Hashes have been cached.
             if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
-                actualMutableHashes.setObject(fees, forKey: hash as NSCopying)
+                actualMutableHashes.setObject(fees, forKey: preimage as NSCopying)
                 defaults.set(actualMutableHashes, forKey: envKey)
                 print("Lightning fees cached.")
             }
         } else {
             // No hashes have been cached.
             let actualMutableHashes = NSMutableDictionary()
-            actualMutableHashes.setObject(fees, forKey: hash as NSCopying)
+            actualMutableHashes.setObject(fees, forKey: preimage as NSCopying)
             defaults.set(actualMutableHashes, forKey: envKey)
             print("Lightning fees cached.")
         }
     }
     
-    static func getInvoiceTimestamp(hash:String) -> Int {
+    static func getInvoiceTimestamp(preimage:String) -> Int {
         
         let envKey = EnvironmentConfig.cacheKey(for: "hashes")
         
@@ -680,12 +680,12 @@ class CacheManager: NSObject {
             if let foundTimestamp = actualCachedHashes[hash] as? Int {
                 return foundTimestamp
             } else {
-                self.storeInvoiceTimestamp(hash: hash, timestamp: Int(Date().timeIntervalSince1970))
+                self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
                 return Int(Date().timeIntervalSince1970)
             }
         } else {
             // No hashes have been cached.
-            self.storeInvoiceTimestamp(hash: hash, timestamp: Int(Date().timeIntervalSince1970))
+            self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
             return Int(Date().timeIntervalSince1970)
         }
     }
