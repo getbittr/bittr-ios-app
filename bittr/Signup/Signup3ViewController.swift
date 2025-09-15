@@ -21,6 +21,7 @@ class Signup3ViewController: UIViewController {
     @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var mnemonicView: UIView!
+    @IBOutlet weak var mnemonicStack: UIView!
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var scrollView: UIScrollView!
@@ -36,20 +37,6 @@ class Signup3ViewController: UIViewController {
     var pageArticle1 = Article()
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
-    
-    // Mnemonic word labels.
-    @IBOutlet weak var word1: UILabel!
-    @IBOutlet weak var word2: UILabel!
-    @IBOutlet weak var word3: UILabel!
-    @IBOutlet weak var word4: UILabel!
-    @IBOutlet weak var word5: UILabel!
-    @IBOutlet weak var word6: UILabel!
-    @IBOutlet weak var word7: UILabel!
-    @IBOutlet weak var word8: UILabel!
-    @IBOutlet weak var word9: UILabel!
-    @IBOutlet weak var word10: UILabel!
-    @IBOutlet weak var word11: UILabel!
-    @IBOutlet weak var word12: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -70,9 +57,16 @@ class Signup3ViewController: UIViewController {
         self.cardView.layer.shadowRadius = 12.0
         self.cardView.layer.shadowOpacity = 0.05
         
+        // Yellow card styling
+        self.mnemonicView.layer.cornerRadius = 13
+        self.mnemonicView.layer.shadowColor = UIColor.black.cgColor
+        self.mnemonicView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.mnemonicView.layer.shadowRadius = 10.0
+        self.mnemonicView.layer.shadowOpacity = 0.1
+        
         // Words and colors
         self.changeColors()
-        self.setWords2()
+        self.setWords()
         self.setMnemonic()
         Task {
             await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
@@ -84,28 +78,59 @@ class Signup3ViewController: UIViewController {
     func setMnemonic() {
         
         // Step 8.
-        if self.signupVC?.coreVC == nil { print("CoreVC nil in Signup3.") }
         if let actualMnemonic = self.signupVC?.coreVC?.newMnemonic {
-            self.word1.text = actualMnemonic[0]
-            self.word2.text = actualMnemonic[1]
-            self.word3.text = actualMnemonic[2]
-            self.word4.text = actualMnemonic[3]
-            self.word5.text = actualMnemonic[4]
-            self.word6.text = actualMnemonic[5]
-            self.word7.text = actualMnemonic[6]
-            self.word8.text = actualMnemonic[7]
-            self.word9.text = actualMnemonic[8]
-            self.word10.text = actualMnemonic[9]
-            self.word11.text = actualMnemonic[10]
-            self.word12.text = actualMnemonic[11]
+            for (index, eachWord) in actualMnemonic.enumerated() {
+                
+                let whiteCard = UIView()
+                whiteCard.translatesAutoresizingMaskIntoConstraints = false
+                whiteCard.layer.cornerRadius = 8
+                whiteCard.backgroundColor = Colors.getColor("whiteorblue3")
+                self.mnemonicStack.addSubview(whiteCard)
+                
+                let whiteCardTop = NSLayoutConstraint(item: whiteCard, attribute: .top, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .top, multiplier: 1, constant: CGFloat(index)*55)
+                let whiteCardLeft = NSLayoutConstraint(item: whiteCard, attribute: .leading, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .leading, multiplier: 1, constant: 10)
+                let whiteCardRight = NSLayoutConstraint(item: whiteCard, attribute: .trailing, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .trailing, multiplier: 1, constant: -10)
+                let whiteCardHeight = NSLayoutConstraint(item: whiteCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 45)
+                whiteCard.addConstraint(whiteCardHeight)
+                self.mnemonicStack.addConstraints([whiteCardTop, whiteCardLeft, whiteCardRight])
+                if index == 11 {
+                    let whiteCardBottom = NSLayoutConstraint(item: whiteCard, attribute: .bottom, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .bottom, multiplier: 1, constant: 0)
+                    self.mnemonicStack.addConstraint(whiteCardBottom)
+                }
+                
+                let numberLabel = UILabel()
+                numberLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                numberLabel.textColor = Colors.getColor("yellow")
+                numberLabel.translatesAutoresizingMaskIntoConstraints = false
+                numberLabel.text = "\(index+1)"
+                whiteCard.addSubview(numberLabel)
+                
+                let numberLeft = NSLayoutConstraint(item: numberLabel, attribute: .leading, relatedBy: .equal, toItem: whiteCard, attribute: .leading, multiplier: 1, constant: 20)
+                let numberCenterY = NSLayoutConstraint(item: numberLabel, attribute: .centerY, relatedBy: .equal, toItem: whiteCard, attribute: .centerY, multiplier: 1, constant: 1.5)
+                let numberWidth = NSLayoutConstraint(item: numberLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                let numberHeight = NSLayoutConstraint(item: numberLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                numberLabel.addConstraints([numberWidth, numberHeight])
+                whiteCard.addConstraints([numberLeft, numberCenterY])
+                
+                let wordLabel = UILabel()
+                wordLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                wordLabel.textColor = Colors.getColor("blackorwhite")
+                wordLabel.translatesAutoresizingMaskIntoConstraints = false
+                wordLabel.text = eachWord
+                whiteCard.addSubview(wordLabel)
+                
+                let wordCenterX = NSLayoutConstraint(item: wordLabel, attribute: .centerX, relatedBy: .equal, toItem: whiteCard, attribute: .centerX, multiplier: 1, constant: 0)
+                let wordCenterY = NSLayoutConstraint(item: wordLabel, attribute: .centerY, relatedBy: .equal, toItem: whiteCard, attribute: .centerY, multiplier: 1, constant: 1.5)
+                let wordWidth = NSLayoutConstraint(item: wordLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                let wordHeight = NSLayoutConstraint(item: wordLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+                wordLabel.addConstraints([wordWidth, wordHeight])
+                whiteCard.addConstraints([wordCenterX, wordCenterY])
+            }
+            self.view.layoutIfNeeded()
         }
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
-        
-        /*let notificationDict:[String: Any] = ["page":sender.accessibilityIdentifier]
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
-        
         self.signupVC?.moveToPage(6)
     }
     
@@ -115,7 +140,6 @@ class Signup3ViewController: UIViewController {
         
         // Make sure view is scrollable for smaller phone screens.
         if centerView.bounds.height + 40 > contentView.bounds.height {
-            
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight)
             NSLayoutConstraint.activate([self.contentViewHeight])
@@ -131,13 +155,12 @@ class Signup3ViewController: UIViewController {
     }
     
     func changeColors() {
-        
         self.topLabelOne.textColor = Colors.getColor("blackorwhite")
         self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.mnemonicView.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
-    func setWords2() {
-        
+    func setWords() {
         self.topLabelOne.text = Language.getWord(withID: "recoveryphrase")
         self.topLabelTwo.text = Language.getWord(withID: "recoveryphrase2")
         self.nextLabel.text = Language.getWord(withID: "next")

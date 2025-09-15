@@ -40,9 +40,9 @@ extension CoreViewController {
                         self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
                         NSLayoutConstraint.activate([self.logoViewTop])
                         self.signupContainerView.alpha = self.signupAlpha
+                        self.topBar.alpha = 1
                         if self.signupAlpha == 0 {
                             self.pinContainerView.alpha = 1
-                            self.topBar.alpha = 1
                         }
                         self.view.layoutIfNeeded()
                     } completion: { finished in

@@ -99,6 +99,8 @@ class Colors: NSObject {
             if darkModeIsOn {return self.returnColor("blue1", 1.0)}
             else {return UIColor.black}
             
+        case "yellow": return self.returnColor("yellow", 1)
+            
         default:
             return UIColor.white
         }
