@@ -45,6 +45,11 @@ extension SendViewController {
                let maxAmount = self.pendingLNURLMaxAmount {
                 // Handle LNURL amount completion
                 self.handleLNURLAmountCompletion()
+            } else if let callback = self.pendingWithdrawCallback,
+                      let minAmount = self.pendingWithdrawMinAmount,
+                      let maxAmount = self.pendingWithdrawMaxAmount {
+                // Handle withdraw request amount completion
+                self.handleWithdrawAmountCompletion()
             } else {
                 // Normal flow - move to next step
                 self.nextButtonTapped(nextButton)

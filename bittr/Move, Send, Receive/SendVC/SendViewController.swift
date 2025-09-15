@@ -152,6 +152,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var pendingLNURLMinAmount: Int?
     var pendingLNURLMaxAmount: Int?
     
+    // LNURL Withdraw request properties
+    var pendingWithdrawCallback: String?
+    var pendingWithdrawK1: String?
+    var pendingWithdrawMinAmount: Int?
+    var pendingWithdrawMaxAmount: Int?
+    
     // User selected variables
     var selectedCurrency:SelectedCurrency = .satoshis
     var onchainOrLightning:OnchainOrLightning = .lightning
@@ -357,6 +363,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                let maxAmount = pendingLNURLMaxAmount {
                 // Handle LNURL amount completion
                 handleLNURLAmountCompletion()
+            } else if let callback = pendingWithdrawCallback,
+                      let minAmount = pendingWithdrawMinAmount,
+                      let maxAmount = pendingWithdrawMaxAmount {
+                // Handle withdraw request amount completion
+                handleWithdrawAmountCompletion()
             } else {
                 // Move to next step
                 amountTextField.resignFirstResponder()
@@ -427,6 +438,43 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                            receiveVC: nil, 
                            receivedDescription: description)
     }
+    
+    func handleWithdrawAmountCompletion() {
+        guard let callback = pendingWithdrawCallback,
+              let k1 = pendingWithdrawK1,
+              let minAmount = pendingWithdrawMinAmount,
+              let maxAmount = pendingWithdrawMaxAmount,
+              let amountText = amountTextField.text,
+              !amountText.isEmpty else {
+            return
+        }
+        
+        // Convert amount to millisatoshis
+        let enteredAmount = Int(stringToNumber(amountText)) * 1000
+        
+        // Validate amount is within range
+        if enteredAmount < minAmount || enteredAmount > maxAmount {
+            let minSats = minAmount / 1000
+            let maxSats = maxAmount / 1000
+            showAlert(presentingController: self, 
+                     title: Language.getWord(withID: "oops"), 
+                     message: "Amount must be between \(minSats) and \(maxSats) satoshis", 
+                     buttons: [Language.getWord(withID: "okay")], 
+                     actions: nil)
+            return
+        }
+        
+        // Clear pending withdraw data
+        pendingWithdrawCallback = nil
+        pendingWithdrawK1 = nil
+        pendingWithdrawMinAmount = nil
+        pendingWithdrawMaxAmount = nil
+        
+        // Send the withdraw request
+        amountTextField.resignFirstResponder()
+        self.sendWithdrawRequest(callbackURL: callback, amount: enteredAmount, k1: k1, sendVC: self, receiveVC: nil)
+    }
+    
     
     
     @objc func selectBTCCurrency() {
@@ -499,6 +547,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
            let minAmount = pendingLNURLMinAmount,
            let maxAmount = pendingLNURLMaxAmount {
             handleLNURLAmountCompletion()
+            return
+        }
+        
+        // Check if we have pending withdraw request data
+        if let callback = pendingWithdrawCallback,
+           let minAmount = pendingWithdrawMinAmount,
+           let maxAmount = pendingWithdrawMaxAmount {
+            handleWithdrawAmountCompletion()
             return
         }
         

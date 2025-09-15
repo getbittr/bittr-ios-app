@@ -88,27 +88,40 @@ extension UIViewController {
                                 } else if receivedTag == "withdrawRequest" {
                                     if let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
                                         
-                                        var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
+                                        // Store withdraw request data for later use
+                                        sendVC?.pendingWithdrawCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+                                        sendVC?.pendingWithdrawK1 = receivedK1
+                                        sendVC?.pendingWithdrawMinAmount = minWithdrawable
+                                        sendVC?.pendingWithdrawMaxAmount = maxWithdrawable
+                                        
                                         if minWithdrawable == maxWithdrawable {
-                                            // Min and max are the same.
-                                            alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), preferredStyle: .alert)
+                                            // Min and max are the same - show confirmation alert
+                                            let message = "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)")
+                                            self.showAlert(presentingController: self, 
+                                                        title: Language.getWord(withID: "withdrawrequest"), 
+                                                        message: message, 
+                                                        buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], 
+                                                        actions: [nil, #selector(self.confirmWithdrawRequest)])
                                         } else {
-                                            // Min and max aren't the same. Choose amount.
-                                            alert.addTextField { (textField) in
-                                                textField.keyboardType = .numberPad
-                                            }
-                                        }
-                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
+                                            // Min and max are different - use the same pattern as LNURL payments
+                                            let minSats = minWithdrawable / 1000
+                                            let maxSats = maxWithdrawable / 1000
                                             
-                                            var amountText = minWithdrawable
-                                            if minWithdrawable != maxWithdrawable {
-                                                // Min and max aren't the same.
-                                                amountText = Int(self.stringToNumber((alert.textFields![0].text ?? "0"))) * 1000
-                                            }
-                                            self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
-                                        }))
-                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                        self.present(alert, animated: true)
+                                            // Update the available amount label to show the range
+                                            sendVC?.availableAmount.text = "You can withdraw \(minSats) - \(maxSats) satoshis"
+                                            
+                                            // Clear and focus the amount field
+                                            sendVC?.amountTextField.text = ""
+                                            sendVC?.btcLabel.text = "Sats"
+                                            sendVC?.selectedCurrency = .satoshis
+                                            sendVC?.amountTextField.becomeFirstResponder()
+                                            
+                                            // Store the withdraw request data for when user enters amount
+                                            sendVC?.pendingWithdrawCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+                                            sendVC?.pendingWithdrawK1 = receivedK1
+                                            sendVC?.pendingWithdrawMinAmount = minWithdrawable
+                                            sendVC?.pendingWithdrawMaxAmount = maxWithdrawable
+                                        }
                                     }
                                 } else {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -257,6 +270,26 @@ extension UIViewController {
                 }
             }
         }
+    }
+    
+    // MARK: - LNURL Withdraw Request Methods
+    
+    @objc func confirmWithdrawRequest() {
+        guard let sendVC = self as? SendViewController,
+              let callback = sendVC.pendingWithdrawCallback,
+              let k1 = sendVC.pendingWithdrawK1,
+              let minAmount = sendVC.pendingWithdrawMinAmount else {
+            return
+        }
+        
+        // Use the fixed amount (min and max are the same)
+        sendWithdrawRequest(callbackURL: callback, amount: minAmount, k1: k1, sendVC: sendVC, receiveVC: nil)
+        
+        // Clear pending data
+        sendVC.pendingWithdrawCallback = nil
+        sendVC.pendingWithdrawK1 = nil
+        sendVC.pendingWithdrawMinAmount = nil
+        sendVC.pendingWithdrawMaxAmount = nil
     }
     
     func getInvoiceHash(invoiceString:String) -> String? {
