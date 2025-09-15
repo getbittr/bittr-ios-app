@@ -73,6 +73,8 @@ extension UIViewController {
                                             
                                             // Clear and focus the amount field
                                             sendVC?.amountTextField.text = ""
+                                            sendVC?.btcLabel.text = "Sats"
+                                            sendVC?.selectedCurrency = .satoshis
                                             sendVC?.amountTextField.becomeFirstResponder()
                                             
                                             // Store the callback and description for when user enters amount
@@ -80,6 +82,7 @@ extension UIViewController {
                                             sendVC?.pendingLNURLDescription = receivedDescription
                                             sendVC?.pendingLNURLMinAmount = minSendable
                                             sendVC?.pendingLNURLMaxAmount = maxSendable
+                                            
                                         }
                                     }
                                 } else if receivedTag == "withdrawRequest" {
@@ -135,11 +138,11 @@ extension UIViewController {
     
     func sendPayRequest(callbackURL:String, amount:Int, sendVC:SendViewController?, receiveVC:ReceiveViewController?, receivedDescription:String?) {
         
+        
         sendVC?.startLNURLSpinner()
         receiveVC?.startLNURLSpinner()
         
         let actualUrl = "\(callbackURL)?amount=\(amount)"
-        print("Actual URL: \(actualUrl)")
         
         Task {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: "GET") { result in

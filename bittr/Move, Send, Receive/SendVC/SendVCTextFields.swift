@@ -38,6 +38,7 @@ extension SendViewController {
             self.amountTextField.becomeFirstResponder()
             return true
         } else if textField == amountTextField {
+            
             // Check if we have pending LNURL data
             if let callback = self.pendingLNURLCallback,
                let minAmount = self.pendingLNURLMinAmount,

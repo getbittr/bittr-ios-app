@@ -153,8 +153,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var pendingLNURLMaxAmount: Int?
     
     // User selected variables
-    var selectedCurrency:SelectedCurrency = .bitcoin
-    var onchainOrLightning:OnchainOrLightning = .onchain
+    var selectedCurrency:SelectedCurrency = .satoshis
+    var onchainOrLightning:OnchainOrLightning = .lightning
     
     // Temporary invoice variables
     var temporaryInvoiceText = ""
@@ -234,7 +234,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         // Set colors and language
         self.changeColors()
         self.setWords()
-        self.setSendAllLabel(forView: .onchain)
+        self.setSendAllLabel(forView: .lightning)
+        
+        // Set default currency to satoshis
+        self.btcLabel.text = "Sats"
+        
+        // Initialize UI for Lightning mode
+        self.hideScannerView(forView: .lightning)
         
         // Handle pending URI data from segue
         if let bitcoinURI = self.pendingBitcoinURI {
@@ -266,7 +272,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
         } else {
             // Set "Send all" for lightning payments.
-            self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: String((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000).addSpaces())
+            let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
+            self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats)".addSpaces())
         }
     }
     
@@ -343,6 +350,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @objc func doneButtonTapped() {
         // Only handle amount field since address field doesn't have a Done button
         if amountTextField.isFirstResponder {
+            
             // Check if we have pending LNURL data
             if let callback = pendingLNURLCallback,
                let minAmount = pendingLNURLMinAmount,
@@ -358,6 +366,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     func handleLNURLAmountCompletion() {
+        
         guard let callback = pendingLNURLCallback,
               let minAmount = pendingLNURLMinAmount,
               let maxAmount = pendingLNURLMaxAmount,
@@ -366,7 +375,28 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             return
         }
         
-        let enteredAmount = Int(stringToNumber(amountText)) * 1000 // Convert to millisatoshis
+        // Convert amount to millisatoshis based on current currency
+        var enteredAmount: Int
+        if self.selectedCurrency == .satoshis {
+            enteredAmount = Int(stringToNumber(amountText)) * 1000 // Convert satoshis to millisatoshis
+        } else if self.selectedCurrency == .bitcoin {
+            let btcAmount = stringToNumber(amountText)
+            let satoshis = btcAmount.inSatoshis()
+            enteredAmount = satoshis * 1000 // Convert to millisatoshis
+        } else { // .currency (fiat)
+            let fiatAmount = stringToNumber(amountText)
+            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let btcAmount = fiatAmount / bitcoinValue.currentValue
+            
+            // Safety check for invalid values
+            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                return
+            }
+            
+            let satoshis = btcAmount.inSatoshis()
+            enteredAmount = satoshis * 1000 // Convert to millisatoshis
+        }
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
@@ -418,11 +448,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func availableButtonTapped(_ sender: UIButton) {
         
         if self.onchainOrLightning == .onchain {
-            // Regular
-            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC())
-            self.amountTextField.text = formattedAmount
-            self.btcLabel.text = "BTC"
-            self.selectedCurrency = .bitcoin
+            // Regular - use satoshis for onchain too
+            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()).inSatoshis()
+            self.amountTextField.text = "\(sendableInSatoshis)"
+            self.btcLabel.text = "Sats"
+            self.selectedCurrency = .satoshis
         } else {
             // Instant
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
@@ -464,6 +494,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
+        // Check if we have pending LNURL data FIRST (for when Next button shows "Done")
+        if let callback = pendingLNURLCallback,
+           let minAmount = pendingLNURLMinAmount,
+           let maxAmount = pendingLNURLMaxAmount {
+            handleLNURLAmountCompletion()
+            return
+        }
+        
         if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == .onchain {
             // Check onchain transaction.
             self.checkSendOnchain()
@@ -503,14 +541,29 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     }
                 }
             } else {
-                // Transfer to satoshis.
-                var satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
-                if self.selectedCurrency == .bitcoin {
-                    satoshisValue = self.stringToNumber(self.amountTextField.text).inSatoshis()
-                } else if self.selectedCurrency == .currency {
-                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-                    satoshisValue = (self.stringToNumber(self.amountTextField.text)/bitcoinValue.currentValue).inSatoshis()
-                }
+                // Convert amount to satoshis based on current currency
+                var satoshisValue: Int
+                if self.selectedCurrency == .satoshis {
+                    satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
+                } else if self.selectedCurrency == .bitcoin {
+            let btcAmount = self.stringToNumber(self.amountTextField.text)
+            guard btcAmount.isFinite && !btcAmount.isNaN else {
+                print("⚠️ Warning: Invalid BTC amount: \(btcAmount)")
+                return
+            }
+            satoshisValue = btcAmount.inSatoshis()
+        } else { // .currency (fiat)
+            let fiatAmount = self.stringToNumber(self.amountTextField.text)
+            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let btcAmount = fiatAmount / bitcoinValue.currentValue
+            
+            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                return
+            }
+            satoshisValue = btcAmount.inSatoshis()
+        }
+                
                 self.amountTextField.text = "\(satoshisValue)"
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = .satoshis
@@ -576,6 +629,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             }
         }
         self.hideScannerView(forView: self.onchainOrLightning)
+        self.setSendAllLabel(forView: self.onchainOrLightning)
     }
     
     @IBAction func feeButtonTapped(_ sender: UIButton) {
@@ -592,17 +646,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
-            self.btcLabel.text = "BTC"
-            self.selectedCurrency = .bitcoin
+            self.selectBTCCurrency()
         }
         let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
-            self.btcLabel.text = "Sats"
-            self.selectedCurrency = .satoshis
+            self.selectSatsCurrency()
         }
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
-            self.btcLabel.text = bitcoinValue.chosenCurrency
-            self.selectedCurrency = .currency
+            self.selectFiatCurrency()
         }
         let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
         actionSheet.addAction(btcOption)

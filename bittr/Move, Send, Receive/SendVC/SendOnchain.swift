@@ -490,6 +490,12 @@ extension Int {
 
 extension CGFloat {
     func inSatoshis() -> Int {
+        // Safety check for invalid values
+        guard self.isFinite && !self.isNaN else {
+            print("⚠️ Warning: Invalid CGFloat value (\(self)) in inSatoshis()")
+            return 0
+        }
+        
         let decimal = Decimal(Double(self))
         let satoshis = decimal * Decimal(100_000_000)
         return Int(truncating: satoshis as NSDecimalNumber)

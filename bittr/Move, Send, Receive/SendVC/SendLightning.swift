@@ -164,6 +164,24 @@ extension UIViewController {
         receiveVC?.temporaryInvoiceText = ""
         sendVC?.temporaryInvoiceAmount = 0
         receiveVC?.temporaryInvoiceAmount = 0
+        
+        // Clear pending LNURL data when user cancels
+        sendVC?.pendingLNURLCallback = nil
+        sendVC?.pendingLNURLDescription = nil
+        sendVC?.pendingLNURLMinAmount = nil
+        sendVC?.pendingLNURLMaxAmount = nil
+        
+        // Clear UI fields to reset the screen
+        sendVC?.toTextField.text = ""
+        sendVC?.amountTextField.text = ""
+        sendVC?.btcLabel.text = "Sats"
+        sendVC?.selectedCurrency = .satoshis
+        
+        // Reset helper text to default
+        if let sendVC = sendVC {
+            let lightningSats = sendVC.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0
+            sendVC.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats/1000)".addSpaces())
+        }
         sendVC?.temporaryInvoiceNote = nil
         receiveVC?.temporaryInvoiceNote = nil
         sendVC?.temporaryIsZeroAmountInvoice = false
@@ -230,7 +248,24 @@ extension UIViewController {
         sendVC?.pendingLightningInvoice = ""
         receiveVC?.pendingLightningInvoice = ""
         // Also clear the amount field to make it obvious this is cancelled
-        sendVC?.amountTextField.text = ""   
+        sendVC?.amountTextField.text = ""
+        
+        // Clear pending LNURL data when user cancels swap
+        sendVC?.pendingLNURLCallback = nil
+        sendVC?.pendingLNURLDescription = nil
+        sendVC?.pendingLNURLMinAmount = nil
+        sendVC?.pendingLNURLMaxAmount = nil
+        
+        // Clear UI fields to reset the screen
+        sendVC?.toTextField.text = ""
+        sendVC?.btcLabel.text = "Sats"
+        sendVC?.selectedCurrency = .satoshis
+        
+        // Reset helper text to default
+        if let sendVC = sendVC {
+            let lightningSats = sendVC.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0
+            sendVC.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats/1000)".addSpaces())
+        }
     }
     
     @objc func swapAndPayLightning() {
