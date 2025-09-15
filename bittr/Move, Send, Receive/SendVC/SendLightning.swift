@@ -193,30 +193,10 @@ extension UIViewController {
         
         Task {
             do {
-                var paymentHash:PaymentHash
                 if isZeroAmountInvoice {
-                    paymentHash = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
+                    let _ = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
                 } else {
-                    paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
-                }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    if let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
-                        
-                        if thisPayment.status != .failed {
-                            (sendVC ?? receiveVC!).addNewPaymentToTable(thisPayment: thisPayment, invoiceAmount: invoiceAmount, delegate: (sendVC ?? receiveVC!))
-                        } else {
-                            // Payment came back failed.
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    } else {
-                        // Success alert
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentsuccessful"), message: "Payment hash: \(paymentHash)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    }
-                    
-                    sendVC?.nextLabel.alpha = 1
-                    sendVC?.nextSpinner.stopAnimating()
-                    sendVC?.resetFields()
+                    let _ = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
                 }
             } catch let error as NodeError {
                 let errorString = handleNodeError(error)
@@ -282,7 +262,7 @@ extension UIViewController {
         }
     }
     
-    func addNewPaymentToTable(thisPayment:PaymentDetails, invoiceAmount:Int, delegate:Any?) {
+    func addNewPaymentToTable(thisPayment:PaymentDetails, delegate:Any?) {
         self.hideAlert()
         
         // Set view controllers.
@@ -291,18 +271,13 @@ extension UIViewController {
         let swapVC = delegate as? SwapViewController
         let coreVC = sendVC?.coreVC ?? receiveVC?.coreVC ?? swapVC?.coreVC
         
+        // Update views.
+        sendVC?.nextLabel.alpha = 1
+        sendVC?.nextSpinner.stopAnimating()
+        sendVC?.resetFields()
+        
         // Create transaction.
         let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: thisPayment, bittrTransaction: nil, coreVC: coreVC, bittrTransactions: nil)
-        
-        // Calculate and cache transaction fees.
-        if Int(thisPayment.amountMsat ?? 0)/1000 > invoiceAmount {
-            // Fees were incurred.
-            let feesIncurred = (Int(thisPayment.amountMsat ?? 0)/1000) - invoiceAmount
-            CacheManager.storePaymentFees(hash: thisPayment.kind.preimageAsString ?? thisPayment.id, fees: feesIncurred)
-            newTransaction.fee = feesIncurred
-        } else {
-            newTransaction.fee = 0
-        }
         
         // Cache invoice note.
         if let temporaryInvoiceNote = (sendVC?.temporaryInvoiceNote ?? receiveVC?.temporaryInvoiceNote) {

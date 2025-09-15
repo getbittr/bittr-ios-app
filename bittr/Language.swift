@@ -136,7 +136,7 @@ class Language: NSObject {
             "lightningconfirmation": "Are you sure you want to pay <amount> satoshis (<currency> <convertedamount>)?\n\nThis payment may incur fees of up to <fees> satoshis.",
             "paymentsuccessful": "Payment successful",
             "paymentfailed": "Payment failed",
-            "paymentfailed2": "We were able to broadcast your payment, but it failed.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.",
+            "paymentfailed2": "We were able to broadcast your payment, but it failed. <reason>.\n\nIf funds were recently deposited into your Lightning wallet, it may take some time for these to be confirmed and available for sending elsewhere.",
             "paymentfailed3": "Unable to send bitcoin payment. Please sync your wallet and try again.",
             "buybitcoin": "buy bitcoin",
             "buysubtitle": "To buy bitcoin, make a transfer from your bank account to ours, with your unique code in the description.",
@@ -403,7 +403,17 @@ class Language: NSObject {
             "paymentrequest": "Payment Request",
             "paymentrequest2": "Someone wants to pay you <amount> satoshis! Please sign in to accept the payment.",
             "notification": "Notification",
-            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect."
+            "notificationhandlingfail": "We cannot handle the notification you've received, because it doesn't contain the data we expect.",
+            "recipientRejected": "Recipient rejected",
+            "userAbandoned": "User abandoned",
+            "retriesExhausted": "Retries exhausted",
+            "paymentExpired": "Payment expired",
+            "routeNotFound": "Route not found",
+            "unknownRequiredFeatures": "Unknown required features",
+            "invoiceRequestExpired": "Invoice request expired",
+            "invoiceRequestRejected": "Invoice request rejected",
+            "blindedPathCreationFailed": "Blinded path creation failed",
+            "generatinginvoice": "Generating invoice"
         ]
         
         if let foundWord = allWords[withID] {

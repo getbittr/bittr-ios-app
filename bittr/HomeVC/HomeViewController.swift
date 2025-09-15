@@ -72,7 +72,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary() // Key is the txID, Value is purchaseAmount and currency.
     var cachedLightningIds = [String]()
-    var tappedTransaction = 0
+    var tappedTransaction = Transaction()
     
     // Balance calculations
     var balanceWasFetched = false
@@ -237,9 +237,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @IBAction func transactionButtonTapped(_ sender: UIButton) {
-        
-        self.tappedTransaction = sender.tag
-        self.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+        if let thisTransaction = sender.accessibilityElements?.first as? Transaction {
+            self.tappedTransaction = thisTransaction
+            self.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+        }
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -288,10 +289,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
             }
         } else if segue.identifier == "HomeToTransaction" {
-            let transactionVC = segue.destination as? TransactionViewController
-            if let actualTransactionVC = transactionVC {
-                actualTransactionVC.tappedTransaction = self.setTransactions[self.tappedTransaction]
-                actualTransactionVC.coreVC = self.coreVC
+            if let transactionVC = segue.destination as? TransactionViewController {
+                transactionVC.tappedTransaction = self.tappedTransaction
+                transactionVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "HomeToProfit" {
             let profitVC = segue.destination as? ProfitViewController
