@@ -15,26 +15,33 @@ class Signup3ViewController: UIViewController {
     @IBOutlet weak var topLabelOne: UILabel!
     @IBOutlet weak var topLabelTwo: UILabel!
     
+    // Next button
     @IBOutlet weak var saveView: UIView!
-    @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextLabel: UILabel!
-    @IBOutlet weak var imageContainer: UIView!
+    
+    // Mnemonic stack
     @IBOutlet weak var mnemonicView: UIView!
     @IBOutlet weak var mnemonicStack: UIView!
+    
+    // Scroll view and contents
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
-    @IBOutlet weak var articleButton: UIButton!
     
-    // Article elements.
+    // Article
+    @IBOutlet weak var articleButton: UIButton!
+    @IBOutlet weak var articleView: UIView!
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
+    @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "wallet-recovery"
     var pageArticle1 = Article()
+    
+    // Upper VCs
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     
@@ -43,19 +50,18 @@ class Signup3ViewController: UIViewController {
 
         // Corner radii
         self.saveView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
+        self.articleView.layer.cornerRadius = 13
         self.imageContainer.layer.cornerRadius = 13
-        self.mnemonicView.layer.cornerRadius = 13
         
         // Button titles
         self.articleButton.setTitle("", for: .normal)
         self.nextButton.setTitle("", for: .normal)
         
         // Card styling
-        self.cardView.layer.shadowColor = UIColor.black.cgColor
-        self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        self.cardView.layer.shadowRadius = 12.0
-        self.cardView.layer.shadowOpacity = 0.05
+        self.articleView.layer.shadowColor = UIColor.black.cgColor
+        self.articleView.layer.shadowOffset = CGSize(width: 0, height: 8)
+        self.articleView.layer.shadowRadius = 12.0
+        self.articleView.layer.shadowOpacity = 0.05
         
         // Yellow card styling
         self.mnemonicView.layer.cornerRadius = 13

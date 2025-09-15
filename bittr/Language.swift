@@ -413,7 +413,18 @@ class Language: NSObject {
             "invoiceRequestExpired": "Invoice request expired",
             "invoiceRequestRejected": "Invoice request rejected",
             "blindedPathCreationFailed": "Blinded path creation failed",
-            "generatinginvoice": "Generating invoice"
+            "generatinginvoice": "Generating invoice",
+            "missingwords": "Missing words",
+            "missingwords2": "Please enter all 3 words to confirm your recovery phrase. This helps ensure you have backed up your wallet correctly.",
+            "invalidwords": "Invalid words",
+            "invalidwords2": "Some of the words you entered are not valid recovery phrase words. Please check your backup and try again.",
+            "incorrectphrase": "Incorrect recovery phrase",
+            "incorrectphrase2": "Some of the words you've entered are incorrect. Please double-check your recovery phrase backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words.",
+            "incompletephrase": "Incomplete Recovery Phrase",
+            "incompletephrase2": "Please enter all 12 words of your recovery phrase to restore your wallet.",
+            "restorewalleterror": "Unable to restore wallet. Please try again.",
+            "invalidphrase": "Invalid Recovery Phrase",
+            "invalidphrase2": "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words."
         ]
         
         if let foundWord = allWords[withID] {

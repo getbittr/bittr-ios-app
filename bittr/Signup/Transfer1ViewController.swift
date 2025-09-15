@@ -170,7 +170,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                                 // IBAN validation failed
                                 self.nextButtonActivityIndicator.stopAnimating()
                                 self.nextButtonLabel.alpha = 1
-                                self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
                             } else {
                                 // Success - move to next page
                                 self.signupVC?.moveToPage(11)
@@ -203,7 +203,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
-        self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
+        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [#selector(self.alertGoToWallet), nil])
     }
     
     @objc func alertGoToWallet() {

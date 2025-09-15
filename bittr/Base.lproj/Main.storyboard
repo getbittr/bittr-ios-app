@@ -9779,7 +9779,7 @@
                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="80" id="h7a-b7-TFP"/>
                                                         </constraints>
                                                     </view>
-                                                    <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="124-Pn-m9s" userLabel="Card View">
+                                                    <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="124-Pn-m9s">
                                                         <rect key="frame" x="146" y="280" width="101" height="56"/>
                                                         <subviews>
                                                             <view clipsSubviews="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cjP-5K-yaF" userLabel="Image Container">
@@ -9892,12 +9892,12 @@
                         <outlet property="articleButton" destination="d5j-nB-ITb" id="Sjy-t1-VZL"/>
                         <outlet property="articleImage" destination="SX2-Yo-USA" id="HY5-lz-gbj"/>
                         <outlet property="articleTitle" destination="rRa-ot-EHo" id="pyA-VK-ERZ"/>
-                        <outlet property="cardView" destination="124-Pn-m9s" id="08d-Ka-0zd"/>
+                        <outlet property="articleView" destination="124-Pn-m9s" id="iUd-NM-aSQ"/>
                         <outlet property="centerView" destination="ZKX-j3-EIy" id="xgS-bh-zcu"/>
                         <outlet property="centerViewCenterY" destination="zHe-Ye-OjX" id="OPa-he-CqX"/>
                         <outlet property="contentView" destination="zUw-NM-REp" id="vMN-BD-nGl"/>
                         <outlet property="contentViewHeight" destination="pBc-vK-0UT" id="ORm-ZK-FtV"/>
-                        <outlet property="imageContainer" destination="cjP-5K-yaF" id="vVX-ep-TUP"/>
+                        <outlet property="imageContainer" destination="cjP-5K-yaF" id="gP5-Yg-I3H"/>
                         <outlet property="mnemonicStack" destination="NMu-Hj-kZJ" id="oYS-Qm-ntv"/>
                         <outlet property="mnemonicView" destination="mMP-qK-0Lv" id="klP-yn-J5c"/>
                         <outlet property="nextButton" destination="ijw-ZR-W2c" id="d7v-BT-0dO"/>

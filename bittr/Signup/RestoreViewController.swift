@@ -224,10 +224,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                     self.restoreButtonSpinner.stopAnimating()
                     self.restoreButtonText.alpha = 1
                     self.showAlert(
-                        presentingController: self,
-                        title: "Incomplete Recovery Phrase",
-                        message: "Please enter all 12 words of your recovery phrase to restore your wallet.",
-                        buttons: ["OK"],
+                        presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                        title: Language.getWord(withID: "incompletephrase"),
+                        message: Language.getWord(withID: "incompletephrase2"),
+                        buttons: [Language.getWord(withID: "okay")],
                         actions: nil
                     )
                     return
@@ -248,10 +248,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             self.restoreButtonSpinner.stopAnimating()
                             self.restoreButtonText.alpha = 1
                             self.showAlert(
-                                presentingController: self,
-                                title: "Error",
-                                message: "Unable to restore wallet. Please try again.",
-                                buttons: ["OK"],
+                                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                                title: Language.getWord(withID: "error"),
+                                message: Language.getWord(withID: "restorewalleterror"),
+                                buttons: [Language.getWord(withID: "okay")],
                                 actions: nil
                             )
                             return
@@ -273,11 +273,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                     self.signupVC?.moveToPage(1)
                                 } else {
                                     // Entered mnemonic is incorrect.
-                                    self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             } else {
                                 // No existing mnenonic is available.
-                                self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         } else {
                             print("Wallet restore mode detected")
@@ -310,10 +310,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 self.restoreButtonSpinner.stopAnimating()
                                 self.restoreButtonText.alpha = 1
                                 self.showAlert(
-                                    presentingController: self,
-                                    title: "Invalid Recovery Phrase",
-                                    message: "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words.",
-                                    buttons: ["OK"],
+                                    presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                                    title: Language.getWord(withID: "invalidphrase"),
+                                    message: Language.getWord(withID: "invalidphrase2"),
+                                    buttons: [Language.getWord(withID: "okay")],
                                     actions: nil
                                 )
                                 return
