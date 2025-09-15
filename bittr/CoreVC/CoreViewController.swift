@@ -296,13 +296,15 @@ class CoreViewController: UIViewController {
         print("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
         
         // Check if user is signed in
-        if self.userDidSignIn {
-            // User is signed in, navigate to send screen immediately
-            self.navigateToSendScreenWithBitcoinURI(address: address, amount: amount, label: label)
-        } else {
-            // User hasn't signed in yet, store URI data for later
-            self.storeBitcoinURIData(address: address, amount: amount, label: label)
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        DispatchQueue.main.async {
+            if self.userDidSignIn {
+                // User is signed in, navigate to send screen immediately
+                self.navigateToSendScreenWithBitcoinURI(address: address, amount: amount, label: label)
+            } else {
+                // User hasn't signed in yet, store URI data for later
+                self.storeBitcoinURIData(address: address, amount: amount, label: label)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
         }
     }
     
@@ -318,13 +320,15 @@ class CoreViewController: UIViewController {
         print("Handling Lightning URI - Invoice: \(invoice)")
         
         // Check if user is signed in
-        if self.userDidSignIn {
-            // User is signed in, navigate to send screen immediately
-            self.navigateToSendScreenWithLightningURI(invoice: invoice)
-        } else {
-            // User hasn't signed in yet, store URI data for later
-            self.storeLightningURIData(invoice: invoice)
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        DispatchQueue.main.async {
+            if self.userDidSignIn {
+                // User is signed in, navigate to send screen immediately
+                self.navigateToSendScreenWithLightningURI(invoice: invoice)
+            } else {
+                // User hasn't signed in yet, store URI data for later
+                self.storeLightningURIData(invoice: invoice)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
         }
     }
     

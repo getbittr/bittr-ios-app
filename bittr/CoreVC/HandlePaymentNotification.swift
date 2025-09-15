@@ -316,52 +316,56 @@ extension CoreViewController {
                     }
                     
                     // Check if SendVC or ReceiveVC is open.
-                    let sendVC = (self.homeVC!.presentedViewController as? SendViewController ?? self.homeVC!.moveVC?.presentedViewController as? SendViewController)
-                    let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
-                    if sendVC ?? receiveVC != nil {
-                        // SendVC or ReceiveVC if open. Handle transaction there.
-                        (sendVC ?? receiveVC)!.addNewPaymentToTable(thisPayment: paymentDetails, delegate: (sendVC ?? receiveVC)!)
-                    } else {
-                        // Handle transaction in HomeVC.
-                        self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
-                        if !newTransaction.isSwap {
-                            self.homeVC!.tappedTransaction = newTransaction
-                            self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                    DispatchQueue.main.async {
+                        let sendVC = (self.homeVC!.presentedViewController as? SendViewController ?? self.homeVC!.moveVC?.presentedViewController as? SendViewController)
+                        let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
+                        if sendVC ?? receiveVC != nil {
+                            // SendVC or ReceiveVC if open. Handle transaction there.
+                            (sendVC ?? receiveVC)!.addNewPaymentToTable(thisPayment: paymentDetails, delegate: (sendVC ?? receiveVC)!)
+                        } else {
+                            // Handle transaction in HomeVC.
+                            self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
+                            if !newTransaction.isSwap {
+                                self.homeVC!.tappedTransaction = newTransaction
+                                self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                            }
                         }
                     }
                 }
             case .paymentFailed(paymentId: _, paymentHash: _, reason: let reason):
                 
                 // Check if SendVC or ReceiveVC is active.
-                let sendVC = (self.homeVC!.presentedViewController as? SendViewController ?? self.homeVC!.moveVC?.presentedViewController as? SendViewController)
-                let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
-                
-                // Update views.
-                sendVC?.nextLabel.alpha = 1
-                sendVC?.nextSpinner.stopAnimating()
-                sendVC?.resetFields()
-                
-                // Parse failure reason.
-                var failureReason = ""
-                switch reason {
-                case .none: break
-                case .some(let receivedReason):
-                    switch receivedReason {
-                    case .recipientRejected: failureReason = Language.getWord(withID: "recipientRejected")
-                    case .userAbandoned: failureReason = Language.getWord(withID: "userAbandoned")
-                    case .retriesExhausted: failureReason = Language.getWord(withID: "retriesExhausted")
-                    case .paymentExpired: failureReason = Language.getWord(withID: "paymentExpired")
-                    case .routeNotFound: failureReason = Language.getWord(withID: "routeNotFound")
-                    case .unexpectedError: failureReason = Language.getWord(withID: "unexpectederror")
-                    case .unknownRequiredFeatures: failureReason = Language.getWord(withID: "unknownRequiredFeatures")
-                    case .invoiceRequestExpired: failureReason = Language.getWord(withID: "invoiceRequestExpired")
-                    case .invoiceRequestRejected: failureReason = Language.getWord(withID: "invoiceRequestRejected")
-                    case .blindedPathCreationFailed: failureReason = Language.getWord(withID: "blindedPathCreationFailed")
+                DispatchQueue.main.async {
+                    let sendVC = (self.homeVC!.presentedViewController as? SendViewController ?? self.homeVC!.moveVC?.presentedViewController as? SendViewController)
+                    let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
+                    
+                    // Update views.
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    sendVC?.resetFields()
+                    
+                    // Parse failure reason.
+                    var failureReason = ""
+                    switch reason {
+                    case .none: break
+                    case .some(let receivedReason):
+                        switch receivedReason {
+                        case .recipientRejected: failureReason = Language.getWord(withID: "recipientRejected")
+                        case .userAbandoned: failureReason = Language.getWord(withID: "userAbandoned")
+                        case .retriesExhausted: failureReason = Language.getWord(withID: "retriesExhausted")
+                        case .paymentExpired: failureReason = Language.getWord(withID: "paymentExpired")
+                        case .routeNotFound: failureReason = Language.getWord(withID: "routeNotFound")
+                        case .unexpectedError: failureReason = Language.getWord(withID: "unexpectederror")
+                        case .unknownRequiredFeatures: failureReason = Language.getWord(withID: "unknownRequiredFeatures")
+                        case .invoiceRequestExpired: failureReason = Language.getWord(withID: "invoiceRequestExpired")
+                        case .invoiceRequestRejected: failureReason = Language.getWord(withID: "invoiceRequestRejected")
+                        case .blindedPathCreationFailed: failureReason = Language.getWord(withID: "blindedPathCreationFailed")
+                        }
                     }
+                    
+                    // Show alert.
+                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: failureReason), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
-                
-                // Show alert.
-                self.showAlert(presentingController: (sendVC ?? receiveVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: failureReason), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 
             case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):
                 return
