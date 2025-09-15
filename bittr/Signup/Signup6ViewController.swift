@@ -53,7 +53,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 
             } else {
                 // Pin is incorrect.
-                self.showAlert(presentingController: self.signupVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }
@@ -65,6 +65,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
             if let actualPinVC = segue.destination as? PinViewController {
                 actualPinVC.embeddingView = "signup6"
                 actualPinVC.upperViewController = self
+                actualPinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
             }
         }
     }

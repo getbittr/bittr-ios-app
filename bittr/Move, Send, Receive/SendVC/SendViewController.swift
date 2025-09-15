@@ -14,7 +14,6 @@ import LDKNodeFFI
 import LightningDevKit
 import Sentry
 
-
 class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
 
     // General
@@ -147,6 +146,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var pendingBitcoinURI: (address: String, amount: String, label: String)?
     var pendingLightningURI: String?
     
+    // Pending LNURL data
+    var pendingLNURLCallback: String?
+    var pendingLNURLDescription: String?
+    var pendingLNURLMinAmount: Int?
+    var pendingLNURLMaxAmount: Int?
+    
     // User selected variables
     var selectedCurrency:SelectedCurrency = .bitcoin
     var onchainOrLightning:OnchainOrLightning = .onchain
@@ -257,8 +262,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             if self.maximumSendableOnchainBtc == nil {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? 0
             }
-            let formattedAmount = formatBitcoinAmount(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC())
-            self.availableAmount.text = Language.getWord(withID:"sendall").replacingOccurrences(of: "<amount>", with: formattedAmount)
+            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
+            self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
         } else {
             // Set "Send all" for lightning payments.
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: String((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000).addSpaces())
@@ -338,87 +343,61 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @objc func doneButtonTapped() {
         // Only handle amount field since address field doesn't have a Done button
         if amountTextField.isFirstResponder {
-            // Move to next step
-            amountTextField.resignFirstResponder()
-            self.nextButtonTapped(nextButton)
-        }
-    }
-    
-    // MARK: - UITextFieldDelegate
-    
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        // Same logic as doneButtonTapped for return key
-        if textField == toTextField {
-            // If it's a lightning invoice with amount, go straight to confirmation
-            if (textField.text ?? "").prefix(2) == "ln" {
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue() {
-                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        // Invoice has amount, go straight to confirmation
-                        let invoiceAmount = Int(invoiceAmountMilli)/1000
-                        self.amountTextField.text = "\(invoiceAmount)"
-                        self.btcLabel.text = "Sats"
-                        self.selectedCurrency = .satoshis
-                        self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
-                        return true
-                    }
-                }
+            // Check if we have pending LNURL data
+            if let callback = pendingLNURLCallback,
+               let minAmount = pendingLNURLMinAmount,
+               let maxAmount = pendingLNURLMaxAmount {
+                // Handle LNURL amount completion
+                handleLNURLAmountCompletion()
+            } else {
+                // Move to next step
+                amountTextField.resignFirstResponder()
+                self.nextButtonTapped(nextButton)
             }
-            
-            // Otherwise, move to amount field
-            amountTextField.becomeFirstResponder()
-            return true
-        } else if textField == amountTextField {
-            // Move to next step
-            self.nextButtonTapped(nextButton)
-            return true
+        }
+    }
+    
+    func handleLNURLAmountCompletion() {
+        guard let callback = pendingLNURLCallback,
+              let minAmount = pendingLNURLMinAmount,
+              let maxAmount = pendingLNURLMaxAmount,
+              let amountText = amountTextField.text,
+              !amountText.isEmpty else {
+            return
         }
         
-        return false
+        let enteredAmount = Int(stringToNumber(amountText)) * 1000 // Convert to millisatoshis
+        
+        // Validate amount is within range
+        if enteredAmount < minAmount || enteredAmount > maxAmount {
+            let minSats = minAmount / 1000
+            let maxSats = maxAmount / 1000
+            showAlert(presentingController: self, 
+                     title: Language.getWord(withID: "oops"), 
+                     message: "Amount must be between \(minSats) and \(maxSats) satoshis", 
+                     buttons: [Language.getWord(withID: "okay")], 
+                     actions: nil)
+            return
+        }
+        
+        // Store description before clearing
+        let description = pendingLNURLDescription
+        
+        // Clear pending data
+        pendingLNURLCallback = nil
+        pendingLNURLDescription = nil
+        pendingLNURLMinAmount = nil
+        pendingLNURLMaxAmount = nil
+        
+        // Send the LNURL payment request
+        amountTextField.resignFirstResponder()
+        self.sendPayRequest(callbackURL: callback, 
+                           amount: enteredAmount, 
+                           sendVC: self, 
+                           receiveVC: nil, 
+                           receivedDescription: description)
     }
     
-
-    
-    // MARK: - UITextFieldDelegate
-    
-
-    
-    func createAmountInputAccessoryView() -> UIView {
-        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
-        containerView.backgroundColor = Colors.getColor("whiteorblue3")
-        
-        let toolbar = UIToolbar(frame: containerView.bounds)
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        toolbar.backgroundColor = .clear
-        
-        // Currency selection buttons
-        let btcButton = UIBarButtonItem(title: "BTC", style: .plain, target: self, action: #selector(selectBTCCurrency))
-        let satsButton = UIBarButtonItem(title: "Sats", style: .plain, target: self, action: #selector(selectSatsCurrency))
-        let currencyButton = UIBarButtonItem(title: UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR", style: .plain, target: self, action: #selector(selectFiatCurrency))
-        
-        // Style the buttons with better contrast for dark mode
-        // Force black color for better visibility in dark mode
-        let buttonColor = UIColor.black
-        btcButton.tintColor = buttonColor
-        satsButton.tintColor = buttonColor
-        currencyButton.tintColor = buttonColor
-        
-        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let doneButton = UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: self, action: #selector(doneButtonTapped))
-        doneButton.tintColor = buttonColor
-        
-        toolbar.items = [btcButton, satsButton, currencyButton, flexSpace, doneButton]
-        
-        containerView.addSubview(toolbar)
-        
-        NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            toolbar.topAnchor.constraint(equalTo: containerView.topAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-        ])
-        
-        return containerView
-    }
     
     @objc func selectBTCCurrency() {
         self.btcLabel.text = "BTC"
@@ -457,7 +436,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
         self.view.endEditing(true)
         if let actualString = UIPasteboard.general.string {
-            if !actualString.contains("bitcoin"), !actualString.lowercased().contains("ln") {
+            if !actualString.contains("bitcoin"), !actualString.lowercased().contains("ln"), !actualString.lowercased().contains("@") {
                 self.toTextField.text = actualString
             } else {
                 self.handleScannedOrPastedString(actualString, scanned: false)
@@ -515,8 +494,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 } else {
-                    // Not a lightning invoice, amount is required
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    if (self.toTextField.text ?? "").lowercased().contains("@") {
+                        // LNURL. No amount needed.
+                        self.handleLNURL(code: self.toTextField.text!, sendVC: self, receiveVC: nil)
+                    } else {
+                        // Not a lightning invoice, amount is required
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
                 }
             } else {
                 // Transfer to satoshis.

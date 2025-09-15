@@ -115,6 +115,7 @@ extension HomeViewController {
             
             // Set button
             cell.transactionButton.tag = indexPath.row
+            cell.transactionButton.accessibilityElements = [thisTransaction]
             
             cell.layer.zPosition = CGFloat(indexPath.row)
             

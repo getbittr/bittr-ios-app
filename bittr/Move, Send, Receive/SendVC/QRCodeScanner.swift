@@ -112,6 +112,9 @@ extension SendViewController {
         } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
             // This is a Lightning invoice.
             addressType = .lightning
+        } else if code.lowercased().contains("@") {
+            // This is an LNURL.
+            addressType = .lightning
         } else {
             // Unsure about the code.
             addressType = self.onchainOrLightning
@@ -124,6 +127,7 @@ extension SendViewController {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "noaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else if code.lowercased().contains("lnurl") || self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
             // Valid LNURL code.
+            self.toTextField.text = code
             self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
         } else {
             // Valid address

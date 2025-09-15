@@ -144,7 +144,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Check if PIN is already at max length (8 digits)
         if (pinTextField.text?.count ?? 0) >= 8 {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -172,7 +172,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Check if PIN is empty or too short
         if (pinTextField.text?.count ?? 0) < 4 {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -181,13 +181,13 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
             if CacheManager.getFailedPinAttempts() > 9 {
                 // Wrong pin has been entered 10 times.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 if let actualCoreVC = self.coreVC {
                     actualCoreVC.resetApp(nodeIsRunning: false)
                 }
@@ -205,7 +205,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 } else {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 }
             } else {
                 // No pin found in storage.

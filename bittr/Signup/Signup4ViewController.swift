@@ -223,10 +223,10 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         // Check for empty fields
         if field1Text.isEmpty || field2Text.isEmpty || field3Text.isEmpty {
             self.showAlert(
-                presentingController: self,
-                title: "Missing Words",
-                message: "Please enter all 3 words to confirm your recovery phrase. This helps ensure you have backed up your wallet correctly.",
-                buttons: ["OK"],
+                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                title: Language.getWord(withID: "missingwords"),
+                message: Language.getWord(withID: "missingwords2"),
+                buttons: [Language.getWord(withID: "okay")],
                 actions: nil
             )
             return
@@ -247,10 +247,10 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         if !invalidWordMessages.isEmpty {
             self.showAlert(
-                presentingController: self,
-                title: "Invalid Words",
-                message: "Some of the words you entered are not valid recovery phrase words. Please check your backup and try again.",
-                buttons: ["OK"],
+                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                title: Language.getWord(withID: "invalidwords"),
+                message: Language.getWord(withID: "invalidwords2"),
+                buttons: [Language.getWord(withID: "okay")],
                 actions: nil
             )
             return
@@ -266,10 +266,10 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         } else {
             // Show friendly error message without revealing correct words
             self.showAlert(
-                presentingController: self,
-                title: "Incorrect Recovery Phrase",
-                message: "Some of the words you entered are incorrect. Please double-check your recovery phrase backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words.",
-                buttons: ["OK"],
+                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                title: Language.getWord(withID: "incorrectphrase"),
+                message: Language.getWord(withID: "incorrectphrase2"),
+                buttons: [Language.getWord(withID: "okay")],
                 actions: nil
             )
         }

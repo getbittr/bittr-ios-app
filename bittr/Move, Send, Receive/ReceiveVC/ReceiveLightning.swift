@@ -25,7 +25,7 @@ extension ReceiveViewController {
                 let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description)
                 let newTimestamp = Int(Date().timeIntervalSince1970)
                 if let actualInvoiceHash = invoiceHash {
-                    CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceTimestamp(preimage: actualInvoiceHash, timestamp: newTimestamp)
                     if enteredDescription != "" {
                         CacheManager.storeInvoiceDescription(hash: actualInvoiceHash, desc: enteredDescription)
                     }
@@ -60,7 +60,7 @@ extension ReceiveViewController {
                 let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description)
                 let newTimestamp = Int(Date().timeIntervalSince1970)
                 if let actualInvoiceHash = invoiceHash {
-                    CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceTimestamp(preimage: actualInvoiceHash, timestamp: newTimestamp)
                 }
             }
             return "\(invoice)"

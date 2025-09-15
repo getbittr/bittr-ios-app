@@ -70,7 +70,7 @@ class SwapManager: NSObject {
             DispatchQueue.main.async {
                 if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description) {
                     let newTimestamp = Int(Date().timeIntervalSince1970)
-                    CacheManager.storeInvoiceTimestamp(hash: invoiceHash, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceTimestamp(preimage: invoiceHash, timestamp: newTimestamp)
                     CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: "Swap onchain to lightning \(idString)")
                     print("Did cache invoice data.")
                 }
@@ -679,7 +679,7 @@ class SwapManager: NSObject {
                     // Calculate fees
                     if Int(thisPayment?.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
                         let feesIncurred = (Int(thisPayment?.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
-                        CacheManager.storePaymentFees(hash: paymentHash, fees: feesIncurred)
+                        CacheManager.storePaymentFees(preimage: (thisPayment!.kind.preimageAsString ?? thisPayment!.id), fees: feesIncurred)
                         newTransaction.fee = feesIncurred
                     } else {
                         newTransaction.fee = 0

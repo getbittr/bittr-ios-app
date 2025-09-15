@@ -37,55 +37,54 @@ extension UIViewController {
             Task {
                 await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: "GET") { result in
                     
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         sendVC?.stopLNURLSpinner()
                         receiveVC?.stopLNURLSpinner()
-                    }
-                    
-                    switch result {
-                    case .success(let actualDataDict):
                         
-                        if let receivedTag = actualDataDict["tag"] as? String {
-                            print("Tag: \(receivedTag)")
+                        switch result {
+                        case .success(let actualDataDict):
                             
-                            if receivedTag == "payRequest" {
-                                if let receivedCallback = actualDataDict["callback"] as? String, let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
+                            if let receivedTag = actualDataDict["tag"] as? String {
+                                print("Tag: \(receivedTag)")
+                                
+                                if receivedTag == "payRequest" {
+                                    if let receivedCallback = actualDataDict["callback"] as? String, let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
                                         
-                                    // Check if this LNURL contains a description.
-                                    var receivedDescription:String?
-                                    if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
-                                        for eachDataPair in parsedMetadata {
-                                            if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
-                                                receivedDescription = eachDataPair[1]
+                                        // Check if this LNURL contains a description.
+                                        var receivedDescription:String?
+                                        if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
+                                            for eachDataPair in parsedMetadata {
+                                                if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
+                                                    receivedDescription = eachDataPair[1]
+                                                }
                                             }
                                         }
-                                    }
-                                    
-                                    DispatchQueue.main.async {
+                                        
                                         if minSendable == maxSendable {
                                             // Min and max are the same.
                                             self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
                                         } else {
-                                            // Min and max are different. Choose amount.
-                                            let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1"))".replacingOccurrences(of: "<minsendable>", with: "\(minSendable/1000)").replacingOccurrences(of: "<maxsendable>", with: "\(maxSendable/1000)"), preferredStyle: .alert)
-                                            alert.addTextField { (textField) in
-                                                textField.keyboardType = .numberPad
-                                            }
-                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                                
-                                                let amountText = Int(self.stringToNumber(alert.textFields![0].text ?? "0")) * 1000
-                                                
-                                                self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
-                                            }))
-                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                            self.present(alert, animated: true)
+                                            // Min and max are different. Update UI to show range and focus amount field.
+                                            let minSats = minSendable / 1000
+                                            let maxSats = maxSendable / 1000
+                                            
+                                            // Update the label to show the range
+                                            sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
+                                            
+                                            // Clear and focus the amount field
+                                            sendVC?.amountTextField.text = ""
+                                            sendVC?.amountTextField.becomeFirstResponder()
+                                            
+                                            // Store the callback and description for when user enters amount
+                                            sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+                                            sendVC?.pendingLNURLDescription = receivedDescription
+                                            sendVC?.pendingLNURLMinAmount = minSendable
+                                            sendVC?.pendingLNURLMaxAmount = maxSendable
                                         }
                                     }
-                                }
-                            } else if receivedTag == "withdrawRequest" {
-                                if let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
-                                    
-                                    DispatchQueue.main.async {
+                                } else if receivedTag == "withdrawRequest" {
+                                    if let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
+                                        
                                         var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
                                         if minWithdrawable == maxWithdrawable {
                                             // Min and max are the same.
@@ -108,16 +107,12 @@ extension UIViewController {
                                         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                                         self.present(alert, animated: true)
                                     }
-                                }
-                            } else {
-                                DispatchQueue.main.async {
+                                } else {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             }
-                        }
-                    case .failure(let error):
-                        print("Error 111: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
+                        case .failure(let error):
+                            print("Error 111: \(error.localizedDescription)")
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
@@ -130,7 +125,7 @@ extension UIViewController {
             
         } catch {
             print("Couldn't decode LNURL. Message: \(error.localizedDescription)")
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 sendVC?.stopLNURLSpinner()
                 receiveVC?.stopLNURLSpinner()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -207,7 +202,7 @@ extension UIViewController {
                     let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description)
                     let newTimestamp = Int(Date().timeIntervalSince1970)
                     if let actualInvoiceHash = invoiceHash {
-                        CacheManager.storeInvoiceTimestamp(hash: actualInvoiceHash, timestamp: newTimestamp)
+                        CacheManager.storeInvoiceTimestamp(preimage: actualInvoiceHash, timestamp: newTimestamp)
                     }
                 }
                 
