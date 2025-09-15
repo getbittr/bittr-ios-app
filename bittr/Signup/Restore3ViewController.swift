@@ -61,6 +61,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             if let actualPinVC = segue.destination as? PinViewController {
                 actualPinVC.embeddingView = "restore3"
                 actualPinVC.upperViewController = self
+                actualPinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
             }
         }
     }

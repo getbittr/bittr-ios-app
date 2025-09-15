@@ -308,7 +308,7 @@ class Language: NSObject {
             "lnurlfail2": "We could not complete your pay request. Error:",
             "lnurlscannerlabel": "Scan a QR code to perform an LNURL pay or withdraw request.",
             "lnurl": "LNURL status",
-            "lnurlfail3": "We received an error while handling this request. Please try again.",
+            "lnurlfail3": "We've received an error while handling this request. Please try again.",
             "lnurlfail4": "We currently only support LNURL pay and withdraw requests.",
             "sendvcscan": "Scan",
             "sendvcpaste": "Paste",

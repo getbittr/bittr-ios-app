@@ -35,6 +35,7 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
             if let actualPinVC = segue.destination as? PinViewController {
                 actualPinVC.embeddingView = "signup5"
                 actualPinVC.upperViewController = self
+                actualPinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
             }
         }
     }

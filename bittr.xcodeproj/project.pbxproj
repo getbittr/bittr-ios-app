@@ -28,6 +28,7 @@
 		052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052EC7472D63254B00170FE4 /* WebSocketManager.swift */; };
 		053021AC2E7017A400B23226 /* CoreVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AB2E7017A000B23226 /* CoreVCLanguage.swift */; };
 		053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */; };
+		053022002E7803BC00B23226 /* SendVCTextFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021FF2E7803B700B23226 /* SendVCTextFields.swift */; };
 		053190DE29FD60EA0072CE76 /* Syne-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */; };
 		053190E229FD658F0072CE76 /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
 		053190E429FD659B0072CE76 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
@@ -198,6 +199,7 @@
 		052EC7472D63254B00170FE4 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		053021AB2E7017A000B23226 /* CoreVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreVCLanguage.swift; sourceTree = "<group>"; };
 		053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleLightningAddressNotification.swift; sourceTree = "<group>"; };
+		053021FF2E7803B700B23226 /* SendVCTextFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendVCTextFields.swift; sourceTree = "<group>"; };
 		053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-Regular.ttf"; sourceTree = "<group>"; };
 		053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Bold.ttf"; sourceTree = "<group>"; };
 		053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gilroy-Regular.ttf"; sourceTree = "<group>"; };
@@ -498,6 +500,7 @@
 			isa = PBXGroup;
 			children = (
 				0579B2702A0530F80007891F /* SendViewController.swift */,
+				053021FF2E7803B700B23226 /* SendVCTextFields.swift */,
 				052171312CB430B8006C5663 /* SendVCLanguage.swift */,
 				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
 				055403682CC14FC0006F27CA /* SendLNURL.swift */,
@@ -972,6 +975,7 @@
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
+				053022002E7803BC00B23226 /* SendVCTextFields.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
