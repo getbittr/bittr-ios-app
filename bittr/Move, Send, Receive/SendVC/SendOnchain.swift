@@ -70,7 +70,7 @@ extension SendViewController {
                     self.showAlert(
                         presentingController: self, 
                         title: Language.getWord(withID: "insufficientfunds"), 
-                        message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(self.coreVC!.bittrWallet.satoshisOnchain)) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)"),
+                        message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(self.coreVC!.bittrWallet.satoshisOnchain)) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)"),
                         buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                         actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                     )

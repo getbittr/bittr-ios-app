@@ -78,7 +78,7 @@ extension SendViewController {
                     self.showAlert(
                         presentingController: self, 
                         title: Language.getWord(withID: "insufficientfunds"), 
-                        message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(self.coreVC!.bittrWallet.satoshisOnchain) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfunds")) \(availableLightningBalance) satoshis.",
+                        message: "\(Language.getWord(withID: "onchaininsufficientfunds")) \(self.coreVC!.bittrWallet.satoshisOnchain) satoshis.\n\n\(Language.getWord(withID: "swapinsufficientfundslightning")) \(availableLightningBalance) satoshis.",
                         buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                         actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                     )

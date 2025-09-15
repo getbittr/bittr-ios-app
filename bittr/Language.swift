@@ -368,6 +368,7 @@ class Language: NSObject {
             "lightninginsufficientfunds": "You don't have enough instant bitcoin funds to send this payment. Your available balance is ",
             "onchaininsufficientfunds": "You don't have enough onchain funds to send this payment. Your available onchain balance is <amount> satoshis.",
             "swapinsufficientfunds": "However, you have enough regular Bitcoin funds to swap and pay. Your available onchain balance is <amount> satoshis.",
+            "swapinsufficientfundslightning": "However, you have enough instant bitcoin funds to swap and pay. Your available instant balance is <amount> satoshis.",
             "swapandpay": "Swap & Pay",
             "invalidinvoice": "Invalid Lightning invoice",
             "swapid": "Swap ID",

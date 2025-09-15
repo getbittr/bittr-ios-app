@@ -107,8 +107,11 @@ extension SendViewController {
         
         // Check bitcoin or lightning in code to switch view if needed.
         if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
-            // This is a Bitcoin QR.
+            // This is a Bitcoin QR with lightning parameter.
             addressType = .lightning
+        } else if code.lowercased().contains("bitcoin:") {
+            // This is a regular Bitcoin URI (on-chain).
+            addressType = .onchain
         } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
             // This is a Lightning invoice.
             addressType = .lightning
@@ -184,21 +187,52 @@ extension SendViewController {
                 let components = address.components(separatedBy: "?")
                 if let bitcoinAddress = components.first {
                     // Success.
-                    self.toTextField.text = bitcoinAddress
                     
-                    if components.count > 1 {
-                        if components[1].contains("amount") {
-                            let amountString = components[1].components(separatedBy: "&")
-                            
-                            let numberFormatter = NumberFormatter()
-                            numberFormatter.numberStyle = .decimal
-                            let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
-                            
-                            self.amountTextField.text = "\(bitcoinAmount)"
+                    // Switch to the appropriate mode based on addressType
+                    if addressType == .onchain {
+                        // Switch to regular (on-chain) mode
+                        if let regularButton = self.regularButton {
+                            regularButton.sendActions(for: .touchUpInside)
+                        }
+                    } else if addressType == .lightning {
+                        // Switch to instant (Lightning) mode
+                        if let instantButton = self.instantButton {
+                            instantButton.sendActions(for: .touchUpInside)
+                        }
+                    }
+                    
+                    // Wait a moment for the mode switch to complete, then set the address and amount
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.toTextField.text = bitcoinAddress
+                        
+                        if components.count > 1 {
+                            if components[1].contains("amount") {
+                                let amountString = components[1].components(separatedBy: "&")
+                                
+                                let numberFormatter = NumberFormatter()
+                                numberFormatter.numberStyle = .decimal
+                                let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
+                                
+                                // Convert BTC amount to satoshis
+                                if let btcAmount = Double("\(bitcoinAmount)") {
+                                    let satoshis = Int(btcAmount * 100_000_000) // Convert BTC to satoshis
+                                    self.amountTextField.text = "\(satoshis)"
+                                    self.btcLabel.text = "Sats"
+                                    self.selectedCurrency = .satoshis
+                                    print("QR Scanner: Converted Bitcoin URI amount from \(bitcoinAmount) BTC to \(satoshis) satoshis")
+                                } else {
+                                    // If conversion fails, set the amount as-is
+                                    self.amountTextField.text = "\(bitcoinAmount)"
+                                    print("QR Scanner: Could not convert Bitcoin URI amount, setting as-is: \(bitcoinAmount)")
+                                }
+                            } else {
+                                self.amountTextField.text = nil
+                            }
                         } else {
                             self.amountTextField.text = nil
                         }
-                    } else {
+                        
+                        // Handle Lightning invoice if it's a direct ln... address
                         if bitcoinAddress.prefix(2) == "ln" {
                             if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: bitcoinAddress).getValue() {
                                 if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
@@ -210,8 +244,6 @@ extension SendViewController {
                                     self.amountTextField.text = nil
                                 }
                             }
-                        } else {
-                            self.amountTextField.text = nil
                         }
                     }
                 } else {

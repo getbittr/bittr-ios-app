@@ -723,15 +723,35 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     func setAddressFromURI(address: String, amount: String, label: String) {
         
-        // Set the address in the text field
-        self.toTextField.text = address
-        
-        // Set the amount if provided
-        if !amount.isEmpty {
-            self.amountTextField.text = amount
+        // First, switch to regular (on-chain) mode
+        // Look for the regular button and tap it programmatically
+        if let regularButton = self.regularButton {
+            regularButton.sendActions(for: .touchUpInside)
         }
         
-        print("Set Bitcoin address from URI: \(address), amount: \(amount), label: \(label)")
+        // Wait a moment for the mode switch to complete, then set the address
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Set the address in the text field
+            self.toTextField.text = address
+            
+            // Set the amount if provided
+            if !amount.isEmpty {
+                // Convert BTC amount to satoshis
+                if let btcAmount = Double(amount) {
+                    let satoshis = Int(btcAmount * 100_000_000) // Convert BTC to satoshis
+                    self.amountTextField.text = "\(satoshis)"
+                    self.btcLabel.text = "Sats"
+                    self.selectedCurrency = .satoshis
+                    print("Converted Bitcoin URI amount from \(amount) BTC to \(satoshis) satoshis")
+                } else {
+                    // If conversion fails, set the amount as-is (might be in satoshis already)
+                    self.amountTextField.text = amount
+                    print("Could not convert Bitcoin URI amount, setting as-is: \(amount)")
+                }
+            }
+            
+            print("Set Bitcoin address from URI: \(address), amount: \(amount), label: \(label)")
+        }
     }
     
     func setInvoiceFromURI(invoice: String) {
