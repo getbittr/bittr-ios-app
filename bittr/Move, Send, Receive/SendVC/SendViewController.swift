@@ -146,6 +146,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var pendingBitcoinURI: (address: String, amount: String, label: String)?
     var pendingLightningURI: String?
     
+    // Pending LNURL data
+    var pendingLNURLCallback: String?
+    var pendingLNURLDescription: String?
+    var pendingLNURLMinAmount: Int?
+    var pendingLNURLMaxAmount: Int?
+    
     // User selected variables
     var selectedCurrency:SelectedCurrency = .bitcoin
     var onchainOrLightning:OnchainOrLightning = .onchain
@@ -337,11 +343,61 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @objc func doneButtonTapped() {
         // Only handle amount field since address field doesn't have a Done button
         if amountTextField.isFirstResponder {
-            // Move to next step
-            amountTextField.resignFirstResponder()
-            self.nextButtonTapped(nextButton)
+            // Check if we have pending LNURL data
+            if let callback = pendingLNURLCallback,
+               let minAmount = pendingLNURLMinAmount,
+               let maxAmount = pendingLNURLMaxAmount {
+                // Handle LNURL amount completion
+                handleLNURLAmountCompletion()
+            } else {
+                // Move to next step
+                amountTextField.resignFirstResponder()
+                self.nextButtonTapped(nextButton)
+            }
         }
     }
+    
+    func handleLNURLAmountCompletion() {
+        guard let callback = pendingLNURLCallback,
+              let minAmount = pendingLNURLMinAmount,
+              let maxAmount = pendingLNURLMaxAmount,
+              let amountText = amountTextField.text,
+              !amountText.isEmpty else {
+            return
+        }
+        
+        let enteredAmount = Int(stringToNumber(amountText)) * 1000 // Convert to millisatoshis
+        
+        // Validate amount is within range
+        if enteredAmount < minAmount || enteredAmount > maxAmount {
+            let minSats = minAmount / 1000
+            let maxSats = maxAmount / 1000
+            showAlert(presentingController: self, 
+                     title: Language.getWord(withID: "oops"), 
+                     message: "Amount must be between \(minSats) and \(maxSats) satoshis", 
+                     buttons: [Language.getWord(withID: "okay")], 
+                     actions: nil)
+            return
+        }
+        
+        // Store description before clearing
+        let description = pendingLNURLDescription
+        
+        // Clear pending data
+        pendingLNURLCallback = nil
+        pendingLNURLDescription = nil
+        pendingLNURLMinAmount = nil
+        pendingLNURLMaxAmount = nil
+        
+        // Send the LNURL payment request
+        amountTextField.resignFirstResponder()
+        self.sendPayRequest(callbackURL: callback, 
+                           amount: enteredAmount, 
+                           sendVC: self, 
+                           receiveVC: nil, 
+                           receivedDescription: description)
+    }
+    
     
     @objc func selectBTCCurrency() {
         self.btcLabel.text = "BTC"

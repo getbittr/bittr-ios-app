@@ -64,19 +64,22 @@ extension UIViewController {
                                             // Min and max are the same.
                                             self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
                                         } else {
-                                            // Min and max are different. Choose amount.
-                                            let alert = UIAlertController(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "payrequest1"))".replacingOccurrences(of: "<minsendable>", with: "\(minSendable/1000)").replacingOccurrences(of: "<maxsendable>", with: "\(maxSendable/1000)"), preferredStyle: .alert)
-                                            alert.addTextField { (textField) in
-                                                textField.keyboardType = .numberPad
-                                            }
-                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                                
-                                                let amountText = Int(self.stringToNumber(alert.textFields![0].text ?? "0")) * 1000
-                                                
-                                                self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
-                                            }))
-                                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                            self.present(alert, animated: true)
+                                            // Min and max are different. Update UI to show range and focus amount field.
+                                            let minSats = minSendable / 1000
+                                            let maxSats = maxSendable / 1000
+                                            
+                                            // Update the label to show the range
+                                            sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
+                                            
+                                            // Clear and focus the amount field
+                                            sendVC?.amountTextField.text = ""
+                                            sendVC?.amountTextField.becomeFirstResponder()
+                                            
+                                            // Store the callback and description for when user enters amount
+                                            sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+                                            sendVC?.pendingLNURLDescription = receivedDescription
+                                            sendVC?.pendingLNURLMinAmount = minSendable
+                                            sendVC?.pendingLNURLMaxAmount = maxSendable
                                         }
                                     }
                                 } else if receivedTag == "withdrawRequest" {

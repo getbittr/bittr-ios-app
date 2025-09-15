@@ -38,8 +38,16 @@ extension SendViewController {
             self.amountTextField.becomeFirstResponder()
             return true
         } else if textField == amountTextField {
-            // Move to next step
-            self.nextButtonTapped(nextButton)
+            // Check if we have pending LNURL data
+            if let callback = self.pendingLNURLCallback,
+               let minAmount = self.pendingLNURLMinAmount,
+               let maxAmount = self.pendingLNURLMaxAmount {
+                // Handle LNURL amount completion
+                self.handleLNURLAmountCompletion()
+            } else {
+                // Normal flow - move to next step
+                self.nextButtonTapped(nextButton)
+            }
             return true
         }
         
