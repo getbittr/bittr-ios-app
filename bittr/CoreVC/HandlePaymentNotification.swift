@@ -298,9 +298,11 @@ extension CoreViewController {
                                         }
                                     }
                                 }
+                            } else {
+                                print("channelPending: Received no transaction details from Bittr API. Funding txid: \(fundingTxo.txid)")
                             }
                         } catch {
-                            print("Bittr error: \(error.localizedDescription)")
+                            print("channelPending Bittr error: \(error.localizedDescription)")
                         }
                     }
                 }
@@ -368,7 +370,9 @@ extension CoreViewController {
             case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
                 return
             case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
-                return
+                DispatchQueue.main.async {
+                    self.launchQuestion(question: Language.getWord(withID: "newlightningconnection"), answer: Language.getWord(withID: "newlightningconnection2"), type: nil)
+                }
             }
         }
     }
