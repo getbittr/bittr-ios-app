@@ -24,7 +24,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var scrollViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentView: UIView!
+    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var centerView: UIView!
@@ -254,16 +256,29 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
     }
     
+    func checkContentViewHeight() {
+        let centerViewHeight = self.centerView.bounds.height
+        if self.centerView.bounds.height + 60 > self.contentView.bounds.height {
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.view.layoutIfNeeded()
+        } else {
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: self.contentView.superview, attribute: .height, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.view.layoutIfNeeded()
+        }
+    }
+    
     @objc func keyboardWillDisappear() {
         
         self.amountButton.alpha = 1
         self.toButton.alpha = 1
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
-        
+        self.scrollViewBottom.constant = self.view.safeAreaInsets.bottom
         self.view.layoutIfNeeded()
+        self.checkContentViewHeight()
     }
     
     @objc func keyboardWillAppear(_ notification:Notification) {
@@ -272,11 +287,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             let keyboardHeight = keyboardSize.height
             
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
-            
+            self.scrollViewBottom.constant = -keyboardHeight + self.view.safeAreaInsets.bottom
             self.view.layoutIfNeeded()
+            self.checkContentViewHeight()
+            
+            // Scroll view up to text field.
+            var fieldFrame = self.scrollView.convert(self.amountTextField.bounds, from: self.amountTextField.superview)
+            fieldFrame = fieldFrame.insetBy(dx: 0, dy: -25)
+            self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
         }
     }
     

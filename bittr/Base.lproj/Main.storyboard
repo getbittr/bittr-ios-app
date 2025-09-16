@@ -4039,10 +4039,10 @@
                                             <constraint firstItem="cE0-ZO-fln" firstAttribute="top" secondItem="wHj-ih-Y8p" secondAttribute="top" id="34i-st-MFe"/>
                                             <constraint firstItem="1hh-0S-jSj" firstAttribute="centerY" secondItem="wHj-ih-Y8p" secondAttribute="centerY" id="LHZ-Mc-yMF"/>
                                             <constraint firstItem="1hh-0S-jSj" firstAttribute="leading" secondItem="wHj-ih-Y8p" secondAttribute="leading" id="U95-u3-y0a"/>
-                                            <constraint firstAttribute="trailing" secondItem="cE0-ZO-fln" secondAttribute="trailing" id="UOg-fA-RTd"/>
+                                            <constraint firstItem="cE0-ZO-fln" firstAttribute="trailing" secondItem="wHj-ih-Y8p" secondAttribute="trailing" id="UOg-fA-RTd"/>
                                             <constraint firstItem="cE0-ZO-fln" firstAttribute="leading" secondItem="wHj-ih-Y8p" secondAttribute="leading" id="htO-Pl-4ay"/>
                                             <constraint firstAttribute="trailing" secondItem="1hh-0S-jSj" secondAttribute="trailing" id="tIm-9U-5KM"/>
-                                            <constraint firstAttribute="bottom" secondItem="cE0-ZO-fln" secondAttribute="bottom" id="ycd-mV-Sv6"/>
+                                            <constraint firstItem="cE0-ZO-fln" firstAttribute="bottom" secondItem="wHj-ih-Y8p" secondAttribute="bottom" id="ycd-mV-Sv6"/>
                                         </constraints>
                                     </view>
                                 </subviews>
@@ -4667,6 +4667,7 @@
                         <outlet property="confirmTopLabel" destination="I3Y-0P-IQy" id="iLm-vu-lOp"/>
                         <outlet property="contentView" destination="wHj-ih-Y8p" id="Ssz-Q3-a6N"/>
                         <outlet property="contentViewBottom" destination="aPQ-OR-EBv" id="Iat-oo-0JK"/>
+                        <outlet property="contentViewHeight" destination="xE4-Qt-PP4" id="SCj-P0-qch"/>
                         <outlet property="downButton" destination="rDv-PV-5zb" id="LNc-Qb-1dS"/>
                         <outlet property="editButton" destination="sj7-HB-0zt" id="YdK-DZ-zBm"/>
                         <outlet property="editView" destination="9Vy-kc-YJP" id="IYq-qY-3ha"/>
@@ -4702,6 +4703,7 @@
                         <outlet property="satsSlow" destination="5B3-Is-Bct" id="bYc-PM-2X2"/>
                         <outlet property="scannerView" destination="qb4-qm-fPe" id="r3R-YB-5yX"/>
                         <outlet property="scrollView" destination="CMT-zp-WY3" id="HX6-IY-G0I"/>
+                        <outlet property="scrollViewBottom" destination="SIx-bF-OxF" id="7yb-dB-riq"/>
                         <outlet property="scrollViewTrailing" destination="MXw-5l-Rny" id="uFh-QG-sJv"/>
                         <outlet property="selectionLeading" destination="YPB-9j-gY8" id="ljh-3E-nte"/>
                         <outlet property="selectionTrailing" destination="nfW-KI-hHS" id="VPf-pA-sae"/>
