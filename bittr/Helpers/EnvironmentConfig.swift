@@ -119,12 +119,12 @@ struct EnvironmentConfig {
     
     /// Lightning node IDs based on environment
     static var lightningNodeId: String {
-        isDevelopment ? "023313960bf56e31e2895dc350d839ffe81dfc735c1d43dfad46a30949d7bb30b7" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
+        isDevelopment ? "02b9742411c0b87abd3a4284ebcf57a3ef34d259d7d37706e455efe0378267f006" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
     }
     
     /// Lightning node addresses based on environment
     static var lightningNodeAddress: String {
-        isDevelopment ? "31.58.51.17:19735" : "86.104.228.24:9735"
+        isDevelopment ? "31.58.51.17:9735" : "86.104.228.24:9735"
     }
     
     // MARK: - Cache Configuration
