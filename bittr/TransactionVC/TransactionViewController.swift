@@ -351,12 +351,12 @@ class TransactionViewController: UIViewController {
         if self.tappedTransaction.isSwap {
             // Swap.
             let transactionValue = (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
-            let balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "").addSpaces()
+            let balanceValue = String((transactionValue*bitcoinValue.currentValue).rounded()).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
         } else {
             // Onchain or Lightning transaction.
             let transactionValue = (self.tappedTransaction.received-self.tappedTransaction.sent).inBTC()
-            let balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded())).replacingOccurrences(of: "-", with: "").addSpaces()
+            let balanceValue = String((transactionValue*bitcoinValue.currentValue).rounded()).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
             if self.tappedTransaction.isBittr {
@@ -369,7 +369,8 @@ class TransactionViewController: UIViewController {
                     self.labelProfit.text = "0 \(bitcoinValue.chosenCurrency)"
                 } else {
                     self.labelPurchaseValue.text = "\(String(self.tappedTransaction.purchaseAmount).addSpaces()) \(bitcoinValue.chosenCurrency)"
-                    self.labelProfit.text = "\(String(Int((transactionValue*bitcoinValue.currentValue).rounded())-self.tappedTransaction.purchaseAmount).addSpaces()) \(bitcoinValue.chosenCurrency)"
+                    let profitValue = String((transactionValue*bitcoinValue.currentValue).rounded()-CGFloat(self.tappedTransaction.purchaseAmount)).addSpaces()
+                    self.labelProfit.text = "\(profitValue) \(bitcoinValue.chosenCurrency)"
                 }
                 
                 if (self.labelProfit.text ?? "").contains("-") {

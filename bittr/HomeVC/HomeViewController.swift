@@ -469,6 +469,9 @@ extension String {
     func addSpaces() -> String {
         
         var balanceValue = self
+        if balanceValue.fixDecimals().contains(Locale.current.decimalSeparator!) {
+            balanceValue = String(self.fixDecimals().split(separator: Locale.current.decimalSeparator!)[0])
+        }
         
         switch balanceValue.count {
         case 4:
@@ -487,7 +490,17 @@ extension String {
             balanceValue = balanceValue[0..<balanceValue.count]
         }
         
-        return balanceValue
+        if self.fixDecimals().contains(Locale.current.decimalSeparator!) {
+            var decimals = String(self.fixDecimals().split(separator: Locale.current.decimalSeparator!)[1])
+            if decimals.count == 1 {
+                decimals += "0"
+            } else if decimals.count > 2 {
+                decimals = decimals[0..<2]
+            }
+            return (balanceValue + Locale.current.decimalSeparator! + decimals)
+        } else {
+            return balanceValue
+        }
     }
 
     var length: Int {
