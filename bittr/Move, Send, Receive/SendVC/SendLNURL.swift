@@ -47,66 +47,62 @@ extension UIViewController {
                             if let receivedTag = actualDataDict["tag"] as? String {
                                 print("Tag: \(receivedTag)")
                                 
-                                if receivedTag == "payRequest" {
-                                    if let receivedCallback = actualDataDict["callback"] as? String, let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
+                                if receivedTag == "payRequest", let receivedCallback = actualDataDict["callback"] as? String, let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
                                         
-                                        // Check if this LNURL contains a description.
-                                        var receivedDescription:String?
-                                        if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
-                                            for eachDataPair in parsedMetadata {
-                                                if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
-                                                    receivedDescription = eachDataPair[1]
-                                                }
+                                    // Check if this LNURL contains a description.
+                                    var receivedDescription:String?
+                                    if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
+                                        for eachDataPair in parsedMetadata {
+                                            if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
+                                                receivedDescription = eachDataPair[1]
                                             }
-                                        }
-                                        
-                                        if minSendable == maxSendable {
-                                            // Min and max are the same.
-                                            self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
-                                        } else {
-                                            // Min and max are different. Update UI to show range and focus amount field.
-                                            let minSats = minSendable / 1000
-                                            let maxSats = maxSendable / 1000
-                                            
-                                            // Update the label to show the range
-                                            sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
-                                            
-                                            // Clear and focus the amount field
-                                            sendVC?.amountTextField.text = ""
-                                            sendVC?.amountTextField.becomeFirstResponder()
-                                            
-                                            // Store the callback and description for when user enters amount
-                                            sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
-                                            sendVC?.pendingLNURLDescription = receivedDescription
-                                            sendVC?.pendingLNURLMinAmount = minSendable
-                                            sendVC?.pendingLNURLMaxAmount = maxSendable
                                         }
                                     }
-                                } else if receivedTag == "withdrawRequest" {
-                                    if let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
+                                    
+                                    if minSendable == maxSendable {
+                                        // Min and max are the same.
+                                        self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
+                                    } else {
+                                        // Min and max are different. Update UI to show range and focus amount field.
+                                        let minSats = minSendable / 1000
+                                        let maxSats = maxSendable / 1000
                                         
-                                        var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
-                                        if minWithdrawable == maxWithdrawable {
-                                            // Min and max are the same.
-                                            alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), preferredStyle: .alert)
-                                        } else {
-                                            // Min and max aren't the same. Choose amount.
-                                            alert.addTextField { (textField) in
-                                                textField.keyboardType = .numberPad
-                                            }
-                                        }
-                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                            
-                                            var amountText = minWithdrawable
-                                            if minWithdrawable != maxWithdrawable {
-                                                // Min and max aren't the same.
-                                                amountText = Int(self.stringToNumber((alert.textFields![0].text ?? "0"))) * 1000
-                                            }
-                                            self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
-                                        }))
-                                        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                        self.present(alert, animated: true)
+                                        // Update the label to show the range
+                                        sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
+                                        
+                                        // Clear and focus the amount field
+                                        sendVC?.amountTextField.text = ""
+                                        sendVC?.amountTextField.becomeFirstResponder()
+                                        
+                                        // Store the callback and description for when user enters amount
+                                        sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+                                        sendVC?.pendingLNURLDescription = receivedDescription
+                                        sendVC?.pendingLNURLMinAmount = minSendable
+                                        sendVC?.pendingLNURLMaxAmount = maxSendable
                                     }
+                                } else if receivedTag == "withdrawRequest", let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
+                                        
+                                    var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
+                                    if minWithdrawable == maxWithdrawable {
+                                        // Min and max are the same.
+                                        alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), preferredStyle: .alert)
+                                    } else {
+                                        // Min and max aren't the same. Choose amount.
+                                        alert.addTextField { (textField) in
+                                            textField.keyboardType = .numberPad
+                                        }
+                                    }
+                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
+                                        
+                                        var amountText = minWithdrawable
+                                        if minWithdrawable != maxWithdrawable {
+                                            // Min and max aren't the same.
+                                            amountText = Int(self.stringToNumber((alert.textFields![0].text ?? "0"))) * 1000
+                                        }
+                                        self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
+                                    }))
+                                    alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                                    self.present(alert, animated: true)
                                 } else {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
@@ -167,9 +163,13 @@ extension UIViewController {
                                 self.present(alert, animated: true)
                             }
                         }
-                    } else if let receivedStatus = actualDataDict["status"] as? String, let receivedDetail = actualDataDict["detail"] as? String {
+                    } else if let _ = actualDataDict["status"] as? String, let receivedDetail = actualDataDict["detail"] as? String {
                         DispatchQueue.main.async {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(receivedDetail)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) Unexpected error.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 case .failure(let error):
@@ -227,6 +227,10 @@ extension UIViewController {
                                     DispatchQueue.main.async {
                                         self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(receivedReason)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
+                                }
+                            } else {
+                                DispatchQueue.main.async {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) Unexpected error.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             }
                         }
