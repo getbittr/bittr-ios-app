@@ -111,7 +111,7 @@ class BoltzRefund {
             
             let serializedTx = claimTx.serialize()
             
-            let sigHash = claimTx.hashForWitnessV1(
+            let sigHash:Foundation.Data = claimTx.hashForWitnessV1(
                 inputIndex: 0,
                 prevoutScripts: [swapOutput.script],
                 prevoutValues: [swapOutput.value]
@@ -267,7 +267,7 @@ class BoltzRefund {
             
             let serializedTx = refundTx.serialize()
             
-            let sigHash = refundTx.hashForWitnessV1(
+            let sigHash:Foundation.Data = refundTx.hashForWitnessV1(
                 inputIndex: 0,
                 prevoutScripts: [swapOutput.script],
                 prevoutValues: [swapOutput.value]
