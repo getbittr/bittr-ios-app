@@ -230,6 +230,7 @@ class CacheManager: NSObject {
             let oneTransaction = NSMutableDictionary()
             oneTransaction.setObject(eachTransaction.id, forKey: "id" as NSCopying)
             oneTransaction.setObject(eachTransaction.purchaseAmount, forKey: "purchaseAmount" as NSCopying)
+            oneTransaction.setObject(eachTransaction.transferFee, forKey: "transferFee" as NSCopying)
             oneTransaction.setObject(eachTransaction.received, forKey: "received" as NSCopying)
             oneTransaction.setObject(eachTransaction.sent, forKey: "sent" as NSCopying)
             oneTransaction.setObject(eachTransaction.isBittr, forKey: "isBittr" as NSCopying)
@@ -275,8 +276,11 @@ class CacheManager: NSObject {
             if let transactionID = eachTransaction["id"] as? String {
                 thisTransaction.id = transactionID
             }
-            if let transactionPurchase = eachTransaction["purchaseAmount"] as? Int {
+            if let transactionPurchase = eachTransaction["purchaseAmount"] as? CGFloat {
                 thisTransaction.purchaseAmount = transactionPurchase
+            }
+            if let transactionTransferFee = eachTransaction["transferFee"] as? CGFloat {
+                thisTransaction.transferFee = transactionTransferFee
             }
             if let transactionReceived = eachTransaction["received"] as? Int {
                 thisTransaction.received = transactionReceived
@@ -558,6 +562,8 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Invoice timestamp
+    
     static func storeInvoiceTimestamp(preimage:String, timestamp:Int) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "hashes")
@@ -579,6 +585,29 @@ class CacheManager: NSObject {
             print("Timestamp cached.")
         }
     }
+    
+    static func getInvoiceTimestamp(preimage:String) -> Int {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "hashes")
+        
+        let defaults = UserDefaults.standard
+        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
+        if let actualCachedHashes = cachedHashes {
+            // Hashes have been cached.
+            if let foundTimestamp = actualCachedHashes[hash] as? Int {
+                return foundTimestamp
+            } else {
+                self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
+                return Int(Date().timeIntervalSince1970)
+            }
+        } else {
+            // No hashes have been cached.
+            self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
+            return Int(Date().timeIntervalSince1970)
+        }
+    }
+    
+    // MARK: - Swap ID
     
     static func storeSwapID(dateID:String, swapID:String) {
         let defaults = UserDefaults.standard
@@ -607,7 +636,9 @@ class CacheManager: NSObject {
         }
     }
     
-    static func storeInvoiceDescription(hash:String, desc:String) {
+    // MARK: - Invoice description
+    
+    static func storeInvoiceDescription(preimage:String, desc:String) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
         
@@ -616,16 +647,37 @@ class CacheManager: NSObject {
         if let actualCachedDescriptions = cachedDescriptions {
             // Descriptions have been cached.
             if let actualMutableDescriptions = actualCachedDescriptions.mutableCopy() as? NSMutableDictionary {
-                actualMutableDescriptions.setObject(desc, forKey: hash as NSCopying)
+                actualMutableDescriptions.setObject(desc, forKey: preimage as NSCopying)
                 defaults.set(actualMutableDescriptions, forKey: envKey)
             }
         } else {
             // No descriptions have been cached.
             let actualMutableDescriptions = NSMutableDictionary()
-            actualMutableDescriptions.setObject(desc, forKey: hash as NSCopying)
+            actualMutableDescriptions.setObject(desc, forKey: preimage as NSCopying)
             defaults.set(actualMutableDescriptions, forKey: envKey)
         }
     }
+    
+    static func getInvoiceDescription(preimage:String) -> String {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
+        
+        let defaults = UserDefaults.standard
+        let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
+        if let actualCachedDescriptions = cachedDescriptions {
+            // Descriptions have been cached.
+            if let foundDescription = actualCachedDescriptions[preimage] as? String {
+                return foundDescription
+            } else {
+                return ""
+            }
+        } else {
+            // No descriptions have been cached.
+            return ""
+        }
+    }
+    
+    // MARK: - Transaction note
     
     static func storeTransactionNote(txid:String, note:String) {
         
@@ -646,6 +698,27 @@ class CacheManager: NSObject {
             defaults.set(actualMutableNotes, forKey: envKey)
         }
     }
+    
+    static func getTransactionNote(txid:String) -> String {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
+        
+        let defaults = UserDefaults.standard
+        let cachedNotes = defaults.value(forKey: envKey) as? NSDictionary
+        if let actualCachedNotes = cachedNotes {
+            // Notes have been cached.
+            if let foundNote = actualCachedNotes[txid] as? String {
+                return foundNote
+            } else {
+                return ""
+            }
+        } else {
+            // No notes have been cached.
+            return ""
+        }
+    }
+    
+    // MARK: - Payment fees
     
     static func storePaymentFees(preimage:String, fees:Int) {
         
@@ -669,47 +742,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func getInvoiceTimestamp(preimage:String) -> Int {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "hashes")
-        
-        let defaults = UserDefaults.standard
-        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedHashes = cachedHashes {
-            // Hashes have been cached.
-            if let foundTimestamp = actualCachedHashes[hash] as? Int {
-                return foundTimestamp
-            } else {
-                self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
-                return Int(Date().timeIntervalSince1970)
-            }
-        } else {
-            // No hashes have been cached.
-            self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
-            return Int(Date().timeIntervalSince1970)
-        }
-    }
-    
-    static func getInvoiceDescription(hash:String) -> String {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
-        
-        let defaults = UserDefaults.standard
-        let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedDescriptions = cachedDescriptions {
-            // Descriptions have been cached.
-            if let foundDescription = actualCachedDescriptions[hash] as? String {
-                return foundDescription
-            } else {
-                return ""
-            }
-        } else {
-            // No descriptions have been cached.
-            return ""
-        }
-    }
-    
-    static func getLightningFees(hash:String) -> Int {
+    static func getLightningFees(preimage:String) -> Int {
         
         let envKey = EnvironmentConfig.cacheKey(for: "lightningfees")
         
@@ -717,7 +750,7 @@ class CacheManager: NSObject {
         let cachedFees = defaults.value(forKey: envKey) as? NSDictionary
         if let actualCachedFees = cachedFees {
             // Descriptions have been cached.
-            if let foundFees = actualCachedFees[hash] as? Int {
+            if let foundFees = actualCachedFees[preimage] as? Int {
                 return foundFees
             } else {
                 return 0
@@ -728,24 +761,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func getTransactionNote(txid:String) -> String {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
-        
-        let defaults = UserDefaults.standard
-        let cachedNotes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedNotes = cachedNotes {
-            // Notes have been cached.
-            if let foundNote = actualCachedNotes[txid] as? String {
-                return foundNote
-            } else {
-                return ""
-            }
-        } else {
-            // No notes have been cached.
-            return ""
-        }
-    }
+    // MARK: - Mnemonic
     
     static func storeMnemonic(mnemonic:String) {
         
@@ -769,6 +785,8 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Pin
+    
     static func storePin(pin:String) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "pin")
@@ -791,6 +809,8 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Txo ID
+    
     static func storeTxoID(txoID:String) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "txoid")
@@ -812,6 +832,8 @@ class CacheManager: NSObject {
             return nil
         }
     }
+    
+    // MARK: - Sent to Bittr
     
     static func updateSentToBittr(txids:[String]) {
         
@@ -845,6 +867,8 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Last address
+    
     static func storeLastAddress(newAddress:String) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "lastaddress")
@@ -865,6 +889,8 @@ class CacheManager: NSObject {
             return nil
         }
     }
+    
+    // MARK: - Failed pin attempts
     
     static func getFailedPinAttempts() -> Int {
         
@@ -900,6 +926,8 @@ class CacheManager: NSObject {
         let defaults = UserDefaults.standard
         defaults.set(0, forKey: envKey)
     }
+    
+    // MARK: - Event handling
     
     static func didHandleEvent(event:String) {
         
@@ -937,6 +965,8 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Latest notification
+    
     static func storeLatestNotification(specialData:[String: Any]) {
         let defaults = UserDefaults.standard
         defaults.set(specialData, forKey: "lastbittrpayoutnotification")
@@ -952,6 +982,8 @@ class CacheManager: NSObject {
             return nil
         }
     }
+    
+    // MARK: - Dark mode
     
     static func updateDarkMode(isOn:Bool) {
         UserDefaults.standard.set(isOn, forKey: "darkmode")
@@ -979,6 +1011,8 @@ class CacheManager: NSObject {
         UserDefaults.standard.set(toLanguage, forKey: "language")
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
     }
+    
+    // MARK: - Swaps
     
     static func swapToDictionary(_ thisSwap:Swap) -> NSDictionary {
         

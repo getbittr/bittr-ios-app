@@ -138,6 +138,7 @@ struct BittrTransaction: Codable {
     let currency: String
     let purchaseAmount: String
     let bitcoinAmount: String
+    let transferFee: String
 
     enum CodingKeys: String, CodingKey {
         case txId = "tx_id"
@@ -147,6 +148,7 @@ struct BittrTransaction: Codable {
         case currency
         case purchaseAmount = "purchase_amount"
         case bitcoinAmount = "bitcoin_amount"
+        case transferFee = "transfer_fee"
     }
 }
 

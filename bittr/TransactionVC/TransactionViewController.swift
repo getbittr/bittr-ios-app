@@ -249,7 +249,7 @@ class TransactionViewController: UIViewController {
             // Bittr channel funding transaction.
             self.feesStackHeight.constant = 55
             self.feesStack.alpha = 1
-            self.labelFees.text = "10 000 sats"
+            self.labelFees.text = "\(Int(self.tappedTransaction.transferFee.rounded())) sats"
             self.feesQuestionStack.alpha = 1
             self.feesQuestionStackWidth.constant = 22
             self.feesQuestionButton.alpha = 1
@@ -351,12 +351,12 @@ class TransactionViewController: UIViewController {
         if self.tappedTransaction.isSwap {
             // Swap.
             let transactionValue = (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
-            let balanceValue = String((transactionValue*bitcoinValue.currentValue).rounded()).replacingOccurrences(of: "-", with: "").addSpaces()
+            let balanceValue = String(transactionValue*bitcoinValue.currentValue).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
         } else {
             // Onchain or Lightning transaction.
             let transactionValue = (self.tappedTransaction.received-self.tappedTransaction.sent).inBTC()
-            let balanceValue = String((transactionValue*bitcoinValue.currentValue).rounded()).replacingOccurrences(of: "-", with: "").addSpaces()
+            let balanceValue = String(transactionValue*bitcoinValue.currentValue).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
             if self.tappedTransaction.isBittr {
@@ -366,10 +366,10 @@ class TransactionViewController: UIViewController {
                 if self.tappedTransaction.purchaseAmount == 0 {
                     // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
                     self.labelPurchaseValue.text = self.labelCurrentValue.text
-                    self.labelProfit.text = "0 \(bitcoinValue.chosenCurrency)"
+                    self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(bitcoinValue.chosenCurrency)"
                 } else {
-                    self.labelPurchaseValue.text = "\(String(self.tappedTransaction.purchaseAmount).addSpaces()) \(bitcoinValue.chosenCurrency)"
-                    let profitValue = String((transactionValue*bitcoinValue.currentValue).rounded()-CGFloat(self.tappedTransaction.purchaseAmount)).addSpaces()
+                    self.labelPurchaseValue.text = "\(self.tappedTransaction.purchaseAmount)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(bitcoinValue.chosenCurrency)"
+                    let profitValue = String((transactionValue*bitcoinValue.currentValue)-CGFloat(self.tappedTransaction.purchaseAmount)).addSpaces()
                     self.labelProfit.text = "\(profitValue) \(bitcoinValue.chosenCurrency)"
                 }
                 
@@ -451,7 +451,9 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
-        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: Language.getWord(withID: "lightningchannelfees2"), type: nil)
+        let baseMessage = Language.getWord(withID: "lightningchannelfees2")
+        let dynamicMessage = baseMessage.replacingOccurrences(of: "This fee", with: "This \(Int(self.tappedTransaction.transferFee.rounded())) satoshi fee")
+        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: dynamicMessage, type: nil)
     }
     
     @IBAction func openUrlButtonTapped(_ sender: UIButton) {
