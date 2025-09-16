@@ -115,7 +115,7 @@ extension SendViewController {
         } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
             // This is a Lightning invoice.
             addressType = .lightning
-        } else if code.lowercased().contains("@") {
+        } else if self.isValidEmail(code.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)) {
             // This is an LNURL.
             addressType = .lightning
         } else {
@@ -123,7 +123,7 @@ extension SendViewController {
             addressType = self.onchainOrLightning
         }
         
-        if scanned, !code.contains("bitcoin") && !code.lowercased().contains("ln") {
+        if scanned, !code.contains("bitcoin") && !code.lowercased().contains("ln") && !self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil

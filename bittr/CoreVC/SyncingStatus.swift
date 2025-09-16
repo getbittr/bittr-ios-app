@@ -86,6 +86,9 @@ extension CoreViewController {
         case .final:
             self.spinnerFinal.stopAnimating()
             self.checkmarkFinal.alpha = 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.hideSyncView()
+            }
         }
     }
 }

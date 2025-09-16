@@ -24,7 +24,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var scrollViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentView: UIView!
+    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var centerView: UIView!
@@ -131,6 +133,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var spinnerView: UIView!
     @IBOutlet weak var spinnerBox: UIView!
     @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerLabel: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
@@ -178,75 +181,22 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Button titles
-        downButton.setTitle("", for: .normal)
-        amountButton.setTitle("", for: .normal)
-        availableButton.setTitle("", for: .normal)
-        pasteButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        centerBackgroundButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        editButton.setTitle("", for: .normal)
-        sendButton.setTitle("", for: .normal)
-        regularButton.setTitle("", for: .normal)
-        instantButton.setTitle("", for: .normal)
-        fastButton.setTitle("", for: .normal)
-        mediumButton.setTitle("", for: .normal)
-        slowButton.setTitle("", for: .normal)
-        qrButton.setTitle("", for: .normal)
-        toButton.setTitle("", for: .normal)
-        btcButton.setTitle("", for: .normal)
-        
-        // Corner radii
-        toView.layer.cornerRadius = 8
-        amountView.layer.cornerRadius = 8
-        nextView.layer.cornerRadius = 13
-        confirmHeaderView.layer.cornerRadius = 13
-        editView.layer.cornerRadius = 13
-        sendView.layer.cornerRadius = 13
-        switchView.layer.cornerRadius = 13
-        switchSelectionView.layer.cornerRadius = 8
-        scannerView.layer.cornerRadius = 13
-        yellowCard.layer.cornerRadius = 20
-        confirmToCard.layer.cornerRadius = 8
-        confirmAmountCard.layer.cornerRadius = 8
-        fastView.layer.cornerRadius = 8
-        mediumView.layer.cornerRadius = 8
-        slowView.layer.cornerRadius = 8
-        backgroundQR.layer.cornerRadius = 8
-        backgroundPaste.layer.cornerRadius = 8
-        spinnerBox.layer.cornerRadius = 13
-        btcView.layer.cornerRadius = 8
-        
-        // Shadows
-        setShadows(forView: yellowCard)
-        setShadows(forView: fastView)
-        setShadows(forView: mediumView)
-        setShadows(forView: slowView)
-        setShadows(forView: backgroundQR)
-        setShadows(forView: backgroundPaste)
-        setShadows(forView: btcView)
-        setShadows(forView: switchSelectionView)
-        
         // Text fields
-        toTextField.delegate = self
-        amountTextField.delegate = self
-        toTextField.autocorrectionType = .no
-        toTextField.autocapitalizationType = .none
-        toTextField.smartQuotesType = .no
-        toTextField.smartDashesType = .no
-        amountTextField.inputAccessoryView = createAmountInputAccessoryView()
+        self.toTextField.delegate = self
+        self.toTextField.autocorrectionType = .no
+        self.toTextField.autocapitalizationType = .none
+        self.toTextField.smartQuotesType = .no
+        self.toTextField.smartDashesType = .no
+        self.amountTextField.delegate = self
+        self.amountTextField.inputAccessoryView = createAmountInputAccessoryView()
         
         // Set colors and language
         self.changeColors()
         self.setWords()
-        self.setSendAllLabel(forView: .lightning)
+        self.setBasicStyling()
         
-        // Set default currency to satoshis
-        self.btcLabel.text = "Sats"
-        
-        // Initialize UI for Lightning mode
-        self.hideScannerView(forView: .lightning)
+        // Set "You can send X satoshis" label
+        self.setSendAllLabel(forView: .onchain)
         
         // Handle pending URI data from segue
         if let bitcoinURI = self.pendingBitcoinURI {
@@ -272,7 +222,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if forView == .onchain {
             // Set "Send all" for onchain transactions.
             if self.maximumSendableOnchainBtc == nil {
-                self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? 0
+                self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
             }
             let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
@@ -313,16 +263,29 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
     }
     
+    func checkContentViewHeight() {
+        let centerViewHeight = self.centerView.bounds.height
+        if self.centerView.bounds.height + 60 > self.contentView.bounds.height {
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.view.layoutIfNeeded()
+        } else {
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: self.contentView.superview, attribute: .height, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.view.layoutIfNeeded()
+        }
+    }
+    
     @objc func keyboardWillDisappear() {
         
         self.amountButton.alpha = 1
         self.toButton.alpha = 1
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
-        
+        self.scrollViewBottom.constant = self.view.safeAreaInsets.bottom
         self.view.layoutIfNeeded()
+        self.checkContentViewHeight()
     }
     
     @objc func keyboardWillAppear(_ notification:Notification) {
@@ -331,11 +294,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             let keyboardHeight = keyboardSize.height
             
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
-            
+            self.scrollViewBottom.constant = -keyboardHeight + self.view.safeAreaInsets.bottom
             self.view.layoutIfNeeded()
+            self.checkContentViewHeight()
+            
+            // Scroll view up to text field.
+            var fieldFrame = self.scrollView.convert(self.amountTextField.bounds, from: self.amountTextField.superview)
+            fieldFrame = fieldFrame.insetBy(dx: 0, dy: -25)
+            self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
         }
     }
     

@@ -144,8 +144,8 @@ class Language: NSObject {
             "addanother": "add another",
             "youremail": "Your email",
             "youriban": "Your IBAN",
-            "ouriban": "Our IBAN",
-            "ourname": "Our name",
+            "ouriban": "Partner IBAN",
+            "ourname": "Partner",
             "yourcode": "Your code",
             "yourprofits": "your profits",
             "profitsubtitle": "Here's to financial independence! These are the results of your savings so far.",
@@ -425,7 +425,10 @@ class Language: NSObject {
             "incompletephrase2": "Please enter all 12 words of your recovery phrase to restore your wallet.",
             "restorewalleterror": "Unable to restore wallet. Please try again.",
             "invalidphrase": "Invalid Recovery Phrase",
-            "invalidphrase2": "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words."
+            "invalidphrase2": "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words.",
+            "handlinglnurl": "Handling LNURL",
+            "newlightningconnection": "New Lightning connection",
+            "newlightningconnection2": "You've successfully opened a lightning connection with bittr. You can now send and receive payments across the bitcoin lightning network.\n\nAny funds that have already been deposited will show up shortly."
         ]
         
         if let foundWord = allWords[withID] {

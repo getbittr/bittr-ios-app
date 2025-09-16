@@ -27,6 +27,7 @@ extension SendViewController {
         self.sendLabel.text = Language.getWord(withID: "send")
         self.stackLabelQR.text = Language.getWord(withID: "sendvcscan")
         self.stackLabelPaste.text = Language.getWord(withID: "sendvcpaste")
+        self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }
     
@@ -90,5 +91,58 @@ extension SendViewController {
         
         self.editView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.labelEdit.textColor = Colors.getColor("blackorwhite")
+    }
+    
+    func setBasicStyling() {
+        
+        // Button titles
+        self.downButton.setTitle("", for: .normal)
+        self.amountButton.setTitle("", for: .normal)
+        self.availableButton.setTitle("", for: .normal)
+        self.pasteButton.setTitle("", for: .normal)
+        self.backgroundButton.setTitle("", for: .normal)
+        self.centerBackgroundButton.setTitle("", for: .normal)
+        self.nextButton.setTitle("", for: .normal)
+        self.editButton.setTitle("", for: .normal)
+        self.sendButton.setTitle("", for: .normal)
+        self.regularButton.setTitle("", for: .normal)
+        self.instantButton.setTitle("", for: .normal)
+        self.fastButton.setTitle("", for: .normal)
+        self.mediumButton.setTitle("", for: .normal)
+        self.slowButton.setTitle("", for: .normal)
+        self.qrButton.setTitle("", for: .normal)
+        self.toButton.setTitle("", for: .normal)
+        self.btcButton.setTitle("", for: .normal)
+        
+        // Corner radii
+        self.toView.layer.cornerRadius = 8
+        self.amountView.layer.cornerRadius = 8
+        self.nextView.layer.cornerRadius = 13
+        self.confirmHeaderView.layer.cornerRadius = 13
+        self.editView.layer.cornerRadius = 13
+        self.sendView.layer.cornerRadius = 13
+        self.switchView.layer.cornerRadius = 13
+        self.switchSelectionView.layer.cornerRadius = 8
+        self.scannerView.layer.cornerRadius = 13
+        self.yellowCard.layer.cornerRadius = 20
+        self.confirmToCard.layer.cornerRadius = 8
+        self.confirmAmountCard.layer.cornerRadius = 8
+        self.fastView.layer.cornerRadius = 8
+        self.mediumView.layer.cornerRadius = 8
+        self.slowView.layer.cornerRadius = 8
+        self.backgroundQR.layer.cornerRadius = 8
+        self.backgroundPaste.layer.cornerRadius = 8
+        self.spinnerBox.layer.cornerRadius = 13
+        self.btcView.layer.cornerRadius = 8
+        
+        // Shadows
+        self.setShadows(forView: self.yellowCard)
+        self.setShadows(forView: self.fastView)
+        self.setShadows(forView: self.mediumView)
+        self.setShadows(forView: self.slowView)
+        self.setShadows(forView: self.backgroundQR)
+        self.setShadows(forView: self.backgroundPaste)
+        self.setShadows(forView: self.btcView)
+        self.setShadows(forView: self.switchSelectionView)
     }
 }
