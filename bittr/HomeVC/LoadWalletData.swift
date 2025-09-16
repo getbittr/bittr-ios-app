@@ -727,8 +727,8 @@ extension UIViewController {
                 }
             }
             
-            if CacheManager.getInvoiceDescription(hash: thisTransaction.id) != "" {
-                thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: thisTransaction.id)
+            if CacheManager.getInvoiceDescription(preimage: thisTransaction.id) != "" {
+                thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
             }
         } else if paymentDetails != nil {
             
@@ -739,11 +739,11 @@ extension UIViewController {
                 thisTransaction.received = Int(paymentDetails!.amountMsat ?? 0)/1000
             } else {
                 thisTransaction.sent = Int(paymentDetails!.amountMsat ?? 0)/1000
-                thisTransaction.fee = CacheManager.getLightningFees(hash: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
+                thisTransaction.fee = CacheManager.getLightningFees(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
             }
             thisTransaction.isLightning = true
             thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
-            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
+            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
             if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
                 thisTransaction.channelId = actualChannels.first!.channelId
             }
@@ -765,7 +765,7 @@ extension UIViewController {
             thisTransaction.isBittr = true
             thisTransaction.purchaseAmount = Int(self.stringToNumber(bittrTransaction!.purchaseAmount))
             thisTransaction.currency = bittrTransaction!.currency
-            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: bittrTransaction!.txId)
+            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: bittrTransaction!.txId)
             if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
                 thisTransaction.channelId = actualChannels.first!.channelId
             }

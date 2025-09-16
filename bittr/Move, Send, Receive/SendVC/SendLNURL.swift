@@ -199,10 +199,8 @@ extension UIViewController {
                 )
                 
                 DispatchQueue.main.async {
-                    let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description)
-                    let newTimestamp = Int(Date().timeIntervalSince1970)
-                    if let actualInvoiceHash = invoiceHash {
-                        CacheManager.storeInvoiceTimestamp(preimage: actualInvoiceHash, timestamp: newTimestamp)
+                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                        CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
                     }
                 }
                 
