@@ -5691,7 +5691,6 @@
                         <outlet property="centerViewRegularTrailing" destination="3qm-yJ-4BS" id="x9L-zH-yof"/>
                         <outlet property="contentBackgroundButton" destination="F3z-x5-1Vi" id="zXI-Rj-xqy"/>
                         <outlet property="contentView" destination="f1N-uf-Vva" id="REQ-Ny-cxF"/>
-                        <outlet property="contentViewBottom" destination="zeW-Tr-tBP" id="9fd-gY-w1S"/>
                         <outlet property="contentViewHeight" destination="UGv-qv-YIf" id="I65-n8-ehl"/>
                         <outlet property="copyAddressButton" destination="8bo-4y-pL4" id="7zt-cL-ECH"/>
                         <outlet property="copyInvoiceButton" destination="BZs-9I-FZ3" id="H1i-Hn-h2m"/>
@@ -5730,6 +5729,7 @@
                         <outlet property="scanQrImage" destination="h6p-bz-F0E" id="MnP-RE-uT1"/>
                         <outlet property="scannerView" destination="0Eu-YH-W0t" id="K4l-Mn-pG0"/>
                         <outlet property="scrollView" destination="3k7-fP-1dm" id="axf-ZR-e1a"/>
+                        <outlet property="scrollViewBottom" destination="Gzi-VO-8hz" id="Tju-eY-7MP"/>
                         <outlet property="scrollViewTrailing" destination="Hai-VD-Mf4" id="kcN-M1-j1i"/>
                         <outlet property="spinnerBox" destination="wGR-Rf-xrh" id="dPK-dp-H3u"/>
                         <outlet property="spinnerView" destination="syf-n2-pmO" id="oNr-sy-JQa"/>
@@ -7150,7 +7150,7 @@
                                                         <rect key="frame" x="0.0" y="259" width="363" height="0.0"/>
                                                         <subviews>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="uI8-V5-ew0">
-                                                                <rect key="frame" x="10" y="10" width="343" height="45"/>
+                                                                <rect key="frame" x="10" y="10" width="343" height="14"/>
                                                                 <subviews>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Note" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3Xu-wD-MUR">
                                                                         <rect key="frame" x="15" y="16" width="84.666666666666671" height="16"/>
@@ -7172,7 +7172,7 @@
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
                                                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eWK-5t-hc0">
-                                                                        <rect key="frame" x="0.0" y="0.0" width="343" height="45"/>
+                                                                        <rect key="frame" x="0.0" y="0.0" width="343" height="14"/>
                                                                         <state key="normal" title="Button"/>
                                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                                         <connections>
@@ -8720,7 +8720,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="questionmark.circle" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="ba2-hN-AG8">
-                                                                <rect key="frame" x="168" y="15.000000000000037" width="16" height="14.66666666666667"/>
+                                                                <rect key="frame" x="168" y="15.000000000000036" width="16" height="14.666666666666671"/>
                                                                 <color key="tintColor" white="0.0" alpha="0.5" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" constant="16" id="OTg-np-EBL"/>

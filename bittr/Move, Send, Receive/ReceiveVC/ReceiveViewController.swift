@@ -25,8 +25,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var scrollViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentView: UIView!
-    @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewBoth: UIView!
     @IBOutlet weak var contentBackgroundButton: UIButton!
@@ -250,6 +250,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     override func viewDidAppear(_ animated: Bool) {
+        self.checkContentViewHeight()
+    }
+    
+    func checkContentViewHeight() {
         let centerViewHeight = centerViewBoth.bounds.height
         if centerViewBoth.bounds.height + 60 > contentView.bounds.height {
             NSLayoutConstraint.deactivate([self.contentViewHeight])
@@ -267,31 +271,31 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     @objc func keyboardWillDisappear() {
         
-        keyboardIsActive = false
-        
+        self.keyboardIsActive = false
         self.bothAmountButton.alpha = 1
         self.bothDescriptionButton.alpha = 1
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
-        
+        self.scrollViewBottom.constant = self.view.safeAreaInsets.bottom
         self.view.layoutIfNeeded()
+        self.checkContentViewHeight()
     }
     
     @objc func keyboardWillAppear(_ notification:Notification) {
         
-        keyboardIsActive = true
+        self.keyboardIsActive = true
         
         if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
             
+            // Adjust scroll view bottom to keyboard top.
             let keyboardHeight = keyboardSize.height
-            
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
-            
+            self.scrollViewBottom.constant = -keyboardHeight + self.view.safeAreaInsets.bottom
             self.view.layoutIfNeeded()
+            self.checkContentViewHeight()
+            
+            // Scroll view up to text field.
+            var fieldFrame = self.scrollView.convert(self.bothDescriptionTextField.bounds, from: self.bothDescriptionTextField.superview)
+            fieldFrame = fieldFrame.insetBy(dx: 0, dy: -25)
+            self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
         }
     }
     
