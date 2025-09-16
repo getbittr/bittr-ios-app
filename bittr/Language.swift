@@ -424,7 +424,8 @@ class Language: NSObject {
             "incompletephrase2": "Please enter all 12 words of your recovery phrase to restore your wallet.",
             "restorewalleterror": "Unable to restore wallet. Please try again.",
             "invalidphrase": "Invalid Recovery Phrase",
-            "invalidphrase2": "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words."
+            "invalidphrase2": "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words.",
+            "handlinglnurl": "Handling LNURL"
         ]
         
         if let foundWord = allWords[withID] {

@@ -27,6 +27,7 @@ extension SendViewController {
         self.sendLabel.text = Language.getWord(withID: "send")
         self.stackLabelQR.text = Language.getWord(withID: "sendvcscan")
         self.stackLabelPaste.text = Language.getWord(withID: "sendvcpaste")
+        self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }
     

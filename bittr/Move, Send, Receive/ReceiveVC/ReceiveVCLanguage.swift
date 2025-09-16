@@ -22,6 +22,7 @@ extension ReceiveViewController {
         self.qrScannerLabel.text = Language.getWord(withID: "lnurlscannerlabel")
         self.qrScannerCloseLabel.text = Language.getWord(withID: "close")
         self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
+        self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }
     

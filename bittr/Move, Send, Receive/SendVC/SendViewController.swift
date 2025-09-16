@@ -131,6 +131,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var spinnerView: UIView!
     @IBOutlet weak var spinnerBox: UIView!
     @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerLabel: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
