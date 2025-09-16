@@ -173,68 +173,21 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Button titles
-        downButton.setTitle("", for: .normal)
-        amountButton.setTitle("", for: .normal)
-        availableButton.setTitle("", for: .normal)
-        pasteButton.setTitle("", for: .normal)
-        backgroundButton.setTitle("", for: .normal)
-        centerBackgroundButton.setTitle("", for: .normal)
-        nextButton.setTitle("", for: .normal)
-        editButton.setTitle("", for: .normal)
-        sendButton.setTitle("", for: .normal)
-        regularButton.setTitle("", for: .normal)
-        instantButton.setTitle("", for: .normal)
-        fastButton.setTitle("", for: .normal)
-        mediumButton.setTitle("", for: .normal)
-        slowButton.setTitle("", for: .normal)
-        qrButton.setTitle("", for: .normal)
-        toButton.setTitle("", for: .normal)
-        btcButton.setTitle("", for: .normal)
-        
-        // Corner radii
-        toView.layer.cornerRadius = 8
-        amountView.layer.cornerRadius = 8
-        nextView.layer.cornerRadius = 13
-        confirmHeaderView.layer.cornerRadius = 13
-        editView.layer.cornerRadius = 13
-        sendView.layer.cornerRadius = 13
-        switchView.layer.cornerRadius = 13
-        switchSelectionView.layer.cornerRadius = 8
-        scannerView.layer.cornerRadius = 13
-        yellowCard.layer.cornerRadius = 20
-        confirmToCard.layer.cornerRadius = 8
-        confirmAmountCard.layer.cornerRadius = 8
-        fastView.layer.cornerRadius = 8
-        mediumView.layer.cornerRadius = 8
-        slowView.layer.cornerRadius = 8
-        backgroundQR.layer.cornerRadius = 8
-        backgroundPaste.layer.cornerRadius = 8
-        spinnerBox.layer.cornerRadius = 13
-        btcView.layer.cornerRadius = 8
-        
-        // Shadows
-        setShadows(forView: yellowCard)
-        setShadows(forView: fastView)
-        setShadows(forView: mediumView)
-        setShadows(forView: slowView)
-        setShadows(forView: backgroundQR)
-        setShadows(forView: backgroundPaste)
-        setShadows(forView: btcView)
-        setShadows(forView: switchSelectionView)
-        
         // Text fields
-        toTextField.delegate = self
-        amountTextField.delegate = self
-        toTextField.autocorrectionType = .no
-        toTextField.autocapitalizationType = .none
-        toTextField.smartQuotesType = .no
-        toTextField.smartDashesType = .no
-        amountTextField.inputAccessoryView = createAmountInputAccessoryView()
+        self.toTextField.delegate = self
+        self.toTextField.autocorrectionType = .no
+        self.toTextField.autocapitalizationType = .none
+        self.toTextField.smartQuotesType = .no
+        self.toTextField.smartDashesType = .no
+        self.amountTextField.delegate = self
+        self.amountTextField.inputAccessoryView = createAmountInputAccessoryView()
         
         // Set colors and language
         self.changeColors()
         self.setWords()
+        self.setBasicStyling()
+        
+        // Set "You can send X satoshis" label
         self.setSendAllLabel(forView: .onchain)
         
         // Handle pending URI data from segue
@@ -261,7 +214,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if forView == .onchain {
             // Set "Send all" for onchain transactions.
             if self.maximumSendableOnchainBtc == nil {
-                self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? 0
+                self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
             }
             let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
