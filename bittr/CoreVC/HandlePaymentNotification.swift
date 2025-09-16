@@ -128,15 +128,6 @@ extension CoreViewController {
                         )
                         print("Did create invoice.")
                         
-                        DispatchQueue.main.async {
-                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description) {
-                                let newTimestamp = Int(Date().timeIntervalSince1970)
-                                CacheManager.storeInvoiceTimestamp(preimage: invoiceHash, timestamp: newTimestamp)
-                                CacheManager.storeInvoiceDescription(hash: invoiceHash, desc: notificationId)
-                                print("Did cache invoice data.")
-                            }
-                        }
-                        
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         print("Did sign message.")
                         
@@ -147,6 +138,11 @@ extension CoreViewController {
                             self.hidePendingView()
                             
                             if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                                
+                                let newTimestamp = Int(Date().timeIntervalSince1970)
+                                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
+                                CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
+                                print("Did cache invoice data.")
                                 
                                 let receivedTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
                                 receivedTransaction.isBittr = true
@@ -259,7 +255,7 @@ extension CoreViewController {
                     
                     DispatchQueue.main.async {
                         self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-                        if !CacheManager.getInvoiceDescription(hash: paymentHash).contains("Swap onchain to lightning ") {
+                        if !CacheManager.getInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id).contains("Swap onchain to lightning ") {
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     }
@@ -327,7 +323,7 @@ extension CoreViewController {
                         } else {
                             // Handle transaction in HomeVC.
                             self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
-                            if !newTransaction.isSwap {
+                            if !newTransaction.isSwap, !newTransaction.lnDescription.contains("Swap onchain to lightning "), !newTransaction.lnDescription.contains("Swap lightning to onchain ") {
                                 self.homeVC!.tappedTransaction = newTransaction
                                 self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                             }

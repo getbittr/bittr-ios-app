@@ -22,12 +22,11 @@ extension ReceiveViewController {
             let zeroInvoice = try LightningNodeService.shared.ldkNode!.bolt11Payment().receiveVariableAmount(description: invoiceDescription, expirySecs: 3600)
             
             DispatchQueue.main.async {
-                let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description)
-                let newTimestamp = Int(Date().timeIntervalSince1970)
-                if let actualInvoiceHash = invoiceHash {
-                    CacheManager.storeInvoiceTimestamp(preimage: actualInvoiceHash, timestamp: newTimestamp)
+                if let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                    let newTimestamp = Int(Date().timeIntervalSince1970)
+                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
                     if enteredDescription != "" {
-                        CacheManager.storeInvoiceDescription(hash: actualInvoiceHash, desc: enteredDescription)
+                        CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: enteredDescription)
                     }
                 }
             }
@@ -57,10 +56,8 @@ extension ReceiveViewController {
                 expirySecs: expirySecs
             )
             DispatchQueue.main.async {
-                let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description)
-                let newTimestamp = Int(Date().timeIntervalSince1970)
-                if let actualInvoiceHash = invoiceHash {
-                    CacheManager.storeInvoiceTimestamp(preimage: actualInvoiceHash, timestamp: newTimestamp)
+                if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
                 }
             }
             return "\(invoice)"
