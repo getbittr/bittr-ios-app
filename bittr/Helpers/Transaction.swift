@@ -16,8 +16,9 @@ class Transaction: NSObject {
     var height = 0
     var timestamp = 0
     var isBittr = false
-    var purchaseAmount = 0
+    var purchaseAmount: CGFloat = 0
     var currency = "EUR"
+    var transferFee: CGFloat = 0
     var isLightning = false
     var lnDescription = ""
     var confirmations = 0

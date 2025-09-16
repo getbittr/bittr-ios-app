@@ -249,7 +249,7 @@ class TransactionViewController: UIViewController {
             // Bittr channel funding transaction.
             self.feesStackHeight.constant = 55
             self.feesStack.alpha = 1
-            self.labelFees.text = "10 000 sats"
+            self.labelFees.text = "\(Int(self.tappedTransaction.transferFee.rounded())) sats"
             self.feesQuestionStack.alpha = 1
             self.feesQuestionStackWidth.constant = 22
             self.feesQuestionButton.alpha = 1
@@ -451,7 +451,9 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
-        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: Language.getWord(withID: "lightningchannelfees2"), type: nil)
+        let baseMessage = Language.getWord(withID: "lightningchannelfees2")
+        let dynamicMessage = baseMessage.replacingOccurrences(of: "This fee", with: "This \(Int(self.tappedTransaction.transferFee.rounded())) satoshi fee")
+        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: dynamicMessage, type: nil)
     }
     
     @IBAction func openUrlButtonTapped(_ sender: UIButton) {

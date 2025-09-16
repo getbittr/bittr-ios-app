@@ -262,7 +262,7 @@ class Language: NSObject {
             "unconfirmed": "Unconfirmed",
             "save": "Save",
             "lightningchannelfees": "lightning connection fees",
-            "lightningchannelfees2": "This is the first transaction in your lightning connection.\n\nThe opening and closing of a lightning connection incur mining fees, which we cover with a one-time upfront charge of 10 000 satoshis.\n\nAll additional bitcoin purchases into this lightning connection are exempt from mining fees.",
+            "lightningchannelfees2": "This is your first instant bitcoin transaction.\n\nTo enable instant payments, we need to reserve funds in a lightning connection for you.\n\nThis fee covers both the capital we reserve (so you can make instant transactions) and the bitcoin network fees for opening and closing the connection.\n\nAll future instant bitcoin purchases will be completely free of network fees.",
             "copy": "Copy",
             "cachedimages1": "Are you sure you want to remove your cached images?",
             "remove": "Remove",

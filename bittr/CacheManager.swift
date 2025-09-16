@@ -230,6 +230,7 @@ class CacheManager: NSObject {
             let oneTransaction = NSMutableDictionary()
             oneTransaction.setObject(eachTransaction.id, forKey: "id" as NSCopying)
             oneTransaction.setObject(eachTransaction.purchaseAmount, forKey: "purchaseAmount" as NSCopying)
+            oneTransaction.setObject(eachTransaction.transferFee, forKey: "transferFee" as NSCopying)
             oneTransaction.setObject(eachTransaction.received, forKey: "received" as NSCopying)
             oneTransaction.setObject(eachTransaction.sent, forKey: "sent" as NSCopying)
             oneTransaction.setObject(eachTransaction.isBittr, forKey: "isBittr" as NSCopying)
@@ -275,8 +276,11 @@ class CacheManager: NSObject {
             if let transactionID = eachTransaction["id"] as? String {
                 thisTransaction.id = transactionID
             }
-            if let transactionPurchase = eachTransaction["purchaseAmount"] as? Int {
+            if let transactionPurchase = eachTransaction["purchaseAmount"] as? CGFloat {
                 thisTransaction.purchaseAmount = transactionPurchase
+            }
+            if let transactionTransferFee = eachTransaction["transferFee"] as? CGFloat {
+                thisTransaction.transferFee = transactionTransferFee
             }
             if let transactionReceived = eachTransaction["received"] as? Int {
                 thisTransaction.received = transactionReceived
