@@ -766,8 +766,8 @@ extension UIViewController {
             thisTransaction.purchaseAmount = Int(self.stringToNumber(bittrTransaction!.purchaseAmount))
             thisTransaction.currency = bittrTransaction!.currency
             thisTransaction.lnDescription = CacheManager.getInvoiceDescription(hash: bittrTransaction!.txId)
-            if let actualChannels = coreVC?.bittrWallet.lightningChannels {
-                thisTransaction.channelId = actualChannels[0].channelId
+            if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
+                thisTransaction.channelId = actualChannels.first!.channelId
             }
         }
         

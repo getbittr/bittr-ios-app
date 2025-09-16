@@ -119,7 +119,7 @@ struct EnvironmentConfig {
     
     /// Lightning node IDs based on environment
     static var lightningNodeId: String {
-        isDevelopment ? "03d4fbe4971be3b3920fb8e0321d1e324cd4ebd64a73cfdbb00476ba5d8cbe2cee" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
+        isDevelopment ? "023313960bf56e31e2895dc350d839ffe81dfc735c1d43dfad46a30949d7bb30b7" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
     }
     
     /// Lightning node addresses based on environment
