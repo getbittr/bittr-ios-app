@@ -111,13 +111,13 @@ class BoltzRefund {
             
             let serializedTx = claimTx.serialize()
             
-            let sigHash:Foundation.Data = claimTx.hashForWitnessV1(
+            let sigHash = claimTx.hashForWitnessV1(
                 inputIndex: 0,
                 prevoutScripts: [swapOutput.script],
                 prevoutValues: [swapOutput.value]
             )
             
-            let messageHashBytes = sigHash.bytes
+            let messageHashBytes = Array(sigHash)
             let messageDigest = HashDigest(messageHashBytes)
             
             // Generate nonces for each signer
@@ -267,13 +267,13 @@ class BoltzRefund {
             
             let serializedTx = refundTx.serialize()
             
-            let sigHash:Foundation.Data = refundTx.hashForWitnessV1(
+            let sigHash = refundTx.hashForWitnessV1(
                 inputIndex: 0,
                 prevoutScripts: [swapOutput.script],
                 prevoutValues: [swapOutput.value]
             )
             
-            let messageHashBytes = sigHash.bytes
+            let messageHashBytes = Array(sigHash)
             let messageDigest = HashDigest(messageHashBytes)
             
             // Generate nonces for each signer
