@@ -259,17 +259,20 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             let dataOurIban = actualDataItems["iban"]
                             let dataCode = actualDataItems["deposit_code"]
                             let dataSwift = actualDataItems["swift"]
+                            let dataLightningAddressUsername = actualDataItems["lightning_address_username"]
                             if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
                                 DispatchQueue.main.async {
                                     // Signup successful.
                                     
                                     // Add bittr details to cache.
-                                    CacheManager.addBittrIban(ibanID: iban.id, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode)
+                                    let lightningAddressUsername = dataLightningAddressUsername as? String ?? ""
+                                    CacheManager.addBittrIban(ibanID: iban.id, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode, lightningAddressUsername: lightningAddressUsername)
                                     for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
                                         if eachIbanEntity.id == iban.id {
                                             self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = actualDataOurIban
                                             self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = actualDataSwift
                                             self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = actualDataCode
+                                            self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
                                         }
                                     }
                                     

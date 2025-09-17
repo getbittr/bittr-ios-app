@@ -21,7 +21,14 @@ extension ReceiveViewController {
         self.createInvoiceLabel.text = Language.getWord(withID: "createinvoice")
         self.qrScannerLabel.text = Language.getWord(withID: "lnurlscannerlabel")
         self.qrScannerCloseLabel.text = Language.getWord(withID: "close")
-        self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
+        // Check if lightning address username is available
+        if let coreVC = self.coreVC,
+           let firstIban = coreVC.bittrWallet.ibanEntities.first,
+           !firstIban.lightningAddressUsername.isEmpty {
+            self.bothAmountLabel.text = firstIban.lightningAddressUsername
+        } else {
+            self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
+        }
         self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }

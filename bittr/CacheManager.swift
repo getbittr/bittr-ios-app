@@ -81,6 +81,12 @@ class CacheManager: NSObject {
                             if let actualIbanToken = ibanDataDict["token"] as? String {
                                 iban.emailToken = actualIbanToken
                             }
+                            if let actualLightningAddressUsername = ibanDataDict["lightningaddressusername"] as? String {
+                                iban.lightningAddressUsername = actualLightningAddressUsername
+                            }
+                            if let actualOurSwift = ibanDataDict["ourswift"] as? String {
+                                iban.ourSwift = actualOurSwift
+                            }
                             
                             ibansInClient += [iban]
                         }
@@ -153,7 +159,7 @@ class CacheManager: NSObject {
             
             let ibansDict = NSMutableDictionary()
             for eachIbanEntity in bittrWallet.ibanEntities {
-                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift], forKey: eachIbanEntity.id as NSCopying)
+                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername], forKey: eachIbanEntity.id as NSCopying)
             }
             let updatedClientsDict = NSMutableDictionary()
             updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
@@ -162,7 +168,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String) {
+    static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String = "") {
         
         let envKey = EnvironmentConfig.deviceCacheKey
         
@@ -175,12 +181,13 @@ class CacheManager: NSObject {
                     eachIbanEntity.ourIbanNumber = ourIban
                     eachIbanEntity.yourUniqueCode = yourCode
                     eachIbanEntity.ourSwift = ourSwift
+                    eachIbanEntity.lightningAddressUsername = lightningAddressUsername
                 }
             }
             
             let ibansDict = NSMutableDictionary()
             for eachIbanEntity in bittrWallet.ibanEntities {
-                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift], forKey: eachIbanEntity.id as NSCopying)
+                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername], forKey: eachIbanEntity.id as NSCopying)
             }
             let updatedClientsDict = NSMutableDictionary()
             updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
