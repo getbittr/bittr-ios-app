@@ -1291,7 +1291,7 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
@@ -1333,7 +1333,7 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittrRegtest;
+				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
