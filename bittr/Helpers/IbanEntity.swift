@@ -18,4 +18,5 @@ class IbanEntity: NSObject {
     var id = ""
     var emailToken = ""
     var ourSwift = ""
+    var lightningAddressUsername = ""
 }
