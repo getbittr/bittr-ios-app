@@ -1503,7 +1503,7 @@
 			repositoryURL = "https://github.com/lightningdevkit/ldk-node/";
 			requirement = {
 				kind = exactVersion;
-				version = 0.6.1;
+				version = 0.6.2;
 			};
 		};
 		05BE46172BB9A83100555B9B /* XCRemoteSwiftPackageReference "SPConfetti" */ = {
@@ -1542,8 +1542,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa/";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.0.0;
+				kind = exactVersion;
+				version = 8.29.1;
 			};
 		};
 		37DC0C482E1971B7004E1BE8 /* XCRemoteSwiftPackageReference "swift-secp256k1" */ = {
