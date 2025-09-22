@@ -10,7 +10,6 @@ import Foundation
 class BittrService {
 
     static let shared = BittrService()
-    private let baseURL = URL(string: "https://model-arachnid-viable.ngrok-free.app/")!
     private let session = URLSession(configuration: .default)
     
     func payoutLightning(notificationId: String, invoice: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
@@ -47,7 +46,17 @@ class BittrService {
                 throw BittrServiceError.noData
             }
         } else {
-            throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
+            // Check for specific error codes that require special handling
+            if let errorCode = decodedResponse.errorCode, 
+               errorCode == "CHANNEL_FULL",
+               let suggestedAmount = decodedResponse.suggestedSwapAmount {
+                throw BittrServiceError.channelFullWithSwapSuggestion(
+                    decodedResponse.error ?? "Lightning channel capacity insufficient",
+                    suggestedAmount
+                )
+            } else {
+                throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
+            }
         }
     }
     
@@ -104,6 +113,39 @@ class BittrService {
         }
     }
     
+    func markTransactionAsOnchain(notificationId: String, signature: String, pubkey: String) async throws -> BittrPayoutResponse {
+        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/payout/onchain"
+        
+        var urlComponents = URLComponents(string: envUrl)!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "notification_id", value: notificationId),
+            URLQueryItem(name: "signature", value: signature),
+            URLQueryItem(name: "pubkey", value: pubkey)
+        ]
+        
+        guard let url = urlComponents.url else {
+            throw BittrServiceError.other("Invalid URL" as! Error)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            throw BittrServiceError.serverError("Couldn't connect to Bittr to mark transaction as on-chain. Please try again or check your connection.")
+        }
+        
+        let decodedResponse = try JSONDecoder().decode(BittrPayoutResponse.self, from: data)
+        
+        if decodedResponse.success {
+            return decodedResponse
+        } else {
+            throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
+        }
+    }
+    
 }
 
 struct BittrPayoutResponse: Codable {
@@ -113,6 +155,8 @@ struct BittrPayoutResponse: Codable {
     let bitcoinAmount: String?
     let fiatAmount: String?
     let fiatCurrency: String?
+    let errorCode: String?
+    let suggestedSwapAmount: String?
 
     enum CodingKeys: String, CodingKey {
         case success
@@ -121,6 +165,8 @@ struct BittrPayoutResponse: Codable {
         case bitcoinAmount = "bitcoin_amount"
         case fiatAmount = "fiat_amount"
         case fiatCurrency = "fiat_currency"
+        case errorCode = "error_code"
+        case suggestedSwapAmount = "suggested_swap_amount"
     }
 }
 
@@ -158,6 +204,7 @@ enum BittrServiceError: Error {
     case decodingError(Error)
     case other(Error)
     case noData
+    case channelFullWithSwapSuggestion(String, String) // error message, suggested amount
 }
 
 extension BittrServiceError: LocalizedError {
@@ -173,6 +220,8 @@ extension BittrServiceError: LocalizedError {
             return "No data received from the server."
         case .other(let error):
             return error.localizedDescription
+        case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
+            return "\(message) Suggested swap amount: \(suggestedAmount) sats"
         }
     }
 }

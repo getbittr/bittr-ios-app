@@ -154,8 +154,28 @@ extension CoreViewController {
                                 self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                             }
                         }
+                    } catch let error as BittrServiceError {
+                        print("BittrService error occurred: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            SentrySDK.capture(error: error)
+                            self.hidePendingView()
+                            
+                            switch error {
+                            case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
+                                // Handle channel full with swap suggestion
+                                self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
+                            case .serverError(let message):
+                                if message.contains("try again"), self.varSpecialData != nil {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                } else {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                }
+                            default:
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
+                            }
+                        }
                     } catch {
-                        print("Error occurred: \(error.localizedDescription)")
+                        print("General error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             SentrySDK.capture(error: error)
                             self.hidePendingView()
@@ -449,6 +469,117 @@ extension CoreViewController {
                     // Set a flag to indicate this is from a background notification
                     moveVC.isFromBackgroundNotification = true
                     moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
+                }
+            }
+        }
+    }
+    
+    func handleChannelFullWithSwapSuggestion(message: String, suggestedAmount: String, notificationId: String) {
+        // Store the notification data for later use after swap
+        self.pendingNotificationData = self.varSpecialData
+        self.pendingNotificationId = notificationId
+        self.pendingSuggestedSwapAmount = Int(suggestedAmount) ?? 50000
+        
+        // Show alert with swap suggestion
+        let recommendationMessage = Language.getWord(withID: "channelfullswaprecommendation").replacingOccurrences(of: "<amount>", with: suggestedAmount)
+        self.showAlert(
+            presentingController: self,
+            title: Language.getWord(withID: "insufficientfunds"),
+            message: "\(message)\n\n\(recommendationMessage)",
+            buttons: [Language.getWord(withID: "receiveonchain"), Language.getWord(withID: "swapandreceiveinstantly")],
+            actions: [#selector(self.receiveOnchainForNotification), #selector(self.swapAndPayForNotification)]
+        )
+    }
+    
+    @objc override func cancelSwapOffer() {
+        self.hideAlert()
+        // Clear pending data
+        self.pendingNotificationData = nil
+        self.pendingNotificationId = nil
+        self.pendingSuggestedSwapAmount = 0
+    }
+    
+    @objc func receiveOnchainForNotification() {
+        self.hideAlert()
+        
+        guard let notificationId = self.pendingNotificationId else {
+            print("ERROR: No pending notification ID for on-chain payout")
+            return
+        }
+        
+        // Show loading state
+        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
+        self.showPendingView()
+        
+        Task {
+            do {
+                let pubkey = LightningNodeService.shared.nodeId()
+                let signature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                
+                let response = try await BittrService.shared.markTransactionAsOnchain(
+                    notificationId: notificationId,
+                    signature: signature,
+                    pubkey: pubkey
+                )
+                
+                print("On-chain payout marked successfully: \(response)")
+                
+                DispatchQueue.main.async {
+                    self.hidePendingView()
+                    self.showAlert(
+                        presentingController: self,
+                        title: "Payment Scheduled",
+                        message: "Your payment has been scheduled for on-chain delivery within 4-24 hours. You'll receive a notification when it's completed.",
+                        buttons: [Language.getWord(withID: "okay")],
+                        actions: nil
+                    )
+                    
+                    // Clear pending data
+                    self.pendingNotificationData = nil
+                    self.pendingNotificationId = nil
+                    self.pendingSuggestedSwapAmount = 0
+                }
+                
+            } catch {
+                print("ERROR: Failed to mark transaction as on-chain: \(error)")
+                DispatchQueue.main.async {
+                    self.hidePendingView()
+                    self.showAlert(
+                        presentingController: self,
+                        title: "Error",
+                        message: "Failed to schedule on-chain payment: \(error.localizedDescription)",
+                        buttons: [Language.getWord(withID: "okay")],
+                        actions: nil
+                    )
+                }
+            }
+        }
+    }
+    
+    @objc func swapAndPayForNotification() {
+        self.hideAlert()
+        
+        // Navigate to swap screen using existing pattern
+        if let homeVC = self.homeVC {
+            // Use the stored suggested swap amount
+            let suggestedAmount = self.pendingSuggestedSwapAmount
+            print("DEBUG - swapAndPayForNotification: suggestedAmount=\(suggestedAmount)")
+            
+            // First dismiss the current view controller
+            self.dismiss(animated: true) {
+                // Then navigate through the existing segue pattern
+                homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
+                
+                // After a short delay, trigger the swap button tap to go directly to swap
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if let moveVC = homeVC.presentedViewController as? MoveViewController {
+                        // Set flags to trigger onchain-to-lightning swap with pre-filled amount
+                        // We'll use a new flag to distinguish this from regular onchain payments
+                        moveVC.isFromBackgroundNotification = true
+                        moveVC.pendingOnchainAmount = suggestedAmount
+                        moveVC.pendingOnchainAddress = "" // No specific address needed
+                        moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
+                    }
                 }
             }
         }

@@ -80,6 +80,17 @@ class LightningNodeService {
             nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: nil)
         }
         
+        let logDirectory = storageManager.getDocumentsDirectory() + "/logs"
+        try? FileManager.default.createDirectory(
+                   atPath: logDirectory,
+                   withIntermediateDirectories: true
+               )
+        
+        let logPath = logDirectory + "/ruben.log"
+        
+        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
+
+        
         let ldkNode = try nodeBuilder.build()
         try ldkNode.start()
         self.ldkNode = ldkNode
@@ -521,6 +532,24 @@ class LightningNodeService {
             userChannelId: userChannelId,
             counterpartyNodeId: counterPartyNodeId
         )
+    }
+
+    func connectOpenChannel(
+        nodeId: PublicKey,
+        address: String,
+        channelAmountSats: UInt64,
+        pushToCounterpartyMsat: UInt64?,
+        channelConfig: ChannelConfig?,
+        announceChannel: Bool = false
+    ) async throws -> UserChannelId {
+        let userChannelId = try ldkNode!.openChannel(
+            nodeId: nodeId,
+            address: address,
+            channelAmountSats: channelAmountSats,
+            pushToCounterpartyMsat: pushToCounterpartyMsat,
+            channelConfig: nil
+        )
+        return userChannelId
     }
 
     func forceCloseChannel(userChannelId: ChannelId, counterPartyNodeId:PublicKey) throws {

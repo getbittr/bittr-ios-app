@@ -355,6 +355,62 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     @IBAction func channelsButtonTapped(_ sender: UIButton) {
         
+        // TEMPORARY: You can uncomment this code to have the bittr app make a connection and open a channel (in regtest)
+        // Task {
+        //     do {
+        //         print("[TEMP] Opening channel to 0251f466be01d4fcf7d98b62d02e6bac875f36a67f7a433a38e4aab7f24491716d")
+        //         let nodeId = "0251f466be01d4fcf7d98b62d02e6bac875f36a67f7a433a38e4aab7f24491716d"
+        //         let address = "31.58.51.17:19735"
+        //         let channelAmountSats: UInt64 = 1_000_000
+        //         let pushAmountSats: UInt64 = 500_000_000
+                
+        //         // First connect to the peer
+        //         try await LightningNodeService.shared.connect(
+        //             nodeId: nodeId,
+        //             address: address,
+        //             persist: true
+        //         )
+        //         print("[TEMP] Connected to peer successfully")
+                
+        //         // Wait a moment for connection to establish
+        //         try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                
+        //         // Open the channel
+        //         let channelId = try await LightningNodeService.shared.connectOpenChannel(
+        //             nodeId: nodeId,
+        //             address: address,
+        //             channelAmountSats: channelAmountSats,
+        //             pushToCounterpartyMsat: pushAmountSats,
+        //             channelConfig: nil,
+        //             announceChannel: true
+        //         )
+                
+        //         print("[TEMP] Channel opened successfully! Channel ID: \(channelId)")
+                
+        //         DispatchQueue.main.async {
+        //             self.showAlert(
+        //                 presentingController: self,
+        //                 title: "Channel Opened",
+        //                 message: "Successfully opened channel to \(nodeId) with \(channelAmountSats) sats (pushed \(pushAmountSats) sats)",
+        //                 buttons: ["OK"],
+        //                 actions: nil
+        //             )
+        //         }
+                
+        //     } catch {
+        //         print("[TEMP] Error opening channel: \(error)")
+        //         DispatchQueue.main.async {
+        //             self.showAlert(
+        //                 presentingController: self,
+        //                 title: "Channel Open Failed",
+        //                 message: "Failed to open channel: \(error.localizedDescription)",
+        //                 buttons: ["OK"],
+        //                 actions: nil
+        //             )
+        //         }
+        //     }
+        // }
+        
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     

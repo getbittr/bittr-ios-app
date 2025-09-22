@@ -80,6 +80,9 @@ class CoreViewController: UIViewController {
     var varSpecialData:[String: Any]?
     var receivedBittrTransaction:Transaction?
     var isHandlingSwapNotification = false
+    var pendingNotificationData:[String: Any]?
+    var pendingNotificationId:String?
+    var pendingSuggestedSwapAmount:Int = 0
     
     // Connection to VCs
     var homeVC:HomeViewController?

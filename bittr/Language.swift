@@ -84,7 +84,7 @@ class Language: NSObject {
             "feerate": "Select your preferred fee rate.",
             "edit": "Edit",
             "limitlightning": "why a limit for instant payments?",
-            "limitlightninganswer": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nIf you've purchased satoshis into your lightning connection, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning connection.",
+            "limitlightninganswer": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nIf you've received satoshis into your lightning connection, you can use those to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning connection.",
             "checkyourconnection": "Check your connection",
             "trytoconnect": "You don't seem to be connected to the internet. Please try to connect.",
             "okay": "Okay",
@@ -99,7 +99,7 @@ class Language: NSObject {
             "thisisyourinvoice": "This is your Lightning invoice.",
             "done": "Done",
             "copied": "Copied",
-            "theresalimit": "There's a limit to the amount of satoshis you can receive per invoice.\n\nYour lightning connection has a size, ten times the amount of your first bittr purchase. If the size is 10,000 sats and you've already purchased 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the connection size. If you need more, you can create multiple invoices.\n\nWhen the connection is full, we'll invite you to move your funds to your regular bitcoin wallet to make space for future transactions.",
+            "theresalimit": "There's a limit to the amount of satoshis you can receive per invoice.\n\nYour lightning connection has a size, ten times the amount of your first bittr purchase. If the size is 10,000 sats and you've already received 2,000 sats, you can still receive up to 8,000 sats in total.\n\nPer invoice you can receive up to ten percent of the connection size. If you need more, you can create multiple invoices.\n\nWhen the connection is full, we'll invite you to move your funds to your regular bitcoin wallet to make space for future transactions.",
             "oops": "Oops!",
             "addressfail": "We couldn't fetch a wallet address. Please try again.",
             "tryagain": "Try again",
@@ -204,12 +204,12 @@ class Language: NSObject {
             "newpayment": "You've received a new payment!",
             "fundingtx": "Channel funding transaction",
             "questionvc1": "There's a limit to the amount of satoshis you can receive per invoice.\n\nThe size of your bitcoin lightning connection is",
-            "questionvc2": "satoshis. You've already purchased",
+            "questionvc2": "satoshis. You've already received",
             "questionvc3": "sats, so you can still receive up to",
             "questionvc4": "sats in total.\n\nPer invoice you can receive up to ten percent of the connection size, so",
             "questionvc5": "sats. If you need more, you can create multiple invoices.\n\nWhen the connection is full, we'll invite you to move your funds to your regular bitcoin wallet to make space for future transactions",
             "questionvc6": "why can't I send instant payments?",
-            "questionvc7": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning wallet (for instant payments).\n\nYou've already purchased",
+            "questionvc7": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning wallet (for instant payments).\n\nYou've already received",
             "questionvc8": "satoshis into your lightning wallet. Your lightning connection needs to contain a minimum of",
             "questionvc9": "sats, so the maximum amount you can send in total is",
             "questionvc10": "sats.\n\nPer invoice you can send up to ten percent of the connection size. The size of your connection is",
@@ -428,7 +428,10 @@ class Language: NSObject {
             "invalidphrase2": "The recovery phrase you entered is not valid. Please double-check your backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words.",
             "handlinglnurl": "Handling LNURL",
             "newlightningconnection": "New Lightning connection",
-            "newlightningconnection2": "You've successfully opened a lightning connection with bittr. You can now send and receive payments across the bitcoin lightning network.\n\nAny funds that have already been deposited will show up shortly."
+            "newlightningconnection2": "You've successfully opened a lightning connection with bittr. You can now send and receive payments across the bitcoin lightning network.\n\nAny funds that have already been deposited will show up shortly.",
+            "channelfullswaprecommendation": "Bittr recommends you to swap <amount> satoshis. Alternatively you could also choose to just get this transaction paid out to your regular balance. Would you like to received this payment regularly (within 4-24 hours) or swap and receive instantly?",
+            "swapandreceiveinstantly": "Swap & Instant Receive",
+            "receiveonchain": "Receive on-chain"
         ]
         
         if let foundWord = allWords[withID] {

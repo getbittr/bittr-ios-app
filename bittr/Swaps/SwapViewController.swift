@@ -103,7 +103,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotification), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
         
         // Clear any stale data if this is a manual navigation (not from payment)
-        if !self.isFromLightningPayment && !self.isFromOnchainPayment {
+        if !self.isFromLightningPayment && !self.isFromOnchainPayment && !self.isFromBackgroundNotification {
             print("DEBUG - Manual navigation to swap screen, clearing any stale data")
             self.clearPendingSwapData()
         }
@@ -173,7 +173,20 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Check if there's an ongoing swap and automatically show it (only if from background notification)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if self.isFromBackgroundNotification {
+            print("DEBUG - SwapViewController viewDidLoad conditions:")
+            print("  - isFromBackgroundNotification: \(self.isFromBackgroundNotification)")
+            print("  - pendingOnchainAmount: \(self.pendingOnchainAmount)")
+            print("  - isFromLightningPayment: \(self.isFromLightningPayment)")
+            print("  - pendingLightningInvoice: '\(self.pendingLightningInvoice)'")
+            print("  - isFromOnchainPayment: \(self.isFromOnchainPayment)")
+            print("  - pendingOnchainAddress: '\(self.pendingOnchainAddress)'")
+            
+            if self.isFromBackgroundNotification && self.pendingOnchainAmount > 0 {
+                // Handle notification-based onchain-to-lightning swap
+                print("DEBUG - Calling handleNotificationSwap()")
+                self.handleNotificationSwap()
+            } else if self.isFromBackgroundNotification {
+                print("DEBUG - Calling checkForOngoingSwap()")
                 self.checkForOngoingSwap()
             } else if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
                 // Handle pending Lightning invoice
@@ -747,6 +760,28 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Start the swap process
         Task {
             await SwapManager.lightningToOnchain(amountSat: self.pendingOnchainAmount, swapVC: self, payoutAddress: self.pendingOnchainAddress)
+        }
+    }
+    
+    private func handleNotificationSwap() {
+        print("DEBUG - handleNotificationSwap called. pendingOnchainAmount: \(self.pendingOnchainAmount)")
+        // Set the amount and direction for lightning to onchain swap (to free up Lightning capacity)
+        self.amountTextField.text = "\(self.pendingOnchainAmount)"
+        self.swapDirection = .lightningToOnchain
+        self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
+        
+        // Create Swap object.
+        self.coreVC!.bittrWallet.ongoingSwap = Swap()
+        self.coreVC!.bittrWallet.ongoingSwap!.satoshisAmount = self.pendingOnchainAmount
+        self.coreVC!.bittrWallet.ongoingSwap!.swapDirection = .lightningToOnchain
+        
+        // Show spinner to indicate we're starting the swap process
+        self.nextLabel.alpha = 0
+        self.nextSpinner.startAnimating()
+        
+        // Start the swap process directly
+        Task {
+            await SwapManager.lightningToOnchain(amountSat: self.pendingOnchainAmount, swapVC: self, payoutAddress: nil)
         }
     }
     
