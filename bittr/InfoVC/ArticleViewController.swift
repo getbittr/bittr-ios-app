@@ -51,42 +51,16 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         if oneArticleImage.image == nil, self.article?.image != "" {
             
             self.imageSpinner.startAnimating()
-            let session = URLSession(configuration: .default)
-            let downloadPicTask = session.dataTask(with: URL(string: self.article?.image ?? "")!) { (data, response, error) in
-                if let e = error {
-                    print("Error downloading picture: \(e)")
-                } else {
-                    if let res = response as? HTTPURLResponse {
-                        //print("Downloaded picture with response code \(res.statusCode)")
-                        if let imageData = data {
-                            let image = UIImage(data: imageData)
-                            // Do something with your image.
-                            DispatchQueue.main.async {
-                                self.imageSpinner.stopAnimating()
-                                self.oneArticleImage.image = image
-                                
-                                // Store image in cache.
-                                let imageSize = image!.size.height * image!.size.width
-                                let imageDownsize = 1000000 / imageSize
-                                var imageData:Data?
-                                if imageDownsize < 1 {
-                                    imageData = image!.jpegData(compressionQuality: imageDownsize)!
-                                } else {
-                                    imageData = image!.jpegData(compressionQuality: 1)!
-                                }
-                                if let actualImageData = imageData {
-                                    CacheManager.storeImageInCache(key: self.article!.image, data: actualImageData)
-                                }
-                            }
-                        } else {
-                            print("Couldn't get image: Image is nil")
-                        }
-                    } else {
-                        print("Couldn't get response code for some reason")
+            
+            Task {
+                if let imageData = await self.getImage(urlString: self.article?.image ?? "") {
+                    let image = UIImage(data: imageData)
+                    DispatchQueue.main.async {
+                        self.imageSpinner.stopAnimating()
+                        self.oneArticleImage.image = image
                     }
                 }
             }
-            downloadPicTask.resume()
         }
         
         self.changeColors()
