@@ -49,6 +49,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Collection view.
         self.ibanCollectionView.delegate = self
         self.ibanCollectionView.dataSource = self
+        self.ibanCollectionView.contentInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
         
         // Button border.
         let viewBorder = CAShapeLayer()
@@ -85,14 +86,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.ibanCollectionView.reloadData()
     }
     
-    override func viewDidLayoutSubviews() {
-        
-        let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
-        let viewInset = (viewWidth - 335)/2
-        ibanCollectionView.contentInset = UIEdgeInsets(top: 0, left: viewInset, bottom: 0, right: viewInset)
-        self.view.layoutIfNeeded()
-    }
-    
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.dismiss(animated: true, completion: nil)
     }
@@ -103,29 +96,26 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "IbanCell", for: indexPath) as? IbanCollectionViewCell
-        
-        if let actualCell = cell {
+        if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "IbanCell", for: indexPath) as? IbanCollectionViewCell {
             
-            if self.allIbanEntities.count == 0 {
-                
-                return actualCell
-            }
+            if self.allIbanEntities.count == 0 { return cell }
             
-            actualCell.labelYourEmail.text = self.allIbanEntities[indexPath.row].yourEmail
-            actualCell.labelYourIban.text = self.allIbanEntities[indexPath.row].yourIbanNumber
-            actualCell.labelOurIban.text = self.allIbanEntities[indexPath.row].ourIbanNumber
-            actualCell.labelOurName.text = self.allIbanEntities[indexPath.row].ourName
-            actualCell.labelYourCode.text = self.allIbanEntities[indexPath.row].yourUniqueCode
+            cell.cardBackgroundViewWidth.constant = self.view.bounds.width - 30
             
-            actualCell.ibanButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourIbanNumber
-            actualCell.nameButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourName
-            actualCell.codeButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].yourUniqueCode
+            cell.labelYourEmail.text = self.allIbanEntities[indexPath.row].yourEmail
+            cell.labelYourIban.text = self.allIbanEntities[indexPath.row].yourIbanNumber
+            cell.labelOurIban.text = self.allIbanEntities[indexPath.row].ourIbanNumber
+            cell.labelOurName.text = self.allIbanEntities[indexPath.row].ourName
+            cell.labelYourCode.text = self.allIbanEntities[indexPath.row].yourUniqueCode
             
-            return actualCell
+            cell.ibanButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourIbanNumber
+            cell.nameButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourName
+            cell.codeButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].yourUniqueCode
+            
+            return cell
+        } else {
+            return UICollectionViewCell()
         }
-        
-        return UICollectionViewCell()
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -133,8 +123,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if self.allIbanEntities.count > 0 {
             self.emptyLabel.alpha = 0
             self.continueView.alpha = 0
-            //self.addAnotherView.alpha = 1
-            //self.addAnotherButton.alpha = 1
             self.addAnotherViewTop.constant = 40
             self.view.layoutIfNeeded()
             
@@ -142,8 +130,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         } else {
             self.emptyLabel.alpha = 1
             self.continueView.alpha = 1
-            //self.addAnotherView.alpha = 0
-            //self.addAnotherButton.alpha = 0
             self.addAnotherViewTop.constant = -100
             self.view.layoutIfNeeded()
             
@@ -153,7 +139,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
-        return CGSize(width: 335, height: 285)
+        let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
+        let cellWidth = viewWidth - 30
+        return CGSize(width: cellWidth, height: 285)
     }
     
     @IBAction func continueButtonTapped(_ sender: UIButton) {
@@ -163,12 +151,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "GoalToRegister" {
-            
-            let registerVC = segue.destination as? RegisterIbanViewController
-            if let actualRegisterVC = registerVC {
-                
-                actualRegisterVC.coreVC = self.coreVC
-                self.registerIbanVC = actualRegisterVC
+            if let registerVC = segue.destination as? RegisterIbanViewController {
+                registerVC.coreVC = self.coreVC
+                self.registerIbanVC = registerVC
             }
         }
     }

@@ -228,45 +228,6 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                             }
                         }
                     }
-                    
-                    /*let session = URLSession(configuration: .default)
-                    let downloadPicTask = session.dataTask(with: URL(string: self.newsArticles[indexPath.row].image)!) { (data, response, error) in
-                        if let e = error {
-                            print("Error downloading picture: \(e)")
-                        } else {
-                            if let res = response as? HTTPURLResponse {
-                                print("Downloaded picture with response code \(res.statusCode)")
-                                if let imageData = data {
-                                    let image = UIImage(data: imageData)
-                                    // Do something with your image.
-                                    DispatchQueue.main.async {
-                                        actualCell.spinner.stopAnimating()
-                                        actualCell.articleImageView.image = image
-                                        self.allImages.updateValue(image!, forKey: self.newsArticles[indexPath.row].id)
-                                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.newsArticles[indexPath.row].id)"), object: nil, userInfo: ["image":image!]) as Notification)
-                                        
-                                        // Store image in cache.
-                                        let imageSize = image!.size.height * image!.size.width
-                                        let imageDownsize = 1000000 / imageSize
-                                        var imageData:Data?
-                                        if imageDownsize < 1 {
-                                            imageData = image!.jpegData(compressionQuality: imageDownsize)!
-                                        } else {
-                                            imageData = image!.jpegData(compressionQuality: 1)!
-                                        }
-                                        if let actualImageData = imageData {
-                                            CacheManager.storeImageInCache(key: self.newsArticles[indexPath.row].image, data: actualImageData)
-                                        }
-                                    }
-                                } else {
-                                    print("Couldn't get image: Image is nil")
-                                }
-                            } else {
-                                print("Couldn't get response code for some reason")
-                            }
-                        }
-                    }
-                    downloadPicTask.resume()*/
                 }
             }
             

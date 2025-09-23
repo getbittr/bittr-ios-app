@@ -285,9 +285,9 @@ extension CoreViewController {
                     var answer = Language.getWord(withID: "closedlightningchannel2")
                     if reason != nil {
                         switch reason! {
-                        case .counterpartyForceClosed(peerMsg: let peerMsg):
+                        case .counterpartyForceClosed(peerMsg: _):
                             answer += " \(Language.getWord(withID: "counterpartyForceClosed"))"
-                        case .holderForceClosed(broadcastedLatestTxn: let broadcastedLatestTxn):
+                        case .holderForceClosed(broadcastedLatestTxn: _):
                             answer += " \(Language.getWord(withID: "holderForceClosed"))"
                         case .legacyCooperativeClosure:
                             answer += " \(Language.getWord(withID: "legacyCooperativeClosure"))"
