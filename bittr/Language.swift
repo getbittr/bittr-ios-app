@@ -431,7 +431,21 @@ class Language: NSObject {
             "newlightningconnection2": "You've successfully opened a lightning connection with bittr. You can now send and receive payments across the bitcoin lightning network.\n\nAny funds that have already been deposited will show up shortly.",
             "channelfullswaprecommendation": "Bittr recommends you to swap <amount> satoshis. Alternatively you could also choose to just get this transaction paid out to your regular balance. Would you like to received this payment regularly (within 4-24 hours) or swap and receive instantly?",
             "swapandreceiveinstantly": "Swap & Instant Receive",
-            "receiveonchain": "Receive on-chain"
+            "receiveonchain": "Receive on-chain",
+            "counterpartyForceClosed": "Counterparty force closed the connection.",
+            "holderForceClosed": "You force closed the connection.",
+            "legacyCooperativeClosure": "The connection was closed cooperatively (legacy).",
+            "counterpartyInitiatedCooperativeClosure": "The connection was closed cooperatively (counterparty-iniated).",
+            "locallyInitiatedCooperativeClosure": "The connection was closed cooperatively (locally).",
+            "commitmentTxConfirmed": "The commitment transaction was confirmed.",
+            "fundingTimedOut": "The funding of the connection timed out.",
+            "disconnectedPeer": "Could not establish peer connection.",
+            "outdatedChannelManager": "The channel manager was outdated.",
+            "counterpartyCoopClosedUnfundedChannel": "The unfunded connection was cooperatively closed (counterparty-initiated).",
+            "fundingBatchClosure": "The funding batch was closed.",
+            "htlCsTimedOut": "The hashed timelock contracts timed out.",
+            "peerFeerateTooLow": "The proposed fee rate was too low."
+            
         ]
         
         if let foundWord = allWords[withID] {
