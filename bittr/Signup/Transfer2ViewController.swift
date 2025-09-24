@@ -23,15 +23,12 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var nameView: UIView!
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var nextView: UIView!
-    @IBOutlet weak var cardView: UIView!
-    @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
-    @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var screenshotView: UIView!
     @IBOutlet weak var screenshotButton: UIButton!
     @IBOutlet weak var screenshotLabel: UILabel!
@@ -46,12 +43,6 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var nameButton: UIButton!
     @IBOutlet weak var codeButton: UIButton!
     
-    @IBOutlet weak var spinner1: UIActivityIndicatorView!
-    @IBOutlet weak var articleImage: UIImageView!
-    @IBOutlet weak var articleTitle: UILabel!
-    let pageArticle1Slug = "when-do-i-receive-my-bitcoin"
-    var pageArticle1 = Article()
-    
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -65,13 +56,10 @@ class Transfer2ViewController: UIViewController {
         self.nameView.layer.cornerRadius = 13
         self.codeView.layer.cornerRadius = 13
         self.nextView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
         self.screenshotView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
         
         // Button titles.
         self.nextButton.setTitle("", for: .normal)
-        self.articleButton.setTitle("", for: .normal)
         self.screenshotButton.setTitle("", for: .normal)
         self.ibanButton.setTitle("", for: .normal)
         self.nameButton.setTitle("", for: .normal)
@@ -89,11 +77,6 @@ class Transfer2ViewController: UIViewController {
         self.changeColors()
         self.setWords()
         self.updateData()
-        Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
-                self.pageArticle1 = article ?? Article()
-            })
-        }
     }
     
     func updateData() {
@@ -135,12 +118,6 @@ class Transfer2ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(13)
         self.ibanVC?.moveToPage(4)
-    }
-    
-    @IBAction func articleButtonTapped(_ sender: UIButton) {
-        if sender.accessibilityIdentifier != nil {
-            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
-        }
     }
     
     @IBAction func screenshotButtonTapped(_ sender: UIButton) {

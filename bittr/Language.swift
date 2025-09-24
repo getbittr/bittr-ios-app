@@ -150,14 +150,14 @@ class Language: NSObject {
             "yourprofits": "your profits",
             "profitsubtitle": "Here's to financial independence! These are the results of your savings so far.",
             "totalinvestment": "Total investment",
-            "finaldetails": "final details",
+            "finaldetails": "Finish",
             "bittrinstructions": "You can buy up to 999€ per 30 days from bittr. Purchases below 100€ go into your Lightning wallet, to save on transaction fees.",
             "bittrinstructions2": "We like dollar-cost-averaging. That's, for example, buying 50€ of bitcoin every Monday.",
             "bittrinstructions3": "Set up a recurring transfer to buy bitcoin repeatedly at a pace and amount that suits you.",
             "letsgo": "Let's go",
             "readyfortransfer": "We're ready for your transfer!",
             "personaldetails": "These are your personal details. To buy bitcoin, make a bank transfer at any time and include your unique code in the transfer description/memo field.",
-            "screenshot": "Take a screenshot",
+            "screenshot": "Screenshot",
             "youvegotmail": "You've got mail! Please enter your verification code below.",
             "entercode": "Enter code",
             "resendcode": "Resend code",
@@ -431,7 +431,22 @@ class Language: NSObject {
             "newlightningconnection2": "You've successfully opened a lightning connection with bittr. You can now send and receive payments across the bitcoin lightning network.\n\nAny funds that have already been deposited will show up shortly.",
             "channelfullswaprecommendation": "Bittr recommends you to swap <amount> satoshis. Alternatively you could also choose to just get this transaction paid out to your regular balance. Would you like to received this payment regularly (within 4-24 hours) or swap and receive instantly?",
             "swapandreceiveinstantly": "Swap & Instant Receive",
-            "receiveonchain": "Receive on-chain"
+            "receiveonchain": "Receive on-chain",
+            "counterpartyForceClosed": "Counterparty force closed the connection.",
+            "holderForceClosed": "You force closed the connection.",
+            "legacyCooperativeClosure": "The connection was closed cooperatively (legacy).",
+            "counterpartyInitiatedCooperativeClosure": "The connection was closed cooperatively (counterparty-iniated).",
+            "locallyInitiatedCooperativeClosure": "The connection was closed cooperatively (locally).",
+            "commitmentTxConfirmed": "The commitment transaction was confirmed.",
+            "fundingTimedOut": "The funding of the connection timed out.",
+            "disconnectedPeer": "Could not establish peer connection.",
+            "outdatedChannelManager": "The channel manager was outdated.",
+            "counterpartyCoopClosedUnfundedChannel": "The unfunded connection was cooperatively closed (counterparty-initiated).",
+            "fundingBatchClosure": "The funding batch was closed.",
+            "htlCsTimedOut": "The hashed timelock contracts timed out.",
+            "peerFeerateTooLow": "The proposed fee rate was too low.",
+            "url": "URL"
+            
         ]
         
         if let foundWord = allWords[withID] {

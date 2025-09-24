@@ -31,20 +31,24 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var centerViewBoth: UIView!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
-    // Main - Switch view
-    @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var switchSelectionView: UIView!
-    @IBOutlet weak var regularButton: UIButton!
-    @IBOutlet weak var bothButton: UIButton!
-    @IBOutlet weak var instantButton: UIButton!
+    // Main - Switch stack
+    @IBOutlet weak var switchStack: UIView!
+    @IBOutlet weak var viewRegular: UIView!
     @IBOutlet weak var labelRegular: UILabel!
+    @IBOutlet weak var regularButton: UIButton!
+    @IBOutlet weak var viewBoth: UIView!
     @IBOutlet weak var labelBoth: UILabel!
+    @IBOutlet weak var bothButton: UIButton!
+    @IBOutlet weak var viewInstant: UIView!
     @IBOutlet weak var labelInstant: UILabel!
     @IBOutlet weak var iconLightning: UIImageView!
-    @IBOutlet weak var iconLightningLeading: NSLayoutConstraint!
-    @IBOutlet weak var labelBothLeading: NSLayoutConstraint!
-    @IBOutlet weak var switchSelectionLeading: NSLayoutConstraint!
-    @IBOutlet weak var switchSelectionTrailing: NSLayoutConstraint!
+    @IBOutlet weak var instantButton: UIButton!
+    @IBOutlet weak var lnurlStack: UIView!
+    @IBOutlet weak var lnurlStackWidth: NSLayoutConstraint!
+    @IBOutlet weak var viewLnurl: UIView!
+    @IBOutlet weak var labelUrl: UILabel!
+    @IBOutlet weak var iconLnurl: UIImageView!
+    @IBOutlet weak var lnurlButton: UIButton!
     
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
@@ -82,7 +86,17 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var bothCopyAddressButton: UIButton!
     @IBOutlet weak var bothAddressCopy: UIImageView!
     
+    // Main - LNURL view
+    @IBOutlet weak var lnurlQRBackground: UIView!
+    @IBOutlet weak var lnurlQRCode: UIImageView!
+    @IBOutlet weak var lnurlAddressBackground: UIView!
+    @IBOutlet weak var lnurlAddressLabel: UILabel!
+    @IBOutlet weak var lnurlCopyIcon: UIImageView!
+    @IBOutlet weak var lnurlCopyButton: UIButton!
+    
     // Amount view
+    @IBOutlet weak var amountAndDescriptionStack: UIView!
+    @IBOutlet weak var amountAndDescriptionStackHeight: NSLayoutConstraint! // 156 or 0
     @IBOutlet weak var bothAmountLabel: UILabel!
     @IBOutlet weak var bothAmountView: UIView!
     @IBOutlet weak var bothAmountTextField: UITextField!
@@ -148,6 +162,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.copyInvoiceButton.setTitle("", for: .normal)
         self.scanQrButton.setTitle("", for: .normal)
         self.qrScannerBackgroundButton.setTitle("", for: .normal)
+        self.lnurlButton.setTitle("", for: .normal)
+        self.lnurlCopyButton.setTitle("", for: .normal)
         
         // Corner radii
         self.qrView.layer.cornerRadius = 13
@@ -155,7 +171,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.addressView.layer.cornerRadius = 13
         self.bothAddressView.layer.cornerRadius = 13
         self.refreshView.layer.cornerRadius = 13
-        self.switchView.layer.cornerRadius = 13
         self.bothAmountView.layer.cornerRadius = 13
         self.bothDescriptionView.layer.cornerRadius = 13
         self.createView.layer.cornerRadius = 13
@@ -165,7 +180,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.scannerView.layer.cornerRadius = 13
         self.qrScannerCloseView.layer.cornerRadius = 13
         self.spinnerBox.layer.cornerRadius = 13
-        self.switchSelectionView.layer.cornerRadius = 8
+        self.viewRegular.layer.cornerRadius = 8
+        self.viewBoth.layer.cornerRadius = 8
+        self.viewInstant.layer.cornerRadius = 8
+        self.viewLnurl.layer.cornerRadius = 8
+        self.lnurlQRBackground.layer.cornerRadius = 13
+        self.lnurlAddressBackground.layer.cornerRadius = 13
         
         // Text field delegates
         self.bothAmountTextField.delegate = self
@@ -176,15 +196,25 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.setShadows(forView: self.qrView)
         self.setShadows(forView: self.bothQrView)
         self.setShadows(forView: self.lnConfirmationQRView)
+        self.setShadows(forView: self.lnurlQRBackground)
         
         // Create QR code
         self.resetQRs(resetAddress: false)
         
         // Selection view
-        self.switchSelectionView.layer.shadowColor = UIColor.black.cgColor
-        self.switchSelectionView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.switchSelectionView.layer.shadowRadius = 10.0
-        self.switchSelectionView.layer.shadowOpacity = 0.1
+        self.viewBoth.layer.shadowColor = UIColor.black.cgColor
+        self.viewBoth.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.viewBoth.layer.shadowRadius = 10.0
+        self.viewBoth.layer.shadowOpacity = 0.1
+        self.viewRegular.layer.shadowColor = UIColor.black.cgColor
+        self.viewRegular.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.viewRegular.layer.shadowRadius = 10.0
+        self.viewInstant.layer.shadowColor = UIColor.black.cgColor
+        self.viewInstant.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.viewInstant.layer.shadowRadius = 10.0
+        self.viewLnurl.layer.shadowColor = UIColor.black.cgColor
+        self.viewLnurl.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.viewLnurl.layer.shadowRadius = 10.0
         
         // Set colors and language.
         self.setWords()
@@ -238,15 +268,21 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             
             // Fix constraints
             self.centerViewRegularTrailing.constant = self.view.bounds.width
-            self.labelBothLeading.constant = 30
-            self.iconLightningLeading.constant = 17
             
-            NSLayoutConstraint.deactivate([self.switchSelectionLeading, self.switchSelectionTrailing])
-            self.switchSelectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: self.labelRegular, attribute: .leading, multiplier: 1, constant: -15)
-            self.switchSelectionTrailing = NSLayoutConstraint(item: self.switchSelectionView, attribute: .trailing, relatedBy: .equal, toItem: self.labelRegular, attribute: .trailing, multiplier: 1, constant: 15)
-            NSLayoutConstraint.activate([self.switchSelectionLeading, self.switchSelectionTrailing])
+            self.viewRegular.backgroundColor = Colors.getColor("whiteorblue3")
+            self.viewRegular.layer.shadowOpacity = 0.1
+            self.viewBoth.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.viewBoth.layer.shadowOpacity = 0
+        } else if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
             
+            // Show LNURL
+            self.lnurlStackWidth.constant = self.switchStack.bounds.width * 0.23
             self.view.layoutIfNeeded()
+            self.lnurlAddressLabel.text = firstIban.lightningAddressUsername
+            self.lnurlQRCode.image = self.generateQRCode(from: firstIban.lightningAddressUsername)
+            self.lnurlQRCode.layer.magnificationFilter = .nearest
+            self.lnurlStack.alpha = 1
+            
         }
     }
     
@@ -305,6 +341,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         var copyingText = self.addressLabel.text
         if sender.tag == 1 {
             copyingText = self.bothAddressLabel.text
+        } else if sender.tag == 2 {
+            copyingText = self.lnurlAddressLabel.text
         }
         UIPasteboard.general.string = copyingText
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -342,39 +380,27 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             return
         }
         
-        // Both
-        var leadingConstraint = self.labelBoth
-        var leadingConstant:CGFloat = -15
-        var bothConstraint:CGFloat = 28
-        var iconLightningConstraint:CGFloat = 28
-        var viewWidth:CGFloat = 0
-        if sender.accessibilityIdentifier == "regular" {
-            // Regular
-            leadingConstraint = self.labelRegular
-            leadingConstant = -15
-            bothConstraint = 30
-            iconLightningConstraint = 17
-            viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
-        } else if sender.accessibilityIdentifier == "instant" {
-            // Instant
-            leadingConstraint = self.labelInstant
-            leadingConstant = -35
-            bothConstraint = 20
-            iconLightningConstraint = 30
-            viewWidth = -self.view.safeAreaLayoutGuide.layoutFrame.size.width
-        }
+        // Set shadows
+        let shadowOpacities:[[Float]] = [[0.1, 0, 0, 0],[0, 0.1, 0, 0],[0, 0, 0.1, 0],[0, 0, 0, 0.1]]
+        self.viewRegular.layer.shadowOpacity = shadowOpacities[sender.tag][0]
+        self.viewBoth.layer.shadowOpacity = shadowOpacities[sender.tag][1]
+        self.viewInstant.layer.shadowOpacity = shadowOpacities[sender.tag][2]
+        self.viewLnurl.layer.shadowOpacity = shadowOpacities[sender.tag][3]
         
+        // Colors
+        let viewColors:[[UIColor]] = [[Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2")], [Colors.getColor("white0.7orblue2"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2")], [Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue2")], [Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("whiteorblue3")]]
+        self.viewRegular.backgroundColor = viewColors[sender.tag][0]
+        self.viewBoth.backgroundColor = viewColors[sender.tag][1]
+        self.viewInstant.backgroundColor = viewColors[sender.tag][2]
+        self.viewLnurl.backgroundColor = viewColors[sender.tag][3]
+        
+        // Center QR view
+        let viewWidths:[CGFloat] = [1, 0, -1, -2]
+        let amountStackHeight:[CGFloat] = [156, 156, 156, 0]
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            
-            self.centerViewRegularTrailing.constant = viewWidth
-            self.labelBothLeading.constant = bothConstraint
-            self.iconLightningLeading.constant = iconLightningConstraint
-            
-            NSLayoutConstraint.deactivate([self.switchSelectionLeading, self.switchSelectionTrailing])
-            self.switchSelectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: leadingConstraint, attribute: .leading, multiplier: 1, constant: leadingConstant)
-            self.switchSelectionTrailing = NSLayoutConstraint(item: self.switchSelectionView, attribute: .trailing, relatedBy: .equal, toItem: leadingConstraint, attribute: .trailing, multiplier: 1, constant: 15)
-            NSLayoutConstraint.activate([self.switchSelectionLeading, self.switchSelectionTrailing])
-            
+            self.centerViewRegularTrailing.constant = self.view.safeAreaLayoutGuide.layoutFrame.size.width * viewWidths[sender.tag]
+            self.amountAndDescriptionStackHeight.constant = amountStackHeight[sender.tag]
+            self.amountAndDescriptionStack.alpha = [1, 1, 1, 0][sender.tag]
             self.view.layoutIfNeeded()
         }
     }

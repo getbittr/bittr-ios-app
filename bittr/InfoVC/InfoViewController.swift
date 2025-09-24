@@ -172,7 +172,6 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                             actualCell.spinner.stopAnimating()
                             actualCell.articleImage.image = UIImage(data: actualData)
                             self.allImages.updateValue(UIImage(data: actualData)!, forKey: self.faqArticles[indexPath.row].id)
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.faqArticles[indexPath.row].id)"), object: nil, userInfo: ["image":UIImage(data: actualData)!]) as Notification)
                         }
                     }
                 }
@@ -224,49 +223,9 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 actualCell.spinner.stopAnimating()
                                 actualCell.articleImageView.image = UIImage(data: actualData)
                                 self.allImages.updateValue(UIImage(data: actualData)!, forKey: self.newsArticles[indexPath.row].id)
-                                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.newsArticles[indexPath.row].id)"), object: nil, userInfo: ["image":UIImage(data: actualData)!]) as Notification)
                             }
                         }
                     }
-                    
-                    /*let session = URLSession(configuration: .default)
-                    let downloadPicTask = session.dataTask(with: URL(string: self.newsArticles[indexPath.row].image)!) { (data, response, error) in
-                        if let e = error {
-                            print("Error downloading picture: \(e)")
-                        } else {
-                            if let res = response as? HTTPURLResponse {
-                                print("Downloaded picture with response code \(res.statusCode)")
-                                if let imageData = data {
-                                    let image = UIImage(data: imageData)
-                                    // Do something with your image.
-                                    DispatchQueue.main.async {
-                                        actualCell.spinner.stopAnimating()
-                                        actualCell.articleImageView.image = image
-                                        self.allImages.updateValue(image!, forKey: self.newsArticles[indexPath.row].id)
-                                        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setimage\(self.newsArticles[indexPath.row].id)"), object: nil, userInfo: ["image":image!]) as Notification)
-                                        
-                                        // Store image in cache.
-                                        let imageSize = image!.size.height * image!.size.width
-                                        let imageDownsize = 1000000 / imageSize
-                                        var imageData:Data?
-                                        if imageDownsize < 1 {
-                                            imageData = image!.jpegData(compressionQuality: imageDownsize)!
-                                        } else {
-                                            imageData = image!.jpegData(compressionQuality: 1)!
-                                        }
-                                        if let actualImageData = imageData {
-                                            CacheManager.storeImageInCache(key: self.newsArticles[indexPath.row].image, data: actualImageData)
-                                        }
-                                    }
-                                } else {
-                                    print("Couldn't get image: Image is nil")
-                                }
-                            } else {
-                                print("Couldn't get response code for some reason")
-                            }
-                        }
-                    }
-                    downloadPicTask.resume()*/
                 }
             }
             
@@ -319,29 +278,52 @@ extension UIViewController {
             
             let (data, response) = try await URLSession.shared.data(for: request)
             
-            guard let httpResponse = response as? HTTPURLResponse else {
+            guard response is HTTPURLResponse else {
                 return nil
             }
             
             // Store image in cache.
             let image = UIImage(data: data)!
-            let imageSize = image.size.height * image.size.width
-            let imageDownsize = 1000000 / imageSize
-            var imageData:Data?
-            if imageDownsize < 1 {
-                imageData = image.jpegData(compressionQuality: imageDownsize)!
-            } else {
-                imageData = image.jpegData(compressionQuality: 1)!
-            }
-            if let actualImageData = imageData {
-                CacheManager.storeImageInCache(key: urlString, data: actualImageData)
-            }
+            //CacheManager.storeImageInCache(key: urlString, data: image.resizeImage())
             
-            return data
+            return image.resizeImage()
         } catch {
             print("Some error occurred fetching image. \(error.localizedDescription)")
             return nil
         }
     }
     
+}
+
+extension UIImage {
+    
+    func resizeImage() -> Data {
+        
+        // Don't enlarge the image.
+        if 1080 > self.size.width {
+            print("Image is narrower than 1080 pixels. No need to resize.")
+            return self.jpegData(compressionQuality: 1)!
+        }
+        
+        // Check the current ratio.
+        let widthRatio = 1080 / self.size.width
+        
+        // Calculate new size.
+        let newSize = CGSize(width: self.size.width * widthRatio, height: self.size.height * widthRatio)
+        
+        // This is the rect that we've calculated out and this is what is actually used below
+        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+        
+        // Actually do the resizing to the rect using the ImageContext stuff
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        self.draw(in: rect)
+        var newImage = UIGraphicsGetImageFromCurrentImageContext()
+        if newImage == nil {
+            print("Image could not be downsized.")
+            newImage = self
+        }
+        UIGraphicsEndImageContext()
+        
+        return newImage!.jpegData(compressionQuality: 1)!
+    }
 }

@@ -11,6 +11,7 @@ class IbanCollectionViewCell: UICollectionViewCell {
     
     // Views
     @IBOutlet weak var cardBackgroundView: UIView!
+    @IBOutlet weak var cardBackgroundViewWidth: NSLayoutConstraint!
     @IBOutlet weak var yourIbanView: UIView!
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var nameView: UIView!
@@ -36,24 +37,33 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var nameButton: UIButton!
     @IBOutlet weak var codeButton: UIButton!
     
+    // Images
+    @IBOutlet weak var copyIban: UIImageView!
+    @IBOutlet weak var copyName: UIImageView!
+    @IBOutlet weak var copyCode: UIImageView!
+    
     override func awakeFromNib() {
         
-        cardBackgroundView.layer.cornerRadius = 20
-        yourIbanView.layer.cornerRadius = 13
-        ibanView.layer.cornerRadius = 13
-        nameView.layer.cornerRadius = 13
-        codeView.layer.cornerRadius = 13
-        emailView.layer.cornerRadius = 13
+        // Corner radii
+        self.cardBackgroundView.layer.cornerRadius = 20
+        self.yourIbanView.layer.cornerRadius = 13
+        self.ibanView.layer.cornerRadius = 13
+        self.nameView.layer.cornerRadius = 13
+        self.codeView.layer.cornerRadius = 13
+        self.emailView.layer.cornerRadius = 13
         
-        cardBackgroundView.layer.shadowColor = UIColor.black.cgColor
-        cardBackgroundView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        cardBackgroundView.layer.shadowRadius = 10.0
-        cardBackgroundView.layer.shadowOpacity = 0.1
+        // Background card styling
+        self.cardBackgroundView.layer.shadowColor = UIColor.black.cgColor
+        self.cardBackgroundView.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.cardBackgroundView.layer.shadowRadius = 10.0
+        self.cardBackgroundView.layer.shadowOpacity = 0.1
         
-        ibanButton.setTitle("", for: .normal)
-        nameButton.setTitle("", for: .normal)
-        codeButton.setTitle("", for: .normal)
+        // Button titles
+        self.ibanButton.setTitle("", for: .normal)
+        self.nameButton.setTitle("", for: .normal)
+        self.codeButton.setTitle("", for: .normal)
         
+        // Colors and language
         self.changeColors()
         self.setWords()
     }
@@ -67,11 +77,15 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.labelYourCode.textColor = Colors.getColor("blackorwhite")
         
         self.cardBackgroundView.backgroundColor = Colors.getColor("yelloworblue2")
-        yourIbanView.backgroundColor = Colors.getColor("whiteorblue3")
-        ibanView.backgroundColor = Colors.getColor("whiteorblue3")
-        nameView.backgroundColor = Colors.getColor("whiteorblue3")
-        codeView.backgroundColor = Colors.getColor("whiteorblue3")
-        emailView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.yourIbanView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.ibanView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.nameView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.codeView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.emailView.backgroundColor = Colors.getColor("whiteorblue3")
+        
+        self.copyIban.tintColor = Colors.getColor("blackorwhite")
+        self.copyName.tintColor = Colors.getColor("blackorwhite")
+        self.copyCode.tintColor = Colors.getColor("blackorwhite")
     }
     
     func setWords() {
@@ -81,6 +95,5 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.titleOurIBAN.text = Language.getWord(withID: "ouriban")
         self.titleOurName.text = Language.getWord(withID: "ourname")
         self.titleYourCode.text = Language.getWord(withID: "yourcode")
-
     }
 }

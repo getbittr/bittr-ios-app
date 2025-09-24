@@ -253,9 +253,7 @@ extension UIImageView {
                 if let actualData = await coreVC?.getImage(urlString: url) {
                     // Image successfully downloaded.
                     DispatchQueue.main.async {
-                        imageSpinner?.stopAnimating()
                         self.image = UIImage(data: actualData)
-                        CacheManager.storeImageInCache(key: url, data: actualData)
                         imageSpinner?.stopAnimating()
                     }
                 } else {

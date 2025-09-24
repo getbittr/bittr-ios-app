@@ -280,9 +280,42 @@ extension CoreViewController {
                         }
                     }
                 }
-            case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: _):
+            case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: let reason):
                 DispatchQueue.main.async {
-                    self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: Language.getWord(withID: "closedlightningchannel2"), type: nil)
+                    var answer = Language.getWord(withID: "closedlightningchannel2")
+                    if reason != nil {
+                        switch reason! {
+                        case .counterpartyForceClosed(peerMsg: _):
+                            answer += " \(Language.getWord(withID: "counterpartyForceClosed"))"
+                        case .holderForceClosed(broadcastedLatestTxn: _):
+                            answer += " \(Language.getWord(withID: "holderForceClosed"))"
+                        case .legacyCooperativeClosure:
+                            answer += " \(Language.getWord(withID: "legacyCooperativeClosure"))"
+                        case .counterpartyInitiatedCooperativeClosure:
+                            answer += " \(Language.getWord(withID: "counterpartyInitiatedCooperativeClosure"))"
+                        case .locallyInitiatedCooperativeClosure:
+                            answer += " \(Language.getWord(withID: "locallyInitiatedCooperativeClosure"))"
+                        case .commitmentTxConfirmed:
+                            answer += " \(Language.getWord(withID: "commitmentTxConfirmed"))"
+                        case .fundingTimedOut:
+                            answer += " \(Language.getWord(withID: "fundingTimedOut"))"
+                        case .processingError(err: let err):
+                            answer += " \(err)"
+                        case .disconnectedPeer:
+                            answer += " \(Language.getWord(withID: "disconnectedPeer"))"
+                        case .outdatedChannelManager:
+                            answer += " \(Language.getWord(withID: "outdatedChannelManager"))"
+                        case .counterpartyCoopClosedUnfundedChannel:
+                            answer += " \(Language.getWord(withID: "counterpartyCoopClosedUnfundedChannel"))"
+                        case .fundingBatchClosure:
+                            answer += " \(Language.getWord(withID: "fundingBatchClosure"))"
+                        case .htlCsTimedOut:
+                            answer += " \(Language.getWord(withID: "htlCsTimedOut"))"
+                        case .peerFeerateTooLow(peerFeerateSatPerKw: _, requiredFeerateSatPerKw: _):
+                            answer += " \(Language.getWord(withID: "peerFeerateTooLow"))"
+                        }
+                    }
+                    self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: answer, type: nil)
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
                 
