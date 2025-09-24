@@ -70,7 +70,7 @@ class LightningNodeService {
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.bitcoin)
-            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.bitcoinMempoolspace, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.bitcoinBlockstream, config: nil)
         case .regtest:
             nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.regtest, config: nil)
         case .signet:
