@@ -15,20 +15,14 @@ extension ReceiveViewController {
         self.labelRegular.text = Language.getWord(withID: "regular")
         self.labelBoth.text = Language.getWord(withID: "both")
         self.labelInstant.text = Language.getWord(withID: "instant")
+        self.labelUrl.text = Language.getWord(withID: "url")
         self.subtitleRegular.text = Language.getWord(withID: "thisisanaddress")
         self.subtitleBoth.text = Language.getWord(withID: "subtitleboth")
         self.bothAmountTextField.placeholder = Language.getWord(withID: "insatoshis")
         self.createInvoiceLabel.text = Language.getWord(withID: "createinvoice")
         self.qrScannerLabel.text = Language.getWord(withID: "lnurlscannerlabel")
         self.qrScannerCloseLabel.text = Language.getWord(withID: "close")
-        // Check if lightning address username is available
-        if let coreVC = self.coreVC,
-           let firstIban = coreVC.bittrWallet.ibanEntities.first,
-           !firstIban.lightningAddressUsername.isEmpty {
-            self.bothAmountLabel.text = firstIban.lightningAddressUsername
-        } else {
-            self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
-        }
+        self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
         self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }
@@ -42,10 +36,13 @@ extension ReceiveViewController {
         self.viewRegular.backgroundColor = Colors.getColor("white0.7orblue2")
         self.viewBoth.backgroundColor = Colors.getColor("whiteorblue3")
         self.viewInstant.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.viewLnurl.backgroundColor = Colors.getColor("white0.7orblue2")
         self.labelRegular.textColor = Colors.getColor("blackorwhite")
         self.labelInstant.textColor = Colors.getColor("blackorwhite")
         self.labelBoth.textColor = Colors.getColor("blackorwhite")
+        self.labelUrl.textColor = Colors.getColor("blackorwhite")
         self.iconLightning.tintColor = Colors.getColor("blackorwhite")
+        self.iconLnurl.tintColor = Colors.getColor("blackorwhite")
         
         // QR scanner
         self.qrScannerView.backgroundColor = Colors.getColor("yelloworblue1")
@@ -58,6 +55,11 @@ extension ReceiveViewController {
         self.addressSpinner.color = Colors.getColor("blackorwhite")
         self.addressCopy.tintColor = Colors.getColor("blackorwhite")
         self.bothAddressCopy.tintColor = Colors.getColor("blackorwhite")
+        
+        // LNURL
+        self.lnurlAddressBackground.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.lnurlAddressLabel.textColor = Colors.getColor("blackorwhite")
+        self.lnurlCopyIcon.tintColor = Colors.getColor("blackorwhite")
         
         // Subtitle
         self.subtitleRegular.textColor = Colors.getColor("blackorwhite")

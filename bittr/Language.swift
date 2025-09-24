@@ -444,7 +444,8 @@ class Language: NSObject {
             "counterpartyCoopClosedUnfundedChannel": "The unfunded connection was cooperatively closed (counterparty-initiated).",
             "fundingBatchClosure": "The funding batch was closed.",
             "htlCsTimedOut": "The hashed timelock contracts timed out.",
-            "peerFeerateTooLow": "The proposed fee rate was too low."
+            "peerFeerateTooLow": "The proposed fee rate was too low.",
+            "url": "URL"
             
         ]
         
