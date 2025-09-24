@@ -39,8 +39,9 @@ extension ReceiveViewController {
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         
         // Switch
-        self.switchView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.switchSelectionView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.viewRegular.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.viewBoth.backgroundColor = Colors.getColor("whiteorblue3")
+        self.viewInstant.backgroundColor = Colors.getColor("white0.7orblue2")
         self.labelRegular.textColor = Colors.getColor("blackorwhite")
         self.labelInstant.textColor = Colors.getColor("blackorwhite")
         self.labelBoth.textColor = Colors.getColor("blackorwhite")
