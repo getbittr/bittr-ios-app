@@ -80,15 +80,15 @@ class LightningNodeService {
             nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: nil)
         }
         
-        let logDirectory = storageManager.getDocumentsDirectory() + "/logs"
-        try? FileManager.default.createDirectory(
-                   atPath: logDirectory,
-                   withIntermediateDirectories: true
-               )
-        
-        let logPath = logDirectory + "/ruben.log"
-        
-        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
+//        let logDirectory = storageManager.getDocumentsDirectory() + "/logs"
+//        try? FileManager.default.createDirectory(
+//                   atPath: logDirectory,
+//                   withIntermediateDirectories: true
+//               )
+//        
+//        let logPath = logDirectory + "/ruben.log"
+//        
+//        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
 
         
         let ldkNode = try nodeBuilder.build()
