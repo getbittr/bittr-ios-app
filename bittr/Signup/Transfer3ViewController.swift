@@ -10,41 +10,28 @@ import UIKit
 class Transfer3ViewController: UIViewController {
 
     // Views and buttons.
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextLabel: UILabel!
-    @IBOutlet weak var cardView: UIView!
-    @IBOutlet weak var imageContainer: UIView!
-    @IBOutlet weak var cardView2: UIView!
-    @IBOutlet weak var imageContainer2: UIView!
-    @IBOutlet weak var articleButton: UIButton!
-    @IBOutlet weak var articleButton2: UIButton!
     @IBOutlet weak var backButton: UIButton!
     @IBOutlet weak var backLabel: UILabel!
     
-    // Labels
-    @IBOutlet weak var topLabelOne: UILabel!
-    @IBOutlet weak var topLabelTwo: UILabel!
-    @IBOutlet weak var topLabelThree: UILabel!
-    
-    // Articles.
-    @IBOutlet weak var spinner1: UIActivityIndicatorView!
-    @IBOutlet weak var articleImage: UIImageView!
-    @IBOutlet weak var articleTitle: UILabel!
-    let pageArticle1Slug = "bitcoin-lightning"
-    var pageArticle1 = Article()
-    @IBOutlet weak var spinner2: UIActivityIndicatorView!
-    @IBOutlet weak var article2Image: UIImageView!
-    @IBOutlet weak var article2Title: UILabel!
-    let pageArticle2Slug = "dollar-cost-averaging"
-    var pageArticle2 = Article()
-    
+    // Scroll view.
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
+    
+    // Cards
+    @IBOutlet weak var amountCard: UIView!
+    @IBOutlet weak var amountTitle: UILabel!
+    @IBOutlet weak var amountLabel: UILabel!
+    @IBOutlet weak var lightningCard: UIView!
+    @IBOutlet weak var lightningTitle: UILabel!
+    @IBOutlet weak var lightningLabel: UILabel!
+    @IBOutlet weak var dcaCard: UIView!
+    @IBOutlet weak var dcaTitle: UILabel!
+    @IBOutlet weak var dcaLabel: UILabel!
     
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
@@ -54,29 +41,18 @@ class Transfer3ViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii
-        self.headerView.layer.cornerRadius = 13
         self.nextView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
-        self.cardView2.layer.cornerRadius = 13
-        self.imageContainer2.layer.cornerRadius = 13
+        self.amountCard.layer.cornerRadius = 13
+        self.lightningCard.layer.cornerRadius = 13
+        self.dcaCard.layer.cornerRadius = 13
         
         // Button titles
         self.nextButton.setTitle("", for: .normal)
-        self.articleButton.setTitle("", for: .normal)
-        self.articleButton2.setTitle("", for: .normal)
         self.backButton.setTitle("", for: .normal)
         
+        // Set language and colors
         self.changeColors()
         self.setWords()
-        Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
-                self.pageArticle1 = article ?? Article()
-            })
-            await self.setSignupArticle(articleSlug: self.pageArticle2Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton2, articleTitle: self.article2Title, articleImage: self.article2Image, articleSpinner: self.spinner2, completion: { article in
-                self.pageArticle2 = article ?? Article()
-            })
-        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -114,12 +90,6 @@ class Transfer3ViewController: UIViewController {
         self.coreVC!.hideSignup()
     }
     
-    @IBAction func articleButtonTapped(_ sender: UIButton) {
-        if sender.accessibilityIdentifier != nil {
-            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
-        }
-    }
-    
     @IBAction func backButtonTapped(_ sender: UIButton) {
         self.signupVC?.moveToPage(12)
         self.ibanVC?.moveToPage(3)
@@ -127,27 +97,31 @@ class Transfer3ViewController: UIViewController {
     
     func changeColors() {
         
-        self.topLabelOne.textColor = Colors.getColor("blackorwhite")
-        self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
-        self.topLabelThree.textColor = Colors.getColor("blackorwhite")
-        
         if CacheManager.darkModeIsOn() {
             self.backLabel.textColor = Colors.getColor("blackorwhite")
         } else {
             self.backLabel.textColor = Colors.getColor("transparentblack")
         }
+        
+        self.amountCard.backgroundColor = Colors.getColor("whiteorblue3")
+        self.amountLabel.textColor = Colors.getColor("blackorwhite")
+        self.lightningCard.backgroundColor = Colors.getColor("whiteorblue3")
+        self.lightningLabel.textColor = Colors.getColor("blackorwhite")
+        self.dcaCard.backgroundColor = Colors.getColor("whiteorblue3")
+        self.dcaLabel.textColor = Colors.getColor("blackorwhite")
 
     }
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "finaldetails")
-        self.topLabelOne.text = Language.getWord(withID: "bittrinstructions")
-        self.topLabelTwo.text = Language.getWord(withID: "bittrinstructions2")
-        self.topLabelThree.text = Language.getWord(withID: "bittrinstructions3")
         self.nextLabel.text = Language.getWord(withID: "letsgo")
         self.backLabel.text = Language.getWord(withID: "back")
-        
+        self.amountTitle.text = Language.getWord(withID: "transfer3Amount")
+        self.amountLabel.text = Language.getWord(withID: "transfer3AmountLabel")
+        self.lightningTitle.text = Language.getWord(withID: "transfer3Lightning")
+        self.lightningLabel.text = Language.getWord(withID: "transfer3LightningLabel")
+        self.dcaTitle.text = Language.getWord(withID: "transfer3DCA")
+        self.dcaLabel.text = Language.getWord(withID: "transfer3DCALabel")
     }
     
 }

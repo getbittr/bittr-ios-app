@@ -446,7 +446,13 @@ class Language: NSObject {
             "fundingBatchClosure": "the funding batch was closed.",
             "htlCsTimedOut": "the hashed timelock contracts timed out.",
             "peerFeerateTooLow": "the proposed fee rate was too low.",
-            "url": "URL"
+            "url": "URL",
+            "transfer3Amount": "Amount",
+            "transfer3AmountLabel": "You can buy up to 999 € worth of bitcoin per 30 days from bittr.",
+            "transfer3Lightning": "Instant payments",
+            "transfer3LightningLabel": "For purchases under 100 €, we create a lightning connection. With lightning, you can send and receive instant payments against low fees. The setup of the connection incurs a one-time fee of 10 000 satoshis.",
+            "transfer3DCA": "Dollar-cost-averaging",
+            "transfer3DCALabel": "Easily stack up on bitcoin by setting up a recurring bank transfer, e.g. 50 € every Monday."
             
         ]
         

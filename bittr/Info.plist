@@ -36,6 +36,11 @@
 	</dict>
 	<key>NSDebugEnabled</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Gilroy-Regular.ttf</string>
+		<string>Gilroy-Bold.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
