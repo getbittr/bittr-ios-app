@@ -277,35 +277,36 @@ extension CoreViewController {
                     if reason != nil {
                         switch reason! {
                         case .counterpartyForceClosed(peerMsg: _):
-                            answer += " \(Language.getWord(withID: "counterpartyForceClosed"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "counterpartyForceClosed"))
                         case .holderForceClosed(broadcastedLatestTxn: _):
-                            answer += " \(Language.getWord(withID: "holderForceClosed"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "holderForceClosed"))
                         case .legacyCooperativeClosure:
-                            answer += " \(Language.getWord(withID: "legacyCooperativeClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "legacyCooperativeClosure"))
                         case .counterpartyInitiatedCooperativeClosure:
-                            answer += " \(Language.getWord(withID: "counterpartyInitiatedCooperativeClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "counterpartyInitiatedCooperativeClosure"))
                         case .locallyInitiatedCooperativeClosure:
-                            answer += " \(Language.getWord(withID: "locallyInitiatedCooperativeClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "locallyInitiatedCooperativeClosure"))
                         case .commitmentTxConfirmed:
-                            answer += " \(Language.getWord(withID: "commitmentTxConfirmed"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "commitmentTxConfirmed"))
                         case .fundingTimedOut:
-                            answer += " \(Language.getWord(withID: "fundingTimedOut"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "fundingTimedOut"))
                         case .processingError(err: let err):
-                            answer += " \(err)"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "err").lowercased())
                         case .disconnectedPeer:
-                            answer += " \(Language.getWord(withID: "disconnectedPeer"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "disconnectedPeer"))
                         case .outdatedChannelManager:
-                            answer += " \(Language.getWord(withID: "outdatedChannelManager"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "outdatedChannelManager"))
                         case .counterpartyCoopClosedUnfundedChannel:
-                            answer += " \(Language.getWord(withID: "counterpartyCoopClosedUnfundedChannel"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "counterpartyCoopClosedUnfundedChannel"))
                         case .fundingBatchClosure:
-                            answer += " \(Language.getWord(withID: "fundingBatchClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "fundingBatchClosure"))
                         case .htlCsTimedOut:
-                            answer += " \(Language.getWord(withID: "htlCsTimedOut"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "htlCsTimedOut"))
                         case .peerFeerateTooLow(peerFeerateSatPerKw: _, requiredFeerateSatPerKw: _):
-                            answer += " \(Language.getWord(withID: "peerFeerateTooLow"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "peerFeerateTooLow"))
                         }
                     }
+                    answer = answer.replacingOccurrences(of: "<reason>", with: "")
                     self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: answer, type: nil)
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
