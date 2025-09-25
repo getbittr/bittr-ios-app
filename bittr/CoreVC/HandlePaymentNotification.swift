@@ -143,15 +143,6 @@ extension CoreViewController {
                                 CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
                                 CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
                                 print("Did cache invoice data.")
-                                
-                                let receivedTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
-                                receivedTransaction.isBittr = true
-                                receivedTransaction.lnDescription = notificationId
-                                
-                                self.receivedBittrTransaction = receivedTransaction
-                                
-                                self.homeVC?.addLightningTransaction(thisTransaction: receivedTransaction, paymentDetails: paymentDetails)
-                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                             }
                         }
                     } catch let error as BittrServiceError {
