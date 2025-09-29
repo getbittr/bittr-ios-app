@@ -55,7 +55,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillEnterForeground(_ scene: UIScene) {
         // Called as the scene transitions from the background to the foreground.
         // Use this method to undo the changes made on entering the background.
-        //NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+        do {
+            if LightningNodeService.shared.status().isRunning {
+                print("Will sync LDK node upon entering foreground.")
+                try LightningNodeService.shared.syncWallets()
+            }
+        } catch {
+            print("Could not sync LDK node. Error: \(error.localizedDescription)")
+        }
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {
