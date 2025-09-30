@@ -8,7 +8,6 @@
 import UIKit
 import BitcoinDevKit
 import LDKNode
-import LDKNodeFFI
 import Sentry
 
 extension HomeViewController {
@@ -173,10 +172,14 @@ extension HomeViewController {
                 depositCodes += [eachIbanEntity.yourUniqueCode]
             }
         }
+        if depositCodes.count == 0 {
+            print("No TxIds are being sent to Bittr, because there are no deposit codes registered to this device.")
+            return false
+        }
         
         // Add previously cached transactions to Bittr transactions array.
         var cachedBittrTransactionIDs = [String]()
-        self.bittrTransactions = NSMutableDictionary()
+        self.bittrTransactions.removeAllObjects()
         for eachTransaction in self.lastCachedTransactions {
             if eachTransaction.isBittr == true {
                 self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
@@ -186,8 +189,6 @@ extension HomeViewController {
         
         // Create array of transaction IDs to send to Bittr.
         var newTxIds = [String]()
-        var newTransactionsWereFound = false
-        
         if sendAll {
             // Send all transaction IDs to Bittr again.
             for eachTransaction in self.setTransactions {
@@ -195,38 +196,22 @@ extension HomeViewController {
             }
         } else {
             // Only send new transaction IDs to Bittr.
-            // Collect the txIDs that have not been checked against the Bittr API before.
             for eachTxId in txIds {
                 if !cachedBittrTransactionIDs.contains(eachTxId) {
-                    if !self.cachedLightningIds.contains(eachTxId) {
-                        if let previouslySentToBittr = CacheManager.getSentToBittr() {
-                            if !previouslySentToBittr.contains(eachTxId) {
-                                newTxIds += [eachTxId]
-                            }
-                        } else {
-                            newTxIds += [eachTxId]
-                        }
-                    }
-                } else if eachTxId == CacheManager.getTxoID() ?? "" {
-                    if !self.cachedLightningIds.contains(eachTxId) {
+                    if !CacheManager.getSentToBittr().contains(eachTxId) {
                         newTxIds += [eachTxId]
                     }
+                } else if eachTxId == CacheManager.getTxoID() ?? "" {
+                    newTxIds += [eachTxId]
                 }
             }
         }
         
         if newTxIds.count == 0 {
-            // No new txIDs need to be checked with the Bittr API.
             print("There are no new TxIds being sent to Bittr.")
             return false
-        } else if depositCodes.count == 0 {
-            // There are no deposit codes registered to this device.
-            print("No TxIds are being sent to Bittr, because there are no deposit codes registered to this device.")
-            return false
         } else {
-            // Some new txIDs need to be checked with the Bittr API.
             print("Will send \(newTxIds.count) TxIds to Bittr.")
-            
             do {
                 let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
                 print("Bittr transactions: \(bittrApiTransactions.count)")
@@ -238,9 +223,9 @@ extension HomeViewController {
                     return false
                 } else {
                     // There are Bittr transactions.
+                    var newTransactionsWereFound = false
                     
                     for eachTransaction in bittrApiTransactions {
-                        
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                             // This is the funding Txo.
                             
@@ -274,10 +259,8 @@ extension HomeViewController {
                         if newTransactionsWereFound {
                             CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
                             self.homeTableView.reloadData()
-                            return true
-                        } else {
-                            return false
                         }
+                        return newTransactionsWereFound
                     } else {
                         return true
                     }
@@ -298,10 +281,7 @@ extension HomeViewController {
         }
         
         // Update bitcoin sign alpha.
-        var bitcoinSignAlpha = 0.18
-        if CacheManager.darkModeIsOn() {
-            bitcoinSignAlpha = 0.35
-        }
+        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.35 : 0.18
         
         // Calculate total balance
         let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
@@ -337,12 +317,8 @@ extension HomeViewController {
         let adjustedSize = Int(font.pointSize)
         
         // Set HTML balance text.
-        var transparentColor = "201, 154, 0"
-        var fillColor = "0, 0, 0"
-        if CacheManager.darkModeIsOn() {
-            transparentColor = "150, 177, 204"
-            fillColor = "255, 255, 255"
-        }
+        let transparentColor = CacheManager.darkModeIsOn() ? "150, 177, 204" : "201, 154, 0"
+        let fillColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "0, 0, 0"
         self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)</span></center>"
         
         // Store HTML balance text to cache.
@@ -351,19 +327,19 @@ extension HomeViewController {
         if let htmlData = self.balanceText.data(using: .unicode) {
             do {
                 let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                balanceLabel.attributedText = attributedText
-                balanceLabel.alpha = 1
-                bitcoinSign.alpha = bitcoinSignAlpha
+                self.balanceLabel.attributedText = attributedText
+                self.balanceLabel.alpha = 1
+                self.bitcoinSign.alpha = bitcoinSignAlpha
                 
                 // Don't show "sats" label if user has 1 or more bitcoin.
                 if bitcoinSignAlpha == 1 {
-                    satsLabel.alpha = 0
-                    satsLabel.text = ""
-                    satsLabelLeading.constant = 0
+                    self.satsLabel.alpha = 0
+                    self.satsLabel.text = ""
+                    self.satsLabelLeading.constant = 0
                 } else {
-                    satsLabel.alpha = 1
-                    satsLabel.text = "sats"
-                    satsLabelLeading.constant = 12
+                    self.satsLabel.alpha = 1
+                    self.satsLabel.text = "sats"
+                    self.satsLabelLeading.constant = 12
                 }
                 
                 // Store satoshis balance string to cache.
@@ -417,32 +393,12 @@ extension HomeViewController {
             
             self.coreVC!.startSync(type: .conversion)
             
-            let envUrl = "https://getbittr.com/api/price/btc"
-            
-            // Get currency conversion rate from Bittr API.
-            let request = URLRequest(url: URL(string: envUrl)!,timeoutInterval: Double.infinity)
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data else {
-                    print("Conversion error:" + String(describing: error))
-                    
+            Task {
+                await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: "GET") { result in
                     DispatchQueue.main.async {
-                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        self.couldNotFetchConversion = true
-                        self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
-                        if let actualError = error {
-                            SentrySDK.capture(error: actualError)
-                        }
-                    }
-                    return
-                }
-                
-                // Data has been received.
-                var dataDictionary:NSDictionary?
-                if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
-                    do {
-                        dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                        if let actualDataDict = dataDictionary {
-                            if var actualEurValue = actualDataDict["btc_eur"] as? String, var actualChfValue = actualDataDict["btc_chf"] as? String {
+                        switch result {
+                        case .success(let receivedDictionary):
+                            if var actualEurValue = receivedDictionary["btc_eur"] as? String, var actualChfValue = receivedDictionary["btc_chf"] as? String {
                                 
                                 actualEurValue = actualEurValue.fixDecimals()
                                 actualChfValue = actualChfValue.fixDecimals()
@@ -457,33 +413,30 @@ extension HomeViewController {
                                 
                                 self.didFetchConversion = true
                                 
-                                DispatchQueue.main.async {
-                                    
-                                    let conversionLabelText = self.updateConversionLabel(btcValue: btcValue)
-                                    CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
-                                    
-                                    // Show conversion label.
-                                    self.conversionLabel.alpha = 1
-                                    
-                                    if updateTableAfterConversion {
-                                        if cachedData == false {
-                                            self.setTransactions = self.newTransactions
-                                        }
-                                        self.updateTableAfterConversion()
-                                        self.calculateProfit(cachedData: cachedData)
+                                let conversionLabelText = self.updateConversionLabel(btcValue: btcValue)
+                                CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
+                                
+                                // Show conversion label.
+                                self.conversionLabel.alpha = 1
+                                
+                                if updateTableAfterConversion {
+                                    if cachedData == false {
+                                        self.setTransactions = self.newTransactions
                                     }
-                                    
-                                    // Complete sync.
-                                    self.coreVC!.completeSync(type: .conversion)
+                                    self.updateTableAfterConversion()
+                                    self.calculateProfit(cachedData: cachedData)
                                 }
+                                
+                                // Complete sync.
+                                self.coreVC!.completeSync(type: .conversion)
+                            } else {
+                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.couldNotFetchConversion = true
+                                self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
+                                SentrySDK.capture(message: "Received unexpected data from conversion API.")
                             }
-                        }
-                    } catch let error as NSError {
-                        print("Conversion error:" + error.localizedDescription)
-                        
-                        DispatchQueue.main.async {
+                        case .failure(let error):
                             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            
                             self.couldNotFetchConversion = true
                             self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
                             SentrySDK.capture(error: error)
@@ -491,7 +444,6 @@ extension HomeViewController {
                     }
                 }
             }
-            task.resume()
         }
     }
     

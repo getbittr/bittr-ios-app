@@ -860,7 +860,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func getSentToBittr() -> [String]? {
+    static func getSentToBittr() -> [String] {
         
         let envKey = EnvironmentConfig.cacheKey(for: "senttobittr")
         
@@ -870,7 +870,7 @@ class CacheManager: NSObject {
         if let actualSentToBittr = cachedSentToBittr {
             return actualSentToBittr
         } else {
-            return nil
+            return [String]()
         }
     }
     
