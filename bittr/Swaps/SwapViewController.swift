@@ -309,7 +309,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         if self.nextSpinner.isAnimating { return }
         
-        let amountToBeSent = Int(self.stringToNumber(self.amountTextField.text))
+        let amountToBeSent = Int((self.amountTextField.text ?? "0").toNumber())
         if amountToBeSent != 0 {
             let maxAmount = self.homeVC?.coreVC?.bittrWallet.bittrChannel?.receivableMaximum ?? 0
             if amountToBeSent > maxAmount {

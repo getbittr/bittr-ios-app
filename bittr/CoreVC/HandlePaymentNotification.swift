@@ -261,12 +261,12 @@ extension CoreViewController {
                 if self.varSpecialData == nil, let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     print("Did receive payment details.")
-                    let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
+                    let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
                     self.receivedBittrTransaction = thisTransaction
                     
                     DispatchQueue.main.async {
                         self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-                        if !CacheManager.getInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id).contains("Swap onchain to lightning ") {
+                        if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
                             self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                         }
                     }
@@ -332,7 +332,7 @@ extension CoreViewController {
                                     if eachTransaction.txId == fundingTxo.txid {
                                         DispatchQueue.main.async {
                                             
-                                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                            let thisTransaction = eachTransaction.createTransaction(coreVC: self, bittrTransactions: self.homeVC?.bittrTransactions)
                                             
                                             self.receivedBittrTransaction = thisTransaction
                                             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
@@ -353,9 +353,9 @@ extension CoreViewController {
                 if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     // Create transaction item.
-                    let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
+                    let newTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
                     if feePaidMsat != nil, Int(feePaidMsat!/1000) > 0 {
-                        CacheManager.storePaymentFees(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, fees: Int(feePaidMsat!/1000))
+                        CacheManager.storePaymentFees(preimage: newTransaction.id, fees: Int(feePaidMsat!/1000))
                         newTransaction.fee = Int(feePaidMsat!/1000)
                     }
                     

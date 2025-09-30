@@ -97,7 +97,7 @@ extension UIViewController {
                                         var amountText = minWithdrawable
                                         if minWithdrawable != maxWithdrawable {
                                             // Min and max aren't the same.
-                                            amountText = Int(self.stringToNumber((alert.textFields![0].text ?? "0"))) * 1000
+                                            amountText = Int((alert.textFields![0].text ?? "0").toNumber()) * 1000
                                         }
                                         self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
                                     }))

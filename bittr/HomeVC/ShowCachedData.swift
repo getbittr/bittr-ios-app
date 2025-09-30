@@ -64,7 +64,7 @@ extension HomeViewController {
                 }
             }
             
-            self.setConversion(btcValue: self.stringToNumber(actualCachedBalance).inBTC(), cachedData: true, updateTableAfterConversion: true)
+            self.setConversion(btcValue: actualCachedBalance.toNumber().inBTC(), cachedData: true, updateTableAfterConversion: true)
         }
     }
 

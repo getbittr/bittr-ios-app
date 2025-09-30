@@ -104,7 +104,7 @@ extension HomeViewController {
         for eachTransaction in receivedTransactions {
             if !self.cachedLightningIds.contains(eachTransaction.transaction.computeTxid()) {
                 // Onchain transaction isn't part of a previously cached swap transaction.
-                let thisTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
             }
         }
@@ -113,7 +113,7 @@ extension HomeViewController {
         for eachPayment in receivedPayments {
             // Add succeeded new payments to table.
             if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (eachPayment.amountMsat ?? 0) > 0)) {
-                let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: eachPayment, bittrTransaction: nil, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 if eachPayment.status == .succeeded {
                     CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
@@ -244,7 +244,7 @@ extension HomeViewController {
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                             // This is the funding Txo.
                             
-                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                             
                             self.newTransactions += [thisTransaction]
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
@@ -257,11 +257,10 @@ extension HomeViewController {
                                     if eachExistingTransaction.id == eachTransaction.txId {
                                         newTransactionsWereFound = true
                                         eachExistingTransaction.isBittr = true
-                                        eachExistingTransaction.purchaseAmount = self.stringToNumber(eachTransaction.purchaseAmount)
+                                        eachExistingTransaction.purchaseAmount = eachTransaction.purchaseAmount.toNumber()
                                         eachExistingTransaction.currency = eachTransaction.currency
-                                        let btcAmount = self.stringToNumber(eachTransaction.transferFee)
-                                        let satoshis = Int(btcAmount * 100_000_000)
-                                        eachExistingTransaction.transferFee = CGFloat(satoshis)
+                                        let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
+                                        eachExistingTransaction.transferFee = CGFloat(transferFee)
                                         if eachExistingTransaction.isLightning {
                                             CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
                                         }
@@ -449,8 +448,8 @@ extension HomeViewController {
                                 actualChfValue = actualChfValue.fixDecimals()
                                 
                                 // Set updated conversion rates for EUR and CHF.
-                                self.coreVC!.bittrWallet.valueInEUR = self.stringToNumber(actualEurValue)
-                                self.coreVC!.bittrWallet.valueInCHF = self.stringToNumber(actualChfValue)
+                                self.coreVC!.bittrWallet.valueInEUR = actualEurValue.toNumber()
+                                self.coreVC!.bittrWallet.valueInCHF = actualChfValue.toNumber()
                                 
                                 // Store updated conversion rates in cache.
                                 CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
@@ -697,104 +696,6 @@ extension PaymentKind {
         case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
             return preimage
         }
-    }
-}
-
-extension UIViewController {
-    
-    func createTransaction(transactionDetails:CanonicalTx?, paymentDetails:PaymentDetails?, bittrTransaction:BittrTransaction?, coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
-        
-        // Create transaction object.
-        let thisTransaction = Transaction()
-        
-        // Check if transaction is onchain, lightning, or a Bittr funding transaction.
-        if transactionDetails != nil {
-            
-            // Onchain transaction.
-            thisTransaction.id = transactionDetails!.transaction.computeTxid()
-            thisTransaction.note = CacheManager.getTransactionNote(txid: transactionDetails!.transaction.computeTxid())
-            do {
-                thisTransaction.fee = Int(try LightningNodeService.shared.getWallet()!.calculateFee(tx: transactionDetails!.transaction).toSat())
-            } catch {
-                print("810 Could not calculate fee.")
-            }
-            thisTransaction.received = Int(LightningNodeService.shared.getWallet()!.sentAndReceived(tx: transactionDetails!.transaction).received.toSat())
-            thisTransaction.sent = Int(LightningNodeService.shared.getWallet()!.sentAndReceived(tx: transactionDetails!.transaction).sent.toSat())
-            thisTransaction.isLightning = false
-            switch transactionDetails!.chainPosition {
-            case .unconfirmed(timestamp: let timestamp):
-                thisTransaction.timestamp = Int(timestamp ?? UInt64(Date().timeIntervalSince1970))
-                thisTransaction.height = 0
-                thisTransaction.confirmations = 0
-            case .confirmed(confirmationBlockTime: let confirmationBlockTime, transitively: let transitively):
-                thisTransaction.timestamp = Int(confirmationBlockTime.confirmationTime)
-                thisTransaction.height = Int(confirmationBlockTime.blockId.height)
-                if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
-                    thisTransaction.confirmations = (actualCurrentHeight - thisTransaction.height) + 1
-                }
-            }
-            
-            if CacheManager.getInvoiceDescription(preimage: thisTransaction.id) != "" {
-                thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
-            }
-        } else if paymentDetails != nil {
-            
-            // Lightning payment.
-            thisTransaction.id = paymentDetails!.kind.preimageAsString ?? paymentDetails!.id
-            thisTransaction.note = CacheManager.getTransactionNote(txid: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
-            if paymentDetails!.direction == .inbound {
-                thisTransaction.received = Int(paymentDetails!.amountMsat ?? 0)/1000
-            } else {
-                thisTransaction.sent = Int(paymentDetails!.amountMsat ?? 0)/1000
-                thisTransaction.fee = CacheManager.getLightningFees(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
-            }
-            thisTransaction.isLightning = true
-            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
-            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: paymentDetails!.kind.preimageAsString ?? paymentDetails!.id)
-            if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
-                thisTransaction.channelId = actualChannels.first!.channelId
-            }
-        } else if bittrTransaction != nil {
-            
-            // Bittr funding transaction.
-            thisTransaction.id = bittrTransaction!.txId
-            thisTransaction.sent = 0
-            thisTransaction.received = self.stringToNumber(bittrTransaction!.bitcoinAmount).inSatoshis()
-            thisTransaction.isLightning = true
-            thisTransaction.isFundingTransaction = true
-            
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-            let transactionDate = formatter.date(from:bittrTransaction!.datetime)!
-            let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
-            thisTransaction.timestamp = transactionTimestamp
-            
-            thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = self.stringToNumber(bittrTransaction!.purchaseAmount)
-            thisTransaction.currency = bittrTransaction!.currency
-            let btcAmount = self.stringToNumber(bittrTransaction!.transferFee)
-            let satoshis = Int(btcAmount * 100_000_000)
-            thisTransaction.transferFee = CGFloat(satoshis)
-            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: bittrTransaction!.txId)
-            if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
-                thisTransaction.channelId = actualChannels.first!.channelId
-            }
-        }
-        
-        // Check if transaction is Bittr.
-        if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id), bittrTransaction == nil {
-            thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = self.stringToNumber(((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String))
-            thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
-            if let transferFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? String {
-                let btcAmount = self.stringToNumber(transferFeeString)
-                let satoshis = Int(btcAmount * 100_000_000)
-                thisTransaction.transferFee = CGFloat(satoshis)
-            }
-        }
-        
-        // Return new transaction.
-        return thisTransaction
     }
 }
 
