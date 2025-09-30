@@ -291,7 +291,7 @@ extension CoreViewController {
                         case .fundingTimedOut:
                             answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "fundingTimedOut"))
                         case .processingError(err: let err):
-                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "err").lowercased())
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + err.lowercased())
                         case .disconnectedPeer:
                             answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "disconnectedPeer"))
                         case .outdatedChannelManager:
@@ -308,6 +308,7 @@ extension CoreViewController {
                     }
                     answer = answer.replacingOccurrences(of: "<reason>", with: "")
                     self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: answer, type: nil)
+                    self.syncLDKnode()
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
                 
@@ -415,27 +416,31 @@ extension CoreViewController {
             case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
                 return
             case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
-                if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
-                    do {
-                        // Sync LDK node.
-                        try LightningNodeService.shared.syncWallets()
-                        print("Did sync LDK node.")
-                        
-                        Task {
-                            // Fetch channel details.
-                            self.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
-                            print("Did list channels.")
-                            
-                            // Reset balance and transactions.
-                            DispatchQueue.main.async {
-                                print("Will reload wallet data.")
-                                self.homeVC!.loadWalletData()
-                            }
-                        }
-                    } catch {
-                        print("Could not sync LDK node or fetch channels. \(error.localizedDescription)")
+                self.syncLDKnode()
+            }
+        }
+    }
+    
+    func syncLDKnode() {
+        if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
+            do {
+                // Sync LDK node.
+                try LightningNodeService.shared.syncWallets()
+                print("Did sync LDK node.")
+                
+                Task {
+                    // Fetch channel details.
+                    self.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
+                    print("Did list channels.")
+                    
+                    // Reset balance and transactions.
+                    DispatchQueue.main.async {
+                        print("Will reload wallet data.")
+                        self.homeVC!.loadWalletData()
                     }
                 }
+            } catch {
+                print("Could not sync LDK node or fetch channels. \(error.localizedDescription)")
             }
         }
     }

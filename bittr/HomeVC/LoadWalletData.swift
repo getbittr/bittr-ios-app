@@ -22,10 +22,14 @@ extension HomeViewController {
         }
         
         // Calculate lightning balance by adding up the values of each channel.
-        self.coreVC!.bittrWallet.satoshisLightning = 0
-        for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-            if eachChannel.outboundCapacityMsat != 0 {
-                self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
+        if LightningNodeService.shared.ldkNode != nil {
+            self.coreVC!.bittrWallet.satoshisLightning = Int(LightningNodeService.shared.ldkNode!.listBalances().totalLightningBalanceSats)
+        } else {
+            self.coreVC!.bittrWallet.satoshisLightning = 0
+            for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+                if eachChannel.outboundCapacityMsat != 0 {
+                    self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
+                }
             }
         }
         
