@@ -400,13 +400,9 @@ class LightningNodeService {
         )
     }
     
-    func status() -> NodeStatus {
-        if self.ldkNode == nil {
-            return NodeStatus.init(isRunning: false, isListening: false, currentBestBlock: BestBlock(blockHash: BlockHash(), height: 0), latestLightningWalletSyncTimestamp: nil, latestOnchainWalletSyncTimestamp: nil, latestFeeRateCacheUpdateTimestamp: nil, latestRgsSnapshotTimestamp: nil, latestNodeAnnouncementBroadcastTimestamp: nil, latestChannelMonitorArchivalHeight: nil)
-        } else {
-            let status = self.ldkNode!.status()
-            return status
-        }
+    func status() -> NodeStatus? {
+        let status = self.ldkNode?.status()
+        return status
     }
     
     func lightSync(completion: @escaping (Bool) -> Void) {

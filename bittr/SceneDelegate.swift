@@ -56,7 +56,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Called as the scene transitions from the background to the foreground.
         // Use this method to undo the changes made on entering the background.
         do {
-            if LightningNodeService.shared.status().isRunning {
+            if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
                 print("Will sync LDK node upon entering foreground.")
                 try LightningNodeService.shared.syncWallets()
             }

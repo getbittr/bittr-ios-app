@@ -30,8 +30,8 @@ extension HomeViewController {
         }
         
         // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
-        if self.coreVC!.bittrWallet.lightningChannels.count == 1 {
-            self.setBittrChannel(withChannel: self.coreVC!.bittrWallet.lightningChannels[0])
+        if self.coreVC!.bittrWallet.lightningChannels.count == 1, self.coreVC!.bittrWallet.lightningChannels.first != nil {
+            self.setBittrChannel(withChannel: self.coreVC!.bittrWallet.lightningChannels.first!)
         }
         
         // Collect transaction IDs to be checked with Bittr API.

@@ -415,8 +415,26 @@ extension CoreViewController {
             case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
                 return
             case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
-                DispatchQueue.main.async {
-                    self.launchQuestion(question: Language.getWord(withID: "newlightningconnection"), answer: Language.getWord(withID: "newlightningconnection2"), type: nil)
+                if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
+                    do {
+                        // Sync LDK node.
+                        try LightningNodeService.shared.syncWallets()
+                        print("Did sync LDK node.")
+                        
+                        Task {
+                            // Fetch channel details.
+                            self.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
+                            print("Did list channels.")
+                            
+                            // Reset balance and transactions.
+                            DispatchQueue.main.async {
+                                print("Will reload wallet data.")
+                                self.homeVC!.loadWalletData()
+                            }
+                        }
+                    } catch {
+                        print("Could not sync LDK node or fetch channels. \(error.localizedDescription)")
+                    }
                 }
             }
         }
