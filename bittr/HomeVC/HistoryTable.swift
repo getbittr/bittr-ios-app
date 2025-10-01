@@ -13,9 +13,16 @@ extension HomeViewController {
         
         if let cell = tableView.dequeueReusableCell(withIdentifier: "HistoryCell", for: indexPath) as? HistoryTableViewCell {
             
+            // Transaction
             let thisTransaction = self.setTransactions[indexPath.row]
             
-            // Set date.
+            // Button
+            cell.transactionButton.accessibilityElements = [thisTransaction]
+            
+            // Cell zPosition
+            cell.layer.zPosition = CGFloat(indexPath.row)
+            
+            // Date
             let transactionDate = Date(timeIntervalSince1970: Double(thisTransaction.timestamp))
             let dateFormatter = DateFormatter()
             dateFormatter.timeZone = TimeZone.current
@@ -23,36 +30,35 @@ extension HomeViewController {
             let transactionDateString = dateFormatter.string(from: transactionDate)
             cell.dayLabel.text = transactionDateString
             
-            // Set sats.
+            // Satoshis
             var plusSymbol = "+"
             if thisTransaction.received - thisTransaction.sent < 0 {
                 plusSymbol = "-"
             }
             cell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
-            // Set conversion
+            // Conversion
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
             let transactionValue = (thisTransaction.received - thisTransaction.sent).inBTC()
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             cell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
             
-            // Set gain label
-            if thisTransaction.isBittr == true {
-                cell.updateBoltTrailing(position: "left")
-                cell.bittrImage.alpha = 1
-                cell.gainView.alpha = 1
-                cell.swapImage.alpha = 0
+            // Bittr
+            if thisTransaction.isBittr {
+                cell.showBittrStack()
+                
                 if thisTransaction.purchaseAmount == 0 {
-                    // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
+                    // No purchase amount has been received yet from the Bittr API.
                     thisTransaction.purchaseAmount = (transactionValue*bitcoinValue.currentValue).rounded()
                 }
                 let relativeGain:Int = {
                     if thisTransaction.purchaseAmount == 0 {
                         return 0
+                    } else {
+                        let calculatedGain = (CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - Int(thisTransaction.purchaseAmount.rounded())) / thisTransaction.purchaseAmount) * 100
+                        return Int(calculatedGain.isFinite ? calculatedGain : 0)
                     }
-                    let calculatedGain = (CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - Int(thisTransaction.purchaseAmount.rounded())) / thisTransaction.purchaseAmount) * 100
-                    return Int(calculatedGain.isFinite ? calculatedGain : 0)
                 }()
                 cell.gainLabel.text = "\(relativeGain) %"
                 
@@ -70,59 +76,41 @@ extension HomeViewController {
                     cell.gainLabel.textColor = Colors.getColor("profittext")
                 }
             } else {
-                if thisTransaction.isSwap {
-                    cell.swapImage.alpha = 1
-                    cell.updateBoltTrailing(position: "middle")
-                    cell.boltImage.alpha = 0
-                    cell.bittrImage.alpha = 0
-                    cell.gainView.alpha = 0
-                    cell.gainLabel.text = ""
-                    if thisTransaction.swapStatus == .succeeded {
-                        cell.swapImage.image = UIImage(named: "iconswapblue")
-                    } else {
-                        cell.swapImage.image = UIImage(named: "iconswapgrey")
-                    }
-                } else {
-                    cell.updateBoltTrailing(position: "right")
-                    cell.bittrImage.alpha = 0
-                    cell.gainView.alpha = 0
-                    cell.gainLabel.text = ""
-                    cell.swapImage.alpha = 0
-                }
+                cell.hideBittrStack()
             }
             
-            if thisTransaction.isLightning == true {
-                if !thisTransaction.isSwap {
-                    cell.boltImage.alpha = 1
-                } else {
-                    cell.boltImage.alpha = 0
-                }
-                cell.satsLabel.textColor = Colors.getColor("blackorwhite")
-                cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
+            // Lightning or onchain
+            cell.satsLabel.textColor = Colors.getColor("blackorwhite")
+            cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
+            if thisTransaction.isLightning {
+                cell.showLightningStack()
             } else {
-                cell.boltImage.alpha = 0
+                cell.hideLightningStack()
                 
                 if thisTransaction.confirmations < 1 && self.coreVC?.bittrWallet.currentHeight != nil {
                     // Unconfirmed transaction.
                     cell.satsLabel.textColor = Colors.getColor("unconfirmed")
                     cell.eurosLabel.textColor = Colors.getColor("unconfirmed")
-                } else {
-                    // Confirmed transaction
-                    cell.satsLabel.textColor = Colors.getColor("blackorwhite")
-                    cell.eurosLabel.textColor = Colors.getColor("blackorwhite")
                 }
             }
             
-            // Set button
-            cell.transactionButton.tag = indexPath.row
-            cell.transactionButton.accessibilityElements = [thisTransaction]
-            
-            cell.layer.zPosition = CGFloat(indexPath.row)
+            // Swap
+            if thisTransaction.isSwap {
+                cell.showSwapStack()
+                cell.hideLightningStack()
+                if thisTransaction.swapStatus == .succeeded {
+                    cell.swapImage.image = UIImage(named: "iconswapblue")
+                } else {
+                    cell.swapImage.image = UIImage(named: "iconswapgrey")
+                }
+            } else {
+                cell.hideSwapStack()
+            }
             
             return cell
+        } else {
+            return UITableViewCell()
         }
-        
-        return UITableViewCell()
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
