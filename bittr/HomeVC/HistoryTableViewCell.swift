@@ -41,7 +41,6 @@ class HistoryTableViewCell: UITableViewCell {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        // Initialization code
         
         // Corner radii
         self.dateView.layer.cornerRadius = 7
@@ -52,10 +51,10 @@ class HistoryTableViewCell: UITableViewCell {
         self.transactionButton.setTitle("", for: .normal)
         
         // Card view styling
-        cardView.layer.shadowColor = UIColor.black.cgColor
-        cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        cardView.layer.shadowRadius = 12.0
-        cardView.layer.shadowOpacity = 0.05
+        self.cardView.layer.shadowColor = UIColor.black.cgColor
+        self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
+        self.cardView.layer.shadowRadius = 12.0
+        self.cardView.layer.shadowOpacity = 0.05
         
         // Colors
         self.changeColors()
@@ -100,32 +99,32 @@ class HistoryTableViewCell: UITableViewCell {
     
     @objc func changeColors() {
         
-        cardView.backgroundColor = Colors.getColor("whiteorblue2")
-        satsLabel.textColor = Colors.getColor("blackorwhite")
-        eurosLabel.textColor = Colors.getColor("blackorwhite")
-        dayLabel.textColor = Colors.getColor("blackorwhite")
-        dateView.backgroundColor = Colors.getColor("grey1orblue3")
+        self.cardView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.satsLabel.textColor = Colors.getColor("blackorwhite")
+        self.eurosLabel.textColor = Colors.getColor("blackorwhite")
+        self.dayLabel.textColor = Colors.getColor("blackorwhite")
+        self.dateView.backgroundColor = Colors.getColor("grey1orblue3")
         
-        if let actualText = gainLabel.text {
-            if actualText.contains("-") {
+        if self.gainLabel.text != nil {
+            if self.gainLabel.text!.contains("-") {
                 // Loss
-                gainView.backgroundColor = Colors.getColor("lossbackground")
-                arrowImage.tintColor = Colors.getColor("losstext")
-                gainLabel.textColor = Colors.getColor("losstext")
+                self.gainView.backgroundColor = Colors.getColor("lossbackground")
+                self.arrowImage.tintColor = Colors.getColor("losstext")
+                self.gainLabel.textColor = Colors.getColor("losstext")
             } else {
                 // Profit
-                gainView.backgroundColor = Colors.getColor("profitbackground")
-                arrowImage.tintColor = Colors.getColor("profittext")
-                gainLabel.textColor = Colors.getColor("profittext")
+                self.gainView.backgroundColor = Colors.getColor("profitbackground")
+                self.arrowImage.tintColor = Colors.getColor("profittext")
+                self.gainLabel.textColor = Colors.getColor("profittext")
             }
         }
         
         if CacheManager.darkModeIsOn() {
             // Dark mode is on.
-            bittrImage.image = UIImage(named: "logodarkmode32")
+            self.bittrImage.image = UIImage(named: "logodarkmode32")
         } else {
             // Dark mode is off.
-            bittrImage.image = UIImage(named: "logoorange32")
+            self.bittrImage.image = UIImage(named: "logoorange32")
         }
     }
 

@@ -1473,6 +1473,7 @@
                                             <outlet property="lightningStack" destination="CIV-UW-UE8" id="xbm-5l-oAb"/>
                                             <outlet property="lightningStackWidth" destination="kg1-F3-cxA" id="CYr-dC-dNg"/>
                                             <outlet property="satsLabel" destination="97L-nn-l0P" id="4SO-ja-Afr"/>
+                                            <outlet property="swapImage" destination="4Kc-vK-J74" id="vHO-GQ-tMz"/>
                                             <outlet property="swapStack" destination="x3D-ig-Dkg" id="Kal-5h-6x7"/>
                                             <outlet property="swapStackWidth" destination="AlJ-dS-ggc" id="LGO-Jf-wVi"/>
                                             <outlet property="transactionButton" destination="FNM-fb-dSL" id="WRg-s5-fH7"/>
