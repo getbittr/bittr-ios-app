@@ -87,7 +87,7 @@ struct EnvironmentConfig {
     
     /// Bittr API base URL based on environment
     static var bittrAPIBaseURL: String {
-        isDevelopment ? "https://model-arachnid-viable.ngrok-free.app" : "https://getbittr.com/api"
+        isDevelopment ? "https://bittr.ngrok.io" : "https://getbittr.com/api"
     }
     
     /// WebSocket URL based on environment
