@@ -145,7 +145,7 @@ extension PaymentDetails {
 
 extension BittrTransaction {
     
-    func createTransaction(coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
+    func createTransaction(coreVC:CoreViewController?) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()

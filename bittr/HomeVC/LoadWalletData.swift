@@ -228,9 +228,9 @@ extension HomeViewController {
                     for eachTransaction in bittrApiTransactions {
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                             // This is the funding Txo.
+                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC)
                             
-                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
-                            
+                            newTransactionsWereFound = true
                             self.newTransactions += [thisTransaction]
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                         } else {
