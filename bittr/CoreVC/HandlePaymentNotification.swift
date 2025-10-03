@@ -258,16 +258,55 @@ extension CoreViewController {
             switch event {
             case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
-                if self.varSpecialData == nil, let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
-                    print("Did receive payment details.")
-                    let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
-                    self.receivedBittrTransaction = thisTransaction
-                    
-                    DispatchQueue.main.async {
-                        self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-                        if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
-                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                    if self.varSpecialData != nil {
+                        var depositCodes = [String]()
+                        for eachIbanEntity in self.bittrWallet.ibanEntities {
+                            if eachIbanEntity.yourUniqueCode != "" {
+                                depositCodes += [eachIbanEntity.yourUniqueCode]
+                            }
+                        }
+                        
+                        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
+                            print("Did wait to start API call.")
+                            
+                            Task {
+                                do {
+                                    let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentDetails.kind.preimageAsString ?? paymentDetails.id], depositCodes: depositCodes)
+                                    print("Bittr transactions: \(bittrApiTransactions.count)")
+                                    
+                                    if bittrApiTransactions.count == 1 {
+                                        for eachTransaction in bittrApiTransactions {
+                                            if eachTransaction.txId == (paymentDetails.kind.preimageAsString ?? paymentDetails.id) {
+                                                DispatchQueue.main.async {
+                                                    
+                                                    let thisTransaction = eachTransaction.createTransaction(coreVC: self)
+                                                    
+                                                    self.receivedBittrTransaction = thisTransaction
+                                                    self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
+                                                    self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        print("channelPending: Received no transaction details from Bittr API. Preimage: \(paymentDetails.kind.preimageAsString ?? paymentDetails.id)")
+                                    }
+                                } catch {
+                                    print("paymentReceived Bittr error: \(error.localizedDescription)")
+                                }
+                            }
+                        }
+                    } else {
+                        print("Did receive payment details.")
+                        let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
+                        self.receivedBittrTransaction = thisTransaction
+                        
+                        DispatchQueue.main.async {
+                            self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
+                            if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
+                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                            }
                         }
                     }
                 }
