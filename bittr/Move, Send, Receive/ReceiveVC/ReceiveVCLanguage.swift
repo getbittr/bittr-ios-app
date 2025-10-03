@@ -55,6 +55,7 @@ extension ReceiveViewController {
         self.addressSpinner.color = Colors.getColor("blackorwhite")
         self.addressCopy.tintColor = Colors.getColor("blackorwhite")
         self.bothAddressCopy.tintColor = Colors.getColor("blackorwhite")
+        self.refreshIcon.tintColor = Colors.getColor("blackorwhite")
         
         // LNURL
         self.lnurlAddressBackground.backgroundColor = Colors.getColor("white0.7orblue2")

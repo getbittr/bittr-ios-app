@@ -164,24 +164,24 @@ class ValueViewController: UIViewController {
                     var last7Days = [CGFloat]()
                     for eachDataPoint in weekData {
                         if Calendar.current.date(byAdding: .day, value: -7, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            last7Days += [self.stringToNumber((eachDataPoint["price"] as! String))]
-                            self.allWeekData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
+                            last7Days += [(eachDataPoint["price"] as! String).toNumber()]
+                            self.allWeekData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                         }
                     }
                     
                     var lastMonth = [CGFloat]()
                     for eachDataPoint in monthData {
                         if Calendar.current.date(byAdding: .month, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            lastMonth += [self.stringToNumber((eachDataPoint["price"] as! String))]
-                            self.allMonthData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
+                            lastMonth += [(eachDataPoint["price"] as! String).toNumber()]
+                            self.allMonthData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                         }
                     }
                     
                     var lastYear = [CGFloat]()
                     for eachDataPoint in yearData {
                         if Calendar.current.date(byAdding: .year, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            lastYear += [self.stringToNumber((eachDataPoint["price"] as! String))]
-                            self.allYearsData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
+                            lastYear += [(eachDataPoint["price"] as! String).toNumber()]
+                            self.allYearsData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                         }
                     }
                     
@@ -190,8 +190,8 @@ class ValueViewController: UIViewController {
                     for eachDataPoint in fiveYearData {
                         if Calendar.current.date(byAdding: .year, value: -5, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
                             if doAdd {
-                                lastFiveYears += [self.stringToNumber((eachDataPoint["price"] as! String))]
-                                self.allFiveYearsData += [["price":self.stringToNumber((eachDataPoint["price"] as! String)),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
+                                lastFiveYears += [(eachDataPoint["price"] as! String).toNumber()]
+                                self.allFiveYearsData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
                                 doAdd = false
                             } else {
                                 doAdd = true
@@ -219,13 +219,13 @@ class ValueViewController: UIViewController {
                             let formattedEurValue = self.formatEuroValue(actualEurValue)
                             let formattedChfValue = self.formatEuroValue(actualChfValue)
                             
-                            self.currentValue = self.stringToNumber(actualEurValue)
+                            self.currentValue = actualEurValue.toNumber()
                             var preferredCurrency = "€"
                             var valueToDisplay = formattedEurValue
                             if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF" {
                                 preferredCurrency = "CHF"
                                 valueToDisplay = formattedChfValue
-                                self.currentValue = self.stringToNumber(actualChfValue)
+                                self.currentValue = actualChfValue.toNumber()
                             }
                             
                             print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")

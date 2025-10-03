@@ -71,7 +71,7 @@ extension UIViewController {
                             actions: [#selector(self.cancelLightningPayment), #selector(self.performLightningPayment)])
                     } else {
                         // Zero invoice.
-                        let invoiceAmount = Int(self.stringToNumber(sendVC?.amountTextField.text))
+                        let invoiceAmount = Int(sendVC?.amountTextField.text?.toNumber() ?? 0)
                         if invoiceAmount > 0 {
                             
                             // Calculate maximum total routing fees.
@@ -312,11 +312,11 @@ extension UIViewController {
         sendVC?.resetFields()
         
         // Create transaction.
-        let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: thisPayment, bittrTransaction: nil, coreVC: coreVC, bittrTransactions: nil)
+        let newTransaction = thisPayment.createTransaction(coreVC: coreVC, bittrTransactions: nil)
         
         // Cache invoice note.
         if let temporaryInvoiceNote = (sendVC?.temporaryInvoiceNote ?? receiveVC?.temporaryInvoiceNote) {
-            CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: temporaryInvoiceNote)
+            CacheManager.storeTransactionNote(txid: newTransaction.id, note: temporaryInvoiceNote)
             sendVC?.temporaryInvoiceNote = nil
             receiveVC?.temporaryInvoiceNote = nil
         }

@@ -284,7 +284,7 @@ extension UIViewController {
             
             // Store image in cache.
             let image = UIImage(data: data)!
-            //CacheManager.storeImageInCache(key: urlString, data: image.resizeImage())
+            CacheManager.storeImageInCache(key: urlString, data: image.resizeImage())
             
             return image.resizeImage()
         } catch {

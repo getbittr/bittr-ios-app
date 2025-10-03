@@ -64,20 +64,29 @@ class LightningNodeService {
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         
+        // LDK background syncing.
+        let backgroundSync = BackgroundSyncConfig(
+            onchainWalletSyncIntervalSecs: 30,
+            lightningWalletSyncIntervalSecs: 30,
+            feeRateCacheUpdateIntervalSecs: 300
+        )
+        let esploraSyncConfig = EsploraSyncConfig(backgroundSyncConfig: .some(backgroundSync))
+        
+        // Node builder.
         let nodeBuilder = Builder.fromConfig(config: config)
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.bitcoin)
-            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.bitcoinBlockstream, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.bitcoinMempoolspace, config: esploraSyncConfig)
         case .regtest:
-            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.regtest, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.regtest, config: esploraSyncConfig)
         case .signet:
-            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.signet, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.signet, config: esploraSyncConfig)
         case .testnet:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.testnet)
-            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: nil)
+            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: esploraSyncConfig)
         }
         
 //        let logDirectory = storageManager.getDocumentsDirectory() + "/logs"
@@ -389,6 +398,11 @@ class LightningNodeService {
             address: address,
             persist: persist
         )
+    }
+    
+    func status() -> NodeStatus? {
+        let status = self.ldkNode?.status()
+        return status
     }
     
     func lightSync(completion: @escaping (Bool) -> Void) {

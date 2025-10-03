@@ -63,8 +63,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var addressLabel: UILabel!
     @IBOutlet weak var addressCopy: UIImageView!
     @IBOutlet weak var copyAddressButton: UIButton!
-    @IBOutlet weak var refreshView: UIView!
     @IBOutlet weak var refreshButton: UIButton!
+    @IBOutlet weak var refreshIcon: UIImageView!
     
     // Main - Instant view
     @IBOutlet weak var centerViewInstant: UIView!
@@ -170,7 +170,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.bothQrView.layer.cornerRadius = 13
         self.addressView.layer.cornerRadius = 13
         self.bothAddressView.layer.cornerRadius = 13
-        self.refreshView.layer.cornerRadius = 13
         self.bothAmountView.layer.cornerRadius = 13
         self.bothDescriptionView.layer.cornerRadius = 13
         self.createView.layer.cornerRadius = 13

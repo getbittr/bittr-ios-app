@@ -361,13 +361,11 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         // Convert amount to millisatoshis based on current currency
         var enteredAmount: Int
         if self.selectedCurrency == .satoshis {
-            enteredAmount = Int(stringToNumber(amountText)) * 1000 // Convert satoshis to millisatoshis
+            enteredAmount = Int(amountText.toNumber()) * 1000 // Convert satoshis to millisatoshis
         } else if self.selectedCurrency == .bitcoin {
-            let btcAmount = stringToNumber(amountText)
-            let satoshis = btcAmount.inSatoshis()
-            enteredAmount = satoshis * 1000 // Convert to millisatoshis
+            enteredAmount = amountText.toNumber().inSatoshis() * 1000 // Convert to millisatoshis
         } else { // .currency (fiat)
-            let fiatAmount = stringToNumber(amountText)
+            let fiatAmount = amountText.toNumber()
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
             let btcAmount = fiatAmount / bitcoinValue.currentValue
             
@@ -422,7 +420,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
         
         // Convert amount to millisatoshis
-        let enteredAmount = Int(stringToNumber(amountText)) * 1000
+        let enteredAmount = Int(amountText.toNumber()) * 1000
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
@@ -572,25 +570,25 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 // Convert amount to satoshis based on current currency
                 var satoshisValue: Int
                 if self.selectedCurrency == .satoshis {
-                    satoshisValue = Int(self.stringToNumber(self.amountTextField.text))
+                    satoshisValue = Int(self.amountTextField.text!.toNumber())
                 } else if self.selectedCurrency == .bitcoin {
-            let btcAmount = self.stringToNumber(self.amountTextField.text)
-            guard btcAmount.isFinite && !btcAmount.isNaN else {
-                print("⚠️ Warning: Invalid BTC amount: \(btcAmount)")
-                return
-            }
-            satoshisValue = btcAmount.inSatoshis()
-        } else { // .currency (fiat)
-            let fiatAmount = self.stringToNumber(self.amountTextField.text)
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-            let btcAmount = fiatAmount / bitcoinValue.currentValue
-            
-            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                return
-            }
-            satoshisValue = btcAmount.inSatoshis()
-        }
+                    let btcAmount = self.amountTextField.text!.toNumber()
+                    guard btcAmount.isFinite && !btcAmount.isNaN else {
+                        print("⚠️ Warning: Invalid BTC amount: \(btcAmount)")
+                        return
+                    }
+                    satoshisValue = btcAmount.inSatoshis()
+                } else { // .currency (fiat)
+                    let fiatAmount = self.amountTextField.text!.toNumber()
+                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                    let btcAmount = fiatAmount / bitcoinValue.currentValue
+                    
+                    guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                        print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                        return
+                    }
+                    satoshisValue = btcAmount.inSatoshis()
+                }
                 
                 self.amountTextField.text = "\(satoshisValue)"
                 self.btcLabel.text = "Sats"

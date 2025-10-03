@@ -134,7 +134,7 @@ extension CoreViewController {
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                         print("Payout successful. PreImage: \(payoutResponse.preImage ?? "N/A")")
                         
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        DispatchQueue.main.async {
                             self.hidePendingView()
                             
                             if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
@@ -143,15 +143,6 @@ extension CoreViewController {
                                 CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
                                 CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
                                 print("Did cache invoice data.")
-                                
-                                let receivedTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
-                                receivedTransaction.isBittr = true
-                                receivedTransaction.lnDescription = notificationId
-                                
-                                self.receivedBittrTransaction = receivedTransaction
-                                
-                                self.homeVC?.addLightningTransaction(thisTransaction: receivedTransaction, paymentDetails: paymentDetails)
-                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
                             }
                         }
                     } catch let error as BittrServiceError {
@@ -267,16 +258,55 @@ extension CoreViewController {
             switch event {
             case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
-                if self.varSpecialData == nil, let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
-                    print("Did receive payment details.")
-                    let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
-                    self.receivedBittrTransaction = thisTransaction
-                    
-                    DispatchQueue.main.async {
-                        self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-                        if !CacheManager.getInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id).contains("Swap onchain to lightning ") {
-                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                    if self.varSpecialData != nil {
+                        var depositCodes = [String]()
+                        for eachIbanEntity in self.bittrWallet.ibanEntities {
+                            if eachIbanEntity.yourUniqueCode != "" {
+                                depositCodes += [eachIbanEntity.yourUniqueCode]
+                            }
+                        }
+                        
+                        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
+                            print("Did wait to start API call.")
+                            
+                            Task {
+                                do {
+                                    let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentDetails.kind.preimageAsString ?? paymentDetails.id], depositCodes: depositCodes)
+                                    print("Bittr transactions: \(bittrApiTransactions.count)")
+                                    
+                                    if bittrApiTransactions.count == 1 {
+                                        for eachTransaction in bittrApiTransactions {
+                                            if eachTransaction.txId == (paymentDetails.kind.preimageAsString ?? paymentDetails.id) {
+                                                DispatchQueue.main.async {
+                                                    
+                                                    let thisTransaction = eachTransaction.createTransaction(coreVC: self)
+                                                    
+                                                    self.receivedBittrTransaction = thisTransaction
+                                                    self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
+                                                    self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        print("channelPending: Received no transaction details from Bittr API. Preimage: \(paymentDetails.kind.preimageAsString ?? paymentDetails.id)")
+                                    }
+                                } catch {
+                                    print("paymentReceived Bittr error: \(error.localizedDescription)")
+                                }
+                            }
+                        }
+                    } else {
+                        print("Did receive payment details.")
+                        let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
+                        self.receivedBittrTransaction = thisTransaction
+                        
+                        DispatchQueue.main.async {
+                            self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
+                            if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
+                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                            }
                         }
                     }
                 }
@@ -286,36 +316,38 @@ extension CoreViewController {
                     if reason != nil {
                         switch reason! {
                         case .counterpartyForceClosed(peerMsg: _):
-                            answer += " \(Language.getWord(withID: "counterpartyForceClosed"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "counterpartyForceClosed"))
                         case .holderForceClosed(broadcastedLatestTxn: _):
-                            answer += " \(Language.getWord(withID: "holderForceClosed"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "holderForceClosed"))
                         case .legacyCooperativeClosure:
-                            answer += " \(Language.getWord(withID: "legacyCooperativeClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "legacyCooperativeClosure"))
                         case .counterpartyInitiatedCooperativeClosure:
-                            answer += " \(Language.getWord(withID: "counterpartyInitiatedCooperativeClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "counterpartyInitiatedCooperativeClosure"))
                         case .locallyInitiatedCooperativeClosure:
-                            answer += " \(Language.getWord(withID: "locallyInitiatedCooperativeClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "locallyInitiatedCooperativeClosure"))
                         case .commitmentTxConfirmed:
-                            answer += " \(Language.getWord(withID: "commitmentTxConfirmed"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "commitmentTxConfirmed"))
                         case .fundingTimedOut:
-                            answer += " \(Language.getWord(withID: "fundingTimedOut"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "fundingTimedOut"))
                         case .processingError(err: let err):
-                            answer += " \(err)"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + err.lowercased())
                         case .disconnectedPeer:
-                            answer += " \(Language.getWord(withID: "disconnectedPeer"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "disconnectedPeer"))
                         case .outdatedChannelManager:
-                            answer += " \(Language.getWord(withID: "outdatedChannelManager"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "outdatedChannelManager"))
                         case .counterpartyCoopClosedUnfundedChannel:
-                            answer += " \(Language.getWord(withID: "counterpartyCoopClosedUnfundedChannel"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "counterpartyCoopClosedUnfundedChannel"))
                         case .fundingBatchClosure:
-                            answer += " \(Language.getWord(withID: "fundingBatchClosure"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "fundingBatchClosure"))
                         case .htlCsTimedOut:
-                            answer += " \(Language.getWord(withID: "htlCsTimedOut"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "htlCsTimedOut"))
                         case .peerFeerateTooLow(peerFeerateSatPerKw: _, requiredFeerateSatPerKw: _):
-                            answer += " \(Language.getWord(withID: "peerFeerateTooLow"))"
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "peerFeerateTooLow"))
                         }
                     }
+                    answer = answer.replacingOccurrences(of: "<reason>", with: "")
                     self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: answer, type: nil)
+                    self.syncLDKnode()
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
                 
@@ -339,7 +371,7 @@ extension CoreViewController {
                                     if eachTransaction.txId == fundingTxo.txid {
                                         DispatchQueue.main.async {
                                             
-                                            let thisTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: nil, bittrTransaction: eachTransaction, coreVC: self.homeVC?.coreVC, bittrTransactions: self.homeVC?.bittrTransactions)
+                                            let thisTransaction = eachTransaction.createTransaction(coreVC: self)
                                             
                                             self.receivedBittrTransaction = thisTransaction
                                             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
@@ -360,9 +392,9 @@ extension CoreViewController {
                 if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     // Create transaction item.
-                    let newTransaction = self.createTransaction(transactionDetails: nil, paymentDetails: paymentDetails, bittrTransaction: nil, coreVC: self, bittrTransactions: nil)
+                    let newTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
                     if feePaidMsat != nil, Int(feePaidMsat!/1000) > 0 {
-                        CacheManager.storePaymentFees(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, fees: Int(feePaidMsat!/1000))
+                        CacheManager.storePaymentFees(preimage: newTransaction.id, fees: Int(feePaidMsat!/1000))
                         newTransaction.fee = Int(feePaidMsat!/1000)
                     }
                     
@@ -423,9 +455,31 @@ extension CoreViewController {
             case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
                 return
             case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
-                DispatchQueue.main.async {
-                    self.launchQuestion(question: Language.getWord(withID: "newlightningconnection"), answer: Language.getWord(withID: "newlightningconnection2"), type: nil)
+                self.syncLDKnode()
+            }
+        }
+    }
+    
+    func syncLDKnode() {
+        if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
+            do {
+                // Sync LDK node.
+                try LightningNodeService.shared.syncWallets()
+                print("Did sync LDK node.")
+                
+                Task {
+                    // Fetch channel details.
+                    self.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
+                    print("Did list channels.")
+                    
+                    // Reset balance and transactions.
+                    DispatchQueue.main.async {
+                        print("Will reload wallet data.")
+                        self.homeVC!.loadWalletData()
+                    }
                 }
+            } catch {
+                print("Could not sync LDK node or fetch channels. \(error.localizedDescription)")
             }
         }
     }

@@ -37,7 +37,7 @@ extension SendViewController {
             case .satoshis: divideBy = 100000000
             case .currency: divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
             }
-            self.onchainAmountInSatoshis = (self.stringToNumber(self.amountTextField.text)/divideBy).inSatoshis()
+            self.onchainAmountInSatoshis = (self.amountTextField.text!.toNumber()/divideBy).inSatoshis()
             
             if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0  {
                 
@@ -178,7 +178,7 @@ extension SendViewController {
         
         switch tappedFee {
         case .high:
-            let feeInSats = Int(self.stringToNumber(self.satsFast.text!.replacingOccurrences(of: " sats", with: "")))
+            let feeInSats = Int(self.satsFast.text!.replacingOccurrences(of: " sats", with: "").toNumber())
             self.selectedFeeInSats = feeInSats
             
             if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: self.coreVC!.bittrWallet.satoshisOnchain) {
@@ -186,7 +186,7 @@ extension SendViewController {
                 self.checkHighFeeRate(satsText: self.satsFast.text!)
             }
         case .medium:
-            let feeInSats = Int(self.stringToNumber(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "")))
+            let feeInSats = Int(self.satsMedium.text!.replacingOccurrences(of: " sats", with: "").toNumber())
             self.selectedFeeInSats = feeInSats
             
             if self.checkFeeAvailability(feeInSats: feeInSats, actualAmount: self.onchainAmountInSatoshis, availableBalance: self.coreVC!.bittrWallet.satoshisOnchain) {
@@ -219,7 +219,7 @@ extension SendViewController {
     
     func checkHighFeeRate(satsText:String) {
         // Check if selected fee rate is too high.
-        if self.stringToNumber(satsText.replacingOccurrences(of: " sats", with: "")) / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
+        if satsText.replacingOccurrences(of: " sats", with: "").toNumber() / CGFloat(self.onchainAmountInSatoshis) > 0.1 {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
@@ -351,7 +351,7 @@ extension SendViewController {
             if success, self.coreVC?.bittrWallet.transactionsOnchain != nil {
                 for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain! {
                     if eachTransaction.transaction.computeTxid() == self.newTxId {
-                        self.completedTransaction = self.createTransaction(transactionDetails: eachTransaction, paymentDetails: nil, bittrTransaction: nil, coreVC: self.coreVC!, bittrTransactions: nil)
+                        self.completedTransaction = eachTransaction.createTransaction(coreVC: self.coreVC!, bittrTransactions: nil)
                         self.performSegue(withIdentifier: "SendToTransaction", sender: self)
                     }
                 }
@@ -377,7 +377,7 @@ extension SendViewController {
                 return nil
             } catch {
                 if error.localizedDescription.contains("Insufficient funds") {
-                    let satsReservation:Double = self.stringToNumber(String(error.localizedDescription.split(separator: " ")[7]))
+                    let satsReservation:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
                     let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
                     let requiredCorrection:Double = btcOnchain - satsReservation
                     let spendableBtcAmount = btcOnchain + requiredCorrection
@@ -435,19 +435,22 @@ extension SendViewController {
     }
 }
 
-extension UIViewController {
+extension String {
     
-    func stringToNumber(_ thisString:String?) -> CGFloat {
+    func toNumber() -> CGFloat {
         
         let formatter = NumberFormatter()
         formatter.decimalSeparator = Locale.current.decimalSeparator!
         
-        if formatter.number(from: (thisString ?? "0.0").fixDecimals()) == nil {
+        if formatter.number(from: self.fixDecimals()) == nil {
             return 0
         } else {
-            return CGFloat(truncating: formatter.number(from: (thisString ?? "0.0").fixDecimals())!)
+            return CGFloat(truncating: formatter.number(from: self.fixDecimals())!)
         }
     }
+}
+
+extension UIViewController {
     
     func getSize(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet) throws -> UInt64 {
         

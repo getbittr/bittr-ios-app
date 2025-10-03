@@ -36,8 +36,19 @@ class CacheManager: NSObject {
     
     static func emptyImage() {
         
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "articleimages")
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let imagesDirectory = documentsPath.appendingPathComponent("images")
+        
+        do {
+            if FileManager.default.fileExists(atPath: imagesDirectory.path) {
+                try FileManager.default.removeItem(at: imagesDirectory)
+                print("Successfully deleted images folder and its contents.")
+            } else {
+                print("Images folder does not exist.")
+            }
+        } catch {
+            print("Could not delete images folder. \(error.localizedDescription)")
+        }
     }
     
     
@@ -198,33 +209,37 @@ class CacheManager: NSObject {
     
     
     static func storeImageInCache(key:String, data:Data) {
-        let defaults = UserDefaults.standard
-        var existingImages = defaults.value(forKey: "articleimages") as? [String:Data]
-        if var actualExistingImages = existingImages {
-            // Images have already been stored.
-            actualExistingImages.updateValue(data, forKey: key)
-            defaults.set(actualExistingImages, forKey: "articleimages")
-        } else {
-            // No images have been stored yet.
-            var newExistingImages = [String:Data]()
-            newExistingImages.updateValue(data, forKey: key)
-            defaults.set(newExistingImages, forKey: "articleimages")
+        
+        // Get the documents directory
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsPath.appendingPathComponent("images/" + key)
+        
+        do {
+            try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
+            // Write the data to file
+            try data.write(to: fileURL)
+            print("Did save image to file.")
+        } catch {
+            print("Could not save image to file. \(error.localizedDescription)")
         }
     }
     
     
     static func getImage(key:String) -> Data? {
         
-        let defaults = UserDefaults.standard
-        var existingImages = defaults.value(forKey: "articleimages") as? [String:Data]
-        
-        if let actualExistingImages = existingImages {
-            if let actualImage = actualExistingImages[key] {
-                return actualImage
-            }
+        do {
+            // Get the documents directory
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("images/" + key)
+            
+            // Read the JSON data from file
+            let imageData = try Data(contentsOf: fileURL)
+            
+            return imageData
+        } catch {
+            print("Image not found in cache. \(error.localizedDescription)")
+            return nil
         }
-        
-        return nil
     }
     
     
@@ -860,7 +875,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func getSentToBittr() -> [String]? {
+    static func getSentToBittr() -> [String] {
         
         let envKey = EnvironmentConfig.cacheKey(for: "senttobittr")
         
@@ -870,7 +885,7 @@ class CacheManager: NSObject {
         if let actualSentToBittr = cachedSentToBittr {
             return actualSentToBittr
         } else {
-            return nil
+            return [String]()
         }
     }
     
