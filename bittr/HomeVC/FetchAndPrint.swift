@@ -15,26 +15,16 @@ extension HomeViewController {
         Task {
             do {
                 let peers = try await LightningNodeService.shared.listPeers()
-                if peers.count == 1 {
-                    if peers[0].isConnected == true {
-//                        Task {
-//                            do {
-//                                let result = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapId: "a8RP7uGXFShp")
-//                                print("Result: \(result)")
-//                            } catch {
-//                                print("Error: \(error)")
-//                            }
-//                        }
-
-                        print("Did successfully check peer connection.")
-                        DispatchQueue.main.async {
-                            LightningNodeService.shared.listenForEvents()
-                        }
-                    } else {
-                        print("Not connected to peer.")
-                        DispatchQueue.main.async {
-                            LightningNodeService.shared.listenForEvents()
-                        }
+                var peerIsConnected = false
+                for eachPeer in peers {
+                    if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
+                        peerIsConnected = true
+                    }
+                }
+                if peerIsConnected {
+                    print("Did successfully check peer connection.")
+                    DispatchQueue.main.async {
+                        LightningNodeService.shared.listenForEvents()
                     }
                 } else {
                     print("Not connected to peer.")

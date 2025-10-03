@@ -196,7 +196,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.setBasicStyling()
         
         // Set "You can send X satoshis" label
-        self.setSendAllLabel(forView: .onchain)
+        self.setSendAllLabel(forView: .lightning)
+        
+        // Set default currency to satoshis
+        self.btcLabel.text = "Sats"
+        
+        // Initialize UI for Lightning mode
+        self.hideScannerView(forView: .lightning)
         
         // Handle pending URI data from segue
         if let bitcoinURI = self.pendingBitcoinURI {

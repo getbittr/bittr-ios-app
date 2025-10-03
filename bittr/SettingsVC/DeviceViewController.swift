@@ -230,14 +230,15 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             do {
                 let peers = try await LightningNodeService.shared.listPeers()
                 print(peers)
-                if peers.count == 1 {
-                    if peers[0].isConnected == true {
-                        print("Did successfully check peer connection.")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    } else {
-                        print("Not connected to peer.")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
+                var peerIsConnected = false
+                for eachPeer in peers {
+                    if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
+                        peerIsConnected = true
                     }
+                }
+                if peerIsConnected {
+                    print("Did successfully check peer connection.")
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 } else {
                     print("Not connected to peer.")
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
