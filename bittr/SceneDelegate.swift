@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LDKNode
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -55,13 +56,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillEnterForeground(_ scene: UIScene) {
         // Called as the scene transitions from the background to the foreground.
         // Use this method to undo the changes made on entering the background.
-        do {
-            if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
-                print("Will sync LDK node upon entering foreground.")
-                try LightningNodeService.shared.syncWallets()
+        DispatchQueue.global(qos: .background).async {
+            do {
+                if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
+                    print("Will sync LDK node upon entering foreground.")
+                    try LightningNodeService.shared.syncWallets()
+                }
+            } catch let error as LDKNode.NodeError {
+                let errorString = handleNodeError(error)
+                print("Could not sync LDK node. Error: \(errorString.title): \(errorString.detail)")
+            } catch {
+                print("Could not sync LDK node. Error: \(error.localizedDescription)")
             }
-        } catch {
-            print("Could not sync LDK node. Error: \(error.localizedDescription)")
         }
     }
 
