@@ -111,7 +111,7 @@ extension HomeViewController {
         // Create lightning transaction entities.
         for eachPayment in receivedPayments {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (eachPayment.amountMsat ?? 0) > 0)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
                 let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 if eachPayment.status == .succeeded {
@@ -178,12 +178,10 @@ extension HomeViewController {
         }
         
         // Add previously cached transactions to Bittr transactions array.
-        var cachedBittrTransactionIDs = [String]()
         self.bittrTransactions.removeAllObjects()
         for eachTransaction in self.lastCachedTransactions {
             if eachTransaction.isBittr == true {
                 self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
-                cachedBittrTransactionIDs += [eachTransaction.id]
             }
         }
         
@@ -197,11 +195,7 @@ extension HomeViewController {
         } else {
             // Only send new transaction IDs to Bittr.
             for eachTxId in txIds {
-                if !cachedBittrTransactionIDs.contains(eachTxId) {
-                    if !CacheManager.getSentToBittr().contains(eachTxId) {
-                        newTxIds += [eachTxId]
-                    }
-                } else if eachTxId == CacheManager.getTxoID() ?? "" {
+                if !CacheManager.getSentToBittr().contains(eachTxId) {
                     newTxIds += [eachTxId]
                 }
             }
@@ -228,7 +222,7 @@ extension HomeViewController {
                     for eachTransaction in bittrApiTransactions {
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                             // This is the funding Txo.
-                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC)
+                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
                             
                             newTransactionsWereFound = true
                             self.newTransactions += [thisTransaction]

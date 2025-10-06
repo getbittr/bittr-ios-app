@@ -145,7 +145,7 @@ extension PaymentDetails {
 
 extension BittrTransaction {
     
-    func createTransaction(coreVC:CoreViewController?) -> Transaction {
+    func createTransaction(coreVC:CoreViewController?, isFundingTransaction:Bool) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()
@@ -154,7 +154,7 @@ extension BittrTransaction {
         thisTransaction.sent = 0
         thisTransaction.received = self.bitcoinAmount.toNumber().inSatoshis()
         thisTransaction.isLightning = true
-        thisTransaction.isFundingTransaction = true
+        thisTransaction.isFundingTransaction = isFundingTransaction
         
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
