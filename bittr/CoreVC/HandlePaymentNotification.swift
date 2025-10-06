@@ -403,11 +403,6 @@ extension CoreViewController {
     
     func checkPaymentWithBittr(paymentPreimage:String, paymentDetails:PaymentDetails?, isFundingTransaction:Bool) {
         
-        // Add payout ID to cache.
-        if self.varSpecialData != nil, let notificationId = self.varSpecialData!["notification_id"] as? String {
-            CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
-        }
-        
         // Get deposit codes.
         var depositCodes = [String]()
         for eachIbanEntity in self.bittrWallet.ibanEntities {
@@ -428,6 +423,13 @@ extension CoreViewController {
                     
                     if bittrApiTransactions.count == 1, bittrApiTransactions.first != nil, bittrApiTransactions.first!.txId == paymentPreimage {
                         DispatchQueue.main.async {
+                            
+                            // Add payout ID to cache.
+                            if self.varSpecialData != nil, let notificationId = self.varSpecialData!["notification_id"] as? String {
+                                CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
+                            }
+                            
+                            // Create transaction object.
                             let thisTransaction = bittrApiTransactions.first!.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
                             self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: nil)
                         }
