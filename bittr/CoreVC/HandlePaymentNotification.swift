@@ -259,55 +259,15 @@ extension CoreViewController {
             case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
                 if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                    print("Did receive payment details.")
                     
                     if self.varSpecialData != nil {
-                        var depositCodes = [String]()
-                        for eachIbanEntity in self.bittrWallet.ibanEntities {
-                            if eachIbanEntity.yourUniqueCode != "" {
-                                depositCodes += [eachIbanEntity.yourUniqueCode]
-                            }
-                        }
-                        
-                        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
-                            print("Did wait to start API call.")
-                            
-                            Task {
-                                do {
-                                    let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentDetails.kind.preimageAsString ?? paymentDetails.id], depositCodes: depositCodes)
-                                    print("Bittr transactions: \(bittrApiTransactions.count)")
-                                    
-                                    if bittrApiTransactions.count == 1 {
-                                        for eachTransaction in bittrApiTransactions {
-                                            if eachTransaction.txId == (paymentDetails.kind.preimageAsString ?? paymentDetails.id) {
-                                                DispatchQueue.main.async {
-                                                    
-                                                    let thisTransaction = eachTransaction.createTransaction(coreVC: self)
-                                                    
-                                                    self.receivedBittrTransaction = thisTransaction
-                                                    self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
-                                                    self.performSegue(withIdentifier: "CoreToLightning", sender: self)
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        print("channelPending: Received no transaction details from Bittr API. Preimage: \(paymentDetails.kind.preimageAsString ?? paymentDetails.id)")
-                                    }
-                                } catch {
-                                    print("paymentReceived Bittr error: \(error.localizedDescription)")
-                                }
-                            }
-                        }
+                        // This is an incoming Bittr payout.
+                        self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
-                        print("Did receive payment details.")
+                        // This is a normal incoming payment.
                         let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
-                        self.receivedBittrTransaction = thisTransaction
-                        
-                        DispatchQueue.main.async {
-                            self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-                            if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
-                                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
-                            }
-                        }
+                        self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
                     }
                 }
             case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: let reason):
@@ -351,42 +311,9 @@ extension CoreViewController {
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):
                 
-                var depositCodes = [String]()
-                for eachIbanEntity in self.bittrWallet.ibanEntities {
-                    if eachIbanEntity.yourUniqueCode != "" {
-                        depositCodes += [eachIbanEntity.yourUniqueCode]
-                    }
-                }
+                // New Bittr channel. Get funding transaction details.
+                self.checkPaymentWithBittr(paymentPreimage: fundingTxo.txid, paymentDetails: nil, isFundingTransaction: true)
                 
-                DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
-                    print("Did wait to start API call.")
-                    
-                    Task {
-                        do {
-                            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [fundingTxo.txid], depositCodes: depositCodes)
-                            print("Bittr transactions: \(bittrApiTransactions.count)")
-                            
-                            if bittrApiTransactions.count == 1 {
-                                for eachTransaction in bittrApiTransactions {
-                                    if eachTransaction.txId == fundingTxo.txid {
-                                        DispatchQueue.main.async {
-                                            
-                                            let thisTransaction = eachTransaction.createTransaction(coreVC: self)
-                                            
-                                            self.receivedBittrTransaction = thisTransaction
-                                            self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: nil)
-                                            self.performSegue(withIdentifier: "CoreToLightning", sender: self)
-                                        }
-                                    }
-                                }
-                            } else {
-                                print("channelPending: Received no transaction details from Bittr API. Funding txid: \(fundingTxo.txid)")
-                            }
-                        } catch {
-                            print("channelPending Bittr error: \(error.localizedDescription)")
-                        }
-                    }
-                }
             case .paymentSuccessful(paymentId: _, paymentHash: let paymentHash, paymentPreimage: _, feePaidMsat: let feePaidMsat):
                 
                 if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
@@ -412,6 +339,7 @@ extension CoreViewController {
                                 self.homeVC!.tappedTransaction = newTransaction
                                 self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                             }
+                            CacheManager.storeLightningTransaction(thisTransaction: newTransaction)
                         }
                     }
                 }
@@ -456,6 +384,63 @@ extension CoreViewController {
                 return
             case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
                 self.syncLDKnode()
+            }
+        }
+    }
+    
+    func launchPaymentVC(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
+        
+        self.receivedBittrTransaction = thisTransaction
+        
+        DispatchQueue.main.async {
+            self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
+            if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
+                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+            }
+            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+        }
+    }
+    
+    func checkPaymentWithBittr(paymentPreimage:String, paymentDetails:PaymentDetails?, isFundingTransaction:Bool) {
+        
+        var depositCodes = [String]()
+        for eachIbanEntity in self.bittrWallet.ibanEntities {
+            if eachIbanEntity.yourUniqueCode != "" {
+                depositCodes += [eachIbanEntity.yourUniqueCode]
+            }
+        }
+        
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3) {
+            print("Did wait to start API call.")
+            
+            Task {
+                do {
+                    let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentPreimage], depositCodes: depositCodes)
+                    print("Bittr transactions: \(bittrApiTransactions.count)")
+                    
+                    if bittrApiTransactions.count == 1 {
+                        for eachTransaction in bittrApiTransactions {
+                            if eachTransaction.txId == paymentPreimage {
+                                DispatchQueue.main.async {
+                                    let thisTransaction = eachTransaction.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
+                                    self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: nil)
+                                }
+                            }
+                        }
+                    } else {
+                        print("channelPending: Received no transaction details from Bittr API. Funding txid: \(paymentPreimage)")
+                        if paymentDetails != nil {
+                            let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                            self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
+                        }
+                    }
+                } catch {
+                    print("channelPending Bittr error: \(error.localizedDescription)")
+                    if paymentDetails != nil {
+                        let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                        self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
+                    }
+                }
             }
         }
     }

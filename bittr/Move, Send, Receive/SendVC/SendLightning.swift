@@ -311,15 +311,16 @@ extension UIViewController {
         sendVC?.nextSpinner.stopAnimating()
         sendVC?.resetFields()
         
-        // Create transaction.
-        let newTransaction = thisPayment.createTransaction(coreVC: coreVC, bittrTransactions: nil)
-        
         // Cache invoice note.
         if let temporaryInvoiceNote = (sendVC?.temporaryInvoiceNote ?? receiveVC?.temporaryInvoiceNote) {
-            CacheManager.storeTransactionNote(txid: newTransaction.id, note: temporaryInvoiceNote)
+            CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: temporaryInvoiceNote)
             sendVC?.temporaryInvoiceNote = nil
             receiveVC?.temporaryInvoiceNote = nil
         }
+        
+        // Create transaction.
+        let newTransaction = thisPayment.createTransaction(coreVC: coreVC, bittrTransactions: nil)
+        CacheManager.storeLightningTransaction(thisTransaction: newTransaction)
         
         // Add invoice to Transactions table.
         sendVC?.completedTransaction = newTransaction

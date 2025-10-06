@@ -111,7 +111,7 @@ extension HomeViewController {
         // Create lightning transaction entities.
         for eachPayment in receivedPayments {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (eachPayment.amountMsat ?? 0) > 0)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
                 let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 if eachPayment.status == .succeeded {
