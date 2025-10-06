@@ -128,6 +128,14 @@ extension CoreViewController {
                         )
                         print("Did create invoice.")
                         
+                        // Cache payment details.
+                        if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                            let newTimestamp = Int(Date().timeIntervalSince1970)
+                            CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
+                            CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
+                            print("Did cache invoice data.")
+                        }
+                        
                         let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         print("Did sign message.")
                         
@@ -136,14 +144,6 @@ extension CoreViewController {
                         
                         DispatchQueue.main.async {
                             self.hidePendingView()
-                            
-                            if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                                
-                                let newTimestamp = Int(Date().timeIntervalSince1970)
-                                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
-                                CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
-                                print("Did cache invoice data.")
-                            }
                         }
                     } catch let error as BittrServiceError {
                         print("BittrService error occurred: \(error.localizedDescription)")
@@ -403,6 +403,12 @@ extension CoreViewController {
     
     func checkPaymentWithBittr(paymentPreimage:String, paymentDetails:PaymentDetails?, isFundingTransaction:Bool) {
         
+        // Add payout ID to cache.
+        if self.varSpecialData != nil, let notificationId = self.varSpecialData!["notification_id"] as? String {
+            CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
+        }
+        
+        // Get deposit codes.
         var depositCodes = [String]()
         for eachIbanEntity in self.bittrWallet.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
@@ -420,14 +426,10 @@ extension CoreViewController {
                     
                     CacheManager.updateSentToBittr(txids: [paymentPreimage])
                     
-                    if bittrApiTransactions.count == 1 {
-                        for eachTransaction in bittrApiTransactions {
-                            if eachTransaction.txId == paymentPreimage {
-                                DispatchQueue.main.async {
-                                    let thisTransaction = eachTransaction.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
-                                    self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: nil)
-                                }
-                            }
+                    if bittrApiTransactions.count == 1, bittrApiTransactions.first != nil, bittrApiTransactions.first!.txId == paymentPreimage {
+                        DispatchQueue.main.async {
+                            let thisTransaction = bittrApiTransactions.first!.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
+                            self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: nil)
                         }
                     } else {
                         print("channelPending: Received no transaction details from Bittr API. Funding txid: \(paymentPreimage)")

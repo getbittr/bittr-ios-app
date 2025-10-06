@@ -178,12 +178,10 @@ extension HomeViewController {
         }
         
         // Add previously cached transactions to Bittr transactions array.
-        var cachedBittrTransactionIDs = [String]()
         self.bittrTransactions.removeAllObjects()
         for eachTransaction in self.lastCachedTransactions {
             if eachTransaction.isBittr == true {
                 self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
-                cachedBittrTransactionIDs += [eachTransaction.id]
             }
         }
         
@@ -197,7 +195,7 @@ extension HomeViewController {
         } else {
             // Only send new transaction IDs to Bittr.
             for eachTxId in txIds {
-                if !cachedBittrTransactionIDs.contains(eachTxId), !CacheManager.getSentToBittr().contains(eachTxId) {
+                if !CacheManager.getSentToBittr().contains(eachTxId) {
                     newTxIds += [eachTxId]
                 }
             }
