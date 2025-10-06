@@ -418,6 +418,8 @@ extension CoreViewController {
                     let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentPreimage], depositCodes: depositCodes)
                     print("Bittr transactions: \(bittrApiTransactions.count)")
                     
+                    CacheManager.updateSentToBittr(txids: [paymentPreimage])
+                    
                     if bittrApiTransactions.count == 1 {
                         for eachTransaction in bittrApiTransactions {
                             if eachTransaction.txId == paymentPreimage {

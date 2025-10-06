@@ -197,11 +197,7 @@ extension HomeViewController {
         } else {
             // Only send new transaction IDs to Bittr.
             for eachTxId in txIds {
-                if !cachedBittrTransactionIDs.contains(eachTxId) {
-                    if !CacheManager.getSentToBittr().contains(eachTxId) {
-                        newTxIds += [eachTxId]
-                    }
-                } else if eachTxId == CacheManager.getTxoID() ?? "" {
+                if !cachedBittrTransactionIDs.contains(eachTxId), !CacheManager.getSentToBittr().contains(eachTxId) {
                     newTxIds += [eachTxId]
                 }
             }
@@ -228,7 +224,7 @@ extension HomeViewController {
                     for eachTransaction in bittrApiTransactions {
                         if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
                             // This is the funding Txo.
-                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC)
+                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
                             
                             newTransactionsWereFound = true
                             self.newTransactions += [thisTransaction]
