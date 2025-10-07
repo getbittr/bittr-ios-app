@@ -430,7 +430,7 @@ class Language: NSObject {
             "handlinglnurl": "Handling LNURL",
             "newlightningconnection": "New Lightning connection",
             "newlightningconnection2": "You've successfully opened a lightning connection with bittr. You can now send and receive payments across the bitcoin lightning network.\n\nAny funds that have already been deposited will show up shortly.",
-            "channelfullswaprecommendation": "Bittr recommends you to swap <amount> satoshis. Alternatively you could also choose to just get this transaction paid out to your regular balance. Would you like to received this payment regularly (within 4-24 hours) or swap and receive instantly?",
+            "channelfullswaprecommendation": "Bittr recommends you to swap <amount> satoshis. Alternatively you can get this transaction paid out to your regular balance. Would you like to receive this payment regularly (within 4-24 hours) or swap and receive instantly?",
             "swapandreceiveinstantly": "Swap & Instant Receive",
             "receiveonchain": "Receive on-chain",
             "counterpartyForceClosed": "the counterparty force closed the connection.",

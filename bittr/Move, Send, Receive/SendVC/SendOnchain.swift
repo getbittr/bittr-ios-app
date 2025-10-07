@@ -499,9 +499,9 @@ extension CGFloat {
             return 0
         }
         
-        let decimal = Decimal(Double(self))
-        let satoshis = decimal * Decimal(100_000_000)
-        return Int(truncating: satoshis as NSDecimalNumber)
+        // Use direct multiplication to avoid precision issues with Decimal
+        let satoshis = self * 100_000_000
+        return Int(satoshis.rounded())
     }
     
     func inBTC() -> CGFloat {
