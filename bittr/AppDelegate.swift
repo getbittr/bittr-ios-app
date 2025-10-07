@@ -144,6 +144,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         let notificationData:[String:Any] = ["header_text":Language.getWord(withID: "notification"),"body_text":"\(Language.getWord(withID: "notificationhandlingfail")) [\(typeNumber)]"]
         let userInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            SentrySDK.capture(message: "Received notification with unexpected type \(typeNumber).")
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
         }
     }
