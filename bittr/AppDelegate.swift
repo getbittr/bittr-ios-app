@@ -93,6 +93,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
             }
+        } else {
+            self.handleUnexpectedNotification(4)
         }
         
         completionHandler(.alert)
@@ -126,11 +128,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
                     }
+                } else {
+                    // Unexpected notification type.
+                    self.handleUnexpectedNotification(1)
                 }
+            } else {
+                self.handleUnexpectedNotification(2)
             }
+        } else {
+            self.handleUnexpectedNotification(3)
         }
     }
 
+    func handleUnexpectedNotification(_ typeNumber:Int) {
+        let notificationData:[String:Any] = ["header_text":Language.getWord(withID: "notification"),"body_text":"\(Language.getWord(withID: "notificationhandlingfail")) [\(typeNumber)]"]
+        let userInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
+        }
+    }
 
 }
 
