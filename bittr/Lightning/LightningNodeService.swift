@@ -218,7 +218,14 @@ class LightningNodeService {
                 
             } catch {
                 print("Some error occurred. \(error.localizedDescription)")
-                self.coreVC?.stopLightning(message: error.localizedDescription, stopNode: false)
+                let errorMessage:String = {
+                    if let esploraError = error as? BitcoinDevKit.EsploraError {
+                        return esploraError.getErrorMessage()
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
+                self.coreVC?.stopLightning(message: errorMessage, stopNode: false)
                 SentrySDK.capture(error: error)
             }
         }

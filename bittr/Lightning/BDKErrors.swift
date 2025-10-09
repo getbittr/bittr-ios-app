@@ -61,3 +61,41 @@ extension BitcoinDevKit.CreateTxError {
         }
     }
 }
+
+extension BitcoinDevKit.EsploraError {
+    
+    func getErrorMessage() -> String {
+        
+        switch self {
+            
+        case .Minreq(errorMessage: let errorMessage):
+            return errorMessage
+        case .HttpResponse(status: let status, errorMessage: let errorMessage):
+            return errorMessage
+        case .Parsing(errorMessage: let errorMessage):
+            return errorMessage
+        case .StatusCode(errorMessage: let errorMessage):
+            return errorMessage
+        case .BitcoinEncoding(errorMessage: let errorMessage):
+            return errorMessage
+        case .HexToArray(errorMessage: let errorMessage):
+            return errorMessage
+        case .HexToBytes(errorMessage: let errorMessage):
+            return errorMessage
+        case .TransactionNotFound:
+            return Language.getWord(withID: "TransactionNotFound")
+        case .HeaderHeightNotFound(height: let height):
+            return Language.getWord(withID: "HeaderHeightNotFound")
+        case .HeaderHashNotFound:
+            return Language.getWord(withID: "HeaderHashNotFound")
+        case .InvalidHttpHeaderName(name: let name):
+            return Language.getWord(withID: "InvalidHttpHeaderName")
+        case .InvalidHttpHeaderValue(value: let value):
+            return Language.getWord(withID: "InvalidHttpHeaderValue")
+        case .RequestAlreadyConsumed:
+            return Language.getWord(withID: "RequestAlreadyConsumed")
+        case .InvalidResponse:
+            return Language.getWord(withID: "InvalidResponse")
+        }
+    }
+}

@@ -468,7 +468,14 @@ class Language: NSObject {
             "UnknownUtxo": "The UTXO is unknown in the internal database.",
             "MissingNonWitnessUtxo": "Missing non witness UTXO error.",
             "PushBytesError": "Push Bytes error.",
-            "LockTimeConversionError": "Lock time conversion error."
+            "LockTimeConversionError": "Lock time conversion error.",
+            "TransactionNotFound": "Transaction not found.",
+            "HeaderHeightNotFound": "Header height not found.",
+            "HeaderHashNotFound": "Header hash not found.",
+            "InvalidHttpHeaderName": "Invalid HTTP header name.",
+            "InvalidHttpHeaderValue": "Invalid HTTP header value.",
+            "RequestAlreadyConsumed": "Request already consumed.",
+            "InvalidResponse": "Invalid response."
             
         ]
         
