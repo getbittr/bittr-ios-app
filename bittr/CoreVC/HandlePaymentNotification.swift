@@ -202,24 +202,24 @@ extension CoreViewController {
                     persist: true
                 )
                 try Task.checkCancellation()
-                if Task.isCancelled == true {
+                if Task.isCancelled {
                     print("Did connect to peer, but too late.")
                     return false
                 }
                 print("Did connect to peer.")
                 return true
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorString)")
-                    SentrySDK.capture(error: error)
-                }
-                return false
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message."
+                    }
+                }()
+                
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: No error message.")
+                    print("Can't connect to peer: \(errorMessage)")
                     SentrySDK.capture(error: error)
                 }
                 return false

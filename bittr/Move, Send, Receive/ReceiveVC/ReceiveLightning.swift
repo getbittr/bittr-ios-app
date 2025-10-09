@@ -31,16 +31,16 @@ extension ReceiveViewController {
                 }
             }
             return zeroInvoice.description
-        } catch let error as NodeError {
-            let errorString = handleNodeError(error)
-            DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error)
-            }
-            return nil
         } catch {
+            let errorMessage:String = {
+                if let nodeError = error as? NodeError {
+                    return "\(handleNodeError(nodeError))"
+                } else {
+                    return error.localizedDescription
+                }
+            }()
             DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error)
             }
             return nil
@@ -61,16 +61,16 @@ extension ReceiveViewController {
                 }
             }
             return "\(invoice)"
-        } catch let error as NodeError {
-            let errorString = handleNodeError(error)
-            DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error)
-            }
-            return nil
         } catch {
+            let errorMessage:String = {
+                if let nodeError = error as? NodeError {
+                    return "\(handleNodeError(nodeError))"
+                } else {
+                    return error.localizedDescription
+                }
+            }()
             DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error)
             }
             return nil
