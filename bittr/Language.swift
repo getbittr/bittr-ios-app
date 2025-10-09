@@ -452,7 +452,23 @@ class Language: NSObject {
             "transfer3Lightning": "Instant payments",
             "transfer3LightningLabel": "For purchases under 100 €, we create a lightning connection. With lightning, you can send and receive instant payments against low fees. The setup of the connection incurs a one-time fee of 10 000 satoshis.",
             "transfer3DCA": "Dollar-cost-averaging",
-            "transfer3DCALabel": "Easily stack up on bitcoin by setting up a recurring bank transfer, e.g. 50 € every Monday."
+            "transfer3DCALabel": "Easily stack up on bitcoin by setting up a recurring bank transfer, e.g. 50 € every Monday.",
+            "SpendingPolicyRequired": "Spending policy is not compatible with this kind of keychain.",
+            "Version0": "Version 0 error.",
+            "Version1Csv": "Version 1 CSV error.",
+            "LockTime": "Lock time error.",
+            "RbfSequenceCsv": "Replace-By-Fee Sequence CSV error.",
+            "FeeTooLow": "The selected fee rate is too low. The required minimum fee is <required>.",
+            "NoUtxosSelected": "No UTXOs have been selected.",
+            "OutputBelowDustLimit": "The created output is under the dust limit of <dustlimit> satoshis",
+            "ChangePolicyDescriptor": "Change policy descriptor error.",
+            "InsufficientFunds": "You have insufficient funds available to send this amount, taking into account the minimum fee required to make a transaction. Try sending <less> fewer satoshis.",
+            "NoRecipients": "No recipient has been entered.",
+            "MissingKeyOrigin": "No explicit key origin has been provided.",
+            "UnknownUtxo": "The UTXO is unknown in the internal database.",
+            "MissingNonWitnessUtxo": "Missing non witness UTXO error.",
+            "PushBytesError": "Push Bytes error.",
+            "LockTimeConversionError": "Lock time conversion error."
             
         ]
         
