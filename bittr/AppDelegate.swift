@@ -13,23 +13,49 @@ import UserNotifications
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
-
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
         SentrySDK.start { options in
             options.dsn = "https://a132893f0e0785733b108592f71efebc@o4507055777120256.ingest.us.sentry.io/4507055778758656"
             options.debug = false // Enabled debug when first installing is always helpful
             options.enableTracing = true
+            
+            // Redact sensitive data in Sentry breadcrumbs.
+            options.beforeBreadcrumb = { breadCrumb in
+                
+                // Redact data from button presses.
+                if breadCrumb.category == "ui.action" || breadCrumb.category == "ui.click" {
+                    var newBreadcrumb = breadCrumb
+                    
+                    if var breadcrumbData = newBreadcrumb.data {
+                        
+                        // Redact UIButton tag from view data.
+                        if let view = breadcrumbData["view"] as? String {
+                            let redactedTag = view.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
+                            breadcrumbData["view"] = redactedTag
+                        }
+                        
+                        // Redact UIButton tag from target data.
+                        if let breadcrumbTarget = breadcrumbData["target"] as? String {
+                            let redactedTarget = breadcrumbTarget.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
+                            breadcrumbData["target"] = redactedTarget
+                        }
+                        
+                        newBreadcrumb.data = breadcrumbData
+                    }
+                    
+                    newBreadcrumb.message = newBreadcrumb.message?.replacingOccurrences(of: #"tag\s*=\s*\d+"#, with: "tag = [redacted]", options: .regularExpression)
+                    
+                    return newBreadcrumb
+                }
+                return breadCrumb
+            }
 
             // Uncomment the following lines to add more data to your events
             // options.attachScreenshot = true // This adds a screenshot to the error events
             // options.attachViewHierarchy = true // This adds the view hierarchy to the error events
         }
-        // Remove the next line after confirming that your Sentry integration is working.
-        //SentrySDK.capture(message: "This app uses Sentry! :)")
 
-        // Override point for customization after application launch.
-        
         UNUserNotificationCenter.current().delegate = self
         
         return true
