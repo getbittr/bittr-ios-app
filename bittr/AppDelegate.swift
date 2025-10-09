@@ -20,6 +20,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             options.debug = false // Enabled debug when first installing is always helpful
             options.enableTracing = true
             
+            // Redact sensitive data in Sentry events.
+            options.beforeSend = { sentryEvent in
+                
+                if let eventMessage = sentryEvent.message?.formatted {
+                    sentryEvent.message = SentryMessage(formatted: eventMessage.redactBTCValues())
+                }
+                
+                if let eventExceptions = sentryEvent.exceptions {
+                    for eachException in eventExceptions {
+                        eachException.value = eachException.value.redactBTCValues()
+                    }
+                }
+                
+                if var eventExtra = sentryEvent.extra {
+                    for (key, value) in eventExtra {
+                        if let valueString = value as? String {
+                            eventExtra[key] = valueString.redactBTCValues()
+                        }
+                    }
+                    sentryEvent.extra = eventExtra
+                }
+                
+                return sentryEvent
+            }
+            
             // Redact sensitive data in Sentry breadcrumbs.
             options.beforeBreadcrumb = { breadCrumb in
                 
@@ -175,5 +200,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         }
     }
 
+}
+
+extension String {
+    
+    func redactBTCValues() -> String {
+        // Replace any sequence like "0.16450231 BTC" with "[redacted]"
+        let pattern = #"[0-9]+\.[0-9]+(\s*BTC)?"#
+        return self.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
+    }
 }
 
