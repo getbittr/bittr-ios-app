@@ -48,9 +48,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             // Redact sensitive data in Sentry breadcrumbs.
             options.beforeBreadcrumb = { breadCrumb in
                 
+                let newBreadcrumb = breadCrumb
+                
+                // Redact HTTP query contents from breadcrumb.
+                if var breadcrumbData = newBreadcrumb.data {
+                    // Redact http.query from breadcrumb.
+                    if breadcrumbData["http.query"] != nil {
+                        breadcrumbData["http.query"] = "[redacted]"
+                    }
+                    newBreadcrumb.data = breadcrumbData
+                }
+                
                 // Redact data from button presses.
-                if breadCrumb.category == "ui.action" || breadCrumb.category == "ui.click" {
-                    var newBreadcrumb = breadCrumb
+                if newBreadcrumb.category == "ui.action" || newBreadcrumb.category == "ui.click" {
                     
                     if var breadcrumbData = newBreadcrumb.data {
                         
@@ -71,19 +81,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                             breadcrumbData["tag"] = "[redacted]"
                         }
                         
-                        // Redact http.query from breadcrumb.
-                        if breadcrumbData["http.query"] != nil {
-                            breadcrumbData["http.query"] = "[redacted]"
-                        }
-                        
                         newBreadcrumb.data = breadcrumbData
                     }
                     
                     newBreadcrumb.message = newBreadcrumb.message?.replacingOccurrences(of: #"tag\s*=\s*\d+"#, with: "tag = [redacted]", options: .regularExpression)
-                    
-                    return newBreadcrumb
                 }
-                return breadCrumb
+                
+                // Redact URLs from breadcrumb.
+                if newBreadcrumb.category == "http" || newBreadcrumb.category == "network" {
+                    
+                    if var breadcrumbData = newBreadcrumb.data {
+                        if let url = breadcrumbData["url"] as? String {
+                            breadcrumbData["url"] = url.redactURL()
+                        }
+                        if let query = breadcrumbData["http.query"] as? String {
+                            breadcrumbData["http.query"] = "[redacted]"
+                        }
+                        newBreadcrumb.data = breadcrumbData
+                    }
+                    
+                    if let message = newBreadcrumb.message {
+                        newBreadcrumb.message = message.redactURL()
+                    }
+                }
+                
+                return newBreadcrumb
             }
 
             // Uncomment the following lines to add more data to your events
@@ -218,6 +240,12 @@ extension String {
         // Replace any sequence like "0.16450231 BTC" with "[redacted]"
         let pattern = #"[0-9]+\.[0-9]+(\s*BTC)?"#
         return self.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
+    }
+    
+    func redactURL() -> String {
+        // Regex pattern to catch URLs (both http and https)
+        let pattern = #"(https?:\/\/[^\s]+)"#
+        return self.replacingOccurrences(of: pattern, with: "[redacted URL]", options: .regularExpression)
     }
 }
 
