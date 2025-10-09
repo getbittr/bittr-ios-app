@@ -66,6 +66,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                             breadcrumbData["target"] = redactedTarget
                         }
                         
+                        // Redact UIButton tag from breadcrumb.
+                        if breadcrumbData["tag"] != nil {
+                            breadcrumbData["tag"] = "[redacted]"
+                        }
+                        
+                        // Redact http.query from breadcrumb.
                         if breadcrumbData["http.query"] != nil {
                             breadcrumbData["http.query"] = "[redacted]"
                         }

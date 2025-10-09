@@ -154,6 +154,8 @@ extension SendViewController {
                             var errorMessage = error.localizedDescription
                             if let bdkError = error as? BitcoinDevKit.CreateTxError {
                                 errorMessage = bdkError.getErrorMessage()
+                            } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
+                                errorMessage = bdkError.getErrorMessage()
                             }
                             
                             // Show alert.

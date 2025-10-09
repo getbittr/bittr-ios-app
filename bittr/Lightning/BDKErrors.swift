@@ -99,3 +99,32 @@ extension BitcoinDevKit.EsploraError {
         }
     }
 }
+
+extension BitcoinDevKit.AddressParseError {
+    
+    func getErrorMessage() -> String {
+        
+        switch self {
+        case .Base58:
+            return "[Base58]"
+        case .Bech32:
+            return "[Bech32]"
+        case .WitnessVersion(errorMessage: let errorMessage):
+            return errorMessage
+        case .WitnessProgram(errorMessage: let errorMessage):
+            return errorMessage
+        case .UnknownHrp:
+            return "[UnknownHrp]"
+        case .LegacyAddressTooLong:
+            return "[LegacyAddressTooLong]"
+        case .InvalidBase58PayloadLength:
+            return "[InvalidBase58PayloadLength]"
+        case .InvalidLegacyPrefix:
+            return "[InvalidLegacyPrefix]"
+        case .NetworkValidation:
+            return "[NetworkValidation]"
+        case .OtherAddressParseErr:
+            return "[OtherAddressParseErr]"
+        }
+    }
+}
