@@ -306,8 +306,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     }
                     
                 }
-            } catch let error as NSError {
-                print(error)
+            } catch {
+                print("310 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error)
                 }

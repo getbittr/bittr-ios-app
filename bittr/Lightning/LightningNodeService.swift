@@ -254,18 +254,17 @@ class LightningNodeService {
                 }
                 print("Did connect to peer.")
                 return true
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer. Error message: \(errorString.title), \(errorString.detail)")
-                    SentrySDK.capture(error: error)
-                }
-                return false
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message"
+                    }
+                }()
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: No error message.")
+                    print("Can't connect to peer: \(errorMessage).")
                     SentrySDK.capture(error: error)
                 }
                 return false
@@ -285,18 +284,16 @@ class LightningNodeService {
                         self.didProceedBeyondPeerConnection = true
                     }
                 }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    print("Can't disconnect from peer: \(errorString)")
-                    if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments()
-                        self.didProceedBeyondPeerConnection = true
-                    }
-                }
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message"
+                    }
+                }()
                 DispatchQueue.main.async {
-                    print("Can't disconnect from peer: No error message.")
+                    print("Can't disconnect from peer: \(errorMessage).")
                     if !self.didProceedBeyondPeerConnection {
                         self.getChannelsAndPayments()
                         self.didProceedBeyondPeerConnection = true

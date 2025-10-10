@@ -348,8 +348,8 @@ extension HomeViewController {
                     self.coreVC!.walletSync!.start()
                 }
                 
-            } catch let e as NSError {
-                print("Couldn't fetch text: \(e.localizedDescription)")
+            } catch {
+                print("Couldn't fetch text: \(error.localizedDescription)")
             }
         }
     }
@@ -472,8 +472,8 @@ extension HomeViewController {
                     let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                     self.noTransactionsLabel.attributedText = attributedText
                     self.noTransactionsLabel.alpha = 1
-                } catch let e as NSError {
-                    print("Couldn't fetch text: \(e.localizedDescription)")
+                } catch {
+                    print("Couldn't fetch text: \(error.localizedDescription)")
                 }
             }
         } else {

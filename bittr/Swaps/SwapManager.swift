@@ -193,19 +193,18 @@ class SwapManager: NSObject {
                     }
                 }
             }
-        } catch let error as NodeError {
-            let errorString = handleNodeError(error)
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error)
-            }
         } catch {
+            let errorMessage:String = {
+                if let nodeError = error as? NodeError {
+                    return handleNodeError(nodeError).detail
+                } else {
+                    return error.localizedDescription
+                }
+            }()
             DispatchQueue.main.async {
                 swapVC.nextLabel.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error)
             }
         }
@@ -685,17 +684,17 @@ class SwapManager: NSObject {
                     swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
                     swapVC.webSocketManager!.connect()
                 }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Error alert for NodeError
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
-                }
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).detail
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
                 DispatchQueue.main.async {
                     // General error alert
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                     SentrySDK.capture(error: error)
                 }
             }
