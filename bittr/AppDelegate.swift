@@ -81,6 +81,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                             breadcrumbData["tag"] = "[redacted]"
                         }
                         
+                        // Redact accessibility identifier from UIButton.
+                        if breadcrumbData["accessibilityIdentifier"] != nil {
+                            breadcrumbData["accessibilityIdentifier"] = "[redacted]"
+                        }
+                        
                         newBreadcrumb.data = breadcrumbData
                     }
                     
@@ -177,7 +182,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
             }
         } else {
-            self.handleUnexpectedNotification(4)
+            self.handleUnexpectedNotification(4, userInfo: "\(userInfo)")
         }
         
         completionHandler(.alert)
@@ -213,17 +218,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     }
                 } else {
                     // Unexpected notification type.
-                    self.handleUnexpectedNotification(1)
+                    self.handleUnexpectedNotification(1, userInfo: "\(userInfo)")
                 }
             } else {
-                self.handleUnexpectedNotification(2)
+                self.handleUnexpectedNotification(2, userInfo: "\(userInfo)")
             }
-        } else {
-            self.handleUnexpectedNotification(3)
         }
     }
 
-    func handleUnexpectedNotification(_ typeNumber:Int) {
+    func handleUnexpectedNotification(_ typeNumber:Int, userInfo:String) {
         let notificationData:[String:Any] = ["header_text":Language.getWord(withID: "notification"),"body_text":"\(Language.getWord(withID: "notificationhandlingfail")) [\(typeNumber)]"]
         let userInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
