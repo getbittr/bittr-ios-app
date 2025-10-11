@@ -190,7 +190,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                             self.nextButtonActivityIndicator.stopAnimating()
                             self.nextButtonLabel.alpha = 1
                             self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.capture(error: error)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "Transfer1ViewController row 194", key: "context")
+                            }
                         }
                     }
                     

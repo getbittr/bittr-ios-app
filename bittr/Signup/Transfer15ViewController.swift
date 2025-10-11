@@ -173,8 +173,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                 }
                             }
                         case .failure(let error):
-                            SentrySDK.capture(error: error)
                             DispatchQueue.main.async {
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "Transfer15ViewController row 178", key: "context")
+                                }
                                 self.nextButtonActivityIndicator.stopAnimating()
                                 self.nextButtonLabel.alpha = 1
                                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -252,7 +254,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     case .failure(let error):
                         DispatchQueue.main.async {
                             self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.capture(error: error)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "Transfer15ViewController258", key: "context")
+                            }
                         }
                     case .success(let receivedDictionary):
                         if let actualDataItems = receivedDictionary["data"] as? NSDictionary {
@@ -349,7 +353,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                             case .failure(let error):
                                 DispatchQueue.main.async {
                                     self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                    SentrySDK.capture(error: error)
+                                    SentrySDK.capture(error: error) { scope in
+                                        scope.setExtra(value: "Transfer15ViewController row 357", key: "context")
+                                    }
                                 }
                             case .success(let json):
                                 DispatchQueue.main.async {

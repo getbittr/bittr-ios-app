@@ -228,10 +228,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
     func handleUnexpectedNotification(_ typeNumber:Int, userInfo:String) {
         let notificationData:[String:Any] = ["header_text":Language.getWord(withID: "notification"),"body_text":"\(Language.getWord(withID: "notificationhandlingfail")) [\(typeNumber)]"]
-        let userInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
+        let questionInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            SentrySDK.capture(message: "Received notification with unexpected type \(typeNumber).")
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
+            SentrySDK.capture(message: "Received notification with unexpected type \(typeNumber).") { scope in
+                scope.setExtra(value: userInfo, key: "userInfo")
+            }
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: questionInfo) as Notification)
         }
     }
 

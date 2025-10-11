@@ -443,7 +443,9 @@ extension HomeViewController {
                             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             self.couldNotFetchConversion = true
                             self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
-                            SentrySDK.capture(error: error)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "LoadWalletData row 447", key: "context")
+                            }
                         }
                     }
                 }
