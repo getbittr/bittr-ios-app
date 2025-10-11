@@ -11,6 +11,7 @@ import CommonCrypto
 import libsecp256k1
 import Security
 import BitcoinDevKit
+import Sentry
 
 enum SegwitType {
     case p2wpkh
@@ -410,6 +411,11 @@ public class SimpleKeyDerivation {
             
         } catch {
             print("Test failed with error: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "BitcoinMessage row 415", key: "context")
+                }
+            }
         }
     }
 }

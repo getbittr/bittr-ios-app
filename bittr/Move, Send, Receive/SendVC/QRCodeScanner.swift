@@ -9,6 +9,7 @@ import UIKit
 import AVFoundation
 import LNURLDecoder
 import LightningDevKit
+import Sentry
 
 extension SendViewController {
     
@@ -55,6 +56,11 @@ extension SendViewController {
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "QRCodeScanner row 61", key: "context")
+                }
+            }
             self.scannerWorks = false
             return false
         }

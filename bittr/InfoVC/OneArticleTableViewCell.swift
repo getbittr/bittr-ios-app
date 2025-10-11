@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class OneArticleTableViewCell: UITableViewCell {
 
@@ -51,6 +52,11 @@ class OneArticleTableViewCell: UITableViewCell {
                 self.cellTextLabel.textColor = Colors.getColor("blackorwhite")
             } catch {
                 print("Couldn't fetch text: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "OneArticleTableViewCell row 57", key: "context")
+                    }
+                }
             }
         }
         

@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import Sentry
 
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
@@ -229,6 +230,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 
                 DispatchQueue.main.async {
                     self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SettingsViewController row 234", key: "context")
+                    }
                 }
             }
         }
@@ -261,6 +265,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 
                 DispatchQueue.main.async {
                     self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SettingsViewController row 269", key: "context")
+                    }
                 }
             }
         }
@@ -306,6 +313,11 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
             } catch {
                 print("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SettingsViewController row 318", key: "context")
+                    }
+                }
             }
         }
     }

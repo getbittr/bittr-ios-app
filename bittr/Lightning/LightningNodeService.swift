@@ -226,7 +226,11 @@ class LightningNodeService {
                     }
                 }()
                 self.coreVC?.stopLightning(message: errorMessage, stopNode: false)
-                SentrySDK.capture(error: error)
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 231", key: "context")
+                    }
+                }
             }
         }
     }
@@ -265,7 +269,9 @@ class LightningNodeService {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorMessage).")
-                    SentrySDK.capture(error: error)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 273", key: "context")
+                    }
                 }
                 return false
             }
@@ -294,6 +300,9 @@ class LightningNodeService {
                 }()
                 DispatchQueue.main.async {
                     print("Can't disconnect from peer: \(errorMessage).")
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 304", key: "context")
+                    }
                     if !self.didProceedBeyondPeerConnection {
                         self.getChannelsAndPayments()
                         self.didProceedBeyondPeerConnection = true
@@ -355,6 +364,11 @@ class LightningNodeService {
                 }
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 369", key: "context")
+                    }
+                }
             }
         }
     }
@@ -443,7 +457,12 @@ class LightningNodeService {
                 }
             } catch {
                 print("Error completing light sync: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(false) }
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 462", key: "context")
+                    }
+                    completion(false)
+                }
             }
         }
     }
@@ -540,6 +559,11 @@ class LightningNodeService {
                 try self.ldkNode!.eventHandled()
             } catch {
                 print("Error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 564", key: "context")
+                    }
+                }
             }
             self.listenForEvents()
         }

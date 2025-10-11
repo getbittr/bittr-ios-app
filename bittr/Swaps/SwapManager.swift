@@ -205,7 +205,9 @@ class SwapManager: NSObject {
                 swapVC.nextLabel.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
                 swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error)
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SwapManager row 209", key: "context")
+                }
             }
         }
     }
@@ -243,7 +245,9 @@ class SwapManager: NSObject {
                     print("Error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error)
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SwapManager row 249", key: "context")
+                        }
                     }
                 }
             }
@@ -292,9 +296,6 @@ class SwapManager: NSObject {
                     // Log the exact error for debugging
                     print("Transaction error: \(error.localizedDescription)")
                     
-                    // Report to Sentry for monitoring
-                    SentrySDK.capture(error: error)
-                    
                     DispatchQueue.main.async {
                         swapVC.showAlert(
                             presentingController: swapVC,
@@ -303,6 +304,9 @@ class SwapManager: NSObject {
                             buttons: [Language.getWord(withID: "okay")],
                             actions: nil
                         )
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SwapManager row 308", key: "context")
+                        }
                     }
                 }
             }
@@ -510,6 +514,11 @@ class SwapManager: NSObject {
             print("Swap details saved to: \(fileURL.path)")
         } catch {
             print("Error saving swap details to file: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SwapManager row 519", key: "context")
+                }
+            }
         }
     }
     
@@ -528,6 +537,11 @@ class SwapManager: NSObject {
             }
         } catch {
             print("Error loading swap details from file: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SwapManager row 542", key: "context")
+                }
+            }
         }
         return nil
     }
@@ -636,6 +650,9 @@ class SwapManager: NSObject {
                                 
                                 // Confirm fees with user.
                                 swapVC.confirmExpectedFees()
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "SwapManager row 654", key: "context")
+                                }
                             }
                         }
                     }
@@ -695,7 +712,9 @@ class SwapManager: NSObject {
                 DispatchQueue.main.async {
                     // General error alert
                     swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SwapManager row 716", key: "context")
+                    }
                 }
             }
         }

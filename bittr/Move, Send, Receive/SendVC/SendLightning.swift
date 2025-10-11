@@ -229,7 +229,9 @@ extension UIViewController {
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SendLightning row 233", key: "context")
+                    }
                 }
             }
         }

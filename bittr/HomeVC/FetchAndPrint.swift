@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 extension HomeViewController {
     
@@ -35,6 +36,9 @@ extension HomeViewController {
             } catch {
                 print("Error listing peers: \(error.localizedDescription)")
                 DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "FetchAndPrint row 40", key: "context")
+                    }
                     LightningNodeService.shared.listenForEvents()
                 }
             }

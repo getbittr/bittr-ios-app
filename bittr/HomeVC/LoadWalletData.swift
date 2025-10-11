@@ -261,6 +261,11 @@ extension HomeViewController {
                 }
             } catch {
                 print("Bittr error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LoadWalletData row 266", key: "context")
+                    }
+                }
                 return false
             }
         }
@@ -350,6 +355,11 @@ extension HomeViewController {
                 
             } catch {
                 print("Couldn't fetch text: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LoadWalletData row 360", key: "context")
+                    }
+                }
             }
         }
     }
@@ -474,6 +484,11 @@ extension HomeViewController {
                     self.noTransactionsLabel.alpha = 1
                 } catch {
                     print("Couldn't fetch text: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "LoadWalletData row 489", key: "context")
+                        }
+                    }
                 }
             }
         } else {

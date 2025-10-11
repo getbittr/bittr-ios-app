@@ -163,7 +163,9 @@ extension SendViewController {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                SentrySDK.capture(error: error)
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "SendOnchain row 167", key: "context")
+                                }
                             }
                         }
                     }
@@ -343,6 +345,9 @@ extension SendViewController {
                         self.sendLabel.alpha = 1
                         self.sendSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SendOnchain row 349", key: "context")
+                        }
                     }
                 }
             }

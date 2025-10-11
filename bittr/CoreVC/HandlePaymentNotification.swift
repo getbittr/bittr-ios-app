@@ -148,7 +148,9 @@ extension CoreViewController {
                     } catch let error as BittrServiceError {
                         print("BittrService error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
-                            SentrySDK.capture(error: error)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
+                            }
                             self.hidePendingView()
                             
                             switch error {
@@ -168,7 +170,9 @@ extension CoreViewController {
                     } catch {
                         print("General error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
-                            SentrySDK.capture(error: error)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "HandlePaymentNotification row 174", key: "context")
+                            }
                             self.hidePendingView()
                             if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
@@ -220,7 +224,9 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorMessage)")
-                    SentrySDK.capture(error: error)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "HandlePaymentNotification row 228", key: "context")
+                    }
                 }
                 return false
             }
@@ -442,9 +448,14 @@ extension CoreViewController {
                     }
                 } catch {
                     print("channelPending Bittr error: \(error.localizedDescription)")
-                    if paymentDetails != nil {
-                        let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
-                        self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "HandlePaymentNotification row 453", key: "context")
+                        }
+                        if paymentDetails != nil {
+                            let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                            self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
+                        }
                     }
                 }
             }
@@ -471,6 +482,11 @@ extension CoreViewController {
                 }
             } catch {
                 print("Could not sync LDK node or fetch channels. \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "HandlePaymentNotification row 484", key: "context")
+                    }
+                }
             }
         }
     }
@@ -621,6 +637,9 @@ extension CoreViewController {
             } catch {
                 print("ERROR: Failed to mark transaction as on-chain: \(error)")
                 DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "HandlePaymentNotification row 637", key: "context")
+                    }
                     self.hidePendingView()
                     self.showAlert(
                         presentingController: self,

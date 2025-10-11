@@ -8,6 +8,7 @@
 import UIKit
 import BitcoinDevKit
 import LDKNode
+import Sentry
 
 class Transaction: NSObject {
 
@@ -66,6 +67,11 @@ extension CanonicalTx {
             thisTransaction.fee = Int(try LightningNodeService.shared.getWallet()!.calculateFee(tx: self.transaction).toSat())
         } catch {
             print("810 Could not calculate fee.")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "Transaction row 71", key: "context")
+                }
+            }
         }
         
         // Height

@@ -8,6 +8,7 @@
 import UIKit
 import LDKNode
 import LDKNodeFFI
+import Sentry
 
 extension CoreViewController {
 
@@ -62,6 +63,11 @@ extension CoreViewController {
                 } else {
                     print("63 Can't start node. \(error.localizedDescription)")
                     self.stopLightning(message: nil, stopNode: false)
+                }
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "StartLightning row 69", key: "context")
+                    }
                 }
             }
         }

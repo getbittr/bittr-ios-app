@@ -7,6 +7,7 @@
 
 import UIKit
 import Foundation
+import Sentry
 
 class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
@@ -71,20 +72,25 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: messageDict, options: [])
             if let jsonString = String(data: jsonData, encoding: .utf8) {  // Convert Data to String
-            let webSocketMessage = URLSessionWebSocketTask.Message.string(jsonString)  // Send as String
-                
-            webSocketTask?.send(webSocketMessage) { error in
-                if let error = error {
-                    print("Failed to send message: \(error)")
-                } else {
-                    print("Message sent: \(jsonString)")  // Log the string version
+                let webSocketMessage = URLSessionWebSocketTask.Message.string(jsonString)  // Send as String
+                    
+                webSocketTask?.send(webSocketMessage) { error in
+                    if let error = error {
+                        print("Failed to send message: \(error)")
+                    } else {
+                        print("Message sent: \(jsonString)")  // Log the string version
+                    }
                 }
+            } else {
+                print("Failed to convert JSON data to String")
             }
-        } else {
-            print("Failed to convert JSON data to String")
-        }
         } catch {
             print("Failed to serialize message to JSON: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "WebSocketManager row 90", key: "context")
+                }
+            }
         }
     }
 
@@ -118,6 +124,11 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                             }
                         } catch {
                             print("❌ JSON Parsing Error: \(error.localizedDescription)")
+                            DispatchQueue.main.async {
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "WebSocketManager row 129", key: "context")
+                                }
+                            }
                         }
                     }
 

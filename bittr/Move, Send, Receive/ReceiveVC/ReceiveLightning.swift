@@ -41,7 +41,9 @@ extension ReceiveViewController {
             }()
             DispatchQueue.main.async {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error)
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "ReceiveLightning row 45", key: "context")
+                }
             }
             return nil
         }
@@ -71,7 +73,9 @@ extension ReceiveViewController {
             }()
             DispatchQueue.main.async {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error)
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "ReceiveLightning row 77", key: "context")
+                }
             }
             return nil
         }

@@ -8,6 +8,7 @@
 import UIKit
 import AVFoundation
 import LNURLDecoder
+import Sentry
 
 extension ReceiveViewController {
     
@@ -22,6 +23,11 @@ extension ReceiveViewController {
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "ReceiveQRScanner row 28", key: "context")
+                }
+            }
             self.scannerWorks = false
             return false
         }

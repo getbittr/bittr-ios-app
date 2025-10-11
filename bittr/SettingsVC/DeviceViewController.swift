@@ -131,6 +131,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
                 self.channelsLabel.text = "0"
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "DeviceViewController row 136", key: "context")
+                    }
+                }
             }
         }
     }
@@ -246,6 +251,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             } catch {
                 print("Error listing peers: \(error.localizedDescription)")
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "DeviceViewController row 256", key: "context")
+                    }
+                }
             }
         }
     }
@@ -333,7 +343,9 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorMessage).")
-                    SentrySDK.capture(error: error)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "DeviceViewController row 347", key: "context")
+                    }
                 }
                 return false
             }

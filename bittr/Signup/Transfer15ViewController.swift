@@ -309,7 +309,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             } catch {
                 print("310 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "Transfer15ViewController row 313", key: "context")
+                    }
                 }
             }
         }

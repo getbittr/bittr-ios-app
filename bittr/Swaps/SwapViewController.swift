@@ -9,6 +9,7 @@ import UIKit
 import LDKNode
 import UserNotifications
 import LightningDevKit
+import Sentry
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
 
@@ -578,6 +579,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     print("Result: \(result)")
                 } catch {
                     print("Error: \(error)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SwapViewController row 584", key: "context")
+                        }
+                    }
                 }
             }
         } else if status == "transaction.mempool", self.swapDirection == .lightningToOnchain {
@@ -829,6 +835,9 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 print("Error claiming transaction: \(error)")
                 DispatchQueue.main.async {
                     self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SwapViewController row 839", key: "context")
+                    }
                 }
             }
         }
@@ -856,6 +865,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.present(vc, animated: true, completion: nil)
         } catch {
             print("Error loading swap details from file: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SwapViewController row 870", key: "context")
+                }
+            }
         }
     }
     
@@ -990,6 +1004,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             
         } catch {
             print("❌ Error loading lockup transaction from file: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SwapViewController row 1009", key: "context")
+                }
+            }
             return nil
         }
     }

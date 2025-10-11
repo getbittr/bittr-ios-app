@@ -7,6 +7,7 @@
 
 import WidgetKit
 import SwiftUI
+import Sentry
 
 struct Provider: AppIntentTimelineProvider {
     
@@ -56,6 +57,11 @@ struct Provider: AppIntentTimelineProvider {
             }
         } catch {
             print("Error fetching data: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "BittrWidget row 62", key: "context")
+                }
+            }
         }
         
         // Fetch fresh data in 4 hours.
