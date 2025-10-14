@@ -201,7 +201,7 @@ public class SimpleKeyDerivation {
         let bdkMnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: mnemonic)
         
         // Create a DescriptorSecretKey to get the master key and chain code
-        let descriptorKey = DescriptorSecretKey(network: network == .testnet ? .regtest : .bitcoin, mnemonic: bdkMnemonic, password: nil)
+        let descriptorKey = DescriptorSecretKey(network: network == .testnet ? .signet : .bitcoin, mnemonic: bdkMnemonic, password: nil)
         
         // Get the extended key string and extract the master key
         let extendedKeyString = descriptorKey.asString()
@@ -369,7 +369,7 @@ public class SimpleKeyDerivation {
         do {
             // Test with BDK directly first
             let bdkMnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: testMnemonic)
-            let bip32ExtendedRootKey = DescriptorSecretKey(network: .regtest, mnemonic: bdkMnemonic, password: nil)
+            let bip32ExtendedRootKey = DescriptorSecretKey(network: .signet, mnemonic: bdkMnemonic, password: nil)
             
             print("=== BDK REFERENCE TEST ===")
             print("BDK Root Key: \(bip32ExtendedRootKey.asString())")

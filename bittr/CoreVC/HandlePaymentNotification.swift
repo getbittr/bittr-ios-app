@@ -419,6 +419,17 @@ extension CoreViewController {
                     let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentPreimage], depositCodes: depositCodes)
                     print("Bittr transactions: \(bittrApiTransactions.count)")
                     
+                    // Debug: Print the raw API response data
+                    if bittrApiTransactions.count > 0, let firstTransaction = bittrApiTransactions.first {
+                        print("DEBUG - Bittr API returned transaction:")
+                        print("  - txId: \(firstTransaction.txId)")
+                        print("  - bitcoinAmount: '\(firstTransaction.bitcoinAmount)'")
+                        print("  - purchaseAmount: '\(firstTransaction.purchaseAmount)'")
+                        print("  - currency: '\(firstTransaction.currency)'")
+                        print("  - transferFee: '\(firstTransaction.transferFee)'")
+                        print("  - datetime: '\(firstTransaction.datetime)'")
+                    }
+                    
                     CacheManager.updateSentToBittr(txids: [paymentPreimage])
                     
                     if bittrApiTransactions.count == 1, bittrApiTransactions.first != nil, bittrApiTransactions.first!.txId == paymentPreimage {

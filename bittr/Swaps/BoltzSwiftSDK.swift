@@ -171,6 +171,7 @@ struct BitcoinNetwork {
     static let bitcoin = BitcoinNetwork(bech32Prefix: "bc", pubKeyHashVersion: 0x00, scriptHashVersion: 0x05)
     static let testnet = BitcoinNetwork(bech32Prefix: "tb", pubKeyHashVersion: 0x6f, scriptHashVersion: 0xc4)
     static let regtest = BitcoinNetwork(bech32Prefix: "bcrt", pubKeyHashVersion: 0x6f, scriptHashVersion: 0xc4)
+    static let signet = BitcoinNetwork(bech32Prefix: "tb", pubKeyHashVersion: 0x6f, scriptHashVersion: 0xc4)
 }
 
 // MARK: - Address Handling

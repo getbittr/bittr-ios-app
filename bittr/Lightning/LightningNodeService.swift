@@ -122,10 +122,10 @@ class LightningNodeService {
                     let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
                     
                     // Create a BIP32 extended root key using the mnemonic and a nil password
-                    let bip32ExtendedRootKey = DescriptorSecretKey(network: EnvironmentConfig.isDevelopment ? .regtest : .bitcoin, mnemonic: mnemonic, password: nil)
+                    let bip32ExtendedRootKey = DescriptorSecretKey(network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin, mnemonic: mnemonic, password: nil)
                     
                     // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
-                    let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.isDevelopment ? .regtest : .bitcoin)
+                    let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin)
                     
                     // Get XPUB.
                     let descriptor = bip84ExternalDescriptor.description

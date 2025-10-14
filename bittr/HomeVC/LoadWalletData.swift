@@ -210,6 +210,17 @@ extension HomeViewController {
                 let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
                 print("Bittr transactions: \(bittrApiTransactions.count)")
                 
+                // Debug: Print the raw API response data for each transaction
+                for (index, transaction) in bittrApiTransactions.enumerated() {
+                    print("DEBUG - Bittr API transaction \(index + 1):")
+                    print("  - txId: \(transaction.txId)")
+                    print("  - bitcoinAmount: '\(transaction.bitcoinAmount)'")
+                    print("  - purchaseAmount: '\(transaction.purchaseAmount)'")
+                    print("  - currency: '\(transaction.currency)'")
+                    print("  - transferFee: '\(transaction.transferFee)'")
+                    print("  - datetime: '\(transaction.datetime)'")
+                }
+                
                 CacheManager.updateSentToBittr(txids: newTxIds)
                 
                 if bittrApiTransactions.count == 0 {
@@ -228,7 +239,7 @@ extension HomeViewController {
                             self.newTransactions += [thisTransaction]
                             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                         } else {
-                            self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee], forKey: eachTransaction.txId)
+                            self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "bitcoinAmount":eachTransaction.bitcoinAmount], forKey: eachTransaction.txId)
                             
                             if sendAll {
                                 // Check transactions that were previously not recognized.
@@ -240,6 +251,11 @@ extension HomeViewController {
                                         eachExistingTransaction.currency = eachTransaction.currency
                                         let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
                                         eachExistingTransaction.transferFee = CGFloat(transferFee)
+                                        
+                                        // Update the received amount with the correct bitcoinAmount from Bittr API
+                                        let correctBitcoinAmount = eachTransaction.bitcoinAmount.toNumber().inSatoshis()
+                                        eachExistingTransaction.received = correctBitcoinAmount
+                                        print("DEBUG - Updated existing transaction \(eachTransaction.txId) with correct amount: \(correctBitcoinAmount) sats")
                                         if eachExistingTransaction.isLightning {
                                             CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
                                         }
