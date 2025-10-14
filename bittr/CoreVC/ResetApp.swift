@@ -8,6 +8,7 @@
 import UIKit
 import LDKNode
 import LDKNodeFFI
+import Sentry
 
 extension CoreViewController {
     
@@ -66,6 +67,9 @@ extension CoreViewController {
             } catch {
                 // If we can't start the node, proceed with reset anyway
                 DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 71", key: "context")
+                    }
                     self.performWalletReset(nodeIsRunning: false)
                 }
             }
@@ -110,6 +114,9 @@ extension CoreViewController {
             } catch {
                 // If we can't check channels, assume no channels and proceed
                 DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 118", key: "context")
+                    }
                     self.performWalletReset(nodeIsRunning: true)
                 }
             }
@@ -159,6 +166,9 @@ extension CoreViewController {
                 }
                 
                 DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 170", key: "context")
+                    }
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
                 }
             }
@@ -199,6 +209,9 @@ extension CoreViewController {
                 print("❌ [DEBUG] ResetApp - Force close error description: \(error.localizedDescription)")
                 
                 DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 213", key: "context")
+                    }
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
@@ -249,22 +262,13 @@ extension CoreViewController {
             CacheManager.deleteClientInfo()
             print("🔍 [DEBUG] ResetApp - Cached data cleared successfully")
             
-        } catch let error as NodeError {
-            print("❌ [DEBUG] ResetApp - NodeError during cleanup: \(error.localizedDescription)")
-            
-            // Even if node stop fails, try to clean up documents
-            do {
-                print("🔍 [DEBUG] ResetApp - Attempting fallback document cleanup")
-                try LightningNodeService.shared.deleteDocuments()
-                print("🔍 [DEBUG] ResetApp - Fallback document cleanup successful")
-            } catch {
-                print("❌ [DEBUG] ResetApp - Fallback document cleanup failed: \(error.localizedDescription)")
-            }
-            
-            CacheManager.deleteClientInfo()
-            
         } catch {
             print("❌ [DEBUG] ResetApp - Error during cleanup: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "ResetApp row 269", key: "context")
+                }
+            }
             
             // Even if everything fails, try to clean up documents
             do {
@@ -273,6 +277,11 @@ extension CoreViewController {
                 print("🔍 [DEBUG] ResetApp - Final fallback document cleanup successful")
             } catch {
                 print("❌ [DEBUG] ResetApp - Final fallback document cleanup failed: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 282", key: "context")
+                    }
+                }
             }
             
             CacheManager.deleteClientInfo()
@@ -333,6 +342,11 @@ extension CoreViewController {
                 }
             } catch {
                 print("❌ [DEBUG] ResetApp - didCloseChannel() - Error syncing after channel closure: \(error)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 347", key: "context")
+                    }
+                }
             }
         }
     }

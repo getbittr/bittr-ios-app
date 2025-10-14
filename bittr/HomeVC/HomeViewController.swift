@@ -10,6 +10,7 @@ import LDKNode
 import BitcoinDevKit
 import UserNotifications
 import LDKNodeFFI
+import Sentry
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {
     
@@ -369,6 +370,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
             } catch {
                 print("Could not fetch channels.")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "HomeViewController row 375", key: "context")
+                    }
+                }
             }
         }
         if paymentDetails != nil {

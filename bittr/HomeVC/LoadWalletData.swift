@@ -277,6 +277,11 @@ extension HomeViewController {
                 }
             } catch {
                 print("Bittr error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LoadWalletData row 266", key: "context")
+                    }
+                }
                 return false
             }
         }
@@ -364,8 +369,13 @@ extension HomeViewController {
                     self.coreVC!.walletSync!.start()
                 }
                 
-            } catch let e as NSError {
-                print("Couldn't fetch text: \(e.localizedDescription)")
+            } catch {
+                print("Couldn't fetch text: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LoadWalletData row 360", key: "context")
+                    }
+                }
             }
         }
     }
@@ -449,7 +459,9 @@ extension HomeViewController {
                             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             self.couldNotFetchConversion = true
                             self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
-                            SentrySDK.capture(error: error)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "LoadWalletData row 447", key: "context")
+                            }
                         }
                     }
                 }
@@ -488,8 +500,13 @@ extension HomeViewController {
                     let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                     self.noTransactionsLabel.attributedText = attributedText
                     self.noTransactionsLabel.alpha = 1
-                } catch let e as NSError {
-                    print("Couldn't fetch text: \(e.localizedDescription)")
+                } catch {
+                    print("Couldn't fetch text: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "LoadWalletData row 489", key: "context")
+                        }
+                    }
                 }
             }
         } else {

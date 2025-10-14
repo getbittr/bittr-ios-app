@@ -9,6 +9,7 @@ import UIKit
 import LDKNode
 import LDKNodeFFI
 import BitcoinDevKit
+import Sentry
 
 class RestoreViewController: UIViewController, UITextFieldDelegate {
 
@@ -307,16 +308,21 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 
                             } catch {
                                 print("Mnemonic validation failed: \(error)")
-                                self.restoreButtonSpinner.stopAnimating()
-                                self.restoreButtonText.alpha = 1
-                                self.showAlert(
-                                    presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
-                                    title: Language.getWord(withID: "invalidphrase"),
-                                    message: Language.getWord(withID: "invalidphrase2"),
-                                    buttons: [Language.getWord(withID: "okay")],
-                                    actions: nil
-                                )
-                                return
+                                DispatchQueue.main.async {
+                                    SentrySDK.capture(error: error) { scope in
+                                        scope.setExtra(value: "RestoreViewController row 313", key: "context")
+                                    }
+                                    self.restoreButtonSpinner.stopAnimating()
+                                    self.restoreButtonText.alpha = 1
+                                    self.showAlert(
+                                        presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                                        title: Language.getWord(withID: "invalidphrase"),
+                                        message: Language.getWord(withID: "invalidphrase2"),
+                                        buttons: [Language.getWord(withID: "okay")],
+                                        actions: nil
+                                    )
+                                    return
+                                }
                             }
                         }
                     }

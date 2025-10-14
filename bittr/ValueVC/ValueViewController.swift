@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class ValueViewController: UIViewController {
 
@@ -259,6 +260,9 @@ class ValueViewController: UIViewController {
                     self.homeVC?.currentValue = nil
                     
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "historicaldata"))", buttons: [Language.getWord(withID: "tryagain"), Language.getWord(withID: "cancel")], actions: [#selector(self.getCurrentValue), nil])
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ValueViewController row 264", key: "context")
+                    }
                 }
             }
         }

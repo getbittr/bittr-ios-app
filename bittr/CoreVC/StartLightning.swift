@@ -8,6 +8,7 @@
 import UIKit
 import LDKNode
 import LDKNodeFFI
+import Sentry
 
 extension CoreViewController {
 
@@ -43,25 +44,31 @@ extension CoreViewController {
                     LightningNodeService.shared.startBDK(coreViewController: self)
                 }
                 self.didStartNode = true
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                print("48 Can't start node. \(errorString.title): \(errorString.detail)")
+            } catch {
                 timeoutTask.cancel()
-                if errorString.title == "AlreadyRunning" {
-                    self.completeSync(type: .ldk)
-                    if self.didStartNode == false {
-                        DispatchQueue.global(qos: .background).async {
-                            LightningNodeService.shared.startBDK(coreViewController: self)
+                if let nodeError = error as? NodeError {
+                    let errorString = handleNodeError(nodeError)
+                    print("50 Can't start node. \(errorString.title): \(errorString.detail)")
+                    if errorString.title == "AlreadyRunning" {
+                        self.completeSync(type: .ldk)
+                        if !self.didStartNode {
+                            self.didStartNode = true
+                            DispatchQueue.global(qos: .background).async {
+                                LightningNodeService.shared.startBDK(coreViewController: self)
+                            }
                         }
-                        self.didStartNode = true
+                    } else {
+                        self.stopLightning(message: nil, stopNode: false)
                     }
                 } else {
+                    print("63 Can't start node. \(error.localizedDescription)")
                     self.stopLightning(message: nil, stopNode: false)
                 }
-            } catch {
-                print("62 Can't start node. \(error.localizedDescription)")
-                timeoutTask.cancel()
-                self.stopLightning(message: nil, stopNode: false)
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "StartLightning row 69", key: "context")
+                    }
+                }
             }
         }
     }

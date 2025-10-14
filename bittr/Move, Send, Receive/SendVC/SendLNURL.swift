@@ -122,6 +122,9 @@ extension UIViewController {
         } catch {
             print("Couldn't decode LNURL. Message: \(error.localizedDescription)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SendLNURL row 126", key: "context")
+                }
                 sendVC?.stopLNURLSpinner()
                 receiveVC?.stopLNURLSpinner()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -239,20 +242,21 @@ extension UIViewController {
                         }
                     }
                 }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    sendVC?.stopLNURLSpinner()
-                    receiveVC?.stopLNURLSpinner()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
-                }
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).detail
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     receiveVC?.stopLNURLSpinner()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SendLNURL row 266", key: "context")
+                    }
                 }
             }
         }

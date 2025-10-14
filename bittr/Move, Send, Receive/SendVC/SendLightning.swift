@@ -216,22 +216,22 @@ extension UIViewController {
                 } else {
                     let _ = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
                 }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Error alert for NodeError
-                    sendVC?.nextLabel.alpha = 1
-                    sendVC?.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentfailed"), message: errorString.detail, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
-                }
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return "\(handleNodeError(nodeError))"
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
                 DispatchQueue.main.async {
                     // General error alert
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SendLightning row 233", key: "context")
+                    }
                 }
             }
         }

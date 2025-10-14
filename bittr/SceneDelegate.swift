@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import Sentry
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -62,11 +63,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     print("Will sync LDK node upon entering foreground.")
                     try LightningNodeService.shared.syncWallets()
                 }
-            } catch let error as LDKNode.NodeError {
-                let errorString = handleNodeError(error)
-                print("Could not sync LDK node. Error: \(errorString.title): \(errorString.detail)")
             } catch {
-                print("Could not sync LDK node. Error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SceneDelegate row 68", key: "context")
+                    }
+                }
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
+                print("Could not sync LDK node. Error: \(errorMessage)")
             }
         }
     }

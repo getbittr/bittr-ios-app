@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 extension CoreViewController {
     
@@ -91,6 +92,11 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     // Hide loading UI
                     self.hidePendingView()
+                    
+                    // Capture Sentry error.
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "HandleLightningAddressNotification row 98", key: "context")
+                    }
                     
                     // Show error message with support contact
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)

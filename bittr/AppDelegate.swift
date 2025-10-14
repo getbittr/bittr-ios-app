@@ -13,23 +13,111 @@ import UserNotifications
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
-
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
         SentrySDK.start { options in
             options.dsn = "https://a132893f0e0785733b108592f71efebc@o4507055777120256.ingest.us.sentry.io/4507055778758656"
             options.debug = false // Enabled debug when first installing is always helpful
             options.enableTracing = true
+            
+            // Redact sensitive data in Sentry events.
+            options.beforeSend = { sentryEvent in
+                
+                if let eventMessage = sentryEvent.message?.formatted {
+                    sentryEvent.message = SentryMessage(formatted: eventMessage.redactBTCValues())
+                }
+                
+                if let eventExceptions = sentryEvent.exceptions {
+                    for eachException in eventExceptions {
+                        eachException.value = eachException.value.redactBTCValues()
+                    }
+                }
+                
+                if var eventExtra = sentryEvent.extra {
+                    for (key, value) in eventExtra {
+                        if let valueString = value as? String {
+                            eventExtra[key] = valueString.redactBTCValues()
+                        }
+                    }
+                    sentryEvent.extra = eventExtra
+                }
+                
+                return sentryEvent
+            }
+            
+            // Redact sensitive data in Sentry breadcrumbs.
+            options.beforeBreadcrumb = { breadCrumb in
+                
+                let newBreadcrumb = breadCrumb
+                
+                // Redact HTTP query contents from breadcrumb.
+                if var breadcrumbData = newBreadcrumb.data {
+                    // Redact http.query from breadcrumb.
+                    if breadcrumbData["http.query"] != nil {
+                        breadcrumbData["http.query"] = "[redacted]"
+                    }
+                    newBreadcrumb.data = breadcrumbData
+                }
+                
+                // Redact data from button presses.
+                if newBreadcrumb.category == "ui.action" || newBreadcrumb.category == "ui.click" {
+                    
+                    if var breadcrumbData = newBreadcrumb.data {
+                        
+                        // Redact UIButton tag from view data.
+                        if let view = breadcrumbData["view"] as? String {
+                            let redactedTag = view.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
+                            breadcrumbData["view"] = redactedTag
+                        }
+                        
+                        // Redact UIButton tag from target data.
+                        if let breadcrumbTarget = breadcrumbData["target"] as? String {
+                            let redactedTarget = breadcrumbTarget.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
+                            breadcrumbData["target"] = redactedTarget
+                        }
+                        
+                        // Redact UIButton tag from breadcrumb.
+                        if breadcrumbData["tag"] != nil {
+                            breadcrumbData["tag"] = "[redacted]"
+                        }
+                        
+                        // Redact accessibility identifier from UIButton.
+                        if breadcrumbData["accessibilityIdentifier"] != nil {
+                            breadcrumbData["accessibilityIdentifier"] = "[redacted]"
+                        }
+                        
+                        newBreadcrumb.data = breadcrumbData
+                    }
+                    
+                    newBreadcrumb.message = newBreadcrumb.message?.replacingOccurrences(of: #"tag\s*=\s*\d+"#, with: "tag = [redacted]", options: .regularExpression)
+                }
+                
+                // Redact URLs from breadcrumb.
+                if newBreadcrumb.category == "http" || newBreadcrumb.category == "network" {
+                    
+                    if var breadcrumbData = newBreadcrumb.data {
+                        if let url = breadcrumbData["url"] as? String {
+                            breadcrumbData["url"] = url.redactURL()
+                        }
+                        if let query = breadcrumbData["http.query"] as? String {
+                            breadcrumbData["http.query"] = "[redacted]"
+                        }
+                        newBreadcrumb.data = breadcrumbData
+                    }
+                    
+                    if let message = newBreadcrumb.message {
+                        newBreadcrumb.message = message.redactURL()
+                    }
+                }
+                
+                return newBreadcrumb
+            }
 
             // Uncomment the following lines to add more data to your events
             // options.attachScreenshot = true // This adds a screenshot to the error events
             // options.attachViewHierarchy = true // This adds the view hierarchy to the error events
         }
-        // Remove the next line after confirming that your Sentry integration is working.
-        //SentrySDK.capture(message: "This app uses Sentry! :)")
 
-        // Override point for customization after application launch.
-        
         UNUserNotificationCenter.current().delegate = self
         
         return true
@@ -94,7 +182,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
             }
         } else {
-            self.handleUnexpectedNotification(4)
+            self.handleUnexpectedNotification(4, userInfo: "\(userInfo)")
         }
         
         completionHandler(.alert)
@@ -130,24 +218,39 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     }
                 } else {
                     // Unexpected notification type.
-                    self.handleUnexpectedNotification(1)
+                    self.handleUnexpectedNotification(1, userInfo: "\(userInfo)")
                 }
             } else {
-                self.handleUnexpectedNotification(2)
+                self.handleUnexpectedNotification(2, userInfo: "\(userInfo)")
             }
-        } else {
-            self.handleUnexpectedNotification(3)
         }
     }
 
-    func handleUnexpectedNotification(_ typeNumber:Int) {
+    func handleUnexpectedNotification(_ typeNumber:Int, userInfo:String) {
         let notificationData:[String:Any] = ["header_text":Language.getWord(withID: "notification"),"body_text":"\(Language.getWord(withID: "notificationhandlingfail")) [\(typeNumber)]"]
-        let userInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
+        let questionInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            SentrySDK.capture(message: "Received notification with unexpected type \(typeNumber).")
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
+            SentrySDK.capture(message: "Received notification with unexpected type \(typeNumber).") { scope in
+                scope.setExtra(value: userInfo, key: "userInfo")
+            }
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: questionInfo) as Notification)
         }
     }
 
+}
+
+extension String {
+    
+    func redactBTCValues() -> String {
+        // Replace any sequence like "0.16450231 BTC" with "[redacted]"
+        let pattern = #"[0-9]+\.[0-9]+(\s*BTC)?"#
+        return self.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
+    }
+    
+    func redactURL() -> String {
+        // Regex pattern to catch URLs (both http and https)
+        let pattern = #"(https?:\/\/[^\s]+)"#
+        return self.replacingOccurrences(of: pattern, with: "[redacted URL]", options: .regularExpression)
+    }
 }
 

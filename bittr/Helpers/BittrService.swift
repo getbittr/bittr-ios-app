@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Sentry
 
 class BittrService {
 
@@ -109,6 +110,11 @@ class BittrService {
                 throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
             }
         } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "BittrService row 114", key: "context")
+                }
+            }
             throw BittrServiceError.networkError(error)
         }
     }

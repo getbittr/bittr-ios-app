@@ -218,8 +218,19 @@ class LightningNodeService {
                 
             } catch {
                 print("Some error occurred. \(error.localizedDescription)")
-                self.coreVC?.stopLightning(message: error.localizedDescription, stopNode: false)
-                SentrySDK.capture(error: error)
+                let errorMessage:String = {
+                    if let esploraError = error as? BitcoinDevKit.EsploraError {
+                        return esploraError.getErrorMessage()
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
+                self.coreVC?.stopLightning(message: errorMessage, stopNode: false)
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 231", key: "context")
+                    }
+                }
             }
         }
     }
@@ -247,19 +258,20 @@ class LightningNodeService {
                 }
                 print("Did connect to peer.")
                 return true
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer. Error message: \(errorString.title), \(errorString.detail)")
-                    SentrySDK.capture(error: error)
-                }
-                return false
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message"
+                    }
+                }()
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: No error message.")
-                    SentrySDK.capture(error: error)
+                    print("Can't connect to peer: \(errorMessage).")
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 273", key: "context")
+                    }
                 }
                 return false
             }
@@ -278,18 +290,19 @@ class LightningNodeService {
                         self.didProceedBeyondPeerConnection = true
                     }
                 }
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    print("Can't disconnect from peer: \(errorString)")
-                    if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments()
-                        self.didProceedBeyondPeerConnection = true
-                    }
-                }
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message"
+                    }
+                }()
                 DispatchQueue.main.async {
-                    print("Can't disconnect from peer: No error message.")
+                    print("Can't disconnect from peer: \(errorMessage).")
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 304", key: "context")
+                    }
                     if !self.didProceedBeyondPeerConnection {
                         self.getChannelsAndPayments()
                         self.didProceedBeyondPeerConnection = true
@@ -351,6 +364,11 @@ class LightningNodeService {
                 }
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 369", key: "context")
+                    }
+                }
             }
         }
     }
@@ -439,7 +457,12 @@ class LightningNodeService {
                 }
             } catch {
                 print("Error completing light sync: \(error.localizedDescription)")
-                DispatchQueue.main.async { completion(false) }
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 462", key: "context")
+                    }
+                    completion(false)
+                }
             }
         }
     }
@@ -536,6 +559,11 @@ class LightningNodeService {
                 try self.ldkNode!.eventHandled()
             } catch {
                 print("Error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LightningNodeService row 564", key: "context")
+                    }
+                }
             }
             self.listenForEvents()
         }

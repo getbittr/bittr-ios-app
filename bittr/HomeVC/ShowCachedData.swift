@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 extension HomeViewController {
 
@@ -30,8 +31,13 @@ extension HomeViewController {
                     satsLabel.font = self.balanceLabelInvisible.adjustedFont()
                     
                     satsLabel.alpha = 1
-                } catch let e as NSError {
-                    print("Couldn't fetch text: \(e.localizedDescription)")
+                } catch {
+                    print("Couldn't fetch text: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "ShowCachedData row 38", key: "context")
+                        }
+                    }
                 }
             }
         }

@@ -131,6 +131,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             } catch {
                 print("Error listing channels: \(error.localizedDescription)")
                 self.channelsLabel.text = "0"
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "DeviceViewController row 136", key: "context")
+                    }
+                }
             }
         }
     }
@@ -246,6 +251,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             } catch {
                 print("Error listing peers: \(error.localizedDescription)")
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "DeviceViewController row 256", key: "context")
+                    }
+                }
             }
         }
     }
@@ -322,19 +332,20 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 }
                 print("Did connect to peer.")
                 return true
-            } catch let error as NodeError {
-                let errorString = handleNodeError(error)
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorString)")
-                    SentrySDK.capture(error: error)
-                }
-                return false
             } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message"
+                    }
+                }()
                 DispatchQueue.main.async {
                     // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: No error message.")
-                    SentrySDK.capture(error: error)
+                    print("Can't connect to peer: \(errorMessage).")
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "DeviceViewController row 347", key: "context")
+                    }
                 }
                 return false
             }

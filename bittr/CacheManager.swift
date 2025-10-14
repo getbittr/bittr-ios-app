@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class CacheManager: NSObject {
     
@@ -48,6 +49,11 @@ class CacheManager: NSObject {
             }
         } catch {
             print("Could not delete images folder. \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "CacheManager row 53", key: "context")
+                }
+            }
         }
     }
     
@@ -221,6 +227,11 @@ class CacheManager: NSObject {
             print("Did save image to file.")
         } catch {
             print("Could not save image to file. \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "CacheManager row 232", key: "context")
+                }
+            }
         }
     }
     

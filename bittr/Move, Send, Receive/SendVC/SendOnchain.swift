@@ -149,11 +149,23 @@ extension SendViewController {
                             }
                         } catch {
                             print("Error: \(error.localizedDescription)")
+                            
+                            // Generate error message.
+                            var errorMessage = error.localizedDescription
+                            if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                                errorMessage = bdkError.getErrorMessage()
+                            } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
+                                errorMessage = bdkError.getErrorMessage()
+                            }
+                            
+                            // Show alert.
                             DispatchQueue.main.async {
                                 self.nextLabel.alpha = 1
                                 self.nextSpinner.stopAnimating()
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                SentrySDK.capture(error: error)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "SendOnchain row 167", key: "context")
+                                }
                             }
                         }
                     }
@@ -333,6 +345,9 @@ extension SendViewController {
                         self.sendLabel.alpha = 1
                         self.sendSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SendOnchain row 349", key: "context")
+                        }
                     }
                 }
             }
@@ -376,15 +391,19 @@ extension SendViewController {
                 _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
                 return nil
             } catch {
-                if error.localizedDescription.contains("Insufficient funds") {
-                    let satsReservation:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
-                    let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
-                    let requiredCorrection:Double = btcOnchain - satsReservation
-                    let spendableBtcAmount = btcOnchain + requiredCorrection
-                    if spendableBtcAmount < 0 {
-                        return 0
-                    } else {
-                        return spendableBtcAmount
+                if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                    switch bdkError {
+                    case .InsufficientFunds(needed: let needed, available: _):
+                        let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                        let neededAmount:Double = Int(needed).inBTC()
+                        let minimumFees:Double = neededAmount - btcOnchain
+                        let spendableBtcAmount = btcOnchain - minimumFees
+                        if spendableBtcAmount < 0 {
+                            return 0
+                        } else {
+                            return spendableBtcAmount
+                        }
+                    default: return nil
                     }
                 } else {
                     return nil
