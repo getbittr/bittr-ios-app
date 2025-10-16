@@ -30,6 +30,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 if let eventExceptions = sentryEvent.exceptions {
                     for eachException in eventExceptions {
                         eachException.value = eachException.value.redactBTCValues()
+                        if let exceptionMechanism = eachException.mechanism {
+                            if let mechanismDescription = exceptionMechanism.desc {
+                                eachException.mechanism!.desc = mechanismDescription.redactBTCValues()
+                            }
+                        }
                     }
                 }
                 
@@ -42,6 +47,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     sentryEvent.extra = eventExtra
                 }
                 
+                // Redact sensitive user data.
+                
+                if sentryEvent.user != nil {
+                    
+                    // Redact IP address.
+                    sentryEvent.user!.ipAddress = "[redacted]"
+                    
+                    // Redact geo data.
+                    sentryEvent.user!.geo = Geo()
+                    sentryEvent.user!.geo!.countryCode = "[redacted]"
+                    sentryEvent.user!.geo!.city = "[redacted]"
+                    sentryEvent.user!.geo!.region = "[redacted]"
+                }
+                
+                if sentryEvent.context != nil {
+                    if sentryEvent.context!["culture"] != nil {
+                        for (key, _) in sentryEvent.context!["culture"]! {
+                            sentryEvent.context!["culture"]![key]! = "[redacted]"
+                        }
+                    }
+                    if sentryEvent.context!["device"] != nil {
+                        if sentryEvent.context!["device"]!["locale"] != nil {
+                            sentryEvent.context!["device"]!["locale"]! = "[redacted]"
+                        }
+                    }
+                }
+                
                 return sentryEvent
             }
             
@@ -52,63 +84,47 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 
                 // Redact HTTP query contents from breadcrumb.
                 if var breadcrumbData = newBreadcrumb.data {
+                    
                     // Redact http.query from breadcrumb.
                     if breadcrumbData["http.query"] != nil {
                         breadcrumbData["http.query"] = "[redacted]"
                     }
+                    
+                    // Redact UIButton tag from view data.
+                    if let view = breadcrumbData["view"] as? String {
+                        let redactedTag = view.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
+                        breadcrumbData["view"] = redactedTag
+                    }
+                    
+                    // Redact UIButton tag from target data.
+                    if let breadcrumbTarget = breadcrumbData["target"] as? String {
+                        let redactedTarget = breadcrumbTarget.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
+                        breadcrumbData["target"] = redactedTarget
+                    }
+                    
+                    // Redact URL.
+                    if let url = breadcrumbData["url"] as? String {
+                        breadcrumbData["url"] = url.redactURL()
+                    }
+                    // Redact HTTP query.
+                    if breadcrumbData["http.query"] != nil {
+                        breadcrumbData["http.query"] = "[redacted]"
+                    }
+                    
+                    // Redact UIButton tag from breadcrumb.
+                    if breadcrumbData["tag"] != nil {
+                        breadcrumbData["tag"] = "[redacted]"
+                    }
+                    
+                    // Redact accessibility identifier from UIButton.
+                    if breadcrumbData["accessibilityIdentifier"] != nil {
+                        breadcrumbData["accessibilityIdentifier"] = "[redacted]"
+                    }
+                    
                     newBreadcrumb.data = breadcrumbData
                 }
                 
-                // Redact data from button presses.
-                if newBreadcrumb.category == "ui.action" || newBreadcrumb.category == "ui.click" {
-                    
-                    if var breadcrumbData = newBreadcrumb.data {
-                        
-                        // Redact UIButton tag from view data.
-                        if let view = breadcrumbData["view"] as? String {
-                            let redactedTag = view.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
-                            breadcrumbData["view"] = redactedTag
-                        }
-                        
-                        // Redact UIButton tag from target data.
-                        if let breadcrumbTarget = breadcrumbData["target"] as? String {
-                            let redactedTarget = breadcrumbTarget.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
-                            breadcrumbData["target"] = redactedTarget
-                        }
-                        
-                        // Redact UIButton tag from breadcrumb.
-                        if breadcrumbData["tag"] != nil {
-                            breadcrumbData["tag"] = "[redacted]"
-                        }
-                        
-                        // Redact accessibility identifier from UIButton.
-                        if breadcrumbData["accessibilityIdentifier"] != nil {
-                            breadcrumbData["accessibilityIdentifier"] = "[redacted]"
-                        }
-                        
-                        newBreadcrumb.data = breadcrumbData
-                    }
-                    
-                    newBreadcrumb.message = newBreadcrumb.message?.replacingOccurrences(of: #"tag\s*=\s*\d+"#, with: "tag = [redacted]", options: .regularExpression)
-                }
-                
-                // Redact URLs from breadcrumb.
-                if newBreadcrumb.category == "http" || newBreadcrumb.category == "network" {
-                    
-                    if var breadcrumbData = newBreadcrumb.data {
-                        if let url = breadcrumbData["url"] as? String {
-                            breadcrumbData["url"] = url.redactURL()
-                        }
-                        if let query = breadcrumbData["http.query"] as? String {
-                            breadcrumbData["http.query"] = "[redacted]"
-                        }
-                        newBreadcrumb.data = breadcrumbData
-                    }
-                    
-                    if let message = newBreadcrumb.message {
-                        newBreadcrumb.message = message.redactURL()
-                    }
-                }
+                newBreadcrumb.message = newBreadcrumb.message?.replacingOccurrences(of: #"tag\s*=\s*\d+"#, with: "tag = [redacted]", options: .regularExpression).redactURL()
                 
                 return newBreadcrumb
             }

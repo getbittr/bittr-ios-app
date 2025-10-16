@@ -403,6 +403,22 @@ extension SendViewController {
                         } else {
                             return spendableBtcAmount
                         }
+                    case .CoinSelection(errorMessage: let errorMessage):
+                        if errorMessage.contains("Insufficient funds") {
+                            let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                            let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
+                            let minimumFees:Double = neededAmount - btcOnchain
+                            let spendableBtcAmount = btcOnchain - minimumFees
+                            if spendableBtcAmount < 0 {
+                                return 0
+                            } else if spendableBtcAmount > btcOnchain {
+                                return nil
+                            } else {
+                                return spendableBtcAmount
+                            }
+                        } else {
+                            return nil
+                        }
                     default: return nil
                     }
                 } else {
