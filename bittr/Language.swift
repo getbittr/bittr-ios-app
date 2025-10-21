@@ -475,7 +475,8 @@ class Language: NSObject {
             "InvalidHttpHeaderName": "Invalid HTTP header name.",
             "InvalidHttpHeaderValue": "Invalid HTTP header value.",
             "RequestAlreadyConsumed": "Request already consumed.",
-            "InvalidResponse": "Invalid response."
+            "InvalidResponse": "Invalid response.",
+            "academybeta": "Academy (beta)"
             
         ]
         

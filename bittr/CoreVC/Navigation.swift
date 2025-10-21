@@ -11,6 +11,10 @@ extension CoreViewController {
 
     @IBAction func menuButtonTapped(_ sender: UIButton) {
         
+        if sender.tag == 1 {
+            self.loadInfoVC()
+        }
+        
         let centerConstants:[CGFloat] = [-99, 0, 100]
         let centerXConstant = centerConstants[sender.tag]
         let leadingConstant = CGFloat(sender.tag * -1) * self.view.safeAreaLayoutGuide.layoutFrame.size.width
@@ -19,7 +23,49 @@ extension CoreViewController {
             self.selectedViewCenterX.constant = centerXConstant
             self.homeContainerViewLeading.constant = leadingConstant
             self.homeContainerViewTrailing.constant = leadingConstant
+            self.middleWhite.layer.shadowOpacity = {
+                if sender.tag == 1, CacheManager.academyBetaIsOn() {
+                    return 0.1
+                } else {
+                    return 0
+                }
+            }()
             self.view.layoutIfNeeded()
+        } completion: { _ in
+            if sender.tag != 1 {
+                self.hideInfoVC()
+            }
+        }
+    }
+    
+    
+    func loadInfoVC() {
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        let vcIdentifier:String = {
+            if CacheManager.academyBetaIsOn() {
+                return "Academy"
+            } else {
+                return "Info"
+            }
+        }()
+        let newChild = storyboard.instantiateViewController(withIdentifier: vcIdentifier)
+        
+        if let newChild = newChild as? InfoViewController {
+            newChild.coreVC = self
+            self.infoVC = newChild
+        }
+        
+        self.addChild(newChild)
+        newChild.view.frame.size = self.infoContainerView.frame.size
+        self.infoContainerView.addSubview(newChild.view)
+        newChild.didMove(toParent: self)
+    }
+    
+    func hideInfoVC() {
+        if self.infoContainerView.subviews.count > 0 {
+            for eachSubview in self.infoContainerView.subviews {
+                eachSubview.removeFromSuperview()
+            }
         }
     }
     
@@ -39,11 +85,6 @@ extension CoreViewController {
             if let homeVC = segue.destination as? HomeViewController {
                 homeVC.coreVC = self
                 self.homeVC = homeVC
-            }
-        } else if segue.identifier == "CoreToInfo" {
-            if let infoVC = segue.destination as? InfoViewController {
-                infoVC.coreVC = self
-                self.infoVC = infoVC
             }
         } else if segue.identifier == "CoreToQuestion" {
             if let questionVC = segue.destination as? QuestionViewController {

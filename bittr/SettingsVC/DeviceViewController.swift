@@ -73,6 +73,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     @IBOutlet weak var darkModeSwitch: UISwitch!
     @IBOutlet weak var darkModeLabel: UILabel!
     
+    // Academy beta
+    @IBOutlet weak var academyView: UIView!
+    @IBOutlet weak var academySwitch: UISwitch!
+    @IBOutlet weak var academyLabel: UILabel!
+    
     // Other VCs
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
@@ -102,6 +107,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.notificationView.layer.cornerRadius = 13
         self.channelsView.layer.cornerRadius = 13
         self.darkModeView.layer.cornerRadius = 13
+        self.academyView.layer.cornerRadius = 13
         
         // Notifications
         NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
@@ -110,6 +116,10 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         if CacheManager.darkModeIsOn() {
             self.darkModeSwitch.setOn(true, animated: false)
+        }
+        
+        if CacheManager.academyBetaIsOn() {
+            self.academySwitch.setOn(true, animated: false)
         }
         
         self.changeColors()
@@ -426,6 +436,10 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
+    @IBAction func academyBetaSwitched(_ sender: UISwitch) {
+        CacheManager.updateAcademyBeta(isOn: sender.isOn)
+    }
+    
     @IBAction func darkModeSwitched(_ sender: UISwitch) {
         if sender.isOn {
             // Dark mode has been switched on.
@@ -471,6 +485,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.channelsLabel.textColor = Colors.getColor("blackorwhite")
         self.imagesLeftLabel.textColor = Colors.getColor("blackorwhite")
         self.imagesRightLabel.textColor = Colors.getColor("blackorwhite")
+        self.academyLabel.textColor = Colors.getColor("blackorwhite")
         
         self.questionCircle.tintColor = Colors.getColor("blackorwhite")
         
@@ -495,6 +510,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.imagesLeftLabel.text = "🎞️  " + Language.getWord(withID: "cachedimages")
         self.imagesRightLabel.text = Language.getWord(withID: "empty")
         self.languageLeftLabel.text = "🌍  " + Language.getWord(withID: "language")
+        self.academyLabel.text = "🎓  " + Language.getWord(withID: "academybeta")
     }
     
 }

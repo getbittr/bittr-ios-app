@@ -32,23 +32,23 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
 
         // Table and Collection views
-        infoTableView.delegate = self
-        infoTableView.dataSource = self
-        articlesCollectionView.delegate = self
-        articlesCollectionView.dataSource = self
-        articlesCollectionView.contentInset = UIEdgeInsets(top: 0, left: 7, bottom: 0, right: 7)
+        self.infoTableView.delegate = self
+        self.infoTableView.dataSource = self
+        self.articlesCollectionView.delegate = self
+        self.articlesCollectionView.dataSource = self
+        self.articlesCollectionView.contentInset = UIEdgeInsets(top: 0, left: 7, bottom: 0, right: 7)
         
         // Headers
-        newsHeader.layer.cornerRadius = 13
-        newsHeader.layer.shadowColor = UIColor.black.cgColor
-        newsHeader.layer.shadowOffset = CGSize(width: 0, height: 5)
-        newsHeader.layer.shadowRadius = 8.0
-        newsHeader.layer.shadowOpacity = 0.1
-        faqHeader.layer.cornerRadius = 13
-        faqHeader.layer.shadowColor = UIColor.black.cgColor
-        faqHeader.layer.shadowOffset = CGSize(width: 0, height: 5)
-        faqHeader.layer.shadowRadius = 8.0
-        faqHeader.layer.shadowOpacity = 0.1
+        self.newsHeader.layer.cornerRadius = 13
+        self.newsHeader.layer.shadowColor = UIColor.black.cgColor
+        self.newsHeader.layer.shadowOffset = CGSize(width: 0, height: 5)
+        self.newsHeader.layer.shadowRadius = 8.0
+        self.newsHeader.layer.shadowOpacity = 0.1
+        self.faqHeader.layer.cornerRadius = 13
+        self.faqHeader.layer.shadowColor = UIColor.black.cgColor
+        self.faqHeader.layer.shadowOffset = CGSize(width: 0, height: 5)
+        self.faqHeader.layer.shadowRadius = 8.0
+        self.faqHeader.layer.shadowOpacity = 0.1
         
         // Download articles.
         self.setWords()
@@ -79,6 +79,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
             }
         } else {
+            self.everyArticle = self.coreVC!.allArticles!
             self.updateArticlesTable()
         }
     }

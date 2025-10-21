@@ -41,6 +41,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var homeContainerView: UIView!
     @IBOutlet weak var homeContainerViewLeading: NSLayoutConstraint!
     @IBOutlet weak var homeContainerViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var infoContainerView: UIView!
     
     // Menu bar elements
     @IBOutlet weak var menuBarView: UIView!
@@ -159,6 +160,11 @@ class CoreViewController: UIViewController {
         
         // Opacities
         self.yellowcurve.alpha = 0.85
+        
+        // Middle menu item shadow
+        self.middleWhite.layer.shadowColor = UIColor.black.cgColor
+        self.middleWhite.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.middleWhite.layer.shadowRadius = 10.0
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)

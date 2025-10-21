@@ -1031,6 +1031,22 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Academy beta
+    
+    static func updateAcademyBeta(isOn:Bool) {
+        UserDefaults.standard.set(isOn, forKey: "academybeta")
+    }
+    
+    static func academyBetaIsOn() -> Bool {
+        if let academyStatus = UserDefaults.standard.value(forKey: "academybeta") as? Bool {
+            return academyStatus
+        } else {
+            return false
+        }
+    }
+    
+    // MARK: - Language settings
+    
     static func getLanguage() -> String {
         
         if let selectedLanguage = UserDefaults.standard.value(forKey: "language") as? String {

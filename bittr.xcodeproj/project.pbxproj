@@ -12,6 +12,7 @@
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
 		05117AB52E979E3D00A5E4E6 /* BDKErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AB42E979E3300A5E4E6 /* BDKErrors.swift */; };
+		05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -184,6 +185,7 @@
 		050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup1ViewController.swift; sourceTree = "<group>"; };
 		050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup2ViewController.swift; sourceTree = "<group>"; };
 		05117AB42E979E3300A5E4E6 /* BDKErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKErrors.swift; sourceTree = "<group>"; };
+		05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcademyViewController.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -386,6 +388,14 @@
 				051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */,
 			);
 			path = Signup;
+			sourceTree = "<group>";
+		};
+		05117AD42EA381A400A5E4E6 /* Academy */ = {
+			isa = PBXGroup;
+			children = (
+				05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */,
+			);
+			path = Academy;
 			sourceTree = "<group>";
 		};
 		0579B26F2A0530DB0007891F /* Move, Send, Receive */ = {
@@ -667,6 +677,7 @@
 		05F8DC5829F2B436008052B5 /* InfoVC */ = {
 			isa = PBXGroup;
 			children = (
+				05117AD42EA381A400A5E4E6 /* Academy */,
 				05F8DC5A29F2B45F008052B5 /* InfoViewController.swift */,
 				0521712B2CB41D32006C5663 /* InfoVCLanguage.swift */,
 				05F8DC5E29F2E212008052B5 /* ArticleTableViewCell.swift */,
@@ -999,6 +1010,7 @@
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
 				3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
+				05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */,
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
