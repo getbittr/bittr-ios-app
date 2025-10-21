@@ -96,6 +96,9 @@ class CoreViewController: UIViewController {
     var allArticles:[String:Article]?
     var allImages:[String:Data]?
     
+    // Academy
+    var downloadedAcademy:[Level]?
+    
     // Elements for QuestionVC
     var tappedQuestion = ""
     var tappedAnswer = ""

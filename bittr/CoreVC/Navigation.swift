@@ -53,6 +53,8 @@ extension CoreViewController {
         if let newChild = newChild as? InfoViewController {
             newChild.coreVC = self
             self.infoVC = newChild
+        } else if let newChild = newChild as? AcademyViewController {
+            newChild.coreVC = self
         }
         
         self.addChild(newChild)

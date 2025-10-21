@@ -13,6 +13,12 @@
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
 		05117AB52E979E3D00A5E4E6 /* BDKErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AB42E979E3300A5E4E6 /* BDKErrors.swift */; };
 		05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */; };
+		05117AD82EA7328500A5E4E6 /* Component.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD72EA7325B00A5E4E6 /* Component.swift */; };
+		05117ADA2EA732FC00A5E4E6 /* Page.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD92EA732F700A5E4E6 /* Page.swift */; };
+		05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117ADB2EA7333800A5E4E6 /* Lesson.swift */; };
+		05117ADE2EA7337F00A5E4E6 /* Level.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117ADD2EA7337D00A5E4E6 /* Level.swift */; };
+		05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */; };
+		05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -186,6 +192,12 @@
 		050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup2ViewController.swift; sourceTree = "<group>"; };
 		05117AB42E979E3300A5E4E6 /* BDKErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKErrors.swift; sourceTree = "<group>"; };
 		05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcademyViewController.swift; sourceTree = "<group>"; };
+		05117AD72EA7325B00A5E4E6 /* Component.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Component.swift; sourceTree = "<group>"; };
+		05117AD92EA732F700A5E4E6 /* Page.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Page.swift; sourceTree = "<group>"; };
+		05117ADB2EA7333800A5E4E6 /* Lesson.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lesson.swift; sourceTree = "<group>"; };
+		05117ADD2EA7337D00A5E4E6 /* Level.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Level.swift; sourceTree = "<group>"; };
+		05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelTableViewCell.swift; sourceTree = "<group>"; };
+		05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonCollectionViewCell.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -394,6 +406,12 @@
 			isa = PBXGroup;
 			children = (
 				05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */,
+				05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */,
+				05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */,
+				05117ADD2EA7337D00A5E4E6 /* Level.swift */,
+				05117ADB2EA7333800A5E4E6 /* Lesson.swift */,
+				05117AD92EA732F700A5E4E6 /* Page.swift */,
+				05117AD72EA7325B00A5E4E6 /* Component.swift */,
 			);
 			path = Academy;
 			sourceTree = "<group>";
@@ -963,6 +981,7 @@
 				05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
 				37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */,
+				05117AD82EA7328500A5E4E6 /* Component.swift in Sources */,
 				05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */,
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
 				05F8DC5F29F2E212008052B5 /* ArticleTableViewCell.swift in Sources */,
@@ -990,7 +1009,9 @@
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
 				053022002E7803BC00B23226 /* SendVCTextFields.swift in Sources */,
+				05117ADA2EA732FC00A5E4E6 /* Page.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
+				05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
 				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
@@ -1017,6 +1038,7 @@
 				053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */,
 				05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
+				05117ADE2EA7337F00A5E4E6 /* Level.swift in Sources */,
 				053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */,
 				05980B522A46F76E001F312F /* IbanEntity.swift in Sources */,
 				05C811232B37107700DEFBB1 /* LightningPaymentViewController.swift in Sources */,
@@ -1042,8 +1064,10 @@
 				05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				0521712C2CB41D37006C5663 /* InfoVCLanguage.swift in Sources */,
+				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
+				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,
 				37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */,
 				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
 				05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */,
