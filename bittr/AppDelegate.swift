@@ -196,6 +196,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Only handle background notifications here, not foreground ones
         // Foreground notifications are handled in willPresent method
         if UIApplication.shared.applicationState != .active {
+            // Set flag to indicate we received a notification while app was closed
+            UserDefaults.standard.set(true, forKey: "receivedNotificationWhileClosed")
+            print("Set receivedNotificationWhileClosed flag to true")
+            
             if let actualUserInfo = userInfo as [AnyHashable:Any]? {
                 // Check if it's a Lightning payment or another message.
                 if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
