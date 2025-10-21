@@ -32,6 +32,9 @@ extension CoreViewController {
             if self.userDidSignIn {
                 // User is signed in, handle notification immediately
                 self.handleLightningAddressNotificationImmediately(amountMsats: amountMsats, descriptionHash: descriptionHash, timeSent: timeSent, username: username, endpoint: endpoint)
+                
+                // Clear the flag after handling
+                UserDefaults.standard.set(false, forKey: "receivedNotificationWhileClosed")
             } else {
                 // User hasn't signed in yet, store notification for later
                 self.needsToHandleNotification = true

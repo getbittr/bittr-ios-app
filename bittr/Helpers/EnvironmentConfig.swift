@@ -65,17 +65,17 @@ struct EnvironmentConfig {
     
     /// Network selection based on environment
     static var network: BitcoinNetwork {
-        isDevelopment ? .regtest : .bitcoin
+        isDevelopment ? .signet : .bitcoin
     }
     
     /// LDK Network selection based on environment
     static var ldkNetwork: LDKNode.Network {
-        isDevelopment ? .regtest : .bitcoin
+        isDevelopment ? .signet : .bitcoin
     }
     
     /// BitcoinDevKit Network selection based on environment
     static var bitcoinDevKitNetwork: BitcoinDevKit.Network {
-        isDevelopment ? .regtest : .bitcoin
+        isDevelopment ? .signet : .bitcoin
     }
     
     // MARK: - API Endpoints
@@ -97,17 +97,17 @@ struct EnvironmentConfig {
     
     /// Electrum URL based on environment
     static var electrumURL: String {
-        isDevelopment ? "tcp://regtest.getbittr.com:19001" : "ssl://electrum.blockstream.info:50002"
+        isDevelopment ? "ssl://mempool.space:60602" : "ssl://electrum.blockstream.info:50002"
     }
     
     /// Esplora URL based on environment
     static var esploraURL: String {
-        isDevelopment ? "https://esplora.regtest.getbittr.com/api" : "https://blockstream.info/api"
+        isDevelopment ? "https://mempool.space/signet/api" : "https://blockstream.info/api"
     }
 
     /// Block explorer URL based on environment
     static var explorerURL: String {
-        isDevelopment ? "https://esplora.regtest.getbittr.com" : "https://mempool.space"
+        isDevelopment ? "https://mempool.space/signet" : "https://mempool.space"
     }
     
     /// RGS Server URL based on environment
@@ -119,12 +119,12 @@ struct EnvironmentConfig {
     
     /// Lightning node IDs based on environment
     static var lightningNodeId: String {
-        isDevelopment ? "03aebee123ac275292e0c82486fd9c50292f90c14abd7d070e0123587be524d975" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
+        isDevelopment ? "03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
     }
     
     /// Lightning node addresses based on environment
     static var lightningNodeAddress: String {
-        isDevelopment ? "31.58.51.17:19735" : "86.104.228.24:9735"
+        isDevelopment ? "109.205.181.232:29735" : "86.104.228.24:9735"
     }
     
     // MARK: - Cache Configuration
@@ -156,7 +156,7 @@ extension EnvironmentConfig {
         static let bitcoinBlockstream = "https://blockstream.info/api"
         static let bitcoinMempoolspace = "https://mempool.space/api"
         static let regtest = "https://esplora.regtest.getbittr.com/api"
-        static let signet = "https://mutinynet.com/api"
+        static let signet = "https://mempool.space/signet/api"
         static let testnet = "https://mempool.space/testnet4/api"
     }
     
