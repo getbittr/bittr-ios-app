@@ -119,19 +119,10 @@ extension PaymentDetails {
         
         thisTransaction.id = self.kind.preimageAsString ?? self.id
         thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
-        
-        // Debug: Log the Lightning payment conversion
-        let amountMsat = self.amountMsat ?? 0
-        let amountSats = Int(amountMsat)/1000
-        print("DEBUG - PaymentDetails.createTransaction conversion:")
-        print("  - amountMsat: \(amountMsat)")
-        print("  - amountSats: \(amountSats)")
-        print("  - direction: \(self.direction)")
-        
         if self.direction == .inbound {
-            thisTransaction.received = amountSats
+            thisTransaction.received = Int(self.amountMsat ?? 0)/1000
         } else {
-            thisTransaction.sent = amountSats
+            thisTransaction.sent = Int(self.amountMsat ?? 0)/1000
             thisTransaction.fee = CacheManager.getLightningFees(preimage: thisTransaction.id)
         }
         thisTransaction.isLightning = true
@@ -167,17 +158,7 @@ extension BittrTransaction {
         
         thisTransaction.id = self.txId
         thisTransaction.sent = 0
-        
-        // Debug: Log the conversion process
-        let bitcoinAmountString = self.bitcoinAmount
-        let bitcoinAmountNumber = bitcoinAmountString.toNumber()
-        let bitcoinAmountSatoshis = bitcoinAmountNumber.inSatoshis()
-        print("DEBUG - BittrTransaction.createTransaction conversion:")
-        print("  - bitcoinAmount string: '\(bitcoinAmountString)'")
-        print("  - bitcoinAmount number: \(bitcoinAmountNumber)")
-        print("  - bitcoinAmount satoshis: \(bitcoinAmountSatoshis)")
-        
-        thisTransaction.received = bitcoinAmountSatoshis
+        thisTransaction.received = self.bitcoinAmount.toNumber().inSatoshis()
         thisTransaction.isLightning = true
         thisTransaction.isFundingTransaction = isFundingTransaction
         
