@@ -183,6 +183,19 @@ class CoreViewController: UIViewController {
             // Show SignupVC.
             self.launchSignup(onPage: 3)
         }
+        
+        // Check for pending notifications as a fallback
+        checkForPendingNotifications()
+    }
+    
+    private func checkForPendingNotifications() {
+        // Check if we have a pending payment notification as a fallback
+        if let pendingPaymentNotification = UserDefaults.standard.dictionary(forKey: "pendingPaymentNotification") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: pendingPaymentNotification) as Notification)
+            }
+            UserDefaults.standard.removeObject(forKey: "pendingPaymentNotification")
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {

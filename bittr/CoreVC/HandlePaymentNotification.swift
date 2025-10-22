@@ -15,6 +15,11 @@ extension CoreViewController {
     
     @objc func handlePaymentNotification(notification:NSNotification) {
         
+        print("=== handlePaymentNotification called ===")
+        print("userDidSignIn: \(self.userDidSignIn)")
+        print("wasNotified: \(self.wasNotified)")
+        print("needsToHandleNotification: \(self.needsToHandleNotification)")
+        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             
             // Check for the special key that indicates this is a silent notification.
@@ -29,13 +34,16 @@ extension CoreViewController {
                 
                 if self.userDidSignIn {
                     // User has signed in.
+                    print("User is signed in, processing notification")
                     
                     if !receivedNotificationWhileClosed && !self.wasNotified {
                         // App was open when notification came in.
+                        print("App was open when notification came in - showing alert")
                         self.varSpecialData = specialData
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
+                        print("App was closed when notification came in - processing immediately")
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                         self.showPendingView()
                         
@@ -44,11 +52,12 @@ extension CoreViewController {
                         self.needsToHandleNotification = false
                     }
                     
-                    // Always clear the flag after handling, regardless of which path we took
+                    // Clear the flag after handling, regardless of which path we took
                     UserDefaults.standard.set(false, forKey: "receivedNotificationWhileClosed")
                     print("Cleared receivedNotificationWhileClosed flag")
                 } else {
                     // User hasn't signed in yet.
+                    print("User not signed in - storing notification for later")
                     self.needsToHandleNotification = true
                     self.wasNotified = true
                     self.lightningNotification = notification

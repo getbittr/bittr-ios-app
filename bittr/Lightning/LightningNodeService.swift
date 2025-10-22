@@ -76,6 +76,15 @@ class LightningNodeService {
         let nodeBuilder = Builder.fromConfig(config: config)
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
+        // Configure LSP2 liquidity source to allow channels to be used up to 100% capacity
+        // rather than the default 10% limit imposed by LDK. This enables better channel utilization
+        // for receiving payments, though we're not yet using the full LSP2 specification.
+        nodeBuilder.setLiquiditySourceLsps2(
+            nodeId: PublicKey(EnvironmentConfig.lightningNodeId),
+            address: EnvironmentConfig.lightningNodeAddress,
+            token: ""
+        )
+        
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.bitcoin)
