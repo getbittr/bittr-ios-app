@@ -67,14 +67,9 @@ class OneLessonViewController: UIViewController {
             addedComponents += 1
         }
         
-        let firstPage:Bool = {
-            if self.currentPage == 0 {
-                return true
-            } else {
-                return false
-            }
-        }()
-        self.addButton(previousComponent: self.thisLesson!.pages[pageNumber].components.last?.type, firstPage: firstPage)
+        let firstPage = self.currentPage == 0 ? true : false
+        let lastPage = self.currentPage == (self.thisLesson!.pages.count - 1) ? true : false
+        self.addButton(previousComponent: self.thisLesson!.pages[pageNumber].components.last?.type, firstPage: firstPage, lastPage: lastPage)
     }
     
     @objc func previousPage() {

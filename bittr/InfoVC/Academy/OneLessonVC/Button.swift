@@ -9,7 +9,7 @@ import UIKit
 
 extension OneLessonViewController {
     
-    func addButton(previousComponent:ComponentType?, firstPage:Bool) {
+    func addButton(previousComponent:ComponentType?, firstPage:Bool, lastPage:Bool) {
         
         let containerView = UIView()
         containerView.backgroundColor = .clear
@@ -42,13 +42,7 @@ extension OneLessonViewController {
         let backButtonStackLeft = NSLayoutConstraint(item: backButtonStack, attribute: .leading, relatedBy: .equal, toItem: containerView, attribute: .leading, multiplier: 1, constant: 0)
         let backButtonStackTop = NSLayoutConstraint(item: backButtonStack, attribute: .top, relatedBy: .equal, toItem: containerView, attribute: .top, multiplier: 1, constant: 0)
         let backButtonStackBottom = NSLayoutConstraint(item: backButtonStack, attribute: .bottom, relatedBy: .equal, toItem: containerView, attribute: .bottom, multiplier: 1, constant: 0)
-        let backButtonStackWidth = NSLayoutConstraint(item: backButtonStack, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: {
-            if firstPage {
-                return 0
-            } else {
-                return buttonHeight + 5
-            }
-        }())
+        let backButtonStackWidth = NSLayoutConstraint(item: backButtonStack, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: firstPage ? 0 : (buttonHeight + 7))
         
         backButtonStack.addConstraint(backButtonStackWidth)
         containerView.addConstraints([backButtonStackLeft, backButtonStackTop, backButtonStackBottom])
@@ -115,7 +109,7 @@ extension OneLessonViewController {
         
         let nextLabel = UILabel()
         nextLabel.font = UIFont(name: "Gilroy-Bold", size: 14)
-        nextLabel.text = "Next"
+        nextLabel.text = lastPage ? "Complete" : "Next"
         nextLabel.translatesAutoresizingMaskIntoConstraints = false
         nextLabel.numberOfLines = 1
         nextLabel.textColor = .white
@@ -124,7 +118,7 @@ extension OneLessonViewController {
         let nextLabelCenterY = NSLayoutConstraint(item: nextLabel, attribute: .centerY, relatedBy: .equal, toItem: nextButtonView, attribute: .centerY, multiplier: 1, constant: 1)
         let nextLabelWidth = NSLayoutConstraint(item: nextLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
         let nextLabelHeight = NSLayoutConstraint(item: nextLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-        let nextLabelLeft = NSLayoutConstraint(item: nextLabel, attribute: .leading, relatedBy: .equal, toItem: nextButtonView, attribute: .leading, multiplier: 1, constant: 16)
+        let nextLabelLeft = NSLayoutConstraint(item: nextLabel, attribute: .leading, relatedBy: .equal, toItem: nextButtonView, attribute: .leading, multiplier: 1, constant: 17)
         
         nextLabel.addConstraints([nextLabelHeight, nextLabelWidth])
         nextButtonView.addConstraints([nextLabelLeft, nextLabelCenterY])
@@ -138,7 +132,7 @@ extension OneLessonViewController {
         let nextIconHeight = NSLayoutConstraint(item: nextIcon, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 11)
         let nextIconWidth = NSLayoutConstraint(item: nextIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 11)
         let nextIconCenterY = NSLayoutConstraint(item: nextIcon, attribute: .centerY, relatedBy: .equal, toItem: nextButtonView, attribute: .centerY, multiplier: 1, constant: 0)
-        let nextIconRight = NSLayoutConstraint(item: nextIcon, attribute: .trailing, relatedBy: .equal, toItem: nextButtonView, attribute: .trailing, multiplier: 1, constant: -16)
+        let nextIconRight = NSLayoutConstraint(item: nextIcon, attribute: .trailing, relatedBy: .equal, toItem: nextButtonView, attribute: .trailing, multiplier: 1, constant: -17)
         let nextIconLeft = NSLayoutConstraint(item: nextIcon, attribute: .leading, relatedBy: .equal, toItem: nextLabel, attribute: .trailing, multiplier: 1, constant: 10)
         
         nextIcon.addConstraints([nextIconWidth, nextIconHeight])
@@ -157,8 +151,6 @@ extension OneLessonViewController {
         let nextButtonRight = NSLayoutConstraint(item: nextButton, attribute: .trailing, relatedBy: .equal, toItem: nextButtonView, attribute: .trailing, multiplier: 1, constant: 0)
         
         nextButtonView.addConstraints([nextButtonTop, nextButtonLeft, nextButtonRight, nextButtonBottom])
-        
-        
         
         self.centerView.layoutIfNeeded()
     }

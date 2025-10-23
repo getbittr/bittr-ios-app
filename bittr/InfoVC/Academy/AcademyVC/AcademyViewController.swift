@@ -37,62 +37,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             self.academyTableView.reloadData()
         } else {
             // Download levels.
-            
-            // Demo data
-            let firstLabel = Component()
-            firstLabel.order = 0
-            firstLabel.type = .label
-            firstLabel.text = "Bitcoin was introduced by Satoshi Nakamoto, to create a new kind of digital money."
-            let secondLabel = Component()
-            secondLabel.order = 1
-            secondLabel.type = .label
-            secondLabel.text = "The idea was simple: people could send payments directly to each other without using a bank or any other middleman."
-            let firstPage = Page()
-            firstPage.order = 0
-            firstPage.components = [firstLabel, secondLabel]
-            
-            let page2label1 = Component()
-            page2label1.order = 0
-            page2label1.type = .label
-            page2label1.text = "Unlike fiat money, Bitcoin isn’t controlled by any one group or government. It’s decentralized and follows strict rules that keep it running. This means no one owns or can manipulate Bitcoin on their own."
-            let page2 = Page()
-            page2.order = 1
-            page2.components = [page2label1]
-            
-            let lesson1 = Lesson()
-            lesson1.order = 0
-            lesson1.pages = [firstPage, page2]
-            lesson1.title = "What is bitcoin?"
-            let lesson2 = Lesson()
-            lesson2.order = 1
-            lesson2.pages = [firstPage]
-            lesson2.title = "What are satoshis?"
-            let lesson3 = Lesson()
-            lesson3.order = 2
-            lesson3.pages = [firstPage]
-            lesson3.title = "The problem with fiat currencies"
-            let lesson4 = Lesson()
-            lesson4.order = 3
-            lesson4.pages = [firstPage]
-            lesson4.title = "Why do people invest in bitcoin?"
-            let lesson5 = Lesson()
-            lesson5.order = 4
-            lesson5.pages = [firstPage]
-            lesson5.title = "Why is bitcoin volatile?"
-            let lesson6 = Lesson()
-            lesson6.order = 5
-            lesson6.pages = [firstPage]
-            lesson6.title = "What is mining?"
-            
-            let firstLevel = Level()
-            firstLevel.order = 0
-            firstLevel.lessons = [lesson1, lesson2, lesson3, lesson4, lesson5, lesson6]
-            
-            let secondLevel = Level()
-            secondLevel.order = 1
-            secondLevel.lessons = [lesson1, lesson2, lesson3]
-            
-            self.coreVC!.downloadedAcademy = [firstLevel, secondLevel]
+            self.coreVC!.downloadedAcademy = self.getDemoData()
             
             self.academyTableView.reloadData()
         }
