@@ -23,6 +23,7 @@ extension HomeViewController {
         // Calculate lightning balance by adding up the values of each channel.
         if LightningNodeService.shared.ldkNode != nil {
             self.coreVC!.bittrWallet.satoshisLightning = Int(LightningNodeService.shared.ldkNode!.listBalances().totalLightningBalanceSats)
+            print("Lightning balances: \(LightningNodeService.shared.ldkNode!.listBalances())")
         } else {
             self.coreVC!.bittrWallet.satoshisLightning = 0
             for eachChannel in self.coreVC!.bittrWallet.lightningChannels {

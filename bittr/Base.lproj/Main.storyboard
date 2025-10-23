@@ -8481,14 +8481,21 @@
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <prototypes>
                                     <tableViewCell contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="none" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="LevelCell" id="a9u-Wd-UIy" customClass="LevelTableViewCell" customModule="bittr" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="50" width="393" height="44"/>
+                                        <rect key="frame" x="0.0" y="50" width="393" height="500"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="a9u-Wd-UIy" id="VPa-EB-kCH">
-                                            <rect key="frame" x="0.0" y="0.0" width="393" height="44"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="393" height="500"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
+                                                <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="n3O-o3-0qh">
+                                                    <rect key="frame" x="0.0" y="0.0" width="393" height="500"/>
+                                                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                    <constraints>
+                                                        <constraint firstAttribute="height" constant="500" id="OIM-Tu-UEG"/>
+                                                    </constraints>
+                                                </view>
                                                 <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wOx-7d-2J3">
-                                                    <rect key="frame" x="15" y="0.0" width="363" height="0.0"/>
+                                                    <rect key="frame" x="15" y="0.0" width="363" height="86.666666666666671"/>
                                                     <subviews>
                                                         <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="iconacademy" translatesAutoresizingMaskIntoConstraints="NO" id="1r9-N9-Frk">
                                                             <rect key="frame" x="20" y="18.666666666666668" width="18" height="18.000000000000004"/>
@@ -8518,7 +8525,7 @@
                                                             <nil key="highlightedColor"/>
                                                         </label>
                                                         <collectionView multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" scrollEnabled="NO" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="NNh-ja-bZ8">
-                                                            <rect key="frame" x="20" y="58.666666666666664" width="323" height="0.0"/>
+                                                            <rect key="frame" x="20" y="61.666666666666664" width="323" height="0.0"/>
                                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                             <constraints>
                                                                 <constraint firstAttribute="height" relation="lessThanOrEqual" constant="800" id="Vy7-4L-7qE"/>
@@ -8533,11 +8540,11 @@
                                                                 <collectionViewCell opaque="NO" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="LessonCell" id="bJT-XL-71f" customClass="LessonCollectionViewCell" customModule="bittr" customModuleProvider="target">
                                                                     <rect key="frame" x="0.0" y="0.0" width="128" height="128"/>
                                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                                    <collectionViewCellContentView key="contentView" opaque="NO" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" id="J7n-2u-shf">
+                                                                    <collectionViewCellContentView key="contentView" opaque="NO" multipleTouchEnabled="YES" contentMode="center" ambiguous="YES" insetsLayoutMarginsFromSafeArea="NO" id="J7n-2u-shf">
                                                                         <rect key="frame" x="0.0" y="0.0" width="128" height="128"/>
                                                                         <autoresizingMask key="autoresizingMask"/>
                                                                         <subviews>
-                                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="p4g-Q8-wrQ">
+                                                                            <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p4g-Q8-wrQ">
                                                                                 <rect key="frame" x="34" y="0.0" width="60" height="60"/>
                                                                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <constraints>
@@ -8545,7 +8552,7 @@
                                                                                     <constraint firstAttribute="width" constant="60" id="nD7-cD-BaX"/>
                                                                                 </constraints>
                                                                             </view>
-                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rkN-45-mAZ">
+                                                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rkN-45-mAZ">
                                                                                 <rect key="frame" x="0.0" y="73" width="128" height="55"/>
                                                                                 <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="15"/>
                                                                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -8591,14 +8598,19 @@
                                             </subviews>
                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                             <constraints>
+                                                <constraint firstItem="n3O-o3-0qh" firstAttribute="leading" secondItem="VPa-EB-kCH" secondAttribute="leading" id="1VJ-LW-9Je"/>
                                                 <constraint firstItem="wOx-7d-2J3" firstAttribute="top" secondItem="VPa-EB-kCH" secondAttribute="top" id="8UI-Jp-mZP"/>
+                                                <constraint firstAttribute="bottom" secondItem="n3O-o3-0qh" secondAttribute="bottom" id="ELd-pU-36h"/>
+                                                <constraint firstItem="n3O-o3-0qh" firstAttribute="top" secondItem="VPa-EB-kCH" secondAttribute="top" id="Hvt-Fd-4am"/>
                                                 <constraint firstItem="wOx-7d-2J3" firstAttribute="leading" secondItem="VPa-EB-kCH" secondAttribute="leading" constant="15" id="Zwt-qY-pdR"/>
+                                                <constraint firstAttribute="trailing" secondItem="n3O-o3-0qh" secondAttribute="trailing" id="jgk-SX-WmD"/>
                                                 <constraint firstAttribute="trailing" secondItem="wOx-7d-2J3" secondAttribute="trailing" constant="15" id="zPC-Pg-G8Y"/>
                                             </constraints>
                                         </tableViewCellContentView>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <connections>
                                             <outlet property="cardView" destination="wOx-7d-2J3" id="gMw-C6-wql"/>
+                                            <outlet property="cellHeight" destination="OIM-Tu-UEG" id="JiU-uh-J84"/>
                                             <outlet property="countLabel" destination="7Vf-b9-XA6" id="XRr-jA-oT8"/>
                                             <outlet property="lessonsCollectionView" destination="NNh-ja-bZ8" id="AaY-EQ-4f9"/>
                                             <outlet property="lessonsCollectionViewHeight" destination="Vy7-4L-7qE" id="yhq-fL-WmI"/>

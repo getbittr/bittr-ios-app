@@ -22,6 +22,8 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         self.academyTableView.delegate = self
         self.academyTableView.dataSource = self
         self.academyTableView.contentInset = UIEdgeInsets(top: 90, left: 0, bottom: 100, right: 0)
+        self.academyTableView.rowHeight = UITableView.automaticDimension
+        self.academyTableView.estimatedRowHeight = 300
         
         // Get Academy levels.
         self.getLevels()
@@ -42,35 +44,41 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             let firstPage = Page()
             firstPage.order = 0
             firstPage.components = [labelComponent]
+            
             let lesson1 = Lesson()
             lesson1.order = 0
             lesson1.pages = [firstPage]
-            lesson1.title = "First lesson"
+            lesson1.title = "What is bitcoin?"
             let lesson2 = Lesson()
             lesson2.order = 1
             lesson2.pages = [firstPage]
-            lesson2.title = "Second lesson"
+            lesson2.title = "What are satoshis?"
             let lesson3 = Lesson()
             lesson3.order = 2
             lesson3.pages = [firstPage]
-            lesson3.title = "Third lesson (extra long)"
+            lesson3.title = "The problem with fiat currencies"
             let lesson4 = Lesson()
             lesson4.order = 3
             lesson4.pages = [firstPage]
-            lesson4.title = "Fourth lesson long"
+            lesson4.title = "Why do people invest in bitcoin?"
             let lesson5 = Lesson()
             lesson5.order = 4
             lesson5.pages = [firstPage]
-            lesson5.title = "Fifth lesson"
+            lesson5.title = "Why is bitcoin volatile?"
             let lesson6 = Lesson()
             lesson6.order = 5
             lesson6.pages = [firstPage]
-            lesson6.title = "Sixth lesson (very very long) indeed"
+            lesson6.title = "What is mining?"
+            
             let firstLevel = Level()
             firstLevel.order = 0
             firstLevel.lessons = [lesson1, lesson2, lesson3, lesson4, lesson5, lesson6]
             
-            self.coreVC!.downloadedAcademy = [firstLevel]
+            let secondLevel = Level()
+            secondLevel.order = 1
+            secondLevel.lessons = [lesson1, lesson2, lesson3]
+            
+            self.coreVC!.downloadedAcademy = [firstLevel, secondLevel]
             
             self.academyTableView.reloadData()
         }
@@ -88,11 +96,15 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             // Cell Z position.
             cell.layer.zPosition = CGFloat(indexPath.row)
             
-            // Level details
+            // Level details.
             cell.thisLevel = self.coreVC!.downloadedAcademy![indexPath.row]
             cell.levelLabel.text = "level \(indexPath.row + 1)"
             cell.countLabel.text = "0 of \(self.coreVC!.downloadedAcademy![indexPath.row].lessons.count)"
             cell.lessonsCollectionView.reloadData()
+            
+            // Set dynamic cell height.
+            cell.layoutSubviews()
+            cell.cellHeight.constant = cell.lessonsCollectionView.collectionViewLayout.collectionViewContentSize.height + 100
             
             return cell
         } else {

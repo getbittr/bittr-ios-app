@@ -10,6 +10,7 @@ import UIKit
 class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDataSource {
     
     // UI elements
+    @IBOutlet weak var cellHeight: NSLayoutConstraint!
     @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var levelIcon: UIImageView!
     @IBOutlet weak var levelLabel: UILabel!
@@ -69,8 +70,9 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         let newHeight = self.lessonsCollectionView.collectionViewLayout.collectionViewContentSize.height
         if newHeight.isFinite && newHeight != self.lessonsCollectionViewHeight.constant {
             self.lessonsCollectionViewHeight.constant = newHeight
-            // Tell Auto Layout this cell’s constraints changed
+            
             self.setNeedsLayout()
+            self.contentView.layoutIfNeeded()
         }
     }
     
@@ -90,8 +92,6 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         
         if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "LessonCell", for: indexPath) as? LessonCollectionViewCell {
             
-            //cell.cardWidth.constant = self.calculateCellWidth() - 40
-            //cell.cardHeight.constant = self.calculateCellWidth() - 40
             cell.lessonTitle.text = self.thisLevel.lessons[indexPath.row].title
             
             return cell
