@@ -14,6 +14,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     // Variables
     var coreVC:CoreViewController?
+    var tappedLesson:Lesson?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,6 +28,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         
         // Get Academy levels.
         self.getLevels()
+        self.changeColors()
     }
     
     func getLevels() {
@@ -113,9 +115,26 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     @IBAction func lessonTapped(_ sender: UIButton) {
-        if let tappedLesson = sender.accessibilityElements?.first as? Lesson {
-            print("Tapped lesson: \(tappedLesson.title)")
+        
+        if let thisTappedLesson = sender.accessibilityElements?.first as? Lesson {
+            
+            self.tappedLesson = thisTappedLesson
+            self.performSegue(withIdentifier: "AcademyToOneLesson", sender: self)
         }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if segue.identifier == "AcademyToOneLesson" {
+            if let oneLessonVC = segue.destination as? OneLessonViewController {
+                oneLessonVC.thisLesson = self.tappedLesson
+                oneLessonVC.coreVC = self.coreVC
+            }
+        }
+    }
+    
+    func changeColors() {
+        self.view.backgroundColor = Colors.getColor("yelloworblue3")
     }
     
 }

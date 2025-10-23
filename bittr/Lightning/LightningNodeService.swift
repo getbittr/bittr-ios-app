@@ -434,6 +434,11 @@ class LightningNodeService {
     
     func lightSync(completion: @escaping (Bool) -> Void) {
         
+        guard self.bdkWallet != nil else { return }
+        guard self.electrumClient != nil else { return }
+        guard self.coreVC != nil else { return }
+        guard self.getEsploraClient() != nil else { return }
+        
         DispatchQueue.global(qos: .background).async {
             do {
                 print("Will light sync wallet.")

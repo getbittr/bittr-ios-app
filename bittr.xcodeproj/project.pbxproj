@@ -19,6 +19,7 @@
 		05117ADE2EA7337F00A5E4E6 /* Level.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117ADD2EA7337D00A5E4E6 /* Level.swift */; };
 		05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */; };
 		05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */; };
+		05117AF12EAA1A0500A5E4E6 /* OneLessonViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -198,6 +199,7 @@
 		05117ADD2EA7337D00A5E4E6 /* Level.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Level.swift; sourceTree = "<group>"; };
 		05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelTableViewCell.swift; sourceTree = "<group>"; };
 		05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonCollectionViewCell.swift; sourceTree = "<group>"; };
+		05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneLessonViewController.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -407,6 +409,7 @@
 			children = (
 				05117AEE2EAA194200A5E4E6 /* Entities */,
 				05117AED2EAA193100A5E4E6 /* AcademyVC */,
+				05117AEF2EAA19E400A5E4E6 /* OneLessonVC */,
 			);
 			path = Academy;
 			sourceTree = "<group>";
@@ -430,6 +433,14 @@
 				05117AD72EA7325B00A5E4E6 /* Component.swift */,
 			);
 			path = Entities;
+			sourceTree = "<group>";
+		};
+		05117AEF2EAA19E400A5E4E6 /* OneLessonVC */ = {
+			isa = PBXGroup;
+			children = (
+				05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */,
+			);
+			path = OneLessonVC;
 			sourceTree = "<group>";
 		};
 		0579B26F2A0530DB0007891F /* Move, Send, Receive */ = {
@@ -1042,6 +1053,7 @@
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,
 				05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */,
+				05117AF12EAA1A0500A5E4E6 /* OneLessonViewController.swift in Sources */,
 				052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,

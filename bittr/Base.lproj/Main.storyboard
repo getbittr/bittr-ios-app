@@ -8645,11 +8645,28 @@
                     </view>
                     <connections>
                         <outlet property="academyTableView" destination="uLn-5Q-Z7C" id="Hhq-Ab-dpa"/>
+                        <segue destination="iQY-qX-rYy" kind="show" identifier="AcademyToOneLesson" id="XFr-mM-tSl"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="JCD-cS-c0Y" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="2924" y="1"/>
+        </scene>
+        <!--One Lesson View Controller-->
+        <scene sceneID="Zmc-UC-hFj">
+            <objects>
+                <viewController id="iQY-qX-rYy" customClass="OneLessonViewController" customModule="bittr" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ncw-nW-A2H">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="783"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <viewLayoutGuide key="safeArea" id="e4J-B5-D98"/>
+                        <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                    </view>
+                    <navigationItem key="navigationItem" id="20W-Xy-y5g"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="LIA-eF-ZKA" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="3616" y="1"/>
         </scene>
         <!--Settings View Controller-->
         <scene sceneID="SIG-EB-WWU">

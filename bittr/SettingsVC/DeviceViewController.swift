@@ -465,6 +465,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.notificationView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.channelsView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.imagesView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.academyView.backgroundColor = Colors.getColor("white0.7orblue2")
         
         self.subheaderLabel.textColor = Colors.getColor("blackorwhite")
         

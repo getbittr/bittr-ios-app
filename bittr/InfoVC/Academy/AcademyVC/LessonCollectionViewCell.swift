@@ -20,6 +20,11 @@ class LessonCollectionViewCell: UICollectionViewCell {
         self.lessonButton.setTitle("", for: .normal)
         self.cardView.layer.cornerRadius = 8
         self.lessonTitle.setContentCompressionResistancePriority(.required, for: .vertical)
+        self.changeColors()
+    }
+    
+    func changeColors() {
+        self.lessonTitle.textColor = Colors.getColor("blackorwhite")
     }
     
 }

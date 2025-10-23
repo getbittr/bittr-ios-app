@@ -31,9 +31,11 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         // Collection view.
         self.lessonsCollectionView.delegate = self
         self.lessonsCollectionView.dataSource = self
-        
         self.lessonsCollectionView.collectionViewLayout = self.createCompositionalLayout()
         self.lessonsCollectionView.isScrollEnabled = false
+        
+        // Color management.
+        self.changeColors()
     }
     
     func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
@@ -98,6 +100,19 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
             return cell
         } else {
             return UICollectionViewCell()
+        }
+    }
+    
+    func changeColors() {
+        
+        self.cardView.backgroundColor = Colors.getColor("yelloworblue2")
+        self.levelLabel.textColor = Colors.getColor("whiteoryellow")
+        self.countLabel.textColor = Colors.getColor("whiteoryellow")
+        
+        if CacheManager.darkModeIsOn() {
+            self.levelIcon.image = UIImage(named: "iconacademyyellow")
+        } else {
+            self.levelIcon.image = UIImage(named: "iconacademy")
         }
     }
     
