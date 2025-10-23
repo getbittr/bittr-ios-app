@@ -47,6 +47,42 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) {
         // Called when the scene has moved from an inactive state to an active state.
         // Use this method to restart any tasks that were paused (or not yet started) when the scene was inactive.
+        // Process pending notifications when scene becomes active
+        processPendingNotifications()
+    }
+    
+    private func processPendingNotifications() {
+        // Check if we have a pending payment notification
+        if let pendingPaymentNotification = UserDefaults.standard.dictionary(forKey: "pendingPaymentNotification") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: pendingPaymentNotification) as Notification)
+            }
+            UserDefaults.standard.removeObject(forKey: "pendingPaymentNotification")
+        }
+        
+        // Check if we have a pending Bittr notification
+        if let pendingBittrNotification = UserDefaults.standard.dictionary(forKey: "pendingBittrNotification") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: pendingBittrNotification) as Notification)
+            }
+            UserDefaults.standard.removeObject(forKey: "pendingBittrNotification")
+        }
+        
+        // Check if we have a pending swap notification
+        if let pendingSwapNotification = UserDefaults.standard.dictionary(forKey: "pendingSwapNotification") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: pendingSwapNotification) as Notification)
+            }
+            UserDefaults.standard.removeObject(forKey: "pendingSwapNotification")
+        }
+        
+        // Check if we have a pending lightning address notification
+        if let pendingLightningAddressNotification = UserDefaults.standard.dictionary(forKey: "pendingLightningAddressNotification") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: pendingLightningAddressNotification) as Notification)
+            }
+            UserDefaults.standard.removeObject(forKey: "pendingLightningAddressNotification")
+        }
     }
 
     func sceneWillResignActive(_ scene: UIScene) {

@@ -15,6 +15,11 @@ extension CoreViewController {
     
     @objc func handlePaymentNotification(notification:NSNotification) {
         
+        print("=== handlePaymentNotification called ===")
+        print("userDidSignIn: \(self.userDidSignIn)")
+        print("wasNotified: \(self.wasNotified)")
+        print("needsToHandleNotification: \(self.needsToHandleNotification)")
+        
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             
             // Check for the special key that indicates this is a silent notification.
@@ -23,15 +28,22 @@ extension CoreViewController {
                 
                 CacheManager.storeLatestNotification(specialData: specialData)
                 
+                // Check if we received a notification while the app was closed
+                let receivedNotificationWhileClosed = UserDefaults.standard.bool(forKey: "receivedNotificationWhileClosed")
+                print("receivedNotificationWhileClosed: \(receivedNotificationWhileClosed), wasNotified: \(self.wasNotified)")
+                
                 if self.userDidSignIn {
                     // User has signed in.
+                    print("User is signed in, processing notification")
                     
-                    if !self.wasNotified {
+                    if !receivedNotificationWhileClosed && !self.wasNotified {
                         // App was open when notification came in.
+                        print("App was open when notification came in - showing alert")
                         self.varSpecialData = specialData
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
+                        print("App was closed when notification came in - processing immediately")
                         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
                         self.showPendingView()
                         
@@ -39,8 +51,13 @@ extension CoreViewController {
                         self.facilitateNotificationPayout()
                         self.needsToHandleNotification = false
                     }
+                    
+                    // Clear the flag after handling, regardless of which path we took
+                    UserDefaults.standard.set(false, forKey: "receivedNotificationWhileClosed")
+                    print("Cleared receivedNotificationWhileClosed flag")
                 } else {
                     // User hasn't signed in yet.
+                    print("User not signed in - storing notification for later")
                     self.needsToHandleNotification = true
                     self.wasNotified = true
                     self.lightningNotification = notification
@@ -425,6 +442,17 @@ extension CoreViewController {
                     let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: [paymentPreimage], depositCodes: depositCodes)
                     print("Bittr transactions: \(bittrApiTransactions.count)")
                     
+                    // Debug: Print the raw API response data
+                    if bittrApiTransactions.count > 0, let firstTransaction = bittrApiTransactions.first {
+                        print("DEBUG - Bittr API returned transaction:")
+                        print("  - txId: \(firstTransaction.txId)")
+                        print("  - bitcoinAmount: '\(firstTransaction.bitcoinAmount)'")
+                        print("  - purchaseAmount: '\(firstTransaction.purchaseAmount)'")
+                        print("  - currency: '\(firstTransaction.currency)'")
+                        print("  - transferFee: '\(firstTransaction.transferFee)'")
+                        print("  - datetime: '\(firstTransaction.datetime)'")
+                    }
+                    
                     CacheManager.updateSentToBittr(txids: [paymentPreimage])
                     
                     if bittrApiTransactions.count == 1, bittrApiTransactions.first != nil, bittrApiTransactions.first!.txId == paymentPreimage {
@@ -517,6 +545,9 @@ extension CoreViewController {
             if self.userDidSignIn {
                 // User is signed in, handle notification immediately
                 self.handleSwapNotificationImmediately(swapID: swapID, userInfo: userInfo)
+                
+                // Clear the flag after handling
+                UserDefaults.standard.set(false, forKey: "receivedNotificationWhileClosed")
             } else {
                 // User hasn't signed in yet, store notification for later
                 self.needsToHandleNotification = true
