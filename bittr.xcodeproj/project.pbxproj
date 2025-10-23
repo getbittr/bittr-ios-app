@@ -405,15 +405,31 @@
 		05117AD42EA381A400A5E4E6 /* Academy */ = {
 			isa = PBXGroup;
 			children = (
+				05117AEE2EAA194200A5E4E6 /* Entities */,
+				05117AED2EAA193100A5E4E6 /* AcademyVC */,
+			);
+			path = Academy;
+			sourceTree = "<group>";
+		};
+		05117AED2EAA193100A5E4E6 /* AcademyVC */ = {
+			isa = PBXGroup;
+			children = (
 				05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */,
 				05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */,
 				05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */,
+			);
+			path = AcademyVC;
+			sourceTree = "<group>";
+		};
+		05117AEE2EAA194200A5E4E6 /* Entities */ = {
+			isa = PBXGroup;
+			children = (
 				05117ADD2EA7337D00A5E4E6 /* Level.swift */,
 				05117ADB2EA7333800A5E4E6 /* Lesson.swift */,
 				05117AD92EA732F700A5E4E6 /* Page.swift */,
 				05117AD72EA7325B00A5E4E6 /* Component.swift */,
 			);
-			path = Academy;
+			path = Entities;
 			sourceTree = "<group>";
 		};
 		0579B26F2A0530DB0007891F /* Move, Send, Receive */ = {

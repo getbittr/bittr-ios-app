@@ -93,6 +93,7 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "LessonCell", for: indexPath) as? LessonCollectionViewCell {
             
             cell.lessonTitle.text = self.thisLevel.lessons[indexPath.row].title
+            cell.lessonButton.accessibilityElements = [self.thisLevel.lessons[indexPath.row]]
             
             return cell
         } else {

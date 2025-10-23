@@ -112,5 +112,10 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         }
     }
     
+    @IBAction func lessonTapped(_ sender: UIButton) {
+        if let tappedLesson = sender.accessibilityElements?.first as? Lesson {
+            print("Tapped lesson: \(tappedLesson.title)")
+        }
+    }
     
 }
