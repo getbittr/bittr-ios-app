@@ -39,17 +39,29 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             // Download levels.
             
             // Demo data
-            let labelComponent = Component()
-            labelComponent.order = 0
-            labelComponent.type = .label
-            labelComponent.text = "Welcome to Bittr Academy!"
+            let firstLabel = Component()
+            firstLabel.order = 0
+            firstLabel.type = .label
+            firstLabel.text = "Bitcoin was introduced by Satoshi Nakamoto, to create a new kind of digital money."
+            let secondLabel = Component()
+            secondLabel.order = 1
+            secondLabel.type = .label
+            secondLabel.text = "The idea was simple: people could send payments directly to each other without using a bank or any other middleman."
             let firstPage = Page()
             firstPage.order = 0
-            firstPage.components = [labelComponent]
+            firstPage.components = [firstLabel, secondLabel]
+            
+            let page2label1 = Component()
+            page2label1.order = 0
+            page2label1.type = .label
+            page2label1.text = "Unlike fiat money, Bitcoin isn’t controlled by any one group or government. It’s decentralized and follows strict rules that keep it running. This means no one owns or can manipulate Bitcoin on their own."
+            let page2 = Page()
+            page2.order = 1
+            page2.components = [page2label1]
             
             let lesson1 = Lesson()
             lesson1.order = 0
-            lesson1.pages = [firstPage]
+            lesson1.pages = [firstPage, page2]
             lesson1.title = "What is bitcoin?"
             let lesson2 = Lesson()
             lesson2.order = 1

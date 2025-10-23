@@ -20,6 +20,8 @@
 		05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */; };
 		05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */; };
 		05117AF12EAA1A0500A5E4E6 /* OneLessonViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */; };
+		05117AF32EAA2B2E00A5E4E6 /* Label.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF22EAA2B2C00A5E4E6 /* Label.swift */; };
+		05117AF52EAA31C300A5E4E6 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF42EAA31C000A5E4E6 /* Button.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -200,6 +202,8 @@
 		05117ADF2EA73B6700A5E4E6 /* LevelTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelTableViewCell.swift; sourceTree = "<group>"; };
 		05117AE12EA7446B00A5E4E6 /* LessonCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonCollectionViewCell.swift; sourceTree = "<group>"; };
 		05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneLessonViewController.swift; sourceTree = "<group>"; };
+		05117AF22EAA2B2C00A5E4E6 /* Label.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Label.swift; sourceTree = "<group>"; };
+		05117AF42EAA31C000A5E4E6 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -439,6 +443,8 @@
 			isa = PBXGroup;
 			children = (
 				05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */,
+				05117AF22EAA2B2C00A5E4E6 /* Label.swift */,
+				05117AF42EAA31C000A5E4E6 /* Button.swift */,
 			);
 			path = OneLessonVC;
 			sourceTree = "<group>";
@@ -1056,6 +1062,7 @@
 				05117AF12EAA1A0500A5E4E6 /* OneLessonViewController.swift in Sources */,
 				052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
+				05117AF52EAA31C300A5E4E6 /* Button.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
 				3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */,
 				0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */,
@@ -1090,6 +1097,7 @@
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */,
+				05117AF32EAA2B2E00A5E4E6 /* Label.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				0521712C2CB41D37006C5663 /* InfoVCLanguage.swift in Sources */,
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
