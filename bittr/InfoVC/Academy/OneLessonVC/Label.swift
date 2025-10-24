@@ -43,7 +43,7 @@ extension OneLessonViewController {
         if previousComponent != nil {
             switch previousComponent! {
             case .label:
-                topSpacing = 10
+                topSpacing = 8
             case .image:
                 topSpacing = 30
             }

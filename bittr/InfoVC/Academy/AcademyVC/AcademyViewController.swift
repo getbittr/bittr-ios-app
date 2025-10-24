@@ -61,8 +61,17 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             // Level details.
             cell.thisLevel = self.coreVC!.downloadedAcademy![indexPath.row]
             cell.levelLabel.text = "level \(indexPath.row + 1)"
-            cell.countLabel.text = "0 of \(self.coreVC!.downloadedAcademy![indexPath.row].lessons.count)"
             
+            // Count completed lessons per level.
+            var completedLessons = 0
+            for eachLesson in self.coreVC!.downloadedAcademy![indexPath.row].lessons {
+                if CacheManager.getCompletedLessons().contains(eachLesson.id) {
+                    completedLessons += 1
+                }
+            }
+            cell.countLabel.text = "\(completedLessons) of \(self.coreVC!.downloadedAcademy![indexPath.row].lessons.count)"
+            
+            // Set previous level.
             cell.previousLevel = {
                 if indexPath.row > 0 {
                     return self.coreVC!.downloadedAcademy![indexPath.row - 1]
@@ -71,6 +80,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
                 }
             }()
             
+            // Reload level lessons.
             cell.lessonsCollectionView.reloadData()
             
             // Set dynamic cell height.
