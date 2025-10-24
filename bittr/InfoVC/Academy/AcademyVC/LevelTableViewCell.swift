@@ -20,6 +20,7 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
     
     // Variables
     var thisLevel = Level()
+    var previousLevel: Level?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -94,8 +95,25 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         
         if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "LessonCell", for: indexPath) as? LessonCollectionViewCell {
             
-            cell.lessonTitle.text = self.thisLevel.lessons[indexPath.row].title
-            cell.lessonButton.accessibilityElements = [self.thisLevel.lessons[indexPath.row]]
+            let thisLesson = self.thisLevel.lessons[indexPath.row]
+            cell.lessonTitle.text = thisLesson.title
+            cell.lessonButton.accessibilityElements = [thisLesson]
+            
+            let previousLesson:Lesson? = {
+                if indexPath.row > 0 {
+                    return self.thisLevel.lessons[indexPath.row - 1]
+                } else if self.previousLevel != nil {
+                    return self.previousLevel!.lessons.last!
+                } else {
+                    return nil
+                }
+            }()
+            
+            if CacheManager.getCompletedLessons().contains(thisLesson.id) || previousLesson == nil || (previousLesson != nil && CacheManager.getCompletedLessons().contains(previousLesson!.id)) {
+                cell.removeBlur()
+            } else {
+                cell.addBlur()
+            }
             
             return cell
         } else {

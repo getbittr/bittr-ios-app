@@ -32,6 +32,7 @@ extension CoreViewController {
             }()
             self.view.layoutIfNeeded()
         } completion: { _ in
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
             if sender.tag != 1 {
                 self.hideInfoVC()
             }

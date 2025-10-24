@@ -9,7 +9,8 @@ import UIKit
 
 class Lesson: NSObject {
     
-    var pages = [Page]()
+    var id: String = ""
     var order: Int = 0
     var title: String = ""
+    var pages = [Page]()
 }

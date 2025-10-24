@@ -59,6 +59,15 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             cell.thisLevel = self.coreVC!.downloadedAcademy![indexPath.row]
             cell.levelLabel.text = "level \(indexPath.row + 1)"
             cell.countLabel.text = "0 of \(self.coreVC!.downloadedAcademy![indexPath.row].lessons.count)"
+            
+            cell.previousLevel = {
+                if indexPath.row > 0 {
+                    return self.coreVC!.downloadedAcademy![indexPath.row - 1]
+                } else {
+                    return nil
+                }
+            }()
+            
             cell.lessonsCollectionView.reloadData()
             
             // Set dynamic cell height.
@@ -70,6 +79,10 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             return UITableViewCell()
         }
     }
+    
+    /*func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+    }*/
     
     @IBAction func lessonTapped(_ sender: UIButton) {
         

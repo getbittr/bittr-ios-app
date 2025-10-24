@@ -1266,4 +1266,30 @@ class CacheManager: NSObject {
         return getSwapIndex()
     }
     
+    // MARK: - Academy cache
+    
+    static func addCompletedLesson(_ lessonId:String) {
+        
+        let defaults = UserDefaults.standard
+        
+        if var completedLessons = defaults.value(forKey: "completedlessons") as? [String] {
+            if !completedLessons.contains(lessonId) {
+                completedLessons += [lessonId]
+                defaults.set(completedLessons, forKey: "completedlessons")
+            }
+        } else {
+            let completedLessons = [lessonId]
+            defaults.set(completedLessons, forKey: "completedlessons")
+        }
+    }
+    
+    static func getCompletedLessons() -> [String] {
+        
+        if let completedLessons =  UserDefaults.standard.value(forKey: "completedlessons") as? [String] {
+            return completedLessons
+        } else {
+            return [String]()
+        }
+    }
+    
 }

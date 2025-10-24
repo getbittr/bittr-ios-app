@@ -20,7 +20,7 @@ extension OneLessonViewController {
         if previousComponent != nil {
             switch previousComponent! {
             case .label:
-                topSpacing = 30
+                topSpacing = 15
             }
         }
         let buttonHeight:CGFloat = 40

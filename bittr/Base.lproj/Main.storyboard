@@ -8558,6 +8558,10 @@
                                                                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
+                                                                            <view alpha="0.0" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="arb-yg-aZ4">
+                                                                                <rect key="frame" x="-2.6666666666666714" y="-10" width="133.33333333333337" height="148"/>
+                                                                                <color key="backgroundColor" red="0.89803921568627454" green="0.74117647058823533" blue="0.30980392156862746" alpha="0.29999999999999999" colorSpace="custom" customColorSpace="displayP3"/>
+                                                                            </view>
                                                                             <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="FyW-61-BPb">
                                                                                 <rect key="frame" x="0.0" y="0.0" width="128" height="128"/>
                                                                                 <state key="normal" title="Button"/>
@@ -8572,17 +8576,22 @@
                                                                             <constraint firstItem="rkN-45-mAZ" firstAttribute="trailing" secondItem="J7n-2u-shf" secondAttribute="trailing" id="5s7-lv-CQ3"/>
                                                                             <constraint firstItem="FyW-61-BPb" firstAttribute="top" secondItem="J7n-2u-shf" secondAttribute="top" id="912-GO-akZ"/>
                                                                             <constraint firstItem="p4g-Q8-wrQ" firstAttribute="top" secondItem="J7n-2u-shf" secondAttribute="top" id="BhK-mQ-DjA"/>
+                                                                            <constraint firstItem="arb-yg-aZ4" firstAttribute="top" secondItem="J7n-2u-shf" secondAttribute="top" constant="-10" id="Lof-fI-2pi"/>
                                                                             <constraint firstItem="FyW-61-BPb" firstAttribute="leading" secondItem="J7n-2u-shf" secondAttribute="leading" id="NGa-lx-8P9"/>
+                                                                            <constraint firstItem="arb-yg-aZ4" firstAttribute="bottom" secondItem="J7n-2u-shf" secondAttribute="bottom" constant="10" id="NIT-c8-6ic"/>
+                                                                            <constraint firstItem="arb-yg-aZ4" firstAttribute="trailing" secondItem="J7n-2u-shf" secondAttribute="trailing" constant="2.5" id="QDc-3x-aK7"/>
                                                                             <constraint firstItem="rkN-45-mAZ" firstAttribute="top" secondItem="p4g-Q8-wrQ" secondAttribute="bottom" constant="13" id="RP7-jK-Qkv"/>
                                                                             <constraint firstAttribute="trailing" secondItem="FyW-61-BPb" secondAttribute="trailing" id="Tqg-I5-KSr"/>
                                                                             <constraint firstAttribute="bottom" secondItem="FyW-61-BPb" secondAttribute="bottom" id="Vpc-Jg-KOd"/>
                                                                             <constraint firstAttribute="bottom" secondItem="rkN-45-mAZ" secondAttribute="bottom" id="YgK-cK-Ye6"/>
+                                                                            <constraint firstItem="arb-yg-aZ4" firstAttribute="leading" secondItem="J7n-2u-shf" secondAttribute="leading" constant="-2.5" id="cN1-1I-esB"/>
                                                                             <constraint firstItem="rkN-45-mAZ" firstAttribute="leading" secondItem="J7n-2u-shf" secondAttribute="leading" id="dDz-s0-Xau"/>
                                                                             <constraint firstItem="p4g-Q8-wrQ" firstAttribute="centerX" secondItem="J7n-2u-shf" secondAttribute="centerX" id="sYk-BD-FaI"/>
                                                                         </constraints>
                                                                     </collectionViewCellContentView>
                                                                     <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                     <connections>
+                                                                        <outlet property="blurView" destination="arb-yg-aZ4" id="hbL-3o-vjg"/>
                                                                         <outlet property="cardHeight" destination="MNN-Gw-0Lw" id="xkd-f8-7Xh"/>
                                                                         <outlet property="cardView" destination="p4g-Q8-wrQ" id="B8D-6Q-3lS"/>
                                                                         <outlet property="cardWidth" destination="nD7-cD-BaX" id="rBJ-1u-YQs"/>

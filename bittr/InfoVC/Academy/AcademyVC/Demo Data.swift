@@ -15,7 +15,7 @@ extension AcademyViewController {
         let firstLabel = Component()
         firstLabel.order = 0
         firstLabel.type = .label
-        firstLabel.text = "Bitcoin was introduced by Satoshi Nakamoto, to create a new kind of digital money."
+        firstLabel.text = "Bitcoin was introduced by <b>Satoshi Nakamoto</b>, to create a new kind of digital money."
         let secondLabel = Component()
         secondLabel.order = 1
         secondLabel.type = .label
@@ -27,7 +27,7 @@ extension AcademyViewController {
         let page2label1 = Component()
         page2label1.order = 0
         page2label1.type = .label
-        page2label1.text = "Unlike fiat money, bitcoin isn’t controlled by any one group or government. It’s decentralized and follows strict rules that keep it running."
+        page2label1.text = "Unlike fiat money, bitcoin isn’t controlled by any one group or government. It’s <b>decentralized</b> and follows strict rules that keep it running."
         
         let page2label2 = Component()
         page2label2.order = 1
@@ -41,12 +41,12 @@ extension AcademyViewController {
         let page3label1 = Component()
         page3label1.order = 0
         page3label1.type = .label
-        page3label1.text = "Just like other money, bitcoin can be used to buy things or pay for services."
+        page3label1.text = "Just like other money, bitcoin can be used to pay for products and services."
         
         let page3label2 = Component()
         page3label2.order = 1
         page3label2.type = .label
-        page3label2.text = "To send Bitcoin, all you need is the recipient’s address. Transactions happen between two people directly, without middleman."
+        page3label2.text = "To send Bitcoin, all you need is the recipient’s address."
         
         let page3 = Page()
         page3.order = 2
@@ -55,7 +55,7 @@ extension AcademyViewController {
         let page4label1 = Component()
         page4label1.order = 0
         page4label1.type = .label
-        page4label1.text = "Transactions are stored in blocks on the blockchain; a public ledger everyone can see."
+        page4label1.text = "Transactions are stored in blocks on the <b>blockchain</b>; a public ledger everyone can see."
         
         let page4label2 = Component()
         page4label2.order = 1
@@ -69,12 +69,12 @@ extension AcademyViewController {
         let page5label1 = Component()
         page5label1.order = 0
         page5label1.type = .label
-        page5label1.text = "Supply is limited: only 21 million bitcoin will ever exist. That makes it scarce and valuable."
+        page5label1.text = "Supply is limited: only <b>21 million</b> bitcoin will ever exist. That makes it scarce and valuable."
         
         let page5label2 = Component()
         page5label2.order = 1
         page5label2.type = .label
-        page5label2.text = "New bitcoin gets 'mined'; the process of helping add new transactions to the blockchain."
+        page5label2.text = "New bitcoin gets <b>mined</b> through the process of helping add new transactions to the blockchain."
         
         let page5 = Page()
         page5.order = 4
