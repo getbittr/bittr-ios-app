@@ -19,6 +19,9 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // TODO: Hide after testing
+        UserDefaults.standard.removeObject(forKey: "completedlessons")
+        
         // Table view.
         self.academyTableView.delegate = self
         self.academyTableView.dataSource = self
@@ -80,9 +83,11 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         }
     }
     
-    /*func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
-    }*/
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
+        }
+    }
     
     @IBAction func lessonTapped(_ sender: UIButton) {
         
@@ -99,6 +104,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             if let oneLessonVC = segue.destination as? OneLessonViewController {
                 oneLessonVC.thisLesson = self.tappedLesson
                 oneLessonVC.coreVC = self.coreVC
+                oneLessonVC.academyVC = self
             }
         }
     }

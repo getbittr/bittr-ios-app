@@ -20,6 +20,7 @@ class OneLessonViewController: UIViewController {
     // Variables
     var thisLesson:Lesson?
     var coreVC:CoreViewController?
+    var academyVC:AcademyViewController?
     var currentPage = 0
     var heightFromTop:CGFloat = 0
     
@@ -88,6 +89,8 @@ class OneLessonViewController: UIViewController {
             self.loadPage(self.currentPage)
         } else {
             // This is the final page.
+            CacheManager.addCompletedLesson(self.thisLesson!.id)
+            self.academyVC?.academyTableView.reloadData()
             self.dismiss(animated: true)
         }
     }

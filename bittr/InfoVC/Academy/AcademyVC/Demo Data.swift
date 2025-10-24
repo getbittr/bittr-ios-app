@@ -84,35 +84,37 @@ extension AcademyViewController {
         lesson1.order = 0
         lesson1.pages = [firstPage, page2, page3, page4, page5]
         lesson1.title = "What is bitcoin?"
+        lesson1.id = "whatisbitcoin"
         let lesson2 = Lesson()
         lesson2.order = 1
         lesson2.pages = [firstPage]
         lesson2.title = "What are satoshis?"
+        lesson2.id = "whataresatoshis"
         let lesson3 = Lesson()
         lesson3.order = 2
         lesson3.pages = [firstPage]
         lesson3.title = "The problem with fiat currencies"
+        lesson3.id = "theproblemwithfiatcurrencies"
         let lesson4 = Lesson()
         lesson4.order = 3
         lesson4.pages = [firstPage]
         lesson4.title = "Why do people invest in bitcoin?"
+        lesson4.id = "whydopeopleinvestinbitcoin"
         let lesson5 = Lesson()
         lesson5.order = 4
         lesson5.pages = [firstPage]
         lesson5.title = "Why is bitcoin volatile?"
+        lesson5.id = "whyisbitcoinvolatile"
         let lesson6 = Lesson()
         lesson6.order = 5
         lesson6.pages = [firstPage]
         lesson6.title = "What is mining?"
+        lesson6.id = "whatismining"
         
         let firstLevel = Level()
         firstLevel.order = 0
         firstLevel.lessons = [lesson1, lesson2, lesson3, lesson4, lesson5, lesson6]
         
-        let secondLevel = Level()
-        secondLevel.order = 1
-        secondLevel.lessons = [lesson1, lesson2, lesson3]
-        
-        return [firstLevel, secondLevel]
+        return [firstLevel]
     }
 }
