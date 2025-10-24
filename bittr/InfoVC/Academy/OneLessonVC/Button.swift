@@ -20,7 +20,9 @@ extension OneLessonViewController {
         if previousComponent != nil {
             switch previousComponent! {
             case .label:
-                topSpacing = 15
+                topSpacing = 20
+            case .image:
+                topSpacing = 40
             }
         }
         let buttonHeight:CGFloat = 40
@@ -127,13 +129,14 @@ extension OneLessonViewController {
         nextIcon.image = UIImage(named: "arrowrightwhite")
         nextIcon.translatesAutoresizingMaskIntoConstraints = false
         nextIcon.contentMode = .scaleAspectFit
+        nextIcon.alpha = lastPage ? 0 : 1
         nextButtonView.addSubview(nextIcon)
         
         let nextIconHeight = NSLayoutConstraint(item: nextIcon, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 11)
-        let nextIconWidth = NSLayoutConstraint(item: nextIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 11)
+        let nextIconWidth = NSLayoutConstraint(item: nextIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: lastPage ? 0 : 11)
         let nextIconCenterY = NSLayoutConstraint(item: nextIcon, attribute: .centerY, relatedBy: .equal, toItem: nextButtonView, attribute: .centerY, multiplier: 1, constant: 0)
         let nextIconRight = NSLayoutConstraint(item: nextIcon, attribute: .trailing, relatedBy: .equal, toItem: nextButtonView, attribute: .trailing, multiplier: 1, constant: -17)
-        let nextIconLeft = NSLayoutConstraint(item: nextIcon, attribute: .leading, relatedBy: .equal, toItem: nextLabel, attribute: .trailing, multiplier: 1, constant: 10)
+        let nextIconLeft = NSLayoutConstraint(item: nextIcon, attribute: .leading, relatedBy: .equal, toItem: nextLabel, attribute: .trailing, multiplier: 1, constant: lastPage ? 0 : 10)
         
         nextIcon.addConstraints([nextIconWidth, nextIconHeight])
         nextButtonView.addConstraints([nextIconLeft, nextIconRight, nextIconCenterY])

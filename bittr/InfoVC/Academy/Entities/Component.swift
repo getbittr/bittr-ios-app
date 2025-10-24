@@ -11,9 +11,11 @@ class Component: NSObject {
     
     var type: ComponentType = .label
     var text: String = ""
+    var url: String = ""
     var order: Int = 0
 }
 
 enum ComponentType {
     case label
+    case image
 }

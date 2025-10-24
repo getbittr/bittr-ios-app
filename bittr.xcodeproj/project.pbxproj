@@ -23,6 +23,7 @@
 		05117AF32EAA2B2E00A5E4E6 /* Label.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF22EAA2B2C00A5E4E6 /* Label.swift */; };
 		05117AF52EAA31C300A5E4E6 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF42EAA31C000A5E4E6 /* Button.swift */; };
 		05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF62EAA754500A5E4E6 /* Demo Data.swift */; };
+		05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF82EAB749F00A5E4E6 /* Image.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -206,6 +207,7 @@
 		05117AF22EAA2B2C00A5E4E6 /* Label.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Label.swift; sourceTree = "<group>"; };
 		05117AF42EAA31C000A5E4E6 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
 		05117AF62EAA754500A5E4E6 /* Demo Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Demo Data.swift"; sourceTree = "<group>"; };
+		05117AF82EAB749F00A5E4E6 /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -448,6 +450,7 @@
 				05117AF02EAA19FE00A5E4E6 /* OneLessonViewController.swift */,
 				05117AF22EAA2B2C00A5E4E6 /* Label.swift */,
 				05117AF42EAA31C000A5E4E6 /* Button.swift */,
+				05117AF82EAB749F00A5E4E6 /* Image.swift */,
 			);
 			path = OneLessonVC;
 			sourceTree = "<group>";
@@ -1014,6 +1017,7 @@
 				05622A6B2DB8BA3700D91066 /* CallsManager.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
 				05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */,
+				05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */,
 				05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
 				37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */,

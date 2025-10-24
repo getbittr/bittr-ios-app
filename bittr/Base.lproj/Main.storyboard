@@ -8669,6 +8669,9 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="783"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
+                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" misplaced="YES" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="Hx7-Ds-xkq">
+                                <rect key="frame" x="186" y="381" width="20" height="20"/>
+                            </activityIndicatorView>
                             <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="93b-36-oNo">
                                 <rect key="frame" x="0.0" y="58" width="393" height="725"/>
                                 <subviews>
@@ -8749,7 +8752,9 @@
                             <constraint firstItem="5rm-qG-Y3q" firstAttribute="leading" secondItem="Ncw-nW-A2H" secondAttribute="leading" constant="20" id="ONS-qG-E19"/>
                             <constraint firstItem="c3k-ik-NZ9" firstAttribute="trailing" relation="lessThanOrEqual" secondItem="N5A-ea-0lY" secondAttribute="leading" constant="-20" id="R97-mD-tmV"/>
                             <constraint firstItem="93b-36-oNo" firstAttribute="bottom" secondItem="e4J-B5-D98" secondAttribute="bottom" id="TKF-wn-s1H"/>
+                            <constraint firstItem="Hx7-Ds-xkq" firstAttribute="centerX" secondItem="e4J-B5-D98" secondAttribute="centerX" id="UR9-1a-cap"/>
                             <constraint firstItem="93b-36-oNo" firstAttribute="leading" secondItem="Ncw-nW-A2H" secondAttribute="leading" id="WXJ-en-W9B"/>
+                            <constraint firstItem="Hx7-Ds-xkq" firstAttribute="centerY" secondItem="e4J-B5-D98" secondAttribute="centerY" id="ecb-DS-a96"/>
                             <constraint firstItem="XuN-Hk-OaA" firstAttribute="centerY" secondItem="N5A-ea-0lY" secondAttribute="centerY" id="hIt-Vd-Jak"/>
                             <constraint firstItem="c3k-ik-NZ9" firstAttribute="leading" secondItem="5rm-qG-Y3q" secondAttribute="trailing" constant="10" id="lYA-Gb-Ibj"/>
                             <constraint firstAttribute="trailing" secondItem="N5A-ea-0lY" secondAttribute="trailing" constant="20" id="ogk-2D-ehA"/>
@@ -8759,6 +8764,7 @@
                     </view>
                     <navigationItem key="navigationItem" id="20W-Xy-y5g"/>
                     <connections>
+                        <outlet property="centerSpinner" destination="Hx7-Ds-xkq" id="KC7-iE-dIc"/>
                         <outlet property="centerView" destination="RQZ-9s-ZCh" id="lMH-YK-ZR5"/>
                         <outlet property="downButton" destination="XuN-Hk-OaA" id="q85-MP-efh"/>
                         <outlet property="headerLabel" destination="c3k-ik-NZ9" id="1W7-eT-huc"/>

@@ -43,7 +43,9 @@ extension OneLessonViewController {
         if previousComponent != nil {
             switch previousComponent! {
             case .label:
-                topSpacing = 15
+                topSpacing = 10
+            case .image:
+                topSpacing = 30
             }
         }
         
@@ -57,6 +59,8 @@ extension OneLessonViewController {
         
         self.centerView.layoutIfNeeded()
         self.heightFromTop += (thisLabel.frame.height + topSpacing)
+        
+        self.addNextComponent()
         
     }
 }
