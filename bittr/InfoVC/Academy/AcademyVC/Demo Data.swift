@@ -70,6 +70,7 @@ extension AcademyViewController {
         lesson1.pages = [firstPage, page2, page3, page4, page5]
         lesson1.title = "What is bitcoin?"
         lesson1.id = "whatisbitcoin"
+        lesson1.image = "whatisbitcoin"
         
         let l2p1c1 = Component()
         l2p1c1.type = .label
@@ -118,6 +119,7 @@ extension AcademyViewController {
         lesson2.pages = [lesson2page1, l2p2, l2p3]
         lesson2.title = "What are satoshis?"
         lesson2.id = "whataresatoshis"
+        lesson2.image = "whataresatoshis"
         
         
         let l3p1c1 = Component()
@@ -209,23 +211,306 @@ extension AcademyViewController {
         lesson3.pages = [l3p1, l3p2, l3p3, l3p4, l3p5, l3p6]
         lesson3.title = "The problem with fiat currencies"
         lesson3.id = "theproblemwithfiatcurrencies"
+        lesson3.image = "theproblemwithfiatcurrencies"
         
+        
+        let l4p1c1 = Component()
+        l4p1c1.type = .label
+        l4p1c1.text = "Bitcoin has grown from a niche idea into a <b>standalone asset class</b>."
+        
+        let l4p1c2 = Component()
+        l4p1c2.type = .label
+        l4p1c2.text = "Why do private investors, family offices, and institutions now look at bitcoin?"
+        
+        let l4p1 = Page()
+        l4p1.components = [l4p1c1, l4p1c2]
+        
+        
+        let l4p2c1 = Component()
+        l4p2c1.type = .label
+        l4p2c1.text = "<b>Diversification</b>"
+        
+        let l4p2c2 = Component()
+        l4p2c2.type = .label
+        l4p2c2.text = "Long-term data shows that bitcoin often moves differently from traditional assets."
+        
+        let l4p2c3 = Component()
+        l4p2c3.type = .label
+        l4p2c3.text = "That’s what many investors want - building blocks that don’t rise and fall at the same time."
+        
+        let l4p2 = Page()
+        l4p2.components = [l4p2c1, l4p2c2, l4p2c3]
+        
+        
+        let l4p3c1 = Component()
+        l4p3c1.type = .label
+        l4p3c1.text = "<b>Preserving value long-term</b>"
+        
+        let l4p3c2 = Component()
+        l4p3c2.type = .label
+        l4p3c2.text = "Bitcoin's predictable scarcity protects against inflation. This makes it interesting for retirement and intergenerational wealth."
+        
+        let l4p3c3 = Component()
+        l4p3c3.type = .label
+        l4p3c3.text = "Bitcoin is volatile in the short term. The long-term case is measured in years and decades, not weeks."
+        
+        let l4p3 = Page()
+        l4p3.components = [l4p3c1, l4p3c2, l4p3c3]
+        
+        
+        let l4p4c1 = Component()
+        l4p4c1.type = .label
+        l4p4c1.text = "<b>Future utility</b>"
+        
+        let l4p4c2 = Component()
+        l4p4c2.type = .label
+        l4p4c2.text = "As more infrastructure appears, practical use of bitcoin is growing. This gives more reasons to get in early."
+        
+        let l4p4c3 = Component()
+        l4p4c3.type = .label
+        l4p4c3.text = "You can transfer value without a middleman, globally, 24/7. And more lenders now accept bitcoin as collateral."
+        
+        let l4p4 = Page()
+        l4p4.components = [l4p4c1, l4p4c2, l4p4c3]
+        
+        
+        let l4p5c1 = Component()
+        l4p5c1.type = .label
+        l4p5c1.text = "<b>Skepticism of centralized finance</b>"
+        
+        let l4p5c2 = Component()
+        l4p5c2.type = .label
+        l4p5c2.text = "Many investors want less dependency on third parties. With bitcoin, you hold your own keys and control your own coins."
+        
+        let l4p5c3 = Component()
+        l4p5c3.type = .label
+        l4p5c3.text = "Transactions are hard to block or reverse. And the decentralized, global system is much harder to compromise in hacking attempts."
+        
+        let l4p5 = Page()
+        l4p5.components = [l4p5c1, l4p5c2, l4p5c3]
+        
+        
+        let l4p6c1 = Component()
+        l4p6c1.type = .label
+        l4p6c1.text = "Bitcoin isn’t for everyone. If you need perfect peace of mind and hate price swings, keep the allocation small."
+        
+        let l4p6c2 = Component()
+        l4p6c2.type = .label
+        l4p6c2.text = "If you do invest, you’ll need a long time horizon, the ability to stay calm during drawdowns, and clear rules for security and risk management."
+        
+        let l4p6 = Page()
+        l4p6.components = [l4p6c1, l4p6c2]
         
         let lesson4 = Lesson()
         lesson4.order = 3
-        lesson4.pages = [firstPage]
+        lesson4.pages = [l4p1, l4p2, l4p3, l4p4, l4p5, l4p6]
         lesson4.title = "Why do people invest in bitcoin?"
         lesson4.id = "whydopeopleinvestinbitcoin"
+        lesson4.image = "whydopeopleinvest"
+        
+        
+        let l5p1c1 = Component()
+        l5p1c1.type = .label
+        l5p1c1.text = "Volatility measures how much an asset’s price varies around its average over time."
+        
+        let l5p1c2 = Component()
+        l5p1c2.type = .label
+        l5p1c2.text = "Assets with frequent, significant price fluctuations are considered more volatile."
+        
+        let l5p1 = Page()
+        l5p1.components = [l5p1c1, l5p1c2]
+        
+        
+        let l5p2c1 = Component()
+        l5p2c1.type = .label
+        l5p2c1.text = "Bitcoin has grown enormously over the years, but is also known for rapid price swings."
+        
+        let l5p2c2 = Component()
+        l5p2c2.type = .label
+        l5p2c2.text = "This volatility offers potential for impressive returns, but also poses risks associated with short-term price unpredictability."
+        
+        let l5p2c3 = Component()
+        l5p2c3.type = .label
+        l5p2c3.text = "What drives this volatility and what could it mean for bitcoin’s future?"
+        
+        let l5p2 = Page()
+        l5p2.components = [l5p2c1, l5p2c2, l5p2c3]
+        
+        
+        let l5p3c1 = Component()
+        l5p3c1.type = .label
+        l5p3c1.text = "As a relatively new asset, bitcoin’s markets react sharply to changes in demand."
+        
+        let l5p3c2 = Component()
+        l5p3c2.type = .label
+        l5p3c2.text = "The role bitcoin will ultimately play in the global financial system is still being defined."
+        
+        let l5p3c3 = Component()
+        l5p3c3.type = .label
+        l5p3c3.text = "Each new regulation, company adoption, or economic event can influence its perceived value."
+        
+        let l5p3 = Page()
+        l5p3.components = [l5p3c1, l5p3c2, l5p3c3]
+        
+        
+        let l5p4c1 = Component()
+        l5p4c1.type = .label
+        l5p4c1.text = "As a currency, bitcoin's value isn’t tied to any cash flows. Its price is based solely on demand."
+        
+        let l5p4c2 = Component()
+        l5p4c2.type = .label
+        l5p4c2.text = "For traditional assets, future cash flows offer a way to predict their value - creating a perception of stability."
+        
+        let l5p4c3 = Component()
+        l5p4c3.type = .label
+        l5p4c3.text = "Bitcoin’s value depends on its acceptance as part of the global economy, which is harder to model."
+        
+        let l5p4 = Page()
+        l5p4.components = [l5p4c1, l5p4c2, l5p4c3]
+        
+        
+        let l5p5c1 = Component()
+        l5p5c1.type = .label
+        l5p5c1.text = "Bitcoin’s market cap is around 2 trillion USD - a mere fraction of gold’s market cap."
+        
+        let l5p5c2 = Component()
+        l5p5c2.type = .label
+        l5p5c2.text = "As such, it takes less buying or selling power to move its price."
+        
+        let l5p5c3 = Component()
+        l5p5c3.type = .label
+        l5p5c3.text = "Additionally, some individuals hold large amounts. A single sale by one of these holders can create noticeable price changes."
+        
+        let l5p5 = Page()
+        l5p5.components = [l5p5c1, l5p5c2, l5p5c3]
+        
+        
+        let l5p6c1 = Component()
+        l5p6c1.type = .label
+        l5p6c1.text = "Finally, unlike assets traded on major centralized exchanges, bitcoin liquidity is spread across many exchanges."
+        
+        let l5p6c2 = Component()
+        l5p6c2.type = .label
+        l5p6c2.text = "This leads to price differences and increased price sensitivity on individual platforms."
+        
+        let l5p6 = Page()
+        l5p6.components = [l5p6c1, l5p6c2]
+        
+        
+        let l5p7c1 = Component()
+        l5p7c1.type = .label
+        l5p7c1.text = "As bitcoin matures, factors causing its volatility today may fade."
+        
+        let l5p7c2 = Component()
+        l5p7c2.type = .label
+        l5p7c2.text = "Regulatory clarity is likely to improve over time, reducing uncertainty. As bitcoin’s market cap grows, the impact of individual transactions decreases."
+        
+        let l5p7c3 = Component()
+        l5p7c3.type = .label
+        l5p7c3.text = "The development of a more efficient market will allow investors to trade with less price disruption."
+        
+        let l5p7 = Page()
+        l5p7.components = [l5p7c1, l5p7c2, l5p7c3]
+        
+        
         let lesson5 = Lesson()
         lesson5.order = 4
-        lesson5.pages = [firstPage]
+        lesson5.pages = [l5p1, l5p2, l5p3, l5p4, l5p5, l5p6, l5p7]
         lesson5.title = "Why is bitcoin volatile?"
         lesson5.id = "whyisbitcoinvolatile"
+        lesson5.image = "whyisbitcoinvolatile"
+        
+        
+        let l6p1c1 = Component()
+        l6p1c1.type = .label
+        l6p1c1.text = "<b>Mining</b> is the process through which <b>new bitcoins</b> are generated and added to circulation."
+        
+        let l6p1c2 = Component()
+        l6p1c2.type = .label
+        l6p1c2.text = "It’s a digital competition where powerful computers work to <b>confirm bitcoin transactions</b>."
+        
+        let l6p1c3 = Component()
+        l6p1c3.type = .label
+        l6p1c3.text = "As miners commit resources (electricity, time, computing power), they make bitcoin highly <b>resistant to attacks</b>."
+        
+        let l6p1 = Page()
+        l6p1.components = [l6p1c1, l6p1c2, l6p1c3]
+        
+        
+        let l6p2c1 = Component()
+        l6p2c1.type = .label
+        l6p2c1.text = "Every 10 minutes, a new block of bitcoin transactions gets confirmed and added to the blockchain."
+        
+        let l6p2c2 = Component()
+        l6p2c2.type = .label
+        l6p2c2.text = "The creation of each block requires the identification of a specific number resulting from a complex mathematical puzzle."
+        
+        let l6p2c3 = Component()
+        l6p2c3.type = .label
+        l6p2c3.text = "The first miner to guess the correct number, receives <b>3.125 bitcoin</b> plus all transaction fees paid in the block."
+        
+        let l6p2 = Page()
+        l6p2.components = [l6p2c1, l6p2c2, l6p2c3]
+        
+        
+        let l6p3c1 = Component()
+        l6p3c1.type = .label
+        l6p3c1.text = "As a miner, you need hardware (called ASICs) specifically designed to mine bitcoin."
+        
+        let l6p3c2 = Component()
+        l6p3c2.type = .label
+        l6p3c2.text = "The more computing power you control, the more numbers per second you can guess, the more likely you are to be the first to guess correctly."
+        
+        let l6p3 = Page()
+        l6p3.components = [l6p3c1, l6p3c2]
+        
+        
+        let l6p4c1 = Component()
+        l6p4c1.type = .label
+        l6p4c1.text = "Through <b>hosted mining</b>, newcomers can participate without handling hardware. A hosting service manages the operations, charging a fee in return."
+        
+        let l6p4c2 = Component()
+        l6p4c2.type = .label
+        l6p4c2.text = "Joining a <b>mining pool</b> is another common strategy. Here, multiple miners combine their computational power, and share the rewards proportionally."
+        
+        let l6p4 = Page()
+        l6p4.components = [l6p4c1, l6p4c2]
+        
+        
+        let l6p5c1 = Component()
+        l6p5c1.type = .label
+        l6p5c1.text = "Each block is linked to the previous one, forming a chain that would be extremely costly to change."
+        
+        let l6p5c2 = Component()
+        l6p5c2.type = .label
+        l6p5c2.text = "Hacking the system means you'd need to forever win each block."
+        
+        let l6p5c3 = Component()
+        l6p5c3.type = .label
+        l6p5c3.text = "The high reward, extreme complexity, and randomness make the network’s security very strong."
+        
+        let l6p5 = Page()
+        l6p5.components = [l6p5c1, l6p5c2, l6p5c3]
+        
+        
+        let l6p6c1 = Component()
+        l6p6c1.type = .label
+        l6p6c1.text = "Every four years, the reward per block is halved - in an event called the <b>halving</b>."
+        
+        let l6p6c2 = Component()
+        l6p6c2.type = .label
+        l6p6c2.text = "The last satoshi will be mined in 2140, upon which all 21,000,000 bitcoin will be in existence."
+        
+        let l6p6 = Page()
+        l6p6.components = [l6p6c1, l6p6c2]
+        
+        
         let lesson6 = Lesson()
         lesson6.order = 5
-        lesson6.pages = [firstPage]
+        lesson6.pages = [l6p1, l6p2, l6p3, l6p4, l6p5, l6p6]
         lesson6.title = "What is mining?"
         lesson6.id = "whatismining"
+        lesson6.image = "whatismining"
         
         let firstLevel = Level()
         firstLevel.order = 0

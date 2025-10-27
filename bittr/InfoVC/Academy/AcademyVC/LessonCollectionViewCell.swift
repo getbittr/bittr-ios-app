@@ -15,12 +15,21 @@ class LessonCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var lessonTitle: UILabel!
     @IBOutlet weak var lessonButton: UIButton!
     @IBOutlet weak var blurView: UIView!
+    @IBOutlet weak var lessonImage: UIImageView!
     
     override func awakeFromNib() {
         
+        // Button titles.
         self.lessonButton.setTitle("", for: .normal)
+        
+        // Corner radii.
         self.cardView.layer.cornerRadius = 8
+        self.lessonImage.layer.cornerRadius = 8
+        
+        // Resistance priority.
         self.lessonTitle.setContentCompressionResistancePriority(.required, for: .vertical)
+        
+        // Color management.
         self.changeColors()
     }
     

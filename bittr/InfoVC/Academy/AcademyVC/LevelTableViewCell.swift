@@ -99,6 +99,11 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
             cell.lessonTitle.text = thisLesson.title
             cell.lessonButton.accessibilityElements = [thisLesson]
             
+            cell.lessonImage.image = nil
+            if thisLesson.image != nil {
+                cell.lessonImage.image = UIImage(named: thisLesson.image!)
+            }
+            
             let previousLesson:Lesson? = {
                 if indexPath.row > 0 {
                     return self.thisLevel.lessons[indexPath.row - 1]
@@ -111,8 +116,10 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
             
             if CacheManager.getCompletedLessons().contains(thisLesson.id) || previousLesson == nil || (previousLesson != nil && CacheManager.getCompletedLessons().contains(previousLesson!.id)) {
                 cell.removeBlur()
+                cell.lessonButton.alpha = 1
             } else {
                 cell.addBlur()
+                cell.lessonButton.alpha = 0
             }
             
             return cell
