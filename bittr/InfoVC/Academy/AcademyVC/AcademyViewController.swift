@@ -21,9 +21,6 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Hide after testing
-        // UserDefaults.standard.removeObject(forKey: "completedlessons")
-        
         // Table view.
         self.academyTableView.delegate = self
         self.academyTableView.dataSource = self

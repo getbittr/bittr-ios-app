@@ -84,26 +84,22 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         return self.thisLevel.lessons.count
     }
     
-    func calculateCellWidth() -> CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let collectionViewWidth = screenWidth - 70
-        let cellWidth = (collectionViewWidth - 10)/3
-        return cellWidth
-    }
-    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
         if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "LessonCell", for: indexPath) as? LessonCollectionViewCell {
             
+            // Set lesson, title, and button.
             let thisLesson = self.thisLevel.lessons[indexPath.row]
             cell.lessonTitle.text = thisLesson.title
             cell.lessonButton.accessibilityElements = [thisLesson]
             
+            // Set lesson image.
             cell.lessonImage.image = nil
             if thisLesson.image != nil {
                 cell.lessonImage.image = UIImage(named: thisLesson.image!)
             }
             
+            // Check previous lesson.
             let previousLesson:Lesson? = {
                 if indexPath.row > 0 {
                     return self.thisLevel.lessons[indexPath.row - 1]
@@ -114,16 +110,21 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
                 }
             }()
             
+            // Check if lesson is available.
             if CacheManager.getCompletedLessons().contains(thisLesson.id) || previousLesson == nil || (previousLesson != nil && CacheManager.getCompletedLessons().contains(previousLesson!.id)) {
+                // Lesson is available to user.
                 cell.removeBlur()
                 cell.lessonButton.alpha = 1
                 
                 if CacheManager.getCompletedLessons().contains(thisLesson.id) {
+                    // Lesson has been completed.
                     cell.iconCheck.alpha = 1
                 } else {
+                    // Lesson has not yet been completed.
                     cell.iconCheck.alpha = 0
                 }
             } else {
+                // Lesson is not yet available to user.
                 cell.addBlur()
                 cell.lessonButton.alpha = 0
                 cell.iconCheck.alpha = 0
