@@ -476,7 +476,8 @@ class Language: NSObject {
             "InvalidHttpHeaderValue": "Invalid HTTP header value.",
             "RequestAlreadyConsumed": "Request already consumed.",
             "InvalidResponse": "Invalid response.",
-            "academybeta": "Academy (beta)"
+            "academybeta": "Academy (beta)",
+            "academyheader": "Learn everything about bitcoin and take control of your financial future. From basics to advanced topics, we've got you covered."
             
         ]
         

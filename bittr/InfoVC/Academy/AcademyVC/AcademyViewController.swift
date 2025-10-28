@@ -27,13 +27,14 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         // Table view.
         self.academyTableView.delegate = self
         self.academyTableView.dataSource = self
-        self.academyTableView.contentInset = UIEdgeInsets(top: 90, left: 0, bottom: 100, right: 0)
+        self.academyTableView.contentInset = UIEdgeInsets(top: 80, left: 0, bottom: 100, right: 0)
         self.academyTableView.rowHeight = UITableView.automaticDimension
         self.academyTableView.estimatedRowHeight = 300
         
         // Get Academy levels.
         self.getLevels()
         self.changeColors()
+        self.setLanguage()
     }
     
     func getLevels() {
@@ -45,6 +46,20 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             self.coreVC!.downloadedAcademy = self.getDemoData()
             
             self.academyTableView.reloadData()
+        }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        
+        // Set header view.
+        if let newHeaderView = self.academyTableView.tableHeaderView {
+            let height = newHeaderView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+            var headerFrame = newHeaderView.frame
+            if height != headerFrame.size.height {
+                headerFrame.size.height = height
+                newHeaderView.frame = headerFrame
+                self.academyTableView.tableHeaderView = newHeaderView
+            }
         }
     }
     
@@ -123,6 +138,10 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     func changeColors() {
         self.view.backgroundColor = Colors.getColor("yelloworblue3")
+    }
+    
+    func setLanguage() {
+        self.headerLabel.text = Language.getWord(withID: "academyheader")
     }
     
 }
