@@ -44,19 +44,21 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var infoContainerView: UIView!
     
     // Menu bar elements
-    @IBOutlet weak var menuBarView: UIView!
+    @IBOutlet weak var menuBarContainer: UIView!
     @IBOutlet weak var selectedView: UIView!
+    @IBOutlet weak var selectedViewLeading: NSLayoutConstraint!
+    @IBOutlet weak var selectedViewTrailing: NSLayoutConstraint!
     @IBOutlet weak var leftButton: UIButton!
     @IBOutlet weak var middleButton: UIButton!
     @IBOutlet weak var rightButton: UIButton!
-    @IBOutlet weak var selectedViewCenterX: NSLayoutConstraint!
-    @IBOutlet weak var menuBarViewHeight: NSLayoutConstraint!
-    @IBOutlet weak var leftWhite: UIView!
-    @IBOutlet weak var middleWhite: UIView!
-    @IBOutlet weak var rightWhite: UIView!
     @IBOutlet weak var leftImageUnselected: UIImageView!
     @IBOutlet weak var middleImageUnselected: UIImageView!
     @IBOutlet weak var rightImageUnselected: UIImageView!
+    @IBOutlet weak var settingsView: UIView!
+    @IBOutlet weak var academyView: UIView!
+    @IBOutlet weak var walletView: UIView!
+    @IBOutlet weak var walletLabel: UILabel!
+    @IBOutlet weak var academyLabel: UILabel!
     
     // Container views for PinVC and SignupVC
     @IBOutlet weak var pinContainerView: UIView!
@@ -148,12 +150,15 @@ class CoreViewController: UIViewController {
         }
         
         // Corner radii.
-        self.selectedView.layer.cornerRadius = 13
-        self.leftWhite.layer.cornerRadius = 13
-        self.middleWhite.layer.cornerRadius = 13
-        self.rightWhite.layer.cornerRadius = 13
+        self.selectedView.layer.cornerRadius = 8
         self.pendingView.layer.cornerRadius = 13
         self.statusView.layer.cornerRadius = 13
+        self.settingsView.layer.cornerRadius = 8
+        self.academyView.layer.cornerRadius = 8
+        self.walletView.layer.cornerRadius = 8
+        self.walletView.setShadow()
+        self.academyView.setShadow()
+        self.settingsView.setShadow()
         
         // Button titles
         self.leftButton.setTitle("", for: .normal)
@@ -163,11 +168,6 @@ class CoreViewController: UIViewController {
         
         // Opacities
         self.yellowcurve.alpha = 0.85
-        
-        // Middle menu item shadow
-        self.middleWhite.layer.shadowColor = UIColor.black.cgColor
-        self.middleWhite.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.middleWhite.layer.shadowRadius = 10.0
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)

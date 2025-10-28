@@ -138,6 +138,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     func changeColors() {
         self.view.backgroundColor = Colors.getColor("yelloworblue3")
+        self.headerLabel.textColor = Colors.getColor("blackorwhite")
     }
     
     func setLanguage() {

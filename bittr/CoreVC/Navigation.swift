@@ -15,21 +15,22 @@ extension CoreViewController {
             self.loadInfoVC()
         }
         
-        let centerConstants:[CGFloat] = [-99, 0, 100]
-        let centerXConstant = centerConstants[sender.tag]
+        let menuViews:[UIView] = [self.walletView, self.academyView, self.settingsView]
+        let menuConstraint = menuViews[sender.tag]
         let leadingConstant = CGFloat(sender.tag * -1) * self.view.safeAreaLayoutGuide.layoutFrame.size.width
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            self.selectedViewCenterX.constant = centerXConstant
+            
+            // Selected menu item.
+            NSLayoutConstraint.deactivate([self.selectedViewLeading, self.selectedViewTrailing])
+            self.selectedViewLeading = NSLayoutConstraint(item: self.selectedView, attribute: .leading, relatedBy: .equal, toItem: menuConstraint, attribute: .leading, multiplier: 1, constant: 0)
+            self.selectedViewTrailing = NSLayoutConstraint(item: self.selectedView, attribute: .trailing, relatedBy: .equal, toItem: menuConstraint, attribute: .trailing, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.selectedViewLeading, self.selectedViewTrailing])
+            
+            // Container view.
             self.homeContainerViewLeading.constant = leadingConstant
             self.homeContainerViewTrailing.constant = leadingConstant
-            self.middleWhite.layer.shadowOpacity = {
-                if sender.tag == 1, CacheManager.academyBetaIsOn() {
-                    return 0.1
-                } else {
-                    return 0
-                }
-            }()
+            
             self.view.layoutIfNeeded()
         } completion: { _ in
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
@@ -41,20 +42,10 @@ extension CoreViewController {
     
     
     func loadInfoVC() {
-        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
-        let vcIdentifier:String = {
-            if CacheManager.academyBetaIsOn() {
-                return "Academy"
-            } else {
-                return "Info"
-            }
-        }()
-        let newChild = storyboard.instantiateViewController(withIdentifier: vcIdentifier)
         
-        if let newChild = newChild as? InfoViewController {
-            newChild.coreVC = self
-            self.infoVC = newChild
-        } else if let newChild = newChild as? AcademyViewController {
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        let newChild = storyboard.instantiateViewController(withIdentifier: "Academy")
+        if let newChild = newChild as? AcademyViewController {
             newChild.coreVC = self
         }
         

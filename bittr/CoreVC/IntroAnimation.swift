@@ -16,11 +16,6 @@ extension CoreViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
-        // Set correct height constraint for menu bar.
-        if self.view.safeAreaInsets.bottom == 0 {
-            self.menuBarViewHeight.constant = 68
-        }
-        
         // Start startup animation sequence.
         UIView.animate(withDuration: 0.6, delay: 0.3, options: .curveEaseInOut) {
             self.firstCoinCenterX.constant = -40
@@ -60,7 +55,7 @@ extension CoreViewController {
                             self.firstCoin.alpha = 0
                             self.coverView.alpha = 0
                             self.homeContainerView.alpha = 1
-                            self.menuBarView.alpha = 1
+                            self.menuBarContainer.alpha = 1
                             self.blackSignupBackground.alpha = 1
                             self.changeColors()
                             
