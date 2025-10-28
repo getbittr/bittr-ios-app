@@ -154,7 +154,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func applicationWillTerminate(_ application: UIApplication) {
-        try? LightningNodeService.shared.stop()
+        DispatchQueue.global(qos: .background).async {
+            try? LightningNodeService.shared.stop()
+        }
     }
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {

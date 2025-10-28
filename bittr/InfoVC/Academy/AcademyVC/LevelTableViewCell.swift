@@ -117,9 +117,16 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
             if CacheManager.getCompletedLessons().contains(thisLesson.id) || previousLesson == nil || (previousLesson != nil && CacheManager.getCompletedLessons().contains(previousLesson!.id)) {
                 cell.removeBlur()
                 cell.lessonButton.alpha = 1
+                
+                if CacheManager.getCompletedLessons().contains(thisLesson.id) {
+                    cell.iconCheck.alpha = 1
+                } else {
+                    cell.iconCheck.alpha = 0
+                }
             } else {
                 cell.addBlur()
                 cell.lessonButton.alpha = 0
+                cell.iconCheck.alpha = 0
             }
             
             return cell

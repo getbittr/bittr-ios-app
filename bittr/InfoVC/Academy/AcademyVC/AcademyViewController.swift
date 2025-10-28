@@ -11,6 +11,8 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     // Table
     @IBOutlet weak var academyTableView: UITableView!
+    @IBOutlet weak var headerView: UIView!
+    @IBOutlet weak var headerLabel: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
@@ -19,8 +21,8 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // TODO: Hide after testing
-        UserDefaults.standard.removeObject(forKey: "completedlessons")
+        // Hide after testing
+        // UserDefaults.standard.removeObject(forKey: "completedlessons")
         
         // Table view.
         self.academyTableView.delegate = self

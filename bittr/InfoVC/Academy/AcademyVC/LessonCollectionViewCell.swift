@@ -16,6 +16,7 @@ class LessonCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var lessonButton: UIButton!
     @IBOutlet weak var blurView: UIView!
     @IBOutlet weak var lessonImage: UIImageView!
+    @IBOutlet weak var iconCheck: UIImageView!
     
     override func awakeFromNib() {
         
@@ -25,6 +26,12 @@ class LessonCollectionViewCell: UICollectionViewCell {
         // Corner radii.
         self.cardView.layer.cornerRadius = 8
         self.lessonImage.layer.cornerRadius = 8
+        
+        // Check icon styling.
+        self.iconCheck.layer.shadowColor = UIColor(displayP3Red: 53/255, green: 154/255, blue: 71/255, alpha: 1).cgColor
+        self.iconCheck.layer.shadowOffset = CGSize(width: 0, height: 2)
+        self.iconCheck.layer.shadowRadius = 6
+        self.iconCheck.layer.shadowOpacity = 0.2
         
         // Resistance priority.
         self.lessonTitle.setContentCompressionResistancePriority(.required, for: .vertical)

@@ -467,14 +467,18 @@ extension AcademyViewController {
         
         let l6p4c1 = Component()
         l6p4c1.type = .label
-        l6p4c1.text = "Through <b>hosted mining</b>, newcomers can participate without handling hardware. A hosting service manages the operations, charging a fee in return."
+        l6p4c1.text = "How can you start mining bitcoin?"
         
         let l6p4c2 = Component()
         l6p4c2.type = .label
-        l6p4c2.text = "Joining a <b>mining pool</b> is another common strategy. Here, multiple miners combine their computational power, and share the rewards proportionally."
+        l6p4c2.text = "A popular option for newcomers is <b>hosted mining</b>. A hosting service manages the hardware for you, charging a fee in return."
+        
+        let l6p4c3 = Component()
+        l6p4c3.type = .label
+        l6p4c3.text = "Joining a <b>mining pool</b> is another common strategy. Here, multiple miners combine their computational power, and share the rewards proportionally."
         
         let l6p4 = Page()
-        l6p4.components = [l6p4c1, l6p4c2]
+        l6p4.components = [l6p4c1, l6p4c2, l6p4c3]
         
         
         let l6p5c1 = Component()
@@ -507,7 +511,7 @@ extension AcademyViewController {
         
         let lesson6 = Lesson()
         lesson6.order = 5
-        lesson6.pages = [l6p1, l6p2, l6p3, l6p4, l6p5, l6p6]
+        lesson6.pages = [l6p1, l6p2, l6p3, l6p5, l6p6, l6p4]
         lesson6.title = "What is mining?"
         lesson6.id = "whatismining"
         lesson6.image = "whatismining"
