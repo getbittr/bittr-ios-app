@@ -61,8 +61,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1
-        //return self.coreVC?.downloadedAcademy?.count ?? 0
+        return self.coreVC?.downloadedAcademy?.count ?? 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

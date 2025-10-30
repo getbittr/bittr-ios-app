@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             options.dsn = "https://a132893f0e0785733b108592f71efebc@o4507055777120256.ingest.us.sentry.io/4507055778758656"
             options.debug = false // Enabled debug when first installing is always helpful
             options.enableTracing = true
+            options.sendDefaultPii = false
             
             // Redact sensitive data in Sentry events.
             options.beforeSend = { sentryEvent in
@@ -72,6 +73,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                             sentryEvent.context!["device"]!["locale"]! = "[redacted]"
                         }
                     }
+                }
+                
+                // Send device token to Sentry.
+                if let deviceToken = CacheManager.getRegistrationToken() {
+                    if sentryEvent.extra == nil { sentryEvent.extra = [String:Any]() }
+                    sentryEvent.extra!["device_token"] = deviceToken
                 }
                 
                 return sentryEvent
@@ -128,10 +135,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 
                 return newBreadcrumb
             }
-
-            // Uncomment the following lines to add more data to your events
-            // options.attachScreenshot = true // This adds a screenshot to the error events
-            // options.attachViewHierarchy = true // This adds the view hierarchy to the error events
         }
 
         UNUserNotificationCenter.current().delegate = self
