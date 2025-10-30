@@ -89,6 +89,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
     @IBOutlet weak var nextLabel: UILabel! // Next or Manual input
     @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var arrowIconWidth: NSLayoutConstraint!
+    @IBOutlet weak var arrowIconLeading: NSLayoutConstraint!
+    @IBOutlet weak var arrowIcon: UIImageView!
     
     // Onchain confirm scroll
     @IBOutlet weak var confirmHeaderView: UIView!
@@ -108,7 +111,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var sendLabel: UILabel!
     @IBOutlet weak var labelAddress: UILabel!
     @IBOutlet weak var labelAmount: UILabel!
-    @IBOutlet weak var labelEdit: UILabel!
     
     // Onchain confirm scroll - Fees
     @IBOutlet weak var feesTopLabel: UILabel!

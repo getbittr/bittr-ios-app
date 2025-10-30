@@ -26,7 +26,11 @@ extension SendViewController {
                 self.availableAmount.alpha = 0
                 self.availableButton.alpha = 0
                 self.scannerView.alpha = 1
+                
+                // Update Next button
                 self.nextLabel.text = Language.getWord(withID: "manualinput")
+                self.arrowIconWidth.constant = 0
+                self.arrowIconLeading.constant = 0
                 
                 NSLayoutConstraint.deactivate([self.nextViewTop])
                 self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.scannerView, attribute: .bottom, multiplier: 1, constant: 30)

@@ -27,7 +27,13 @@ extension SendViewController {
         self.toView.alpha = 1
         self.pasteButton.alpha = 1
         self.availableButton.alpha = 1
+        
+        // Update Next label
         self.nextLabel.text = Language.getWord(withID: "next")
+        self.arrowIconWidth.constant = 11
+        self.arrowIconLeading.constant = 10
+        
+        // Update available amount
         self.setSendAllLabel(forView: forView)
         self.availableAmount.alpha = 1
         

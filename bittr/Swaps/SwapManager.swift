@@ -92,6 +92,7 @@ class SwapManager: NSObject {
             if deviceToken.isEmpty {
                 DispatchQueue.main.async {
                     swapVC.nextLabel.alpha = 1
+                    swapVC.arrowIcon.alpha = 1
                     swapVC.nextSpinner.stopAnimating()
                     swapVC.showAlert(
                         presentingController: swapVC,
@@ -127,6 +128,7 @@ class SwapManager: NSObject {
                     case .failure(let error):
                         DispatchQueue.main.async {
                             swapVC.nextLabel.alpha = 1
+                            swapVC.arrowIcon.alpha = 1
                             swapVC.nextSpinner.stopAnimating()
                             swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
@@ -134,6 +136,7 @@ class SwapManager: NSObject {
                         if let errorMessage = receivedDictionary["error"] as? String {
                             DispatchQueue.main.async {
                                 swapVC.nextLabel.alpha = 1
+                                swapVC.arrowIcon.alpha = 1
                                 swapVC.nextSpinner.stopAnimating()
                                 swapVC.showAlert(
                                     presentingController: swapVC,
@@ -179,6 +182,7 @@ class SwapManager: NSObject {
                                 // Expected data unavailable.
                                 DispatchQueue.main.async {
                                     swapVC.nextLabel.alpha = 1
+                                    swapVC.arrowIcon.alpha = 1
                                     swapVC.nextSpinner.stopAnimating()
                                     swapVC.showAlert(
                                         presentingController: swapVC,
@@ -203,6 +207,7 @@ class SwapManager: NSObject {
             }()
             DispatchQueue.main.async {
                 swapVC.nextLabel.alpha = 1
+                swapVC.arrowIcon.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
                 swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error) { scope in
@@ -384,6 +389,7 @@ class SwapManager: NSObject {
         if deviceToken.isEmpty {
             DispatchQueue.main.async {
                 swapVC.nextLabel.alpha = 1
+                swapVC.arrowIcon.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
                 swapVC.showAlert(
                     presentingController: swapVC,
@@ -421,6 +427,7 @@ class SwapManager: NSObject {
                 case .failure(let error):
                     DispatchQueue.main.async {
                         swapVC.nextLabel.alpha = 1
+                        swapVC.arrowIcon.alpha = 1
                         swapVC.nextSpinner.stopAnimating()
                         swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
@@ -428,6 +435,7 @@ class SwapManager: NSObject {
                     if let errorMessage = receivedDictionary["error"] as? String {
                         DispatchQueue.main.async {
                             swapVC.nextLabel.alpha = 1
+                            swapVC.arrowIcon.alpha = 1
                             swapVC.nextSpinner.stopAnimating()
                             swapVC.showAlert(
                                 presentingController: swapVC,
@@ -470,6 +478,7 @@ class SwapManager: NSObject {
                             // Expected data unavailable.
                             DispatchQueue.main.async {
                                 swapVC.nextLabel.alpha = 1
+                                swapVC.arrowIcon.alpha = 1
                                 swapVC.nextSpinner.stopAnimating()
                                 swapVC.showAlert(
                                     presentingController: swapVC,

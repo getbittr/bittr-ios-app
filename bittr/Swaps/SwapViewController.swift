@@ -45,6 +45,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var nextLabel: UILabel!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var arrowIcon: UIImageView!
     
     // Confirm card
     @IBOutlet weak var confirmCard: UIView!
@@ -73,14 +74,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var downloadButton: UIButton!
     @IBOutlet weak var downloadIcon: UIImageView!
     @IBOutlet weak var downloadLabel: UILabel!
-    
-    // Pending stack
-    @IBOutlet weak var pendingStack: UIView!
-    @IBOutlet weak var pendingStackHeight: NSLayoutConstraint! // 0 or 75
-    @IBOutlet weak var pendingView: UIView!
-    @IBOutlet weak var pendingButton: UIButton!
-    @IBOutlet weak var pendingCoverView: UIView!
-    @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     
     // VCs
     var coreVC:CoreViewController?
@@ -117,7 +110,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.availableButton.setTitle("", for: .normal)
         self.fromButton.setTitle("", for: .normal)
         self.confirmStatusButton.setTitle("", for: .normal)
-        self.pendingButton.setTitle("", for: .normal)
         self.downloadButton.setTitle("", for: .normal)
         self.statusQuestionButton.setTitle("", for: .normal)
         
@@ -157,8 +149,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.fromView.layer.shadowOpacity = 0.1
         
         // Next view
-        self.nextView.layer.cornerRadius = 13
-        self.pendingView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 8
         
         // Available amount
         if let actualChannel = self.coreVC?.bittrWallet.bittrChannel {
@@ -318,6 +309,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
                 self.nextLabel.alpha = 0
+                self.arrowIcon.alpha = 0
                 self.nextSpinner.startAnimating()
                 
                 // Create Swap object.
@@ -473,6 +465,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     func confirmExpectedFees() {
         
         self.nextLabel.alpha = 1
+        self.arrowIcon.alpha = 1
         self.nextSpinner.stopAnimating()
         
         guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
@@ -783,6 +776,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Show spinner to indicate we're starting the swap process
         self.nextLabel.alpha = 0
+        self.arrowIcon.alpha = 0
         self.nextSpinner.startAnimating()
         
         // Start the swap process directly

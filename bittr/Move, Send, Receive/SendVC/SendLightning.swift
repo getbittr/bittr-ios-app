@@ -195,6 +195,7 @@ extension UIViewController {
         let receiveVC = self as? ReceiveViewController
         
         sendVC?.nextLabel.alpha = 0
+        sendVC?.arrowIcon.alpha = 0
         sendVC?.nextSpinner.startAnimating()
         
         let invoiceText = sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText
@@ -227,6 +228,7 @@ extension UIViewController {
                 DispatchQueue.main.async {
                     // General error alert
                     sendVC?.nextLabel.alpha = 1
+                    sendVC?.arrowIcon.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                     SentrySDK.capture(error: error) { scope in
@@ -308,6 +310,7 @@ extension UIViewController {
         
         // Update views.
         sendVC?.nextLabel.alpha = 1
+        sendVC?.arrowIcon.alpha = 1
         sendVC?.nextSpinner.stopAnimating()
         sendVC?.resetFields()
         

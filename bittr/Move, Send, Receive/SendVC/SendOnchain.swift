@@ -85,6 +85,7 @@ extension SendViewController {
             } else {
                 // Start button animation.
                 self.nextLabel.alpha = 0
+                self.arrowIcon.alpha = 0
                 self.nextSpinner.startAnimating()
                 
                 // Set confirmation labels.
@@ -145,6 +146,7 @@ extension SendViewController {
                                     self.view.layoutIfNeeded()
                                 }
                                 self.nextLabel.alpha = 1
+                                self.arrowIcon.alpha = 1
                                 self.nextSpinner.stopAnimating()
                             }
                         } catch {
@@ -161,6 +163,7 @@ extension SendViewController {
                             // Show alert.
                             DispatchQueue.main.async {
                                 self.nextLabel.alpha = 1
+                                self.arrowIcon.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 SentrySDK.capture(error: error) { scope in

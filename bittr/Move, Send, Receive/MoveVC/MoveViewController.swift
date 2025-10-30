@@ -76,6 +76,8 @@ class MoveViewController: UIViewController {
         self.viewInstant.layer.cornerRadius = 13
         self.yellowCard.layer.cornerRadius = 20
         self.swapView.layer.cornerRadius = self.swapView.bounds.height/2
+        self.rightCard.setShadow()
+        self.leftCard.setShadow()
         
         // Yellow card shadow.
         self.yellowCard.layer.shadowColor = UIColor.black.cgColor

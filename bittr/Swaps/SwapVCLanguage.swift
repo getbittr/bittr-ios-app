@@ -29,7 +29,6 @@ extension SwapViewController {
         self.moveLabel.textColor = Colors.getColor("blackoryellow")
         self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         self.confirmCard.backgroundColor = Colors.getColor("yelloworblue1")
-        self.pendingCoverView.backgroundColor = Colors.getColor("yelloworblue1")
         self.confirmTopLabel.textColor = Colors.getColor("whiteoryellow")
         self.confirmDirection.backgroundColor = Colors.getColor("whiteorblue3")
         self.confirmAmount.backgroundColor = Colors.getColor("whiteorblue3")

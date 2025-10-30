@@ -23,7 +23,6 @@ extension SendViewController {
         self.labelAddress.text = Language.getWord(withID: "address")
         self.labelAmount.text = Language.getWord(withID: "amount")
         self.feesTopLabel.text = Language.getWord(withID: "feerate")
-        self.labelEdit.text = "<   " + Language.getWord(withID: "edit")
         self.sendLabel.text = Language.getWord(withID: "send")
         self.stackLabelQR.text = Language.getWord(withID: "sendvcscan")
         self.stackLabelPaste.text = Language.getWord(withID: "sendvcpaste")
@@ -87,10 +86,6 @@ extension SendViewController {
         self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
         self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
-        
-        
-        self.editView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.labelEdit.textColor = Colors.getColor("blackorwhite")
     }
     
     func setBasicStyling() {
@@ -117,10 +112,10 @@ extension SendViewController {
         // Corner radii
         self.toView.layer.cornerRadius = 8
         self.amountView.layer.cornerRadius = 8
-        self.nextView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 8
         self.confirmHeaderView.layer.cornerRadius = 13
-        self.editView.layer.cornerRadius = 13
-        self.sendView.layer.cornerRadius = 13
+        self.editView.layer.cornerRadius = 8
+        self.sendView.layer.cornerRadius = 8
         self.switchView.layer.cornerRadius = 13
         self.switchSelectionView.layer.cornerRadius = 8
         self.scannerView.layer.cornerRadius = 13
