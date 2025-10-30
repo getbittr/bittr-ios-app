@@ -369,7 +369,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
         if sender.accessibilityIdentifier != nil {
-            self.coreVC!.infoVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+            self.coreVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
         }
     }
     

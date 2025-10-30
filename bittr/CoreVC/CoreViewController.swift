@@ -89,7 +89,6 @@ class CoreViewController: UIViewController {
     
     // Connection to VCs
     var homeVC:HomeViewController?
-    var infoVC:InfoViewController?
     var settingsVC:SettingsViewController?
     var signupVC:SignupViewController?
     var buyVC:BuyViewController?
@@ -97,6 +96,7 @@ class CoreViewController: UIViewController {
     // Articles
     var allArticles:[String:Article]?
     var allImages:[String:Data]?
+    var tappedArticle:String?
     
     // Academy
     var downloadedAcademy:[Level]?

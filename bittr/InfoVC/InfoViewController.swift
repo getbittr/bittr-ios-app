@@ -262,11 +262,6 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    func launchArticle(articleTag:String) {
-        self.tappedArticle = articleTag
-        performSegue(withIdentifier: "InfoToArticle", sender: self)
-    }
-    
 }
 
 extension UIViewController {
