@@ -20,7 +20,7 @@ extension UIViewController {
             // Background
             let darkBackground = UIView()
             darkBackground.translatesAutoresizingMaskIntoConstraints = false
-            darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
+            darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
             darkBackground.accessibilityIdentifier = "alertview"
             presentingController.view.addSubview(darkBackground)
             let darkBackgroundTop = NSLayoutConstraint(item: darkBackground, attribute: .top, relatedBy: .equal, toItem: presentingController.view, attribute: .top, multiplier: 1, constant: 0)
@@ -28,6 +28,7 @@ extension UIViewController {
             let darkBackgroundLeft = NSLayoutConstraint(item: darkBackground, attribute: .leading, relatedBy: .equal, toItem: presentingController.view, attribute: .leading, multiplier: 1, constant: 0)
             let darkBackgroundRight = NSLayoutConstraint(item: darkBackground, attribute: .trailing, relatedBy: .equal, toItem: presentingController.view, attribute: .trailing, multiplier: 1, constant: 0)
             presentingController.view.addConstraints([darkBackgroundTop, darkBackgroundLeft, darkBackgroundRight, darkBackgroundBottom])
+            darkBackground.accessibilityElements = [darkBackgroundBottom]
             
             // Card
             let yellowCard = UIView()
@@ -127,22 +128,6 @@ extension UIViewController {
             yellowCard.addConstraints([closeButtonCenterX, closeButtonCenterY])
             closeButton.addConstraints([closeButtonWidth, closeButtonHeight])
             
-            // Message title
-            /*let titleLabel = UILabel()
-            titleLabel.translatesAutoresizingMaskIntoConstraints = false
-            titleLabel.numberOfLines = 1
-            titleLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-            titleLabel.text = title
-            titleLabel.textColor = Colors.getColor("blackorwhite")
-            titleLabel.textAlignment = .center
-            yellowCard.addSubview(titleLabel)
-            let titleLabelTop = NSLayoutConstraint(item: titleLabel, attribute: .top, relatedBy: .equal, toItem: alertIcon, attribute: .bottom, multiplier: 1, constant: 25)
-            let titleLabelCenterX = NSLayoutConstraint(item: titleLabel, attribute: .centerX, relatedBy: .equal, toItem: yellowCard, attribute: .centerX, multiplier: 1, constant: 0)
-            let titleLabelHeight = NSLayoutConstraint(item: titleLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            let titleLabelWidth = NSLayoutConstraint(item: titleLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            yellowCard.addConstraints([titleLabelTop, titleLabelCenterX])
-            titleLabel.addConstraints([titleLabelHeight, titleLabelWidth])*/
-            
             // Message
             let messageLabel = UILabel()
             messageLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -241,6 +226,7 @@ extension UIViewController {
             presentingController.view.layoutIfNeeded()
             
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+                darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
                 NSLayoutConstraint.deactivate([yellowCardTop])
                 yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
                 NSLayoutConstraint.activate([yellowCardBottom])
@@ -260,7 +246,21 @@ extension UIViewController {
         if thisVC != nil {
             for eachView in thisVC!.view.subviews {
                 if eachView.accessibilityIdentifier == "alertview" {
-                    eachView.removeFromSuperview()
+                    if eachView.subviews.count == 1, let yellowCard = eachView.subviews.first, var darkBackgroundBottom = eachView.accessibilityElements?.first as? NSLayoutConstraint {
+                        
+                        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+                            eachView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
+                            
+                            NSLayoutConstraint.deactivate([darkBackgroundBottom])
+                            darkBackgroundBottom = NSLayoutConstraint(item: eachView, attribute: .bottom, relatedBy: .equal, toItem: thisVC!.view, attribute: .bottom, multiplier: 1, constant: yellowCard.frame.height)
+                            NSLayoutConstraint.activate([darkBackgroundBottom])
+                            thisVC!.view.layoutIfNeeded()
+                        }) { _ in
+                            eachView.removeFromSuperview()
+                        }
+                    } else {
+                        eachView.removeFromSuperview()
+                    }
                 }
             }
         }
