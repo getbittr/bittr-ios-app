@@ -662,18 +662,14 @@ extension AcademyViewController {
         
         let l2l2p6c1 = Component()
         l2l2p6c1.type = .label
-        l2l2p6c1.text = "Large holdings do not confer power over the protocol. Rules are enforced by full nodes."
-        
-        let l2l2p6c2 = Component()
-        l2l2p6c2.type = .label
-        l2l2p6c2.text = "Even miners must adhere to them: blocks that break the rules are discarded."
+        l2l2p6c1.text = "Large holdings do not confer power over the protocol. Rules are enforced by bitcoin nodes."
         
         let l2l2p6c3 = Component()
         l2l2p6c3.type = .label
         l2l2p6c3.text = "Ownership is purely private: whoever controls the private key controls the coins."
         
         let l2l2p6 = Page()
-        l2l2p6.components = [l2l2p6c1, l2l2p6c2, l2l2p6c3]
+        l2l2p6.components = [l2l2p6c1, l2l2p6c3]
         
         
         let l2l2 = Lesson()
@@ -683,32 +679,88 @@ extension AcademyViewController {
         l2l2.pages = [l2l2p1, l2l2p2, l2l2p3, l2l2p4, l2l2p5, l2l2p6]
         
         
+        let l2l4p1c1 = Component()
+        l2l4p1c1.type = .label
+        l2l4p1c1.text = "The bitcoin network runs on <b>software</b>. The original and most widely used software is called <b>Bitcoin Core</b>."
+        
+        let l2l4p1c3 = Component()
+        l2l4p1c3.type = .label
+        l2l4p1c3.text = "This software enables functions like <b>mining</b>, <b>validating transactions</b>, and <b>running nodes</b>."
+        
+        let l2l4p1 = Page()
+        l2l4p1.components = [l2l4p1c1, l2l4p1c3]
+        
+        
+        let l2l4p2c1 = Component()
+        l2l4p2c1.type = .label
+        l2l4p2c1.text = "A <b>bitcoin node</b> is any computer that's running software like Bitcoin Core."
+        
+        let l2l4p2c2 = Component()
+        l2l4p2c2.type = .label
+        l2l4p2c2.text = "Anyone can run a node. Tens of thousands of people do."
+        
+        let l2l4p2c3 = Component()
+        l2l4p2c3.type = .label
+        l2l4p2c3.text = "Nodes download the blockchain and independently verify all transactions. They keep the bitcoin network <b>decentralized</b>, secure, and functional."
+        
+        let l2l4p2 = Page()
+        l2l4p2.components = [l2l4p2c1, l2l4p2c2, l2l4p2c3]
+        
+        
+        let l2l4p3c1 = Component()
+        l2l4p3c1.type = .label
+        l2l4p3c1.text = "Bitcoin Core is <b>open-source</b>, meaning everyone can see its code."
+        
+        let l2l4p3c2 = Component()
+        l2l4p3c2.type = .label
+        l2l4p3c2.text = "Everyone can see exactly how bitcoin works. Everyone can view the entire blockchain and all transactions."
+        
+        let l2l4p3 = Page()
+        l2l4p3.components = [l2l4p3c1, l2l4p3c2]
+        
+        
+        let l2l4p4c1 = Component()
+        l2l4p4c1.type = .label
+        l2l4p4c1.text = "Anyone can collaborate on Bitcoin Core development, subject to an open review process."
+        
+        let l2l4p4c2 = Component()
+        l2l4p4c2.type = .label
+        l2l4p4c2.text = "New ideas are called <b>Bitcoin Improvement Proposals (BIP)</b>, which are discussed and tested rigorously."
+        
+        let l2l4p4c3 = Component()
+        l2l4p4c3.type = .label
+        l2l4p4c3.text = "Improvements are launched only upon wide community consensus. Nodes decide individually whether or not to adopt changes."
+        
+        let l2l4p4 = Page()
+        l2l4p4.components = [l2l4p4c1, l2l4p4c2, l2l4p4c3]
+        
         let l2l3 = Lesson()
-        l2l3.title = "Sending and receiving bitcoin"
-        l2l3.id = "sendingandreceivingbitcoin"
-        l2l3.image = "sendingandreceiving"
-        l2l3.pages = [firstPage]
+        l2l3.title = "What is Bitcoin Core?"
+        l2l3.id = "whatisbitcoincore"
+        l2l3.image = "whatiscore"
+        l2l3.pages = [l2l4p1, l2l4p2, l2l4p3, l2l4p4]
+        
         
         let l2l4 = Lesson()
-        l2l4.title = "What is Lightning?"
-        l2l4.id = "whatislightning"
-        l2l4.image = "whatislightning"
+        l2l4.title = "Sending and receiving bitcoin"
+        l2l4.id = "sendingandreceivingbitcoin"
+        l2l4.image = "sendingandreceiving"
         l2l4.pages = [firstPage]
         
         let l2l5 = Lesson()
-        l2l5.title = "Introduction to bitcoin wallets"
-        l2l5.id = "introductiontobitcoinwallets"
-        l2l5.image = "introductiontowallets"
+        l2l5.title = "What is Lightning?"
+        l2l5.id = "whatislightning"
+        l2l5.image = "whatislightning"
         l2l5.pages = [firstPage]
         
         let l2l6 = Lesson()
-        l2l6.title = "How private is bitcoin?"
-        l2l6.id = "howprivateisbitcoin"
-        l2l6.image = "howprivateisbitcoin"
+        l2l6.title = "Introduction to bitcoin wallets"
+        l2l6.id = "introductiontobitcoinwallets"
+        l2l6.image = "introductiontowallets"
         l2l6.pages = [firstPage]
         
         let level2 = Level()
-        level2.lessons = [l2l1, l2l2, l2l3, l2l4, l2l5, l2l6]
+        level2.lessons = [l2l3, l2l1, l2l2, l2l4, l2l5, l2l6]
         
         return [firstLevel, level2]
     }

@@ -22,13 +22,38 @@ struct Provider: AppIntentTimelineProvider {
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         
         let currentDate = Date()
-        var entry = SimpleEntry (
-            date: currentDate,
-            configuration: configuration,
-            eurValue: "N/A",
-            chfValue: "N/A",
-            currency: "€"
-        )
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd MMM yyyy HH:mm"
+        
+        var entry:SimpleEntry = {
+            if
+                let mostRecentDownload = UserDefaults.standard.value(forKey: "formattedEurValue") as? NSDictionary,
+                let date = mostRecentDownload["date"] as? String,
+                let formattedEurValue = mostRecentDownload["formattedEurValue"] as? String,
+                let formattedChfValue = mostRecentDownload["formattedChfValue"] as? String,
+                let preferredCurrency = mostRecentDownload["preferredCurrency"] as? String {
+                
+                // Cache is available.
+                return SimpleEntry (
+                    date: dateFormatter.date(from: date) ?? currentDate,
+                    configuration: configuration,
+                    eurValue: formattedEurValue,
+                    chfValue: formattedChfValue,
+                    currency: preferredCurrency
+                )
+            } else {
+                // No cache is available.
+                return SimpleEntry (
+                    date: currentDate,
+                    configuration: configuration,
+                    eurValue: "N/A",
+                    chfValue: "N/A",
+                    currency: "€"
+                )
+            }
+        }()
+        
+        var newDataWasFetched = false
         
         do {
             let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
@@ -47,6 +72,17 @@ struct Provider: AppIntentTimelineProvider {
                 
                 print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
                 
+                // Cache latest data.
+                let cacheDict:NSDictionary = [
+                    "date": dateFormatter.string(from: currentDate),
+                    "formattedEurValue":formattedEurValue,
+                    "formattedChfValue":formattedChfValue,
+                    "preferredCurrency":preferredCurrency
+                ]
+                UserDefaults.standard.setValue(cacheDict, forKey: "mostrecentwidgetdata")
+                
+                newDataWasFetched = true
+                
                 entry = SimpleEntry(
                     date: currentDate,
                     configuration: configuration,
@@ -64,12 +100,16 @@ struct Provider: AppIntentTimelineProvider {
             }
         }
         
-        // Fetch fresh data in 4 hours.
-        var timeInterval:Double = 14400
-        if entry.eurValue == "N/A" {
-            // Data couldn't be fetched. Try again in 30 minutes.
-            timeInterval = 1800
-        }
+        // Schedule next data download.
+        let timeInterval:Double = {
+            if newDataWasFetched {
+                // Data was fetched. Fetch fresh data in 2 hours.
+                return 7200
+            } else {
+                // Data couldn't be fetched. Try again in 30 minutes.
+                return 1800
+            }
+        }()
         
         return Timeline(entries: [entry], policy: .after(currentDate.addingTimeInterval(timeInterval)))
     }

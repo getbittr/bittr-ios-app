@@ -34,7 +34,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
         }
         
-        self.launchBittrValue(urlContexts: connectionOptions.urlContexts, delay: 2)
+        self.launchBittrValue(urlContexts: connectionOptions.urlContexts, delay: 1.8)
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
