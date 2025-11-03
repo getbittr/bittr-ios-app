@@ -760,7 +760,7 @@ extension AcademyViewController {
         l2l6.pages = [firstPage]
         
         let level2 = Level()
-        level2.lessons = [l2l3, l2l1, l2l2, l2l4, l2l5, l2l6]
+        level2.lessons = [l2l3, l2l1, l2l2]
         
         return [firstLevel, level2]
     }
