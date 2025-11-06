@@ -27,7 +27,7 @@ struct Provider: AppIntentTimelineProvider {
         
         var entry:SimpleEntry = {
             if
-                let mostRecentDownload = UserDefaults.standard.value(forKey: "formattedEurValue") as? NSDictionary,
+                let mostRecentDownload = UserDefaults.standard.value(forKey: "mostrecentwidgetdata") as? NSDictionary,
                 let date = mostRecentDownload["date"] as? String,
                 let formattedEurValue = mostRecentDownload["formattedEurValue"] as? String,
                 let formattedChfValue = mostRecentDownload["formattedChfValue"] as? String,

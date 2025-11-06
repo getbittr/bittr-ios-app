@@ -734,18 +734,98 @@ extension AcademyViewController {
         let l2l4p4 = Page()
         l2l4p4.components = [l2l4p4c1, l2l4p4c2, l2l4p4c3]
         
-        let l2l3 = Lesson()
-        l2l3.title = "What is Bitcoin Core?"
-        l2l3.id = "whatisbitcoincore"
-        l2l3.image = "whatiscore"
-        l2l3.pages = [l2l4p1, l2l4p2, l2l4p3, l2l4p4]
-        
-        
         let l2l4 = Lesson()
-        l2l4.title = "Sending and receiving bitcoin"
-        l2l4.id = "sendingandreceivingbitcoin"
-        l2l4.image = "sendingandreceiving"
-        l2l4.pages = [firstPage]
+        l2l4.title = "What is Bitcoin Core?"
+        l2l4.id = "whatisbitcoincore"
+        l2l4.image = "whatiscore"
+        l2l4.pages = [l2l4p1, l2l4p2, l2l4p3, l2l4p4]
+        
+        
+        let l2l3p1c1 = Component()
+        l2l3p1c1.type = .label
+        l2l3p1c1.text = "To send and receive bitcoin, you need a <b>wallet</b>."
+        
+        let l2l3p1c2 = Component()
+        l2l3p1c2.type = .label
+        l2l3p1c2.text = "With a <b>self-custodial</b> wallet (like this app), you hold your own bitcoin and private keys."
+        
+        let l2l3p1c3 = Component()
+        l2l3p1c3.type = .label
+        l2l3p1c3.text = "With a <b>custodial</b> wallet, a middleman (like Coinbase) holds your bitcoin on your behalf."
+        
+        let l2l3p1 = Page()
+        l2l3p1.components = [l2l3p1c1, l2l3p1c2, l2l3p1c3]
+        
+        
+        let l2l3p2c1 = Component()
+        l2l3p2c1.type = .label
+        l2l3p2c1.text = "To receive bitcoin, your wallet generates <b>addresses</b>. Each wallet can generate unlimited addresses."
+        
+        let l2l3p2c2 = Component()
+        l2l3p2c2.type = .label
+        l2l3p2c2.text = "You can reuse addresses, or (for <b>privacy</b>) create a new address for each transaction."
+        
+        let l2l3p2c3 = Component()
+        l2l3p2c3.type = .label
+        l2l3p2c3.text = "All addresses and all bitcoin in them are public. What wallet an address belongs to isn't."
+        
+        let l2l3p2 = Page()
+        l2l3p2.components = [l2l3p2c1, l2l3p2c2, l2l3p2c3]
+        
+        
+        let l2l3p3c1 = Component()
+        l2l3p3c1.type = .label
+        l2l3p3c1.text = "To send bitcoin, you enter the <b>recipient's address</b>, the <b>amount</b>, and the <b>transaction fee</b>."
+        
+        let l2l3p3c2 = Component()
+        l2l3p3c2.type = .label
+        l2l3p3c2.text = "The higher the selected fee, the quicker a miner will include your transaction in their <b>block</b>."
+        
+        let l2l3p3c3 = Component()
+        l2l3p3c3.type = .label
+        l2l3p3c3.text = "Wallets usually recommend fees based on your urgency to get your transaction confirmed."
+        
+        let l2l3p3 = Page()
+        l2l3p3.components = [l2l3p3c1, l2l3p3c2, l2l3p3c3]
+        
+        
+        let l2l3p4c1 = Component()
+        l2l3p4c1.type = .label
+        l2l3p4c1.text = "The amount barely impacts the fee, regardless of whether you send 100 bitcoin or 0.001 bitcoin."
+        
+        let l2l3p4c2 = Component()
+        l2l3p4c2.type = .label
+        l2l3p4c2.text = "The fee height fluctuates with demand, since blocks hold limited transactions and miners wish to maximize their returns."
+        
+        let l2l3p4c3 = Component()
+        l2l3p4c3.type = .label
+        l2l3p4c3.text = "If your fee is too low, your transaction may take days to - or never - get mined."
+        
+        let l2l3p4 = Page()
+        l2l3p4.components = [l2l3p4c1, l2l3p4c2, l2l3p4c3]
+        
+        
+        let l2l3p5c1 = Component()
+        l2l3p5c1.type = .label
+        l2l3p5c1.text = "Bitcoin transactions are <b>irreversible</b>, so make sure you enter the correct address and amount."
+        
+        let l2l3p5c2 = Component()
+        l2l3p5c2.type = .label
+        l2l3p5c2.text = "You can use a <b>block explorer</b> (like mempool.space) to check transaction statuses."
+        
+        let l2l3p5c3 = Component()
+        l2l3p5c3.type = .label
+        l2l3p5c3.text = "Once your transaction is mined into a block, that's one confirmation. Each following block is an additional confirmation. Typically, six confirmations is considered final."
+        
+        let l2l3p5 = Page()
+        l2l3p5.components = [l2l3p5c1, l2l3p5c2, l2l3p5c3]
+        
+        
+        let l2l3 = Lesson()
+        l2l3.title = "Sending and receiving bitcoin"
+        l2l3.id = "sendingandreceivingbitcoin"
+        l2l3.image = "sendingandreceiving"
+        l2l3.pages = [l2l3p1, l2l3p2, l2l3p3, l2l3p4, l2l3p5]
         
         let l2l5 = Lesson()
         l2l5.title = "What is Lightning?"
@@ -760,7 +840,7 @@ extension AcademyViewController {
         l2l6.pages = [firstPage]
         
         let level2 = Level()
-        level2.lessons = [l2l3, l2l1, l2l2]
+        level2.lessons = [l2l4, l2l1, l2l2, l2l3]
         
         return [firstLevel, level2]
     }
