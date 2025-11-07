@@ -838,7 +838,7 @@ extension AcademyViewController {
         
         let l2l5p1c3 = Component()
         l2l5p1c3.type = .label
-        l2l5p1c3.text = "These come with some limitations though."
+        l2l5p1c3.text = "These come with some limitations."
         
         let l2l5p1 = Page()
         l2l5p1.components = [l2l5p1c1, l2l5p1c2, l2l5p1c3]

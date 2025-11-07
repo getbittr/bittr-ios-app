@@ -24,31 +24,32 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         super.viewDidLoad()
         
         // Sort text
-        if article?.category == "faq" {
-            article?.text.sort(by: { text1, text2 in
+        if self.article?.category == "faq" {
+            self.article!.text.sort(by: { text1, text2 in
                 (text1["order"] as! Int) < (text2["order"] as! Int)
             })
         }
 
         // Table view
-        oneArticleTableView.delegate = self
-        oneArticleTableView.dataSource = self
-        oneArticleTableView.rowHeight = UITableView.automaticDimension
+        self.oneArticleTableView.delegate = self
+        self.oneArticleTableView.dataSource = self
+        self.oneArticleTableView.rowHeight = UITableView.automaticDimension
+        self.oneArticleTableView.isPrefetchingEnabled = false
         
         // Button titles
-        downButton.setTitle("", for: .normal)
+        self.downButton.setTitle("", for: .normal)
         
         // Set image
         if let actualHeaderImage = headerImage {
-            oneArticleImage.image = actualHeaderImage
+            self.oneArticleImage.image = actualHeaderImage
         } else {
             if let actualData = CacheManager.getImage(key: self.article?.image ?? "") {
-                oneArticleImage.image = UIImage(data: actualData)
+                self.oneArticleImage.image = UIImage(data: actualData)
             }
         }
         
         // Download image if needed
-        if oneArticleImage.image == nil, self.article?.image != "" {
+        if self.oneArticleImage.image == nil, self.article?.image != "" {
             
             self.imageSpinner.startAnimating()
             
@@ -68,13 +69,13 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     override func viewDidLayoutSubviews() {
         
-        if let headerView = oneArticleTableView.tableHeaderView {
+        if let headerView = self.oneArticleTableView.tableHeaderView {
             let height = headerView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
             var headerFrame = headerView.frame
             if height != headerFrame.size.height {
                 headerFrame.size.height = height
                 headerView.frame = headerFrame
-                oneArticleTableView.tableHeaderView = headerView
+                self.oneArticleTableView.tableHeaderView = headerView
             }
         }
         
