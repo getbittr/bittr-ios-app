@@ -827,11 +827,116 @@ extension AcademyViewController {
         l2l3.image = "sendingandreceiving"
         l2l3.pages = [l2l3p1, l2l3p2, l2l3p3, l2l3p4, l2l3p5]
         
+        
+        let l2l5p1c1 = Component()
+        l2l5p1c1.type = .label
+        l2l5p1c1.text = "Bitcoin transactions can be <b>on-chain</b> or <b>off-chain</b>."
+        
+        let l2l5p1c2 = Component()
+        l2l5p1c2.type = .label
+        l2l5p1c2.text = "On-chain transactions are the ones that get <b>mined</b> onto a <b>block</b> on the blockchain."
+        
+        let l2l5p1c3 = Component()
+        l2l5p1c3.type = .label
+        l2l5p1c3.text = "These come with some limitations though."
+        
+        let l2l5p1 = Page()
+        l2l5p1.components = [l2l5p1c1, l2l5p1c2, l2l5p1c3]
+        
+        
+        let l2l5p2c1 = Component()
+        l2l5p2c1.type = .label
+        l2l5p2c1.text = "The blockchain is arguably the most <b>secure</b> financial database in existence."
+        
+        let l2l5p2c2 = Component()
+        l2l5p2c2.type = .label
+        l2l5p2c2.text = "But <b>fees</b> can get high and <b>confirmation times</b> can be slow."
+        
+        let l2l5p2c3 = Component()
+        l2l5p2c3.type = .label
+        l2l5p2c3.text = "Off-chain transactions (payments that <b>don't touch the blockchain</b>) address these issues."
+        
+        let l2l5p2 = Page()
+        l2l5p2.components = [l2l5p2c1, l2l5p2c2, l2l5p2c3]
+        
+        
+        let l2l5p3c1 = Component()
+        l2l5p3c1.type = .label
+        l2l5p3c1.text = "The <b>lightning network</b> is such a solution."
+        
+        let l2l5p3c2 = Component()
+        l2l5p3c2.type = .label
+        l2l5p3c2.text = "With one on-chain transaction, <b>two users</b> lock up bitcoin in a <b>multisignature address</b>."
+        
+        let l2l5p3c3 = Component()
+        l2l5p3c3.type = .label
+        l2l5p3c3.text = "Inside this <b>payment channel</b>, they can send bitcoin back and forth, <b>instantly</b> and <b>without fees</b>."
+        
+        let l2l5p3 = Page()
+        l2l5p3.components = [l2l5p3c1, l2l5p3c2, l2l5p3c3]
+        
+        
+        let l2l5p4c1 = Component()
+        l2l5p4c1.type = .label
+        l2l5p4c1.text = "Either user can <b>close the channel</b>, settling their balance on the blockchain."
+        
+        let l2l5p4c2 = Component()
+        l2l5p4c2.type = .label
+        l2l5p4c2.text = "Or, through 3rd parties, users can <b>swap funds</b> between lightning and on-chain."
+        
+        let l2l5p4 = Page()
+        l2l5p4.components = [l2l5p4c1, l2l5p4c2]
+        
+        
+        let l2l5p5c1 = Component()
+        l2l5p5c1.type = .label
+        l2l5p5c1.text = "The lightning network is a <b>web</b> of <b>nodes</b> connected through <b>channels</b>."
+        
+        let l2l5p5c2 = Component()
+        l2l5p5c2.type = .label
+        l2l5p5c2.text = "If you have a channel with <b>Bob</b>, who has a channel with <b>Alice</b>, you can send instant payments to Alice without having a direct channel with her."
+        
+        let l2l5p5c3 = Component()
+        l2l5p5c3.type = .label
+        l2l5p5c3.text = "Such payments may incur <b>minor fees</b>, allowing you to instantly pay anyone (if a route can be found)."
+        
+        let l2l5p5 = Page()
+        l2l5p5.components = [l2l5p5c1, l2l5p5c2, l2l5p5c3]
+        
+        
+        let l2l5p6c1 = Component()
+        l2l5p6c1.type = .label
+        l2l5p6c1.text = "Lightning payments are great for <b>frequent, small, private</b> transactions."
+        
+        let l2l5p6c2 = Component()
+        l2l5p6c2.type = .label
+        l2l5p6c2.text = "They're <b>faster</b> and <b>cheaper</b>, allowing bitcoin to <b>scale</b>."
+        
+        let l2l5p6c3 = Component()
+        l2l5p6c3.type = .label
+        l2l5p6c3.text = "Downsides are the need for <b>upfront funding</b>, and the <b>technical expertise</b> required."
+        
+        let l2l5p6 = Page()
+        l2l5p6.components = [l2l5p6c1, l2l5p6c2, l2l5p6c3]
+        
+        
+        let l2l5p7c1 = Component()
+        l2l5p7c1.type = .label
+        l2l5p7c1.text = "To stimulate bitcoin adoption, wallets like this one try to offer seamless switching between <b>regular transactions</b> and <b>instant payments</b>."
+        
+        let l2l5p7c2 = Component()
+        l2l5p7c2.type = .label
+        l2l5p7c2.text = "With bitcoin purchases under 100 €/CHF, bittr opens a channel with you."
+        
+        let l2l5p7 = Page()
+        l2l5p7.components = [l2l5p7c1, l2l5p7c2]
+        
+        
         let l2l5 = Lesson()
-        l2l5.title = "What is Lightning?"
+        l2l5.title = "What is lightning?"
         l2l5.id = "whatislightning"
         l2l5.image = "whatislightning"
-        l2l5.pages = [firstPage]
+        l2l5.pages = [l2l5p1, l2l5p2, l2l5p3, l2l5p4, l2l5p5, l2l5p6, l2l5p7]
         
         let l2l6 = Lesson()
         l2l6.title = "Introduction to bitcoin wallets"
@@ -840,7 +945,7 @@ extension AcademyViewController {
         l2l6.pages = [firstPage]
         
         let level2 = Level()
-        level2.lessons = [l2l4, l2l1, l2l2, l2l3]
+        level2.lessons = [l2l4, l2l1, l2l2, l2l3, l2l5]
         
         return [firstLevel, level2]
     }
