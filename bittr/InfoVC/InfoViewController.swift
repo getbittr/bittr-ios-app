@@ -290,7 +290,11 @@ extension UIViewController {
                     scope.setExtra(value: "InfoViewController row 294", key: "context")
                 }
             }
-            return nil
+            if let actualData = CacheManager.getImage(key: urlString) {
+                return actualData
+            } else {
+                return nil
+            }
         }
     }
     
