@@ -516,9 +516,9 @@ extension AcademyViewController {
         lesson6.id = "whatismining"
         lesson6.image = "whatismining"
         
-        let firstLevel = Level()
-        firstLevel.order = 0
-        firstLevel.lessons = [lesson1, lesson2, lesson3, lesson4, lesson5, lesson6]
+        let level1 = Level()
+        level1.order = 0
+        level1.lessons = [lesson1, lesson2, lesson3, lesson4, lesson5, lesson6]
         
         
         let l2l1p1c1 = Component()
@@ -938,15 +938,97 @@ extension AcademyViewController {
         l2l5.image = "whatislightning"
         l2l5.pages = [l2l5p1, l2l5p2, l2l5p3, l2l5p4, l2l5p5, l2l5p6, l2l5p7]
         
+        
+        let l2l6p1c1 = Component()
+        l2l6p1c1.type = .label
+        l2l6p1c1.text = "Your bitcoin exists only on the <b>blockchain</b>."
+        
+        let l2l6p1c2 = Component()
+        l2l6p1c2.type = .label
+        l2l6p1c2.text = "You have your <b>public keys</b> (addresses) to receive bitcoin, and your <b>private keys</b> (seedphrase) to send bitcoin."
+        
+        let l2l6p1c3 = Component()
+        l2l6p1c3.type = .label
+        l2l6p1c3.text = "A <b>bitcoin wallet</b> is a piece of <b>hardware or software</b> to store these keys, to manage your bitcoin."
+        
+        let l2l6p1 = Page()
+        l2l6p1.components = [l2l6p1c1, l2l6p1c2, l2l6p1c3]
+        
+        
+        let l2l6p2c1 = Component()
+        l2l6p2c1.type = .label
+        l2l6p2c1.text = "There are various types of wallets, with various levels of <b>security</b>."
+        
+        let l2l6p2c2 = Component()
+        l2l6p2c2.type = .label
+        l2l6p2c2.text = "With a <b>custodial wallet</b>, a 3rd party (like an exchange) holds your keys on your behalf."
+        
+        let l2l6p2c3 = Component()
+        l2l6p2c3.type = .label
+        l2l6p2c3.text = "While easy to use, this goes against bitcoin's ethos of \"<b>Not your keys, not your coins</b>\"."
+        
+        let l2l6p2 = Page()
+        l2l6p2.components = [l2l6p2c1, l2l6p2c2, l2l6p2c3]
+        
+        
+        let l2l6p3c1 = Component()
+        l2l6p3c1.type = .label
+        l2l6p3c1.text = "With a <b>self-custodial or non-custodial wallet</b>, you hold your own keys. These come as software or hardware."
+        
+        let l2l6p3c2 = Component()
+        l2l6p3c2.type = .label
+        l2l6p3c2.text = "A <b>software</b> wallet is an app (like this one) that's connected to the internet."
+        
+        let l2l6p3c3 = Component()
+        l2l6p3c3.type = .label
+        l2l6p3c3.text = "A <b>hardware</b> wallet is an offline device."
+        
+        let l2l6p3 = Page()
+        l2l6p3.components = [l2l6p3c1, l2l6p3c2, l2l6p3c3]
+        
+        
+        let l2l6p4c1 = Component()
+        l2l6p4c1.type = .label
+        l2l6p4c1.text = "Software wallets are convenient to keep some bitcoin at hand for you to easily make transactions."
+        
+        let l2l6p4c2 = Component()
+        l2l6p4c2.type = .label
+        l2l6p4c2.text = "But any software that's connected to the internet, is always somewhat at risk to online threats."
+        
+        let l2l6p4c3 = Component()
+        l2l6p4c3.type = .label
+        l2l6p4c3.text = "If you hold significant bitcoin, a hardware wallet offers superior security."
+        
+        let l2l6p4 = Page()
+        l2l6p4.components = [l2l6p4c1, l2l6p4c2, l2l6p4c3]
+        
+        
+        let l2l6p5c1 = Component()
+        l2l6p5c1.type = .label
+        l2l6p5c1.text = "A hardware wallet can be paired with a <b>watch-only</b> software wallet."
+        
+        let l2l6p5c2 = Component()
+        l2l6p5c2.type = .label
+        l2l6p5c2.text = "This wallet only holds your public keys, so you can view your balance."
+        
+        let l2l6p5c3 = Component()
+        l2l6p5c3.type = .label
+        l2l6p5c3.text = "You can prepare transactions, which you sign with your hardware wallet."
+        
+        let l2l6p5 = Page()
+        l2l6p5.components = [l2l6p5c1, l2l6p5c2, l2l6p5c3]
+        
+        
         let l2l6 = Lesson()
-        l2l6.title = "Introduction to bitcoin wallets"
+        l2l6.title = "Choosing a bitcoin wallet"
         l2l6.id = "introductiontobitcoinwallets"
         l2l6.image = "introductiontowallets"
-        l2l6.pages = [firstPage]
+        l2l6.pages = [l2l6p1, l2l6p2, l2l6p3, l2l6p4, l2l6p5]
+        
         
         let level2 = Level()
-        level2.lessons = [l2l4, l2l1, l2l2, l2l3, l2l5]
+        level2.lessons = [l2l4, l2l1, l2l2, l2l3, l2l5, l2l6]
         
-        return [firstLevel, level2]
+        return [level1, level2]
     }
 }
