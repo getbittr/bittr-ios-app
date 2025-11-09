@@ -328,6 +328,7 @@ extension SendViewController {
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             print("Successful transaction.")
+                            SentrySDK.metrics.increment(key: "onchain.transaction.success")
                             self.sendLabel.alpha = 1
                             self.sendSpinner.stopAnimating()
                             self.newTxId = txid
@@ -340,6 +341,7 @@ extension SendViewController {
                             self.sendLabel.alpha = 1
                             self.sendSpinner.stopAnimating()
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            SentrySDK.metrics.increment(key: "onchain.transaction.failure.3")
                         }
                     }
                 } catch {
@@ -351,11 +353,13 @@ extension SendViewController {
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "SendOnchain row 349", key: "context")
                         }
+                        SentrySDK.metrics.increment(key: "onchain.transaction.failure.2")
                     }
                 }
             }
         } else {
             print("Wallet instance not available.")
+            SentrySDK.metrics.increment(key: "onchain.transaction.failure.1")
             self.sendLabel.alpha = 1
             self.sendSpinner.stopAnimating()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)

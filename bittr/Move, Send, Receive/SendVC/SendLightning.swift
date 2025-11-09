@@ -214,8 +214,10 @@ extension UIViewController {
             do {
                 if isZeroAmountInvoice {
                     let _ = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
+                    SentrySDK.metrics.increment(key: "lightning.payment.success")
                 } else {
                     let _ = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
+                    SentrySDK.metrics.increment(key: "lightning.payment.success")
                 }
             } catch {
                 let errorMessage:String = {
@@ -234,6 +236,7 @@ extension UIViewController {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "SendLightning row 233", key: "context")
                     }
+                    SentrySDK.metrics.increment(key: "lightning.payment.failure.1")
                 }
             }
         }

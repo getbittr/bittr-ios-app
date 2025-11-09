@@ -171,59 +171,14 @@ class LightningNodeService {
                     
                     print("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
+                        SentrySDK.metrics.increment(key: "sync.bdk.success")
                         self.coreVC?.updateSync(action: "complete", type: .bdk)
                         self.coreVC?.updateSync(action: "start", type: .sync)
                     }
                 }
                 
-                print("Will sync wallet.")
-                // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
-                let syncRequest = try self.bdkWallet!.startFullScan().build()
-                let update = try self.electrumClient!.fullScan(
-                    request: syncRequest,
-                    stopGap: UInt64(25),
-                    batchSize: UInt64(25),
-                    fetchPrevTxouts: true
-                )
-                try self.bdkWallet!.applyUpdate(update: update)
-                print("Wallet persist: \(try self.bdkWallet!.persist(connection: self.connection!))")
-                
-                print("Did sync wallet.")
-                DispatchQueue.main.async {
-                    self.coreVC?.updateSync(action: "complete", type: .sync)
-                    self.coreVC?.updateSync(action: "start", type: .final)
-                }
-                
-                // Uncomment the following lines to get the on-chain balance (although LDK also does that
-                // Get the confirmed balance from the wallet
-                self.coreVC?.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
-                print("Did fetch onchain balance.")
-                
-                // Retrieve a list of transaction details from the wallet, excluding raw transaction data.
-                self.coreVC?.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
-                    return tx1.chainPosition.isBefore(tx2.chainPosition)
-                }
-                print("Did fetch onchain transactions.")
-                
-                // Get current height.
-                self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
-                print("Current height: \(self.coreVC?.bittrWallet.currentHeight ?? 0)")
-                
-                // Proceed to next step.
-                Task {
-                    if try await LightningNodeService.shared.listPeers().count == 1 {
-                        // We're already connected to peer.
-                        DispatchQueue.global(qos: .background).async {
-                            self.didProceedBeyondPeerConnection = true
-                            self.getChannelsAndPayments()
-                        }
-                    } else {
-                        // Connect to peer.
-                        DispatchQueue.global(qos: .background).async {
-                            self.connectToLightningPeer()
-                        }
-                    }
-                }
+                // Proceed to wallet sync.
+                self.initialWalletSync()
                 
             } catch {
                 print("Some error occurred. \(error.localizedDescription)")
@@ -239,7 +194,79 @@ class LightningNodeService {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LightningNodeService row 231", key: "context")
                     }
+                    SentrySDK.metrics.increment(key: "sync.bdk.failure")
                 }
+            }
+        }
+    }
+    
+    
+    func initialWalletSync() {
+        
+        do {
+            print("Will sync wallet.")
+            // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
+            let syncRequest = try self.bdkWallet!.startFullScan().build()
+            let update = try self.electrumClient!.fullScan(
+                request: syncRequest,
+                stopGap: UInt64(25),
+                batchSize: UInt64(25),
+                fetchPrevTxouts: true
+            )
+            try self.bdkWallet!.applyUpdate(update: update)
+            print("Wallet persist: \(try self.bdkWallet!.persist(connection: self.connection!))")
+            
+            print("Did sync wallet.")
+            DispatchQueue.main.async {
+                SentrySDK.metrics.increment(key: "sync.walletsync.success")
+                self.coreVC?.updateSync(action: "complete", type: .sync)
+                self.coreVC?.updateSync(action: "start", type: .final)
+            }
+            
+            // Get the confirmed balance from the wallet.
+            self.coreVC?.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
+            print("Did fetch onchain balance.")
+            
+            // Retrieve a list of transaction details from the wallet, excluding raw transaction data.
+            self.coreVC?.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
+                return tx1.chainPosition.isBefore(tx2.chainPosition)
+            }
+            print("Did fetch onchain transactions.")
+            
+            // Get current height.
+            self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
+            print("Current height: \(self.coreVC?.bittrWallet.currentHeight ?? 0)")
+            
+            // Proceed to next step.
+            Task {
+                if try await LightningNodeService.shared.listPeers().count == 1 {
+                    // We're already connected to peer.
+                    DispatchQueue.global(qos: .background).async {
+                        self.didProceedBeyondPeerConnection = true
+                        self.getChannelsAndPayments()
+                    }
+                } else {
+                    // Connect to peer.
+                    DispatchQueue.global(qos: .background).async {
+                        self.connectToLightningPeer()
+                    }
+                }
+            }
+        } catch {
+            print("Some error occurred. \(error.localizedDescription)")
+            let errorMessage:String = {
+                if let esploraError = error as? BitcoinDevKit.EsploraError {
+                    return esploraError.getErrorMessage()
+                } else {
+                    return error.localizedDescription
+                }
+            }()
+            self.coreVC?.stopLightning(message: errorMessage, stopNode: false)
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "LightningNodeService row 267", key: "context")
+                }
+                SentrySDK.metrics.increment(key: "sync.walletsync.failure")
             }
         }
     }

@@ -20,6 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             options.debug = false // Enabled debug when first installing is always helpful
             options.enableTracing = true
             options.sendDefaultPii = false
+            options.enableMetrics = true
             
             // Redact sensitive data in Sentry events.
             options.beforeSend = { sentryEvent in

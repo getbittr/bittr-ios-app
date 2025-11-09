@@ -44,6 +44,7 @@ extension CoreViewController {
                     LightningNodeService.shared.startBDK(coreViewController: self)
                 }
                 self.didStartNode = true
+                SentrySDK.metrics.increment(key: "sync.ldk.success")
             } catch {
                 timeoutTask.cancel()
                 if let nodeError = error as? NodeError {
@@ -68,6 +69,7 @@ extension CoreViewController {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "StartLightning row 69", key: "context")
                     }
+                    SentrySDK.metrics.increment(key: "sync.ldk.failure")
                 }
             }
         }
