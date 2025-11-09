@@ -249,24 +249,61 @@ class LightningNodeService {
         
         self.didProceedBeyondPeerConnection = false
         
-        // Connect to Lightning peer.
+        Task {
+            let didEstablishPeerConnection = await self.didEstablishPeerConnection()
+            
+            DispatchQueue.main.async {
+                if !self.didProceedBeyondPeerConnection {
+                    self.getChannelsAndPayments()
+                    self.didProceedBeyondPeerConnection = true
+                }
+            }
+            
+            if !didEstablishPeerConnection {
+                do {
+                    let nodeId = EnvironmentConfig.lightningNodeId
+                    try LightningNodeService.shared.ldkNode?.disconnect(nodeId: nodeId)
+                } catch {
+                    let errorMessage:String = {
+                        if let nodeError = error as? NodeError {
+                            return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                        } else {
+                            return "No error message"
+                        }
+                    }()
+                    DispatchQueue.main.async {
+                        print("Can't disconnect from peer: \(errorMessage).")
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "LightningNodeService row 277", key: "context")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    func didEstablishPeerConnection() async -> Bool {
+        
         let nodeId = EnvironmentConfig.lightningNodeId
         let address = EnvironmentConfig.lightningNodeAddress
         
-        let connectTask = Task {
+        let connectTask = Task<Bool, Never> {
             do {
                 try await LightningNodeService.shared.connect(
                     nodeId: nodeId,
                     address: address,
                     persist: true
                 )
+                
                 try Task.checkCancellation()
-                if Task.isCancelled == true {
+                if Task.isCancelled {
                     print("Did connect to peer, but too late.")
                     return false
+                } else {
+                    print("Did connect to peer.")
+                    return true
                 }
-                print("Did connect to peer.")
-                return true
             } catch {
                 let errorMessage:String = {
                     if let nodeError = error as? NodeError {
@@ -279,64 +316,32 @@ class LightningNodeService {
                     // Handle UI error showing here, like showing an alert
                     print("Can't connect to peer: \(errorMessage).")
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 273", key: "context")
+                        scope.setExtra(value: "LightningNodeService row 319", key: "context")
                     }
                 }
                 return false
             }
         }
         
-        let timeoutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
+        let timeoutTask = Task<Bool, Never> {
+            try? await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
             connectTask.cancel()
+            
             print("Connecting to peer takes too long.")
-            do {
-                try LightningNodeService.shared.ldkNode?.disconnect(nodeId: nodeId)
-                DispatchQueue.main.async {
-                    print("Did disconnect from peer.")
-                    if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments()
-                        self.didProceedBeyondPeerConnection = true
-                    }
-                }
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
-                    } else {
-                        return "No error message"
-                    }
-                }()
-                DispatchQueue.main.async {
-                    print("Can't disconnect from peer: \(errorMessage).")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 304", key: "context")
-                    }
-                    if !self.didProceedBeyondPeerConnection {
-                        self.getChannelsAndPayments()
-                        self.didProceedBeyondPeerConnection = true
-                    }
-                }
-            }
+            return false
         }
         
-        Task.init {
-            let result = await connectTask.value
-            timeoutTask.cancel()
-            if result == true {
-                // Could connect to peer.
-                if !self.didProceedBeyondPeerConnection {
-                    self.getChannelsAndPayments()
-                    self.didProceedBeyondPeerConnection = true
-                }
-            } else {
-                // Couldn't connect to peer.
-                if !self.didProceedBeyondPeerConnection {
-                    self.getChannelsAndPayments()
-                    self.didProceedBeyondPeerConnection = true
-                }
+        let result = await withTaskGroup(of: Bool.self) { group -> Bool in
+            group.addTask { await connectTask.value }
+            group.addTask { await timeoutTask.value }
+            for await value in group {
+                group.cancelAll()
+                return value
             }
+            return false
         }
+        
+        return result
     }
     
     

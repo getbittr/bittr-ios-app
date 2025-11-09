@@ -211,56 +211,8 @@ extension CoreViewController {
     @objc func reconnectToPeer() {
         self.hideAlert()
         
-        // Connect to Lightning peer.
-        let nodeId = EnvironmentConfig.lightningNodeId
-        let address = EnvironmentConfig.lightningNodeAddress
-        
-        let connectTask = Task {
-            do {
-                try await LightningNodeService.shared.connect(
-                    nodeId: nodeId,
-                    address: address,
-                    persist: true
-                )
-                try Task.checkCancellation()
-                if Task.isCancelled {
-                    print("Did connect to peer, but too late.")
-                    return false
-                }
-                print("Did connect to peer.")
-                return true
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).detail
-                    } else {
-                        return "No error message."
-                    }
-                }()
-                
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorMessage)")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "HandlePaymentNotification row 228", key: "context")
-                    }
-                }
-                return false
-            }
-        }
-        
-        let timeoutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
-            connectTask.cancel()
-            print("Connecting to peer takes too long.")
-            if self.varSpecialData != nil {
-                self.facilitateNotificationPayout()
-            }
-        }
-        
-        Task.init {
-            let result = await connectTask.value
-            timeoutTask.cancel()
+        Task {
+            await LightningNodeService.shared.didEstablishPeerConnection()
             if self.varSpecialData != nil {
                 self.facilitateNotificationPayout()
             }

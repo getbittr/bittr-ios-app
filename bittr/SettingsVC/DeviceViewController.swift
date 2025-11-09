@@ -232,30 +232,10 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.peerButton.isUserInteractionEnabled = true
         
         Task {
-            do {
-                let peers = try await LightningNodeService.shared.listPeers()
-                print(peers)
-                var peerIsConnected = false
-                for eachPeer in peers {
-                    if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
-                        peerIsConnected = true
-                    }
-                }
-                if peerIsConnected {
-                    print("Did successfully check peer connection.")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                } else {
-                    print("Not connected to peer.")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
-                }
-            } catch {
-                print("Error listing peers: \(error.localizedDescription)")
+            if await self.isConnectedToPeer() {
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            } else {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "DeviceViewController row 256", key: "context")
-                    }
-                }
             }
         }
     }
@@ -314,53 +294,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.peerSpinner.startAnimating()
         self.peerButton.isUserInteractionEnabled = false
         
-        // Connect to Lightning peer.
-        let nodeId = EnvironmentConfig.lightningNodeId
-        let address = EnvironmentConfig.lightningNodeAddress
-        
-        let connectTask = Task {
-            do {
-                try await LightningNodeService.shared.connect(
-                    nodeId: nodeId,
-                    address: address,
-                    persist: true
-                )
-                try Task.checkCancellation()
-                if Task.isCancelled == true {
-                    print("Did connect to peer, but too late.")
-                    return false
-                }
-                print("Did connect to peer.")
-                return true
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
-                    } else {
-                        return "No error message"
-                    }
-                }()
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorMessage).")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "DeviceViewController row 347", key: "context")
-                    }
-                }
-                return false
-            }
-        }
-        
-        let timeoutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
-            connectTask.cancel()
-            print("Connecting to peer takes too long.")
-            self.peerButtonTapped(self.peerButton)
-        }
-        
-        Task.init {
-            let result = await connectTask.value
-            timeoutTask.cancel()
+        Task {
+            await LightningNodeService.shared.didEstablishPeerConnection()
             self.peerButtonTapped(self.peerButton)
         }
     }
