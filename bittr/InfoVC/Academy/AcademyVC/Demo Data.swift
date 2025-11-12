@@ -1029,6 +1029,166 @@ extension AcademyViewController {
         let level2 = Level()
         level2.lessons = [l2l4, l2l1, l2l2, l2l3, l2l5, l2l6]
         
-        return [level1, level2]
+        
+        let l3l1p1c1 = Component()
+        l3l1p1c1.type = .label
+        l3l1p1c1.text = "A blockchain is a <b>database</b> that stores data in <b>chronologically linked blocks</b>."
+        
+        let l3l1p1c2 = Component()
+        l3l1p1c2.type = .label
+        l3l1p1c2.text = "Data can be added, but it can never be altered or removed."
+        
+        let l3l1p1c3 = Component()
+        l3l1p1c3.type = .label
+        l3l1p1c3.text = "It offers a <b>single, verifiable version of history</b>."
+        
+        let l3l1p1 = Page()
+        l3l1p1.components = [l3l1p1c1, l3l1p1c2, l3l1p1c3]
+        
+        
+        let l3l1p2c1 = Component()
+        l3l1p2c1.type = .label
+        l3l1p2c1.text = "Blockchain was invented for bitcoin."
+        
+        let l3l1p2c2 = Component()
+        l3l1p2c2.type = .label
+        l3l1p2c2.text = "It solves the <b>double spend problem</b>: the ability to spend digital currency more than once."
+        
+        let l3l1p2c3 = Component()
+        l3l1p2c3.type = .label
+        l3l1p2c3.text = "This ensures that bitcoin (like physical currency) can only be spent once, moving from one address to another."
+        
+        let l3l1p2 = Page()
+        l3l1p2.components = [l3l1p2c1, l3l1p2c2, l3l1p2c3]
+        
+        
+        let l3l1p3c1 = Component()
+        l3l1p3c1.type = .label
+        l3l1p3c1.text = "Bitcoin is <b>trustless</b>."
+        
+        let l3l1p3c2 = Component()
+        l3l1p3c2.type = .label
+        l3l1p3c2.text = "You don't need to trust any single entity (like a bank or government) that your money is safe."
+        
+        let l3l1p3c3 = Component()
+        l3l1p3c3.type = .label
+        l3l1p3c3.text = "Accordingly, the blockchain is <b>public</b>. Anyone can download and verify the entire blockchain."
+        
+        let l3l1p3 = Page()
+        l3l1p3.components = [l3l1p3c1, l3l1p3c2, l3l1p3c3]
+        
+        
+        let l3l1p4c1 = Component()
+        l3l1p4c1.type = .label
+        l3l1p4c1.text = "The blockchain is <b>decentralized</b>."
+        
+        let l3l1p4c2 = Component()
+        l3l1p4c2.type = .label
+        l3l1p4c2.text = "Tens of thousands of people (<b>nodes</b>) worldwide independently maintain their own copy."
+        
+        let l3l1p4 = Page()
+        l3l1p4.components = [l3l1p4c1, l3l1p4c2]
+        
+        
+        let l3l1p5c1 = Component()
+        l3l1p5c1.type = .label
+        l3l1p5c1.text = "The blockchain is <b>immutable</b>. Here's how:"
+        
+        let l3l1p5c2 = Component()
+        l3l1p5c2.type = .label
+        l3l1p5c2.text = "In encryption, you can run data through a mathematical formula to get a <b>hash</b>."
+        
+        let l3l1p5c3 = Component()
+        l3l1p5c3.type = .label
+        l3l1p5c3.text = "This hash (a long string of letters and numbers) is a unique digital fingerprint for that data."
+        
+        let l3l1p5 = Page()
+        l3l1p5.components = [l3l1p5c1, l3l1p5c2, l3l1p5c3]
+        
+        
+        let l3l1p6c1 = Component()
+        l3l1p6c1.type = .label
+        l3l1p6c1.text = "Each block in the blockchain starts with the hash of the previous block."
+        
+        let l3l1p6c2 = Component()
+        l3l1p6c2.type = .label
+        l3l1p6c2.text = "Miners fill each block with 4 MB of data, around <b>3000 transactions</b>."
+        
+        let l3l1p6c3 = Component()
+        l3l1p6c3.type = .label
+        l3l1p6c3.text = "They pick these from the <b>mempool</b>, which holds all unconfirmed transactions."
+        
+        let l3l1p6 = Page()
+        l3l1p6.components = [l3l1p6c1, l3l1p6c2, l3l1p6c3]
+        
+        
+        let l3l1p7c1 = Component()
+        l3l1p7c1.type = .label
+        l3l1p7c1.text = "That data plus the hash of the previous block <b>form a new hash</b>."
+        
+        let l3l1p7c2 = Component()
+        l3l1p7c2.type = .label
+        l3l1p7c2.text = "However, that hash needs to meet certain conditions: the <b>difficulty rule</b>."
+        
+        let l3l1p7c3 = Component()
+        l3l1p7c3.type = .label
+        l3l1p7c3.text = "The difficulty gets updated every two weeks, to ensure that a block gets mined <b>every 10 minutes</b>."
+        
+        let l3l1p7 = Page()
+        l3l1p7.components = [l3l1p7c1, l3l1p7c2, l3l1p7c3]
+        
+        
+        let l3l1p8c1 = Component()
+        l3l1p8c1.type = .label
+        l3l1p8c1.text = "To meet those conditions, miners try adding trillions of numbers (<b>nonces</b>) to the block's data."
+        
+        let l3l1p8c2 = Component()
+        l3l1p8c2.type = .label
+        l3l1p8c2.text = "<b>Hash of the previous block</b> + <b>new transactions</b> + <b>unknown nonce</b> = <b>new hash</b> that meets the <b>difficulty rule</b>."
+        
+        let l3l1p8c3 = Component()
+        l3l1p8c3.type = .label
+        l3l1p8c3.text = "The first miner to guess a correct nonce, <b>mines the block</b> and gets 3.125 bitcoin plus all transaction fees."
+        
+        let l3l1p8 = Page()
+        l3l1p8.components = [l3l1p8c1, l3l1p8c2, l3l1p8c3]
+        
+        
+        let l3l1p9c1 = Component()
+        l3l1p9c1.type = .label
+        l3l1p9c1.text = "Since each hash is unique, and each block contains the previous block's hash, these blocks are <b>immutable</b>."
+        
+        let l3l1p9c2 = Component()
+        l3l1p9c2.type = .label
+        l3l1p9c2.text = "If you change anything, the entire chain breaks. To change one block, you need to change all following blocks."
+        
+        let l3l1p9c3 = Component()
+        l3l1p9c3.type = .label
+        l3l1p9c3.text = "The high investments required to mine blocks make this virtually impossible."
+        
+        let l3l1p9 = Page()
+        l3l1p9.components = [l3l1p9c1, l3l1p9c2, l3l1p9c3]
+        
+        
+        let l3l1 = Lesson()
+        l3l1.title = "What is a blockchain?"
+        l3l1.id = "whatisablockchain"
+        l3l1.image = "whatisablockchain"
+        l3l1.pages = [l3l1p1, l3l1p2, l3l1p3, l3l1p4, l3l1p5, l3l1p6, l3l1p7, l3l1p8, l3l1p9]
+        
+        
+        let level3 = Level()
+        level3.lessons = [l3l1]
+        
+        
+        
+        "How private is bitcoin?"
+        "Can bitcoin be hacked?"
+        "Bitcoin versus crypto"
+        "Bitcoin Whitepaper Day"
+        "What happens if bitcoin gets forbidden?"
+        
+        
+        return [level1, level2, level3]
     }
 }
