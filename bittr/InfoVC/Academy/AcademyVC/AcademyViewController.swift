@@ -94,11 +94,8 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             }()
             
             // Reload level lessons.
-            cell.lessonsCollectionView.reloadData()
-            
-            // Set dynamic cell height.
-            cell.layoutSubviews()
-            cell.cellHeight.constant = cell.lessonsCollectionView.collectionViewLayout.collectionViewContentSize.height + 100
+            cell.reloadLessons()
+            cell.layoutIfNeeded()
             
             return cell
         } else {

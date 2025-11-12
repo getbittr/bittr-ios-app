@@ -64,6 +64,22 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         return layout
     }
     
+    func reloadLessons() {
+        self.lessonsCollectionView.reloadData()
+        self.lessonsCollectionView.collectionViewLayout.invalidateLayout()
+        self.lessonsCollectionView.layoutIfNeeded()
+
+        let height = self.lessonsCollectionView.collectionViewLayout.collectionViewContentSize.height
+        if height > 0 {
+            self.lessonsCollectionViewHeight.constant = height
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        self.lessonsCollectionViewHeight.constant = 0
+    }
+    
     override func layoutSubviews() {
         super.layoutSubviews()
 
@@ -77,6 +93,8 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
             self.setNeedsLayout()
             self.contentView.layoutIfNeeded()
         }
+        
+        self.cellHeight.constant = newHeight + 100
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
