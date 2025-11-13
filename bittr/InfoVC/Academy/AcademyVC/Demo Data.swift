@@ -1584,12 +1584,158 @@ extension AcademyViewController {
         l3l5.pages = [l3l5p1, l3l5p2, l3l5p3, l3l5p4, l3l5p5, l3l5p6]
         
         
+        let l3l6p1c1 = Component()
+        l3l6p1c1.type = .label
+        l3l6p1c1.text = "Bitcoin challenges the status quo of fiat money."
+        
+        let l3l6p1c2 = Component()
+        l3l6p1c2.type = .label
+        l3l6p1c2.text = "For some governments, that’s a threat."
+        
+        let l3l6p1c3 = Component()
+        l3l6p1c3.type = .label
+        l3l6p1c3.text = "That raises the question: <b>could governments ban bitcoin entirely?</b>"
+        
+        let l3l6p1 = Page()
+        l3l6p1.components = [l3l6p1c1, l3l6p1c2, l3l6p1c3]
+        
+        
+        let l3l6p2c1 = Component()
+        l3l6p2c1.type = .label
+        l3l6p2c1.text = "Why might governments want to ban bitcoin?"
+        
+        let l3l6p2c2 = Component()
+        l3l6p2c2.type = .label
+        l3l6p2c2.text = "Firstly, for bitcoin's <b>privacy</b>. Its pseudonymity allows individuals to transact outside of state surveillance."
+        
+        let l3l6p2c3 = Component()
+        l3l6p2c3.type = .label
+        l3l6p2c3.text = "Secondly, bitcoin is <b>censorship resistant</b>. Transactions cannot be reversed or blocked, unlike bank accounts which can be frozen."
+        
+        let l3l6p2 = Page()
+        l3l6p2.components = [l3l6p2c1, l3l6p2c2, l3l6p2c3]
+        
+        
+        let l3l6p3c1 = Component()
+        l3l6p3c1.type = .label
+        l3l6p3c1.text = "Thirdly, because of <b>competition</b>. Some states' monetary authority relies on its control of its fiat currency."
+        
+        let l3l6p3c2 = Component()
+        l3l6p3c2.type = .label
+        l3l6p3c2.text = "If people switch to bitcoin, this reduces the power of that currency."
+        
+        let l3l6p3c3 = Component()
+        l3l6p3c3.type = .label
+        l3l6p3c3.text = "It could also allow individuals to sidestep sanctions."
+        
+        let l3l6p3 = Page()
+        l3l6p3.components = [l3l6p3c1, l3l6p3c2, l3l6p3c3]
+        
+        
+        let l3l6p4c1 = Component()
+        l3l6p4c1.type = .label
+        l3l6p4c1.text = "<b>China</b> has declared bitcoin illegal multiple times. But mining and trading have continued."
+        
+        let l3l6p4c2 = Component()
+        l3l6p4c2.type = .label
+        l3l6p4c2.text = "<b>India</b> has attempted a ban, which was struck down by its Supreme Court."
+        
+        let l3l6p4c3 = Component()
+        l3l6p4c3.type = .label
+        l3l6p4c3.text = "In 2021, <b>Nigeria</b> banned bank involvement in crypto, which conversely led to a dramatic spike in bitcoin adoption."
+        
+        let l3l6p4 = Page()
+        l3l6p4.components = [l3l6p4c1, l3l6p4c2, l3l6p4c3]
+        
+        
+        let l3l6p5c1 = Component()
+        l3l6p5c1.type = .label
+        l3l6p5c1.text = "How could governments shut down bitcoin?"
+        
+        let l3l6p5c2 = Component()
+        l3l6p5c2.type = .label
+        l3l6p5c2.text = "One way would be <b>banning regulated platforms</b>. This would make it harder for citizens to buy or sell bitcoin."
+        
+        let l3l6p5c3 = Component()
+        l3l6p5c3.type = .label
+        l3l6p5c3.text = "This wouldn't influence the bitcoin network itself, though it could hurt adoption."
+        
+        let l3l6p5 = Page()
+        l3l6p5.components = [l3l6p5c1, l3l6p5c2, l3l6p5c3]
+        
+        
+        let l3l6p6c1 = Component()
+        l3l6p6c1.type = .label
+        l3l6p6c1.text = "Another way would be for governments to <b>attack the network</b>."
+        
+        let l3l6p6c2 = Component()
+        l3l6p6c2.type = .label
+        l3l6p6c2.text = "But hacking the bitcoin network is, technically and economically, virtually impossible. It's designed to be resilient to exactly this kind of censorship."
+        
+        let l3l6p6c3 = Component()
+        l3l6p6c3.type = .label
+        l3l6p6c3.text = "Even if a government blocked all domestic nodes, users could still connect through VPNs."
+        
+        let l3l6p6 = Page()
+        l3l6p6.components = [l3l6p6c1, l3l6p6c2, l3l6p6c3]
+        
+        
+        let l3l6p7c1 = Component()
+        l3l6p7c1.type = .label
+        l3l6p7c1.text = "What about a coordinated, global ban?"
+        
+        let l3l6p7c2 = Component()
+        l3l6p7c2.type = .label
+        l3l6p7c2.text = "Governments could ban exchanges, and block internet access to bitcoin-related services."
+        
+        let l3l6p7c3 = Component()
+        l3l6p7c3.type = .label
+        l3l6p7c3.text = "They could pressure social platforms to censor bitcoin content, and classify self-custody wallets as illegal."
+        
+        let l3l6p7 = Page()
+        l3l6p7.components = [l3l6p7c1, l3l6p7c2, l3l6p7c3]
+        
+        
+        let l3l6p8c1 = Component()
+        l3l6p8c1.type = .label
+        l3l6p8c1.text = "That kind of unified effort is unlikely."
+        
+        let l3l6p8c2 = Component()
+        l3l6p8c2.type = .label
+        l3l6p8c2.text = "Different countries have very different regulatory goals."
+        
+        let l3l6p8c3 = Component()
+        l3l6p8c3.type = .label
+        l3l6p8c3.text = "Plus, any nation choosing not to join the ban would benefit from capital inflow, innovation, and bitcoin businesses relocating."
+        
+        let l3l6p8 = Page()
+        l3l6p8.components = [l3l6p8c1, l3l6p8c2, l3l6p8c3]
+        
+        let l3l6p9c1 = Component()
+        l3l6p9c1.type = .label
+        l3l6p9c1.text = "Actually, in democratic countries, voters and lawmakers are increasingly bitcoin-friendly"
+        
+        let l3l6p9c2 = Component()
+        l3l6p9c2.type = .label
+        l3l6p9c2.text = "Bitcoin creates jobs, attracts investment, and generates tax revenue."
+        
+        let l3l6p9c3 = Component()
+        l3l6p9c3.type = .label
+        l3l6p9c3.text = "Some governments actively embrace bitcoin, to attract innovation."
+        
+        let l3l6p9 = Page()
+        l3l6p9.components = [l3l6p9c1, l3l6p9c2, l3l6p9c3]
+        
+        
+        let l3l6 = Lesson()
+        l3l6.title = "What if bitcoin gets forbidden?"
+        l3l6.id = "bitcoinforbidden"
+        l3l6.image = "forbiddenbitcoin"
+        l3l6.pages = [l3l6p1, l3l6p2, l3l6p3, l3l6p4, l3l6p5, l3l6p6, l3l6p7, l3l6p8, l3l6p9]
+        
+        
         let level3 = Level()
-        level3.lessons = [l3l1, l3l2, l3l3, l3l4, l3l5]
-        
-        
-        
-        "What happens if bitcoin gets forbidden?"
+        level3.lessons = [l3l1, l3l2, l3l3, l3l4, l3l5, l3l6]
         
         
         return [level1, level2, level3]
