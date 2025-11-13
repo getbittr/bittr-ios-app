@@ -1177,12 +1177,110 @@ extension AcademyViewController {
         l3l1.pages = [l3l1p1, l3l1p2, l3l1p3, l3l1p4, l3l1p5, l3l1p6, l3l1p7, l3l1p8, l3l1p9]
         
         
+        let l3l2p1c1 = Component()
+        l3l2p1c1.type = .label
+        l3l2p1c1.text = "A common misconception is that bitcoin is anonymous."
+        
+        let l3l2p1c2 = Component()
+        l3l2p1c2.type = .label
+        l3l2p1c2.text = "Media often claim that it's, therefore, used mostly by criminals."
+        
+        let l3l2p1c3 = Component()
+        l3l2p1c3.type = .label
+        l3l2p1c3.text = "But how private is bitcoin really?"
+        
+        let l3l2p1 = Page()
+        l3l2p1.components = [l3l2p1c1, l3l2p1c2, l3l2p1c3]
+        
+        
+        let l3l2p2c1 = Component()
+        l3l2p2c1.type = .label
+        l3l2p2c1.text = "The blockchain is public."
+        
+        let l3l2p2c2 = Component()
+        l3l2p2c2.type = .label
+        l3l2p2c2.text = "Everyone can see every transaction, and how much bitcoin every address holds."
+        
+        let l3l2p2c3 = Component()
+        l3l2p2c3.type = .label
+        l3l2p2c3.text = "However, these addresses contain no personal information of the owner."
+        
+        let l3l2p2 = Page()
+        l3l2p2.components = [l3l2p2c1, l3l2p2c2, l3l2p2c3]
+        
+        
+        let l3l2p3c1 = Component()
+        l3l2p3c1.type = .label
+        l3l2p3c1.text = "This means that bitcoin is <b>pseudonymous</b>, not anonymous."
+        
+        let l3l2p3c2 = Component()
+        l3l2p3c2.type = .label
+        l3l2p3c2.text = "This pseudonymity provides privacy, while allowing anyone to audit the bitcoin supply."
+        
+        let l3l2p3c3 = Component()
+        l3l2p3c3.type = .label
+        l3l2p3c3.text = "If bitcoin were anonymous, there would be no way to verify the correct minting and movement of coins."
+        
+        let l3l2p3 = Page()
+        l3l2p3.components = [l3l2p3c1, l3l2p3c2, l3l2p3c3]
+        
+        
+        let l3l2p4c1 = Component()
+        l3l2p4c1.type = .label
+        l3l2p4c1.text = "However, bitcoin exchanges are often required to verify customer identities, above certain purchase thresholds."
+        
+        let l3l2p4c2 = Component()
+        l3l2p4c2.type = .label
+        l3l2p4c2.text = "This is enforced through <b>Know Your Customer (KYC)</b> regulations."
+        
+        let l3l2p4c3 = Component()
+        l3l2p4c3.type = .label
+        l3l2p4c3.text = "If requested, they must share these data with authorities."
+        
+        let l3l2p4 = Page()
+        l3l2p4.components = [l3l2p4c1, l3l2p4c2, l3l2p4c3]
+        
+        
+        let l3l2p5c1 = Component()
+        l3l2p5c1.type = .label
+        l3l2p5c1.text = "Additionally, <b>blockchain analysis</b> companies exist."
+        
+        let l3l2p5c2 = Component()
+        l3l2p5c2.type = .label
+        l3l2p5c2.text = "Through various strategies, these companies try to trace what address and amount of bitcoin belongs to whom."
+        
+        let l3l2p5 = Page()
+        l3l2p5.components = [l3l2p5c1, l3l2p5c2]
+        
+        
+        let l3l2p6c1 = Component()
+        l3l2p6c1.type = .label
+        l3l2p6c1.text = "Reduced privacy can lead to compromised safety for activists, dissidents, or opponents to oppressive regimes."
+        
+        let l3l2p6c2 = Component()
+        l3l2p6c2.type = .label
+        l3l2p6c2.text = "As bitcoin evolves, developers search for ways to preserve its pseudonymity."
+        
+        let l3l2p6c3 = Component()
+        l3l2p6c3.type = .label
+        l3l2p6c3.text = "Off-chain solutions (like <b>lightning</b>) enhance privacy by allowing for private transactions."
+        
+        let l3l2p6 = Page()
+        l3l2p6.components = [l3l2p6c1, l3l2p6c2, l3l2p6c3]
+        
+        
+        let l3l2 = Lesson()
+        l3l2.title = "How private is bitcoin?"
+        l3l2.id = "howprivateisbitcoin"
+        l3l2.image = "howprivateisbitcoin"
+        l3l2.pages = [l3l2p1, l3l2p2, l3l2p3, l3l2p4, l3l2p5, l3l2p6]
+        
+        
         let level3 = Level()
-        level3.lessons = [l3l1]
+        level3.lessons = [l3l1, l3l2]
         
         
         
-        "How private is bitcoin?"
         "Can bitcoin be hacked?"
         "Bitcoin versus crypto"
         "Bitcoin Whitepaper Day"
