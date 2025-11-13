@@ -77,12 +77,12 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
             
             // Count completed lessons per level.
             var completedLessons = 0
-            for eachLesson in self.coreVC!.downloadedAcademy![indexPath.row].lessons {
+            for eachLesson in cell.thisLevel.lessons {
                 if CacheManager.getCompletedLessons().contains(eachLesson.id) {
                     completedLessons += 1
                 }
             }
-            cell.countLabel.text = "\(completedLessons) of \(self.coreVC!.downloadedAcademy![indexPath.row].lessons.count)"
+            cell.countLabel.text = "\(completedLessons) of \(cell.thisLevel.lessons.count)"
             
             // Set previous level.
             cell.previousLevel = {

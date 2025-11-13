@@ -68,6 +68,17 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
     }
     
     @objc func reloadCollectionView() {
+        
+        // Count completed lessons per level.
+        var completedLessons = 0
+        for eachLesson in self.thisLevel.lessons {
+            if CacheManager.getCompletedLessons().contains(eachLesson.id) {
+                completedLessons += 1
+            }
+        }
+        self.countLabel.text = "\(completedLessons) of \(self.thisLevel.lessons.count)"
+        
+        // Reload data.
         self.lessonsCollectionView.reloadData()
     }
     
