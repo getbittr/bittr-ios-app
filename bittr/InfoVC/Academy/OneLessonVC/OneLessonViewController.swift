@@ -106,7 +106,7 @@ class OneLessonViewController: UIViewController {
         } else {
             // This is the final page.
             CacheManager.addCompletedLesson(self.thisLesson!.id)
-            self.academyVC?.academyTableView.reloadData()
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "reloadcollectionview"), object: nil, userInfo: nil) as Notification)
             self.dismiss(animated: true)
         }
     }

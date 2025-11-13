@@ -35,6 +35,9 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         self.lessonsCollectionView.collectionViewLayout = self.createCompositionalLayout()
         self.lessonsCollectionView.isScrollEnabled = false
         
+        // Notification management.
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadCollectionView), name: NSNotification.Name(rawValue: "reloadcollectionview"), object: nil)
+        
         // Color management.
         self.changeColors()
     }
@@ -62,6 +65,10 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
 
         let layout = UICollectionViewCompositionalLayout(section: section)
         return layout
+    }
+    
+    @objc func reloadCollectionView() {
+        self.lessonsCollectionView.reloadData()
     }
     
     func reloadLessons() {
