@@ -1407,12 +1407,94 @@ extension AcademyViewController {
         l3l3.pages = [l3l3p1, l3l3p2, l3l3p3, l3l3p4, l3l3p5, l3l3p6, l3l3p7, l3l3p8]
         
         
+        let l3l4p1c1 = Component()
+        l3l4p1c1.type = .label
+        l3l4p1c1.text = "The words bitcoin and <b>crypto</b> are often inappropriately interchanged."
+        
+        let l3l4p1c2 = Component()
+        l3l4p1c2.type = .label
+        l3l4p1c2.text = "Bitcoin is a currency. Crypto refers to bitcoin and all <b>altcoins</b> that have spawned since."
+        
+        let l3l4p1c3 = Component()
+        l3l4p1c3.type = .label
+        l3l4p1c3.text = "These are not the same."
+        
+        let l3l4p1 = Page()
+        l3l4p1.components = [l3l4p1c1, l3l4p1c2, l3l4p1c3]
+        
+        
+        let l3l4p2c1 = Component()
+        l3l4p2c1.type = .label
+        l3l4p2c1.text = "Bitcoin has shown itself to be a strong, long-term store of value."
+        
+        let l3l4p2c2 = Component()
+        l3l4p2c2.type = .label
+        l3l4p2c2.text = "Its annual growth averages 60%."
+        
+        let l3l4p2c3 = Component()
+        l3l4p2c3.type = .label
+        l3l4p2c3.text = "In contrast, according to 2023 data, 90% of crypto traders lose money."
+        
+        let l3l4p2 = Page()
+        l3l4p2.components = [l3l4p2c1, l3l4p2c2, l3l4p2c3]
+        
+        
+        let l3l4p3c1 = Component()
+        l3l4p3c1.type = .label
+        l3l4p3c1.text = "Bitcoin was the first working crypto asset."
+        
+        let l3l4p3c2 = Component()
+        l3l4p3c2.type = .label
+        l3l4p3c2.text = "It has by far the largest <b>market cap</b> and the densest ecosystem, with the most users and infrastructure."
+        
+        let l3l4p3c3 = Component()
+        l3l4p3c3.type = .label
+        l3l4p3c3.text = "This network effect cannot be copy-pasted."
+        
+        let l3l4p3 = Page()
+        l3l4p3.components = [l3l4p3c1, l3l4p3c2, l3l4p3c3]
+        
+        
+        let l3l4p4c1 = Component()
+        l3l4p4c1.type = .label
+        l3l4p4c1.text = "It's difficult for altcoins to achieve true decentralization."
+        
+        let l3l4p4c2 = Component()
+        l3l4p4c2.type = .label
+        l3l4p4c2.text = "In practice, they all have a central authority - a company or a small dev team."
+        
+        let l3l4p4c3 = Component()
+        l3l4p4c3.type = .label
+        l3l4p4c3.text = "Also, they lack bitcoin's proven resilience: no network outages since 2013; overcome bear markets, bans, and controversies."
+        
+        let l3l4p4 = Page()
+        l3l4p4.components = [l3l4p4c1, l3l4p4c2, l3l4p4c3]
+        
+        
+        let l3l4p5c1 = Component()
+        l3l4p5c1.type = .label
+        l3l4p5c1.text = "Bitcoin's value comes from its fixed supply, transparent protocol, and proven security."
+        
+        let l3l4p5c2 = Component()
+        l3l4p5c2.type = .label
+        l3l4p5c2.text = "As an investment strategy, it offers proven long-term value over crypto's high-risk, short-term gains."
+        
+        let l3l4p5 = Page()
+        l3l4p5.components = [l3l4p5c1, l3l4p5c2]
+        
+        
+        let l3l4 = Lesson()
+        l3l4.title = "Bitcoin versus crypto"
+        l3l4.id = "bitcoinversuscrypto"
+        l3l4.image = "bitcoinversuscrypto"
+        l3l4.pages = [l3l4p1, l3l4p2, l3l4p3, l3l4p4, l3l4p5]
+        
+        
         let level3 = Level()
-        level3.lessons = [l3l1, l3l2, l3l3]
+        level3.lessons = [l3l1, l3l2, l3l3, l3l4]
         
         
         
-        "Bitcoin versus crypto"
         "Bitcoin Whitepaper Day"
         "What happens if bitcoin gets forbidden?"
         
