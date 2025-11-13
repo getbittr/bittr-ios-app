@@ -1490,12 +1490,105 @@ extension AcademyViewController {
         l3l4.pages = [l3l4p1, l3l4p2, l3l4p3, l3l4p4, l3l4p5]
         
         
+        let l3l5p1c1 = Component()
+        l3l5p1c1.type = .image
+        l3l5p1c1.url = "https://bittr-notion-bucket.s3.eu-central-2.amazonaws.com/notion-media/299d2c8de1aa8027ad0dd1cd0726e0c1.png"
+        
+        let l3l5p1c2 = Component()
+        l3l5p1c2.type = .label
+        l3l5p1c2.text = "Bitcoin, as a concept, was introduced on <b>31 October 2008</b>."
+        
+        let l3l5p1c3 = Component()
+        l3l5p1c3.type = .label
+        l3l5p1c3.text = "On that day, the pseudonymous <b>Satoshi Nakamoto</b> published <b>Bitcoin: A Peer-to-Peer Electronic Cash System</b>."
+        
+        let l3l5p1 = Page()
+        l3l5p1.components = [l3l5p1c1, l3l5p1c2, l3l5p1c3]
+        
+        
+        let l3l5p2c1 = Component()
+        l3l5p2c1.type = .label
+        l3l5p2c1.text = "The timing of the release, weeks after the Lehman Brothers collapse, was likely no coincidence."
+        
+        let l3l5p2c2 = Component()
+        l3l5p2c2.type = .label
+        l3l5p2c2.text = "The modest 9-page document became the starting point of a financial shift."
+        
+        let l3l5p2c3 = Component()
+        l3l5p2c3.type = .label
+        l3l5p2c3.text = "It laid the foundation for bitcoin’s rise in the following years."
+        
+        let l3l5p2 = Page()
+        l3l5p2.components = [l3l5p2c1, l3l5p2c2, l3l5p2c3]
+        
+        
+        let l3l5p3c1 = Component()
+        l3l5p3c1.type = .label
+        l3l5p3c1.text = "That date, 31 October, is now known as <b>Bitcoin Whitepaper Day</b>."
+        
+        let l3l5p3c2 = Component()
+        l3l5p3c2.type = .label
+        l3l5p3c2.text = "It's meant to celebrate the start of this movement, and the birth of the first decentralized cryptocurrency system."
+        
+        let l3l5p3 = Page()
+        l3l5p3.components = [l3l5p3c1, l3l5p3c2]
+        
+        
+        let l3l5p4c1 = Component()
+        l3l5p4c1.type = .label
+        l3l5p4c1.text = "Nakamoto introduced bitcoin to address core weaknesses in traditional money."
+        
+        let l3l5p4c2 = Component()
+        l3l5p4c2.type = .label
+        l3l5p4c2.text = "It emphasized <b>trustlessness</b>: creating a <b>decentralized</b> peer-to-peer network with no central middlemen."
+        
+        let l3l5p4c3 = Component()
+        l3l5p4c3.type = .label
+        l3l5p4c3.text = "It explained the <b>blockchain</b>, as a way to solve the <b>double-spend problem</b>."
+        
+        let l3l5p4 = Page()
+        l3l5p4.components = [l3l5p4c1, l3l5p4c2, l3l5p4c3]
+        
+        let l3l5p5c1 = Component()
+        l3l5p5c1.type = .label
+        l3l5p5c1.text = "It announced the <b>fixed supply</b> of 21 million coins, to protect against inflation."
+        
+        let l3l5p5c2 = Component()
+        l3l5p5c2.type = .label
+        l3l5p5c2.text = "It aimed for <b>financial inclusion and global access</b>, offering an open financial system to the 1.4 billion people worldwide without bank accounts."
+        
+        let l3l5p5 = Page()
+        l3l5p5.components = [l3l5p5c1, l3l5p5c2]
+        
+        
+        let l3l5p6c1 = Component()
+        l3l5p6c1.type = .label
+        l3l5p6c1.text = "Bitcoin represents <b>freedom in finance</b>, and challenges conventional ideas about money and ownership."
+        
+        let l3l5p6c2 = Component()
+        l3l5p6c2.type = .label
+        l3l5p6c2.text = "It stands for <b>financial sovereignty</b>: individuals hold full control over their assets and transactions."
+        
+        let l3l5p6c3 = Component()
+        l3l5p6c3.type = .label
+        l3l5p6c3.text = "It's a movement that puts financial self-determination at the center."
+        
+        let l3l5p6 = Page()
+        l3l5p6.components = [l3l5p6c1, l3l5p6c2, l3l5p6c3]
+        
+        
+        let l3l5 = Lesson()
+        l3l5.title = "Bitcoin Whitepaper Day"
+        l3l5.id = "bitcoinwhitepaperday"
+        l3l5.image = "bitcoinwhitepaperday"
+        l3l5.pages = [l3l5p1, l3l5p2, l3l5p3, l3l5p4, l3l5p5, l3l5p6]
+        
+        
         let level3 = Level()
-        level3.lessons = [l3l1, l3l2, l3l3, l3l4]
+        level3.lessons = [l3l1, l3l2, l3l3, l3l4, l3l5]
         
         
         
-        "Bitcoin Whitepaper Day"
         "What happens if bitcoin gets forbidden?"
         
         
