@@ -1183,7 +1183,7 @@ extension AcademyViewController {
         
         let l3l2p1c2 = Component()
         l3l2p1c2.type = .label
-        l3l2p1c2.text = "Media often claim that it's, therefore, used mostly by criminals."
+        l3l2p1c2.text = "And that it's, therefore, used mostly by criminals."
         
         let l3l2p1c3 = Component()
         l3l2p1c3.type = .label
@@ -1199,11 +1199,11 @@ extension AcademyViewController {
         
         let l3l2p2c2 = Component()
         l3l2p2c2.type = .label
-        l3l2p2c2.text = "Everyone can see every transaction, and how much bitcoin every address holds."
+        l3l2p2c2.text = "Everyone can see every transaction, and the amount of bitcoin in every address."
         
         let l3l2p2c3 = Component()
         l3l2p2c3.type = .label
-        l3l2p2c3.text = "However, these addresses contain no personal information of the owner."
+        l3l2p2c3.text = "These addresses, however, contain no personal information of the owner."
         
         let l3l2p2 = Page()
         l3l2p2.components = [l3l2p2c1, l3l2p2c2, l3l2p2c3]
@@ -1247,7 +1247,7 @@ extension AcademyViewController {
         
         let l3l2p5c2 = Component()
         l3l2p5c2.type = .label
-        l3l2p5c2.text = "Through various strategies, these companies try to trace what address and amount of bitcoin belongs to whom."
+        l3l2p5c2.text = "These companies, through various strategies, try to trace what address and bitcoin belongs to whom."
         
         let l3l2p5 = Page()
         l3l2p5.components = [l3l2p5c1, l3l2p5c2]
@@ -1255,11 +1255,11 @@ extension AcademyViewController {
         
         let l3l2p6c1 = Component()
         l3l2p6c1.type = .label
-        l3l2p6c1.text = "Reduced privacy can lead to compromised safety for activists, dissidents, or opponents to oppressive regimes."
+        l3l2p6c1.text = "Reduced privacy can lead to compromised safety. For example, for activists, dissidents, or opponents to oppressive regimes."
         
         let l3l2p6c2 = Component()
         l3l2p6c2.type = .label
-        l3l2p6c2.text = "As bitcoin evolves, developers search for ways to preserve its pseudonymity."
+        l3l2p6c2.text = "As bitcoin evolves, developers explore ways to preserve its pseudonymity."
         
         let l3l2p6c3 = Component()
         l3l2p6c3.type = .label
@@ -1276,12 +1276,142 @@ extension AcademyViewController {
         l3l2.pages = [l3l2p1, l3l2p2, l3l2p3, l3l2p4, l3l2p5, l3l2p6]
         
         
+        let l3l3p1c1 = Component()
+        l3l3p1c1.type = .label
+        l3l3p1c1.text = "For <b>trustlessness</b>, it's important that bitcoin is secure against attacks."
+        
+        let l3l3p1c2 = Component()
+        l3l3p1c2.type = .label
+        l3l3p1c2.text = "The blockchain has <b>never been hacked</b>. Its decentralized nature makes attacks extremely difficult, technically and economically."
+        
+        let l3l3p1 = Page()
+        l3l3p1.components = [l3l3p1c1, l3l3p1c2]
+        
+        
+        let l3l3p2c1 = Component()
+        l3l3p2c1.type = .label
+        l3l3p2c1.text = "In hacking, there's the <b>user level</b> and <b>network level</b>."
+        
+        let l3l3p2c2 = Component()
+        l3l3p2c2.type = .label
+        l3l3p2c2.text = "On the user level, if you're careless with your seedphrase, you can lose your coins."
+        
+        let l3l3p2c3 = Component()
+        l3l3p2c3.type = .label
+        l3l3p2c3.text = "Or if you get a custodial wallet, that 3rd party can get hacked or steal your coins."
+        
+        let l3l3p2 = Page()
+        l3l3p2.components = [l3l3p2c1, l3l3p2c2, l3l3p2c3]
+        
+        
+        let l3l3p3c1 = Component()
+        l3l3p3c1.type = .label
+        l3l3p3c1.text = "On the network level, how technically robust is bitcoin?"
+        
+        let l3l3p3c2 = Component()
+        l3l3p3c2.type = .label
+        l3l3p3c2.text = "The blockchain is maintained by tens of thousands of independent nodes worldwide."
+        
+        let l3l3p3c3 = Component()
+        l3l3p3c3.type = .label
+        l3l3p3c3.text = "You can't hack just a single computer, you'd need to hack tens of thousands."
+        
+        let l3l3p3 = Page()
+        l3l3p3.components = [l3l3p3c1, l3l3p3c2, l3l3p3c3]
+        
+        
+        let l3l3p4c1 = Component()
+        l3l3p4c1.type = .label
+        l3l3p4c1.text = "Hacking the blockchain by <b>mining blocks</b> would require more computing power than all miners combined."
+        
+        let l3l3p4c2 = Component()
+        l3l3p4c2.type = .label
+        l3l3p4c2.text = "The high rewards and extreme competition, complexity, and randomness, make this extremely expensive if not impossible."
+        
+        let l3l3p4c3 = Component()
+        l3l3p4c3.type = .label
+        l3l3p4c3.text = "Even if you do mine a block with fraudulent transactions, the nodes would just reject the block."
+        
+        let l3l3p4 = Page()
+        l3l3p4.components = [l3l3p4c1, l3l3p4c2, l3l3p4c3]
+        
+        
+        let l3l3p5c1 = Component()
+        l3l3p5c1.type = .label
+        l3l3p5c1.text = "Paradoxically, if you'd successfully hack the blockchain in order to enrich yourself, the value of bitcoin would fall."
+        
+        let l3l3p5c2 = Component()
+        l3l3p5c2.type = .label
+        l3l3p5c2.text = "The value of bitcoin relies entirely on its security and scarcity."
+        
+        let l3l3p5c3 = Component()
+        l3l3p5c3.type = .label
+        l3l3p5c3.text = "If not technically, then also economically, it's impossible to hack bitcoin and make a profit."
+        
+        let l3l3p5 = Page()
+        l3l3p5.components = [l3l3p5c1, l3l3p5c2, l3l3p5c3]
+        
+        
+        let l3l3p6c1 = Component()
+        l3l3p6c1.type = .label
+        l3l3p6c1.text = "What if the <b>internet goes down</b>? This would impact bitcoin, like it would impact all modern services."
+        
+        let l3l3p6c2 = Component()
+        l3l3p6c2.type = .label
+        l3l3p6c2.text = "Data would stay <b>intact</b> with all nodes, while they wait for the connection to return."
+        
+        let l3l3p6c3 = Component()
+        l3l3p6c3.type = .label
+        l3l3p6c3.text = "As bitcoin evolves, <b>alternative paths</b> are explored to run the network, not relying on the traditional internet."
+        
+        let l3l3p6 = Page()
+        l3l3p6.components = [l3l3p6c1, l3l3p6c2, l3l3p6c3]
+        
+        
+        let l3l3p7c1 = Component()
+        l3l3p7c1.type = .label
+        l3l3p7c1.text = "What about hypothetical <b>quantum computers</b>, breaking cryptography and computing power?"
+        
+        let l3l3p7c2 = Component()
+        l3l3p7c2.type = .label
+        l3l3p7c2.text = "This would compromise all modern services. Comparatively, bitcoin is exponentially more difficult to hack."
+        
+        let l3l3p7c3 = Component()
+        l3l3p7c3.type = .label
+        l3l3p7c3.text = "If such a threat would arise, bitcoin can evolve to anticipate it - as it's continuously doing."
+        
+        let l3l3p7 = Page()
+        l3l3p7.components = [l3l3p7c1, l3l3p7c2, l3l3p7c3]
+        
+        
+        let l3l3p8c1 = Component()
+        l3l3p8c1.type = .label
+        l3l3p8c1.text = "In conclusion, bitcoin remains unhacked and its security unmatched."
+        
+        let l3l3p8c2 = Component()
+        l3l3p8c2.type = .label
+        l3l3p8c2.text = "Any real threat to your funds, comes from carelessness with your keys."
+        
+        let l3l3p8c3 = Component()
+        l3l3p8c3.type = .label
+        l3l3p8c3.text = "Choose the appropriate wallets, and protect access to your keys and devices, and your coins will be secure."
+        
+        let l3l3p8 = Page()
+        l3l3p8.components = [l3l3p8c1, l3l3p8c2, l3l3p8c3]
+        
+        
+        let l3l3 = Lesson()
+        l3l3.title = "Can bitcoin be hacked?"
+        l3l3.id = "canbitcoinbehacked"
+        l3l3.image = "canbitcoinbehacked"
+        l3l3.pages = [l3l3p1, l3l3p2, l3l3p3, l3l3p4, l3l3p5, l3l3p6, l3l3p7, l3l3p8]
+        
+        
         let level3 = Level()
-        level3.lessons = [l3l1, l3l2]
+        level3.lessons = [l3l1, l3l2, l3l3]
         
         
         
-        "Can bitcoin be hacked?"
         "Bitcoin versus crypto"
         "Bitcoin Whitepaper Day"
         "What happens if bitcoin gets forbidden?"
