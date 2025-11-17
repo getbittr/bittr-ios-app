@@ -12,7 +12,13 @@ extension CoreViewController {
     @IBAction func menuButtonTapped(_ sender: UIButton) {
         
         if sender.tag == 1 {
-            self.loadInfoVC()
+            if self.infoContainerView.subviews.count > 0 {
+                // Academy is already in view.
+                return
+            } else {
+                // Load Academy.
+                self.loadInfoVC()
+            }
         }
         
         let menuViews:[UIView] = [self.walletView, self.academyView, self.settingsView]
