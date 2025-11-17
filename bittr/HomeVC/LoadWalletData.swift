@@ -21,20 +21,14 @@ extension HomeViewController {
         }
         
         // Calculate lightning balance by adding up the values of each channel.
-        if LightningNodeService.shared.ldkNode != nil, self.coreVC!.bittrWallet.lightningChannels.count != 0 {
-            self.coreVC!.bittrWallet.satoshisLightning = Int(LightningNodeService.shared.ldkNode!.listBalances().totalLightningBalanceSats)
-        } else {
-            self.coreVC!.bittrWallet.satoshisLightning = 0
-            for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-                if eachChannel.outboundCapacityMsat != 0 {
+        self.coreVC!.bittrWallet.satoshisLightning = 0
+        for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+            if eachChannel.isChannelReady {
+                if Int(eachChannel.outboundCapacityMsat/1000) != 0 {
                     self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
                 }
+                self.setBittrChannel(withChannel: eachChannel)
             }
-        }
-        
-        // Users can currently only have one channel, their channel with Bittr. So this count is always 0 or 1.
-        if self.coreVC!.bittrWallet.lightningChannels.count == 1, self.coreVC!.bittrWallet.lightningChannels.first != nil {
-            self.setBittrChannel(withChannel: self.coreVC!.bittrWallet.lightningChannels.first!)
         }
         
         // Collect transaction IDs to be checked with Bittr API.
