@@ -413,6 +413,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
+        self.doneButtonTapped()
         return false
     }
     

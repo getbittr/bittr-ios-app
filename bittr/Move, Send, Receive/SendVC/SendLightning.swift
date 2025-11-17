@@ -198,45 +198,99 @@ extension UIViewController {
         sendVC?.arrowIcon.alpha = 0
         sendVC?.nextSpinner.startAnimating()
         
-        let invoiceText = sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText
-        sendVC?.temporaryInvoiceText = ""
-        receiveVC?.temporaryInvoiceText = ""
-        let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
-        sendVC?.temporaryInvoiceAmount = 0
-        receiveVC?.temporaryInvoiceAmount = 0
-        let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC!.temporaryIsZeroAmountInvoice
-        sendVC?.temporaryIsZeroAmountInvoice = false
-        receiveVC?.temporaryIsZeroAmountInvoice = false
+        Task {
+            // Check peer connection.
+            if await self.isConnectedToPeer() {
+                // Is connected to peer.
+                
+                let invoiceText = sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText
+                sendVC?.temporaryInvoiceText = ""
+                receiveVC?.temporaryInvoiceText = ""
+                let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
+                sendVC?.temporaryInvoiceAmount = 0
+                receiveVC?.temporaryInvoiceAmount = 0
+                let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC!.temporaryIsZeroAmountInvoice
+                sendVC?.temporaryIsZeroAmountInvoice = false
+                receiveVC?.temporaryIsZeroAmountInvoice = false
+                
+                print("Invoice text: " + String(invoiceText.replacingOccurrences(of: " ", with: "")))
+                
+                do {
+                    if isZeroAmountInvoice {
+                        let _ = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
+                        SentrySDK.metrics.increment(key: "lightning.payment.success")
+                    } else {
+                        let _ = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
+                        SentrySDK.metrics.increment(key: "lightning.payment.success")
+                    }
+                } catch {
+                    let errorMessage:String = {
+                        if let nodeError = error as? NodeError {
+                            return "\(handleNodeError(nodeError))"
+                        } else {
+                            return error.localizedDescription
+                        }
+                    }()
+                    DispatchQueue.main.async {
+                        // General error alert
+                        sendVC?.nextLabel.alpha = 1
+                        sendVC?.arrowIcon.alpha = 1
+                        sendVC?.nextSpinner.stopAnimating()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SendLightning row 233", key: "context")
+                        }
+                        SentrySDK.metrics.increment(key: "lightning.payment.failure.1")
+                    }
+                }
+            } else {
+                // Not connected to peer.
+                if await LightningNodeService.shared.didEstablishPeerConnection() {
+                    // Did reconnect.
+                    print("Did reconnect to peer.")
+                    DispatchQueue.main.async {
+                        self.performLightningPayment()
+                    }
+                } else {
+                    // Can't reconnect.
+                    print("Could not reconnect to peer.")
+                    DispatchQueue.main.async {
+                        sendVC?.nextLabel.alpha = 1
+                        sendVC?.arrowIcon.alpha = 1
+                        sendVC?.nextSpinner.stopAnimating()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.tryPeerReconnection)])
+                        SentrySDK.metrics.increment(key: "lightning.payment.failure.2")
+                    }
+                }
+            }
+        }
+    }
+    
+    @objc func tryPeerReconnection() {
+        self.hideAlert()
         
-        print("Invoice text: " + String(invoiceText.replacingOccurrences(of: " ", with: "")))
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        
+        sendVC?.nextLabel.alpha = 0
+        sendVC?.arrowIcon.alpha = 0
+        sendVC?.nextSpinner.startAnimating()
         
         Task {
-            do {
-                if isZeroAmountInvoice {
-                    let _ = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
-                    SentrySDK.metrics.increment(key: "lightning.payment.success")
-                } else {
-                    let _ = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
-                    SentrySDK.metrics.increment(key: "lightning.payment.success")
-                }
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return "\(handleNodeError(nodeError))"
-                    } else {
-                        return error.localizedDescription
-                    }
-                }()
+            if await LightningNodeService.shared.didEstablishPeerConnection() {
+                // Did reconnect.
+                print("Did reconnect to peer.")
                 DispatchQueue.main.async {
-                    // General error alert
+                    self.performLightningPayment()
+                }
+            } else {
+                // Can't reconnect.
+                print("Could not reconnect to peer.")
+                DispatchQueue.main.async {
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.arrowIcon.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SendLightning row 233", key: "context")
-                    }
-                    SentrySDK.metrics.increment(key: "lightning.payment.failure.1")
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.tryPeerReconnection)])
                 }
             }
         }
