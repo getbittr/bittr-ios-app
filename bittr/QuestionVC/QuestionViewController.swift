@@ -59,7 +59,10 @@ class QuestionViewController: UIViewController {
                     
                     self.setChannelChart()
                     
-                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc1")) \("\(actualChannel.size)".addSpaces()) \(Language.getWord(withID: "questionvc2")) \("\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc3")) \("\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc4")) \("\(actualChannel.receivableMaximum)".addSpaces()) \(Language.getWord(withID: "questionvc5"))."
+                    self.answerLabel.text = Language.getWord(withID: "questionvc1")
+                        .replacingOccurrences(of: "<channelsize>", with: "\(actualChannel.size)".addSpaces())
+                        .replacingOccurrences(of: "<channelbalance>", with: "\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces())
+                        .replacingOccurrences(of: "<receivelimit>", with: "\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)".addSpaces())
                 } else {
                     self.headerLabel.text = Language.getWord(withID: "questionvc6")
                     self.answerLabel.text = Language.getWord(withID: "lightningexplanation1")
@@ -69,7 +72,10 @@ class QuestionViewController: UIViewController {
                     
                     self.setChannelChart()
                     
-                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc7")) \("\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc8")) \("\(actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc9")) \("\(actualChannel.received)".addSpaces()) \(Language.getWord(withID: "questionvc10")) \("\(actualChannel.size)".addSpaces()) \(Language.getWord(withID: "questionvc11")) \("\(actualChannel.receivableMaximum)".addSpaces()) sats."
+                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
+                        .replacingOccurrences(of: "<channelbalance>", with: "\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces())
+                        .replacingOccurrences(of: "<channelreserve>", with: "\(actualChannel.punishmentReserve)".addSpaces())
+                        .replacingOccurrences(of: "<sendlimit>", with: "\(actualChannel.received)".addSpaces())
                 } else {
                     self.headerLabel.text = Language.getWord(withID: "questionvc12")
                     self.answerLabel.text = Language.getWord(withID: "questionvc13")
@@ -79,7 +85,10 @@ class QuestionViewController: UIViewController {
                     
                     self.setChannelChart()
                     
-                    self.answerLabel.text = "\(Language.getWord(withID: "questionvc7")) \("\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc14")) \("\(actualChannel.size)".addSpaces()) \(Language.getWord(withID: "questionvc15")) \("\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "questionvc16"))"
+                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
+                        .replacingOccurrences(of: "<channelbalance>", with: "\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces())
+                        .replacingOccurrences(of: "<channelreserve>", with: "\(actualChannel.punishmentReserve)".addSpaces())
+                        .replacingOccurrences(of: "<sendlimit>", with: "\(actualChannel.received)".addSpaces())
                 }
             }
         }
