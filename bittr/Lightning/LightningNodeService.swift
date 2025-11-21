@@ -185,6 +185,8 @@ class LightningNodeService {
                 let errorMessage:String = {
                     if let esploraError = error as? BitcoinDevKit.EsploraError {
                         return esploraError.getErrorMessage()
+                    } else if let electrumError = error as? BitcoinDevKit.ElectrumError {
+                        return electrumError.getErrorMessage()
                     } else {
                         return error.localizedDescription
                     }
@@ -257,6 +259,8 @@ class LightningNodeService {
             let errorMessage:String = {
                 if let esploraError = error as? BitcoinDevKit.EsploraError {
                     return esploraError.getErrorMessage()
+                } else if let electrumError = error as? BitcoinDevKit.ElectrumError {
+                    return electrumError.getErrorMessage()
                 } else {
                     return error.localizedDescription
                 }

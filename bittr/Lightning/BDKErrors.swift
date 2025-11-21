@@ -128,3 +128,46 @@ extension BitcoinDevKit.AddressParseError {
         }
     }
 }
+
+extension BitcoinDevKit.ElectrumError {
+    
+    func getErrorMessage() -> String {
+        
+        switch self {
+        case .IoError(errorMessage: let errorMessage):
+            return errorMessage
+        case .Json(errorMessage: let errorMessage):
+            return errorMessage
+        case .Hex(errorMessage: let errorMessage):
+            return errorMessage
+        case .Protocol(errorMessage: let errorMessage):
+            return errorMessage
+        case .Bitcoin(errorMessage: let errorMessage):
+            return errorMessage
+        case .AlreadySubscribed:
+            return "Already subscribed."
+        case .NotSubscribed:
+            return "Not subscribed."
+        case .InvalidResponse(errorMessage: let errorMessage):
+            return errorMessage
+        case .Message(errorMessage: let errorMessage):
+            return errorMessage
+        case .InvalidDnsNameError(domain: let domain):
+            return "Invalid DNS name."
+        case .MissingDomain:
+            return "Missing domain."
+        case .AllAttemptsErrored:
+            return "All attempts errored."
+        case .SharedIoError(errorMessage: let errorMessage):
+            return errorMessage
+        case .CouldntLockReader:
+            return "Couldn’t take a lock on the reader mutex."
+        case .Mpsc:
+            return "MPSC: Broken IPC communication channel."
+        case .CouldNotCreateConnection(errorMessage: let errorMessage):
+            return errorMessage
+        case .RequestAlreadyConsumed:
+            return "Request already consumed."
+        }
+    }
+}
