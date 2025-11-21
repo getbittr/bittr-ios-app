@@ -390,53 +390,6 @@ extension SendViewController {
         }
     }
     
-    func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
-        
-        if let actualWallet = LightningNodeService.shared.getWallet() {
-            do {
-                let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
-                _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
-                return nil
-            } catch {
-                if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                    switch bdkError {
-                    case .InsufficientFunds(needed: let needed, available: _):
-                        let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
-                        let neededAmount:Double = Int(needed).inBTC()
-                        let minimumFees:Double = neededAmount - btcOnchain
-                        let spendableBtcAmount = btcOnchain - minimumFees
-                        if spendableBtcAmount < 0 {
-                            return 0
-                        } else {
-                            return spendableBtcAmount
-                        }
-                    case .CoinSelection(errorMessage: let errorMessage):
-                        if errorMessage.contains("Insufficient funds") {
-                            let btcOnchain = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
-                            let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
-                            let minimumFees:Double = neededAmount - btcOnchain
-                            let spendableBtcAmount = btcOnchain - minimumFees
-                            if spendableBtcAmount < 0 {
-                                return 0
-                            } else if spendableBtcAmount > btcOnchain {
-                                return nil
-                            } else {
-                                return spendableBtcAmount
-                            }
-                        } else {
-                            return nil
-                        }
-                    default: return nil
-                    }
-                } else {
-                    return nil
-                }
-            }
-        } else {
-            return nil
-        }
-    }
-    
     @objc override func cancelSwapOffer() {
         self.hideAlert()
         print("DEBUG - cancelSwapOffer called, clearing pending data")
@@ -493,6 +446,53 @@ extension String {
 }
 
 extension UIViewController {
+    
+    func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
+        
+        if let actualWallet = LightningNodeService.shared.getWallet() {
+            do {
+                let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
+                _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
+                return nil
+            } catch {
+                if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                    switch bdkError {
+                    case .InsufficientFunds(needed: let needed, available: _):
+                        let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
+                        let neededAmount:Double = Int(needed).inBTC()
+                        let minimumFees:Double = neededAmount - btcOnchain
+                        let spendableBtcAmount = btcOnchain - minimumFees
+                        if spendableBtcAmount < 0 {
+                            return 0
+                        } else {
+                            return spendableBtcAmount
+                        }
+                    case .CoinSelection(errorMessage: let errorMessage):
+                        if errorMessage.contains("Insufficient funds") {
+                            let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
+                            let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
+                            let minimumFees:Double = neededAmount - btcOnchain
+                            let spendableBtcAmount = btcOnchain - minimumFees
+                            if spendableBtcAmount < 0 {
+                                return 0
+                            } else if spendableBtcAmount > btcOnchain {
+                                return nil
+                            } else {
+                                return spendableBtcAmount
+                            }
+                        } else {
+                            return nil
+                        }
+                    default: return nil
+                    }
+                } else {
+                    return nil
+                }
+            }
+        } else {
+            return nil
+        }
+    }
     
     func getSize(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet) throws -> UInt64 {
         

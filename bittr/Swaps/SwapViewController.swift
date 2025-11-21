@@ -10,6 +10,7 @@ import LDKNode
 import UserNotifications
 import LightningDevKit
 import Sentry
+import BitcoinDevKit
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
 
@@ -152,12 +153,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.nextView.layer.cornerRadius = 8
         
         // Available amount
-        if let actualChannel = self.coreVC?.bittrWallet.bittrChannel {
-            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(actualChannel.receivableMaximum)".addSpaces())
-        } else {
-            // Fallback if channel is not available
-            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-        }
+        self.calculateSendableAmount()
         
         // Set colors and language
         self.changeColors()
@@ -259,6 +255,83 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
     }
     
+    func calculateSendableAmount() {
+        
+        let activeChannel: LDKNode.ChannelDetails? = {
+            for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+                if eachChannel.isChannelReady { return eachChannel }
+            }
+            return nil
+        }()
+        
+        if activeChannel == nil {
+            // There is no active Lightning channel.
+            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+        } else {
+            // There is an active Lightning channel.
+            
+            if self.swapDirection == .lightningToOnchain {
+                // We can send our Lightning balance minus the reserve.
+                
+                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(Int(activeChannel!.outboundCapacityMsat/1000))".addSpaces())
+            } else {
+                // We can send our available channel space, if we have enough onchain satoshis.
+                
+                // Calculate available channel space.
+                let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0)
+                
+                // Calculate available onchain satoshis minus fast fee.
+                if let actualWallet = LightningNodeService.shared.getWallet() {
+                    
+                    // Calculate maximum sendable onchain amount at lowest fee.
+                    let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                    let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
+                    
+                    do {
+                        // Get fees.
+                        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                        // Select highest fee.
+                        let highestFeePerVbyte = Float(Int(feeEstimates[1]!*10))/10
+                        // Get own onchain address.
+                        let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
+                        // Calculate transaction size.
+                        let sizeinVbytes = try self.getSize(address: actualAddress, amountSats: maximumSendableOnchainSats, wallet: actualWallet)
+                        // Calculate highest fee in satoshis.
+                        let satoshisFee:Int = Int(highestFeePerVbyte * Float(sizeinVbytes))
+                        
+                        // Onchain satoshis minus highest fee.
+                        let sendableSatoshis = self.coreVC!.bittrWallet.satoshisOnchain - satoshisFee
+                        
+                        // Set label.
+                        DispatchQueue.main.async {
+                            if sendableSatoshis > availableChannelSpace {
+                                // We have enough onchain satoshis to fill up the entire channel.
+                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(availableChannelSpace)".addSpaces())
+                            } else {
+                                // We don't have enough onchain satoshis to fill up the entire channel.
+                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(sendableSatoshis)".addSpaces())
+                            }
+                        }
+                    } catch {
+                        print("Error: \(error.localizedDescription)")
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SwapVC row 308", key: "context")
+                        }
+                        DispatchQueue.main.async {
+                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                        }
+                    }
+                } else {
+                    print("Cannot get BDK wallet in SwapVC.")
+                    SentrySDK.capture(message: "Cannot get BDK wallet in SwapVC.") { scope in
+                        scope.setExtra(value: "SwapVC row 319", key: "context")
+                    }
+                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                }
+            }
+        }
+    }
+    
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         self.dismiss(animated: true)
@@ -277,11 +350,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             
             self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
             self.swapDirection = .onchainToLightning
+            self.calculateSendableAmount()
         }
         let lightningToOnchain = UIAlertAction(title: Language.getWord(withID: "lightningtoonchain"), style: .default) { (action) in
             
             self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
             self.swapDirection = .lightningToOnchain
+            self.calculateSendableAmount()
         }
         let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
         actionSheet.addAction(onchainToLightning)
