@@ -1738,6 +1738,114 @@ extension AcademyViewController {
         level3.lessons = [l3l1, l3l2, l3l3, l3l4, l3l5, l3l6]
         
         
-        return [level1, level2, level3]
+        let l4l1p1c1 = Component()
+        l4l1p1c1.type = .label
+        l4l1p1c1.text = "Critics often claim that bitcoin is bad for the environment."
+        
+        let l4l1p1c2 = Component()
+        l4l1p1c2.type = .label
+        l4l1p1c2.text = "How does bitcoin consume energy, what kind, and how might this evolve?"
+        
+        let l4l1p1 = Page()
+        l4l1p1.components = [l4l1p1c1, l4l1p1c2]
+        
+        
+        let l4l1p2c1 = Component()
+        l4l1p2c1.type = .label
+        l4l1p2c1.text = "Miners compete to mine blocks, by being the first to guess a correct nonce."
+        
+        let l4l1p2c2 = Component()
+        l4l1p2c2.type = .label
+        l4l1p2c2.text = "The more computing power a miner controls, the quicker they can guess, the more likely they win."
+        
+        let l4l1p2c3 = Component()
+        l4l1p2c3.type = .label
+        l4l1p2c3.text = "More computing power requires more energy."
+        
+        let l4l1p2 = Page()
+        l4l1p2.components = [l4l1p2c1, l4l1p2c2, l4l1p2c3]
+        
+        
+        let l4l1p3c1 = Component()
+        l4l1p3c1.type = .label
+        l4l1p3c1.text = "Mining is energy-heavy by design, to guarantee the decentralized and immutable blockchain."
+        
+        let l4l1p3c2 = Component()
+        l4l1p3c2.type = .label
+        l4l1p3c2.text = "The physical cost to mine blocks makes it extremely expensive to cheat the system."
+        
+        let l4l1p3c3 = Component()
+        l4l1p3c3.type = .label
+        l4l1p3c3.text = "Bitcoin uses physics to secure the network: <b>energy replaces trust</b>."
+        
+        let l4l1p3 = Page()
+        l4l1p3.components = [l4l1p3c1, l4l1p3c2, l4l1p3c3]
+        
+        
+        let l4l1p4c1 = Component()
+        l4l1p4c1.type = .label
+        l4l1p4c1.text = "Miners are incentivized to use the cheapest energy available, which is often renewable energy."
+        
+        let l4l1p4c2 = Component()
+        l4l1p4c2.type = .label
+        l4l1p4c2.text = "A 2020 Cambridge study found that <b>76%</b> of bitcoin mining comes from renewable energy."
+        
+        let l4l1p4c3 = Component()
+        l4l1p4c3.type = .label
+        l4l1p4c3.text = "Miners often set up in remote areas with abundant renewable energy."
+        
+        let l4l1p4 = Page()
+        l4l1p4.components = [l4l1p4c1, l4l1p4c2, l4l1p4c3]
+        
+        
+        let l4l1p5c1 = Component()
+        l4l1p5c1.type = .image
+        l4l1p5c1.url = "https://bittr-notion-bucket.s3.eu-central-2.amazonaws.com/notion-media/1fbd2c8de1aa816380c3db62c929857c.jpg"
+        
+        let l4l1p5c2 = Component()
+        l4l1p5c2.type = .label
+        l4l1p5c2.text = "In 2022, bitcoin mining consumed 0.16% of global electricity."
+        
+        let l4l1p5c3 = Component()
+        l4l1p5c3.type = .label
+        l4l1p5c3.text = "That's significantly less than traditional banking and gold mining operations."
+        
+        let l4l1p5 = Page()
+        l4l1p5.components = [l4l1p5c1, l4l1p5c2, l4l1p5c3]
+        
+        
+        let l4l1p6c1 = Component()
+        l4l1p6c1.type = .label
+        l4l1p6c1.text = "Off-chain innovations, like <b>lightning</b>, make bitcoin less energy-consuming as it scales."
+        
+        let l4l1p6c2 = Component()
+        l4l1p6c2.type = .label
+        l4l1p6c2.text = "In this way, bitcoin becomes more efficient, while safeguarding its trustlessness."
+        
+        let l4l1p6 = Page()
+        l4l1p6.components = [l4l1p6c1, l4l1p6c2]
+        
+        
+        let l4l1 = Lesson()
+        l4l1.title = "Is bitcoin bad for the environment?"
+        l4l1.id = "badfortheenvironment"
+        l4l1.image = "badfortheenvironment"
+        l4l1.pages = [l4l1p1, l4l1p2, l4l1p3, l4l1p4, l4l1p5, l4l1p6]
+        
+        
+        let level4 = Level()
+        level4.lessons = [l4l1]
+        
+        
+        
+        
+        "Can the 21 million limit be changed?"
+        "How to avoid scams"
+        "What is dollar-cost-averaging?"
+        "What is UTXO management?"
+        "What are bitcoin forks?"
+        
+        
+        return [level1, level2, level3, level4]
     }
 }
