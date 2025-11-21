@@ -104,8 +104,6 @@ extension CoreViewController {
     @objc func facilitateNotificationPayout() {
         self.hideAlert()
         
-        let nodeId = EnvironmentConfig.lightningNodeId
-        
         print("Did start payout process.")
         var specialData = [String:Any]()
         if self.varSpecialData != nil {
@@ -131,7 +129,13 @@ extension CoreViewController {
                 
                 let peers = try await LightningNodeService.shared.listPeers()
                 print("Did list peers.")
-                if peers.count == 0 || (peers[0].nodeId == nodeId && !peers[0].isConnected) {
+                var peerIsConnected = false
+                for eachPeer in peers {
+                    if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
+                        peerIsConnected = true
+                    }
+                }
+                if peers.count == 0 || !peerIsConnected {
                     DispatchQueue.main.async {
                         self.hidePendingView()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])

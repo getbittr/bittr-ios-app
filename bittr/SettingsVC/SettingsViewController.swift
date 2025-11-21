@@ -203,8 +203,19 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.hideAlert()
         Task {
             do {
-                let closingChannel = try await LightningNodeService.shared.listChannels()[0]
-                try LightningNodeService.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                let channels = try await LightningNodeService.shared.listChannels()
+                var closingChannel:ChannelDetails?
+                for eachChannel in channels {
+                    if eachChannel.isChannelReady {
+                        closingChannel = eachChannel
+                    }
+                }
+                if closingChannel == nil {
+                    DispatchQueue.main.async {
+                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                    }
+                }
+                try LightningNodeService.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
                 UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -242,11 +253,20 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.hideAlert()
         Task {
             do {
-                let closingChannel = try await LightningNodeService.shared.listChannels()[0]
+                let channels = try await LightningNodeService.shared.listChannels()
+                var closingChannel:ChannelDetails?
+                for eachChannel in channels {
+                    if eachChannel.isChannelReady {
+                        closingChannel = eachChannel
+                    }
+                }
+                if closingChannel == nil {
+                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
                 
                 // Try force close (unilateral closure)
-                print("🔍 [DEBUG] Settings - Attempting force close for channel: \(closingChannel.userChannelId)")
-                try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                print("🔍 [DEBUG] Settings - Attempting force close for channel: \(closingChannel!.userChannelId)")
+                try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
                 UserDefaults.standard.set(true, forKey: "channelClosingInitiated")

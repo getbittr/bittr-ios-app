@@ -256,10 +256,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 moveVC.coreVC = self.coreVC
                 moveVC.homeVC = self
                 self.moveVC = moveVC
-                
-                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
-                    if actualChannels.count > 0 {
-                        moveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
+                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+                    if eachChannel.isChannelReady {
+                        moveVC.maximumReceivableLNSats = Int((eachChannel.unspendablePunishmentReserve ?? 0)*10)
                     }
                 }
             }
@@ -279,13 +278,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
             }
         } else if segue.identifier == "HomeToReceive" {
-            let receiveVC = segue.destination as? ReceiveViewController
-            if let actualReceiveVC = receiveVC {
-                actualReceiveVC.homeVC = self
-                actualReceiveVC.coreVC = self.coreVC
-                if let actualChannels = self.coreVC?.bittrWallet.lightningChannels {
-                    if actualChannels.count > 0 {
-                        actualReceiveVC.maximumReceivableLNSats = Int((actualChannels[0].unspendablePunishmentReserve ?? 0)*10)
+            if let receiveVC = segue.destination as? ReceiveViewController {
+                receiveVC.homeVC = self
+                receiveVC.coreVC = self.coreVC
+                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+                    if eachChannel.isChannelReady {
+                        receiveVC.maximumReceivableLNSats = Int((eachChannel.unspendablePunishmentReserve ?? 0)*10)
                     }
                 }
             }
@@ -295,12 +293,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 transactionVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "HomeToProfit" {
-            let profitVC = segue.destination as? ProfitViewController
-            if let actualProfitVC = profitVC {
-                actualProfitVC.totalProfit = self.calculatedProfit
-                actualProfitVC.totalValue = self.calculatedCurrentValue
-                actualProfitVC.totalInvestments = self.calculatedInvestments
-                actualProfitVC.coreVC = self.coreVC
+            if let profitVC = segue.destination as? ProfitViewController {
+                profitVC.totalProfit = self.calculatedProfit
+                profitVC.totalValue = self.calculatedCurrentValue
+                profitVC.totalInvestments = self.calculatedInvestments
+                profitVC.coreVC = self.coreVC
             }
         } else if segue.identifier == "HomeToValue" {
             if let valueVC = segue.destination as? ValueViewController {

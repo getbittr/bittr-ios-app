@@ -133,9 +133,14 @@ extension CoreViewController {
         Task {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
-                if channels.count > 0 {
-                    let closingChannel = channels[0]
-                    try LightningNodeService.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                var closingChannel:ChannelDetails?
+                for eachChannel in channels {
+                    if eachChannel.isChannelReady {
+                        closingChannel = eachChannel
+                    }
+                }
+                if closingChannel != nil {
+                    try LightningNodeService.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                     
                     // Mark that we've initiated channel closure
                     UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -180,12 +185,16 @@ extension CoreViewController {
         Task {
             do {
                 let channels = try await LightningNodeService.shared.listChannels()
-                if channels.count > 0 {
-                    let closingChannel = channels[0]
-                    
+                var closingChannel:ChannelDetails?
+                for eachChannel in channels {
+                    if eachChannel.isChannelReady {
+                        closingChannel = eachChannel
+                    }
+                }
+                if closingChannel != nil {
                     // Try force close (unilateral closure)
-                    print("🔍 [DEBUG] ResetApp - Attempting force close for channel: \(closingChannel.userChannelId)")
-                    try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
+                    print("🔍 [DEBUG] ResetApp - Attempting force close for channel: \(closingChannel!.userChannelId)")
+                    try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                     
                     // Mark that we've initiated channel closure
                     UserDefaults.standard.set(true, forKey: "channelClosingInitiated")

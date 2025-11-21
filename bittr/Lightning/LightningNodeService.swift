@@ -383,10 +383,16 @@ class LightningNodeService {
                 // Get channels.
                 let channels = try await LightningNodeService.shared.listChannels()
                 print("Channels: \(channels.count)")
+                var activeChannel:ChannelDetails?
+                for eachChannel in channels {
+                    if eachChannel.isChannelReady {
+                        activeChannel = eachChannel
+                    }
+                }
                 
                 // Register funding transaction ID.
-                if channels.count > 0 {
-                    if let channelTxoID = channels[0].fundingTxo?.txid as? String {
+                if activeChannel != nil {
+                    if let channelTxoID = activeChannel!.fundingTxo?.txid as? String {
                         CacheManager.storeTxoID(txoID: channelTxoID)
                     }
                 }
