@@ -84,7 +84,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 
                 // Send hardcoded build number to Sentry.
                 if sentryEvent.extra == nil { sentryEvent.extra = [String:Any]() }
-                sentryEvent.extra!["build_number"] = "101"
                 
                 return sentryEvent
             }
