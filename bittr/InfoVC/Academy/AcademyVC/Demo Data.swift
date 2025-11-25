@@ -1833,8 +1833,116 @@ extension AcademyViewController {
         l4l1.pages = [l4l1p1, l4l1p2, l4l1p3, l4l1p4, l4l1p5, l4l1p6]
         
         
+        let l4l2p1c1 = Component()
+        l4l2p1c1.type = .label
+        l4l2p1c1.text = "Bitcoin exists only on the blockchain."
+        
+        let l4l2p1c2 = Component()
+        l4l2p1c2.type = .label
+        l4l2p1c2.text = "Wallets, nodes, and miners use software (like <b>Bitcoin Core</b>) to interact with it."
+        
+        let l4l2p1c3 = Component()
+        l4l2p1c3.type = .label
+        l4l2p1c3.text = "This software is <b>open source</b>: everyone can see and modify its code."
+        
+        let l4l2p1 = Page()
+        l4l2p1.components = [l4l2p1c1, l4l2p1c2, l4l2p1c3]
+        
+        
+        let l4l2p2c1 = Component()
+        l4l2p2c1.type = .label
+        l4l2p2c1.text = "This software abides by the <b>bitcoin protocol</b>: the strict rules by which bitcoin operates."
+        
+        let l4l2p2c2 = Component()
+        l4l2p2c2.type = .label
+        l4l2p2c2.text = "Software updates can change the protocol."
+        
+        let l4l2p2c3 = Component()
+        l4l2p2c3.type = .label
+        l4l2p2c3.text = "Since this is <b>decentralized</b>, not all users immediately adopt changes. And some users may disagree with a change and never upgrade."
+        
+        let l4l2p2 = Page()
+        l4l2p2.components = [l4l2p2c1, l4l2p2c2, l4l2p2c3]
+        
+        
+        let l4l2p3c1 = Component()
+        l4l2p3c1.type = .label
+        l4l2p3c1.text = "This presents a challenge: how can a network maintain consensus while evolving?"
+        
+        let l4l2p3c2 = Component()
+        l4l2p3c2.type = .label
+        l4l2p3c2.text = "The answer lies in <b>forks</b>: updates that either maintain or break compatibility with the existing protocol."
+        
+        let l4l2p3c3 = Component()
+        l4l2p3c3.type = .label
+        l4l2p3c3.text = "We call these <b>soft forks</b> and <b>hard forks</b>."
+        
+        let l4l2p3 = Page()
+        l4l2p3.components = [l4l2p3c1, l4l2p3c2, l4l2p3c3]
+        
+        
+        let l4l2p4c1 = Component()
+        l4l2p4c1.type = .label
+        l4l2p4c1.text = "Soft forks are <b>backward-compatible</b>."
+        
+        let l4l2p4c2 = Component()
+        l4l2p4c2.type = .label
+        l4l2p4c2.text = "This means that nodes running old software can still recognize and validate transactions under newer rules."
+        
+        let l4l2p4 = Page()
+        l4l2p4.components = [l4l2p4c1, l4l2p4c2]
+        
+        
+        let l4l2p5c1 = Component()
+        l4l2p5c1.type = .label
+        l4l2p5c1.text = "Hard forks <b>break compatibility</b>."
+        
+        let l4l2p5c2 = Component()
+        l4l2p5c2.type = .label
+        l4l2p5c2.text = "This splits the blockchain into <b>two independent chains</b>. The original one, and the one for users that accept the new changes."
+        
+        let l4l2p5c3 = Component()
+        l4l2p5c3.type = .label
+        l4l2p5c3.text = "This has never successfully been done."
+        
+        let l4l2p5 = Page()
+        l4l2p5.components = [l4l2p5c1, l4l2p5c2, l4l2p5c3]
+        
+        
+        let l4l2p6c1 = Component()
+        l4l2p6c1.type = .label
+        l4l2p6c1.text = "Bitcoin’s community avoids hard forks whenever possible."
+        
+        let l4l2p6c2 = Component()
+        l4l2p6c2.type = .label
+        l4l2p6c2.text = "Hard forks create a new cryptocurrency, independent from bitcoin."
+        
+        let l4l2p6c3 = Component()
+        l4l2p6c3.type = .label
+        l4l2p6c3.text = "This risks fragmenting the network, weakening security, and confusing users."
+        
+        let l4l2p6 = Page()
+        l4l2p6.components = [l4l2p6c1, l4l2p6c2, l4l2p6c3]
+        
+        
+        let l4l2p7c1 = Component()
+        l4l2p7c1.type = .label
+        l4l2p7c1.text = "This mechanism ensures that only widely-accepted changes make it into the protocol."
+        
+        let l4l2p7 = Page()
+        l4l2p7.components = [l4l2p7c1]
+        
+        
+        let l4l2 = Lesson()
+        l4l2.title = "What are bitcoin forks?"
+        l4l2.id = "bitcoinforks"
+        l4l2.image = "bitcoinforks"
+        l4l2.pages = [l4l2p1, l4l2p2, l4l2p3, l4l2p4, l4l2p5, l4l2p6, l4l2p7]
+        
+        
         let level4 = Level()
-        level4.lessons = [l4l1]
+        level4.lessons = [l4l1, l4l2]
+        
         
         
         
@@ -1843,7 +1951,6 @@ extension AcademyViewController {
         "How to avoid scams"
         "What is dollar-cost-averaging?"
         "What is UTXO management?"
-        "What are bitcoin forks?"
         
         
         return [level1, level2, level3, level4]
