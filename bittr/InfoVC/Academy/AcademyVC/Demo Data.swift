@@ -1962,7 +1962,7 @@ extension AcademyViewController {
         
         let l4l3p2c2 = Component()
         l4l3p2c2.type = .label
-        l4l3p2c2.text = "Every four years, this reward is reduced by 50%, in an event called <b>the halving</b>."
+        l4l3p2c2.text = "Every four years, this reward is reduced by 50%, referred to as <b>the halving</b>."
         
         let l4l3p2c3 = Component()
         l4l3p2c3.type = .label
@@ -2055,16 +2055,105 @@ extension AcademyViewController {
         l4l3.pages = [l4l3p1, l4l3p2, l4l3p3, l4l3p4, l4l3p5, l4l3p6, l4l3p7]
         
         
-        let level4 = Level()
-        level4.lessons = [l4l1, l4l2, l4l3]
+        let l4l4p1c1 = Component()
+        l4l4p1c1.type = .label
+        l4l4p1c1.text = "Each block on the blockchain can hold <b>4 MB of data</b> (around 3000 transactions)."
         
+        let l4l4p1c2 = Component()
+        l4l4p1c2.type = .label
+        l4l4p1c2.text = "Miners fill each block with transactions that maximize the fees they receive."
+        
+        let l4l4p1c3 = Component()
+        l4l4p1c3.type = .label
+        l4l4p1c3.text = "So the larger the transaction size in bytes, the higher the fee you need to pay. <b>But what determines the size?</b>"
+        
+        let l4l4p1 = Page()
+        l4l4p1.components = [l4l4p1c1, l4l4p1c2, l4l4p1c3]
+        
+        
+        let l4l4p2c1 = Component()
+        l4l4p2c1.type = .label
+        l4l4p2c1.text = "When someone sends you bitcoin, you receive one <b>unspent transaction output (UTXO)</b>."
+        
+        let l4l4p2c2 = Component()
+        l4l4p2c2.type = .label
+        l4l4p2c2.text = "Example: Bob sends you 1 btc and Alice sends you 2 btc. Now you have 2 UTXOs, worth 1 btc and 2 btc."
+        
+        let l4l4p2c3 = Component()
+        l4l4p2c3.type = .label
+        l4l4p2c3.text = "Now you send 2.5 btc to John. You use your 2 UTXOs. John receives 1 UTXO worth 2.5 btc. As <b>change</b> you receive 1 UTXO worth 0.5 btc (minus the fee)."
+        
+        let l4l4p2 = Page()
+        l4l4p2.components = [l4l4p2c1, l4l4p2c2, l4l4p2c3]
+        
+        
+        let l4l4p3c1 = Component()
+        l4l4p3c1.type = .label
+        l4l4p3c1.text = "The more UTXOs make up your transaction, the larger its size."
+        
+        let l4l4p3c2 = Component()
+        l4l4p3c2.type = .label
+        l4l4p3c2.text = "So the fees you must pay, depend on the amount of UTXOs being spent, not on the transaction amount."
+        
+        let l4l4p3 = Page()
+        l4l4p3.components = [l4l4p3c1, l4l4p3c2]
+        
+        
+        let l4l4p4c1 = Component()
+        l4l4p4c1.type = .label
+        l4l4p4c1.text = "With <b>UTXO management</b>, you can try to keep these fees low."
+        
+        let l4l4p4c2 = Component()
+        l4l4p4c2.type = .label
+        l4l4p4c2.text = "You can <b>consolidate</b> your UTXOs by sending a transaction to yourself. At a time when transaction fees are relatively low."
+        
+        let l4l4p4c3 = Component()
+        l4l4p4c3.type = .label
+        l4l4p4c3.text = "This takes all your small UTXOs and creates one large UTXO."
+        
+        let l4l4p4 = Page()
+        l4l4p4.components = [l4l4p4c1, l4l4p4c2, l4l4p4c3]
+        
+        
+        let l4l4p5c1 = Component()
+        l4l4p5c1.type = .label
+        l4l4p5c1.text = "You need to consider your privacy though."
+        
+        let l4l4p5c2 = Component()
+        l4l4p5c2.type = .label
+        l4l4p5c2.text = "Someone who has sent you bitcoin can see the UTXO that you've received."
+        
+        let l4l4p5c3 = Component()
+        l4l4p5c3.type = .label
+        l4l4p5c3.text = "If you link that UTXO with other UTXOs, they can deduce details about your past and future transactions."
+        
+        let l4l4p5 = Page()
+        l4l4p5.components = [l4l4p5c1, l4l4p5c2, l4l4p5c3]
+        
+        
+        let l4l4p6c1 = Component()
+        l4l4p6c1.type = .label
+        l4l4p6c1.text = "UTXOs acquired via bittr can be consolidated without worries. No third parties are involved."
+        
+        let l4l4p6 = Page()
+        l4l4p6.components = [l4l4p6c1]
+        
+        
+        let l4l4 = Lesson()
+        l4l4.title = "What is UTXO management?"
+        l4l4.id = "whatisutxomanagement"
+        l4l4.image = "whatisutxomanagement"
+        l4l4.pages = [l4l4p1, l4l4p2, l4l4p3, l4l4p4, l4l4p5, l4l4p6]
+        
+        
+        let level4 = Level()
+        level4.lessons = [l4l1, l4l2, l4l3, l4l4]
         
         
         
         
         "How to avoid scams"
         "What is dollar-cost-averaging?"
-        "What is UTXO management?"
         
         
         return [level1, level2, level3, level4]
