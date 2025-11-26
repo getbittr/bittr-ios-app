@@ -316,63 +316,53 @@ class LightningNodeService {
     
     func didEstablishPeerConnection() async -> Bool {
         
-        let nodeId = EnvironmentConfig.lightningNodeId
-        let address = EnvironmentConfig.lightningNodeAddress
-        
-        let connectTask = Task<Bool, Never> {
-            do {
-                try await LightningNodeService.shared.connect(
-                    nodeId: nodeId,
-                    address: address,
-                    persist: true
-                )
-                
-                try Task.checkCancellation()
-                if Task.isCancelled {
-                    print("Did connect to peer, but too late.")
-                    return false
-                } else {
+        return await withTaskGroup(of: Bool.self) { group -> Bool in
+            
+            // Peer connection task.
+            group.addTask {
+                do {
+                    try await LightningNodeService.shared.connect(
+                        nodeId: EnvironmentConfig.lightningNodeId,
+                        address: EnvironmentConfig.lightningNodeAddress,
+                        persist: true
+                    )
                     print("Did connect to peer.")
                     return true
-                }
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
-                    } else {
-                        return "No error message"
+                } catch {
+                    let errorMessage:String = {
+                        if let nodeError = error as? NodeError {
+                            return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                        } else {
+                            return "No error message"
+                        }
+                    }()
+                    DispatchQueue.main.async {
+                        // Handle UI error showing here, like showing an alert
+                        print("Can't connect to peer: \(errorMessage).")
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "LightningNodeService row 319", key: "context")
+                        }
                     }
-                }()
-                DispatchQueue.main.async {
-                    // Handle UI error showing here, like showing an alert
-                    print("Can't connect to peer: \(errorMessage).")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 319", key: "context")
-                    }
+                    return false
                 }
+            }
+            
+            // 5 second timer.
+            group.addTask {
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
+                } catch {
+                    return false
+                }
+                print("Connecting to peer takes too long.")
                 return false
             }
-        }
-        
-        let timeoutTask = Task<Bool, Never> {
-            try? await Task.sleep(nanoseconds: UInt64(5) * NSEC_PER_SEC)
-            connectTask.cancel()
             
-            print("Connecting to peer takes too long.")
-            return false
+            // Result of whichever task succeeds first.
+            let first = await group.next() ?? false
+            group.cancelAll()
+            return first
         }
-        
-        let result = await withTaskGroup(of: Bool.self) { group -> Bool in
-            group.addTask { await connectTask.value }
-            group.addTask { await timeoutTask.value }
-            for await value in group {
-                group.cancelAll()
-                return value
-            }
-            return false
-        }
-        
-        return result
     }
     
     
