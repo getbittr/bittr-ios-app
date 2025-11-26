@@ -1940,14 +1940,128 @@ extension AcademyViewController {
         l4l2.pages = [l4l2p1, l4l2p2, l4l2p3, l4l2p4, l4l2p5, l4l2p6, l4l2p7]
         
         
+        let l4l3p1c1 = Component()
+        l4l3p1c1.type = .label
+        l4l3p1c1.text = "One of bitcoin's defining traits is its <b>predictable scarcity</b>."
+        
+        let l4l3p1c2 = Component()
+        l4l3p1c2.type = .label
+        l4l3p1c2.text = "Only <b>21 million bitcoin</b> will ever exist, 95% of which already do."
+        
+        let l4l3p1c3 = Component()
+        l4l3p1c3.type = .label
+        l4l3p1c3.text = "Miners receive new bitcoin (and transaction fees) when mining a block."
+        
+        let l4l3p1 = Page()
+        l4l3p1.components = [l4l3p1c1, l4l3p1c2, l4l3p1c3]
+        
+        
+        let l4l3p2c1 = Component()
+        l4l3p2c1.type = .label
+        l4l3p2c1.text = "Upon bitcoin's inception, miners received 50 bitcoin per block."
+        
+        let l4l3p2c2 = Component()
+        l4l3p2c2.type = .label
+        l4l3p2c2.text = "Every four years, this reward is reduced by 50%, in an event called <b>the halving</b>."
+        
+        let l4l3p2c3 = Component()
+        l4l3p2c3.type = .label
+        l4l3p2c3.text = "Currently, miners receive 3.125 bitcoin per block."
+        
+        let l4l3p2 = Page()
+        l4l3p2.components = [l4l3p2c1, l4l3p2c2, l4l3p2c3]
+        
+        
+        let l4l3p3c1 = Component()
+        l4l3p3c1.type = .label
+        l4l3p3c1.text = "The next halving will happen in April 2028."
+        
+        let l4l3p3c2 = Component()
+        l4l3p3c2.type = .label
+        l4l3p3c2.text = "The final satoshi will be mined in the year 2140, after which no new coins will enter circulation."
+        
+        let l4l3p3c3 = Component()
+        l4l3p3c3.type = .label
+        l4l3p3c3.text = "Miners will then only receive transaction fees for their work."
+        
+        let l4l3p3 = Page()
+        l4l3p3.components = [l4l3p3c1, l4l3p3c2, l4l3p3c3]
+        
+        
+        let l4l3p4c1 = Component()
+        l4l3p4c1.type = .label
+        l4l3p4c1.text = "This scarcity protects bitcoin against inflation."
+        
+        let l4l3p4c2 = Component()
+        l4l3p4c2.type = .label
+        l4l3p4c2.text = "And the halving creates upward price pressure, if demand for bitcoin holds steady or grows."
+        
+        let l4l3p4c3 = Component()
+        l4l3p4c3.type = .label
+        l4l3p4c3.text = "But could these rules be changed, e.g. if miners would want to?"
+        
+        let l4l3p4 = Page()
+        l4l3p4.components = [l4l3p4c1, l4l3p4c2, l4l3p4c3]
+        
+        
+        let l4l3p5c1 = Component()
+        l4l3p5c1.type = .label
+        l4l3p5c1.text = "These rules are lines of code in open-source softwares, and could be changed with an update."
+        
+        let l4l3p5c2 = Component()
+        l4l3p5c2.type = .label
+        l4l3p5c2.text = "The question is whether the tens of thousands of nodes that maintain and validate the blockchain, will accept such a change."
+        
+        let l4l3p5c3 = Component()
+        l4l3p5c3.type = .label
+        l4l3p5c3.text = "Such a change would be a <b>hard fork</b>. It would create a new currency that only those who agree will adopt."
+        
+        let l4l3p5 = Page()
+        l4l3p5.components = [l4l3p5c1, l4l3p5c2, l4l3p5c3]
+        
+        
+        let l4l3p6c1 = Component()
+        l4l3p6c1.type = .label
+        l4l3p6c1.text = "A change to this core principle is extremely unlikely."
+        
+        let l4l3p6c2 = Component()
+        l4l3p6c2.type = .label
+        l4l3p6c2.text = "It would erode confidence in bitcoin, likely leading to a hard fall in value."
+        
+        let l4l3p6c3 = Component()
+        l4l3p6c3.type = .label
+        l4l3p6c3.text = "Nobody would benefit economically from such an event."
+        
+        let l4l3p6 = Page()
+        l4l3p6.components = [l4l3p6c1, l4l3p6c2, l4l3p6c3]
+        
+        
+        let l4l3p7c1 = Component()
+        l4l3p7c1.type = .label
+        l4l3p7c1.text = "Miners don't make the rules, tens of thousands of nodes do."
+        
+        let l4l3p7c2 = Component()
+        l4l3p7c2.type = .label
+        l4l3p7c2.text = "Any attempt to inflate supply would split off a new coin, not change bitcoin."
+        
+        let l4l3p7 = Page()
+        l4l3p7.components = [l4l3p7c1, l4l3p7c2]
+        
+        
+        let l4l3 = Lesson()
+        l4l3.title = "Can the 21 million limit be changed?"
+        l4l3.id = "21millionlimit"
+        l4l3.image = "21millioncoins"
+        l4l3.pages = [l4l3p1, l4l3p2, l4l3p3, l4l3p4, l4l3p5, l4l3p6, l4l3p7]
+        
+        
         let level4 = Level()
-        level4.lessons = [l4l1, l4l2]
+        level4.lessons = [l4l1, l4l2, l4l3]
         
         
         
         
         
-        "Can the 21 million limit be changed?"
         "How to avoid scams"
         "What is dollar-cost-averaging?"
         "What is UTXO management?"
