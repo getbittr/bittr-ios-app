@@ -14,20 +14,17 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
-    // Add another
-    @IBOutlet weak var addAnotherView: UIView!
-    @IBOutlet weak var addAnotherButton: UIButton!
+    // No deposit codes
+    @IBOutlet weak var emptyView: UIView!
     @IBOutlet weak var emptyLabel: UILabel!
     @IBOutlet weak var subtitleLabel: UILabel!
-    @IBOutlet weak var addAnotherLabel: UILabel!
-    @IBOutlet weak var addAnotherViewTop: NSLayoutConstraint!
-    
-    // Continue view
     @IBOutlet weak var continueView: UIView!
     @IBOutlet weak var continueButton: UIButton!
+    @IBOutlet weak var centerViewBottom: NSLayoutConstraint!
     
     // Client details
     var allIbanEntities = [IbanEntity]()
@@ -40,29 +37,14 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         super.viewDidLoad()
         
         // Corner radii and button titles.
-        self.addAnotherView.layer.cornerRadius = 13
         self.continueView.layer.cornerRadius = 13
         self.continueButton.setTitle("", for: .normal)
         self.downButton.setTitle("", for: .normal)
-        self.addAnotherButton.setTitle("", for: .normal)
         
         // Collection view.
         self.ibanCollectionView.delegate = self
         self.ibanCollectionView.dataSource = self
         self.ibanCollectionView.contentInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
-        
-        // Button border.
-        let viewBorder = CAShapeLayer()
-        if CacheManager.darkModeIsOn() {
-            viewBorder.strokeColor = UIColor.white.cgColor
-        } else {
-            viewBorder.strokeColor = UIColor.black.cgColor
-        }
-        viewBorder.frame = self.addAnotherView.bounds
-        viewBorder.fillColor = nil
-        viewBorder.path = UIBezierPath(roundedRect: self.addAnotherView.bounds, cornerRadius: 13).cgPath
-        viewBorder.lineWidth = 1
-        self.addAnotherView.layer.addSublayer(viewBorder)
         
         // Set colors and language.
         self.changeColors()
@@ -121,16 +103,22 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         if self.allIbanEntities.count > 0 {
-            self.emptyLabel.alpha = 0
-            self.continueView.alpha = 0
-            self.addAnotherViewTop.constant = 40
+            // There are deposit codes.
+            self.emptyView.alpha = 0
+            self.ibanCollectionView.alpha = 1
+            NSLayoutConstraint.deactivate([self.centerViewBottom])
+            self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.ibanCollectionView, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.centerViewBottom])
             self.view.layoutIfNeeded()
             
             return self.allIbanEntities.count
         } else {
-            self.emptyLabel.alpha = 1
-            self.continueView.alpha = 1
-            self.addAnotherViewTop.constant = -100
+            // There are no deposit codes.
+            self.emptyView.alpha = 1
+            self.ibanCollectionView.alpha = 0
+            NSLayoutConstraint.deactivate([self.centerViewBottom])
+            self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.emptyView, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.centerViewBottom])
             self.view.layoutIfNeeded()
             
             return 0
@@ -145,12 +133,12 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     @IBAction func continueButtonTapped(_ sender: UIButton) {
-        self.performSegue(withIdentifier: "GoalToRegister", sender: self)
+        self.performSegue(withIdentifier: "BuyToRegister", sender: self)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
-        if segue.identifier == "GoalToRegister" {
+        if segue.identifier == "BuyToRegister" {
             if let registerVC = segue.destination as? RegisterIbanViewController {
                 registerVC.coreVC = self.coreVC
                 self.registerIbanVC = registerVC
@@ -168,7 +156,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
-        self.addAnotherLabel.textColor = Colors.getColor("blackorwhite")
         self.emptyLabel.textColor = Colors.getColor("blackorwhite")
     }
     
@@ -177,6 +164,5 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.headerLabel.text = Language.getWord(withID: "buybitcoin")
         self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
         self.emptyLabel.text = Language.getWord(withID: "buyempty")
-        self.addAnotherLabel.text = "+  " + Language.getWord(withID: "addanother")
     }
 }
