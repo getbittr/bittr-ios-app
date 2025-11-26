@@ -149,75 +149,18 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Button titles
-        self.downButton.setTitle("", for: .normal)
-        self.copyAddressButton.setTitle("", for: .normal)
-        self.bothCopyAddressButton.setTitle("", for: .normal)
-        self.refreshButton.setTitle("", for: .normal)
-        self.regularButton.setTitle("", for: .normal)
-        self.bothButton.setTitle("", for: .normal)
-        self.instantButton.setTitle("", for: .normal)
-        self.contentBackgroundButton.setTitle("", for: .normal)
-        self.invoiceButton.setTitle("", for: .normal)
-        self.copyInvoiceButton.setTitle("", for: .normal)
-        self.scanQrButton.setTitle("", for: .normal)
-        self.qrScannerBackgroundButton.setTitle("", for: .normal)
-        self.lnurlButton.setTitle("", for: .normal)
-        self.lnurlCopyButton.setTitle("", for: .normal)
-        
-        // Corner radii
-        self.qrView.layer.cornerRadius = 13
-        self.bothQrView.layer.cornerRadius = 13
-        self.addressView.layer.cornerRadius = 13
-        self.bothAddressView.layer.cornerRadius = 13
-        self.bothAmountView.layer.cornerRadius = 13
-        self.bothDescriptionView.layer.cornerRadius = 13
-        self.createView.layer.cornerRadius = 13
-        self.lnConfirmationQRView.layer.cornerRadius = 13
-        self.lnConfirmationAddressView.layer.cornerRadius = 13
-        self.lnurlQrView.layer.cornerRadius = 13
-        self.scannerView.layer.cornerRadius = 13
-        self.qrScannerCloseView.layer.cornerRadius = 13
-        self.spinnerBox.layer.cornerRadius = 13
-        self.viewRegular.layer.cornerRadius = 8
-        self.viewBoth.layer.cornerRadius = 8
-        self.viewInstant.layer.cornerRadius = 8
-        self.viewLnurl.layer.cornerRadius = 8
-        self.lnurlQRBackground.layer.cornerRadius = 13
-        self.lnurlAddressBackground.layer.cornerRadius = 13
-        
         // Text field delegates
         self.bothAmountTextField.delegate = self
         self.bothAmountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         self.bothDescriptionTextField.delegate = self
         
-        // Receivable sats label
-        self.setShadows(forView: self.qrView)
-        self.setShadows(forView: self.bothQrView)
-        self.setShadows(forView: self.lnConfirmationQRView)
-        self.setShadows(forView: self.lnurlQRBackground)
-        
         // Create QR code
         self.resetQRs(resetAddress: false)
-        
-        // Selection view
-        self.viewBoth.layer.shadowColor = UIColor.black.cgColor
-        self.viewBoth.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewBoth.layer.shadowRadius = 10.0
-        self.viewBoth.layer.shadowOpacity = 0.1
-        self.viewRegular.layer.shadowColor = UIColor.black.cgColor
-        self.viewRegular.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewRegular.layer.shadowRadius = 10.0
-        self.viewInstant.layer.shadowColor = UIColor.black.cgColor
-        self.viewInstant.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewInstant.layer.shadowRadius = 10.0
-        self.viewLnurl.layer.shadowColor = UIColor.black.cgColor
-        self.viewLnurl.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewLnurl.layer.shadowRadius = 10.0
         
         // Set colors and language.
         self.setWords()
         self.changeColors()
+        self.setBasicStyling()
     }
     
     func setShadows(forView:UIView) {
