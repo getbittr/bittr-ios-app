@@ -185,7 +185,7 @@ class CacheManager: NSObject {
         }
     }
     
-    static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String = "") {
+    static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String?) {
         
         let envKey = EnvironmentConfig.deviceCacheKey
         
@@ -198,7 +198,7 @@ class CacheManager: NSObject {
                     eachIbanEntity.ourIbanNumber = ourIban
                     eachIbanEntity.yourUniqueCode = yourCode
                     eachIbanEntity.ourSwift = ourSwift
-                    eachIbanEntity.lightningAddressUsername = lightningAddressUsername
+                    eachIbanEntity.lightningAddressUsername = lightningAddressUsername ?? eachIbanEntity.lightningAddressUsername
                 }
             }
             

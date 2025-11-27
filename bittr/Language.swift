@@ -466,7 +466,11 @@ class Language: NSObject {
             "RequestAlreadyConsumed": "Request already consumed.",
             "InvalidResponse": "Invalid response.",
             "academybeta": "Academy (beta)",
-            "academyheader": "Learn everything about bitcoin and take control of your financial future. From basics to advanced topics, we've got you covered."
+            "academyheader": "Learn everything about bitcoin and take control of your financial future. From basics to advanced topics, we've got you covered.",
+            "buyvcupdatedetails": "Update details",
+            "buyvcupdatedetails2": "Your partner details have changed. The above details have been updated.",
+            "buyvcupdatedetails3": "Your partner details are up-to-date.",
+            "buyvcupdatedetails4": "We could not fetch your partner details at this time."
             
         ]
         

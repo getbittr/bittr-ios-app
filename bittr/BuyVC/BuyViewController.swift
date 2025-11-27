@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -56,8 +57,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func parseIbanEntities() {
         
+        // Set IBAN entities.
         self.allIbanEntities = [IbanEntity]()
-        
         if self.coreVC == nil {return}
         for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
@@ -65,6 +66,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             }
         }
         
+        // Reload collection view.
         self.ibanCollectionView.reloadData()
     }
     
@@ -150,6 +152,113 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         UIPasteboard.general.string = sender.accessibilityIdentifier
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+    
+    func getDepositCodeData() {
+        
+        // Gather deposit codes.
+        var depositCodes = [String]()
+        for eachIbanEntity in self.allIbanEntities {
+            depositCodes += [eachIbanEntity.yourUniqueCode]
+        }
+        if depositCodes.count == 0 { return }
+        let depositCodesString = depositCodes.joined(separator: ",")
+        
+        Task {
+            do {
+                // Gather parameters.
+                let lightningSignature = try await LightningNodeService.shared.signMessage(message: depositCodesString)
+                let lightningPubKey = LightningNodeService.shared.nodeId()
+                
+                let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/deposit_code_info?deposit_codes=\(depositCodesString)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)"
+                
+                // Make API call.
+                await CallsManager.makeApiCall(url: envUrl, parameters: nil, getOrPost: .get) { result in
+                    switch result {
+                    case .success(let receivedDictionary):
+                        print("Received dictionary: \(receivedDictionary)")
+                        self.parseNewData(receivedDictionary: receivedDictionary)
+                    case .failure(let error):
+                        print("185 Error. \(error.localizedDescription)")
+                        let errorMessage:String = {
+                            switch error {
+                            case .invalidURL:
+                                "We could not reach our server."
+                            case .requestFailed(_):
+                                "We received no response from our server."
+                            case .decodingFailed:
+                                "We couldn't decode the data we received from our server."
+                            }
+                        }()
+                        DispatchQueue.main.async {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails4") + " \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    }
+                }
+            } catch {
+                print("185 Error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "BuyViewController row 188", key: "context")
+                    }
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails4") + " Something went wrong creating a unique signature.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
+        }
+    }
+    
+    func parseNewData(receivedDictionary:NSDictionary) {
+        
+        if let receivedEntities = receivedDictionary["data"] as? [NSDictionary] {
+            // Entities received in expected format.
+            var someDetailsHaveChanged = false
+            
+            for eachEntity in receivedEntities {
+                if
+                    let depositCode = eachEntity["deposit_code"] as? String,
+                    let partnerIban = eachEntity["iban"] as? String,
+                    let partnerSwift = eachEntity["swift"] as? String {
+                    
+                    for (index, eachExistingEntity) in self.allIbanEntities.enumerated() {
+                        if eachExistingEntity.yourUniqueCode == depositCode {
+                            if partnerIban != eachExistingEntity.ourIbanNumber || partnerSwift != eachExistingEntity.ourSwift {
+                                // Details have changed.
+                                someDetailsHaveChanged = true
+                                
+                                // Update details in BuyVC.
+                                self.allIbanEntities[index].ourIbanNumber = partnerIban
+                                self.allIbanEntities[index].ourSwift = partnerSwift
+                                self.allIbanEntities[index].lightningAddressUsername = (eachEntity["lightning_address_username"] as? String) ?? self.allIbanEntities[index].lightningAddressUsername
+                                
+                                // Update details in CoreVC.
+                                for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                                    if eachWalletEntity.yourUniqueCode == depositCode {
+                                        self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourIbanNumber = partnerIban
+                                        self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourSwift = partnerSwift
+                                        self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername = (eachEntity["lightning_address_username"] as? String) ?? self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername
+                                    }
+                                }
+                                
+                                // Update details in cache.
+                                CacheManager.addBittrIban(ibanID: eachExistingEntity.id, ourIban: partnerIban, ourSwift: partnerSwift, yourCode: depositCode, lightningAddressUsername: eachEntity["lightning_address_username"] as? String)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if someDetailsHaveChanged {
+                // Data has been updated.
+                self.ibanCollectionView.reloadData()
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            } else {
+                // Data was already up-to-date.
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        } else {
+            // Data received in wrong format.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails4") + " The data we received isn't in the expected format.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
     }
     
     func changeColors() {
