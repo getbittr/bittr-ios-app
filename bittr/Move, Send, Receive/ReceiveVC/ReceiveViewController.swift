@@ -102,6 +102,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var bothAmountTextField: UITextField!
     @IBOutlet weak var bothAmountButton: UIButton!
     
+    // Currency selection
+    @IBOutlet weak var btcView: UIView!
+    @IBOutlet weak var btcLabel: UILabel!
+    @IBOutlet weak var btcButton: UIButton!
+    
     // Description view
     @IBOutlet weak var bothDescriptionView: UIView!
     @IBOutlet weak var bothDescriptionTextField: UITextField!
@@ -145,6 +150,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     var temporaryIsZeroAmountInvoice = false
     var pendingLightningInvoice = ""
     var didDoublecheckLastUsedAddress = false
+    var selectedCurrency:SelectedCurrency = .satoshis
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -156,6 +162,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         // Create QR code
         self.resetQRs(resetAddress: false)
+        
+        // Set default currency to satoshis.
+        self.selectSatsCurrency()
         
         // Set colors and language.
         self.setWords()
@@ -345,6 +354,46 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             self.amountAndDescriptionStack.alpha = [1, 1, 1, 0][sender.tag]
             self.view.layoutIfNeeded()
         }
+    }
+    
+    @IBAction func btcButtonTapped(_ sender: UIButton) {
+        
+        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
+            self.selectBTCCurrency()
+        }
+        let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
+            self.selectSatsCurrency()
+        }
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
+            self.selectFiatCurrency()
+        }
+        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
+        actionSheet.addAction(btcOption)
+        actionSheet.addAction(satsOption)
+        actionSheet.addAction(currencyOption)
+        actionSheet.addAction(cancelAction)
+        present(actionSheet, animated: true, completion: nil)
+    }
+    
+    @objc func selectBTCCurrency() {
+        self.btcLabel.text = "BTC"
+        self.selectedCurrency = .bitcoin
+        self.bothAmountTextField.keyboardType = .decimalPad
+    }
+    
+    @objc func selectSatsCurrency() {
+        self.btcLabel.text = "Sats"
+        self.selectedCurrency = .satoshis
+        self.bothAmountTextField.keyboardType = .numberPad
+    }
+    
+    @objc func selectFiatCurrency() {
+        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
+        self.btcLabel.text = currency
+        self.selectedCurrency = .currency
+        self.bothAmountTextField.keyboardType = .decimalPad
     }
     
     @objc func doneButtonTapped() {

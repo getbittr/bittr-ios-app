@@ -68,8 +68,28 @@ extension ReceiveViewController {
             
             if self.bothAmountTextField.text != nil, self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
                 // An amount has been entered. Create a regular invoice.
-                amountInBTC = (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0).inBTC()
-                let amountInMsat = (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0)*1000
+                
+                // Convert selected currency to bitcoin.
+                if self.selectedCurrency == .satoshis {
+                    amountInBTC = (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0).inBTC()
+                } else if self.selectedCurrency == .bitcoin {
+                    amountInBTC = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
+                } else if self.selectedCurrency == .currency {
+                    let fiatAmount = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
+                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                    let btcAmount = fiatAmount / bitcoinValue.currentValue
+                    
+                    // Safety check for invalid values
+                    guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                        print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                        return
+                    }
+                    
+                    amountInBTC = btcAmount
+                }
+                
+                // Convert bitcoin amount to Msats.
+                let amountInMsat = amountInBTC.inSatoshis() * 1_000
                 invoiceToDisplay = await self.getRegularInvoice(amountMsat: UInt64(amountInMsat), description: enteredDescription, expirySecs: 3600)
             } else {
                 // No amount has been entered. Create a zero invoice.
@@ -109,7 +129,12 @@ extension ReceiveViewController {
                     var amountText = ""
                     var labelText = ""
                     if amountInBTC != 0 {
-                        amountText = "?amount=\(amountInBTC)"
+                        let formatter = NumberFormatter()
+                        formatter.numberStyle = .decimal
+                        formatter.minimumFractionDigits = 0
+                        formatter.maximumFractionDigits = 8
+                        formatter.usesGroupingSeparator = false
+                        amountText = "?amount=\(formatter.string(from: amountInBTC as NSNumber)!)".replacingOccurrences(of: ",", with: ".")
                     }
                     if enteredDescription != "" {
                         labelText = "&label=\(enteredDescription)"

@@ -26,6 +26,7 @@ extension ReceiveViewController {
         self.qrScannerBackgroundButton.setTitle("", for: .normal)
         self.lnurlButton.setTitle("", for: .normal)
         self.lnurlCopyButton.setTitle("", for: .normal)
+        self.btcButton.setTitle("", for: .normal)
         
         // Corner radii
         self.qrView.layer.cornerRadius = 13
@@ -47,6 +48,7 @@ extension ReceiveViewController {
         self.viewLnurl.layer.cornerRadius = 8
         self.lnurlQRBackground.layer.cornerRadius = 13
         self.lnurlAddressBackground.layer.cornerRadius = 8
+        self.btcView.layer.cornerRadius = 8
         
         // Selection view
         self.viewBoth.layer.shadowColor = UIColor.black.cgColor
@@ -68,6 +70,7 @@ extension ReceiveViewController {
         self.setShadows(forView: self.bothQrView)
         self.setShadows(forView: self.lnConfirmationQRView)
         self.setShadows(forView: self.lnurlQRBackground)
+        self.setShadows(forView: self.btcView)
     }
     
     func setWords() {
@@ -117,6 +120,8 @@ extension ReceiveViewController {
         self.addressCopy.tintColor = Colors.getColor("blackorwhite")
         self.bothAddressCopy.tintColor = Colors.getColor("blackorwhite")
         self.refreshIcon.tintColor = Colors.getColor("blackorwhite")
+        self.btcView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.btcLabel.textColor = Colors.getColor("blackorwhite")
         
         // LNURL
         self.lnurlAddressBackground.backgroundColor = Colors.getColor("white0.7orblue2")

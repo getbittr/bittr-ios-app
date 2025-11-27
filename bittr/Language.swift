@@ -91,7 +91,7 @@ class Language: NSObject {
             "receivebitcoin": "receive bitcoin",
             "thisisanaddress": "This is an address to your bitcoin wallet.",
             "createaninvoice": "Create a Lightning invoice to receive bitcoin instantly to your Lightning wallet.",
-            "amountinsatoshis": "Amount (in satoshis)",
+            "amountinsatoshis": "Amount",
             "youcanreceive": "You can receive up to",
             "enterdescription": "Enter description",
             "createinvoice": "Create invoice",
