@@ -71,7 +71,7 @@ class Signup2ViewController: UIViewController {
     @IBAction func switchChanged(_ sender: UISwitch) {
         
         // Make Next button clickable.
-        if switchOne.isOn == true && switchTwo.isOn == true {
+        if switchOne.isOn && switchTwo.isOn {
             // Clickable. Both switches are on.
             self.buttonView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
@@ -82,7 +82,7 @@ class Signup2ViewController: UIViewController {
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
-        if switchOne.isOn == true && switchTwo.isOn == true {
+        if switchOne.isOn && switchTwo.isOn {
             self.signupVC?.moveToPage(5)
         }
     }

@@ -124,7 +124,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     
     @objc func resume2Fa() {
-        if start2Fa == true {
+        if start2Fa {
             self.check2Fa()
             self.start2Fa = false
         }

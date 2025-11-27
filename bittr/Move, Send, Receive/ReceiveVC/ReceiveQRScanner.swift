@@ -60,7 +60,7 @@ extension ReceiveViewController {
     
     func showScannerView() {
         
-        if fixQrScanner() == true {
+        if fixQrScanner() {
             if (self.captureSession?.isRunning == false) {
                 DispatchQueue.global(qos: .background).async {
                     self.captureSession.startRunning()

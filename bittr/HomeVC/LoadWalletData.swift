@@ -25,7 +25,11 @@ extension HomeViewController {
         for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
             if eachChannel.isChannelReady {
                 if Int(eachChannel.outboundCapacityMsat/1000) != 0 {
+                    // Channel balance is more than punishment reserve.
                     self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
+                } else {
+                    // Channel balance is less than punishment reserve.
+                    self.coreVC!.bittrWallet.satoshisLightning += Int(eachChannel.channelValueSats - eachChannel.inboundCapacityMsat/1000 - eachChannel.counterpartyUnspendablePunishmentReserve)
                 }
                 self.setBittrChannel(withChannel: eachChannel)
             }
@@ -69,7 +73,7 @@ extension HomeViewController {
             receivedPayments = actualReceivedPayments
             // Add all lightning payment IDs.
             for eachPayment in actualReceivedPayments {
-                if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id) {
+                if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
                     txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
                 }
             }
@@ -174,7 +178,7 @@ extension HomeViewController {
         // Add previously cached transactions to Bittr transactions array.
         self.bittrTransactions.removeAllObjects()
         for eachTransaction in self.lastCachedTransactions {
-            if eachTransaction.isBittr == true {
+            if eachTransaction.isBittr {
                 self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
             }
         }
@@ -366,7 +370,7 @@ extension HomeViewController {
             return
         }
         
-        if self.didFetchConversion == true || self.couldNotFetchConversion == true {
+        if self.didFetchConversion || self.couldNotFetchConversion {
             // Conversion rate was already fetched.
             print("Did start currency conversion with cached conversion rate.")
             
@@ -495,7 +499,7 @@ extension HomeViewController {
     
     func calculateProfit(cachedData:Bool) {
         
-        print("Did start calculating profit.")
+        print("Will calculate profits.")
         if self.coreVC == nil {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
@@ -523,7 +527,7 @@ extension HomeViewController {
         } else {
             // There are transactions.
             for eachTransaction in self.setTransactions {
-                if eachTransaction.isBittr == true {
+                if eachTransaction.isBittr {
                     let transactionValue = eachTransaction.received.inBTC()
                     let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-Int(eachTransaction.purchaseAmount.rounded())
                     

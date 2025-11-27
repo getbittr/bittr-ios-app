@@ -40,12 +40,11 @@ extension CoreViewController {
         }
     }
     
-    func updateSync(action:String, type:SyncType) {
+    func updateSync(action:SyncAction, type:SyncType) {
         
-        if action == "start" {
-            self.startSync(type: type)
-        } else {
-            self.completeSync(type: type)
+        switch action {
+        case .complete: self.completeSync(type: type)
+        case .start: self.startSync(type: type)
         }
     }
     
@@ -99,4 +98,9 @@ enum SyncType {
     case bdk
     case sync
     case final
+}
+
+enum SyncAction {
+    case complete
+    case start
 }

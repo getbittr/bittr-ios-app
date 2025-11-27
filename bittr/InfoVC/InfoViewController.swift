@@ -87,10 +87,10 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
     func updateArticlesTable() {
         
         for (_, articledata) in self.everyArticle {
-            if articledata.category == "General", articledata.isVisible == true {
+            if articledata.category == "General", articledata.isVisible {
                 self.faqArticles += [articledata]
             } else {
-                if articledata.isVisible == true {
+                if articledata.isVisible {
                     self.newsArticles += [articledata]
                 }
             }

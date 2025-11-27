@@ -312,7 +312,7 @@ class Language: NSObject {
             "move": "Move",
             "onchaintolightning": "Onchain to Lightning",
             "lightningtoonchain": "Lightning to Onchain",
-            "satsatatime": "Move <amount> sats at a time.",
+            "satsatatime": "Move up to <amount> sats.",
             "enteramountofsatoshis": "Enter amount of satoshis",
             "nodatareceived": "No data was received",
             "swapamountexceeded": "You can only move up to <amount> satoshis at a time. Please enter an amount within this limit.",

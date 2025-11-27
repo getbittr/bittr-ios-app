@@ -253,18 +253,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.transactionsLabel.alpha = 0
         self.transactionsSpinner.startAnimating()
         Task {
-            if await self.homeVC!.fetchTransactionData(txIds: [String](), sendAll: true) == true {
-                DispatchQueue.main.async {
-                    self.transactionsLabel.alpha = 1
-                    self.transactionsSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.transactionsLabel.alpha = 1
-                    self.transactionsSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+            let didReceiveNewInformation = await self.homeVC!.fetchTransactionData(txIds: [String](), sendAll: true)
+            DispatchQueue.main.async {
+                self.transactionsLabel.alpha = 1
+                self.transactionsSpinner.stopAnimating()
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: didReceiveNewInformation ? "bittrtransactions3" : "bittrtransactions4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         }
     }

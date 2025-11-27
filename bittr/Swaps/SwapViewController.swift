@@ -278,7 +278,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 // We can send our available channel space, if we have enough onchain satoshis.
                 
                 // Calculate available channel space.
-                let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0)
+                let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0) - Int(activeChannel!.counterpartyUnspendablePunishmentReserve)
                 
                 // Calculate available onchain satoshis minus fast fee.
                 if let actualWallet = LightningNodeService.shared.getWallet() {

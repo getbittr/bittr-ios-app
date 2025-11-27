@@ -114,7 +114,7 @@ class Signup1ViewController: UIViewController {
         self.createWalletLabel.alpha = 1
         self.nextButtonSpinner.stopAnimating()
         
-        if nextTapped == true {
+        if nextTapped {
             self.signupVC?.moveToPage(4)
             nextTapped = false
         }

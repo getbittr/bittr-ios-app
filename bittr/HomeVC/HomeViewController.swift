@@ -194,7 +194,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if self.balanceWasFetched == true {
+        if self.balanceWasFetched {
             performSegue(withIdentifier: "HomeToMove", sender: self)
         }
     }
@@ -213,7 +213,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if self.balanceWasFetched == true {
+        if self.balanceWasFetched {
             performSegue(withIdentifier: "HomeToSend", sender: self)
         }
     }
@@ -232,7 +232,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if self.balanceWasFetched == true {
+        if self.balanceWasFetched {
             performSegue(withIdentifier: "HomeToReceive", sender: self)
         }
     }
@@ -447,7 +447,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
         if !self.headerSpinner.isAnimating {
-            if self.couldNotFetchConversion == true {
+            if self.couldNotFetchConversion {
                 self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)

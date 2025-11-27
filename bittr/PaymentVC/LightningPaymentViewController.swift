@@ -86,7 +86,7 @@ class LightningPaymentViewController: UIViewController {
             
             self.nowLabel.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
-            if actualTransaction.isBittr == true {
+            if actualTransaction.isBittr {
                 
                 self.descriptionLabel.text = actualTransaction.lnDescription
                 if actualTransaction.lnDescription == "" {
@@ -113,7 +113,7 @@ class LightningPaymentViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         
         if let actualTransaction = self.receivedTransaction {
-            if actualTransaction.isBittr == true {
+            if actualTransaction.isBittr {
                 SPConfettiConfiguration.particlesConfig.colors = [.red]
                 SPConfetti.startAnimating(.fullWidthToDown, particles: [.heart], duration: 2)
             }

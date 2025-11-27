@@ -21,7 +21,6 @@ class LightningNodeService {
     private var electrumClient: ElectrumClient?
     private var bdkWallet: BitcoinDevKit.Wallet?
     private var xpub = ""
-    private var didProceedBeyondPeerConnection = false
     private var coreVC:CoreViewController?
     
     class var shared: LightningNodeService {
@@ -142,7 +141,6 @@ class LightningNodeService {
                     if components.count > 1 {
                         let xpubPart = components[1].split(separator: "/").first
                         if let xpub = xpubPart {
-                            print("Did get XPUB.")
                             self.xpub = String(xpub)
                         } else {
                             print("Error: Could not extract XPUB")
@@ -172,8 +170,8 @@ class LightningNodeService {
                     print("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
                         SentrySDK.metrics.increment(key: "sync.bdk.success")
-                        self.coreVC?.updateSync(action: "complete", type: .bdk)
-                        self.coreVC?.updateSync(action: "start", type: .sync)
+                        self.coreVC?.updateSync(action: .complete, type: .bdk)
+                        self.coreVC?.updateSync(action: .start, type: .sync)
                     }
                 }
                 
@@ -216,40 +214,41 @@ class LightningNodeService {
                 fetchPrevTxouts: true
             )
             try self.bdkWallet!.applyUpdate(update: update)
-            print("Wallet persist: \(try self.bdkWallet!.persist(connection: self.connection!))")
+            try self.bdkWallet!.persist(connection: self.connection!)
             
             print("Did sync wallet.")
             DispatchQueue.main.async {
                 SentrySDK.metrics.increment(key: "sync.walletsync.success")
-                self.coreVC?.updateSync(action: "complete", type: .sync)
-                self.coreVC?.updateSync(action: "start", type: .final)
+                self.coreVC?.updateSync(action: .complete, type: .sync)
+                self.coreVC?.updateSync(action: .start, type: .final)
             }
             
             // Get the confirmed balance from the wallet.
             self.coreVC?.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
-            print("Did fetch onchain balance.")
             
             // Retrieve a list of transaction details from the wallet, excluding raw transaction data.
             self.coreVC?.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
                 return tx1.chainPosition.isBefore(tx2.chainPosition)
             }
-            print("Did fetch onchain transactions.")
             
             // Get current height.
             self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
-            print("Current height: \(self.coreVC?.bittrWallet.currentHeight ?? 0)")
             
             // Proceed to next step.
             Task {
-                if try await LightningNodeService.shared.listPeers().count == 1 {
-                    // We're already connected to peer.
-                    DispatchQueue.global(qos: .background).async {
-                        self.didProceedBeyondPeerConnection = true
-                        self.getChannelsAndPayments()
+                let peers = try await LightningNodeService.shared.listPeers()
+                var peerIsConnected = false
+                for eachPeer in peers {
+                    if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
+                        peerIsConnected = true
                     }
-                } else {
-                    // Connect to peer.
-                    DispatchQueue.global(qos: .background).async {
+                }
+                DispatchQueue.global(qos: .background).async {
+                    if peerIsConnected {
+                        // We're already connected to peer.
+                        self.getChannelsAndPayments()
+                    } else {
+                        // Connect to peer.
                         self.connectToLightningPeer()
                     }
                 }
@@ -278,16 +277,11 @@ class LightningNodeService {
     
     func connectToLightningPeer() {
         
-        self.didProceedBeyondPeerConnection = false
-        
         Task {
             let didEstablishPeerConnection = await self.didEstablishPeerConnection()
             
             DispatchQueue.main.async {
-                if !self.didProceedBeyondPeerConnection {
-                    self.getChannelsAndPayments()
-                    self.didProceedBeyondPeerConnection = true
-                }
+                self.getChannelsAndPayments()
             }
             
             if !didEstablishPeerConnection {
@@ -372,7 +366,6 @@ class LightningNodeService {
             do {
                 // Get channels.
                 let channels = try await LightningNodeService.shared.listChannels()
-                print("Channels: \(channels.count)")
                 var activeChannel:ChannelDetails?
                 for eachChannel in channels {
                     if eachChannel.isChannelReady {
@@ -590,7 +583,6 @@ class LightningNodeService {
         
         // Reset other state variables
         self.xpub = ""
-        self.didProceedBeyondPeerConnection = false
         
         print("🔍 [DEBUG] LightningNodeService - Node state reset completed")
     }

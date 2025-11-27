@@ -113,7 +113,7 @@ class Signup7ViewController: UIViewController {
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        if self.embeddedInBuyVC == true {
+        if self.embeddedInBuyVC {
             self.checkView.alpha = 0
             self.topLabelOne.alpha = 0
             self.topLabelTwo.font = UIFont(name: "Gilroy-Bold", size: 16)

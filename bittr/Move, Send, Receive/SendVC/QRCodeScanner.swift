@@ -15,7 +15,7 @@ extension SendViewController {
     
     func showScannerView() {
         
-        if fixQrScanner() == true {
+        if fixQrScanner() {
             // Open QR scanner.
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 self.addressStack.alpha = 0
