@@ -52,4 +52,12 @@ We are deeply grateful to the developers and contributors of the open-source pro
 
 Special thanks to all the contributors and maintainers of these projects for their dedication to building open-source infrastructure for the Bitcoin ecosystem.
 
+## Security
+
+Please report any vulnerability or any bug that could potentially affect the security of users' funds by email to [ruben@getbittr.com](mailto:ruben@getbittr.com).
+
+You may use Ruben's GPG public key to encrypt your email: `E2E4A0F74CACC63C242763FA420FD04816CA50AB`. You can get it from:
+
+- keys.openpgp.org: `gpg --keyserver hkps://keys.openpgp.org --receive E2E4A0F74CACC63C242763FA420FD04816CA50AB`
+
 ---
