@@ -19,6 +19,13 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
+    // Update data
+    @IBOutlet weak var updateDataView: UIView!
+    @IBOutlet weak var updateDataLabel: UILabel!
+    @IBOutlet weak var resetIcon: UIImageView!
+    @IBOutlet weak var updateDataButton: UIButton!
+    @IBOutlet weak var updateDataSpinner: UIActivityIndicatorView!
+    
     // No deposit codes
     @IBOutlet weak var emptyView: UIView!
     @IBOutlet weak var emptyLabel: UILabel!
@@ -41,6 +48,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.continueView.layer.cornerRadius = 13
         self.continueButton.setTitle("", for: .normal)
         self.downButton.setTitle("", for: .normal)
+        self.updateDataButton.setTitle("", for: .normal)
         
         // Collection view.
         self.ibanCollectionView.delegate = self
@@ -108,8 +116,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // There are deposit codes.
             self.emptyView.alpha = 0
             self.ibanCollectionView.alpha = 1
+            self.updateDataView.alpha = 1
             NSLayoutConstraint.deactivate([self.centerViewBottom])
-            self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.ibanCollectionView, attribute: .bottom, multiplier: 1, constant: 0)
+            self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.updateDataView, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.centerViewBottom])
             self.view.layoutIfNeeded()
             
@@ -118,6 +127,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // There are no deposit codes.
             self.emptyView.alpha = 1
             self.ibanCollectionView.alpha = 0
+            self.updateDataView.alpha = 0
             NSLayoutConstraint.deactivate([self.centerViewBottom])
             self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.emptyView, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.centerViewBottom])
@@ -154,6 +164,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
+    @IBAction func updateDataTapped(_ sender: UIButton) {
+        self.getDepositCodeData()
+    }
+    
     func getDepositCodeData() {
         
         // Gather deposit codes.
@@ -164,6 +178,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if depositCodes.count == 0 { return }
         let depositCodesString = depositCodes.joined(separator: ",")
         
+        self.updateDataSpinner.startAnimating()
         Task {
             do {
                 // Gather parameters.
@@ -174,20 +189,21 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 
                 // Make API call.
                 await CallsManager.makeApiCall(url: envUrl, parameters: nil, getOrPost: .get) { result in
+                    
+                    DispatchQueue.main.async {
+                        self.updateDataSpinner.stopAnimating()
+                    }
+                    
                     switch result {
                     case .success(let receivedDictionary):
-                        print("Received dictionary: \(receivedDictionary)")
                         self.parseNewData(receivedDictionary: receivedDictionary)
                     case .failure(let error):
                         print("185 Error. \(error.localizedDescription)")
                         let errorMessage:String = {
                             switch error {
-                            case .invalidURL:
-                                "We could not reach our server."
-                            case .requestFailed(_):
-                                "We received no response from our server."
-                            case .decodingFailed:
-                                "We couldn't decode the data we received from our server."
+                            case .invalidURL: return "We could not reach our server."
+                            case .requestFailed(let errorMessage): return errorMessage
+                            case .decodingFailed: return "We couldn't decode the data we received from our server."
                             }
                         }()
                         DispatchQueue.main.async {
@@ -198,6 +214,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             } catch {
                 print("185 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
+                    self.updateDataSpinner.stopAnimating()
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "BuyViewController row 188", key: "context")
                     }
@@ -266,6 +283,14 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.emptyLabel.textColor = Colors.getColor("blackorwhite")
+        self.updateDataLabel.textColor = Colors.getColor("blackorwhite")
+        self.updateDataSpinner.color = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.resetIcon.image = UIImage(named: "iconresetwhite")
+        } else {
+            self.resetIcon.image = UIImage(named: "iconreset")
+        }
     }
     
     func setWords() {
@@ -273,5 +298,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.headerLabel.text = Language.getWord(withID: "buybitcoin")
         self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
         self.emptyLabel.text = Language.getWord(withID: "buyempty")
+        self.updateDataLabel.text = Language.getWord(withID: "buyvcupdatedetails")
     }
 }
