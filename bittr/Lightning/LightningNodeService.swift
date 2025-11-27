@@ -191,7 +191,7 @@ class LightningNodeService {
                         return error.localizedDescription
                     }
                 }()
-                self.coreVC?.stopLightning(message: errorMessage, stopNode: false)
+                self.coreVC?.stopLightning(message: errorMessage)
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LightningNodeService row 231", key: "context")
@@ -265,7 +265,7 @@ class LightningNodeService {
                     return error.localizedDescription
                 }
             }()
-            self.coreVC?.stopLightning(message: errorMessage, stopNode: false)
+            self.coreVC?.stopLightning(message: errorMessage)
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "LightningNodeService row 267", key: "context")

@@ -17,60 +17,64 @@ extension CoreViewController {
         // Update syncing progress.
         self.startSync(type: .ldk)
         
-        // Start Lightning node.
-        let startTask = Task {
-            let taskResult = try await LightningNodeService.shared.start()
-            try Task.checkCancellation()
-            return taskResult
-        }
-        
-        // Time out Lightning node start after 15 seconds.
-        let timeoutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(15) * NSEC_PER_SEC)
-            startTask.cancel()
-            print("Could not start node within 15 seconds.")
-            self.stopLightning(message: nil, stopNode: true)
-        }
-        
-        // Start Bitcoin Dev Kit after successful Lightning node start.
-        Task.init {
-            do {
-                let result = try await startTask.value
-                timeoutTask.cancel()
+        Task {
+            self.didStartNode = await withTaskGroup(of: Bool.self) { group -> Bool in
+                
+                // Start LDK node.
+                group.addTask {
+                    do {
+                        try await LightningNodeService.shared.start()
+                    } catch {
+                        print("28 Can't start node. \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            SentrySDK.metrics.increment(key: "sync.ldk.failure")
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "StartLightning row 69", key: "context")
+                            }
+                        }
+                        if let nodeError = error as? NodeError {
+                            switch nodeError {
+                            case .AlreadyRunning(message: _):
+                                return true
+                            default:
+                                return false
+                            }
+                        } else {
+                            return false
+                        }
+                    }
+                    return true
+                }
+                
+                // 15 second timer.
+                group.addTask {
+                    do {
+                        try await Task.sleep(nanoseconds: UInt64(15) * NSEC_PER_SEC)
+                    } catch {
+                        return false
+                    }
+                    print("Starting LDK Node takes too long.")
+                    return false
+                }
+                
+                // Check connection success.
+                let firstResult = await group.next() ?? false
+                group.cancelAll()
+                return firstResult
+            }
+            
+            // Proceed to next step.
+            if self.didStartNode {
                 print("Did start node.")
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
+                SentrySDK.metrics.increment(key: "sync.ldk.success")
                 DispatchQueue.global(qos: .background).async {
                     LightningNodeService.shared.startBDK(coreViewController: self)
                 }
-                self.didStartNode = true
-                SentrySDK.metrics.increment(key: "sync.ldk.success")
-            } catch {
-                timeoutTask.cancel()
-                if let nodeError = error as? NodeError {
-                    let errorString = handleNodeError(nodeError)
-                    print("50 Can't start node. \(errorString.title): \(errorString.detail)")
-                    if errorString.title == "AlreadyRunning" {
-                        self.completeSync(type: .ldk)
-                        if !self.didStartNode {
-                            self.didStartNode = true
-                            DispatchQueue.global(qos: .background).async {
-                                LightningNodeService.shared.startBDK(coreViewController: self)
-                            }
-                        }
-                    } else {
-                        self.stopLightning(message: nil, stopNode: false)
-                    }
-                } else {
-                    print("63 Can't start node. \(error.localizedDescription)")
-                    self.stopLightning(message: nil, stopNode: false)
-                }
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "StartLightning row 69", key: "context")
-                    }
-                    SentrySDK.metrics.increment(key: "sync.ldk.failure")
-                }
+            } else {
+                print("Could not start node.")
+                self.stopLightning(message: nil)
             }
         }
     }
@@ -92,7 +96,7 @@ extension CoreViewController {
         }
     }
     
-    func stopLightning(message:String?, stopNode:Bool) {
+    func stopLightning(message:String?) {
         
         if message != nil {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(message!)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
