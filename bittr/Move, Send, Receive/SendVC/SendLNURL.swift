@@ -35,7 +35,7 @@ extension UIViewController {
             print("Decoded url: \(url)")
             
             Task {
-                await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: "GET") { result in
+                await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         sendVC?.stopLNURLSpinner()
@@ -144,7 +144,7 @@ extension UIViewController {
         let actualUrl = "\(callbackURL)?amount=\(amount)"
         
         Task {
-            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: "GET") { result in
+            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
                 
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
@@ -217,7 +217,7 @@ extension UIViewController {
                 let actualUrl = "\(callbackURL)?k1=\(k1)&pr=\(invoice)"
                 print("Actual URL: \(actualUrl)")
                 
-                await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: "GET") { result in
+                await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
                     DispatchQueue.main.async {
                         sendVC?.stopLNURLSpinner()
                         receiveVC?.stopLNURLSpinner()

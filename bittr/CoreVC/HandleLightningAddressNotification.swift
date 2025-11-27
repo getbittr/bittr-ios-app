@@ -71,7 +71,7 @@ extension CoreViewController {
                     "username": username
                 ]
                 
-                await CallsManager.makeApiCall(url: endpoint, parameters: parameters, getOrPost: "POST") { result in
+                await CallsManager.makeApiCall(url: endpoint, parameters: parameters, getOrPost: .post) { result in
                     
                     DispatchQueue.main.async {
                         self.hidePendingView()

@@ -17,12 +17,17 @@ enum APIError: Error {
 
 class CallsManager: NSObject {
     
-    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:String, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
+    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
         
         var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpMethod = getOrPost
+        request.httpMethod = {
+            switch getOrPost {
+            case .get: return "GET"
+            case .post: return "POST"
+            }
+        }()
         
         do {
             if parameters != nil {
@@ -85,4 +90,9 @@ class CallsManager: NSObject {
             completion(.failure(.requestFailed(errorMessage)))
         }
     }
+}
+
+enum CallType {
+    case get
+    case post
 }

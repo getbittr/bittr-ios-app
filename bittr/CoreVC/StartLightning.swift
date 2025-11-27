@@ -25,7 +25,6 @@ extension CoreViewController {
                     do {
                         try await LightningNodeService.shared.start()
                     } catch {
-                        print("28 Can't start node. \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             SentrySDK.metrics.increment(key: "sync.ldk.failure")
                             SentrySDK.capture(error: error) { scope in
@@ -33,6 +32,7 @@ extension CoreViewController {
                             }
                         }
                         if let nodeError = error as? NodeError {
+                            print("28 Can't start node. \(handleNodeError(nodeError).title): \(handleNodeError(nodeError).detail)")
                             switch nodeError {
                             case .AlreadyRunning(message: _):
                                 return true

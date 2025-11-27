@@ -392,7 +392,7 @@ extension HomeViewController {
             self.coreVC!.startSync(type: .conversion)
             
             Task {
-                await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: "GET") { result in
+                await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: .get) { result in
                     DispatchQueue.main.async {
                         switch result {
                         case .success(let receivedDictionary):

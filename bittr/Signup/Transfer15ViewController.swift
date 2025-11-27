@@ -146,7 +146,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email/check2fa"
                 
                 Task {
-                    await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                    await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
                         
                         switch result {
                         case .success(let receivedDictionary):
@@ -248,7 +248,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
 
                 let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/customer"
                 
-                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
                     
                     switch result {
                     case .failure(let error):
@@ -347,7 +347,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
                     
                     Task {
-                        await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: "POST") { result in
+                        await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
                             
                             switch result {
                             case .failure(let error):

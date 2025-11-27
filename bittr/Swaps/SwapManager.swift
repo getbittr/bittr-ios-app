@@ -122,7 +122,7 @@ class SwapManager: NSObject {
             let apiURL = EnvironmentConfig.boltzBaseURL
             
             Task {
-                await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: "POST") { result in
+                await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: .post) { result in
                     
                     switch result {
                     case .failure(let error):
@@ -332,7 +332,7 @@ class SwapManager: NSObject {
         let apiURL = EnvironmentConfig.boltzBaseURL
     
         Task {
-            await CallsManager.makeApiCall(url: "\(apiURL)/swap/\(swapID)", parameters: nil, getOrPost: "GET") { result in
+            await CallsManager.makeApiCall(url: "\(apiURL)/swap/\(swapID)", parameters: nil, getOrPost: .get) { result in
                 
                 switch result {
                 case .failure(let error):
@@ -421,7 +421,7 @@ class SwapManager: NSObject {
         let apiURL = EnvironmentConfig.boltzBaseURL
         
         Task {
-            await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: "POST") { result in
+            await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: .post) { result in
                 
                 switch result {
                 case .failure(let error):

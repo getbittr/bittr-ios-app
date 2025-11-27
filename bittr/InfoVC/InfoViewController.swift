@@ -60,7 +60,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
         if self.coreVC?.allArticles == nil {
             
             Task {
-                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: "GET") { result in
+                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: .get) { result in
                     
                     switch result {
                     case .success(let receivedDictionary):
