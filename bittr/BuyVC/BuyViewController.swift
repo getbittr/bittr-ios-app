@@ -178,6 +178,12 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if depositCodes.count == 0 { return }
         let depositCodesString = depositCodes.joined(separator: ",")
         
+        // If LDK Node has not been started, we cannot sign the message or get the node ID.
+        if LightningNodeService.shared.ldkNode == nil {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        
         self.updateDataSpinner.startAnimating()
         Task {
             do {
