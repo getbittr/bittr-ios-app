@@ -63,6 +63,7 @@ class CallsManager: NSObject {
                         DispatchQueue.main.async {
                             SentrySDK.capture(error: error) { scope in
                                 scope.setExtra(value: "CallsManager row 60", key: "context")
+                                scope.setExtra(value: receivedData, key: "received_data")
                             }
                         }
                         completion(.failure(.decodingFailed))
