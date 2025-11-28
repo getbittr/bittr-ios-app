@@ -82,16 +82,12 @@ extension CoreViewController {
     @objc func restartLightning() {
         
         self.hideAlert()
-        if let actualNode = LightningNodeService.shared.ldkNode {
-            if actualNode.status().isRunning {
-                print("Node is running.")
-                LightningNodeService.shared.startBDK(coreViewController: self)
-            } else {
-                print("Node isn't running. 2")
-                self.startLightning()
-            }
+        if LightningNodeService.shared.ldkNode != nil, LightningNodeService.shared.ldkNode!.status().isRunning {
+            
+            // LDK is already running. Start BDK.
+            LightningNodeService.shared.startBDK(coreViewController: self)
         } else {
-            print("Node isn't running.")
+            // LDK isn't running yet.
             self.startLightning()
         }
     }

@@ -207,6 +207,9 @@ class LightningNodeService {
             print("Will sync wallet.")
             // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
             let syncRequest = try self.bdkWallet!.startFullScan().build()
+            if self.electrumClient == nil {
+                self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
+            }
             let update = try self.electrumClient!.fullScan(
                 request: syncRequest,
                 stopGap: UInt64(25),
