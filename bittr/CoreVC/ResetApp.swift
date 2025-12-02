@@ -53,23 +53,26 @@ extension CoreViewController {
     
     func startNodeAndCheckChannels() {
         // Start the Lightning node first
+        
         Task {
-            do {
-                try await LightningNodeService.shared.startLDK()
-                
+            let didStartLDK = await withCheckedContinuation { continuation in
+                LightningNodeService.shared.startLDK { didStartLDK in
+                    continuation.resume(returning: didStartLDK)
+                }
+            }
+            
+            if didStartLDK {
                 // Wait a moment for the node to fully initialize
-                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                // 2 seconds
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
                 
                 // Now check for channels
                 DispatchQueue.main.async {
                     self.checkChannelsAndReset()
                 }
-            } catch {
+            } else {
                 // If we can't start the node, proceed with reset anyway
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 71", key: "context")
-                    }
                     self.performWalletReset(nodeIsRunning: false)
                 }
             }

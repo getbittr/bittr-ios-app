@@ -22,28 +22,11 @@ extension CoreViewController {
                 
                 // Start LDK node.
                 group.addTask {
-                    do {
-                        try await LightningNodeService.shared.startLDK()
-                    } catch {
-                        DispatchQueue.main.async {
-                            SentrySDK.metrics.increment(key: "sync.ldk.failure")
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "StartLightning row 69", key: "context")
-                            }
-                        }
-                        if let nodeError = error as? NodeError {
-                            Log.info("28 Can't start node. \(handleNodeError(nodeError).title): \(handleNodeError(nodeError).detail)")
-                            switch nodeError {
-                            case .AlreadyRunning(message: _):
-                                return true
-                            default:
-                                return false
-                            }
-                        } else {
-                            return false
+                    return await withCheckedContinuation { continuation in
+                        LightningNodeService.shared.startLDK { didStartLDK in
+                            continuation.resume(returning: didStartLDK)
                         }
                     }
-                    return true
                 }
                 
                 // 15 second timer.
@@ -64,8 +47,9 @@ extension CoreViewController {
             }
             
             // Proceed to next step.
-            if self.didStartNode {
+            if self.didStartNode || (LightningNodeService.shared.ldkNode != nil && LightningNodeService.shared.ldkNode!.status().isRunning) {
                 Log.info("Did start node.")
+                self.didStartNode = true
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
                 SentrySDK.metrics.increment(key: "sync.ldk.success")
@@ -74,6 +58,7 @@ extension CoreViewController {
                 }
             } else {
                 Log.info("Could not start node.")
+                SentrySDK.metrics.increment(key: "sync.ldk.failure")
                 self.stopLightning(message: nil)
             }
         }

@@ -34,10 +34,16 @@ class LightningNodeService {
         self.network = network
     }
     
-    func startLDK() async throws {
+    func startLDK(completion: @escaping (Bool) -> Void) {
         
-        try? FileManager.deleteLDKNodeLogLatestFile()
+        // Delete previous LDK Node log.
+        do {
+            try FileManager.deleteLDKNodeLogLatestFile()
+        } catch {
+            Log.info("Could not delete LDK Node log latest file.")
+        }
         
+        // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
         
         let config = Config(
@@ -54,7 +60,7 @@ class LightningNodeService {
             sendingParameters: nil
         )
         
-        // Check if mnenomic has already been created.
+        // Set mnemonic string.
         let mnemonicString:String = {
             if let cachedMnemonic = CacheManager.getMnemonic() {
                 // Existing mnemonic.
@@ -68,7 +74,7 @@ class LightningNodeService {
             }
         }()
         
-        // LDK background syncing.
+        // Set LDK background syncing.
         let backgroundSync = BackgroundSyncConfig(
             onchainWalletSyncIntervalSecs: 30,
             lightningWalletSyncIntervalSecs: 30,
@@ -89,6 +95,7 @@ class LightningNodeService {
             token: ""
         )
         
+        // Set correct network.
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.bitcoin)
@@ -113,9 +120,38 @@ class LightningNodeService {
 //        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
 
         
-        let ldkNode = try nodeBuilder.build()
-        try ldkNode.start()
-        self.ldkNode = ldkNode
+        let newLdkNode: Node
+        
+        // Build new node.
+        do {
+            newLdkNode = try nodeBuilder.build()
+        } catch {
+            Log.info("Could not build newLdkNode. \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "LightningNodeService row 130", key: "context")
+                }
+                completion(false)
+            }
+            return
+        }
+        
+        // Start new node.
+        do {
+            try newLdkNode.start()
+            self.ldkNode = newLdkNode
+            DispatchQueue.main.async {
+                completion(true)
+            }
+        } catch {
+            Log.info("Could not start newLdkNode. \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "LightningNodeService row 147", key: "context")
+                }
+                completion(false)
+            }
+        }
     }
     
     func startBDK(coreViewController:CoreViewController?) {
