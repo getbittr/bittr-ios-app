@@ -30,7 +30,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     }
     
     @objc func appWillEnterForeground() {
-        print("App entered foreground, reconnecting WebSocket...")
+        Log.info("App entered foreground, reconnecting WebSocket...")
         // Ensure the socket is not already open before reconnecting
         if webSocketTask == nil {
             connect()  // Re-establish connection
@@ -38,14 +38,14 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     }
 
     @objc func appDidEnterBackground() {
-        print("App entered background, disconnecting WebSocket...")
+        Log.info("App entered background, disconnecting WebSocket...")
         disconnect()
     }
     
     func connect() {
         
         guard let session = session else {
-            print("Session is not initialized")
+            Log.info("Session is not initialized")
             return
         }
         // Start background task
@@ -59,7 +59,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     
     func sendMessage() {
         guard let swapID = self.swapID else {
-            print("No SwapID has been set.")
+            Log.info("No SwapID has been set.")
             return
         }
         
@@ -76,16 +76,16 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                     
                 webSocketTask?.send(webSocketMessage) { error in
                     if let error = error {
-                        print("Failed to send message: \(error)")
+                        Log.info("Failed to send message: \(error)")
                     } else {
                         print("Message sent: \(jsonString)")  // Log the string version
                     }
                 }
             } else {
-                print("Failed to convert JSON data to String")
+                Log.info("Failed to convert JSON data to String")
             }
         } catch {
-            print("Failed to serialize message to JSON: \(error)")
+            Log.info("Failed to serialize message to JSON: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "WebSocketManager row 90", key: "context")
@@ -97,7 +97,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     
     func receiveMessage() {
         guard let webSocketTask = webSocketTask else {
-            print("WebSocket task is nil, stopping receiveMessage() to prevent errors.")
+            Log.info("WebSocket task is nil, stopping receiveMessage() to prevent errors.")
             return
         }
 
@@ -106,7 +106,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
             switch result {
             case .failure(let error):
-                print("❌ Failed to receive message: \(error.localizedDescription)")
+                Log.info("❌ Failed to receive message: \(error.localizedDescription)")
                 return
 
             case .success(let message):
@@ -120,10 +120,10 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                             if let jsonDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                                 self.handleReceivedMessage(jsonDict)
                             } else {
-                                print("❌ Failed to convert JSON into a dictionary.")
+                                Log.info("❌ Failed to convert JSON into a dictionary.")
                             }
                         } catch {
-                            print("❌ JSON Parsing Error: \(error.localizedDescription)")
+                            Log.info("❌ JSON Parsing Error: \(error.localizedDescription)")
                             DispatchQueue.main.async {
                                 SentrySDK.capture(error: error) { scope in
                                     scope.setExtra(value: "WebSocketManager row 129", key: "context")
@@ -133,7 +133,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                     }
 
                 @unknown default:
-                    print("⚠️ Received unknown response format.")
+                    Log.info("⚠️ Received unknown response format.")
                 }
             }
 
@@ -144,18 +144,18 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     
     func handleReceivedMessage(_ jsonDict: [String: Any]) {
         guard let delegate = self.delegate as? SwapViewController else {
-            print("No delegate set for received message.")
+            Log.info("No delegate set for received message.")
             return
         }
 
         guard let args = jsonDict["args"] as? [[String: Any]], // Expecting an array
               let firstArg = args.first,                      // Get the first item
               let receivedStatus = firstArg["status"] as? String else {
-            print("❌ Could not extract status from args.")
+            Log.info("❌ Could not extract status from args.")
             return
         }
 
-        print("✅ Received status: \(receivedStatus)")
+        Log.info("✅ Received status: \(receivedStatus)")
 
         // Ensure status update is performed on the main thread
         DispatchQueue.main.async {
@@ -165,7 +165,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
     
     func disconnect() {
-        print("Disconnecting WebSocket...")
+        Log.info("Disconnecting WebSocket...")
         // Stop receiving messages (prevents the error spam)
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
@@ -179,7 +179,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "WebSocketBackgroundTask") {
             // If time expires, end the background task
-            print("Background task expiring, ending WebSocket background task")
+            Log.info("Background task expiring, ending WebSocket background task")
             self.endBackgroundTask()
         }
         
@@ -187,7 +187,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
         // (iOS gives us 30 seconds, so we end it early to be safe)
         DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
             if self?.backgroundTask != .invalid {
-                print("Background task timeout reached, ending WebSocket background task")
+                Log.info("Background task timeout reached, ending WebSocket background task")
                 self?.endBackgroundTask()
             }
         }
@@ -203,16 +203,16 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     
     // URLSessionWebSocketDelegate methods (optional)
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        print("WebSocket connection established")
+        Log.info("WebSocket connection established")
         sendMessage()
         receiveMessage()
     }
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWithError error: Error?) {
         if let error = error {
-            print("WebSocket closed with error: \(error)")
+            Log.info("WebSocket closed with error: \(error)")
         } else {
-            print("WebSocket closed successfully")
+            Log.info("WebSocket closed successfully")
         }
         
         // End the current background task before attempting to reconnect

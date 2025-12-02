@@ -260,7 +260,7 @@ class CoreViewController: UIViewController {
         if let homeVC = self.homeVC {
             // Check if there's already a send screen open and dismiss it first
             if let existingSendVC = homeVC.presentedViewController {
-                print("Dismissing existing send screen before opening new one")
+                Log.info("Dismissing existing send screen before opening new one")
                 existingSendVC.dismiss(animated: false) {
                     // After dismissing, open the new send screen
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -286,7 +286,7 @@ class CoreViewController: UIViewController {
         if let homeVC = self.homeVC {
             // Check if there's already a send screen open and dismiss it first
             if let existingSendVC = homeVC.presentedViewController {
-                print("Dismissing existing send screen before opening new one")
+                Log.info("Dismissing existing send screen before opening new one")
                 existingSendVC.dismiss(animated: false) {
                     // After dismissing, open the new send screen
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -311,13 +311,14 @@ class CoreViewController: UIViewController {
         guard let userInfo = notification.userInfo as? [String: Any],
               let address = userInfo["address"] as? String,
               !address.isEmpty else {
-            print("Invalid Bitcoin URI data")
+            Log.info("Invalid Bitcoin URI data")
             return
         }
         
         let amount = userInfo["amount"] as? String ?? ""
         let label = userInfo["label"] as? String ?? ""
         
+        Log.info("Handling Bitcoin URI.")
         print("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
         
         // Check if user is signed in
@@ -338,10 +339,11 @@ class CoreViewController: UIViewController {
         guard let userInfo = notification.userInfo as? [String: Any],
               let invoice = userInfo["invoice"] as? String,
               !invoice.isEmpty else {
-            print("Invalid Lightning URI data")
+            Log.info("Invalid Lightning URI data")
             return
         }
         
+        Log.info("Handling Lightning URI.")
         print("Handling Lightning URI - Invoice: \(invoice)")
         
         // Check if user is signed in

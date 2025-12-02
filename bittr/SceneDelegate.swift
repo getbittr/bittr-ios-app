@@ -99,7 +99,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         DispatchQueue.global(qos: .background).async {
             do {
                 if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
-                    print("Will sync LDK node upon entering foreground.")
+                    Log.info("Will sync LDK node upon entering foreground.")
                     try LightningNodeService.shared.syncWallets()
                 }
             } catch {
@@ -115,7 +115,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                         return error.localizedDescription
                     }
                 }()
-                print("Could not sync LDK node. Error: \(errorMessage)")
+                Log.info("Could not sync LDK node. Error: \(errorMessage)")
             }
         }
     }
@@ -179,7 +179,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         // If there's a lightning parameter, treat this as a Lightning payment
         if let lightning = lightningInvoice, !lightning.isEmpty {
-            print("Bitcoin URI contains Lightning parameter - treating as Lightning payment")
+            Log.info("Bitcoin URI contains Lightning parameter - treating as Lightning payment")
             print("Parsed Lightning URI - Invoice: \(lightning)")
             
             let uriData: [String: Any] = [

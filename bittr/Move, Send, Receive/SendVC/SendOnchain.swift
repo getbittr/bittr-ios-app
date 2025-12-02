@@ -54,7 +54,7 @@ extension SendViewController {
                 // Check if we have sufficient Lightning balance for a swap
                 let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
                 
-                print("DEBUG - Onchain payment validation:")
+                Log.info("DEBUG - Onchain payment validation:")
                 print("  - btcAmount: \(self.coreVC!.bittrWallet.satoshisOnchain.inBTC())")
                 print("  - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
                 print("  - maximumSendableLNSats: \((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000)")
@@ -63,7 +63,7 @@ extension SendViewController {
                 print("  - Is Lightning balance sufficient? \(availableLightningBalance >= self.onchainAmountInSatoshis)")
                 
                 if availableLightningBalance >= self.onchainAmountInSatoshis {
-                    print("DEBUG - Offering Lightning swap option")
+                    Log.info("DEBUG - Offering Lightning swap option")
                     print("DEBUG - Setting pendingOnchainAddress for swap: \(invoiceText ?? "nil")")
                     print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
                     // Suggest swap from Lightning to onchain
@@ -78,7 +78,7 @@ extension SendViewController {
                     self.pendingOnchainAddress = invoiceText!
                     print("DEBUG - pendingOnchainAddress is now: \(self.pendingOnchainAddress)")
                 } else {
-                    print("DEBUG - Lightning balance insufficient, showing regular insufficient funds message")
+                    Log.info("DEBUG - Lightning balance insufficient, showing regular insufficient funds message")
                     // Insufficient funds in both onchain and Lightning
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
@@ -150,7 +150,7 @@ extension SendViewController {
                                 self.nextSpinner.stopAnimating()
                             }
                         } catch {
-                            print("Error: \(error.localizedDescription)")
+                            Log.info("Error: \(error.localizedDescription)")
                             
                             // Generate error message.
                             var errorMessage = error.localizedDescription
@@ -327,7 +327,7 @@ extension SendViewController {
                         print("Transaction ID: \(txid)")
                         
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            print("Successful transaction.")
+                            Log.info("Successful transaction.")
                             SentrySDK.metrics.increment(key: "onchain.transaction.success")
                             self.sendLabel.alpha = 1
                             self.sendSpinner.stopAnimating()
@@ -337,7 +337,7 @@ extension SendViewController {
                         }
                     } else {
                         DispatchQueue.main.async {
-                            print("Client not available.")
+                            Log.info("Client not available.")
                             self.sendLabel.alpha = 1
                             self.sendSpinner.stopAnimating()
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -345,7 +345,7 @@ extension SendViewController {
                         }
                     }
                 } catch {
-                    print("Transaction error: \(error.localizedDescription)")
+                    Log.info("Transaction error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         self.sendLabel.alpha = 1
                         self.sendSpinner.stopAnimating()
@@ -358,7 +358,7 @@ extension SendViewController {
                 }
             }
         } else {
-            print("Wallet instance not available.")
+            Log.info("Wallet instance not available.")
             SentrySDK.metrics.increment(key: "onchain.transaction.failure.1")
             self.sendLabel.alpha = 1
             self.sendSpinner.stopAnimating()
@@ -392,7 +392,7 @@ extension SendViewController {
     
     @objc override func cancelSwapOffer() {
         self.hideAlert()
-        print("DEBUG - cancelSwapOffer called, clearing pending data")
+        Log.info("DEBUG - cancelSwapOffer called, clearing pending data")
         // Clear the pending data when user cancels the swap offer
         self.pendingOnchainAddress = ""
         // Also clear the amount field to make it obvious this is cancelled
@@ -401,7 +401,7 @@ extension SendViewController {
     
     @objc func swapAndPayOnchain() {
         self.hideAlert()
-        print("DEBUG - swapAndPayOnchain called")
+        Log.info("DEBUG - swapAndPayOnchain called")
         print("DEBUG - pendingOnchainAddress: \(self.pendingOnchainAddress)")
         print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
         // Navigate to swap screen with the pending address using existing segue pattern

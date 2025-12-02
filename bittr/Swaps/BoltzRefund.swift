@@ -43,7 +43,7 @@ class BoltzRefund {
     /// Claims a lightning-to-onchain swap by generating and broadcasting the claim transaction
     static func claimLightningToOnchainSwap(swapVC: SwapViewController) async throws -> ClaimResult {
         guard let ongoingSwap = await swapVC.coreVC?.bittrWallet.ongoingSwap else {
-            print("❌ No ongoing swap found")
+            Log.info("❌ No ongoing swap found")
             return ClaimResult(success: false, transactionId: nil)
         }
         
@@ -93,7 +93,7 @@ class BoltzRefund {
         // Calculate the correct transaction hash from the lockup transaction
         guard let txHash = calculateTransactionHash(from: lockupTxHex),
               let tweakedKey = Data(hexString: tweakedKeyHex) else {
-            print("❌ Failed to parse hex data or calculate transaction hash")
+            Log.info("❌ Failed to parse hex data or calculate transaction hash")
             return ClaimResult(success: false, transactionId: nil)
         }
         
@@ -163,7 +163,7 @@ class BoltzRefund {
                 let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
                 
                 guard let hardcodedSignature = Data(hexString: aggregateSignatureHex) else {
-                    print("❌ Failed to parse signature")
+                    Log.info("❌ Failed to parse signature")
                     return ClaimResult(success: false, transactionId: nil)
                 }
                 
@@ -175,15 +175,15 @@ class BoltzRefund {
                     print("✅ Transaction broadcasted successfully! TXID: \(transactionId)")
                     return ClaimResult(success: true, transactionId: transactionId)
                 } else {
-                    print("❌ Failed to broadcast transaction")
+                    Log.info("❌ Failed to broadcast transaction")
                     return ClaimResult(success: false, transactionId: nil)
                 }
             } else {
-                print("Failed to get claim response from Boltz")
+                Log.info("Failed to get claim response from Boltz")
                 return ClaimResult(success: false, transactionId: nil)
             }
         } else {
-            print("No swap output found")
+            Log.info("No swap output found")
             return ClaimResult(success: false, transactionId: nil)
         }
     }
@@ -203,7 +203,7 @@ class BoltzRefund {
     /// Refunds an onchain-to-lightning swap by generating and broadcasting the refund transaction
     static func refundOnchainToLightningSwap(swapVC: SwapViewController) async throws -> ClaimResult {
         guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
-            print("❌ No ongoing swap found")
+            Log.info("❌ No ongoing swap found")
             return ClaimResult(success: false, transactionId: nil)
         }
             
@@ -242,7 +242,7 @@ class BoltzRefund {
             // Calculate the correct transaction hash from the lockup transaction
             guard let txHash = calculateTransactionHash(from: lockupTxHex),
                   let tweakedKey = Data(hexString: tweakedKeyHex) else {
-                print("❌ Failed to parse hex data or calculate transaction hash")
+                Log.info("❌ Failed to parse hex data or calculate transaction hash")
                 return ClaimResult(success: false, transactionId: nil)
             }
             
@@ -319,7 +319,7 @@ class BoltzRefund {
                 let aggregateSignatureHex = aggregateSignature.dataRepresentation.map { String(format: "%02x", $0) }.joined()
                 
                 guard let hardcodedSignature = Data(hexString: aggregateSignatureHex) else {
-                    print("❌ Failed to parse signature")
+                    Log.info("❌ Failed to parse signature")
                     return ClaimResult(success: false, transactionId: nil)
                 }
                 
@@ -332,15 +332,15 @@ class BoltzRefund {
                     CacheManager.storeInvoiceDescription(preimage: transactionId, desc: ongoingSwap.dateID)
                     return ClaimResult(success: true, transactionId: transactionId)
                 } else {
-                    print("❌ Failed to broadcast transaction")
+                    Log.info("❌ Failed to broadcast transaction")
                     return ClaimResult(success: false, transactionId: nil)
                 }
             } else {
-                print("Failed to get claim response from Boltz")
+                Log.info("Failed to get claim response from Boltz")
                 return ClaimResult(success: false, transactionId: nil)
             }
         } else {
-            print("No swap output found")
+            Log.info("No swap output found")
             return ClaimResult(success: false, transactionId: nil)
         }
     }

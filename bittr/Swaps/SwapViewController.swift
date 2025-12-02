@@ -99,7 +99,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Clear any stale data if this is a manual navigation (not from payment)
         if !self.isFromLightningPayment && !self.isFromOnchainPayment && !self.isFromBackgroundNotification {
-            print("DEBUG - Manual navigation to swap screen, clearing any stale data")
+            Log.info("DEBUG - Manual navigation to swap screen, clearing any stale data")
             self.clearPendingSwapData()
         }
         
@@ -161,20 +161,20 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Check if there's an ongoing swap and automatically show it (only if from background notification)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            print("DEBUG - SwapViewController viewDidLoad conditions:")
-            print("  - isFromBackgroundNotification: \(self.isFromBackgroundNotification)")
+            Log.info("DEBUG - SwapViewController viewDidLoad conditions:")
+            Log.info("  - isFromBackgroundNotification: \(self.isFromBackgroundNotification)")
             print("  - pendingOnchainAmount: \(self.pendingOnchainAmount)")
-            print("  - isFromLightningPayment: \(self.isFromLightningPayment)")
+            Log.info("  - isFromLightningPayment: \(self.isFromLightningPayment)")
             print("  - pendingLightningInvoice: '\(self.pendingLightningInvoice)'")
-            print("  - isFromOnchainPayment: \(self.isFromOnchainPayment)")
+            Log.info("  - isFromOnchainPayment: \(self.isFromOnchainPayment)")
             print("  - pendingOnchainAddress: '\(self.pendingOnchainAddress)'")
             
             if self.isFromBackgroundNotification && self.pendingOnchainAmount > 0 {
                 // Handle notification-based onchain-to-lightning swap
-                print("DEBUG - Calling handleNotificationSwap()")
+                Log.info("DEBUG - Calling handleNotificationSwap()")
                 self.handleNotificationSwap()
             } else if self.isFromBackgroundNotification {
-                print("DEBUG - Calling checkForOngoingSwap()")
+                Log.info("DEBUG - Calling checkForOngoingSwap()")
                 self.checkForOngoingSwap()
             } else if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
                 // Handle pending Lightning invoice
@@ -207,7 +207,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                         if dictionary != nil, let receivedStatus = dictionary!["status"] as? String {
                             self.receivedStatusUpdate(status: receivedStatus, fullMessage: dictionary! as! [String : Any])
                         } else {
-                            print("No status received.")
+                            Log.info("No status received.")
                         }
                     }
                 }
@@ -229,7 +229,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Clear swap state when leaving the swap screen
         // This ensures that if user swipes away the page, swap data is cleared
-        print("DEBUG - Leaving SwapViewController, clearing swap state")
+        Log.info("DEBUG - Leaving SwapViewController, clearing swap state")
         self.clearPendingSwapData()
     }
     
@@ -319,7 +319,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                             }
                         }
                     } catch {
-                        print("Error: \(error.localizedDescription)")
+                        Log.info("Error: \(error.localizedDescription)")
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "SwapVC row 308", key: "context")
                         }
@@ -328,7 +328,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                         }
                     }
                 } else {
-                    print("Cannot get BDK wallet in SwapVC.")
+                    Log.info("Cannot get BDK wallet in SwapVC.")
                     SentrySDK.capture(message: "Cannot get BDK wallet in SwapVC.") { scope in
                         scope.setExtra(value: "SwapVC row 319", key: "context")
                     }
@@ -426,7 +426,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     func switchView(_ toView: String) {
         
         guard let centerCardLeading = self.centerCardLeading else {
-            print("centerCardLeading is nil, cannot switch view")
+            Log.info("centerCardLeading is nil, cannot switch view")
             return
         }
         
@@ -451,7 +451,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             
             if let swapID = self.coreVC?.bittrWallet.ongoingSwap?.boltzID {
                 print("🔍 Checking swap status for ID: \(swapID)")
-                print("🔄 Current swap direction: \(self.swapDirection)")
+                Log.info("🔄 Current swap direction: \(self.swapDirection)")
                 print("📊 Ongoing swap details: \(self.coreVC?.bittrWallet.ongoingSwap?.dateID ?? "nil")")
                 
                 SwapManager.checkSwapStatus(swapID) { dictionary in
@@ -462,55 +462,55 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                         print("📡 Received swap status response: \(dictionary ?? [:])")
                         
                         if dictionary != nil, let receivedStatus = dictionary!["status"] as? String {
-                            print("✅ Status received: \(receivedStatus)")
-                            print("🔄 Current swap direction: \(self.swapDirection)")
+                            Log.info("✅ Status received: \(receivedStatus)")
+                            Log.info("🔄 Current swap direction: \(self.swapDirection)")
                             
                             self.confirmStatusLabel.text = self.userFriendlyStatus(receivedStatus: receivedStatus)
                             
                             if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
-                                print("❌ Swap failed with status: \(receivedStatus)")
+                                Log.info("❌ Swap failed with status: \(receivedStatus)")
                                 //TODO RUBEN: Add refund logic here
                             } else if receivedStatus == "transaction.confirmed" || receivedStatus == "invoice.settled" {
-                                print("✅ Transaction confirmed!")
-                                print("🔍 Checking if swapDirection == .lightningToOnchain: \(self.swapDirection == .lightningToOnchain)")
+                                Log.info("✅ Transaction confirmed!")
+                                Log.info("🔍 Checking if swapDirection == .lightningToOnchain: \(self.swapDirection == .lightningToOnchain)")
                                 
                                 if self.swapDirection == .lightningToOnchain {
-                                    print("🔄 Processing lightning to onchain swap")
+                                    Log.info("🔄 Processing lightning to onchain swap")
                                     if let transaction = dictionary!["transaction"] as? [String: Any] {
                                         print("📄 Transaction data: \(transaction)")
                                         if let transactionHex = transaction["hex"] as? String {
                                             print("🔗 Transaction hex found, length: \(transactionHex.count)")
                                             self.handleTransactionMempool(transactionHex: transactionHex)
                                         } else {
-                                            print("❌ No transaction hex found in response")
+                                            Log.info("❌ No transaction hex found in response")
                                         }
                                     } else {
-                                        print("❌ No transaction data found in response")
+                                        Log.info("❌ No transaction data found in response")
                                         
                                         // Fallback: Try to load lockup transaction from JSON file
-                                        print("🔄 Attempting to load lockup transaction from JSON file...")
+                                        Log.info("🔄 Attempting to load lockup transaction from JSON file...")
                                         if let swapID = self.coreVC?.bittrWallet.ongoingSwap?.boltzID,
                                            let jsonLockupTx = self.loadLockupTxFromFile(swapID: swapID) {
-                                            print("✅ Found lockup transaction in JSON file, processing...")
+                                            Log.info("✅ Found lockup transaction in JSON file, processing...")
                                             self.handleTransactionMempool(transactionHex: jsonLockupTx)
                                         } else {
-                                            print("❌ No lockup transaction found in JSON file either")
+                                            Log.info("❌ No lockup transaction found in JSON file either")
                                         }
                                     }
                                 } else {
-                                    print("ℹ️ Not a lightning to onchain swap (direction: \(self.swapDirection))")
+                                    Log.info("ℹ️ Not a lightning to onchain swap (direction: \(self.swapDirection))")
                                 }
                             } else {
-                                print("ℹ️ Other status received: \(receivedStatus)")
+                                Log.info("ℹ️ Other status received: \(receivedStatus)")
                             }
                         } else {
-                            print("❌ No status received or invalid response format")
+                            Log.info("❌ No status received or invalid response format")
                             print("📄 Full response: \(dictionary ?? [:])")
                         }
                     }
                 }
             } else {
-                print("❌ No swap ID found in ongoing swap")
+                Log.info("❌ No swap ID found in ongoing swap")
             }
         }
     }
@@ -652,7 +652,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     let result = try await BoltzRefund.tryBoltzRefund(swapVC: self)
                     print("Result: \(result)")
                 } catch {
-                    print("Error: \(error)")
+                    Log.info("Error: \(error)")
                     DispatchQueue.main.async {
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "SwapViewController row 584", key: "context")
@@ -691,14 +691,14 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 current.delegate = self
                 current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
                     
-                    print("Permission granted: \(granted)")
+                    Log.info("Permission granted: \(granted)")
                     guard granted else {
                         return
                     }
                     
                     // Double check that the preference is now authorized.
                     current.getNotificationSettings { (settings) in
-                        print("Notification settings: \(settings)")
+                        Log.info("Notification settings: \(settings)")
                         guard settings.authorizationStatus == .authorized else {
                             return
                         }
@@ -722,7 +722,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         if let userInfo = notification.userInfo as? [String: Any],
            let swapID = userInfo["swap_id"] as? String {
             
-            print("Received swap notification for ID: \(swapID)")
+            Log.info("Received swap notification.")
+            print("For ID: \(swapID)")
             
             guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
             
@@ -871,8 +872,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Update the swap file with the lockup transaction
         guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { 
-            print("❌ No ongoing swap found")
-            return 
+            Log.info("❌ No ongoing swap found")
+            return
         }
         
         print("✅ Found ongoing swap with ID: \(ongoingSwap.boltzID ?? "nil")")
@@ -882,12 +883,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         CacheManager.saveLatestSwap(ongoingSwap)
         SwapManager.updateSwapFileWithLockupTx(swapID: ongoingSwap.boltzID!, lockupTx: ongoingSwap.lockupTx!)
         
-        print("💾 Updated swap file with lockup transaction")
+        Log.info("💾 Updated swap file with lockup transaction")
         
         // Claim onchain transaction using async function
         Task {
             do {
-                print("🚀 Starting Boltz claim process...")
+                Log.info("🚀 Starting Boltz claim process...")
                 let claimResult = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapVC: self)
                 print("✅ Claim result: \(claimResult)")
                 
@@ -907,7 +908,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     }
                 }
             } catch {
-                print("Error claiming transaction: \(error)")
+                Log.info("Error claiming transaction: \(error)")
                 DispatchQueue.main.async {
                     self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                     SentrySDK.capture(error: error) { scope in
@@ -939,7 +940,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             let vc = UIActivityViewController(activityItems: [temporaryFileURL], applicationActivities: [])
             self.present(vc, animated: true, completion: nil)
         } catch {
-            print("Error loading swap details from file: \(error)")
+            Log.info("Error loading swap details from file: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SwapViewController row 870", key: "context")
@@ -1064,21 +1065,21 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             
             // Convert JSON Data to NSDictionary
             guard let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary else {
-                print("❌ Failed to parse JSON from file")
+                Log.info("❌ Failed to parse JSON from file")
                 return nil
             }
             
             // Extract lockup transaction
             if let lockupTx = dictionary["lockupTx"] as? String {
-                print("✅ Found lockup transaction in JSON file")
+                Log.info("✅ Found lockup transaction in JSON file")
                 return lockupTx
             } else {
-                print("❌ No lockup transaction found in JSON file")
+                Log.info("❌ No lockup transaction found in JSON file")
                 return nil
             }
             
         } catch {
-            print("❌ Error loading lockup transaction from file: \(error)")
+            Log.info("❌ Error loading lockup transaction from file: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SwapViewController row 1009", key: "context")

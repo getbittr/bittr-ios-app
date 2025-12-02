@@ -24,6 +24,7 @@
 		05117AF52EAA31C300A5E4E6 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF42EAA31C000A5E4E6 /* Button.swift */; };
 		05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF62EAA754500A5E4E6 /* Demo Data.swift */; };
 		05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF82EAB749F00A5E4E6 /* Image.swift */; };
+		05117B9E2EDEC6AC00A5E4E6 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117B9D2EDEC6AA00A5E4E6 /* Log.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -208,6 +209,7 @@
 		05117AF42EAA31C000A5E4E6 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
 		05117AF62EAA754500A5E4E6 /* Demo Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Demo Data.swift"; sourceTree = "<group>"; };
 		05117AF82EAB749F00A5E4E6 /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
+		05117B9D2EDEC6AA00A5E4E6 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -686,6 +688,7 @@
 				05F418ED2BAC1DF0005CFAD0 /* Channel.swift */,
 				05B30E2D2E26281200CF10EC /* Swap.swift */,
 				059704A62E43514F00B56690 /* BitcoinValue.swift */,
+				05117B9D2EDEC6AA00A5E4E6 /* Log.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -1110,6 +1113,7 @@
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
+				05117B9E2EDEC6AC00A5E4E6 /* Log.swift in Sources */,
 				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,
 				37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */,
 				05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */,

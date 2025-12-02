@@ -66,7 +66,7 @@ extension CanonicalTx {
         do {
             thisTransaction.fee = Int(try LightningNodeService.shared.getWallet()!.calculateFee(tx: self.transaction).toSat())
         } catch {
-            print("810 Could not calculate fee.")
+            Log.info("810 Could not calculate fee.")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "Transaction row 71", key: "context")

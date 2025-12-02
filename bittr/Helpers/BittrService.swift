@@ -71,7 +71,7 @@ class BittrService {
         
         do {
             lightningSignature = try await LightningNodeService.shared.signMessage(message: messageString)
-            print("Did fetch Lightning signature.")
+            Log.info("Did fetch Lightning signature.")
             
             let lightningPubKey = LightningNodeService.shared.nodeId()
             

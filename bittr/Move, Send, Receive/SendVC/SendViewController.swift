@@ -373,6 +373,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             
             // Safety check for invalid values
             guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                Log.info("376 Invalid values.")
                 print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
                 return
             }
@@ -576,6 +577,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 } else if self.selectedCurrency == .bitcoin {
                     let btcAmount = self.amountTextField.text!.toNumber()
                     guard btcAmount.isFinite && !btcAmount.isNaN else {
+                        Log.info("579 Invalid BTC amount.")
                         print("⚠️ Warning: Invalid BTC amount: \(btcAmount)")
                         return
                     }
@@ -586,6 +588,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                     let btcAmount = fiatAmount / bitcoinValue.currentValue
                     
                     guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                        Log.info("589 Invalid values.")
                         print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
                         return
                     }
@@ -718,7 +721,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 } else {
                     // If conversion fails, set the amount as-is (might be in satoshis already)
                     self.amountTextField.text = amount
-                    print("Could not convert Bitcoin URI amount, setting as-is: \(amount)")
+                    Log.info("Could not convert Bitcoin URI amount.")
+                    print("Setting as-is: \(amount)")
                 }
             }
             
@@ -749,10 +753,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                         self.selectedCurrency = .satoshis
                         print("Extracted amount from Lightning invoice: \(invoiceAmount) sats")
                     } else {
-                        print("Lightning invoice has no amount (zero amount invoice)")
+                        Log.info("Lightning invoice has no amount (zero amount invoice)")
                     }
                 } else {
-                    print("Failed to parse Lightning invoice")
+                    Log.info("Failed to parse Lightning invoice")
                 }
             }
             

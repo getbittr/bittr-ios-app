@@ -32,7 +32,7 @@ extension CoreViewController {
                             }
                         }
                         if let nodeError = error as? NodeError {
-                            print("28 Can't start node. \(handleNodeError(nodeError).title): \(handleNodeError(nodeError).detail)")
+                            Log.info("28 Can't start node. \(handleNodeError(nodeError).title): \(handleNodeError(nodeError).detail)")
                             switch nodeError {
                             case .AlreadyRunning(message: _):
                                 return true
@@ -53,7 +53,7 @@ extension CoreViewController {
                     } catch {
                         return false
                     }
-                    print("Starting LDK Node takes too long.")
+                    Log.info("Starting LDK Node takes too long.")
                     return false
                 }
                 
@@ -65,7 +65,7 @@ extension CoreViewController {
             
             // Proceed to next step.
             if self.didStartNode {
-                print("Did start node.")
+                Log.info("Did start node.")
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
                 SentrySDK.metrics.increment(key: "sync.ldk.success")
@@ -73,7 +73,7 @@ extension CoreViewController {
                     LightningNodeService.shared.startBDK(coreViewController: self)
                 }
             } else {
-                print("Could not start node.")
+                Log.info("Could not start node.")
                 self.stopLightning(message: nil)
             }
         }

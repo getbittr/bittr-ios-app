@@ -95,7 +95,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func setMnemonic() {
         
-        if self.signupVC?.coreVC == nil { print("CoreVC nil in Signup4.") }
+        if self.signupVC?.coreVC == nil { Log.info("CoreVC nil in Signup4.") }
         if let actualMnemonic = self.signupVC?.coreVC?.newMnemonic {
             
             var indicesSet = Set<Int>()

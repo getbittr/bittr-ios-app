@@ -308,7 +308,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @objc func resetWallet() {
         
-        print("Reset wallet.")
+        Log.info("Reset wallet.")
         
         self.setTransactions.removeAll()
         self.newTransactions.removeAll()
@@ -366,7 +366,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             do {
                 self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
             } catch {
-                print("Could not fetch channels.")
+                Log.info("Could not fetch channels.")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "HomeViewController row 375", key: "context")
@@ -416,12 +416,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 current.delegate = self
                 current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
                     
-                    print("Permission granted: \(granted)")
+                    Log.info("Permission granted: \(granted)")
                     guard granted else {return}
                     
                     // Double check that the preference is now authorized.
                     current.getNotificationSettings { (settings) in
-                        print("Notification settings: \(settings)")
+                        Log.info("Notification settings: \(settings)")
                         guard settings.authorizationStatus == .authorized else {return}
                         DispatchQueue.main.async {
                             // Register for notifications.

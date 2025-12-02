@@ -43,12 +43,12 @@ class CacheManager: NSObject {
         do {
             if FileManager.default.fileExists(atPath: imagesDirectory.path) {
                 try FileManager.default.removeItem(at: imagesDirectory)
-                print("Successfully deleted images folder and its contents.")
+                Log.info("Successfully deleted images folder and its contents.")
             } else {
-                print("Images folder does not exist.")
+                Log.info("Images folder does not exist.")
             }
         } catch {
-            print("Could not delete images folder. \(error.localizedDescription)")
+            Log.info("Could not delete images folder. \(error.localizedDescription)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "CacheManager row 53", key: "context")
@@ -224,9 +224,9 @@ class CacheManager: NSObject {
             try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
             // Write the data to file
             try data.write(to: fileURL)
-            print("Did save image to file.")
+            Log.info("Did save image to file.")
         } catch {
-            print("Could not save image to file. \(error.localizedDescription)")
+            Log.info("Could not save image to file. \(error.localizedDescription)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "CacheManager row 232", key: "context")
@@ -248,7 +248,7 @@ class CacheManager: NSObject {
             
             return imageData
         } catch {
-            print("Image not found in cache. \(error.localizedDescription)")
+            Log.info("Image not found in cache. \(error.localizedDescription)")
             return nil
         }
     }
@@ -608,14 +608,14 @@ class CacheManager: NSObject {
             if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
                 actualMutableHashes.setObject(timestamp, forKey: preimage as NSCopying)
                 defaults.set(actualMutableHashes, forKey: envKey)
-                print("Timestamp cached.")
+                Log.info("Timestamp cached.")
             }
         } else {
             // No hashes have been cached.
             let actualMutableHashes = NSMutableDictionary()
             actualMutableHashes.setObject(timestamp, forKey: preimage as NSCopying)
             defaults.set(actualMutableHashes, forKey: envKey)
-            print("Timestamp cached.")
+            Log.info("Timestamp cached.")
         }
     }
     
@@ -764,14 +764,14 @@ class CacheManager: NSObject {
             if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
                 actualMutableHashes.setObject(fees, forKey: preimage as NSCopying)
                 defaults.set(actualMutableHashes, forKey: envKey)
-                print("Lightning fees cached.")
+                Log.info("Lightning fees cached.")
             }
         } else {
             // No hashes have been cached.
             let actualMutableHashes = NSMutableDictionary()
             actualMutableHashes.setObject(fees, forKey: preimage as NSCopying)
             defaults.set(actualMutableHashes, forKey: envKey)
-            print("Lightning fees cached.")
+            Log.info("Lightning fees cached.")
         }
     }
     

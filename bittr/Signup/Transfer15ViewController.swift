@@ -311,7 +311,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                 }
             } catch {
-                print("310 Error: \(error.localizedDescription)")
+                Log.info("310 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "Transfer15ViewController row 313", key: "context")
@@ -514,7 +514,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 current.delegate = self
                 current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
                     
-                    print("Permission granted: \(granted)")
+                    Log.info("Permission granted: \(granted)")
                     guard granted else {
                         self.check2Fa()
                         return
@@ -522,7 +522,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                     // Double check that the preference is now authorized.
                     current.getNotificationSettings { (settings) in
-                        print("Notification settings: \(settings)")
+                        Log.info("Notification settings: \(settings)")
                         guard settings.authorizationStatus == .authorized else {
                             self.check2Fa()
                             return

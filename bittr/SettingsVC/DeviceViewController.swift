@@ -123,13 +123,13 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
             do {
                 if LightningNodeService.shared.ldkNode != nil {
                     let channels = try await LightningNodeService.shared.listChannels()
-                    print("Channels: \(channels.count)")
+                    Log.info("Channels: \(channels.count)")
                     self.channelsLabel.text = "\(channels.count)"
                 } else {
                     self.channelsLabel.text = "Syncing"
                 }
             } catch {
-                print("Error listing channels: \(error.localizedDescription)")
+                Log.info("Error listing channels: \(error.localizedDescription)")
                 self.channelsLabel.text = "0"
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
@@ -167,12 +167,12 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 current.delegate = self
                 current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
                     
-                    print("Permission granted: \(granted)")
+                    Log.info("Permission granted: \(granted)")
                     guard granted else {return}
                     
                     // Double check that the preference is now authorized.
                     current.getNotificationSettings { (settings) in
-                        print("Notification settings: \(settings)")
+                        Log.info("Notification settings: \(settings)")
                         guard settings.authorizationStatus == .authorized else {return}
                         DispatchQueue.main.async {
                             // Register for notifications.

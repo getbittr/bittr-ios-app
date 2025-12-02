@@ -209,7 +209,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 }
             } else {
                 // No pin found in storage.
-                print("No pin found in storage.")
+                Log.info("No pin found in storage.")
             }
         } else if self.embeddingView == "signup5" {
             if let actualSignup5VC = self.upperViewController as? Signup5ViewController {

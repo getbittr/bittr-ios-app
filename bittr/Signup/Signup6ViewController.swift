@@ -41,7 +41,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
             if actualPreviousPin == enteredPin {
                 // Pin is correct.
                 // Start wallet.
-                if self.signupVC?.coreVC == nil { print("CoreVC nil in Signup 6.") }
+                if self.signupVC?.coreVC == nil { Log.info("CoreVC nil in Signup 6.") }
                 self.signupVC?.coreVC?.startLightning()
                 self.signupVC?.enteredPin = ""
                 

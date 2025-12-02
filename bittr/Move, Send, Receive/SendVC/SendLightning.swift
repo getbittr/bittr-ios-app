@@ -247,13 +247,13 @@ extension UIViewController {
                 // Not connected to peer.
                 if await LightningNodeService.shared.didEstablishPeerConnection() {
                     // Did reconnect.
-                    print("Did reconnect to peer.")
+                    Log.info("Did reconnect to peer.")
                     DispatchQueue.main.async {
                         self.performLightningPayment()
                     }
                 } else {
                     // Can't reconnect.
-                    print("Could not reconnect to peer.")
+                    Log.info("Could not reconnect to peer.")
                     DispatchQueue.main.async {
                         sendVC?.nextLabel.alpha = 1
                         sendVC?.arrowIcon.alpha = 1
@@ -279,13 +279,13 @@ extension UIViewController {
         Task {
             if await LightningNodeService.shared.didEstablishPeerConnection() {
                 // Did reconnect.
-                print("Did reconnect to peer.")
+                Log.info("Did reconnect to peer.")
                 DispatchQueue.main.async {
                     self.performLightningPayment()
                 }
             } else {
                 // Can't reconnect.
-                print("Could not reconnect to peer.")
+                Log.info("Could not reconnect to peer.")
                 DispatchQueue.main.async {
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.arrowIcon.alpha = 1
@@ -298,7 +298,7 @@ extension UIViewController {
     
     @objc func cancelSwapOffer() {
         self.hideAlert()
-        print("DEBUG - cancelSwapOffer called, clearing pending data")
+        Log.info("DEBUG - cancelSwapOffer called, clearing pending data")
         
         let sendVC = self as? SendViewController
         let receiveVC = self as? ReceiveViewController

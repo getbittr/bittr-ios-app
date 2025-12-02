@@ -38,7 +38,7 @@ class CallsManager: NSObject {
             let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
                 
                 if let error = dataError {
-                    print("Error: \(error.localizedDescription)")
+                    Log.info("Error: \(error.localizedDescription)")
                     completion(.failure(.requestFailed(error.localizedDescription)))
                     return
                 }
@@ -48,7 +48,7 @@ class CallsManager: NSObject {
                     return
                 }
                 
-                print("Received data.")
+                Log.info("Received data.")
                 
                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
                     do {

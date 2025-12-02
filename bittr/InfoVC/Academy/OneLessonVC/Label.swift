@@ -23,14 +23,14 @@ extension OneLessonViewController {
                 let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                 thisLabel.attributedText = attributedText
             } catch {
-                print("Could not parse HTML text.")
+                Log.info("Could not parse HTML text.")
                 thisLabel.textColor = Colors.getColor("blackorwhite")
                 thisLabel.textAlignment = .center
                 thisLabel.font = UIFont(name: "Gilroy-Regular", size: 18)
                 thisLabel.text = withText
             }
         } else {
-            print("Could not parse HTML text.")
+            Log.info("Could not parse HTML text.")
             thisLabel.textColor = Colors.getColor("blackorwhite")
             thisLabel.textAlignment = .center
             thisLabel.font = UIFont(name: "Gilroy-Regular", size: 18)

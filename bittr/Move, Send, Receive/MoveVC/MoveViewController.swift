@@ -166,7 +166,7 @@ class MoveViewController: UIViewController {
                 
                 // Clear the pending data after passing it to prevent it from being reused
                 if self.isFromLightningPayment || self.isFromOnchainPayment {
-                    print("DEBUG - Clearing pending data in MoveViewController after passing to SwapViewController")
+                    Log.info("DEBUG - Clearing pending data in MoveViewController after passing to SwapViewController")
                     self.pendingLightningInvoice = ""
                     self.pendingOnchainAddress = ""
                     self.pendingOnchainAmount = 0

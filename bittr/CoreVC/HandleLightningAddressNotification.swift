@@ -13,7 +13,8 @@ extension CoreViewController {
     @objc func handleLightningAddressNotification(notification: NSNotification) {
         
         if let userInfo = notification.userInfo as? [String: Any] {
-            print("Received lightning address notification: \(userInfo)")
+            Log.info("Received lightning address notification.")
+            print("User info: \(userInfo)")
             
             // Extract the notification data
             guard let amountMsats = userInfo["amount_msats"] as? Int,
@@ -21,7 +22,7 @@ extension CoreViewController {
                   let timeSent = userInfo["time_sent"] as? String,
                   let username = userInfo["username"] as? String,
                   let endpoint = userInfo["endpoint"] as? String else {
-                print("Missing required data in lightning address notification")
+                Log.info("Missing required data in lightning address notification")
                 return
             }
             
@@ -60,7 +61,8 @@ extension CoreViewController {
                     expirySecs: 3600
                 )
                 
-                print("Generated invoice for lightning address payment: \(invoice.description)")
+                Log.info("Generated invoice for lightning address payment.")
+                print("Invoice: \(invoice.description)")
                 
                 // Post the invoice to the specified endpoint
                 let parameters: [String: Any] = [
@@ -78,11 +80,12 @@ extension CoreViewController {
                         
                         switch result {
                         case .success(let receivedDictionary):
-                            print("Successfully posted invoice to endpoint: \(receivedDictionary)")
+                            Log.info("Successfully posted invoice to endpoint.")
+                            print("Dictionary: \(receivedDictionary)")
                             // No alert needed - user will receive payment notification soon
                             
                         case .failure(let error):
-                            print("Failed to post invoice to endpoint: \(error)")
+                            Log.info("Failed to post invoice to endpoint: \(error)")
                             // Show error message with support contact
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
@@ -90,7 +93,7 @@ extension CoreViewController {
                 }
                 
             } catch {
-                print("Failed to generate invoice for lightning address payment: \(error)")
+                Log.info("Failed to generate invoice for lightning address payment: \(error)")
                 
                 DispatchQueue.main.async {
                     // Hide loading UI

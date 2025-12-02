@@ -21,14 +21,14 @@ extension UIViewController {
                 }
             }
             if peerIsConnected {
-                print("Did successfully check peer connection.")
+                Log.info("Did successfully check peer connection.")
                 return true
             } else {
-                print("Not connected to peer.")
+                Log.info("Not connected to peer.")
                 return false
             }
         } catch {
-            print("Error listing peers: \(error.localizedDescription)")
+            Log.info("Error listing peers: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "FetchAndPrint row 34", key: "context")

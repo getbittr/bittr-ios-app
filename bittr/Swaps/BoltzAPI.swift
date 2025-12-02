@@ -216,11 +216,11 @@ class BoltzAPI {
             
             // Check HTTP status code
             if let httpResponse = response as? HTTPURLResponse {
-                print("🔍 Broadcast API Status Code: \(httpResponse.statusCode)")
+                Log.info("🔍 Broadcast API Status Code: \(httpResponse.statusCode)")
                 if httpResponse.statusCode != 200 && httpResponse.statusCode != 201 {
                     // For error responses, try to get the error message from the response body
                     if let data = data, let errorString = String(data: data, encoding: .utf8) {
-                        print("🔍 Error Response Body: \(errorString)")
+                        Log.info("🔍 Error Response Body: \(errorString)")
                         completion(.failure(.requestFailed("HTTP \(httpResponse.statusCode): \(errorString)")))
                     } else {
                         completion(.failure(.requestFailed("HTTP \(httpResponse.statusCode)")))
@@ -236,14 +236,14 @@ class BoltzAPI {
             
             // Debug: Print the raw response
             if let responseString = String(data: data, encoding: .utf8) {
-                print("🔍 Broadcast API Response: \(responseString)")
+                Log.info("🔍 Broadcast API Response: \(responseString)")
             }
             
             do {
                 let decodedResponse = try JSONDecoder().decode(BroadcastResponse.self, from: data)
                 completion(.success(decodedResponse))
             } catch {
-                print("❌ Failed to decode broadcast response: \(error)")
+                Log.info("❌ Failed to decode broadcast response: \(error)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "BoltzAPI row 249", key: "context")

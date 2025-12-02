@@ -111,7 +111,7 @@ extension UIViewController {
                         case .failure(let error):
                             SentrySDK.capture(error: error)
                             SentrySDK.metrics.increment(key: "lnurl.api.failure.1")
-                            print("Error 111: \(error.localizedDescription)")
+                            Log.info("Error 111: \(error.localizedDescription)")
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
@@ -123,7 +123,7 @@ extension UIViewController {
             // {"tag":"payRequest","callback":"https://spiritedlizard2.lnbits.com/lnurlp/api/v1/lnurl/cb/FRV7Uj","minSendable":10000,"maxSendable":10000,"metadata":"[[\"text/plain\", \"Payment to tom\"], [\"text/identifier\", \"tom@spiritedlizard2.lnbits.com\"]]"}
             
         } catch {
-            print("Couldn't decode LNURL. Message: \(error.localizedDescription)")
+            Log.info("Couldn't decode LNURL. Message: \(error.localizedDescription)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SendLNURL row 126", key: "context")
@@ -183,7 +183,7 @@ extension UIViewController {
                     }
                 case .failure(let error):
                     SentrySDK.metrics.increment(key: "lnurl.pay.failure.1")
-                    print("Error: \(error.localizedDescription)")
+                    Log.info("Error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
@@ -246,7 +246,7 @@ extension UIViewController {
                             }
                         }
                     case .failure(let error):
-                        print("Error: \(error.localizedDescription)")
+                        Log.info("Error: \(error.localizedDescription)")
                         SentrySDK.capture(error: error)
                         SentrySDK.metrics.increment(key: "lnurl.withdraw.failure.3")
                         DispatchQueue.main.async {
@@ -307,7 +307,7 @@ extension UIViewController {
                 return nil
             }
         } else if let error = result.getError() {
-            print("Failed to parse invoice: \(error)")
+            Log.info("Failed to parse invoice: \(error)")
             return nil
         } else {
             return nil

@@ -72,7 +72,7 @@ class SwapManager: NSObject {
                     let newTimestamp = Int(Date().timeIntervalSince1970)
                     CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
                     CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
-                    print("Did cache invoice data.")
+                    Log.info("Did cache invoice data.")
                 }
                 
                 swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap onchain to lightning \(idString)"
@@ -247,7 +247,7 @@ class SwapManager: NSObject {
                         swapVC.confirmExpectedFees()
                     }
                 } catch {
-                    print("Error: \(error.localizedDescription)")
+                    Log.info("Error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
                         SentrySDK.capture(error: error) { scope in
@@ -277,7 +277,7 @@ class SwapManager: NSObject {
                         print("Transaction ID: \(txid)")
                     
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            print("Successful transaction.")
+                            Log.info("Successful transaction.")
                             
                             // Update swap object.
                             ongoingSwap.sentOnchainTransactionID = txid
@@ -299,7 +299,7 @@ class SwapManager: NSObject {
                     }
                 } catch {
                     // Log the exact error for debugging
-                    print("Transaction error: \(error.localizedDescription)")
+                    Log.info("Transaction error: \(error.localizedDescription)")
                     
                     DispatchQueue.main.async {
                         swapVC.showAlert(
@@ -372,7 +372,7 @@ class SwapManager: NSObject {
             print("DEBUG - Using provided payout address: \(payoutAddress)")
             destinationAddress = payoutAddress
         } else {
-            print("DEBUG - Getting new unused address for payout")
+            Log.info("DEBUG - Getting new unused address for payout")
             destinationAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
         }
         
@@ -522,7 +522,7 @@ class SwapManager: NSObject {
             
             print("Swap details saved to: \(fileURL.path)")
         } catch {
-            print("Error saving swap details to file: \(error)")
+            Log.info("Error saving swap details to file: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SwapManager row 519", key: "context")
@@ -545,7 +545,7 @@ class SwapManager: NSObject {
                 return dictionary
             }
         } catch {
-            print("Error loading swap details from file: \(error)")
+            Log.info("Error loading swap details from file: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SwapManager row 542", key: "context")
@@ -597,7 +597,7 @@ class SwapManager: NSObject {
     static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapViewController) {
         // Load swap details to get the description and user amount
         guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
-            print("Could not load swap details.")
+            Log.info("Could not load swap details.")
             return
         }
         
@@ -650,7 +650,7 @@ class SwapManager: NSObject {
                                 swapVC.confirmExpectedFees()
                             }
                         } catch {
-                            print("❌ Failed to calculate claim transaction fee: \(error)")
+                            Log.info("❌ Failed to calculate claim transaction fee: \(error)")
                             // Fallback to default fee calculation without claim transaction fee
                             DispatchQueue.main.async {
                                 swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
@@ -673,13 +673,13 @@ class SwapManager: NSObject {
     static func sendLightningPayment(swapVC:SwapViewController) {
         // Fees confirmed by user, pay Boltz invoice.
         guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { 
-            print("❌ No ongoing swap found in sendLightningPayment")
-            return 
+            Log.info("❌ No ongoing swap found in sendLightningPayment")
+            return
         }
             
         Task {
             do {
-                print("Will pay Boltz invoice.")
+                Log.info("Will pay Boltz invoice.")
                 let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

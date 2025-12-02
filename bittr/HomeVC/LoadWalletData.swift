@@ -171,7 +171,7 @@ extension HomeViewController {
             }
         }
         if depositCodes.count == 0 {
-            print("No TxIds are being sent to Bittr, because there are no deposit codes registered to this device.")
+            Log.info("No TxIds are being sent to Bittr, because there are no deposit codes registered to this device.")
             return false
         }
         
@@ -200,13 +200,13 @@ extension HomeViewController {
         }
         
         if newTxIds.count == 0 {
-            print("There are no new TxIds being sent to Bittr.")
+            Log.info("There are no new TxIds being sent to Bittr.")
             return false
         } else {
-            print("Will send \(newTxIds.count) TxIds to Bittr.")
+            Log.info("Will send \(newTxIds.count) TxIds to Bittr.")
             do {
                 let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
-                print("Bittr transactions: \(bittrApiTransactions.count)")
+                Log.info("Bittr transactions: \(bittrApiTransactions.count)")
                 
                 CacheManager.updateSentToBittr(txids: newTxIds)
                 
@@ -258,7 +258,7 @@ extension HomeViewController {
                     }
                 }
             } catch {
-                print("Bittr error: \(error.localizedDescription)")
+                Log.info("Bittr error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LoadWalletData row 266", key: "context")
@@ -352,7 +352,7 @@ extension HomeViewController {
                 }
                 
             } catch {
-                print("Couldn't fetch text: \(error.localizedDescription)")
+                Log.info("Couldn't fetch text: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LoadWalletData row 360", key: "context")
@@ -372,7 +372,7 @@ extension HomeViewController {
         
         if self.didFetchConversion || self.couldNotFetchConversion {
             // Conversion rate was already fetched.
-            print("Did start currency conversion with cached conversion rate.")
+            Log.info("Did start currency conversion with cached conversion rate.")
             
             let conversionLabelText = self.updateConversionLabel(btcValue: btcValue)
             
@@ -391,7 +391,7 @@ extension HomeViewController {
             }
         } else {
             // Conversion rate hasn't yet been fetched.
-            print("Did start currency conversion.")
+            Log.info("Did start currency conversion.")
             
             self.coreVC!.startSync(type: .conversion)
             
@@ -483,7 +483,7 @@ extension HomeViewController {
                     self.noTransactionsLabel.attributedText = attributedText
                     self.noTransactionsLabel.alpha = 1
                 } catch {
-                    print("Couldn't fetch text: \(error.localizedDescription)")
+                    Log.info("Couldn't fetch text: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "LoadWalletData row 489", key: "context")
@@ -499,7 +499,7 @@ extension HomeViewController {
     
     func calculateProfit(cachedData:Bool) {
         
-        print("Will calculate profits.")
+        Log.info("Will calculate profits.")
         if self.coreVC == nil {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
@@ -585,7 +585,7 @@ extension HomeViewController {
                 self.coreVC!.settingsVC!.settingsTapped(restoreButton)
             }
         } else {
-            print("Did calculate cached profits.")
+            Log.info("Did calculate cached profits.")
         }
     }
     
@@ -685,7 +685,8 @@ extension [Transaction] {
         for (eachSwapID, eachSetOfTransactions) in swapTransactions {
             if (eachSetOfTransactions as! [Transaction]).count == 2 {
                 // Completed swap.
-                print("Found completed swap: \(eachSwapID)")
+                Log.info("Found completed swap.")
+                print("Swap ID: \(eachSwapID)")
                 
                 if (eachSwapID as! String).contains((eachSetOfTransactions as! [Transaction])[0].id), (eachSetOfTransactions as! [Transaction])[0].swapStatus == .succeeded {
                     // This is already a completed Swap transaction.
@@ -788,7 +789,8 @@ extension [Transaction] {
                 }
             } else if (eachSetOfTransactions as! [Transaction]).count == 1, !(eachSetOfTransactions as! [Transaction])[0].isSwap {
                 // These are pending swap transactions.
-                print("Found pending swap: \(eachSwapID)")
+                Log.info("Found pending swap.")
+                print("Swap ID: \(eachSwapID)")
                 
                 let swapTransaction = Transaction()
                 swapTransaction.isSwap = true

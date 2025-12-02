@@ -58,7 +58,7 @@ class LightningNodeService {
         var mnemonicString = CacheManager.getMnemonic() ?? ""
         if mnemonicString == "" {
             // New wallet.
-            print("Did not find mnemonic. Creating a new one.")
+            Log.info("Did not find mnemonic. Creating a new one.")
             mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
@@ -124,7 +124,7 @@ class LightningNodeService {
             // BDK launch.
             do {
                 if self.bdkWallet == nil {
-                    print("Will start blockchain and wallet.")
+                    Log.info("Will start blockchain and wallet.")
                     
                     // Attempt to create a mnemonic object from the provided mnemonic string.
                     let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
@@ -143,10 +143,10 @@ class LightningNodeService {
                         if let xpub = xpubPart {
                             self.xpub = String(xpub)
                         } else {
-                            print("Error: Could not extract XPUB")
+                            Log.info("Error: Could not extract XPUB")
                         }
                     } else {
-                        print("Error: Descriptor format not recognized")
+                        Log.info("Error: Descriptor format not recognized")
                     }
                     
                     // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
@@ -156,7 +156,7 @@ class LightningNodeService {
                     var wallet:Wallet
                     self.connection = try Connection.createConnection()
                     if self.connection == nil {
-                        print("Could not create connection.")
+                        Log.info("Could not create connection.")
                         return
                     }
                     
@@ -167,7 +167,7 @@ class LightningNodeService {
                     let electrum = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                     self.electrumClient = electrum
                     
-                    print("Did initiate wallet and blockchain.")
+                    Log.info("Did initiate wallet and blockchain.")
                     DispatchQueue.main.async {
                         SentrySDK.metrics.increment(key: "sync.bdk.success")
                         self.coreVC?.updateSync(action: .complete, type: .bdk)
@@ -179,7 +179,7 @@ class LightningNodeService {
                 self.initialWalletSync()
                 
             } catch {
-                print("Some error occurred. \(error.localizedDescription)")
+                Log.info("Some error occurred. \(error.localizedDescription)")
                 let errorMessage:String = {
                     if let esploraError = error as? BitcoinDevKit.EsploraError {
                         return esploraError.getErrorMessage()
@@ -202,7 +202,7 @@ class LightningNodeService {
     
     
     func initialWalletSync() {
-        print("Will sync wallet.")
+        Log.info("Will sync wallet.")
         // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
         
         // Build sync request.
@@ -254,7 +254,7 @@ class LightningNodeService {
         }
         
         // Update syncing status.
-        print("Did sync wallet.")
+        Log.info("Did sync wallet.")
         DispatchQueue.main.async {
             SentrySDK.metrics.increment(key: "sync.walletsync.success")
             self.coreVC?.updateSync(action: .complete, type: .sync)
@@ -306,7 +306,7 @@ class LightningNodeService {
     }
     
     func handleError(error:Error, row:Int, stopLightning:Bool) {
-        print("Some error occurred. \(error.localizedDescription)")
+        Log.info("Some error occurred. \(error.localizedDescription)")
         let errorMessage:String = {
             if let esploraError = error as? BitcoinDevKit.EsploraError {
                 return esploraError.getErrorMessage()
@@ -350,7 +350,7 @@ class LightningNodeService {
                         }
                     }()
                     DispatchQueue.main.async {
-                        print("Can't disconnect from peer: \(errorMessage).")
+                        Log.info("Can't disconnect from peer: \(errorMessage).")
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "LightningNodeService row 277", key: "context")
                         }
@@ -373,7 +373,7 @@ class LightningNodeService {
                         address: EnvironmentConfig.lightningNodeAddress,
                         persist: true
                     )
-                    print("Did connect to peer.")
+                    Log.info("Did connect to peer.")
                     return true
                 } catch {
                     let errorMessage:String = {
@@ -385,7 +385,7 @@ class LightningNodeService {
                     }()
                     DispatchQueue.main.async {
                         // Handle UI error showing here, like showing an alert
-                        print("Can't connect to peer: \(errorMessage).")
+                        Log.info("Can't connect to peer: \(errorMessage).")
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "LightningNodeService row 319", key: "context")
                         }
@@ -401,7 +401,7 @@ class LightningNodeService {
                 } catch {
                     return false
                 }
-                print("Connecting to peer takes too long.")
+                Log.info("Connecting to peer takes too long.")
                 return false
             }
             
@@ -450,7 +450,7 @@ class LightningNodeService {
                     self.coreVC?.homeVC?.loadWalletData()
                 }
             } catch {
-                print("Error listing channels: \(error.localizedDescription)")
+                Log.info("Error listing channels: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LightningNodeService row 369", key: "context")
@@ -519,7 +519,7 @@ class LightningNodeService {
         
         DispatchQueue.global(qos: .background).async {
             do {
-                print("Will light sync wallet.")
+                Log.info("Will light sync wallet.")
                 // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
                 let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
                 let update = try self.electrumClient!.sync(
@@ -548,7 +548,7 @@ class LightningNodeService {
                     DispatchQueue.main.async { completion(false) }
                 }
             } catch {
-                print("Error completing light sync: \(error.localizedDescription)")
+                Log.info("Error completing light sync: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LightningNodeService row 462", key: "context")
@@ -620,7 +620,7 @@ class LightningNodeService {
     }
     
     func resetNodeState() {
-        print("🔍 [DEBUG] LightningNodeService - Resetting node state")
+        Log.info("🔍 [DEBUG] LightningNodeService - Resetting node state")
         
         // Clear node reference
         self.ldkNode = nil
@@ -637,7 +637,7 @@ class LightningNodeService {
         // Reset other state variables
         self.xpub = ""
         
-        print("🔍 [DEBUG] LightningNodeService - Node state reset completed")
+        Log.info("🔍 [DEBUG] LightningNodeService - Node state reset completed")
     }
     
     func listenForEvents() {
@@ -649,7 +649,7 @@ class LightningNodeService {
             do {
                 try self.ldkNode!.eventHandled()
             } catch {
-                print("Error: \(error.localizedDescription)")
+                Log.info("Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "LightningNodeService row 564", key: "context")

@@ -32,7 +32,7 @@ extension HomeViewController {
                     
                     satsLabel.alpha = 1
                 } catch {
-                    print("Couldn't fetch text: \(error.localizedDescription)")
+                    Log.info("Couldn't fetch text: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "ShowCachedData row 38", key: "context")

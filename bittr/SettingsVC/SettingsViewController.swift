@@ -105,7 +105,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                             
                             // If channel closure was initiated within the last 30 minutes, allow reset
                             if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-                                print("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                                Log.info("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
                                 // Allow wallet reset since channel is in closing process
                                 self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
                             } else {
@@ -228,15 +228,15 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
             } catch {
                 // Unsuccessful channel closure.
-                print("❌ [DEBUG] Settings - Channel closure failed with error: \(error)")
-                print("❌ [DEBUG] Settings - Error type: \(type(of: error))")
-                print("❌ [DEBUG] Settings - Error description: \(error.localizedDescription)")
+                Log.info("❌ [DEBUG] Settings - Channel closure failed with error: \(error)")
+                Log.info("❌ [DEBUG] Settings - Error type: \(type(of: error))")
+                Log.info("❌ [DEBUG] Settings - Error description: \(error.localizedDescription)")
                 
                 // Log additional error details if available
                 if let nsError = error as NSError? {
-                    print("❌ [DEBUG] Settings - NSError domain: \(nsError.domain)")
-                    print("❌ [DEBUG] Settings - NSError code: \(nsError.code)")
-                    print("❌ [DEBUG] Settings - NSError userInfo: \(nsError.userInfo)")
+                    Log.info("❌ [DEBUG] Settings - NSError domain: \(nsError.domain)")
+                    Log.info("❌ [DEBUG] Settings - NSError code: \(nsError.code)")
+                    Log.info("❌ [DEBUG] Settings - NSError userInfo: \(nsError.userInfo)")
                 }
                 
                 DispatchQueue.main.async {
@@ -265,7 +265,8 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
                 
                 // Try force close (unilateral closure)
-                print("🔍 [DEBUG] Settings - Attempting force close for channel: \(closingChannel!.userChannelId)")
+                Log.info("Attempting force close for channel.")
+                print("🔍 [DEBUG] Channel ID: \(closingChannel!.userChannelId)")
                 try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
@@ -279,9 +280,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
                 
             } catch {
-                print("❌ [DEBUG] Settings - Force close failed: \(error)")
-                print("❌ [DEBUG] Settings - Force close error type: \(type(of: error))")
-                print("❌ [DEBUG] Settings - Force close error description: \(error.localizedDescription)")
+                Log.info("❌ [DEBUG] Settings - Force close failed: \(error)")
+                Log.info("❌ [DEBUG] Settings - Force close error type: \(type(of: error))")
+                Log.info("❌ [DEBUG] Settings - Force close error description: \(error.localizedDescription)")
                 
                 DispatchQueue.main.async {
                     self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -300,7 +301,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     }
     
     func didCloseChannel() {
-        print("🔍 [DEBUG] Settings - didCloseChannel() - Clearing channel cache and triggering sync")
+        Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.coreVC!.bittrWallet.lightningChannels = [ChannelDetails]()
         self.coreVC!.bittrWallet.bittrChannel = nil
@@ -313,12 +314,12 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         // Trigger a fresh sync to get updated channel data
         Task {
             do {
-                print("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
+                Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
                 try LightningNodeService.shared.syncWallets()
                 
                 // Get fresh channel data
                 let updatedChannels = try await LightningNodeService.shared.listChannels()
-                print("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
+                Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
                 
                 DispatchQueue.main.async {
                     // Update the cached channel data
@@ -329,10 +330,10 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                         self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
                     }
                     
-                    print("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")
+                    Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")
                 }
             } catch {
-                print("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
+                Log.info("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "SettingsViewController row 318", key: "context")

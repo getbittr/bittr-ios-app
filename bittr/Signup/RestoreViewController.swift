@@ -242,10 +242,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                     print("Word added: \(enteredMnemonic), handledWords: \(handledWords)")
                     if handledWords == 12 {
                         print("All 12 words collected: \(enteredMnemonic)")
-                        print("About to check coreVC...")
+                        Log.info("About to check coreVC...")
                         
                         if self.coreVC == nil {
-                            print("coreVC is nil - stopping spinner and showing error")
+                            Log.info("coreVC is nil - stopping spinner and showing error")
                             self.restoreButtonSpinner.stopAnimating()
                             self.restoreButtonText.alpha = 1
                             self.showAlert(
@@ -257,7 +257,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             )
                             return
                         } else if self.coreVC!.resettingPin {
-                            print("PIN reset mode detected")
+                            Log.info("PIN reset mode detected")
                             // We're resetting the device PIN.
                             
                             self.restoreButtonSpinner.stopAnimating()
@@ -281,33 +281,33 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         } else {
-                            print("Wallet restore mode detected")
+                            Log.info("Wallet restore mode detected")
                             // We're restoring an existing wallet.
                             
                             // Validate mnemonic using BitcoinDevKit before storing
                             do {
                                 print("Validating mnemonic with BitcoinDevKit: \(enteredMnemonic)")
                                 _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: enteredMnemonic)
-                                print("Mnemonic validation successful")
+                                Log.info("Mnemonic validation successful")
                                 
                                                                 // Store restorable mnemonic in cache.
                                 CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
                                 
-                                print("About to start Lightning wallet...")
+                                Log.info("About to start Lightning wallet...")
                                 // Start wallet.
                                 self.coreVC!.startLightning()
-                                print("Lightning wallet started successfully")
+                                Log.info("Lightning wallet started successfully")
                                 
                                 // Proceed to next page.
                                 self.signupVC?.moveToPage(1)
-                                print("Moved to next page")
+                                Log.info("Moved to next page")
                                 
                                 self.restoreButtonSpinner.stopAnimating()
                                 self.restoreButtonText.alpha = 1
-                                print("Restore process completed successfully")
+                                Log.info("Restore process completed successfully")
                                 
                             } catch {
-                                print("Mnemonic validation failed: \(error)")
+                                Log.info("Mnemonic validation failed: \(error)")
                                 DispatchQueue.main.async {
                                     SentrySDK.capture(error: error) { scope in
                                         scope.setExtra(value: "RestoreViewController row 313", key: "context")

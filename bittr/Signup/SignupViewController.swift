@@ -57,7 +57,7 @@ class SignupViewController: UIViewController {
             // During PIN reset, only allow access to restore-related pages (0, 1, 2)
             // Block access to mnemonic display pages (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
             if thisPage > 2 {
-                print("SECURITY: Blocked access to page \(thisPage) during PIN reset")
+                Log.info("SECURITY: Blocked access to page \(thisPage) during PIN reset")
                 self.showAlert(
                     presentingController: self,
                     title: "Access Restricted",

@@ -93,17 +93,17 @@ class Signup1ViewController: UIViewController {
         var mnemonicString = ""
         if let actualMnemonic = CacheManager.getMnemonic() {
             // Mnemonic found in storage.
-            print("Did find mnemonic.")
+            Log.info("Did find mnemonic.")
             mnemonicString = actualMnemonic
         } else {
             // Create new mnemonic.
-            print("Did not find mnemonic. Creating a new one.")
+            Log.info("Did not find mnemonic. Creating a new one.")
             mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
             CacheManager.storeMnemonic(mnemonic: mnemonicString)
         }
         
         // Send mnemonic to 3rd signup view.
-        if self.signupVC?.coreVC == nil { print("CoreVC nil.") }
+        if self.signupVC?.coreVC == nil { Log.info("CoreVC nil.") }
         self.signupVC?.coreVC?.newMnemonic = mnemonicString.components(separatedBy: " ")
 
         self.didReceiveMnemonic()
@@ -158,7 +158,7 @@ extension UIViewController {
                 articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
                 completion(receivedArticle)
             case .failure(let receivedError):
-                print("Couldn't get article: \(receivedError)")
+                Log.info("Couldn't get article: \(receivedError)")
                 completion(nil)
             }
         }

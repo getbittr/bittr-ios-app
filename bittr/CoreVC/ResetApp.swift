@@ -89,7 +89,7 @@ extension CoreViewController {
                         
                         // If channel closure was initiated within the last 2 minutes, allow reset
                         if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-                            print("🔍 [DEBUG] ResetApp - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                            Log.info("🔍 [DEBUG] ResetApp - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
                             // Allow wallet reset since channel is in closing process
                             self.performWalletReset(nodeIsRunning: true)
                         } else {
@@ -159,15 +159,15 @@ extension CoreViewController {
                 }
             } catch {
                 // Unsuccessful channel closure.
-                print("❌ [DEBUG] ResetApp - Channel closure failed with error: \(error)")
-                print("❌ [DEBUG] ResetApp - Error type: \(type(of: error))")
-                print("❌ [DEBUG] ResetApp - Error description: \(error.localizedDescription)")
+                Log.info("❌ [DEBUG] ResetApp - Channel closure failed with error: \(error)")
+                Log.info("❌ [DEBUG] ResetApp - Error type: \(type(of: error))")
+                Log.info("❌ [DEBUG] ResetApp - Error description: \(error.localizedDescription)")
                 
                 // Log additional error details if available
                 if let nsError = error as NSError? {
-                    print("❌ [DEBUG] ResetApp - NSError domain: \(nsError.domain)")
-                    print("❌ [DEBUG] ResetApp - NSError code: \(nsError.code)")
-                    print("❌ [DEBUG] ResetApp - NSError userInfo: \(nsError.userInfo)")
+                    Log.info("❌ [DEBUG] ResetApp - NSError domain: \(nsError.domain)")
+                    Log.info("❌ [DEBUG] ResetApp - NSError code: \(nsError.code)")
+                    Log.info("❌ [DEBUG] ResetApp - NSError userInfo: \(nsError.userInfo)")
                 }
                 
                 DispatchQueue.main.async {
@@ -193,7 +193,8 @@ extension CoreViewController {
                 }
                 if closingChannel != nil {
                     // Try force close (unilateral closure)
-                    print("🔍 [DEBUG] ResetApp - Attempting force close for channel: \(closingChannel!.userChannelId)")
+                    Log.info("🔍 [DEBUG] ResetApp - Attempting force close for channel.")
+                    print("Channel ID: \(closingChannel!.userChannelId)")
                     try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                     
                     // Mark that we've initiated channel closure
@@ -213,9 +214,9 @@ extension CoreViewController {
                     }
                 }
             } catch {
-                print("❌ [DEBUG] ResetApp - Force close failed: \(error)")
-                print("❌ [DEBUG] ResetApp - Force close error type: \(type(of: error))")
-                print("❌ [DEBUG] ResetApp - Force close error description: \(error.localizedDescription)")
+                Log.info("❌ [DEBUG] ResetApp - Force close failed: \(error)")
+                Log.info("❌ [DEBUG] ResetApp - Force close error type: \(type(of: error))")
+                Log.info("❌ [DEBUG] ResetApp - Force close error description: \(error.localizedDescription)")
                 
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
@@ -247,32 +248,32 @@ extension CoreViewController {
         
         // Remove wallet from device and remove corresponding cached data.
         do {
-            print("🔍 [DEBUG] ResetApp - Starting wallet reset cleanup")
+            Log.info("🔍 [DEBUG] ResetApp - Starting wallet reset cleanup")
             
             // Always try to stop the node first if it exists
             if LightningNodeService.shared.ldkNode != nil {
-                print("🔍 [DEBUG] ResetApp - Stopping Lightning node")
+                Log.info("🔍 [DEBUG] ResetApp - Stopping Lightning node")
                 try LightningNodeService.shared.stop()
-                print("🔍 [DEBUG] ResetApp - Lightning node stopped successfully")
+                Log.info("🔍 [DEBUG] ResetApp - Lightning node stopped successfully")
             }
             
             // Always clean up documents directory
-            print("🔍 [DEBUG] ResetApp - Cleaning up documents directory")
+            Log.info("🔍 [DEBUG] ResetApp - Cleaning up documents directory")
             try LightningNodeService.shared.deleteDocuments()
-            print("🔍 [DEBUG] ResetApp - Documents directory cleaned successfully")
+            Log.info("🔍 [DEBUG] ResetApp - Documents directory cleaned successfully")
             
             // Reset node state to clear all references
-            print("🔍 [DEBUG] ResetApp - Resetting node state")
+            Log.info("🔍 [DEBUG] ResetApp - Resetting node state")
             LightningNodeService.shared.resetNodeState()
-            print("🔍 [DEBUG] ResetApp - Node state reset completed")
+            Log.info("🔍 [DEBUG] ResetApp - Node state reset completed")
             
             // Clear all cached data
-            print("🔍 [DEBUG] ResetApp - Clearing cached data")
+            Log.info("🔍 [DEBUG] ResetApp - Clearing cached data")
             CacheManager.deleteClientInfo()
-            print("🔍 [DEBUG] ResetApp - Cached data cleared successfully")
+            Log.info("🔍 [DEBUG] ResetApp - Cached data cleared successfully")
             
         } catch {
-            print("❌ [DEBUG] ResetApp - Error during cleanup: \(error.localizedDescription)")
+            Log.info("❌ [DEBUG] ResetApp - Error during cleanup: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "ResetApp row 269", key: "context")
@@ -281,11 +282,11 @@ extension CoreViewController {
             
             // Even if everything fails, try to clean up documents
             do {
-                print("🔍 [DEBUG] ResetApp - Attempting final fallback document cleanup")
+                Log.info("🔍 [DEBUG] ResetApp - Attempting final fallback document cleanup")
                 try LightningNodeService.shared.deleteDocuments()
-                print("🔍 [DEBUG] ResetApp - Final fallback document cleanup successful")
+                Log.info("🔍 [DEBUG] ResetApp - Final fallback document cleanup successful")
             } catch {
-                print("❌ [DEBUG] ResetApp - Final fallback document cleanup failed: \(error.localizedDescription)")
+                Log.info("❌ [DEBUG] ResetApp - Final fallback document cleanup failed: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 282", key: "context")
@@ -303,7 +304,7 @@ extension CoreViewController {
         
         // Launch signup on create wallet page after a delay to ensure cleanup is complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            print("🔍 [DEBUG] ResetApp - Launching signup after cleanup")
+            Log.info("🔍 [DEBUG] ResetApp - Launching signup after cleanup")
             self.launchSignup(onPage: 3) // Page 3 is create wallet
             self.showSignupView()
             
@@ -318,7 +319,7 @@ extension CoreViewController {
     }
     
     func didCloseChannel() {
-        print("🔍 [DEBUG] ResetApp - didCloseChannel() - Clearing channel cache and triggering sync")
+        Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.bittrWallet.lightningChannels = [ChannelDetails]()
         self.bittrWallet.bittrChannel = nil
@@ -331,12 +332,12 @@ extension CoreViewController {
         // Trigger a fresh sync to get updated channel data
         Task {
             do {
-                print("🔍 [DEBUG] ResetApp - didCloseChannel() - Syncing wallet to get updated channel count")
+                Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Syncing wallet to get updated channel count")
                 try LightningNodeService.shared.syncWallets()
                 
                 // Get fresh channel data
                 let updatedChannels = try await LightningNodeService.shared.listChannels()
-                print("🔍 [DEBUG] ResetApp - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
+                Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
                 
                 DispatchQueue.main.async {
                     // Update the cached channel data
@@ -347,10 +348,10 @@ extension CoreViewController {
                         self.homeVC!.setTotalSats(updateTableAfterConversion: false)
                     }
                     
-                    print("🔍 [DEBUG] ResetApp - didCloseChannel() - Channel cache updated successfully")
+                    Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Channel cache updated successfully")
                 }
             } catch {
-                print("❌ [DEBUG] ResetApp - didCloseChannel() - Error syncing after channel closure: \(error)")
+                Log.info("❌ [DEBUG] ResetApp - didCloseChannel() - Error syncing after channel closure: \(error)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 347", key: "context")

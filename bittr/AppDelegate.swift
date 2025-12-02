@@ -178,7 +178,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("Failed to register: \(error)")
+        Log.info("Failed to register: \(error)")
     }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
@@ -216,17 +216,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         
         // Print entire userInfo dictionary to console
-        print("=== didReceiveRemoteNotification called ===")
-        print("Application state: \(UIApplication.shared.applicationState.rawValue)")
+        Log.info("=== didReceiveRemoteNotification called ===")
+        Log.info("Application state: \(UIApplication.shared.applicationState.rawValue)")
         print("Received remote notification: \(userInfo)")
         
         // Handle notifications when app is not active (background or closed)
         // Foreground notifications are handled in willPresent method
         if UIApplication.shared.applicationState != .active {
-            print("App is not active, storing notification")
+            Log.info("App is not active, storing notification")
             // Set flag to indicate we received a notification while app was not active
             UserDefaults.standard.set(true, forKey: "receivedNotificationWhileClosed")
-            print("Set receivedNotificationWhileClosed flag to true")
+            Log.info("Set receivedNotificationWhileClosed flag to true")
             
             // Store the notification data for later processing when app becomes active
             if let actualUserInfo = userInfo as [AnyHashable:Any]? {
@@ -235,24 +235,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     print("Stored pending payment notification: \(actualUserInfo)")
                 } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
                     UserDefaults.standard.set(actualUserInfo, forKey: "pendingBittrNotification")
-                    print("Stored pending Bittr notification")
+                    Log.info("Stored pending Bittr notification")
                 } else if let swapData = userInfo["swap_notification"] as? [String: Any] {
                     UserDefaults.standard.set(actualUserInfo, forKey: "pendingSwapNotification")
-                    print("Stored pending swap notification")
+                    Log.info("Stored pending swap notification")
                 } else if let lightningAddressData = userInfo["lightning_address_notification"] as? [String: Any] {
                     UserDefaults.standard.set(actualUserInfo, forKey: "pendingLightningAddressNotification")
-                    print("Stored pending lightning address notification")
+                    Log.info("Stored pending lightning address notification")
                 } else {
                     // Unexpected notification type.
-                    print("Unexpected notification type")
+                    Log.info("Unexpected notification type")
                     self.handleUnexpectedNotification(1, userInfo: "\(userInfo)")
                 }
             } else {
-                print("Invalid userInfo format")
+                Log.info("Invalid userInfo format")
                 self.handleUnexpectedNotification(2, userInfo: "\(userInfo)")
             }
         } else {
-            print("App is active, notification will be handled by willPresent method")
+            Log.info("App is active, notification will be handled by willPresent method")
         }
         
         completionHandler(.newData)

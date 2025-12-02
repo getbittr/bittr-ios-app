@@ -250,7 +250,7 @@ class ValueViewController: UIViewController {
                     }
                 }
             } catch {
-                print("Error fetching data: \(error.localizedDescription)")
+                Log.info("Error fetching data: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.valueSpinner.stopAnimating()
                     self.isFetchingData = false

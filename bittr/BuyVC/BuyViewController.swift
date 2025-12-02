@@ -204,7 +204,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     case .success(let receivedDictionary):
                         self.parseNewData(receivedDictionary: receivedDictionary)
                     case .failure(let error):
-                        print("185 Error. \(error.localizedDescription)")
+                        Log.info("185 Error. \(error.localizedDescription)")
                         let errorMessage:String = {
                             switch error {
                             case .invalidURL: return "We could not reach our server."
@@ -218,7 +218,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     }
                 }
             } catch {
-                print("185 Error: \(error.localizedDescription)")
+                Log.info("185 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.updateDataSpinner.stopAnimating()
                     SentrySDK.capture(error: error) { scope in

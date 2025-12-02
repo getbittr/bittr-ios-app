@@ -216,7 +216,7 @@ class InfoViewController: UIViewController, UITableViewDelegate, UITableViewData
                     // Image hasn't been saved to cache before.
                     
                     actualCell.spinner.startAnimating()
-                    print("Will download image.")
+                    Log.info("Will download image.")
                     
                     Task {
                         if let actualData = await self.getImage(urlString: self.newsArticles[indexPath.row].image) {
@@ -284,7 +284,7 @@ extension UIViewController {
             
             return image.resizeImage()
         } catch {
-            print("Some error occurred fetching image. \(error.localizedDescription)")
+            Log.info("Some error occurred fetching image. \(error.localizedDescription)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "InfoViewController row 294", key: "context")
@@ -306,7 +306,7 @@ extension UIImage {
         
         // Don't enlarge the image.
         if 1080 > self.size.width {
-            print("Image is narrower than 1080 pixels. No need to resize.")
+            Log.info("Image is narrower than 1080 pixels. No need to resize.")
             return self.jpegData(compressionQuality: 1)!
         }
         
@@ -324,7 +324,7 @@ extension UIImage {
         self.draw(in: rect)
         var newImage = UIGraphicsGetImageFromCurrentImageContext()
         if newImage == nil {
-            print("Image could not be downsized.")
+            Log.info("Image could not be downsized.")
             newImage = self
         }
         UIGraphicsEndImageContext()

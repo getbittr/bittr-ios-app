@@ -39,10 +39,10 @@ extension ReceiveViewController {
     func getOnchainAddress() -> String? {
         
         if let cachedAddress = CacheManager.getLastAddress() {
-            print("Show cached address.")
+            Log.info("Show cached address.")
             return cachedAddress
         } else {
-            print("Show new address.")
+            Log.info("Show new address.")
             return nil
         }
     }
@@ -81,6 +81,7 @@ extension ReceiveViewController {
                     
                     // Safety check for invalid values
                     guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                        Log.info("84 Invalid values.")
                         print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
                         return
                     }

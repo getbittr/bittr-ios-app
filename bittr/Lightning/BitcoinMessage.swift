@@ -372,7 +372,7 @@ public class SimpleKeyDerivation {
             let bdkMnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: testMnemonic)
             let bip32ExtendedRootKey = DescriptorSecretKey(network: .signet, mnemonic: bdkMnemonic, password: nil)
             
-            print("=== BDK REFERENCE TEST ===")
+            Log.info("=== BDK REFERENCE TEST ===")
             print("BDK Root Key: \(bip32ExtendedRootKey.asString())")
             
             // Now test our implementation with the same logic as the actual function
@@ -383,20 +383,20 @@ public class SimpleKeyDerivation {
             
             // Test seed generation first
             let masterSeed = try keyDerivation.createMasterSeed(from: Data())
-            print("=== SEED GENERATION TEST ===")
+            Log.info("=== SEED GENERATION TEST ===")
             print("Master seed (first 32 bytes): \(masterSeed.prefix(32).hexString)")
             print("Chain code (last 32 bytes): \(masterSeed.suffix(32).hexString)")
             
             // Test path parsing
             let pathComponents = try keyDerivation.parseDerivationPath(testPath)
-            print("=== PATH PARSING TEST ===")
+            Log.info("=== PATH PARSING TEST ===")
             print("Path components: \(pathComponents.map { String(format: "0x%08x", $0) })")
             
             let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(testPath)
             
             let signature = try! BitcoinMessage.sign(message: "Hello World", privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
             
-            print("=== KEY DERIVATION TEST ===")
+            Log.info("=== KEY DERIVATION TEST ===")
             print("Mnemonic: \(testMnemonic)")
             print("Path: \(testPath)")
             print("Expected Private Key: \(expectedPrivateKey)")
@@ -406,11 +406,11 @@ public class SimpleKeyDerivation {
             print("Expected Public Key: \(expectedPublicKey)")
             print("Actual Public Key:   \(publicKeyHex)")
             print("Public Key Match: \(publicKeyHex.lowercased() == expectedPublicKey.lowercased())")
-            print("=== END TEST ===")
+            Log.info("=== END TEST ===")
             print("Signature: \(signature)")
             
         } catch {
-            print("Test failed with error: \(error)")
+            Log.info("Test failed with error: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "BitcoinMessage row 415", key: "context")

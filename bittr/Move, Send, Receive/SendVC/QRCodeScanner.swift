@@ -233,7 +233,8 @@ extension SendViewController {
                                 } else {
                                     // If conversion fails, set the amount as-is
                                     self.amountTextField.text = "\(bitcoinAmount)"
-                                    print("QR Scanner: Could not convert Bitcoin URI amount, setting as-is: \(bitcoinAmount)")
+                                    Log.info("QR Scanner: Could not convert Bitcoin URI amount.")
+                                    print("Setting as-is: \(bitcoinAmount)")
                                 }
                             } else {
                                 self.amountTextField.text = nil
