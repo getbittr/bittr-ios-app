@@ -70,8 +70,8 @@ extension BitcoinDevKit.EsploraError {
             
         case .Minreq(errorMessage: let errorMessage):
             return errorMessage
-        case .HttpResponse(status: let status, errorMessage: let errorMessage):
-            return errorMessage
+        case .HttpResponse(status: _, errorMessage: _):
+            return Language.getWord(withID: "EsploraHttpResponse")
         case .Parsing(errorMessage: let errorMessage):
             return errorMessage
         case .StatusCode(errorMessage: let errorMessage):

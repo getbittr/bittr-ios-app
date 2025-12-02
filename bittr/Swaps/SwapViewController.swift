@@ -277,6 +277,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             } else {
                 // We can send our available channel space, if we have enough onchain satoshis.
                 
+                if self.coreVC!.bittrWallet.satoshisOnchain == 0 {
+                    // There are no onchain funds.
+                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                    return
+                }
+                
                 // Calculate available channel space.
                 let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0) - Int(activeChannel!.counterpartyUnspendablePunishmentReserve)
                 
