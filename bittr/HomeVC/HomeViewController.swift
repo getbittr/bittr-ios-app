@@ -9,7 +9,6 @@ import UIKit
 import LDKNode
 import BitcoinDevKit
 import UserNotifications
-import LDKNodeFFI
 import Sentry
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {

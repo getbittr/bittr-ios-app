@@ -7,7 +7,6 @@
 
 import Foundation
 import LDKNode
-import LDKNodeFFI
 
 struct LightningStorage {
     func getDocumentsDirectory() -> String {

@@ -8,7 +8,6 @@
 import Foundation
 import LDKNode
 import BitcoinDevKit
-import LDKNodeFFI
 import Sentry
 import CryptoKit
 

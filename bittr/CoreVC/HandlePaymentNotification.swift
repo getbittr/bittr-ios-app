@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import LDKNodeFFI
 import LightningDevKit
 import Sentry
 
