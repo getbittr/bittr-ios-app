@@ -99,7 +99,7 @@ class Signup1ViewController: UIViewController {
             // Create new mnemonic.
             Log.info("Did not find mnemonic. Creating a new one.")
             mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
-            CacheManager.storeMnemonic(mnemonic: mnemonicString)
+            CacheManager.storeMnemonic(mnemonicString)
         }
         
         // Send mnemonic to 3rd signup view.

@@ -34,7 +34,7 @@ class LightningNodeService {
         self.network = network
     }
     
-    func start() async throws {
+    func startLDK() async throws {
         
         try? FileManager.deleteLDKNodeLogLatestFile()
         
@@ -55,13 +55,18 @@ class LightningNodeService {
         )
         
         // Check if mnenomic has already been created.
-        var mnemonicString = CacheManager.getMnemonic() ?? ""
-        if mnemonicString == "" {
-            // New wallet.
-            Log.info("Did not find mnemonic. Creating a new one.")
-            mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
-            CacheManager.storeMnemonic(mnemonic: mnemonicString)
-        }
+        let mnemonicString:String = {
+            if let cachedMnemonic = CacheManager.getMnemonic() {
+                // Existing mnemonic.
+                return cachedMnemonic
+            } else {
+                // New mnemonic.
+                Log.info("Did not find mnemonic. Creating a new one.")
+                let newMnemonic:String = BitcoinDevKit.Mnemonic(wordCount: .words12).description
+                CacheManager.storeMnemonic(newMnemonic)
+                return newMnemonic
+            }
+        }()
         
         // LDK background syncing.
         let backgroundSync = BackgroundSyncConfig(

@@ -23,7 +23,7 @@ extension CoreViewController {
                 // Start LDK node.
                 group.addTask {
                     do {
-                        try await LightningNodeService.shared.start()
+                        try await LightningNodeService.shared.startLDK()
                     } catch {
                         DispatchQueue.main.async {
                             SentrySDK.metrics.increment(key: "sync.ldk.failure")

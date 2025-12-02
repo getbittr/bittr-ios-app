@@ -796,7 +796,7 @@ class CacheManager: NSObject {
     
     // MARK: - Mnemonic
     
-    static func storeMnemonic(mnemonic:String) {
+    static func storeMnemonic(_ mnemonic:String) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
         

@@ -290,8 +290,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: enteredMnemonic)
                                 Log.info("Mnemonic validation successful")
                                 
-                                                                // Store restorable mnemonic in cache.
-                                CacheManager.storeMnemonic(mnemonic: enteredMnemonic)
+                                // Store restorable mnemonic in cache.
+                                CacheManager.storeMnemonic(enteredMnemonic)
                                 
                                 Log.info("About to start Lightning wallet...")
                                 // Start wallet.

@@ -55,7 +55,7 @@ extension CoreViewController {
         // Start the Lightning node first
         Task {
             do {
-                try await LightningNodeService.shared.start()
+                try await LightningNodeService.shared.startLDK()
                 
                 // Wait a moment for the node to fully initialize
                 try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
