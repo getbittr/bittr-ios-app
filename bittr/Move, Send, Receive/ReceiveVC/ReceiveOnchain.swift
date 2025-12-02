@@ -9,7 +9,6 @@ import UIKit
 import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
-import LightningDevKit
 import Sentry
 import BitcoinDevKit
 

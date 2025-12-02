@@ -10,7 +10,6 @@ import LDKNode
 import BitcoinDevKit
 import CodeScanner
 import AVFoundation
-import LightningDevKit
 import Sentry
 
 extension SendViewController {
