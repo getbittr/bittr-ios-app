@@ -79,8 +79,11 @@ class LightningNodeService {
             lightningWalletSyncIntervalSecs: 30,
             feeRateCacheUpdateIntervalSecs: 300
         )
+        // Set Esplora sync config (to be used in non-mainnet environments)
         let esploraSyncConfig = EsploraSyncConfig(backgroundSyncConfig: .some(backgroundSync))
-        
+        // Set Electrum sync config (to be used in mainnnet)
+        let electrumSyncConfig = ElectrumSyncConfig(backgroundSyncConfig: .some(backgroundSync))
+
         // Node builder.
         let nodeBuilder = Builder.fromConfig(config: config)
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
@@ -98,7 +101,7 @@ class LightningNodeService {
         switch network {
         case .bitcoin:
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.bitcoin)
-            nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.bitcoinMempoolspace, config: esploraSyncConfig)
+            nodeBuilder.setChainSourceElectrum(serverUrl: EnvironmentConfig.electrumURL, config: electrumSyncConfig)
         case .regtest:
             nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.regtest, config: esploraSyncConfig)
         case .signet:
