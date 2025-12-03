@@ -17,12 +17,12 @@ extension CoreViewController {
         self.syncStack.alpha = 1
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
             
-            self.syncViewBottom.constant = -10
+            self.syncViewBottom.constant = -self.view.safeAreaInsets.bottom - 15
             self.syncStack.backgroundColor = UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: 0.2)
             self.view.layoutIfNeeded()
         }) { _ in
             UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                self.syncViewBottom.constant = 0
+                self.syncViewBottom.constant = -self.view.safeAreaInsets.bottom
                 self.view.layoutIfNeeded()
             }
         }

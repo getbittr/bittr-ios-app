@@ -116,7 +116,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusFinal: UILabel!
     @IBOutlet weak var syncStack: UIView!
     @IBOutlet weak var syncViewBottom: NSLayoutConstraint!
-    @IBOutlet weak var syncViewLowerBackground: UIView!
     @IBOutlet weak var syncCloseButton: UIButton!
     
     // Client details
