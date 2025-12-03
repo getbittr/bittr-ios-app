@@ -151,9 +151,14 @@ extension SendViewController {
                             Log.info("Error: \(error.localizedDescription)")
                             
                             // Generate error message.
+                            var sendToSentry = true
                             var errorMessage = error.localizedDescription
                             if let bdkError = error as? BitcoinDevKit.CreateTxError {
                                 errorMessage = bdkError.getErrorMessage()
+                                switch bdkError {
+                                case .CoinSelection(errorMessage: _): sendToSentry = false
+                                default: sendToSentry = true
+                                }
                             } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
                                 errorMessage = bdkError.getErrorMessage()
                             }
@@ -164,8 +169,10 @@ extension SendViewController {
                                 self.arrowIcon.alpha = 1
                                 self.nextSpinner.stopAnimating()
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                SentrySDK.capture(error: error) { scope in
-                                    scope.setExtra(value: "SendOnchain row 167", key: "context")
+                                if sendToSentry {
+                                    SentrySDK.capture(error: error) { scope in
+                                        scope.setExtra(value: "SendOnchain row 167", key: "context")
+                                    }
                                 }
                             }
                         }
