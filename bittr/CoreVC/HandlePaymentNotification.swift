@@ -398,6 +398,21 @@ extension CoreViewController {
     
     func checkPaymentWithBittr(paymentPreimage:String, paymentDetails:PaymentDetails?, isFundingTransaction:Bool) {
         
+        // Don't doublecheck transaction against API.
+        if CacheManager.getSentToBittr().contains(paymentPreimage) {
+            Log.info("Transaction has already been checked with Bittr.")
+            for eachTransaction in self.homeVC!.setTransactions {
+                if eachTransaction.id == paymentPreimage {
+                    Log.info("Found correct transaction in transactions table.")
+                    self.receivedBittrTransaction = eachTransaction
+                    DispatchQueue.main.async {
+                        self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                    }
+                }
+            }
+            return
+        }
+        
         // Get deposit codes.
         var depositCodes = [String]()
         for eachIbanEntity in self.bittrWallet.ibanEntities {
