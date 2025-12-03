@@ -86,7 +86,7 @@ class Transfer3ViewController: UIViewController {
         
         // Hide signup
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
-        self.coreVC!.buyVC?.parseIbanEntities()
+        self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
         self.coreVC!.hideSignup()
     }
     

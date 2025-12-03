@@ -20,10 +20,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
     // Update data
-    @IBOutlet weak var updateDataView: UIView!
-    @IBOutlet weak var updateDataLabel: UILabel!
-    @IBOutlet weak var resetIcon: UIImageView!
-    @IBOutlet weak var updateDataButton: UIButton!
     @IBOutlet weak var updateDataSpinner: UIActivityIndicatorView!
     
     // No deposit codes
@@ -48,7 +44,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.continueView.layer.cornerRadius = 13
         self.continueButton.setTitle("", for: .normal)
         self.downButton.setTitle("", for: .normal)
-        self.updateDataButton.setTitle("", for: .normal)
         
         // Collection view.
         self.ibanCollectionView.delegate = self
@@ -60,10 +55,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.setWords()
         
         // Parse IBAN entities.
-        self.parseIbanEntities()
+        self.parseIbanEntities(uponPageLaunch: true)
     }
     
-    func parseIbanEntities() {
+    func parseIbanEntities(uponPageLaunch:Bool) {
         
         // Set IBAN entities.
         self.allIbanEntities = [IbanEntity]()
@@ -76,6 +71,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Reload collection view.
         self.ibanCollectionView.reloadData()
+        
+        if self.allIbanEntities.count > 0, uponPageLaunch {
+            self.getDepositCodeData()
+        }
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -116,9 +115,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // There are deposit codes.
             self.emptyView.alpha = 0
             self.ibanCollectionView.alpha = 1
-            self.updateDataView.alpha = 1
             NSLayoutConstraint.deactivate([self.centerViewBottom])
-            self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.updateDataView, attribute: .bottom, multiplier: 1, constant: 0)
+            self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.ibanCollectionView, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.centerViewBottom])
             self.view.layoutIfNeeded()
             
@@ -127,7 +125,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // There are no deposit codes.
             self.emptyView.alpha = 1
             self.ibanCollectionView.alpha = 0
-            self.updateDataView.alpha = 0
             NSLayoutConstraint.deactivate([self.centerViewBottom])
             self.centerViewBottom = NSLayoutConstraint(item: self.centerView, attribute: .bottom, relatedBy: .equal, toItem: self.emptyView, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.centerViewBottom])
@@ -164,10 +161,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
-    @IBAction func updateDataTapped(_ sender: UIButton) {
-        self.getDepositCodeData()
-    }
-    
     func getDepositCodeData() {
         
         // Gather deposit codes.
@@ -179,13 +172,15 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         let depositCodesString = depositCodes.joined(separator: ",")
         
         // If LDK Node has not been started, we cannot sign the message or get the node ID.
-        if LightningNodeService.shared.ldkNode == nil {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
+        if LightningNodeService.shared.ldkNode == nil { return }
         
+        // Start spinner
         self.updateDataSpinner.startAnimating()
+        
         Task {
+            // Delay the call 1 second to keep the spinner visible for a moment.
+            try? await Task.sleep(nanoseconds: 1 * NSEC_PER_SEC)
+            
             do {
                 // Gather parameters.
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: depositCodesString)
@@ -213,7 +208,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                             }
                         }()
                         DispatchQueue.main.async {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails4") + " \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "BuyViewController row 210", key: "context")
+                            }
                         }
                     }
                 }
@@ -222,9 +219,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 DispatchQueue.main.async {
                     self.updateDataSpinner.stopAnimating()
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BuyViewController row 188", key: "context")
+                        scope.setExtra(value: "BuyViewController row 220", key: "context")
                     }
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails4") + " Something went wrong creating a unique signature.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }
@@ -272,15 +268,15 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             
             if someDetailsHaveChanged {
                 // Data has been updated.
-                self.ibanCollectionView.reloadData()
+                self.parseIbanEntities(uponPageLaunch: false)
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            } else {
-                // Data was already up-to-date.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
             // Data received in wrong format.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails4") + " The data we received isn't in the expected format.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+            SentrySDK.capture(message: "Received BuyVC details in wrong format") { scope in
+                scope.setExtra(value: "BuyViewController row 275", key: "context")
+                scope.setExtra(value: receivedDictionary, key: "received_data")
+            }
         }
     }
     
@@ -289,14 +285,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.emptyLabel.textColor = Colors.getColor("blackorwhite")
-        self.updateDataLabel.textColor = Colors.getColor("blackorwhite")
-        self.updateDataSpinner.color = Colors.getColor("blackorwhite")
-        
-        if CacheManager.darkModeIsOn() {
-            self.resetIcon.image = UIImage(named: "iconresetwhite")
-        } else {
-            self.resetIcon.image = UIImage(named: "iconreset")
-        }
     }
     
     func setWords() {
@@ -304,6 +292,5 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.headerLabel.text = Language.getWord(withID: "buybitcoin")
         self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
         self.emptyLabel.text = Language.getWord(withID: "buyempty")
-        self.updateDataLabel.text = Language.getWord(withID: "buyvcupdatedetails")
     }
 }
