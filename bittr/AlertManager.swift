@@ -43,8 +43,8 @@ extension UIViewController {
             darkBackground.addSubview(yellowCard)
             let yellowCardTop = NSLayoutConstraint(item: yellowCard, attribute: .top, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
             var yellowCardBottom = NSLayoutConstraint()
-            let yellowCardLeft = NSLayoutConstraint(item: yellowCard, attribute: .leading, relatedBy: .equal, toItem: darkBackground, attribute: .leading, multiplier: 1, constant: 0)
-            let yellowCardRight = NSLayoutConstraint(item: yellowCard, attribute: .trailing, relatedBy: .equal, toItem: darkBackground, attribute: .trailing, multiplier: 1, constant: 0)
+            let yellowCardLeft = NSLayoutConstraint(item: yellowCard, attribute: .leading, relatedBy: .equal, toItem: darkBackground, attribute: .leading, multiplier: 1, constant: 10)
+            let yellowCardRight = NSLayoutConstraint(item: yellowCard, attribute: .trailing, relatedBy: .equal, toItem: darkBackground, attribute: .trailing, multiplier: 1, constant: -10)
             let yellowCardHeight = NSLayoutConstraint(item: yellowCard, attribute: .height, relatedBy: .lessThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: presentingController.view.bounds.height)
             darkBackground.addConstraints([yellowCardTop, yellowCardLeft, yellowCardRight, yellowCardBottom])
             yellowCard.addConstraint(yellowCardHeight)
@@ -93,8 +93,8 @@ extension UIViewController {
             yellowCard.addSubview(closeIcon)
             let closeIconCenterY = NSLayoutConstraint(item: closeIcon, attribute: .centerY, relatedBy: .equal, toItem: alertIcon, attribute: .centerY, multiplier: 1, constant: 0)
             let closeIconRight = NSLayoutConstraint(item: closeIcon, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -20)
-            let closeIconHeight = NSLayoutConstraint(item: closeIcon, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 16)
-            let closeIconWidth = NSLayoutConstraint(item: closeIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 16)
+            let closeIconHeight = NSLayoutConstraint(item: closeIcon, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 14)
+            let closeIconWidth = NSLayoutConstraint(item: closeIcon, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 14)
             yellowCard.addConstraints([closeIconCenterY, closeIconRight])
             closeIcon.addConstraints([closeIconHeight, closeIconWidth])
             
@@ -151,9 +151,9 @@ extension UIViewController {
             buttonsStack.backgroundColor = .clear
             yellowCard.addSubview(buttonsStack)
             let buttonsStackHeight = NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
-            let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 10)
-            let buttonsStackRight = NSLayoutConstraint(item: buttonsStack, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -10)
-            let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: -50)
+            let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 15)
+            let buttonsStackRight = NSLayoutConstraint(item: buttonsStack, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -15)
+            let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: -5)
             let buttonsStackTop = NSLayoutConstraint(item: buttonsStack, attribute: .top, relatedBy: .equal, toItem: messageLabel, attribute: .bottom, multiplier: 1, constant: 35)
             yellowCard.addConstraints([buttonsStackLeft, buttonsStackRight, buttonsStackBottom, buttonsStackTop])
             buttonsStack.addConstraint(buttonsStackHeight)
@@ -228,13 +228,13 @@ extension UIViewController {
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
                 darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
                 NSLayoutConstraint.deactivate([yellowCardTop])
-                yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
+                yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: -presentingController.view.safeAreaInsets.bottom - 15)
                 NSLayoutConstraint.activate([yellowCardBottom])
                 presentingController.view.layoutIfNeeded()
             }) { _ in
                 UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
                     NSLayoutConstraint.deactivate([yellowCardBottom])
-                    yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 13)
+                    yellowCardBottom = NSLayoutConstraint(item: yellowCard, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: -presentingController.view.safeAreaInsets.bottom)
                     NSLayoutConstraint.activate([yellowCardBottom])
                     presentingController.view.layoutIfNeeded()
                 }
@@ -252,7 +252,7 @@ extension UIViewController {
                             eachView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
                             
                             NSLayoutConstraint.deactivate([darkBackgroundBottom])
-                            darkBackgroundBottom = NSLayoutConstraint(item: eachView, attribute: .bottom, relatedBy: .equal, toItem: thisVC!.view, attribute: .bottom, multiplier: 1, constant: yellowCard.frame.height)
+                            darkBackgroundBottom = NSLayoutConstraint(item: eachView, attribute: .bottom, relatedBy: .equal, toItem: thisVC!.view, attribute: .bottom, multiplier: 1, constant: yellowCard.frame.height + thisVC!.view.safeAreaInsets.bottom)
                             NSLayoutConstraint.activate([darkBackgroundBottom])
                             thisVC!.view.layoutIfNeeded()
                         }) { _ in
