@@ -34,20 +34,16 @@ extension CoreViewController {
                     // User has signed in.
                     Log.info("User is signed in, processing notification")
                     
+                    self.varSpecialData = specialData
+                    
                     if !receivedNotificationWhileClosed && !self.wasNotified {
                         // App was open when notification came in.
                         Log.info("App was open when notification came in - showing alert")
-                        self.varSpecialData = specialData
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
                     } else {
                         // App was closed when notification came in and was subsequently opened.
                         Log.info("App was closed when notification came in - processing immediately")
-                        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-                        self.showPendingView()
-                        
-                        self.varSpecialData = specialData
-                        self.facilitateNotificationPayout()
-                        self.needsToHandleNotification = false
+                        self.triggerPayout()
                     }
                     
                     // Clear the flag after handling, regardless of which path we took
@@ -103,103 +99,124 @@ extension CoreViewController {
         self.hideAlert()
         
         Log.info("Did start payout process.")
-        var specialData = [String:Any]()
-        if self.varSpecialData != nil {
-            specialData = self.varSpecialData!
-        } else {
+        
+        guard self.varSpecialData != nil else {
             Log.info("No special data available.")
+            SentrySDK.capture(message: "No special data available while trying to handle notification payout.") { scope in
+                scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
+            }
+            self.hidePendingView()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
         }
         
         // Extract required data from specialData
-        if let notificationId = specialData["notification_id"] as? String {
-            let bitcoinAmountString = specialData["bitcoin_amount"] as? String ?? "0"
+        if let notificationId = self.varSpecialData!["notification_id"] as? String {
+            let bitcoinAmountString = self.varSpecialData!["bitcoin_amount"] as? String ?? "0"
             print("Bitcoin amount: \(bitcoinAmountString)")
-            let bitcoinAmount = Decimal(string: bitcoinAmountString) ?? Decimal(0)
-            let amountMsat = UInt64(truncating: (bitcoinAmount * Decimal(100_000_000_000)) as NSDecimalNumber)
+            let bitcoinAmount = bitcoinAmountString.toNumber()
+            let amountMsat = UInt64(bitcoinAmount.inSatoshis() * 1_000)
             print("Amount msat: \(amountMsat)")
             
             let pubkey = LightningNodeService.shared.nodeId()
             Log.info("Did get public key.")
 
             // Call payoutLightning in an async context
-            Task.init {
-                
-                let peers = try await LightningNodeService.shared.listPeers()
-                Log.info("Did list peers.")
-                var peerIsConnected = false
-                for eachPeer in peers {
-                    if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
-                        peerIsConnected = true
-                    }
-                }
-                if peers.count == 0 || !peerIsConnected {
-                    DispatchQueue.main.async {
-                        self.hidePendingView()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
-                    }
-                } else {
+            Task {
+                if await self.isConnectedToPeer() {
+                    // Connected to peer.
+                    
+                    // Create invoice.
+                    var invoice:Bolt11Invoice
                     do {
-                        let invoice = try await LightningNodeService.shared.receivePayment(
+                        invoice = try await LightningNodeService.shared.receivePayment(
                             amountMsat: amountMsat,
                             description: notificationId,
                             expirySecs: 3600
                         )
                         Log.info("Did create invoice.")
-                        
-                        // Cache payment details.
-                        if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                            let newTimestamp = Int(Date().timeIntervalSince1970)
-                            CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
-                            CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
-                            Log.info("Did cache invoice data.")
+                    } catch {
+                        // Couldn't create invoice.
+                        DispatchQueue.main.async {
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "HandlePaymentNotification row 141", key: "context")
+                            }
+                            self.hidePendingView()
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
                         }
+                        return
+                    }
                         
-                        let lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                    // Cache payment details.
+                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                        let newTimestamp = Int(Date().timeIntervalSince1970)
+                        CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
+                        CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
+                        Log.info("Did cache invoice data.")
+                    }
+                    
+                    // Sign message.
+                    var lightningSignature:String
+                    do {
+                        lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
                         Log.info("Did sign message.")
-                        
+                    } catch {
+                        // Couldn't sign notification ID.
+                        DispatchQueue.main.async {
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "HandlePaymentNotification row 163", key: "context")
+                            }
+                            self.hidePendingView()
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        }
+                        return
+                    }
+                    
+                    // Send response to Bittr.
+                    do {
                         let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
+                        
                         Log.info("Payout successful.")
                         print("PreImage: \(payoutResponse.preImage ?? "N/A")")
-                        
                         DispatchQueue.main.async {
                             self.hidePendingView()
                         }
-                    } catch let error as BittrServiceError {
-                        Log.info("BittrService error occurred: \(error.localizedDescription)")
+                    } catch {
+                        Log.info("Error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
                             SentrySDK.capture(error: error) { scope in
                                 scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
                             }
                             self.hidePendingView()
                             
-                            switch error {
-                            case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
-                                // Handle channel full with swap suggestion
-                                self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
-                            case .serverError(let message):
-                                if message.contains("try again"), self.varSpecialData != nil {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
-                                } else {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                            if let bittrServiceError = error as? BittrServiceError {
+                                switch bittrServiceError {
+                                case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
+                                    // Handle channel full with swap suggestion
+                                    self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
+                                case .serverError(let message):
+                                    if message.contains("try again"), self.varSpecialData != nil {
+                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                    } else {
+                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                    }
+                                default:
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
                                 }
-                            default:
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
-                            }
-                        }
-                    } catch {
-                        Log.info("General error occurred: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "HandlePaymentNotification row 174", key: "context")
-                            }
-                            self.hidePendingView()
-                            if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                             } else {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                } else {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                }
                             }
                         }
+                    }
+                } else {
+                    // Not connected to peer.
+                    DispatchQueue.main.async {
+                        self.hidePendingView()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
                     }
                 }
             }
