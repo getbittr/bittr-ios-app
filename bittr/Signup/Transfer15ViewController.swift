@@ -219,7 +219,14 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     func createBittrAccount(receivedAddress:String, message:String, page:String, iban:IbanEntity) {
         
-        let lightningPubKey = LightningNodeService.shared.nodeId()
+        var lightningPubKey = String()
+        if let pubkeyString = LightningNodeService.shared.nodeId() {
+            lightningPubKey = pubkeyString
+        } else {
+            Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
+            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
         let xpub = LightningNodeService.shared.getXpub()
         
         let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)

@@ -184,7 +184,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             do {
                 // Gather parameters.
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: depositCodesString)
-                let lightningPubKey = LightningNodeService.shared.nodeId()
+                let lightningPubKey = LightningNodeService.shared.nodeId()!
                 
                 let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/deposit_code_info?deposit_codes=\(depositCodesString)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)"
                 

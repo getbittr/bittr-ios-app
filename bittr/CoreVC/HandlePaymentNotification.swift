@@ -118,8 +118,17 @@ extension CoreViewController {
             let amountMsat = UInt64(bitcoinAmount.inSatoshis() * 1_000)
             print("Amount msat: \(amountMsat)")
             
-            let pubkey = LightningNodeService.shared.nodeId()
-            Log.info("Did get public key.")
+            // Get pubkey.
+            var pubkey = String()
+            if let pubkeyString = LightningNodeService.shared.nodeId() {
+                pubkey = pubkeyString
+                Log.info("Did get public key.")
+            } else {
+                if LightningNodeService.shared.ldkNode == nil {
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                    return
+                }
+            }
 
             // Call payoutLightning in an async context
             Task {
@@ -625,9 +634,24 @@ extension CoreViewController {
         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
         self.showPendingView()
         
+        // Get pubkey
+        var pubkey = String()
+        if let pubkeyString = LightningNodeService.shared.nodeId() {
+            pubkey = pubkeyString
+        } else {
+            self.hidePendingView()
+            self.showAlert(
+                presentingController: self,
+                title: "Error",
+                message: "Failed to schedule on-chain payment: Wallet has not been synced.",
+                buttons: [Language.getWord(withID: "okay")],
+                actions: nil
+            )
+            return
+        }
+        
         Task {
             do {
-                let pubkey = LightningNodeService.shared.nodeId()
                 let signature = try await LightningNodeService.shared.signMessage(message: notificationId)
                 
                 let response = try await BittrService.shared.markTransactionAsOnchain(

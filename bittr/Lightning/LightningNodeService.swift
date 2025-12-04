@@ -509,9 +509,13 @@ class LightningNodeService {
         }
     }
     
-    func nodeId() -> String {
-        let nodeID = ldkNode!.nodeId()
-        return nodeID
+    func nodeId() -> String? {
+        if self.ldkNode != nil {
+            let nodeID = self.ldkNode!.nodeId()
+            return nodeID
+        } else {
+            return nil
+        }
     }
     
     func signMessage(message: String) async throws -> String {

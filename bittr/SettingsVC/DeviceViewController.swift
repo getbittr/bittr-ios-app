@@ -205,13 +205,16 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     }
     
     @IBAction func keyButtonTapped(_ sender: UIButton) {
-        let lightningKey = LightningNodeService.shared.nodeId()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyLightningKey), nil])
+        if let lightningKey = LightningNodeService.shared.nodeId() {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyLightningKey), nil])
+        } else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
     }
     
     @objc func copyLightningKey() {
         self.hideAlert()
-        let lightningKey = LightningNodeService.shared.nodeId()
+        let lightningKey = LightningNodeService.shared.nodeId()!
         UIPasteboard.general.string = lightningKey
     }
     

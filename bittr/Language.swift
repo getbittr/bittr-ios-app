@@ -219,6 +219,7 @@ class Language: NSObject {
             "pleasesignintosend": "Please sign in to send this payment.",
             "couldntconnect": "We couldn't connect to bittr. Please try again.",
             "bittrpayoutfail": "The notification did not contain the data needed to complete your payout.",
+            "bittrpayoutfail2": "Something went wrong processing the notification we sent to you.\n\nPlease wait for your wallet to sync, and try again. Or go to Settings > Device details, and try again from there.",
             "closedlightningchannel": "closed lightning connection",
             "closedlightningchannel2": "Your lightning connection has been closed.<reason>\n\nAny funds that were in this connection are deposited into your bitcoin wallet.\n\nTo open a new connection with bittr, buy bitcoin worth up to 100 CHF/EUR. Check your wallet's Buy section or getbittr.com for all information.",
             "closedlightningchannel3": " We've been notified that ",

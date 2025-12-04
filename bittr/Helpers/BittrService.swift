@@ -69,11 +69,17 @@ class BittrService {
         
         let lightningSignature: String
         
+        var lightningPubKey = String()
+        if let pubkeyString = LightningNodeService.shared.nodeId() {
+            lightningPubKey = pubkeyString
+        } else {
+            Log.info("Wallet has not yet synced. Cannot fetch pubkey.")
+            throw BittrServiceError.other("Unsynced wallet" as! Error)
+        }
+        
         do {
             lightningSignature = try await LightningNodeService.shared.signMessage(message: messageString)
             Log.info("Did fetch Lightning signature.")
-            
-            let lightningPubKey = LightningNodeService.shared.nodeId()
             
             let envUrl = URL(string: EnvironmentConfig.bittrAPIBaseURL)!
             

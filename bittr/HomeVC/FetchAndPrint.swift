@@ -44,8 +44,9 @@ extension HomeViewController {
     func fetchAndPrintPeers() {
         
         // Print nodeID.
-        let lightningPubKey = LightningNodeService.shared.nodeId()
-        print(lightningPubKey)
+        if let lightningPubKey = LightningNodeService.shared.nodeId() {
+            print(lightningPubKey)
+        }
         
         // Check peer connection.
         Task {

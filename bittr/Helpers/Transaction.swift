@@ -164,6 +164,7 @@ extension BittrTransaction {
         
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
         let transactionDate = formatter.date(from:self.datetime)!
         let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
         thisTransaction.timestamp = transactionTimestamp
