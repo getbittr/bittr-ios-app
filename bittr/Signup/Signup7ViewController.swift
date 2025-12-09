@@ -36,10 +36,10 @@ class Signup7ViewController: UIViewController {
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
-    
-    // Variables
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
+    
+    // Variables
     var embeddedInBuyVC = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
@@ -50,10 +50,11 @@ class Signup7ViewController: UIViewController {
         
         // Corner radii.
         self.checkView.layer.cornerRadius = 25
-        self.partnerView.layer.cornerRadius = 13
-        self.continueView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
+        self.partnerView.layer.cornerRadius = 8
+        self.continueView.layer.cornerRadius = 8
+        self.cardView.layer.cornerRadius = 8
+        self.imageContainer.layer.cornerRadius = 8
+        self.cardView.setShadow()
         
         // Button titles
         self.partnerButton.setTitle("", for: .normal)
@@ -61,6 +62,7 @@ class Signup7ViewController: UIViewController {
         self.skipButton.setTitle("", for: .normal)
         self.articleButton.setTitle("", for: .normal)
         
+        // Set language, colors, article.
         self.changeColors()
         self.setWords()
         Task {
@@ -86,12 +88,6 @@ class Signup7ViewController: UIViewController {
         // Proceed to bittr signup.
         self.signupVC?.moveToPage(10)
         self.ibanVC?.moveToPage(1)
-        
-        // Trigger auto-focus on IBAN field after navigation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            // Use the stored reference to Transfer1ViewController
-            self.ibanVC?.transfer1VC?.triggerIbanAutoFocus()
-        }
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {

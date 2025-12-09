@@ -36,22 +36,30 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var ibanLabel: UILabel!
     @IBOutlet weak var articleButton: UIButton!
     
+    // View items
+    @IBOutlet weak var centerCard: UIView!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     
+    // Background buttons
     @IBOutlet weak var backgroundButton: UIButton!
     @IBOutlet weak var backgroundButton2: UIButton!
+    @IBOutlet weak var backgroundButton3: UIButton!
     
+    // Next button
     @IBOutlet weak var nextButtonLabel: UILabel!
+    @IBOutlet weak var nextButtonArrow: UIImageView!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
+    // Article
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
     @IBOutlet weak var articleImage: UIImageView!
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "supported-countries"
     var pageArticle1 = Article()
     
+    // Variables
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -60,11 +68,14 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
 
         // Corner radii
-        self.ibanView.layer.cornerRadius = 13
-        self.emailView.layer.cornerRadius = 13
-        self.nextView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
+        self.ibanView.layer.cornerRadius = 8
+        self.emailView.layer.cornerRadius = 8
+        self.nextView.layer.cornerRadius = 8
+        self.cardView.layer.cornerRadius = 8
+        self.imageContainer.layer.cornerRadius = 8
+        self.centerCard.layer.cornerRadius = 13
+        self.centerCard.setShadow()
+        self.cardView.setShadow()
         
         // Button titles
         self.ibanButton.setTitle("", for: .normal)
@@ -72,6 +83,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.nextButton.setTitle("", for: .normal)
         self.backgroundButton.setTitle("", for: .normal)
         self.backgroundButton2.setTitle("", for: .normal)
+        self.backgroundButton3.setTitle("", for: .normal)
         self.skipButton.setTitle("", for: .normal)
         self.articleButton.setTitle("", for: .normal)
         
@@ -79,6 +91,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.ibanTextField.delegate = self
         self.emailTextField.delegate = self
         
+        // Set colors, language, article.
         self.changeColors()
         self.setWords()
         Task {
@@ -86,6 +99,10 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 self.pageArticle1 = article ?? Article()
             })
         }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        self.triggerIbanAutoFocus()
     }
     
     func triggerIbanAutoFocus() {
@@ -115,49 +132,68 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.updateButtonColor()
         
         if self.nextView.backgroundColor == UIColor.black {
-            
+            // Fields have been filled.
             self.nextButtonLabel.alpha = 0
+            self.nextButtonArrow.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
-            
-            let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
-            
-            if currentIbanID != "" {
-                
-                // We're updating information to an existing IBAN entity.
-                for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                    if eachIbanEntity.id == currentIbanID {
-                        eachIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-                        eachIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
-                        self.coreVC!.bittrWallet.ibanEntities[index] = eachIbanEntity
-                        CacheManager.addIban(iban: eachIbanEntity)
-                    }
+            self.gatherIbanDetails()
+        } else {
+            // Fields have not yet been filled.
+            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer1vc"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    func gatherIbanDetails() {
+        
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
+        let enteredEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
+        let enteredIban = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
+        
+        if currentIbanID != "" {
+            // We're updating information to an existing IBAN entity.
+            for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                if eachIbanEntity.id == currentIbanID {
+                    eachIbanEntity.yourEmail = enteredEmail
+                    eachIbanEntity.yourIbanNumber = enteredIban
+                    self.coreVC!.bittrWallet.ibanEntities[index] = eachIbanEntity
+                    CacheManager.addIban(iban: eachIbanEntity)
                 }
-                
-            } else {
-                
-                // We're adding a new IBAN entity.
-                let newIbanEntity = IbanEntity()
-                newIbanEntity.order = self.coreVC!.bittrWallet.ibanEntities.count
-                newIbanEntity.id = UUID().uuidString
-                newIbanEntity.yourEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
-                newIbanEntity.yourIbanNumber = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
-                self.coreVC!.bittrWallet.ibanEntities += [newIbanEntity]
-                CacheManager.addIban(iban: newIbanEntity)
-                self.signupVC?.currentIbanID = newIbanEntity.id
-                self.ibanVC?.currentIbanID = newIbanEntity.id
             }
+        } else {
+            // We're adding a new IBAN entity.
+            let newIbanEntity = IbanEntity()
+            newIbanEntity.order = self.coreVC!.bittrWallet.ibanEntities.count
+            newIbanEntity.id = UUID().uuidString
+            newIbanEntity.yourEmail = enteredEmail
+            newIbanEntity.yourIbanNumber = enteredIban
             
-            // Send email and IBAN to bittr API for verification. Bittr will send email and validate IBAN.
-            let parameters: [String: Any] = [
-                "email": self.emailTextField.text!,
-                "iban": self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: ""),
-                "category": "ios"
-            ]
-            
-            let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
-            
-            Task {
-                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
+            self.coreVC!.bittrWallet.ibanEntities += [newIbanEntity]
+            CacheManager.addIban(iban: newIbanEntity)
+            self.signupVC?.currentIbanID = newIbanEntity.id
+            self.ibanVC?.currentIbanID = newIbanEntity.id
+        }
+        
+        self.sendDetailsToBittr(enteredEmail: enteredEmail, enteredIban: enteredIban)
+    }
+    
+    func sendDetailsToBittr(enteredEmail:String, enteredIban:String) {
+        
+        // Send email and IBAN to bittr API for verification. Bittr will send email and validate IBAN.
+        let parameters: [String: Any] = [
+            "email": enteredEmail,
+            "iban": enteredIban,
+            "category": "ios"
+        ]
+        
+        // Make API call.
+        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
+        Task {
+            await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
+                
+                DispatchQueue.main.async {
+                    self.nextButtonActivityIndicator.stopAnimating()
+                    self.nextButtonLabel.alpha = 1
+                    self.nextButtonArrow.alpha = 1
                     
                     switch result {
                     case .success(let json):
@@ -168,34 +204,21 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                                let message = json["message"] as? String {
                                 
                                 // IBAN validation failed
-                                self.nextButtonActivityIndicator.stopAnimating()
-                                self.nextButtonLabel.alpha = 1
                                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
                             } else {
                                 // Success - move to next page
                                 self.signupVC?.moveToPage(11)
                                 self.ibanVC?.moveToPage(2)
-                                
-                                // Trigger auto-focus on OTP field after navigation
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    self.ibanVC?.transfer15VC?.triggerOtpAutoFocus()
-                                }
-                                
-                                self.nextButtonActivityIndicator.stopAnimating()
-                                self.nextButtonLabel.alpha = 1
                             }
                         }
                     case .failure(let error):
                         DispatchQueue.main.async {
-                            self.nextButtonActivityIndicator.stopAnimating()
-                            self.nextButtonLabel.alpha = 1
                             self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             SentrySDK.capture(error: error) { scope in
                                 scope.setExtra(value: "Transfer1ViewController row 194", key: "context")
                             }
                         }
                     }
-                    
                 }
             }
         }
@@ -227,14 +250,14 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     @objc func keyboardWillDisappear() {
         
-        updateButtonColor()
+        self.updateButtonColor()
         
         self.ibanButton.alpha = 1
         self.emailButton.alpha = 1
         
-        NSLayoutConstraint.deactivate([contentViewBottom])
-        contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([contentViewBottom])
+        NSLayoutConstraint.deactivate([self.contentViewBottom])
+        self.contentViewBottom = NSLayoutConstraint(item: self.contentView!, attribute: .bottom, relatedBy: .equal, toItem: self.scrollView, attribute: .bottom, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.contentViewBottom])
         
         self.view.layoutIfNeeded()
     }
@@ -245,9 +268,9 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             
             let keyboardHeight = keyboardSize.height
             
-            NSLayoutConstraint.deactivate([contentViewBottom])
-            contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([contentViewBottom])
+            NSLayoutConstraint.deactivate([self.contentViewBottom])
+            self.contentViewBottom = NSLayoutConstraint(item: self.contentView!, attribute: .bottom, relatedBy: .equal, toItem: self.scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
+            NSLayoutConstraint.activate([self.contentViewBottom])
             
             self.view.layoutIfNeeded()
         }
@@ -255,7 +278,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         
-        updateButtonColor()
+        self.updateButtonColor()
         
         // If email field is active and verify button is enabled, trigger verification
         if textField == self.emailTextField && self.nextView.backgroundColor == UIColor.black {
@@ -283,11 +306,11 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
-        updateButtonColor()
+        self.updateButtonColor()
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        updateButtonColor()
+        self.updateButtonColor()
         return true
     }
     
@@ -319,7 +342,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.emailTextField.placeholder = Language.getWord(withID: "enteremail")
         self.nextButtonLabel.text = Language.getWord(withID: "verify")
         self.ibanLabel.text = Language.getWord(withID: "noiban")
-        
     }
     
 }
