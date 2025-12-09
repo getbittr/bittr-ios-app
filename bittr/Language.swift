@@ -181,7 +181,7 @@ class Language: NSObject {
             "checkandconfirm1": "With bitcoin, you are your own bank. No one else has access to your private keys.",
             "checkandconfirm2": "If you lose access to this app and your backup, your bitcoin cannot be recovered.",
             "iunderstand": "I understand",
-            "welcome": "welcome!",
+            "welcome": "welcome",
             "createyourownwallet": "Create your own bittr wallet and buy bitcoin directly from your banking app.",
             "createwallet": "Create wallet",
             "becareful": "Be careful!",

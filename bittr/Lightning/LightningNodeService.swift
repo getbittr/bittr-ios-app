@@ -60,18 +60,7 @@ class LightningNodeService {
         )
         
         // Set mnemonic string.
-        let mnemonicString:String = {
-            if let cachedMnemonic = CacheManager.getMnemonic() {
-                // Existing mnemonic.
-                return cachedMnemonic
-            } else {
-                // New mnemonic.
-                Log.info("Did not find mnemonic. Creating a new one.")
-                let newMnemonic:String = BitcoinDevKit.Mnemonic(wordCount: .words12).description
-                CacheManager.storeMnemonic(newMnemonic)
-                return newMnemonic
-            }
-        }()
+        let mnemonicString = self.getMnemonic()
         
         // Set LDK background syncing.
         let backgroundSync = BackgroundSyncConfig(
@@ -153,6 +142,19 @@ class LightningNodeService {
                 }
                 completion(false)
             }
+        }
+    }
+    
+    func getMnemonic() -> String {
+        if let cachedMnemonic = CacheManager.getMnemonic() {
+            // Existing mnemonic.
+            return cachedMnemonic
+        } else {
+            // New mnemonic.
+            Log.info("Did not find mnemonic. Creating a new one.")
+            let newMnemonic:String = BitcoinDevKit.Mnemonic(wordCount: .words12).description
+            CacheManager.storeMnemonic(newMnemonic)
+            return newMnemonic
         }
     }
     

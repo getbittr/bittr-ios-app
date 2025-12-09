@@ -84,7 +84,7 @@ class Signup3ViewController: UIViewController {
     func setMnemonic() {
         
         // Step 8.
-        if let actualMnemonic = self.signupVC?.coreVC?.newMnemonic {
+        if let actualMnemonic = CacheManager.getMnemonic()?.components(separatedBy: " ") {
             for (index, eachWord) in actualMnemonic.enumerated() {
                 
                 let whiteCard = UIView()

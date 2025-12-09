@@ -68,7 +68,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     var signupAlpha:CGFloat = 1
     var blackSignupAlpha:CGFloat = 0.3
-    var newMnemonic:[String]?
     var resettingPin = false
     
     // Variables for notification handling

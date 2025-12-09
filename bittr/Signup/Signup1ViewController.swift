@@ -12,16 +12,20 @@ class Signup1ViewController: UIViewController {
 
     // Create or Restore wallet view. First view new users see.
     
-    @IBOutlet weak var headerView: UIView!
+    // Header view
+    @IBOutlet weak var centerCard: UIView!
+    @IBOutlet weak var headerPiggyImage: UIImageView!
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var topLabel: UILabel!
     
     // Next button
-    @IBOutlet weak var buttonView: UIView!
-    @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var createWalletView: UIView!
+    @IBOutlet weak var createWalletButton: UIButton!
+    @IBOutlet weak var createWalletLabel: UILabel!
+    @IBOutlet weak var createWalletArrow: UIImageView!
+    @IBOutlet weak var createWalletSpinner: UIActivityIndicatorView!
     
     // Restore button
-    @IBOutlet weak var restoreView: UIView!
     @IBOutlet weak var restoreButton: UIButton!
     @IBOutlet weak var restoreLabel: UILabel!
     
@@ -35,34 +39,37 @@ class Signup1ViewController: UIViewController {
     let pageArticle1Slug = "what-is-bittr"
     var pageArticle1 = Article()
     
-    @IBOutlet weak var nextButtonSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var createWalletLabel: UILabel!
-    
-    var nextTapped = false
+    // Variables
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         // Corner radii
-        self.headerView.layer.cornerRadius = 13
-        self.buttonView.layer.cornerRadius = 13
-        self.restoreView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
+        self.createWalletView.layer.cornerRadius = 8
+        self.cardView.layer.cornerRadius = 8
+        self.imageContainer.layer.cornerRadius = 8
+        
+        // Center card
+        self.centerCard.layer.cornerRadius = 13
+        self.centerCard.layer.shadowColor = UIColor.black.cgColor
+        self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.centerCard.layer.shadowRadius = 10.0
+        self.centerCard.layer.shadowOpacity = 0.1
         
         // Button titles
-        self.nextButton.setTitle("", for: .normal)
+        self.createWalletButton.setTitle("", for: .normal)
         self.restoreButton.setTitle("", for: .normal)
         self.articleButton.setTitle("", for: .normal)
         
         // Card styling
         self.cardView.layer.shadowColor = UIColor.black.cgColor
         self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        self.cardView.layer.shadowRadius = 12.0
-        self.cardView.layer.shadowOpacity = 0.05
+        self.cardView.layer.shadowRadius = 10
+        self.cardView.layer.shadowOpacity = 0.1
         
+        // Set colors, words, article.
         self.changeColors()
         self.setWords()
         Task {
@@ -86,37 +93,22 @@ class Signup1ViewController: UIViewController {
             return
         }
         
+        // Start spinner.
         self.createWalletLabel.alpha = 0
-        self.nextButtonSpinner.startAnimating()
-        self.nextTapped = true
+        self.createWalletArrow.alpha = 0
+        self.createWalletSpinner.startAnimating()
         
-        var mnemonicString = ""
-        if let actualMnemonic = CacheManager.getMnemonic() {
-            // Mnemonic found in storage.
-            Log.info("Did find mnemonic.")
-            mnemonicString = actualMnemonic
-        } else {
-            // Create new mnemonic.
-            Log.info("Did not find mnemonic. Creating a new one.")
-            mnemonicString = BitcoinDevKit.Mnemonic(wordCount: .words12).description
-            CacheManager.storeMnemonic(mnemonicString)
-        }
-        
-        // Send mnemonic to 3rd signup view.
-        if self.signupVC?.coreVC == nil { Log.info("CoreVC nil.") }
-        self.signupVC?.coreVC?.newMnemonic = mnemonicString.components(separatedBy: " ")
-
-        self.didReceiveMnemonic()
-    }
-    
-    func didReceiveMnemonic() {
-        
-        self.createWalletLabel.alpha = 1
-        self.nextButtonSpinner.stopAnimating()
-        
-        if nextTapped {
+        // Delay the call 1 second to keep the spinner visible for a moment.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            
+            // Get mnemonic.
+            let _ = LightningNodeService.shared.getMnemonic()
+            
+            // Stop spinner.
+            self.createWalletLabel.alpha = 1
+            self.createWalletArrow.alpha = 1
+            self.createWalletSpinner.stopAnimating()
             self.signupVC?.moveToPage(4)
-            nextTapped = false
         }
     }
     
@@ -127,11 +119,16 @@ class Signup1ViewController: UIViewController {
     }
     
     func changeColors() {
+        
         self.topLabel.textColor = Colors.getColor("blackorwhite")
+        self.headerLabel.textColor = Colors.getColor("whiteoryellow")
+        
         if CacheManager.darkModeIsOn() {
             self.restoreLabel.textColor = Colors.getColor("blackorwhite")
+            self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
         } else {
             self.restoreLabel.textColor = Colors.getColor("transparentblack")
+            self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")
         }
     }
     
@@ -141,128 +138,5 @@ class Signup1ViewController: UIViewController {
         self.topLabel.text = Language.getWord(withID: "createyourownwallet")
         self.createWalletLabel.text = Language.getWord(withID: "createwallet")
         self.restoreLabel.text = Language.getWord(withID: "restorewallet")
-    }
-    
-}
-
-extension UIViewController {
-    
-    func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView, completion: @escaping (Article?) -> Void) async {
-        
-        await self.getArticle(articleSlug, coreVC: coreVC) { result in
-            
-            switch result {
-            case .success(let receivedArticle):
-                articleButton.accessibilityIdentifier = articleSlug
-                articleTitle.text = receivedArticle.title
-                articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
-                completion(receivedArticle)
-            case .failure(let receivedError):
-                Log.info("Couldn't get article: \(receivedError)")
-                completion(nil)
-            }
-        }
-    }
-    
-    func getArticle(_ withSlug:String, coreVC:CoreViewController!, completion: @escaping (Result<Article, String>) -> Void) async {
-        
-        if coreVC.allArticles?[withSlug] != nil {
-            return completion(.success(coreVC.allArticles![withSlug]!))
-        } else {
-            Task {
-                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: .get) { result in
-                    
-                    switch result {
-                    case .success(let receivedDictionary):
-                        
-                        if let actualArticles = receivedDictionary["articles"] as? NSDictionary {
-                            
-                            let everyArticle = self.parseArticles(articles: actualArticles)
-                            coreVC.allArticles = everyArticle
-                            
-                            DispatchQueue.main.async {
-                                if everyArticle[withSlug] != nil {
-                                    return completion(.success(everyArticle[withSlug]!))
-                                } else {
-                                    return completion(.failure("Article doesn't exist."))
-                                }
-                            }
-                        }
-                    case .failure(let error):
-                        return completion(.failure(error.localizedDescription))
-                    }
-                }
-            }
-        }
-    }
-    
-    func parseArticles(articles:NSDictionary) -> [String:Article] {
-        
-        var allArticles = [String:Article]()
-        
-        for (articleid, articledata) in articles {
-            
-            let thisArticle = Article()
-            
-            if let actualArticleID = articleid as? String {
-                thisArticle.id = actualArticleID
-            }
-            if let actualArticleData = articledata as? NSDictionary {
-                
-                if let actualArticleImage = actualArticleData["headerimage"] as? String {
-                    thisArticle.image = actualArticleImage
-                }
-                if let actualArticleText = actualArticleData["text"] as? [NSDictionary] {
-                    thisArticle.text = actualArticleText
-                }
-                if let actualArticleDate = actualArticleData["date"] as? Int {
-                    thisArticle.date = actualArticleDate
-                }
-                if let actualArticleTitle = actualArticleData["title"] as? String {
-                    thisArticle.title = actualArticleTitle
-                }
-                if let actualArticleOrder = actualArticleData["order"] as? Int {
-                    thisArticle.order = actualArticleOrder
-                }
-                if let actualArticleVisibility = actualArticleData["visible"] as? Bool {
-                    thisArticle.isVisible = actualArticleVisibility
-                }
-                if let actualArticleCategory = actualArticleData["category"] as? String {
-                    thisArticle.category = actualArticleCategory
-                }
-            }
-            
-            allArticles.updateValue(thisArticle, forKey: thisArticle.id)
-        }
-        
-        return allArticles
-    }
-}
-
-extension UIImageView {
-    
-    func setArticleImage(url:String, coreVC:CoreViewController?, imageSpinner:UIActivityIndicatorView?) {
-        
-        if let actualData = CacheManager.getImage(key: url) {
-            // Image is available in cache.
-            self.image = UIImage(data: actualData)
-            imageSpinner?.stopAnimating()
-        } else {
-            // Image needs to be downloaded.
-            Task {
-                if let actualData = await coreVC?.getImage(urlString: url) {
-                    // Image successfully downloaded.
-                    DispatchQueue.main.async {
-                        self.image = UIImage(data: actualData)
-                        imageSpinner?.stopAnimating()
-                    }
-                } else {
-                    // Image couldn't be downloaded.
-                    DispatchQueue.main.async {
-                        imageSpinner?.stopAnimating()
-                    }
-                }
-            }
-        }
     }
 }

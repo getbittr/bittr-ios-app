@@ -66,6 +66,7 @@
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
+		058B2FBD2EE7DE5E0010693D /* SignupSetArticle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */; };
 		058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */; };
 		058FA76D2E5EAB26001A68DA /* BackgroundSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */; };
 		05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */; };
@@ -250,6 +251,7 @@
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapVCLanguage.swift; sourceTree = "<group>"; };
+		058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupSetArticle.swift; sourceTree = "<group>"; };
 		058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCollectionViewCell.swift; sourceTree = "<group>"; };
 		058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSync.swift; sourceTree = "<group>"; };
 		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
@@ -394,6 +396,7 @@
 		050B4BAF2A1BBB6400563F29 /* Signup */ = {
 			isa = PBXGroup;
 			children = (
+				058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */,
 				3791605C2E1D99D300024560 /* MnemonicTextField.swift */,
 				050B4BB02A1BBB9600563F29 /* SignupViewController.swift */,
 				050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */,
@@ -1057,6 +1060,7 @@
 				05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
+				058B2FBD2EE7DE5E0010693D /* SignupSetArticle.swift in Sources */,
 				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
