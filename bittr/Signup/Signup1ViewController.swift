@@ -116,6 +116,7 @@ class Signup1ViewController: UIViewController {
         
         self.topLabel.textColor = Colors.getColor("blackorwhite")
         self.headerLabel.textColor = Colors.getColor("whiteoryellow")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         
         if CacheManager.darkModeIsOn() {
             self.restoreLabel.textColor = Colors.getColor("blackorwhite")

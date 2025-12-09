@@ -14,12 +14,11 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     // User has received code in email. Send this code to the bittr API.
     
+    // UI elements
     @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var codeView: UIView!
-    @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var codeTextField: UITextField!
     @IBOutlet weak var codeButton: UIButton!
-    @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var resendButton: UIButton!
     @IBOutlet weak var resendLabel: UILabel!
     
@@ -27,15 +26,21 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var centerCard: UIView!
     @IBOutlet weak var backgroundButton2: UIButton!
     @IBOutlet weak var backgroundButton: UIButton!
     
+    // Next button
+    @IBOutlet weak var nextView: UIView!
+    @IBOutlet weak var nextButton: UIButton!
+    @IBOutlet weak var nextButtonArrow: UIImageView!
     @IBOutlet weak var nextButtonLabel: UILabel!
     @IBOutlet weak var nextButtonActivityIndicator: UIActivityIndicatorView!
     
+    // Timer
     var counter = 0
     
-    var setSender = ""
+    // Variables
     var start2Fa = false
     var hasAutoTriggered = false
     var coreVC:CoreViewController?
@@ -46,8 +51,10 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         super.viewDidLoad()
         
         // Corner radii
-        self.codeView.layer.cornerRadius = 13
-        self.nextView.layer.cornerRadius = 13
+        self.codeView.layer.cornerRadius = 8
+        self.nextView.layer.cornerRadius = 8
+        self.centerCard.layer.cornerRadius = 13
+        self.centerCard.setShadow()
         
         // Button titles
         self.codeButton.setTitle("", for: .normal)
@@ -65,17 +72,20 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
         
+        // Set language and colors.
         self.changeColors()
         self.setWords()
-        
-        // Reset auto-trigger flag
-        self.hasAutoTriggered = false
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        self.triggerOtpAutoFocus()
     }
     
     func triggerOtpAutoFocus() {
         // Auto-focus on OTP field when triggered from previous page
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.codeTextField.becomeFirstResponder()
+            self.codeButton.alpha = 0
         }
     }
     
@@ -90,50 +100,53 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
-        
         self.view.endEditing(true)
-        
-        // Check whether code has been entered.
         self.updateButtonColor()
+        
         if self.nextView.backgroundColor == UIColor.black {
-            
+            // Field has been filled.
             self.nextButtonLabel.alpha = 0
+            self.nextButtonArrow.alpha = 0
             self.nextButtonActivityIndicator.startAnimating()
+            self.checkPushNotificationStatus()
+        } else {
+            // Field has not been filled.
+            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    func checkPushNotificationStatus() {
+        
+        // Check push notifications status.
+        let current = UNUserNotificationCenter.current()
+        current.getNotificationSettings { (settings) in
             
-            // Check push notifications status.
-            let current = UNUserNotificationCenter.current()
-            current.getNotificationSettings { (settings) in
-                
-                // Use a default value if accessibilityIdentifier is nil (for auto-triggered calls)
-                self.setSender = sender.accessibilityIdentifier ?? "auto"
-                
-                if settings.authorizationStatus == .notDetermined {
-                    // Notifications preference hasn't been set yet.
-                    DispatchQueue.main.async {
-                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
-                    }
-                } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
-                    // Notifications preference has been set but token hasn't been cached.
-                    self.askForPushNotifications()
-                } else {
-                    self.check2Fa()
+            if settings.authorizationStatus == .notDetermined {
+                // Notifications preference hasn't been set yet.
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
                 }
+            } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
+                // Notifications preference has been set but token hasn't been cached.
+                self.askForPushNotifications()
+            } else {
+                self.sendCodeToBittr()
             }
         }
     }
     
     
     @objc func resume2Fa() {
-        if start2Fa {
-            self.check2Fa()
+        if self.start2Fa {
+            self.sendCodeToBittr()
             self.start2Fa = false
         }
     }
     
-    func check2Fa() {
+    func sendCodeToBittr() {
         
+        // Get current IBAN ID.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
-        
         for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
             if eachIbanEntity.id == currentIbanID {
                 
@@ -148,102 +161,86 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 Task {
                     await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
                         
-                        switch result {
-                        case .success(let receivedDictionary):
-                            let emailToken = receivedDictionary["token"]
-                            let errorMessage = receivedDictionary["message"]
-                            if let actualEmailToken = emailToken as? String {
-                                // Email address verified. Store email token in cache.
-                                CacheManager.addEmailToken(ibanID: eachIbanEntity.id, emailToken: actualEmailToken)
-                                
-                                // Update the in-memory IBAN entity with the new email token
-                                self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
-                                
-                                DispatchQueue.main.async {
+                        DispatchQueue.main.async {
+                            // Stop animating.
+                            self.nextButtonActivityIndicator.stopAnimating()
+                            self.nextButtonLabel.alpha = 1
+                            self.nextButtonArrow.alpha = 1
+                            
+                            // Check result.
+                            switch result {
+                            case .success(let receivedDictionary):
+                                let emailToken = receivedDictionary["token"]
+                                let errorMessage = receivedDictionary["message"]
+                                if let actualEmailToken = emailToken as? String {
+                                    // Email address verified. Store email token in cache.
+                                    CacheManager.addEmailToken(ibanID: eachIbanEntity.id, emailToken: actualEmailToken)
+                                    
+                                    // Update the in-memory IBAN entity with the new email token
+                                    self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
+                                    
                                     // Get wallet address.
-                                    self.getAddress(page: self.setSender)
-                                }
-                            } else if let actualErrorMessage = errorMessage as? String {
-                                if actualErrorMessage == "Invalid 2FA verification token provided" {
-                                    DispatchQueue.main.async {
-                                        self.nextButtonActivityIndicator.stopAnimating()
-                                        self.nextButtonLabel.alpha = 1
+                                    self.gatherParameters(ibanEntity: eachIbanEntity)
+                                } else if let actualErrorMessage = errorMessage as? String {
+                                    if actualErrorMessage == "Invalid 2FA verification token provided" {
                                         self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    } else {
+                                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: actualErrorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
+                                } else {
+                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: "unavailable."), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
-                            }
-                        case .failure(let error):
-                            DispatchQueue.main.async {
+                            case .failure(let error):
                                 SentrySDK.capture(error: error) { scope in
                                     scope.setExtra(value: "Transfer15ViewController row 178", key: "context")
                                 }
-                                self.nextButtonActivityIndicator.stopAnimating()
-                                self.nextButtonLabel.alpha = 1
                                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
-                        
                     }
                 }
             }
         }
-
     }
     
     
-    func getAddress(page:String) {
+    func gatherParameters(ibanEntity:IbanEntity) {
         
-        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.id == currentIbanID {
-                
-                let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(eachIbanEntity.emailToken.prefix(32)). IBAN: \(eachIbanEntity.yourIbanNumber)"
-                self.createClient(message: message, page: page, iban: eachIbanEntity)
-            }
-        }
-    }
-    
-    
-    func createClient(message:String, page:String, iban:IbanEntity) {
-        
-        Task {
-            // Get real onchain address.
-            let wallet = LightningNodeService.shared.getWallet()
-            let firstAddress = wallet?.peekAddress(keychain: .external, index: 0).address.description
-            
-            // Send to Bittr.
-            self.createBittrAccount(receivedAddress: firstAddress ?? "", message: message, page: page, iban: iban)
-        }
-    }
-    
-    
-    func createBittrAccount(receivedAddress:String, message:String, page:String, iban:IbanEntity) {
-        
-        var lightningPubKey = String()
-        if let pubkeyString = LightningNodeService.shared.nodeId() {
-            lightningPubKey = pubkeyString
-        } else {
-            Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        let xpub = LightningNodeService.shared.getXpub()
-        
+        // Generate message and signature.
+        let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(ibanEntity.emailToken.prefix(32)). IBAN: \(ibanEntity.yourIbanNumber)"
         let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)
         
         Task {
             do {
                 let lightningSignature = try await LightningNodeService.shared.signMessage(message: message)
                 
+                // Get real onchain address.
+                let wallet = LightningNodeService.shared.getWallet()
+                let firstAddress = wallet?.peekAddress(keychain: .external, index: 0).address.description ?? ""
+                
+                // Get node ID.
+                var lightningPubKey = String()
+                if let pubkeyString = LightningNodeService.shared.nodeId() {
+                    lightningPubKey = pubkeyString
+                } else {
+                    Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
+                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    return
+                }
+                
+                // Get xpub.
+                let xpub = LightningNodeService.shared.getXpub()
+                
+                // Gather parameters.
                 let parameters: [String: Any] = [
-                    "email": iban.yourEmail,
-                    "email_token": iban.emailToken,
-                    "bitcoin_address": receivedAddress,
+                    "email": ibanEntity.yourEmail,
+                    "email_token": ibanEntity.emailToken,
+                    "bitcoin_address": firstAddress,
                     "initial_address_type": "extended",
                     "category": "ios",
                     "bitcoin_message": message,
                     "bitcoin_signature": signature,
-                    "iban": iban.yourIbanNumber,
+                    "iban": ibanEntity.yourIbanNumber,
                     "lightning_pubkey": lightningPubKey,
                     "lightning_signature": lightningSignature,
                     "xpub_key": xpub,
@@ -252,76 +249,76 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     "skip_xpub_usage_check": "true",
                     "ios_device_token": CacheManager.getRegistrationToken() ?? ""
                 ]
-
-                let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/customer"
                 
-                await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
-                    
-                    switch result {
-                    case .failure(let error):
-                        DispatchQueue.main.async {
-                            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "Transfer15ViewController258", key: "context")
-                            }
-                        }
-                    case .success(let receivedDictionary):
-                        if let actualDataItems = receivedDictionary["data"] as? NSDictionary {
-                            let dataOurIban = actualDataItems["iban"]
-                            let dataCode = actualDataItems["deposit_code"]
-                            let dataSwift = actualDataItems["swift"]
-                            let dataLightningAddressUsername = actualDataItems["lightning_address_username"]
-                            if let actualDataOurIban = dataOurIban as? String, let actualDataCode = dataCode as? String, let actualDataSwift = dataSwift as? String {
-                                DispatchQueue.main.async {
-                                    // Signup successful.
-                                    
-                                    // Add bittr details to cache.
-                                    let lightningAddressUsername = dataLightningAddressUsername as? String ?? ""
-                                    CacheManager.addBittrIban(ibanID: iban.id, ourIban: actualDataOurIban, ourSwift: actualDataSwift, yourCode: actualDataCode, lightningAddressUsername: lightningAddressUsername)
-                                    for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                                        if eachIbanEntity.id == iban.id {
-                                            self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = actualDataOurIban
-                                            self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = actualDataSwift
-                                            self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = actualDataCode
-                                            self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
-                                        }
-                                    }
-                                    
-                                    // Stop spinner.
-                                    self.nextButtonActivityIndicator.stopAnimating()
-                                    self.nextButtonLabel.alpha = 1
-                                    
-                                    // Move to next page.
-                                    self.signupVC?.moveToPage(12)
-                                    self.ibanVC?.moveToPage(3)
-                                }
-                            }
-                        } else if let actualApiMessage = receivedDictionary["message"] as? String {
-                            // Some message has been received.
-                            DispatchQueue.main.async {
-                                if actualApiMessage == "Unable to create customer account (invalid iban)" {
-                                    self.nextButtonActivityIndicator.stopAnimating()
-                                    self.nextButtonLabel.alpha = 1
-                                    self.codeTextField.text = nil
-                                    
-                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
-                                } else {
-                                    self.nextButtonActivityIndicator.stopAnimating()
-                                    self.nextButtonLabel.alpha = 1
-                                    self.codeTextField.text = nil
-                                    
-                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
-                                }
-                            }
-                        }
-                    }
-                    
-                }
+                // Send details to Bittr.
+                self.createBittrAccount(ibanEntity: ibanEntity, parameters: parameters)
             } catch {
                 Log.info("310 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "Transfer15ViewController row 313", key: "context")
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    func createBittrAccount(ibanEntity:IbanEntity, parameters:[String: Any]) {
+        
+        // Start animating.
+        self.nextButtonActivityIndicator.startAnimating()
+        self.nextButtonLabel.alpha = 0
+        self.nextButtonArrow.alpha = 0
+        
+        // Make API call.
+        Task {
+            let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/customer"
+            await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
+                
+                DispatchQueue.main.async {
+                    // Stop spinner.
+                    self.nextButtonActivityIndicator.stopAnimating()
+                    self.nextButtonLabel.alpha = 1
+                    self.nextButtonArrow.alpha = 1
+                    self.codeTextField.text = nil
+                    
+                    switch result {
+                    case .failure(let error):
+                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "Transfer15ViewController258", key: "context")
+                        }
+                    case .success(let receivedDictionary):
+                        if let actualDataItems = receivedDictionary["data"] as? NSDictionary,
+                            let dataOurIban = actualDataItems["iban"] as? String,
+                            let dataCode = actualDataItems["deposit_code"] as? String,
+                            let dataSwift = actualDataItems["swift"] as? String {
+                            
+                            // Signup successful.
+                            let lightningAddressUsername = actualDataItems["lightning_address_username"] as? String ?? ""
+                            
+                            CacheManager.addBittrIban(ibanID: ibanEntity.id, ourIban: dataOurIban, ourSwift: dataSwift, yourCode: dataCode, lightningAddressUsername: lightningAddressUsername)
+                            for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                                if eachIbanEntity.id == ibanEntity.id {
+                                    self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = dataOurIban
+                                    self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = dataSwift
+                                    self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = dataCode
+                                    self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
+                                }
+                            }
+                            
+                            // Move to next page.
+                            self.signupVC?.moveToPage(12)
+                            self.ibanVC?.moveToPage(3)
+                        } else if let actualApiMessage = receivedDictionary["message"] as? String {
+                            // Some message has been received.
+                            if actualApiMessage == "Unable to create customer account (invalid iban)" {
+                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                            } else {
+                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                            }
+                        }
                     }
                 }
             }
@@ -336,54 +333,26 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     
     
     @IBAction func resendCodeButtonTapped(_ sender: UIButton) {
-        
         // User can request a new email verification code every 30 seconds.
         
         if self.counter == 0 {
-            
+            // 30 seconds have passed since previous request.
             let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
             for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
                 if eachIbanEntity.id == currentIbanID {
-                    
-                    let parameters: [String: Any] = [
-                        "email": eachIbanEntity.yourEmail,
-                        "iban": eachIbanEntity.yourIbanNumber,
-                        "category": "ios"
-                    ]
-                    
-                    let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
-                    
                     Task {
-                        await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
+                        await self.didSendDetailsToBittr(email: eachIbanEntity.yourEmail, iban: eachIbanEntity.yourIbanNumber) { didSendDetails in
                             
-                            switch result {
-                            case .failure(let error):
-                                DispatchQueue.main.async {
-                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                    SentrySDK.capture(error: error) { scope in
-                                        scope.setExtra(value: "Transfer15ViewController row 357", key: "context")
-                                    }
-                                }
-                            case .success(let json):
-                                DispatchQueue.main.async {
-                                    // Check if the response contains an error message
-                                    if let success = json["success"] as? Bool,
-                                       success == false,
-                                       let message = json["message"] as? String {
-                                        
-                                        // IBAN validation failed
-                                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                    } else {
-                                        // Success - show resend confirmation
-                                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
-                                        
-                                        // Restart counter.
-                                        self.counter = 30
-                                        Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
-                                    }
+                            DispatchQueue.main.async {
+                                if didSendDetails {
+                                    // Success - show resend confirmation
+                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+                                    
+                                    // Restart counter.
+                                    self.counter = 30
+                                    Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.updateCounter), userInfo: nil, repeats: true)
                                 }
                             }
-                            
                         }
                     }
                 }
@@ -523,7 +492,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     
                     Log.info("Permission granted: \(granted)")
                     guard granted else {
-                        self.check2Fa()
+                        self.sendCodeToBittr()
                         return
                     }
                     
@@ -531,7 +500,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                     current.getNotificationSettings { (settings) in
                         Log.info("Notification settings: \(settings)")
                         guard settings.authorizationStatus == .authorized else {
-                            self.check2Fa()
+                            self.sendCodeToBittr()
                             return
                         }
                         DispatchQueue.main.async {
@@ -555,6 +524,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     func changeColors() {
         
         self.topLabel.textColor = Colors.getColor("blackorwhite")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         
         if CacheManager.darkModeIsOn() {
             self.resendLabel.textColor = Colors.getColor("blackorwhite")

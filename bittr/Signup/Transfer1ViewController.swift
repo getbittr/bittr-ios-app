@@ -109,6 +109,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         // Auto-focus on IBAN field when triggered from previous page
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.ibanTextField.becomeFirstResponder()
+            self.ibanButton.alpha = 0
         }
     }
     
@@ -178,46 +179,17 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     func sendDetailsToBittr(enteredEmail:String, enteredIban:String) {
         
-        // Send email and IBAN to bittr API for verification. Bittr will send email and validate IBAN.
-        let parameters: [String: Any] = [
-            "email": enteredEmail,
-            "iban": enteredIban,
-            "category": "ios"
-        ]
-        
-        // Make API call.
-        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
         Task {
-            await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
-                
+            await self.didSendDetailsToBittr(email: enteredEmail, iban: enteredIban) { didSendDetails in
                 DispatchQueue.main.async {
                     self.nextButtonActivityIndicator.stopAnimating()
                     self.nextButtonLabel.alpha = 1
                     self.nextButtonArrow.alpha = 1
                     
-                    switch result {
-                    case .success(let json):
-                        DispatchQueue.main.async {
-                            // Check if the response contains an error message
-                            if let success = json["success"] as? Bool,
-                               success == false,
-                               let message = json["message"] as? String {
-                                
-                                // IBAN validation failed
-                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            } else {
-                                // Success - move to next page
-                                self.signupVC?.moveToPage(11)
-                                self.ibanVC?.moveToPage(2)
-                            }
-                        }
-                    case .failure(let error):
-                        DispatchQueue.main.async {
-                            self.showAlert(presentingController: self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "Transfer1ViewController row 194", key: "context")
-                            }
-                        }
+                    if didSendDetails {
+                        // Success - move to next page
+                        self.signupVC?.moveToPage(11)
+                        self.ibanVC?.moveToPage(2)
                     }
                 }
             }
@@ -325,6 +297,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.topLabelOne.textColor = Colors.getColor("blackorwhite")
         self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
         self.topLabelThree.textColor = Colors.getColor("blackorwhite")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         
         if CacheManager.darkModeIsOn() {
             self.ibanLabel.textColor = Colors.getColor("blackorwhite")
@@ -353,5 +326,43 @@ extension UIViewController {
 
         let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
         return emailPred.evaluate(with: email)
+    }
+    
+    func didSendDetailsToBittr(email:String, iban:String, completion: @escaping (Bool) -> Void) async {
+        
+        // Send email and IBAN to bittr API for verification. Bittr will send email and validate IBAN.
+        let parameters: [String: Any] = [
+            "email": email,
+            "iban": iban,
+            "category": "ios"
+        ]
+        
+        // Make API call.
+        let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
+        await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
+            
+            let presentingController = (self as? Transfer1ViewController)?.signupVC?.coreVC ?? (self as? Transfer1ViewController)?.ibanVC ?? (self as? Transfer15ViewController)?.signupVC?.coreVC ?? (self as? Transfer15ViewController)?.ibanVC ?? self
+            
+            switch result {
+            case .success(let json):
+                    // Check if the response contains an error message
+                    if let success = json["success"] as? Bool,
+                       success == false,
+                       let message = json["message"] as? String {
+                        
+                        // IBAN validation failed
+                        self.showAlert(presentingController: presentingController, title: Language.getWord(withID: "oops"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        completion(false)
+                    } else {
+                        completion(true)
+                    }
+            case .failure(let error):
+                self.showAlert(presentingController: presentingController, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "Transfer1ViewController row 194", key: "context")
+                }
+                completion(false)
+            }
+        }
     }
 }

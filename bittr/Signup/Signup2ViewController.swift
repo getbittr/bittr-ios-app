@@ -117,6 +117,7 @@ class Signup2ViewController: UIViewController {
         self.labelOne.textColor = Colors.getColor("blackorwhite")
         self.labelTwo.textColor = Colors.getColor("blackorwhite")
         self.cancelLabel.textColor = Colors.getColor("transparentblack")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
     func setWords() {
