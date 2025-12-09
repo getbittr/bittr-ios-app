@@ -10761,7 +10761,7 @@
                                                 </connections>
                                             </button>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="HRg-wh-6pt" userLabel="Center View">
-                                                <rect key="frame" x="0.0" y="222.66666666666663" width="393" height="327"/>
+                                                <rect key="frame" x="0.0" y="225" width="393" height="322"/>
                                                 <subviews>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Enter these words to confirm your recovery phrase." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="RaS-KK-BtB">
                                                         <rect key="frame" x="40" y="0.0" width="313" height="32"/>
@@ -10773,7 +10773,7 @@
                                                         <nil key="highlightedColor"/>
                                                     </label>
                                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="RCt-ot-m9e" userLabel="Background Button">
-                                                        <rect key="frame" x="0.0" y="0.0" width="393" height="327"/>
+                                                        <rect key="frame" x="0.0" y="0.0" width="393" height="322"/>
                                                         <state key="normal" title="Button"/>
                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                         <connections>
@@ -10781,10 +10781,10 @@
                                                         </connections>
                                                     </button>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xVM-DN-NTD" userLabel="Mnemonic View 1">
-                                                        <rect key="frame" x="96.666666666666686" y="62.000000000000028" width="200" height="45"/>
+                                                        <rect key="frame" x="96.666666666666686" y="62" width="200" height="45"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="2" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="F24-W6-jY6">
-                                                                <rect key="frame" x="25" y="15.333333333333314" width="20" height="16"/>
+                                                                <rect key="frame" x="25" y="15.666666666666686" width="20" height="16"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" constant="16" id="guQ-rX-s9z"/>
                                                                     <constraint firstAttribute="width" constant="20" id="lVW-bF-jt4"/>
@@ -10794,7 +10794,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <textField opaque="NO" tag="1" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="2Ti-Tj-yXQ" userLabel="Mnemonic Field 1" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
-                                                                <rect key="frame" x="59.999999999999986" y="6.3333333333333144" width="125.00000000000001" height="34"/>
+                                                                <rect key="frame" x="59.999999999999986" y="6.6666666666666856" width="125.00000000000001" height="34"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" constant="34" id="HPL-Mv-0dV"/>
@@ -10816,10 +10816,10 @@
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="8Bj-JX-BnN" userLabel="Mnemonic View 2">
-                                                        <rect key="frame" x="96.666666666666686" y="117.00000000000003" width="200" height="45"/>
+                                                        <rect key="frame" x="96.666666666666686" y="117" width="200" height="45"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="7" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="TMd-xd-GMJ">
-                                                                <rect key="frame" x="25" y="15.333333333333314" width="20" height="16"/>
+                                                                <rect key="frame" x="25" y="15.666666666666686" width="20" height="16"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" constant="20" id="5rc-9e-ZC6"/>
                                                                     <constraint firstAttribute="height" constant="16" id="cso-VH-8Nv"/>
@@ -10829,7 +10829,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <textField opaque="NO" tag="2" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="bYw-zL-Mgz" userLabel="Mnemonic Field 2" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
-                                                                <rect key="frame" x="59.999999999999986" y="6.3333333333333144" width="125.00000000000001" height="34"/>
+                                                                <rect key="frame" x="59.999999999999986" y="6.6666666666666856" width="125.00000000000001" height="34"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" constant="34" id="1Ne-Gk-tHc"/>
@@ -10851,10 +10851,10 @@
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="f10-Hd-aUM" userLabel="Mnemonic View 3">
-                                                        <rect key="frame" x="96.666666666666686" y="172.00000000000003" width="200" height="45"/>
+                                                        <rect key="frame" x="96.666666666666686" y="172" width="200" height="45"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="9" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="EjI-0F-Bnf">
-                                                                <rect key="frame" x="25" y="15.333333333333314" width="20" height="16"/>
+                                                                <rect key="frame" x="25" y="15.666666666666686" width="20" height="16"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" constant="16" id="0E0-6C-Ri8"/>
                                                                     <constraint firstAttribute="width" constant="20" id="iuN-vN-6F3"/>
@@ -10864,7 +10864,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <textField opaque="NO" tag="3" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter word" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="CKI-Ze-yMl" userLabel="Mnemonic Field 3" customClass="MnemonicTextField" customModule="bittr" customModuleProvider="target">
-                                                                <rect key="frame" x="59.999999999999986" y="6.3333333333333144" width="125.00000000000001" height="34"/>
+                                                                <rect key="frame" x="59.999999999999986" y="6.6666666666666856" width="125.00000000000001" height="34"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" constant="34" id="3vo-lw-y0g"/>
@@ -10886,10 +10886,10 @@
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cKu-Bl-DG7" userLabel="Save View">
-                                                        <rect key="frame" x="151" y="247" width="91.333333333333314" height="45"/>
+                                                        <rect key="frame" x="143.33333333333334" y="247" width="106.33333333333334" height="40"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Confirm" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="c4J-hT-51G">
-                                                                <rect key="frame" x="20.000000000000004" y="16.333333333333314" width="51.333333333333343" height="14"/>
+                                                                <rect key="frame" x="17.000000000000004" y="14" width="51.333333333333343" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="VSN-eo-OgO"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="sqV-Rv-pfd"/>
@@ -10898,8 +10898,16 @@
                                                                 <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <nil key="highlightedColor"/>
                                                             </label>
+                                                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="arrowrightwhite" translatesAutoresizingMaskIntoConstraints="NO" id="aQD-Km-Qte">
+                                                                <rect key="frame" x="78.333333333333314" y="14.666666666666686" width="11" height="11"/>
+                                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                <constraints>
+                                                                    <constraint firstAttribute="height" constant="11" id="2ys-lT-cLw"/>
+                                                                    <constraint firstAttribute="width" constant="11" id="Xpm-tg-mJr"/>
+                                                                </constraints>
+                                                            </imageView>
                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bSJ-eh-fzY">
-                                                                <rect key="frame" x="0.0" y="0.0" width="91.333333333333329" height="45"/>
+                                                                <rect key="frame" x="0.0" y="0.0" width="106.33333333333333" height="40"/>
                                                                 <accessibility key="accessibilityConfiguration" identifier="3"/>
                                                                 <state key="normal" title="Button"/>
                                                                 <buttonConfiguration key="configuration" style="plain"/>
@@ -10914,21 +10922,23 @@
                                                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.6039343828" colorSpace="calibratedRGB"/>
                                                         <constraints>
                                                             <constraint firstAttribute="bottom" secondItem="bSJ-eh-fzY" secondAttribute="bottom" id="4bQ-dE-paP"/>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="80" id="BGp-Zc-LQT"/>
+                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" id="BGp-Zc-LQT"/>
                                                             <constraint firstItem="bSJ-eh-fzY" firstAttribute="top" secondItem="cKu-Bl-DG7" secondAttribute="top" id="DVD-l4-oV1"/>
-                                                            <constraint firstAttribute="height" constant="45" id="K3i-6W-WRW"/>
+                                                            <constraint firstAttribute="height" constant="40" id="K3i-6W-WRW"/>
+                                                            <constraint firstAttribute="trailing" secondItem="aQD-Km-Qte" secondAttribute="trailing" constant="17" id="L7R-zf-cJc"/>
                                                             <constraint firstItem="bSJ-eh-fzY" firstAttribute="leading" secondItem="cKu-Bl-DG7" secondAttribute="leading" id="YJl-DB-V2w"/>
+                                                            <constraint firstItem="aQD-Km-Qte" firstAttribute="centerY" secondItem="cKu-Bl-DG7" secondAttribute="centerY" id="fPs-bW-M7Y"/>
                                                             <constraint firstItem="c4J-hT-51G" firstAttribute="centerY" secondItem="cKu-Bl-DG7" secondAttribute="centerY" constant="1" id="iNA-zy-pj7"/>
                                                             <constraint firstAttribute="trailing" secondItem="bSJ-eh-fzY" secondAttribute="trailing" id="lra-Xg-tQg"/>
-                                                            <constraint firstAttribute="trailing" secondItem="c4J-hT-51G" secondAttribute="trailing" constant="20" id="pNU-th-7KP"/>
-                                                            <constraint firstItem="c4J-hT-51G" firstAttribute="leading" secondItem="cKu-Bl-DG7" secondAttribute="leading" constant="20" id="r2m-H3-tRV"/>
+                                                            <constraint firstItem="aQD-Km-Qte" firstAttribute="leading" secondItem="c4J-hT-51G" secondAttribute="trailing" constant="10" id="mes-0d-fym"/>
+                                                            <constraint firstItem="c4J-hT-51G" firstAttribute="leading" secondItem="cKu-Bl-DG7" secondAttribute="leading" constant="17" id="r2m-H3-tRV"/>
                                                         </constraints>
                                                     </view>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mNE-6c-yUs" userLabel="Restore View">
-                                                        <rect key="frame" x="116.66666666666669" y="302" width="160" height="25"/>
+                                                        <rect key="frame" x="116.66666666666669" y="297" width="160" height="25"/>
                                                         <subviews>
                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Back" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4fH-ai-4IC">
-                                                                <rect key="frame" x="63.999999999999986" y="6.3333333333333712" width="32" height="14"/>
+                                                                <rect key="frame" x="63.999999999999986" y="6.6666666666666288" width="32" height="14"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="nPG-rx-uO8"/>
                                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="pJh-Fd-Tov"/>

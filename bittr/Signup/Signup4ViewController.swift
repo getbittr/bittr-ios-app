@@ -45,10 +45,10 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
         
         // Corner radii
-        self.mnemonicView1.layer.cornerRadius = 13
-        self.mnemonicView2.layer.cornerRadius = 13
-        self.mnemonicView3.layer.cornerRadius = 13
-        self.saveView.layer.cornerRadius = 13
+        self.mnemonicView1.layer.cornerRadius = 8
+        self.mnemonicView2.layer.cornerRadius = 8
+        self.mnemonicView3.layer.cornerRadius = 8
+        self.saveView.layer.cornerRadius = 8
         
         // Button titles
         self.backButton.setTitle("", for: .normal)

@@ -62,10 +62,10 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "Signup6ToPin" {
-            if let actualPinVC = segue.destination as? PinViewController {
-                actualPinVC.embeddingView = "signup6"
-                actualPinVC.upperViewController = self
-                actualPinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
+            if let pinVC = segue.destination as? PinViewController {
+                pinVC.embeddingView = .signup6
+                pinVC.upperViewController = self
+                pinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
             }
         }
     }

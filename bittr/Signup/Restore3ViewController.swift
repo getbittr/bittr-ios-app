@@ -58,10 +58,10 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         if segue.identifier == "Restore3ToPin" {
-            if let actualPinVC = segue.destination as? PinViewController {
-                actualPinVC.embeddingView = "restore3"
-                actualPinVC.upperViewController = self
-                actualPinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
+            if let pinVC = segue.destination as? PinViewController {
+                pinVC.embeddingView = .restore3
+                pinVC.upperViewController = self
+                pinVC.coreVC = self.coreVC ?? self.signupVC?.coreVC
             }
         }
     }

@@ -65,7 +65,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     var coreVC:CoreViewController?
     
     // Changing elements
-    var embeddingView = "core"
+    var embeddingView:EmbeddingView = .core
     var upperViewController:UIViewController?
     @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var nextButtonLabel: UILabel!
@@ -76,27 +76,28 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         super.viewDidLoad()
 
         // Set elements according to superview.
-        if self.embeddingView == "core" {
+        switch self.embeddingView {
+        case .core:
             self.topLabel.text = Language.getWord(withID: "enteryourpincode")
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
             self.restoreButtonLabel.text = Language.getWord(withID: "forgotpin")
             self.restoreButtonView.alpha = 1
-        } else if self.embeddingView == "signup5" {
+        case .signup5:
             self.topLabel.text = Language.getWord(withID: "setapin")
             self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
-        } else if self.embeddingView == "signup6" {
+        case .signup6:
             self.topLabel.text = Language.getWord(withID: "confirmyourpin")
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
             self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1
-        } else if self.embeddingView == "restore2" {
+        case .restore2:
             self.topLabel.text = Language.getWord(withID: "setapin")
             self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
-        } else if self.embeddingView == "restore3" {
+        case .restore3:
             self.topLabel.text = Language.getWord(withID: "confirmyourpin")
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
             self.restoreButtonLabel.text = Language.getWord(withID: "back")
@@ -104,7 +105,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
         
         // Corner radii
-        self.confirmPinView.layer.cornerRadius = 13
+        self.confirmPinView.layer.cornerRadius = 8
         
         // Button titles
         let allButtons = [self.confirmPinButton, self.restoreWalletButton, self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, self.button7, self.button8, self.button9, self.button0, self.buttonBackspace]
@@ -113,7 +114,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
         
         // Text field
-        pinTextField.delegate = self
+        self.pinTextField.delegate = self
         
         // Get correct pin
         if let actualPin = CacheManager.getPin() {
@@ -176,8 +177,8 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             return
         }
         
-        if self.embeddingView == "core" {
-            
+        switch self.embeddingView {
+        case .core:
             // Check internet connection.
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -211,22 +212,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 // No pin found in storage.
                 Log.info("No pin found in storage.")
             }
-        } else if self.embeddingView == "signup5" {
-            if let actualSignup5VC = self.upperViewController as? Signup5ViewController {
-                actualSignup5VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
-            }
-        } else if self.embeddingView == "signup6" {
-            if let actualSignup6VC = self.upperViewController as? Signup6ViewController {
-                actualSignup6VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
-            }
-        } else if self.embeddingView == "restore2" {
-            if let actualRestore2VC = self.upperViewController as? Restore2ViewController {
-                actualRestore2VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
-            }
-        } else if self.embeddingView == "restore3" {
-            if let actualRestore3VC = self.upperViewController as? Restore3ViewController {
-                actualRestore3VC.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
-            }
+        case .signup5:
+            (self.upperViewController as? Signup5ViewController)?.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
+        case .signup6:
+            (self.upperViewController as? Signup6ViewController)?.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
+        case .restore2:
+            (self.upperViewController as? Restore2ViewController)?.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
+        case .restore3:
+            (self.upperViewController as? Restore3ViewController)?.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
         }
     }
     
@@ -237,20 +230,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
         
-        if self.embeddingView == "core" {
+        switch self.embeddingView {
+        case .core:
             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "reset")], actions: [nil, #selector(self.startPinReset)])
-        } else if self.embeddingView == "signup5" {
-            return
-        } else if self.embeddingView == "signup6" {
-            if let actualSignup6VC = self.upperViewController as? Signup6ViewController {
-                actualSignup6VC.backButtonTapped()
-            }
-        } else if self.embeddingView == "restore2" {
-            return
-        } else if self.embeddingView == "restore3" {
-            if let actualRestore3VC = self.upperViewController as? Restore3ViewController {
-                actualRestore3VC.backButtonTapped()
-            }
+        case .signup6:
+            (self.upperViewController as? Signup6ViewController)?.backButtonTapped()
+        case .restore3:
+            (self.upperViewController as? Restore3ViewController)?.backButtonTapped()
+        default: return
         }
     }
     
@@ -323,4 +310,12 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
     }
     
+}
+
+enum EmbeddingView {
+    case core
+    case signup5
+    case signup6
+    case restore2
+    case restore3
 }
