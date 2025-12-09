@@ -11,6 +11,8 @@ class Signup2ViewController: UIViewController {
 
     // View for the user to confirm that they understand how to maintain a bitcoin wallet.
     
+    // Header elements
+    @IBOutlet weak var centerCard: UIView!
     @IBOutlet weak var topLabel: UILabel!
     
     // Switches
@@ -20,7 +22,6 @@ class Signup2ViewController: UIViewController {
     @IBOutlet weak var labelTwo: UILabel!
     
     // Next button and article
-    @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var buttonView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextLabel: UILabel!
@@ -30,6 +31,7 @@ class Signup2ViewController: UIViewController {
     @IBOutlet weak var cancelLabel: UILabel!
     
     // Article
+    @IBOutlet weak var cardView: UIView!
     @IBOutlet weak var imageContainer: UIView!
     @IBOutlet weak var articleButton: UIButton!
     @IBOutlet weak var spinner1: UIActivityIndicatorView!
@@ -37,6 +39,8 @@ class Signup2ViewController: UIViewController {
     @IBOutlet weak var articleTitle: UILabel!
     let pageArticle1Slug = "what-is-a-bitcoin-wallet"
     var pageArticle1 = Article()
+    
+    // Variables
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     
@@ -44,9 +48,16 @@ class Signup2ViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii
-        self.buttonView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
+        self.buttonView.layer.cornerRadius = 8
+        self.cardView.layer.cornerRadius = 8
+        self.imageContainer.layer.cornerRadius = 8
+        
+        // Center card
+        self.centerCard.layer.cornerRadius = 13
+        self.centerCard.layer.shadowColor = UIColor.black.cgColor
+        self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
+        self.centerCard.layer.shadowRadius = 10
+        self.centerCard.layer.shadowOpacity = 0.1
         
         // Button titles
         self.articleButton.setTitle("", for: .normal)
@@ -56,9 +67,10 @@ class Signup2ViewController: UIViewController {
         // Card styling
         self.cardView.layer.shadowColor = UIColor.black.cgColor
         self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        self.cardView.layer.shadowRadius = 12.0
-        self.cardView.layer.shadowOpacity = 0.05
+        self.cardView.layer.shadowRadius = 10
+        self.cardView.layer.shadowOpacity = 0.1
         
+        // Set colors, language, article.
         self.changeColors()
         self.setWords()
         Task {
@@ -71,7 +83,7 @@ class Signup2ViewController: UIViewController {
     @IBAction func switchChanged(_ sender: UISwitch) {
         
         // Make Next button clickable.
-        if switchOne.isOn && switchTwo.isOn {
+        if self.switchOne.isOn && self.switchTwo.isOn {
             // Clickable. Both switches are on.
             self.buttonView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
@@ -83,7 +95,11 @@ class Signup2ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         if switchOne.isOn && switchTwo.isOn {
+            // User has agreed to the statements.
             self.signupVC?.moveToPage(5)
+        } else {
+            // User hasn't agreed to the statements.
+            self.showAlert(presentingController: self.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "signupvc2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -94,15 +110,8 @@ class Signup2ViewController: UIViewController {
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
-        
         self.view.endEditing(true)
-        
-        if self.signupVC == nil {
-            return
-        } else {
-            // Go back to wallet choice screen (create or restore)
-            self.signupVC?.moveToPage(3)
-        }
+        self.signupVC?.moveToPage(3)
     }
     
     func changeColors() {

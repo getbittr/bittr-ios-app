@@ -472,7 +472,8 @@ class Language: NSObject {
             "buyvcupdatedetails2": "Your partner details have changed. The above details have been updated.",
             "buyvcupdatedetails3": "Your partner details are up-to-date.",
             "buyvcupdatedetails4": "We could not fetch your partner details at this time.",
-            "EsploraHttpResponse": "Could not fetch latest block height from Esplora."
+            "EsploraHttpResponse": "Could not fetch latest block height from Esplora.",
+            "signupvc2": "Please confirm the above statements in order to proceed."
             
         ]
         
