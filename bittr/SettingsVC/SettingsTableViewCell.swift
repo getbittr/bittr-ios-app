@@ -20,10 +20,7 @@ class SettingsTableViewCell: UITableViewCell {
         
         // Corner radii.
         self.settingsCardView.layer.cornerRadius = 13
-        self.settingsCardView.layer.shadowColor = UIColor.black.cgColor
-        self.settingsCardView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.settingsCardView.layer.shadowRadius = 10.0
-        self.settingsCardView.layer.shadowOpacity = 0.07
+        self.settingsCardView.setShadow()
         
         // Button titles.
         self.settingsButton.setTitle("", for: .normal)

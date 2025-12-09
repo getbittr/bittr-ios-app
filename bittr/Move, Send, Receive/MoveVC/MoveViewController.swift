@@ -79,18 +79,11 @@ class MoveViewController: UIViewController {
         self.rightCard.setShadow()
         self.leftCard.setShadow()
         
-        // Yellow card shadow.
-        self.yellowCard.layer.shadowColor = UIColor.black.cgColor
-        self.yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.yellowCard.layer.shadowRadius = 10.0
-        self.yellowCard.layer.shadowOpacity = 0.1
+        // Shadows
+        self.yellowCard.setShadow()
+        self.swapView.setShadow()
         
-        // Swap view shadow
-        self.swapView.layer.shadowColor = UIColor.black.cgColor
-        self.swapView.layer.shadowOffset = CGSize(width: 0, height: 5)
-        self.swapView.layer.shadowRadius = 8
-        self.swapView.layer.shadowOpacity = 0.1
-        
+        // Set language and colors.
         self.updateLabels()
         self.changeColors()
         

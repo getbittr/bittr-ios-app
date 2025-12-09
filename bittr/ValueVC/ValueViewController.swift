@@ -72,33 +72,22 @@ class ValueViewController: UIViewController {
         
         // Card styling
         self.centerCard.layer.cornerRadius = 13
-        self.centerCard.layer.shadowColor = UIColor.black.cgColor
-        self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.centerCard.layer.shadowRadius = 10.0
-        self.centerCard.layer.shadowOpacity = 0.1
+        self.centerCard.setShadow()
         self.graphView.layer.zPosition = 10
         self.profitView.layer.cornerRadius = 13
         
         // Dates styling
         self.weekView.layer.cornerRadius = 8
-        self.weekView.layer.shadowColor = UIColor.black.cgColor
-        self.weekView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.weekView.layer.shadowRadius = 10.0
+        self.weekView.setShadow()
         self.weekView.layer.shadowOpacity = 0.1
         self.monthView.layer.cornerRadius = 8
-        self.monthView.layer.shadowColor = UIColor.black.cgColor
-        self.monthView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.monthView.layer.shadowRadius = 10.0
+        self.monthView.setShadow()
         self.monthView.layer.shadowOpacity = 0
         self.yearView.layer.cornerRadius = 8
-        self.yearView.layer.shadowColor = UIColor.black.cgColor
-        self.yearView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.yearView.layer.shadowRadius = 10.0
+        self.yearView.setShadow()
         self.yearView.layer.shadowOpacity = 0
         self.fiveYearsView.layer.cornerRadius = 8
-        self.fiveYearsView.layer.shadowColor = UIColor.black.cgColor
-        self.fiveYearsView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.fiveYearsView.layer.shadowRadius = 10.0
+        self.fiveYearsView.setShadow()
         self.fiveYearsView.layer.shadowOpacity = 0
         
         // Colors and language

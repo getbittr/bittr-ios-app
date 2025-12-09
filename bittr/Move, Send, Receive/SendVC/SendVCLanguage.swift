@@ -131,13 +131,13 @@ extension SendViewController {
         self.btcView.layer.cornerRadius = 8
         
         // Shadows
-        self.setShadows(forView: self.yellowCard)
-        self.setShadows(forView: self.fastView)
-        self.setShadows(forView: self.mediumView)
-        self.setShadows(forView: self.slowView)
-        self.setShadows(forView: self.backgroundQR)
-        self.setShadows(forView: self.backgroundPaste)
-        self.setShadows(forView: self.btcView)
-        self.setShadows(forView: self.switchSelectionView)
+        self.yellowCard.setShadow()
+        self.fastView.setShadow()
+        self.mediumView.setShadow()
+        self.slowView.setShadow()
+        self.backgroundQR.setShadow()
+        self.backgroundPaste.setShadow()
+        self.btcView.setShadow()
+        self.switchSelectionView.setShadow()
     }
 }

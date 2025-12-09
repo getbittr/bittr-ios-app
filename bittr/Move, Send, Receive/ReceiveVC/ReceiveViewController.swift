@@ -170,13 +170,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.setBasicStyling()
     }
     
-    func setShadows(forView:UIView) {
-        forView.layer.shadowColor = UIColor.black.cgColor
-        forView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        forView.layer.shadowRadius = 10.0
-        forView.layer.shadowOpacity = 0.1
-    }
-    
     func resetQRs(resetAddress:Bool) {
         
         // QRs

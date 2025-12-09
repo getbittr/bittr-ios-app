@@ -35,10 +35,7 @@ extension UIViewController {
             yellowCard.translatesAutoresizingMaskIntoConstraints = false
             yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
             yellowCard.layer.cornerRadius = 13
-            yellowCard.layer.shadowColor = UIColor.black.cgColor
-            yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-            yellowCard.layer.shadowRadius = 10.0
-            yellowCard.layer.shadowOpacity = 0.1
+            yellowCard.setShadow()
             yellowCard.clipsToBounds = false
             darkBackground.addSubview(yellowCard)
             let yellowCardTop = NSLayoutConstraint(item: yellowCard, attribute: .top, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
@@ -167,10 +164,7 @@ extension UIViewController {
                 closeView.translatesAutoresizingMaskIntoConstraints = false
                 closeView.backgroundColor = Colors.getColor("white0.7orblue1")
                 closeView.layer.cornerRadius = 8
-                closeView.layer.shadowColor = UIColor.black.cgColor
-                closeView.layer.shadowOffset = CGSize(width: 0, height: 7)
-                closeView.layer.shadowRadius = 10.0
-                closeView.layer.shadowOpacity = 0.1
+                closeView.setShadow()
                 closeView.clipsToBounds = false
                 buttonsStack.addSubview(closeView)
                 let closeViewTop = NSLayoutConstraint(item: closeView, attribute: .top, relatedBy: .equal, toItem: buttonsStack, attribute: .top, multiplier: 1, constant: 0)

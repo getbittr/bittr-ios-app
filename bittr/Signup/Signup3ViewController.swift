@@ -49,26 +49,18 @@ class Signup3ViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii
-        self.saveView.layer.cornerRadius = 13
-        self.articleView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
+        self.saveView.layer.cornerRadius = 8
+        self.articleView.layer.cornerRadius = 8
+        self.imageContainer.layer.cornerRadius = 8
+        self.mnemonicView.layer.cornerRadius = 13
         
         // Button titles
         self.articleButton.setTitle("", for: .normal)
         self.nextButton.setTitle("", for: .normal)
         
-        // Card styling
-        self.articleView.layer.shadowColor = UIColor.black.cgColor
-        self.articleView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        self.articleView.layer.shadowRadius = 12.0
-        self.articleView.layer.shadowOpacity = 0.05
-        
-        // Yellow card styling
-        self.mnemonicView.layer.cornerRadius = 13
-        self.mnemonicView.layer.shadowColor = UIColor.black.cgColor
-        self.mnemonicView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.mnemonicView.layer.shadowRadius = 10.0
-        self.mnemonicView.layer.shadowOpacity = 0.1
+        // Cards styling
+        self.articleView.setShadow()
+        self.mnemonicView.setShadow()
         
         // Words and colors
         self.changeColors()
@@ -93,10 +85,10 @@ class Signup3ViewController: UIViewController {
                 whiteCard.backgroundColor = Colors.getColor("whiteorblue3")
                 self.mnemonicStack.addSubview(whiteCard)
                 
-                let whiteCardTop = NSLayoutConstraint(item: whiteCard, attribute: .top, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .top, multiplier: 1, constant: CGFloat(index)*55)
+                let whiteCardTop = NSLayoutConstraint(item: whiteCard, attribute: .top, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .top, multiplier: 1, constant: CGFloat(index)*50)
                 let whiteCardLeft = NSLayoutConstraint(item: whiteCard, attribute: .leading, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .leading, multiplier: 1, constant: 10)
                 let whiteCardRight = NSLayoutConstraint(item: whiteCard, attribute: .trailing, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .trailing, multiplier: 1, constant: -10)
-                let whiteCardHeight = NSLayoutConstraint(item: whiteCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 45)
+                let whiteCardHeight = NSLayoutConstraint(item: whiteCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
                 whiteCard.addConstraint(whiteCardHeight)
                 self.mnemonicStack.addConstraints([whiteCardTop, whiteCardLeft, whiteCardRight])
                 if index == 11 {
@@ -142,10 +134,10 @@ class Signup3ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         
-        let centerViewHeight = centerView.bounds.height
+        let centerViewHeight = self.centerView.bounds.height
         
-        // Make sure view is scrollable for smaller phone screens.
-        if centerView.bounds.height + 40 > contentView.bounds.height {
+        // Make sure view is scrollable for smaller screens.
+        if centerViewHeight + 40 > self.contentView.bounds.height {
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight)
             NSLayoutConstraint.activate([self.contentViewHeight])

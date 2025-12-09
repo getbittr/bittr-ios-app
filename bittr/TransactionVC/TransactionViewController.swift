@@ -133,13 +133,10 @@ class TransactionViewController: UIViewController {
         self.buttonAddANote.setTitle("", for: .normal)
         
         // Yellow card styling
-        self.yellowCard.layer.cornerRadius = 13
-        self.yellowCard.layer.shadowColor = UIColor.black.cgColor
-        self.yellowCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.yellowCard.layer.shadowRadius = 10.0
-        self.yellowCard.layer.shadowOpacity = 0.1
+        self.yellowCard.setShadow()
         
         // Corner radii
+        self.yellowCard.layer.cornerRadius = 13
         self.cardAmount.layer.cornerRadius = 8
         self.cardType.layer.cornerRadius = 8
         self.cardSwapId.layer.cornerRadius = 8

@@ -51,26 +51,21 @@ extension ReceiveViewController {
         self.btcView.layer.cornerRadius = 8
         
         // Selection view
-        self.viewBoth.layer.shadowColor = UIColor.black.cgColor
-        self.viewBoth.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewBoth.layer.shadowRadius = 10.0
+        self.viewBoth.setShadow()
         self.viewBoth.layer.shadowOpacity = 0.1
-        self.viewRegular.layer.shadowColor = UIColor.black.cgColor
-        self.viewRegular.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewRegular.layer.shadowRadius = 10.0
-        self.viewInstant.layer.shadowColor = UIColor.black.cgColor
-        self.viewInstant.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewInstant.layer.shadowRadius = 10.0
-        self.viewLnurl.layer.shadowColor = UIColor.black.cgColor
-        self.viewLnurl.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.viewLnurl.layer.shadowRadius = 10.0
+        self.viewRegular.setShadow()
+        self.viewRegular.layer.shadowOpacity = 0
+        self.viewInstant.setShadow()
+        self.viewInstant.layer.shadowOpacity = 0
+        self.viewLnurl.setShadow()
+        self.viewLnurl.layer.shadowOpacity = 0
         
         // Receivable sats label
-        self.setShadows(forView: self.qrView)
-        self.setShadows(forView: self.bothQrView)
-        self.setShadows(forView: self.lnConfirmationQRView)
-        self.setShadows(forView: self.lnurlQRBackground)
-        self.setShadows(forView: self.btcView)
+        self.qrView.setShadow()
+        self.bothQrView.setShadow()
+        self.lnConfirmationQRView.setShadow()
+        self.lnurlQRBackground.setShadow()
+        self.btcView.setShadow()
     }
     
     func setWords() {

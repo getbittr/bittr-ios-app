@@ -114,43 +114,27 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.downloadButton.setTitle("", for: .normal)
         self.statusQuestionButton.setTitle("", for: .normal)
         
-        // Center card styling
+        // Corner radii
         self.centerCard.layer.cornerRadius = 13
-        self.centerCard.layer.shadowColor = UIColor.black.cgColor
-        self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.centerCard.layer.shadowRadius = 10.0
-        self.centerCard.layer.shadowOpacity = 0.1
-        
-        // Confirm card styling
         self.confirmCard.layer.cornerRadius = 13
-        self.confirmCard.layer.shadowColor = UIColor.black.cgColor
-        self.confirmCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.confirmCard.layer.shadowRadius = 10.0
-        self.confirmCard.layer.shadowOpacity = 0.1
         self.confirmDirection.layer.cornerRadius = 8
         self.confirmAmount.layer.cornerRadius = 8
         self.confirmFees.layer.cornerRadius = 8
         self.confirmStatus.layer.cornerRadius = 8
         self.downloadView.layer.cornerRadius = 8
+        self.amountTextField.layer.cornerRadius = 8
+        self.fromView.layer.cornerRadius = 8
+        self.nextView.layer.cornerRadius = 8
+        
+        // Shadows
+        self.centerCard.setShadow()
+        self.confirmCard.setShadow()
+        self.fromView.setShadow()
+        self.amountTextField.setShadow()
         
         // Amount text field
         self.amountTextField.delegate = self
         self.amountTextField.inputAccessoryView = createInputAccessoryView()
-        self.amountTextField.layer.cornerRadius = 8
-        self.amountTextField.layer.shadowColor = UIColor.black.cgColor
-        self.amountTextField.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.amountTextField.layer.shadowRadius = 10.0
-        self.amountTextField.layer.shadowOpacity = 0.1
-        
-        // From view
-        self.fromView.layer.cornerRadius = 8
-        self.fromView.layer.shadowColor = UIColor.black.cgColor
-        self.fromView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.fromView.layer.shadowRadius = 10.0
-        self.fromView.layer.shadowOpacity = 0.1
-        
-        // Next view
-        self.nextView.layer.cornerRadius = 8
         
         // Available amount
         self.calculateSendableAmount()

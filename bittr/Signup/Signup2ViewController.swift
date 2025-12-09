@@ -54,10 +54,7 @@ class Signup2ViewController: UIViewController {
         
         // Center card
         self.centerCard.layer.cornerRadius = 13
-        self.centerCard.layer.shadowColor = UIColor.black.cgColor
-        self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.centerCard.layer.shadowRadius = 10
-        self.centerCard.layer.shadowOpacity = 0.1
+        self.centerCard.setShadow()
         
         // Button titles
         self.articleButton.setTitle("", for: .normal)

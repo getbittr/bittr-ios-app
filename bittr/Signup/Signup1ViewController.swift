@@ -53,10 +53,7 @@ class Signup1ViewController: UIViewController {
         
         // Center card
         self.centerCard.layer.cornerRadius = 13
-        self.centerCard.layer.shadowColor = UIColor.black.cgColor
-        self.centerCard.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.centerCard.layer.shadowRadius = 10.0
-        self.centerCard.layer.shadowOpacity = 0.1
+        self.centerCard.setShadow()
         
         // Button titles
         self.createWalletButton.setTitle("", for: .normal)
@@ -64,10 +61,7 @@ class Signup1ViewController: UIViewController {
         self.articleButton.setTitle("", for: .normal)
         
         // Card styling
-        self.cardView.layer.shadowColor = UIColor.black.cgColor
-        self.cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
-        self.cardView.layer.shadowRadius = 10
-        self.cardView.layer.shadowOpacity = 0.1
+        self.cardView.setShadow()
         
         // Set colors, words, article.
         self.changeColors()

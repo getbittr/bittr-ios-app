@@ -53,10 +53,7 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.emailView.layer.cornerRadius = 13
         
         // Background card styling
-        self.cardBackgroundView.layer.shadowColor = UIColor.black.cgColor
-        self.cardBackgroundView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        self.cardBackgroundView.layer.shadowRadius = 10.0
-        self.cardBackgroundView.layer.shadowOpacity = 0.1
+        self.cardBackgroundView.setShadow()
         
         // Button titles
         self.ibanButton.setTitle("", for: .normal)

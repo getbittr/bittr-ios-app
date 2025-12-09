@@ -35,16 +35,13 @@ class QuestionViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii and button titles
-        downButton.setTitle("", for: .normal)
-        headerView.layer.cornerRadius = 13
-        channelView.layer.cornerRadius = 13
-        barView.layer.cornerRadius = 2
+        self.downButton.setTitle("", for: .normal)
+        self.headerView.layer.cornerRadius = 13
+        self.channelView.layer.cornerRadius = 13
+        self.barView.layer.cornerRadius = 2
         
         // Channel view shadow
-        channelView.layer.shadowColor = UIColor.black.cgColor
-        channelView.layer.shadowOffset = CGSize(width: 0, height: 7)
-        channelView.layer.shadowRadius = 10.0
-        channelView.layer.shadowOpacity = 0.1
+        self.channelView.setShadow()
         
         if let actualHeader = headerText, let actualAnswer = answerText {
             self.headerLabel.text = actualHeader
