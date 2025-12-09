@@ -11,11 +11,8 @@ class Signup7ViewController: UIViewController {
 
     // Confirmation of created wallet. Sign up with bittr or skip directly to wallet.
     
-    // Checkmark
+    // Top items
     @IBOutlet weak var checkView: UIView!
-    @IBOutlet weak var checkmarkImage: UIImageView!
-    
-    // Top labels
     @IBOutlet weak var topLabelOne: UILabel!
     @IBOutlet weak var topLabelTwo: UILabel!
     @IBOutlet weak var topLabelTwoTop: NSLayoutConstraint!

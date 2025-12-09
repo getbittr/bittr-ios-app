@@ -11,14 +11,12 @@ class Transfer2ViewController: UIViewController {
 
     // Bittr signup successful. Show details for setting up bank transfer.
     
-    // Checkmark
+    // Top items
     @IBOutlet weak var checkView: UIView!
-    @IBOutlet weak var checkmarkImage: UIImageView!
-    
-    // Top labels
     @IBOutlet weak var topLabelOne: UILabel!
     @IBOutlet weak var topLabelTwo: UILabel!
     
+    // View items
     @IBOutlet weak var ibanView: UIView!
     @IBOutlet weak var nameView: UIView!
     @IBOutlet weak var codeView: UIView!
@@ -39,10 +37,12 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var titleOurName: UILabel!
     @IBOutlet weak var titleYourCode: UILabel!
     
+    // Copy buttons
     @IBOutlet weak var ibanButton: UIButton!
     @IBOutlet weak var nameButton: UIButton!
     @IBOutlet weak var codeButton: UIButton!
     
+    // Variables
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -51,12 +51,12 @@ class Transfer2ViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii.
-        self.checkView.layer.cornerRadius = 35
-        self.ibanView.layer.cornerRadius = 13
-        self.nameView.layer.cornerRadius = 13
-        self.codeView.layer.cornerRadius = 13
-        self.nextView.layer.cornerRadius = 13
-        self.screenshotView.layer.cornerRadius = 13
+        self.checkView.layer.cornerRadius = 25
+        self.ibanView.layer.cornerRadius = 8
+        self.nameView.layer.cornerRadius = 8
+        self.codeView.layer.cornerRadius = 8
+        self.nextView.layer.cornerRadius = 8
+        self.screenshotView.layer.cornerRadius = 8
         
         // Button titles.
         self.nextButton.setTitle("", for: .normal)
@@ -65,15 +65,7 @@ class Transfer2ViewController: UIViewController {
         self.nameButton.setTitle("", for: .normal)
         self.codeButton.setTitle("", for: .normal)
         
-        // Checkmark elements.
-        let viewBorder = CAShapeLayer()
-        viewBorder.strokeColor = Colors.getColor("blackorwhite").cgColor
-        viewBorder.frame = checkView.bounds
-        viewBorder.fillColor = nil
-        viewBorder.path = UIBezierPath(roundedRect: checkView.bounds, cornerRadius: 35).cgPath
-        viewBorder.lineWidth = 2
-        self.checkView.layer.addSublayer(viewBorder)
-        
+        // Set colors, language, data.
         self.changeColors()
         self.setWords()
         self.updateData()
@@ -160,7 +152,6 @@ class Transfer2ViewController: UIViewController {
     
     func changeColors() {
         
-        self.checkmarkImage.tintColor = Colors.getColor("blackorwhite")
         self.topLabelOne.textColor = Colors.getColor("blackorwhite")
         self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
     }

@@ -41,7 +41,7 @@ class Transfer3ViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii
-        self.nextView.layer.cornerRadius = 13
+        self.nextView.layer.cornerRadius = 8
         self.amountCard.layer.cornerRadius = 13
         self.lightningCard.layer.cornerRadius = 13
         self.dcaCard.layer.cornerRadius = 13
