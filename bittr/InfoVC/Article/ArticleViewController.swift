@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
@@ -114,4 +115,73 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         }
     }
     
+}
+
+extension UIViewController {
+    
+    func getImage(urlString:String) async -> Data? {
+        
+        do {
+            var request = URLRequest(url: URL(string: urlString)!)
+            request.httpMethod = "GET"
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard response is HTTPURLResponse else {
+                return nil
+            }
+            
+            // Store image in cache.
+            let image = UIImage(data: data)!
+            CacheManager.storeImageInCache(key: urlString, data: image.resizeImage())
+            
+            return image.resizeImage()
+        } catch {
+            Log.info("Some error occurred fetching image. \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "InfoViewController row 294", key: "context")
+                }
+            }
+            if let actualData = CacheManager.getImage(key: urlString) {
+                return actualData
+            } else {
+                return nil
+            }
+        }
+    }
+    
+}
+
+extension UIImage {
+    
+    func resizeImage() -> Data {
+        
+        // Don't enlarge the image.
+        if 1080 > self.size.width {
+            Log.info("Image is narrower than 1080 pixels. No need to resize.")
+            return self.jpegData(compressionQuality: 1)!
+        }
+        
+        // Check the current ratio.
+        let widthRatio = 1080 / self.size.width
+        
+        // Calculate new size.
+        let newSize = CGSize(width: self.size.width * widthRatio, height: self.size.height * widthRatio)
+        
+        // This is the rect that we've calculated out and this is what is actually used below
+        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+        
+        // Actually do the resizing to the rect using the ImageContext stuff
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        self.draw(in: rect)
+        var newImage = UIGraphicsGetImageFromCurrentImageContext()
+        if newImage == nil {
+            Log.info("Image could not be downsized.")
+            newImage = self
+        }
+        UIGraphicsEndImageContext()
+        
+        return newImage!.jpegData(compressionQuality: 1)!
+    }
 }
