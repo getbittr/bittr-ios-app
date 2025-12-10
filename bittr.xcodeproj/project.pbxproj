@@ -65,6 +65,7 @@
 		057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
 		058B2FBD2EE7DE5E0010693D /* SignupSetArticle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */; };
+		058B2FD42EE9B5A70010693D /* URIs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B2FD32EE9B5960010693D /* URIs.swift */; };
 		058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */; };
 		058FA76D2E5EAB26001A68DA /* BackgroundSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */; };
 		05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */; };
@@ -246,6 +247,7 @@
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapVCLanguage.swift; sourceTree = "<group>"; };
 		058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupSetArticle.swift; sourceTree = "<group>"; };
+		058B2FD32EE9B5960010693D /* URIs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URIs.swift; sourceTree = "<group>"; };
 		058B85CF2CEDCAF300625A14 /* PinCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCollectionViewCell.swift; sourceTree = "<group>"; };
 		058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSync.swift; sourceTree = "<group>"; };
 		05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOnchain.swift; sourceTree = "<group>"; };
@@ -511,6 +513,7 @@
 				05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */,
 				056911102BC3E16800BD047B /* SyncingStatus.swift */,
 				058FA76C2E5EAB21001A68DA /* BackgroundSync.swift */,
+				058B2FD32EE9B5960010693D /* URIs.swift */,
 			);
 			path = CoreVC;
 			sourceTree = "<group>";
@@ -1104,6 +1107,7 @@
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */,
+				058B2FD42EE9B5A70010693D /* URIs.swift in Sources */,
 				05117AF32EAA2B2E00A5E4E6 /* Label.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,

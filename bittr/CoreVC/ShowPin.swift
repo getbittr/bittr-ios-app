@@ -34,12 +34,7 @@ extension CoreViewController {
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
             
-            // Check for pending URIs after user signs in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.checkForPendingURIs()
-            }
-            
-            if self.needsToHandleNotification {
+            if self.needsToHandleNotification || self.needsToHandleURI() {
                 // A notification will be handled after syncing the wallet.
                 self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
                 self.showPendingView()
@@ -68,9 +63,11 @@ extension CoreViewController {
                 self.signupContainerView.subviews[0].removeFromSuperview()
             }
             
-            // Check for pending URIs after user signs in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.checkForPendingURIs()
+            if self.walletHasSynced {
+                // Check for pending URIs after user signs in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.checkForPendingURIs()
+                }
             }
         }
     }

@@ -569,7 +569,10 @@ extension HomeViewController {
             self.coreVC!.completeSync(type: .final)
             
             // Check if notification needs handling.
-            if self.coreVC!.needsToHandleNotification, let actualNotification = self.coreVC!.lightningNotification {
+            if self.coreVC!.needsToHandleURI() {
+                self.coreVC!.hidePendingView()
+                self.coreVC!.checkForPendingURIs()
+            } else if self.coreVC!.needsToHandleNotification, let actualNotification = self.coreVC!.lightningNotification {
                 // Check if it's a swap notification or payment notification
                 if let userInfo = actualNotification.userInfo as? [String: Any],
                    let _ = userInfo["swap_id"] as? String {
