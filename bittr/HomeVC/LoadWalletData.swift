@@ -475,24 +475,31 @@ extension HomeViewController {
         self.homeTableView.alpha = 1
         
         if self.setTransactions.count == 0 {
-            let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID: "notransactions1"))</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID: "buy"))</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(177, 177, 177); line-height: 1.2\">\(Language.getWord(withID:"notransactions2"))</span></center>"
-            
-            if let htmlData = noTransactionsHTML.data(using: .unicode) {
-                do {
-                    let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                    self.noTransactionsLabel.attributedText = attributedText
-                    self.noTransactionsLabel.alpha = 1
-                } catch {
-                    Log.info("Couldn't fetch text: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "LoadWalletData row 489", key: "context")
-                        }
+            self.setNoTransactionsLabel()
+        } else {
+            self.noTransactionsLabel.alpha = 0
+        }
+    }
+    
+    func setNoTransactionsLabel() {
+        
+        let textColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "177, 177, 177"
+        
+        let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID: "notransactions1"))</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID: "buy"))</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID:"notransactions2"))</span></center>"
+        
+        if let htmlData = noTransactionsHTML.data(using: .unicode) {
+            do {
+                let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+                self.noTransactionsLabel.attributedText = attributedText
+                self.noTransactionsLabel.alpha = 1
+            } catch {
+                Log.info("Couldn't fetch text: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "LoadWalletData row 489", key: "context")
                     }
                 }
             }
-        } else {
-            self.noTransactionsLabel.alpha = 0
         }
     }
     

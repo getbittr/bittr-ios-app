@@ -23,14 +23,12 @@ class Transfer2ViewController: UIViewController {
     @IBOutlet weak var nextView: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var nextLabel: UILabel!
-    @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var centerView: UIView!
-    @IBOutlet weak var centerViewCenterY: NSLayoutConstraint!
-    @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var screenshotView: UIView!
     @IBOutlet weak var screenshotButton: UIButton!
     @IBOutlet weak var screenshotLabel: UILabel!
     
+    // Main labels
     @IBOutlet weak var ourIbanLabel: UILabel!
     @IBOutlet weak var yourCodeLabel: UILabel!
     @IBOutlet weak var titleOurIBAN: UILabel!
@@ -57,6 +55,8 @@ class Transfer2ViewController: UIViewController {
         self.codeView.layer.cornerRadius = 8
         self.nextView.layer.cornerRadius = 8
         self.screenshotView.layer.cornerRadius = 8
+        self.centerView.layer.cornerRadius = 13
+        self.centerView.setShadow()
         
         // Button titles.
         self.nextButton.setTitle("", for: .normal)
@@ -72,7 +72,6 @@ class Transfer2ViewController: UIViewController {
     }
     
     func updateData() {
-        
         // Set data received from bittr API.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         
@@ -86,24 +85,6 @@ class Transfer2ViewController: UIViewController {
                 self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
                 self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
             }
-        }
-    }
-    
-    
-    override func viewDidAppear(_ animated: Bool) {
-        
-        // Make sure data is updated
-        self.updateData()
-        
-        let centerViewHeight = self.centerView.bounds.height
-        
-        if self.centerView.bounds.height + 40 > self.contentView.bounds.height {
-            
-            NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 60)
-            NSLayoutConstraint.activate([self.contentViewHeight])
-            self.centerViewCenterY.constant = 0
-            self.view.layoutIfNeeded()
         }
     }
     
@@ -154,6 +135,7 @@ class Transfer2ViewController: UIViewController {
         
         self.topLabelOne.textColor = Colors.getColor("blackorwhite")
         self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.centerView.backgroundColor = Colors.getColor("yelloworblue1")
     }
     
     func setWords() {

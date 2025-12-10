@@ -305,6 +305,8 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                                     self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = dataSwift
                                     self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = dataCode
                                     self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
+                                    
+                                    self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
                                 }
                             }
                             

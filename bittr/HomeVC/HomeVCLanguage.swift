@@ -69,5 +69,9 @@ extension HomeViewController {
         if self.balanceLabel.alpha == 1 {
             self.setTotalSats(updateTableAfterConversion: false)
         }
+        
+        if self.noTransactionsLabel.alpha == 1 {
+            self.setNoTransactionsLabel()
+        }
     }
 }

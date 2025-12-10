@@ -42,9 +42,11 @@ class Transfer3ViewController: UIViewController {
 
         // Corner radii
         self.nextView.layer.cornerRadius = 8
-        self.amountCard.layer.cornerRadius = 13
-        self.lightningCard.layer.cornerRadius = 13
-        self.dcaCard.layer.cornerRadius = 13
+        self.amountCard.layer.cornerRadius = 8
+        self.lightningCard.layer.cornerRadius = 8
+        self.dcaCard.layer.cornerRadius = 8
+        self.centerView.layer.cornerRadius = 13
+        self.centerView.setShadow()
         
         // Button titles
         self.nextButton.setTitle("", for: .normal)
@@ -86,7 +88,6 @@ class Transfer3ViewController: UIViewController {
         
         // Hide signup
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
-        self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
         self.coreVC!.hideSignup()
     }
     
@@ -109,6 +110,7 @@ class Transfer3ViewController: UIViewController {
         self.lightningLabel.textColor = Colors.getColor("blackorwhite")
         self.dcaCard.backgroundColor = Colors.getColor("whiteorblue3")
         self.dcaLabel.textColor = Colors.getColor("blackorwhite")
+        self.centerView.backgroundColor = Colors.getColor("yelloworblue1")
 
     }
     
