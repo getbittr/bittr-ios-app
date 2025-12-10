@@ -12,6 +12,7 @@ class Signup7ViewController: UIViewController {
     // Confirmation of created wallet. Sign up with bittr or skip directly to wallet.
     
     // Top items
+    @IBOutlet weak var centerCard: UIView!
     @IBOutlet weak var checkView: UIView!
     @IBOutlet weak var topLabelOne: UILabel!
     @IBOutlet weak var topLabelTwo: UILabel!
@@ -37,7 +38,6 @@ class Signup7ViewController: UIViewController {
     var pageArticle1 = Article()
     
     // Variables
-    var embeddedInBuyVC = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -51,7 +51,9 @@ class Signup7ViewController: UIViewController {
         self.continueView.layer.cornerRadius = 8
         self.cardView.layer.cornerRadius = 8
         self.imageContainer.layer.cornerRadius = 8
+        self.centerCard.layer.cornerRadius = 13
         self.cardView.setShadow()
+        self.centerCard.setShadow()
         
         // Button titles
         self.partnerButton.setTitle("", for: .normal)
@@ -97,6 +99,7 @@ class Signup7ViewController: UIViewController {
         
         self.topLabelOne.textColor = Colors.getColor("blackorwhite")
         self.topLabelTwo.textColor = Colors.getColor("blackorwhite")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         
         if CacheManager.darkModeIsOn() {
             self.skipLabel.textColor = Colors.getColor("blackorwhite")
@@ -106,11 +109,13 @@ class Signup7ViewController: UIViewController {
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        if self.embeddedInBuyVC {
+        
+        if self.ibanVC != nil {
+            // We're in the Buy section, no need to show the "Wallet is ready" confirmation.
             self.checkView.alpha = 0
             self.topLabelOne.alpha = 0
             self.topLabelTwo.font = UIFont(name: "Gilroy-Bold", size: 16)
-            self.topLabelTwoTop.constant = -86
+            self.topLabelTwoTop.constant = -76
             self.skipLabel.alpha = 0
             self.skipButton.alpha = 0
             self.view.layoutIfNeeded()

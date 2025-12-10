@@ -32,9 +32,11 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var label2: UILabel!
     @IBOutlet weak var label3: UILabel!
     
+    // Scroll view
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
+    @IBOutlet weak var centerCard: UIView!
     
     // Three checkable mnemonic words.
     var checkWords = [String]()
@@ -49,6 +51,8 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         self.mnemonicView2.layer.cornerRadius = 8
         self.mnemonicView3.layer.cornerRadius = 8
         self.saveView.layer.cornerRadius = 8
+        self.centerCard.layer.cornerRadius = 13
+        self.centerCard.setShadow()
         
         // Button titles
         self.backButton.setTitle("", for: .normal)
@@ -289,6 +293,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func changeColors() {
         self.topLabel.textColor = Colors.getColor("blackorwhite")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
         if CacheManager.darkModeIsOn() {
             self.backLabel.textColor = Colors.getColor("blackorwhite")
         } else {
