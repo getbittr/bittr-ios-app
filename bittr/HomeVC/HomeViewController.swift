@@ -184,10 +184,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func moveButtonTapped() {
-        
         // Balance Card tapped.
         
-        if self.headerSpinner.isAnimating {
+        if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
@@ -200,7 +199,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
         
-        if self.headerSpinner.isAnimating {
+        if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
@@ -219,7 +218,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
         
-        if self.headerSpinner.isAnimating {
+        if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
@@ -434,7 +433,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
         
-        if self.headerSpinner.isAnimating {
+        if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
@@ -445,7 +444,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
-        if !self.headerSpinner.isAnimating {
+        if self.coreVC!.walletHasSynced {
             if self.couldNotFetchConversion {
                 self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else {

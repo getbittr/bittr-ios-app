@@ -557,7 +557,6 @@ extension HomeViewController {
         }
         
         if cachedData == false {
-            self.headerSpinner.stopAnimating()
             
             // Check if conversion rates have been fetched successfully.
             if self.couldNotFetchConversion {
@@ -565,6 +564,7 @@ extension HomeViewController {
             }
             
             // Stop sync status spinner.
+            self.headerSpinner.stopAnimating()
             self.coreVC!.walletHasSynced = true
             self.coreVC!.completeSync(type: .final)
             

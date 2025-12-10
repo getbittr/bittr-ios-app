@@ -10,7 +10,9 @@ import UIKit
 extension CoreViewController {
 
     func correctPin(spinner:UIActivityIndicatorView) {
+        
         // The correct pin has been entered in the PinVC and the wallet is ready to be synced and shown.
+        self.userHasSignedIn = true
         
         // Start wallet.
         self.startLightning()
@@ -31,7 +33,6 @@ extension CoreViewController {
         } completion: { finished in
             self.pinContainerView.alpha = 0
             spinner.stopAnimating()
-            self.userDidSignIn = true
             
             // Check for pending URIs after user signs in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -61,17 +62,15 @@ extension CoreViewController {
             self.blackSignupBackground.alpha = 0
             self.view.layoutIfNeeded()
         } completion: { finished in
+            // Remove signup view from container.
             self.signupContainerView.alpha = 0
-            self.userDidSignIn = true
+            if self.signupContainerView.subviews.count == 1 {
+                self.signupContainerView.subviews[0].removeFromSuperview()
+            }
             
             // Check for pending URIs after user signs in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.checkForPendingURIs()
-            }
-            
-            // Remove signup view from container.
-            if self.signupContainerView.subviews.count == 1 {
-                self.signupContainerView.subviews[0].removeFromSuperview()
             }
         }
     }

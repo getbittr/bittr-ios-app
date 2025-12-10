@@ -10,9 +10,15 @@ import LDKNode
 import BitcoinDevKit
 
 class CoreViewController: UIViewController {
-
-    // Environment is now automatically determined by build configuration
-    // No need to manually set devEnvironment - it's handled by EnvironmentConfig
+    
+    // App start booleans
+    var walletIsAvailable = false
+    var userHasSignedIn = false
+    var walletHasSynced = false
+    
+    // Client details
+    var bittrWallet = BittrWallet()
+    var walletSync:BackgroundSync?
     
     // Startup animation elements
     @IBOutlet weak var coin1: UIImageView!
@@ -66,15 +72,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var blackSignupButton: UIButton!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
-    var signupAlpha:CGFloat = 1
-    var blackSignupAlpha:CGFloat = 0.3
     var resettingPin = false
     
     // Variables for notification handling
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     @IBOutlet weak var pendingLabel: UILabel!
-    var userDidSignIn = false
     var needsToHandleNotification = false
     var wasNotified = false
     var lightningNotification:NSNotification?
@@ -105,9 +108,6 @@ class CoreViewController: UIViewController {
     var tappedType:String?
     
     // Syncing status
-    var didStartNode = false
-    var walletHasSynced = false
-    var syncStatus = "startnode"
     @IBOutlet weak var statusConversion: UILabel!
     @IBOutlet weak var statusLightning: UILabel!
     @IBOutlet weak var statusBlockchain: UILabel!
@@ -116,10 +116,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var syncStack: UIView!
     @IBOutlet weak var syncViewBottom: NSLayoutConstraint!
     @IBOutlet weak var syncCloseButton: UIButton!
-    
-    // Client details
-    var bittrWallet = BittrWallet()
-    var walletSync:BackgroundSync?
     
     // Syncing status view
     @IBOutlet weak var statusView: UIView!
@@ -178,20 +174,40 @@ class CoreViewController: UIViewController {
         
         // Set words.
         self.setWords()
+        
+        // Check wallet.
+        self.checkWalletAvailability()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        if CacheManager.getPin() != nil {
-            // Show PinVC.
-            self.signupAlpha = 0
-            self.blackSignupAlpha = 0
+    func checkWalletAvailability() {
+        
+        // Check wallet availability.
+        if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
+            // Wallet has been created.
+            self.walletIsAvailable = true
         } else {
+            // User has not completed signup.
+            self.walletIsAvailable = false
+            // Remove cached mnemonic.
+            CacheManager.removeMnemonic()
             // Show SignupVC.
             self.launchSignup(onPage: 3)
         }
         
         // Check for pending notifications as a fallback
-        checkForPendingNotifications()
+        self.checkForPendingNotifications()
+    }
+    
+    func showPinOrSignup() {
+        
+        // Show Pin or Signup view upon app launch.
+        if self.walletIsAvailable {
+            self.signupContainerView.alpha = 0
+            self.pinContainerView.alpha = 1
+        } else {
+            self.signupContainerView.alpha = 1
+            self.pinContainerView.alpha = 0
+        }
     }
     
     private func checkForPendingNotifications() {
@@ -320,7 +336,7 @@ class CoreViewController: UIViewController {
         
         // Check if user is signed in
         DispatchQueue.main.async {
-            if self.userDidSignIn {
+            if self.userHasSignedIn {
                 // User is signed in, navigate to send screen immediately
                 self.navigateToSendScreenWithBitcoinURI(address: address, amount: amount, label: label)
             } else {
@@ -345,7 +361,7 @@ class CoreViewController: UIViewController {
         
         // Check if user is signed in
         DispatchQueue.main.async {
-            if self.userDidSignIn {
+            if self.userHasSignedIn {
                 // User is signed in, navigate to send screen immediately
                 self.navigateToSendScreenWithLightningURI(invoice: invoice)
             } else {

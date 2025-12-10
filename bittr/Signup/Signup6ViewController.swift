@@ -42,6 +42,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 // Pin is correct.
                 // Start wallet.
                 if self.signupVC?.coreVC == nil { Log.info("CoreVC nil in Signup 6.") }
+                self.signupVC?.coreVC?.userHasSignedIn = true
                 self.signupVC?.coreVC?.startLightning()
                 self.signupVC?.enteredPin = ""
                 

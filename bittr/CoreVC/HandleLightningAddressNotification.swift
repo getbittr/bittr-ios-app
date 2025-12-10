@@ -30,7 +30,7 @@ extension CoreViewController {
             let descriptionHash = metadata.sha256()
             
             // Check if user is signed in
-            if self.userDidSignIn {
+            if self.userHasSignedIn {
                 // User is signed in, handle notification immediately
                 self.handleLightningAddressNotificationImmediately(amountMsats: amountMsats, descriptionHash: descriptionHash, timeSent: timeSent, username: username, endpoint: endpoint)
                 

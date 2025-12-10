@@ -154,12 +154,10 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             actionSheet.addAction(cancelAction)
             present(actionSheet, animated: true, completion: nil)
         } else if sender.accessibilityIdentifier == "wallets" {
-            if let actualCoreVC = self.coreVC {
-                if actualCoreVC.walletHasSynced == false {
-                    // Wallet isn't ready.
-                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    return
-                }
+            if self.coreVC != nil, !self.coreVC!.walletHasSynced {
+                // Wallet isn't ready.
+                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
             }
             self.coreVC?.homeVC?.moveButtonTapped()
         } else if sender.accessibilityIdentifier == "device" {

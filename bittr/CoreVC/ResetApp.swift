@@ -303,6 +303,7 @@ extension CoreViewController {
         // Since we've cleared the PIN, we need to manually show the create wallet flow
         self.homeVC!.view.alpha = 0
         self.hideSignup()
+        self.userHasSignedIn = false
         
         // Launch signup on create wallet page after a delay to ensure cleanup is complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {

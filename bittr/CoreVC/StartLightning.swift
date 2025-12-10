@@ -17,7 +17,7 @@ extension CoreViewController {
         self.startSync(type: .ldk)
         
         Task {
-            self.didStartNode = await withTaskGroup(of: Bool.self) { group -> Bool in
+            let didStartNode = await withTaskGroup(of: Bool.self) { group -> Bool in
                 
                 // Start LDK node.
                 group.addTask {
@@ -46,9 +46,8 @@ extension CoreViewController {
             }
             
             // Proceed to next step.
-            if self.didStartNode || (LightningNodeService.shared.ldkNode != nil && LightningNodeService.shared.ldkNode!.status().isRunning) {
+            if didStartNode || (LightningNodeService.shared.ldkNode != nil && LightningNodeService.shared.ldkNode!.status().isRunning) {
                 Log.info("Did start node.")
-                self.didStartNode = true
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
                 SentrySDK.metrics.increment(key: "sync.ldk.success")

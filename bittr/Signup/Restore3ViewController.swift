@@ -44,6 +44,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             
             if actualPreviousPin == enteredPin {
                 CacheManager.storePin(pin: actualPreviousPin)
+                self.coreVC!.userHasSignedIn = true
                 self.signupVC?.coreVC?.resettingPin = false
                 self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
                 self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)

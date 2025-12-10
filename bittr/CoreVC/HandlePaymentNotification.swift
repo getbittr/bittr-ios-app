@@ -14,7 +14,7 @@ extension CoreViewController {
     @objc func handlePaymentNotification(notification:NSNotification) {
         
         Log.info("=== handlePaymentNotification called ===")
-        Log.info("userDidSignIn: \(self.userDidSignIn)")
+        Log.info("userHasSignedIn: \(self.userHasSignedIn)")
         Log.info("wasNotified: \(self.wasNotified)")
         Log.info("needsToHandleNotification: \(self.needsToHandleNotification)")
         
@@ -30,7 +30,7 @@ extension CoreViewController {
                 let receivedNotificationWhileClosed = UserDefaults.standard.bool(forKey: "receivedNotificationWhileClosed")
                 Log.info("receivedNotificationWhileClosed: \(receivedNotificationWhileClosed), wasNotified: \(self.wasNotified)")
                 
-                if self.userDidSignIn {
+                if self.userHasSignedIn {
                     // User has signed in.
                     Log.info("User is signed in, processing notification")
                     
@@ -540,7 +540,7 @@ extension CoreViewController {
             self.isHandlingSwapNotification = true
             
             // Check if user is signed in (PIN has been entered)
-            if self.userDidSignIn {
+            if self.userHasSignedIn {
                 // User is signed in, handle notification immediately
                 self.handleSwapNotificationImmediately(swapID: swapID, userInfo: userInfo)
                 

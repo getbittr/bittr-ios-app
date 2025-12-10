@@ -818,6 +818,16 @@ class CacheManager: NSObject {
         }
     }
     
+    static func removeMnemonic() {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
+        // Check if there's a cached mnemonic.
+        if (UserDefaults.standard.value(forKey: envKey) as? String) != nil {
+            // Remove cached mnemonic.
+            UserDefaults.standard.removeObject(forKey: envKey)
+        }
+    }
+    
     // MARK: - Pin
     
     static func storePin(pin:String) {

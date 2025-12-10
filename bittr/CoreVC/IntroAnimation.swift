@@ -34,12 +34,9 @@ extension CoreViewController {
                         NSLayoutConstraint.deactivate([self.logoViewCenterY])
                         self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
                         NSLayoutConstraint.activate([self.logoViewTop])
-                        self.signupContainerView.alpha = self.signupAlpha
-                        self.topBar.alpha = 1
-                        if self.signupAlpha == 0 {
-                            self.pinContainerView.alpha = 1
-                        }
                         self.view.layoutIfNeeded()
+                        self.topBar.alpha = 1
+                        self.showPinOrSignup()
                     } completion: { finished in
                         UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
                             NSLayoutConstraint.deactivate([self.logoViewTop])
@@ -58,12 +55,6 @@ extension CoreViewController {
                             self.menuBarContainer.alpha = 1
                             self.blackSignupBackground.alpha = 1
                             self.changeColors()
-                            
-                            // Check internet connection.
-                            if !Reachability.isConnectedToNetwork() {
-                                // User not connected to internet.
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
                         }
                     }
                 }

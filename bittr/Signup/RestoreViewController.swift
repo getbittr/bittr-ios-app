@@ -335,7 +335,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
-        
         self.view.endEditing(true)
         
         if self.signupVC == nil {
