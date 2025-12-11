@@ -34,17 +34,18 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="uY7-4p-5IQ" userLabel="Lower Top Bar">
                                 <rect key="frame" x="0.0" y="48" width="393" height="120"/>
                                 <subviews>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="yellowcurve" translatesAutoresizingMaskIntoConstraints="NO" id="ozZ-WY-4vt">
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="qq9-AI-Jg2" customClass="BottomCurveView" customModule="bittr" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="120" width="393" height="14.666666666666657"/>
-                                    </imageView>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </view>
                                 </subviews>
                                 <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
-                                    <constraint firstItem="ozZ-WY-4vt" firstAttribute="trailing" secondItem="uY7-4p-5IQ" secondAttribute="trailing" id="430-bM-sbc"/>
-                                    <constraint firstItem="ozZ-WY-4vt" firstAttribute="leading" secondItem="uY7-4p-5IQ" secondAttribute="leading" id="AcH-8D-tVu"/>
-                                    <constraint firstItem="ozZ-WY-4vt" firstAttribute="height" secondItem="uY7-4p-5IQ" secondAttribute="width" multiplier="0.0375" id="Ilh-3a-igX"/>
+                                    <constraint firstAttribute="trailing" secondItem="qq9-AI-Jg2" secondAttribute="trailing" id="axL-az-9k5"/>
+                                    <constraint firstItem="qq9-AI-Jg2" firstAttribute="leading" secondItem="uY7-4p-5IQ" secondAttribute="leading" id="bwr-eA-zv2"/>
+                                    <constraint firstItem="qq9-AI-Jg2" firstAttribute="top" secondItem="uY7-4p-5IQ" secondAttribute="bottom" id="d2N-si-7KQ"/>
                                     <constraint firstAttribute="height" constant="120" id="kqc-V4-Rey"/>
-                                    <constraint firstItem="ozZ-WY-4vt" firstAttribute="top" secondItem="uY7-4p-5IQ" secondAttribute="bottom" id="zmX-Ub-dBA"/>
+                                    <constraint firstItem="qq9-AI-Jg2" firstAttribute="height" secondItem="uY7-4p-5IQ" secondAttribute="width" multiplier="0.0375" id="m26-S9-YUQ"/>
                                 </constraints>
                             </view>
                             <containerView opaque="NO" clipsSubviews="YES" alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="8xy-Yc-cj7" userLabel="Home Container View">
@@ -357,17 +358,18 @@
                             <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="edE-8u-X4I" userLabel="Top Bar">
                                 <rect key="frame" x="0.0" y="48" width="393" height="120"/>
                                 <subviews>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="yellowcurve" translatesAutoresizingMaskIntoConstraints="NO" id="G8a-ZZ-ovL">
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="67k-XG-cKV" customClass="BottomCurveView" customModule="bittr" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="120" width="393" height="14.666666666666657"/>
-                                    </imageView>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </view>
                                 </subviews>
                                 <color key="backgroundColor" red="0.96572715040000001" green="0.77857249979999998" blue="0.26648837330000003" alpha="0.84802185462800084" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="120" id="2Eb-zX-6nM"/>
-                                    <constraint firstItem="G8a-ZZ-ovL" firstAttribute="top" secondItem="edE-8u-X4I" secondAttribute="bottom" id="Gcf-Ep-2br"/>
-                                    <constraint firstItem="G8a-ZZ-ovL" firstAttribute="trailing" secondItem="edE-8u-X4I" secondAttribute="trailing" id="VUb-L8-C9L"/>
-                                    <constraint firstItem="G8a-ZZ-ovL" firstAttribute="height" secondItem="edE-8u-X4I" secondAttribute="width" multiplier="0.0375" id="c0u-Lv-LTU"/>
-                                    <constraint firstItem="G8a-ZZ-ovL" firstAttribute="leading" secondItem="edE-8u-X4I" secondAttribute="leading" id="dBB-F6-5xH"/>
+                                    <constraint firstItem="67k-XG-cKV" firstAttribute="height" secondItem="edE-8u-X4I" secondAttribute="width" multiplier="0.0375" id="4zm-aQ-aLv"/>
+                                    <constraint firstItem="67k-XG-cKV" firstAttribute="leading" secondItem="edE-8u-X4I" secondAttribute="leading" id="VKX-tD-xQd"/>
+                                    <constraint firstItem="67k-XG-cKV" firstAttribute="top" secondItem="edE-8u-X4I" secondAttribute="bottom" id="uqp-IQ-fht"/>
+                                    <constraint firstAttribute="trailing" secondItem="67k-XG-cKV" secondAttribute="trailing" id="zld-Bw-zcg"/>
                                 </constraints>
                             </view>
                             <view clipsSubviews="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aps-e1-h4a" userLabel="Logo View">
@@ -790,7 +792,7 @@
                         <outlet property="logoViewCenterY" destination="ybq-R5-D2E" id="Yy4-hL-VaL"/>
                         <outlet property="logoViewWidth" destination="HkZ-AR-NdP" id="Yob-fu-peq"/>
                         <outlet property="lowerTopBar" destination="uY7-4p-5IQ" id="H6j-mx-C74"/>
-                        <outlet property="lowerYellowcurve" destination="ozZ-WY-4vt" id="0nr-na-vUH"/>
+                        <outlet property="lowerYellowCurve" destination="qq9-AI-Jg2" id="uiL-SG-zes"/>
                         <outlet property="menuBarContainer" destination="W6e-fk-Wfi" id="gFO-Zk-Yrj"/>
                         <outlet property="middleButton" destination="nJd-WM-Z4a" id="zlG-3r-whk"/>
                         <outlet property="middleImageUnselected" destination="MSg-p7-wqt" id="MLJ-iY-IxK"/>
@@ -823,9 +825,9 @@
                         <outlet property="syncStack" destination="APH-aW-YTV" id="VJa-jQ-cKR"/>
                         <outlet property="syncViewBottom" destination="KwI-rz-Ah0" id="3Eh-we-EpE"/>
                         <outlet property="topBar" destination="edE-8u-X4I" id="sVx-cy-Vjl"/>
+                        <outlet property="upperYellowCurve" destination="67k-XG-cKV" id="L4u-Fi-XzS"/>
                         <outlet property="walletLabel" destination="bjj-Uy-YUk" id="Lvb-y1-anD"/>
                         <outlet property="walletView" destination="LZ5-LN-ll3" id="YCy-ng-lAQ"/>
-                        <outlet property="yellowcurve" destination="G8a-ZZ-ovL" id="SgG-9j-u6o"/>
                         <segue destination="57d-Yj-7wd" kind="show" identifier="CoreToLightning" id="g1n-Fn-SYn"/>
                         <segue destination="b12-fa-pJV" kind="show" identifier="CoreToQuestion" id="KXI-1X-aAi"/>
                         <segue destination="4ca-QY-6dF" kind="show" identifier="CoreToArticle" id="o32-HH-NM5"/>
@@ -14067,7 +14069,6 @@
         <image name="questionmark.circle.fill" catalog="system" width="128" height="123"/>
         <image name="rectangle.portrait.and.arrow.right.fill" catalog="system" width="128" height="109"/>
         <image name="safari" catalog="system" width="128" height="123"/>
-        <image name="yellowcurve" width="400" height="15"/>
         <systemColor name="systemGreenColor">
             <color red="0.20392156862745098" green="0.7803921568627451" blue="0.34901960784313724" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>

@@ -37,10 +37,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var finalLogo: UIImageView!
     @IBOutlet weak var coverView: UIView!
     @IBOutlet weak var topBar: UIView!
-    @IBOutlet weak var yellowcurve: UIImageView!
     @IBOutlet weak var lowerTopBar: UIView!
-    @IBOutlet weak var lowerYellowcurve: UIImageView!
     @IBOutlet weak var bittrText: UIImageView!
+    @IBOutlet weak var upperYellowCurve: BottomCurveView!
+    @IBOutlet weak var lowerYellowCurve: BottomCurveView!
     
     // Container view and constraints for HomeVC
     @IBOutlet weak var homeContainerView: UIView!
@@ -159,8 +159,9 @@ class CoreViewController: UIViewController {
         self.rightButton.setTitle("", for: .normal)
         self.syncCloseButton.setTitle("", for: .normal)
         
-        // Opacities
-        self.yellowcurve.alpha = 0.85
+        // Set curve color to yellow for app launch.
+        self.upperYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 0.85)
+        self.lowerYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
         
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
