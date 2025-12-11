@@ -20,7 +20,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Table view header elements
     @IBOutlet weak var backgroundColorView: UIView!
     @IBOutlet weak var backgroundColorTopView: UIView!
-    @IBOutlet weak var yellowCurve: UIImageView!
+    @IBOutlet weak var bottomCurve: BottomCurveView!
     
     // Header: Balance card
     @IBOutlet weak var balanceCard: UIView!

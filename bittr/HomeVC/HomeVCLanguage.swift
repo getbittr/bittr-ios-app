@@ -47,19 +47,18 @@ extension HomeViewController {
         
         self.backgroundColorView.backgroundColor = Colors.getColor("yelloworblue3")
         self.backgroundColorTopView.backgroundColor = Colors.getColor("yelloworblue3")
+        self.bottomCurve.fillColor = Colors.getColor("yelloworblue3")
         self.balanceCard.backgroundColor = Colors.getColor("yelloworblue2")
         self.conversionLabel.textColor = Colors.getColor("black0.5orwhite0.5")
         
         self.satsLabel.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
-            self.yellowCurve.image = UIImage(named: "yellowcurvedark")
             self.bitcoinSign.image = UIImage(named: "gilroybitcoinwhite")
             self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
             self.headerDetailsImage.image = UIImage(named: "icondetailsyellow")
             self.headerCurrencyImage.image = UIImage(named: "iconexchangeyellow")
         } else {
-            self.yellowCurve.image = UIImage(named: "yellowcurve")
             self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
             self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")
             self.headerDetailsImage.image = UIImage(named: "icondetailswhite")
