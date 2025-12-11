@@ -368,7 +368,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         let amountToBeSent = Int((self.amountTextField.text ?? "0").toNumber())
         if amountToBeSent != 0 {
-            let maxAmount = self.homeVC?.coreVC?.bittrWallet.bittrChannel?.receivableMaximum ?? 0
+            // Get active channel.
+            let activeChannel:LDKNode.ChannelDetails? = {
+                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+                    if eachChannel.isChannelReady {
+                            return eachChannel
+                    }
+                }
+                return nil
+            }()
+            let maxAmount = (activeChannel?.inboundHtlcMaximumMsat ?? 0)/1000
             if amountToBeSent > maxAmount {
                 // You can't receive or send this much.
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)

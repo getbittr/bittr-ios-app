@@ -302,7 +302,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.coreVC!.bittrWallet.lightningChannels = [ChannelDetails]()
-        self.coreVC!.bittrWallet.bittrChannel = nil
         self.coreVC!.bittrWallet.satoshisLightning = 0
         
         if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {

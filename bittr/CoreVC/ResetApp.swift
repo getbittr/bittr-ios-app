@@ -324,7 +324,6 @@ extension CoreViewController {
         Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.bittrWallet.lightningChannels = [ChannelDetails]()
-        self.bittrWallet.bittrChannel = nil
         self.bittrWallet.satoshisLightning = 0
         
         if self.homeVC!.balanceLabel.alpha == 1 {

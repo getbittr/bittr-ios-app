@@ -12,22 +12,29 @@ import Sentry
 
 class Transaction: NSObject {
 
+    // General
     var id = ""
     var fee = 0
     var received = 0
     var sent = 0
-    var height = 0
     var timestamp = 0
+    var note = ""
+    
+    // Onchain
+    var height = 0
+    var confirmations = 0
+    
+    // Lightning
+    var isLightning = false
+    var lnDescription = ""
+    var channelId = ""
+    var isFundingTransaction = false
+    
+    // Bittr purchases
     var isBittr = false
     var purchaseAmount: CGFloat = 0
     var currency = "EUR"
     var transferFee: CGFloat = 0
-    var isLightning = false
-    var lnDescription = ""
-    var confirmations = 0
-    var note = ""
-    var channelId = ""
-    var isFundingTransaction = false
     
     // Swaps
     var isSwap = false

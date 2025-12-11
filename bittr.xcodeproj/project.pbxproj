@@ -133,7 +133,6 @@
 		05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC22B88009E00AAA342 /* QuestionViewController.swift */; };
 		05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */; };
 		05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */; };
-		05F418EE2BAC1DF0005CFAD0 /* Channel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F418ED2BAC1DF0005CFAD0 /* Channel.swift */; };
 		05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */; };
 		05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */; };
 		05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */; };
@@ -313,7 +312,6 @@
 		05F31CC22B88009E00AAA342 /* QuestionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionViewController.swift; sourceTree = "<group>"; };
 		05F31CC42B8802DB00AAA342 /* LaunchQuestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchQuestion.swift; sourceTree = "<group>"; };
 		05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleBittrNotification.swift; sourceTree = "<group>"; };
-		05F418ED2BAC1DF0005CFAD0 /* Channel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Channel.swift; sourceTree = "<group>"; };
 		05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTableViewCell.swift; sourceTree = "<group>"; };
 		05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup5ViewController.swift; sourceTree = "<group>"; };
@@ -694,7 +692,6 @@
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				052DC6922AA853B700CD59B0 /* Transaction.swift */,
-				05F418ED2BAC1DF0005CFAD0 /* Channel.swift */,
 				05B30E2D2E26281200CF10EC /* Swap.swift */,
 				059704A62E43514F00B56690 /* BitcoinValue.swift */,
 				05117B9D2EDEC6AA00A5E4E6 /* Log.swift */,
@@ -1038,7 +1035,6 @@
 				051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer2ViewController.swift in Sources */,
 				058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */,
-				05F418EE2BAC1DF0005CFAD0 /* Channel.swift in Sources */,
 				052171282CB416EA006C5663 /* HomeVCLanguage.swift in Sources */,
 				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,

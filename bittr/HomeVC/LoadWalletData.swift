@@ -31,7 +31,6 @@ extension HomeViewController {
                     // Channel balance is less than punishment reserve.
                     self.coreVC!.bittrWallet.satoshisLightning += Int(eachChannel.channelValueSats - eachChannel.inboundCapacityMsat/1000 - eachChannel.counterpartyUnspendablePunishmentReserve)
                 }
-                self.setBittrChannel(withChannel: eachChannel)
             }
         }
         
@@ -142,20 +141,6 @@ extension HomeViewController {
         
         // Start balance calculation.
         self.setTotalSats(updateTableAfterConversion: true)
-    }
-    
-    
-    func setBittrChannel(withChannel:ChannelDetails) {
-        
-        let thisChannel = Channel()
-        thisChannel.id = withChannel.channelId
-        thisChannel.received = Int(withChannel.outboundCapacityMsat)/1000
-        thisChannel.size = Int(withChannel.channelValueSats)
-        thisChannel.punishmentReserve = Int(withChannel.unspendablePunishmentReserve ?? 0)
-        thisChannel.sendableMinimum = Int(withChannel.nextOutboundHtlcMinimumMsat)/1000
-        thisChannel.receivableMaximum = Int(withChannel.inboundHtlcMaximumMsat ?? 0)/1000
-        
-        self.coreVC?.bittrWallet.bittrChannel = thisChannel
     }
     
     

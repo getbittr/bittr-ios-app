@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LDKNode
 
 class QuestionViewController: UIViewController {
 
@@ -50,42 +51,44 @@ class QuestionViewController: UIViewController {
         
         self.changeColors()
         
-        if let actualType = questionType {
-            if actualType == "lightningreceivable" {
-                if let actualChannel = self.coreVC?.bittrWallet.bittrChannel {
-                    
-                    self.setChannelChart()
-                    
+        if let actualType = self.questionType {
+            
+            // Get active channel.
+            let activeChannel:ChannelDetails? = {
+                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
+                    if eachChannel.isChannelReady {
+                            return eachChannel
+                    }
+                }
+                return nil
+            }()
+            
+            if activeChannel != nil {
+                self.setChannelChart(forChannel: activeChannel!)
+                
+                if actualType == "lightningreceivable" {
                     self.answerLabel.text = Language.getWord(withID: "questionvc1")
-                        .replacingOccurrences(of: "<channelsize>", with: "\(actualChannel.size)".addSpaces())
-                        .replacingOccurrences(of: "<channelbalance>", with: "\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces())
-                        .replacingOccurrences(of: "<receivelimit>", with: "\(actualChannel.size - actualChannel.received - actualChannel.punishmentReserve)".addSpaces())
-                } else {
+                        .replacingOccurrences(of: "<channelsize>", with: "\(activeChannel!.channelValueSats)".addSpaces())
+                        .replacingOccurrences(of: "<channelbalance>", with: "\((activeChannel!.outboundCapacityMsat/1000)+(activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
+                        .replacingOccurrences(of: "<receivelimit>", with: "\(activeChannel!.channelValueSats - (activeChannel!.outboundCapacityMsat/1000) - (activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
+                } else if actualType == "lightningsendable" {
+                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
+                        .replacingOccurrences(of: "<channelbalance>", with: "\((activeChannel!.outboundCapacityMsat/1000)+(activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
+                        .replacingOccurrences(of: "<channelreserve>", with: "\(activeChannel!.unspendablePunishmentReserve ?? 0)".addSpaces())
+                        .replacingOccurrences(of: "<sendlimit>", with: "\(activeChannel!.outboundCapacityMsat/1000)".addSpaces())
+                } else if actualType == "lightningexplanation" {
+                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
+                        .replacingOccurrences(of: "<channelbalance>", with: "\((activeChannel!.outboundCapacityMsat/1000)+(activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
+                        .replacingOccurrences(of: "<channelreserve>", with: "\(activeChannel!.unspendablePunishmentReserve ?? 0)".addSpaces())
+                        .replacingOccurrences(of: "<sendlimit>", with: "\(activeChannel!.outboundCapacityMsat/1000)".addSpaces())
+                }
+            } else {
+                if actualType == "lightningreceivable" {
                     self.headerLabel.text = Language.getWord(withID: "questionvc6")
                     self.answerLabel.text = Language.getWord(withID: "lightningexplanation1")
-                }
-            } else if actualType == "lightningsendable" {
-                if let actualChannel = self.coreVC?.bittrWallet.bittrChannel {
-                    
-                    self.setChannelChart()
-                    
-                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
-                        .replacingOccurrences(of: "<channelbalance>", with: "\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces())
-                        .replacingOccurrences(of: "<channelreserve>", with: "\(actualChannel.punishmentReserve)".addSpaces())
-                        .replacingOccurrences(of: "<sendlimit>", with: "\(actualChannel.received)".addSpaces())
-                } else {
+                } else if actualType == "lightningsendable" {
                     self.headerLabel.text = Language.getWord(withID: "questionvc12")
                     self.answerLabel.text = Language.getWord(withID: "questionvc13")
-                }
-            } else if actualType == "lightningexplanation" {
-                if let actualChannel = self.coreVC?.bittrWallet.bittrChannel {
-                    
-                    self.setChannelChart()
-                    
-                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
-                        .replacingOccurrences(of: "<channelbalance>", with: "\(actualChannel.received+actualChannel.punishmentReserve)".addSpaces())
-                        .replacingOccurrences(of: "<channelreserve>", with: "\(actualChannel.punishmentReserve)".addSpaces())
-                        .replacingOccurrences(of: "<sendlimit>", with: "\(actualChannel.received)".addSpaces())
                 }
             }
         }
@@ -95,15 +98,14 @@ class QuestionViewController: UIViewController {
         self.dismiss(animated: true)
     }
     
-    func setChannelChart() {
+    func setChannelChart(forChannel:ChannelDetails) {
         
-        let bittrChannel = self.coreVC?.bittrWallet.bittrChannel
-        self.yourBalanceLabel.text = "\("\(bittrChannel!.received+bittrChannel!.punishmentReserve)".addSpaces())"
-        self.receiveLimitLabel.text = "\("\(bittrChannel!.size - bittrChannel!.received - bittrChannel!.punishmentReserve)".addSpaces())"
-        self.totalLabel.text = "\("\(bittrChannel!.size)".addSpaces()) \(Language.getWord(withID: "total")), \("\(bittrChannel!.punishmentReserve)".addSpaces()) \(Language.getWord(withID: "reserve"))"
+        self.yourBalanceLabel.text = "\("\((forChannel.outboundCapacityMsat/1000)+(forChannel.unspendablePunishmentReserve ?? 0))".addSpaces())"
+        self.receiveLimitLabel.text = "\("\(forChannel.channelValueSats - (forChannel.outboundCapacityMsat/1000) - (forChannel.unspendablePunishmentReserve ?? 0))".addSpaces())"
+        self.totalLabel.text = "\("\(forChannel.channelValueSats)".addSpaces()) \(Language.getWord(withID: "total")), \("\(forChannel.unspendablePunishmentReserve ?? 0)".addSpaces()) \(Language.getWord(withID: "reserve"))"
         
         NSLayoutConstraint.deactivate([self.balanceBarWidth])
-        self.balanceBarWidth = NSLayoutConstraint(item: self.balanceBar, attribute: .width, relatedBy: .equal, toItem: self.barView, attribute: .width, multiplier: CGFloat(bittrChannel!.received+bittrChannel!.punishmentReserve)/CGFloat(bittrChannel!.size), constant: 0)
+        self.balanceBarWidth = NSLayoutConstraint(item: self.balanceBar, attribute: .width, relatedBy: .equal, toItem: self.barView, attribute: .width, multiplier: CGFloat((forChannel.outboundCapacityMsat/1000)+(forChannel.unspendablePunishmentReserve ?? 0))/CGFloat(forChannel.channelValueSats), constant: 0)
         NSLayoutConstraint.activate([self.balanceBarWidth])
         self.answerLabelBottom.constant = 140
         self.view.layoutIfNeeded()
