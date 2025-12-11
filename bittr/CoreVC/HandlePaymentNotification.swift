@@ -410,7 +410,7 @@ extension CoreViewController {
         // Don't doublecheck transaction against API.
         if CacheManager.getSentToBittr().contains(paymentPreimage) {
             Log.info("Transaction has already been checked with Bittr.")
-            for eachTransaction in self.homeVC!.setTransactions {
+            for eachTransaction in self.homeVC!.visibleTransactions {
                 if eachTransaction.id == paymentPreimage {
                     Log.info("Found correct transaction in transactions table.")
                     self.receivedBittrTransaction = eachTransaction

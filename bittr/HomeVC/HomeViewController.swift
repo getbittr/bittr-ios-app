@@ -61,21 +61,20 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var sendLabel: UILabel!
     @IBOutlet weak var receiveLabel: UILabel!
     @IBOutlet weak var buyLabel: UILabel!
+    
+    // Profit calculations
     var calculatedProfit = 0
     var calculatedInvestments = 0
     var calculatedCurrentValue = 0
     
     // Transactions
-    var setTransactions = [Transaction]()
+    var visibleTransactions = [Transaction]()
     var newTransactions = [Transaction]()
     var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary() // Key is the txID, Value is purchaseAmount and currency.
     var cachedLightningIds = [String]()
     var tappedTransaction = Transaction()
-    
-    // Balance calculations
-    var balanceWasFetched = false
     
     // Booleans
     var didStartReset = false
@@ -192,9 +191,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if self.balanceWasFetched {
-            performSegue(withIdentifier: "HomeToMove", sender: self)
-        }
+        self.performSegue(withIdentifier: "HomeToMove", sender: self)
     }
     
     @IBAction func sendButtonTapped(_ sender: UIButton) {
@@ -211,9 +208,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if self.balanceWasFetched {
-            performSegue(withIdentifier: "HomeToSend", sender: self)
-        }
+        self.performSegue(withIdentifier: "HomeToSend", sender: self)
     }
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {
@@ -230,9 +225,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if self.balanceWasFetched {
-            performSegue(withIdentifier: "HomeToReceive", sender: self)
-        }
+        self.performSegue(withIdentifier: "HomeToReceive", sender: self)
     }
     
     @IBAction func transactionButtonTapped(_ sender: UIButton) {
@@ -308,7 +301,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         Log.info("Reset wallet.")
         
-        self.setTransactions.removeAll()
+        self.visibleTransactions.removeAll()
         self.newTransactions.removeAll()
         self.calculatedProfit = 0
         self.calculatedInvestments = 0
@@ -345,11 +338,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func addLightningTransaction(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
         // Add new transaction.
-        self.setTransactions += [thisTransaction]
-        self.setTransactions = self.setTransactions.performSwapMatching(coreVC: self.coreVC!)
+        self.visibleTransactions += [thisTransaction]
+        self.visibleTransactions = self.visibleTransactions.performSwapMatching(coreVC: self.coreVC!)
         
         // Sort transactions array.
-        self.setTransactions.sort { transaction1, transaction2 in
+        self.visibleTransactions.sort { transaction1, transaction2 in
             transaction1.timestamp > transaction2.timestamp
         }
         

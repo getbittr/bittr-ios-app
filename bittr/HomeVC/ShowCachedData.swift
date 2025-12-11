@@ -55,7 +55,7 @@ extension HomeViewController {
         // Set cached transactions.
         if let cachedTransactions = CacheManager.getCachedData(key: "transactions") as? [Transaction] {
             
-            self.setTransactions = cachedTransactions
+            self.visibleTransactions = cachedTransactions
             self.newTransactions = cachedTransactions
             self.lastCachedTransactions = cachedTransactions
             

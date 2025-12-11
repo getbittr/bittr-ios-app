@@ -172,7 +172,7 @@ extension HomeViewController {
         var newTxIds = [String]()
         if sendAll {
             // Send all transaction IDs to Bittr again.
-            for eachTransaction in self.setTransactions {
+            for eachTransaction in self.visibleTransactions {
                 newTxIds += [eachTransaction.id]
             }
         } else {
@@ -215,7 +215,7 @@ extension HomeViewController {
                             
                             if sendAll {
                                 // Check transactions that were previously not recognized.
-                                for eachExistingTransaction in self.setTransactions {
+                                for eachExistingTransaction in self.visibleTransactions {
                                     if eachExistingTransaction.id == eachTransaction.txId {
                                         newTransactionsWereFound = true
                                         eachExistingTransaction.isBittr = true
@@ -234,7 +234,7 @@ extension HomeViewController {
                     
                     if sendAll {
                         if newTransactionsWereFound {
-                            CacheManager.updateCachedData(data: self.setTransactions, key: "transactions")
+                            CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
                             self.homeTableView.reloadData()
                         }
                         return newTransactionsWereFound
@@ -268,7 +268,6 @@ extension HomeViewController {
         // Calculate total balance
         let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
         let totalBalanceSatsString = "\(totalBalanceSats)"
-        self.balanceWasFetched = true
         
         // Create balance representation with bold satoshis.
         let allZeros = ["", "0.00 000 00", "0.00 000 0", "0.00 000 ", "0.00 00", "0.00 0", "0.00 ", "0.0", "0."]
@@ -307,35 +306,10 @@ extension HomeViewController {
         CacheManager.updateCachedData(data: self.balanceText, key: "balance")
         
         if let htmlData = self.balanceText.data(using: .unicode) {
+            
+            var attributedText = NSAttributedString()
             do {
-                let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                self.balanceLabel.attributedText = attributedText
-                self.balanceLabel.alpha = 1
-                self.bitcoinSign.alpha = bitcoinSignAlpha
-                
-                // Don't show "sats" label if user has 1 or more bitcoin.
-                if bitcoinSignAlpha == 1 {
-                    self.satsLabel.alpha = 0
-                    self.satsLabel.text = ""
-                    self.satsLabelLeading.constant = 0
-                } else {
-                    self.satsLabel.alpha = 1
-                    self.satsLabel.text = "sats"
-                    self.satsLabelLeading.constant = 12
-                }
-                
-                // Store satoshis balance string to cache.
-                CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
-                
-                // Convert balance to EUR / CHF.
-                self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
-                
-                // Start timer
-                if self.coreVC!.walletSync == nil {
-                    self.coreVC!.walletSync = BackgroundSync()
-                    self.coreVC!.walletSync!.start()
-                }
-                
+                attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
             } catch {
                 Log.info("Couldn't fetch text: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -343,6 +317,34 @@ extension HomeViewController {
                         scope.setExtra(value: "LoadWalletData row 360", key: "context")
                     }
                 }
+                return
+            }
+            
+            self.balanceLabel.attributedText = attributedText
+            self.balanceLabel.alpha = 1
+            self.bitcoinSign.alpha = bitcoinSignAlpha
+            
+            // Don't show "sats" label if user has 1 or more bitcoin.
+            if bitcoinSignAlpha == 1 {
+                self.satsLabel.alpha = 0
+                self.satsLabel.text = ""
+                self.satsLabelLeading.constant = 0
+            } else {
+                self.satsLabel.alpha = 1
+                self.satsLabel.text = "sats"
+                self.satsLabelLeading.constant = 12
+            }
+            
+            // Store satoshis balance string to cache.
+            CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
+            
+            // Convert balance to EUR / CHF.
+            self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
+            
+            // Start timer
+            if self.coreVC!.walletSync == nil {
+                self.coreVC!.walletSync = BackgroundSync()
+                self.coreVC!.walletSync!.start()
             }
         }
     }
@@ -369,7 +371,7 @@ extension HomeViewController {
             
             if updateTableAfterConversion {
                 if cachedData == false {
-                    self.setTransactions = self.newTransactions
+                    self.visibleTransactions = self.newTransactions
                 }
                 self.updateTableAfterConversion()
                 self.calculateProfit(cachedData: cachedData)
@@ -408,7 +410,7 @@ extension HomeViewController {
                                 
                                 if updateTableAfterConversion {
                                     if cachedData == false {
-                                        self.setTransactions = self.newTransactions
+                                        self.visibleTransactions = self.newTransactions
                                     }
                                     self.updateTableAfterConversion()
                                     self.calculateProfit(cachedData: cachedData)
@@ -459,7 +461,7 @@ extension HomeViewController {
         self.homeTableView.reloadData()
         self.homeTableView.alpha = 1
         
-        if self.setTransactions.count == 0 {
+        if self.visibleTransactions.count == 0 {
             self.setNoTransactionsLabel()
         } else {
             self.noTransactionsLabel.alpha = 0
@@ -513,12 +515,12 @@ extension HomeViewController {
         // Get preferred currency.
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
-        if self.setTransactions.count == 0 || bittrTransactionsCount == 0 {
+        if self.visibleTransactions.count == 0 || bittrTransactionsCount == 0 {
             // There are no transactions.
             self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
         } else {
             // There are transactions.
-            for eachTransaction in self.setTransactions {
+            for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
                     let transactionValue = eachTransaction.received.inBTC()
                     let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-Int(eachTransaction.purchaseAmount.rounded())

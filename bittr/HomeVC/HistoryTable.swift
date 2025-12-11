@@ -14,7 +14,7 @@ extension HomeViewController {
         if let cell = tableView.dequeueReusableCell(withIdentifier: "HistoryCell", for: indexPath) as? HistoryTableViewCell {
             
             // Transaction
-            let thisTransaction = self.setTransactions[indexPath.row]
+            let thisTransaction = self.visibleTransactions[indexPath.row]
             
             // Button
             cell.transactionButton.accessibilityElements = [thisTransaction]
@@ -115,7 +115,7 @@ extension HomeViewController {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        return self.setTransactions.count
+        return self.visibleTransactions.count
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
