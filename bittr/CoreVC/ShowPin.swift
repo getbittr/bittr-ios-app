@@ -47,9 +47,28 @@ extension CoreViewController {
     }
     
     
+    func showSignup() {
+        
+        // Show SignupVC.
+        self.signupContainerView.alpha = 1
+        
+        // Raise Signup view back into view.
+        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.signupBottom])
+            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.signupBottom])
+            self.blackSignupBackground.alpha = 1
+            self.view.layoutIfNeeded()
+        } completion: { finished in
+            // Hide PinVC.
+            self.pinContainerView.alpha = 0
+        }
+    }
+    
+    
     @objc func hideSignup() {
         
-        // Hide signup view.
+        // Hide SignupVC.
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.signupBottom])
             self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)

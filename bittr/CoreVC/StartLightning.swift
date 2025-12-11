@@ -22,7 +22,7 @@ extension CoreViewController {
                 // Start LDK node.
                 group.addTask {
                     return await withCheckedContinuation { continuation in
-                        LightningNodeService.shared.startLDK { didStartLDK in
+                        BitcoinManager.shared.startLDK { didStartLDK in
                             continuation.resume(returning: didStartLDK)
                         }
                     }
@@ -46,13 +46,13 @@ extension CoreViewController {
             }
             
             // Proceed to next step.
-            if didStartNode || (LightningNodeService.shared.ldkNode != nil && LightningNodeService.shared.ldkNode!.status().isRunning) {
+            if didStartNode || (BitcoinManager.shared.ldkNode != nil && BitcoinManager.shared.ldkNode!.status().isRunning) {
                 Log.info("Did start node.")
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
                 SentrySDK.metrics.increment(key: "sync.ldk.success")
                 DispatchQueue.global(qos: .background).async {
-                    LightningNodeService.shared.startBDK(coreViewController: self)
+                    BitcoinManager.shared.startBDK(coreViewController: self)
                 }
             } else {
                 Log.info("Could not start node.")
@@ -65,10 +65,10 @@ extension CoreViewController {
     @objc func restartLightning() {
         
         self.hideAlert()
-        if LightningNodeService.shared.ldkNode != nil, LightningNodeService.shared.ldkNode!.status().isRunning {
+        if BitcoinManager.shared.ldkNode != nil, BitcoinManager.shared.ldkNode!.status().isRunning {
             
             // LDK is already running. Start BDK.
-            LightningNodeService.shared.startBDK(coreViewController: self)
+            BitcoinManager.shared.startBDK(coreViewController: self)
         } else {
             // LDK isn't running yet.
             self.startLightning()

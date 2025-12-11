@@ -16,7 +16,7 @@ extension ReceiveViewController {
     
     func getNewOnchainAddress(new:Bool) -> String? {
         
-        let wallet = LightningNodeService.shared.getWallet()
+        let wallet = BitcoinManager.shared.getWallet()
         if new {
             // Get a new address.
             if let address = wallet?.revealNextAddress(keychain: .external).address.description {

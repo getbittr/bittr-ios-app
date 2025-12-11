@@ -29,7 +29,7 @@ class BoltzRefund {
     /// Calculates transaction fee using the highest priority fee rate
     /// Both claim and refund transactions are always 99 vbytes in size
     static func calculateClaimOrRefundTransactionFee() async throws -> Int {
-        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+        let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
         let highPriorityFeeRate = feeEstimates[1]! // Highest priority fee rate
         let transactionSizeVBytes = 99 // Fixed size for claim/refund transactions
         
@@ -248,7 +248,7 @@ class BoltzRefund {
             
             if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
                 
-            guard let wallet = LightningNodeService.shared.getWallet() else {
+            guard let wallet = BitcoinManager.shared.getWallet() else {
                 throw APIError.requestFailed("Wallet not available")
             }
             let destinationAddress = wallet.nextUnusedAddress(keychain: .external).address.description

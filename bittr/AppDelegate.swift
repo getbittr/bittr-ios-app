@@ -162,7 +162,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     
     func applicationWillTerminate(_ application: UIApplication) {
         DispatchQueue.global(qos: .background).async {
-            try? LightningNodeService.shared.stop()
+            try? BitcoinManager.shared.stop()
         }
     }
     

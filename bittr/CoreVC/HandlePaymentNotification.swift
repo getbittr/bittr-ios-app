@@ -120,11 +120,11 @@ extension CoreViewController {
             
             // Get pubkey.
             var pubkey = String()
-            if let pubkeyString = LightningNodeService.shared.nodeId() {
+            if let pubkeyString = BitcoinManager.shared.nodeId() {
                 pubkey = pubkeyString
                 Log.info("Did get public key.")
             } else {
-                if LightningNodeService.shared.ldkNode == nil {
+                if BitcoinManager.shared.ldkNode == nil {
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                     return
                 }
@@ -138,7 +138,7 @@ extension CoreViewController {
                     // Create invoice.
                     var invoice:Bolt11Invoice
                     do {
-                        invoice = try await LightningNodeService.shared.receivePayment(
+                        invoice = try await BitcoinManager.shared.receivePayment(
                             amountMsat: amountMsat,
                             description: notificationId,
                             expirySecs: 3600
@@ -157,7 +157,7 @@ extension CoreViewController {
                     }
                         
                     // Cache payment details.
-                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                         let newTimestamp = Int(Date().timeIntervalSince1970)
                         CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
                         CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
@@ -167,7 +167,7 @@ extension CoreViewController {
                     // Sign message.
                     var lightningSignature:String
                     do {
-                        lightningSignature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                        lightningSignature = try await BitcoinManager.shared.signMessage(message: notificationId)
                         Log.info("Did sign message.")
                     } catch {
                         // Couldn't sign notification ID.
@@ -241,7 +241,7 @@ extension CoreViewController {
         self.hideAlert()
         
         Task {
-            await LightningNodeService.shared.didEstablishPeerConnection()
+            await BitcoinManager.shared.didEstablishPeerConnection()
             if self.varSpecialData != nil {
                 self.facilitateNotificationPayout()
             }
@@ -262,7 +262,7 @@ extension CoreViewController {
             switch event {
             case .paymentReceived(paymentId: _, paymentHash: let paymentHash, amountMsat: _, customRecords: _):
                 
-                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
                     Log.info("Did receive payment details.")
                     
                     if self.varSpecialData != nil {
@@ -320,7 +320,7 @@ extension CoreViewController {
                 
             case .paymentSuccessful(paymentId: _, paymentHash: let paymentHash, paymentPreimage: _, feePaidMsat: let feePaidMsat):
                 
-                if let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash) {
+                if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     // Create transaction item.
                     let newTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
@@ -488,15 +488,15 @@ extension CoreViewController {
     }
     
     func syncLDKnode() {
-        if let nodeStatus = LightningNodeService.shared.status(), nodeStatus.isRunning {
+        if let nodeStatus = BitcoinManager.shared.status(), nodeStatus.isRunning {
             do {
                 // Sync LDK node.
-                try LightningNodeService.shared.syncWallets()
+                try BitcoinManager.shared.syncWallets()
                 Log.info("Did sync LDK node.")
                 
                 Task {
                     // Fetch channel details.
-                    self.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels()
+                    self.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels()
                     Log.info("Did list channels.")
                     
                     // Reset balance and transactions.
@@ -636,7 +636,7 @@ extension CoreViewController {
         
         // Get pubkey
         var pubkey = String()
-        if let pubkeyString = LightningNodeService.shared.nodeId() {
+        if let pubkeyString = BitcoinManager.shared.nodeId() {
             pubkey = pubkeyString
         } else {
             self.hidePendingView()
@@ -652,7 +652,7 @@ extension CoreViewController {
         
         Task {
             do {
-                let signature = try await LightningNodeService.shared.signMessage(message: notificationId)
+                let signature = try await BitcoinManager.shared.signMessage(message: notificationId)
                 
                 let response = try await BittrService.shared.markTransactionAsOnchain(
                     notificationId: notificationId,

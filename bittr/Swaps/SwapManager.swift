@@ -59,7 +59,7 @@ class SwapManager: NSObject {
                 }
             } else {
                 // Create an invoice for the amount we want to move.
-                invoice = try await LightningNodeService.shared.receivePayment(
+                invoice = try await BitcoinManager.shared.receivePayment(
                     amountMsat: amountMsat,
                     description: "Swap onchain to lightning \(idString)",
                     expirySecs: 3600
@@ -68,7 +68,7 @@ class SwapManager: NSObject {
             
             // Store invoice in cache.
             DispatchQueue.main.async {
-                if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                     let newTimestamp = Int(Date().timeIntervalSince1970)
                     CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
                     CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
@@ -83,7 +83,7 @@ class SwapManager: NSObject {
             let swapIndex = CacheManager.incrementSwapIndex()
             let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
             
-            let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+            let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
             
             // Get device token for webhook URL
             let deviceToken = CacheManager.getRegistrationToken() ?? ""
@@ -222,12 +222,12 @@ class SwapManager: NSObject {
         guard let ongoingSwap = await swapVC.coreVC!.bittrWallet.ongoingSwap else {return}
         
         // Check what the onchain fees will be for sending this onchain payment.
-        if let actualWallet = LightningNodeService.shared.getWallet() {
+        if let actualWallet = BitcoinManager.shared.getWallet() {
             
             Task {
                 do {
                     // Get current fees for fast onchain transaction.
-                    let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                    let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
                     let high = feeEstimates[1]!
                     let feeHigh = Float(Int(high*10))/10
                     
@@ -264,13 +264,13 @@ class SwapManager: NSObject {
         guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
             
         // Send onchain transaction.
-        if let actualWallet = LightningNodeService.shared.getWallet() {
+        if let actualWallet = BitcoinManager.shared.getWallet() {
             
             Task {
                 do {
                     let tx = try await swapVC.getTx(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet, selectedVbyte: ongoingSwap.feeHigh!)
                     
-                    if let client = LightningNodeService.shared.getClient() {
+                    if let client = BitcoinManager.shared.getClient() {
                         
                         let txid = try client.transactionBroadcast(tx: tx)
                         
@@ -291,7 +291,7 @@ class SwapManager: NSObject {
                             CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
                             
                             // Update Home table.
-                            LightningNodeService.shared.lightSync() { _ in }
+                            BitcoinManager.shared.lightSync() { _ in }
                             
                             // Call didCompleteOnchainTransaction to set up WebSocket monitoring
                             swapVC.didCompleteOnchainTransaction()
@@ -362,9 +362,9 @@ class SwapManager: NSObject {
         let swapIndex = CacheManager.incrementSwapIndex()
         let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
         
-        let (privateKey, publicKey) = try! LightningNodeService.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+        let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
 
-        let wallet = LightningNodeService.shared.getWallet()
+        let wallet = BitcoinManager.shared.getWallet()
         
         // Use provided payout address if available, otherwise get a new unused address
         let destinationAddress: String?
@@ -607,7 +607,7 @@ class SwapManager: NSObject {
         
         // Light sync wallet to add transaction to table.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            LightningNodeService.shared.lightSync() { _ in }
+            BitcoinManager.shared.lightSync() { _ in }
         }
     }
     
@@ -680,10 +680,10 @@ class SwapManager: NSObject {
         Task {
             do {
                 Log.info("Will pay Boltz invoice.")
-                let paymentHash = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
+                let paymentHash = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    let thisPayment = LightningNodeService.shared.getPaymentDetails(paymentHash: paymentHash)
+                    let thisPayment = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash)
                     
                     if (thisPayment != nil && thisPayment!.status == .failed) || (thisPayment == nil) {
                         // Payment came back failed.

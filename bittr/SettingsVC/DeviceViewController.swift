@@ -121,8 +121,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         Task {
             do {
-                if LightningNodeService.shared.ldkNode != nil {
-                    let channels = try await LightningNodeService.shared.listChannels()
+                if BitcoinManager.shared.ldkNode != nil {
+                    let channels = try await BitcoinManager.shared.listChannels()
                     Log.info("Channels: \(channels.count)")
                     self.channelsLabel.text = "\(channels.count)"
                 } else {
@@ -205,7 +205,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     }
     
     @IBAction func keyButtonTapped(_ sender: UIButton) {
-        if let lightningKey = LightningNodeService.shared.nodeId() {
+        if let lightningKey = BitcoinManager.shared.nodeId() {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyLightningKey), nil])
         } else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -214,7 +214,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
     
     @objc func copyLightningKey() {
         self.hideAlert()
-        let lightningKey = LightningNodeService.shared.nodeId()!
+        let lightningKey = BitcoinManager.shared.nodeId()!
         UIPasteboard.general.string = lightningKey
     }
     
@@ -291,7 +291,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.peerButton.isUserInteractionEnabled = false
         
         Task {
-            await LightningNodeService.shared.didEstablishPeerConnection()
+            await BitcoinManager.shared.didEstablishPeerConnection()
             self.peerButtonTapped(self.peerButton)
         }
     }
@@ -308,7 +308,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         //         let pushAmountSats: UInt64 = 500_000_000
                 
         //         // First connect to the peer
-        //         try await LightningNodeService.shared.connect(
+        //         try await BitcoinManager.shared.connect(
         //             nodeId: nodeId,
         //             address: address,
         //             persist: true
@@ -319,7 +319,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         //         try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 
         //         // Open the channel
-        //         let channelId = try await LightningNodeService.shared.connectOpenChannel(
+        //         let channelId = try await BitcoinManager.shared.connectOpenChannel(
         //             nodeId: nodeId,
         //             address: address,
         //             channelAmountSats: channelAmountSats,

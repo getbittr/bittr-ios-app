@@ -91,7 +91,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             } else if self.coreVC != nil {
                 // Wallet is ready
                 Task {
-                    let channels = try await LightningNodeService.shared.listChannels()
+                    let channels = try await BitcoinManager.shared.listChannels()
                     DispatchQueue.main.async {
                         if channels.count > 0 {
                             // Check if we've recently initiated channel closure
@@ -201,7 +201,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.hideAlert()
         Task {
             do {
-                let channels = try await LightningNodeService.shared.listChannels()
+                let channels = try await BitcoinManager.shared.listChannels()
                 var closingChannel:ChannelDetails?
                 for eachChannel in channels {
                     if eachChannel.isChannelReady {
@@ -213,7 +213,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                         self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
                     }
                 }
-                try LightningNodeService.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
+                try BitcoinManager.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
                 UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -251,7 +251,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.hideAlert()
         Task {
             do {
-                let channels = try await LightningNodeService.shared.listChannels()
+                let channels = try await BitcoinManager.shared.listChannels()
                 var closingChannel:ChannelDetails?
                 for eachChannel in channels {
                     if eachChannel.isChannelReady {
@@ -265,7 +265,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 // Try force close (unilateral closure)
                 Log.info("Attempting force close for channel.")
                 print("🔍 [DEBUG] Channel ID: \(closingChannel!.userChannelId)")
-                try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
+                try BitcoinManager.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
                 UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -313,10 +313,10 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         Task {
             do {
                 Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
-                try LightningNodeService.shared.syncWallets()
+                try BitcoinManager.shared.syncWallets()
                 
                 // Get fresh channel data
-                let updatedChannels = try await LightningNodeService.shared.listChannels()
+                let updatedChannels = try await BitcoinManager.shared.listChannels()
                 Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
                 
                 DispatchQueue.main.async {

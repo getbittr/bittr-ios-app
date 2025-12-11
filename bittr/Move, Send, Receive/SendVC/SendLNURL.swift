@@ -201,14 +201,14 @@ extension UIViewController {
         
         Task {
             do {
-                let invoice = try await LightningNodeService.shared.receivePayment(
+                let invoice = try await BitcoinManager.shared.receivePayment(
                     amountMsat: UInt64(amount),
                     description: "",
                     expirySecs: 3600
                 )
                 
                 DispatchQueue.main.async {
-                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = LightningNodeService.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                         CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
                     }
                 }

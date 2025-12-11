@@ -216,10 +216,10 @@ extension UIViewController {
                 
                 do {
                     if isZeroAmountInvoice {
-                        let _ = try await LightningNodeService.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
+                        let _ = try await BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
                         SentrySDK.metrics.increment(key: "lightning.payment.success")
                     } else {
-                        let _ = try await LightningNodeService.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
+                        let _ = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
                         SentrySDK.metrics.increment(key: "lightning.payment.success")
                     }
                 } catch {
@@ -244,7 +244,7 @@ extension UIViewController {
                 }
             } else {
                 // Not connected to peer.
-                if await LightningNodeService.shared.didEstablishPeerConnection() {
+                if await BitcoinManager.shared.didEstablishPeerConnection() {
                     // Did reconnect.
                     Log.info("Did reconnect to peer.")
                     DispatchQueue.main.async {
@@ -276,7 +276,7 @@ extension UIViewController {
         sendVC?.nextSpinner.startAnimating()
         
         Task {
-            if await LightningNodeService.shared.didEstablishPeerConnection() {
+            if await BitcoinManager.shared.didEstablishPeerConnection() {
                 // Did reconnect.
                 Log.info("Did reconnect to peer.")
                 DispatchQueue.main.async {

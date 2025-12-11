@@ -12,13 +12,13 @@ extension CoreViewController {
     func needsToHandleURI() -> Bool {
         
         if let bitcoinData = UserDefaults.standard.object(forKey: "pendingBitcoinURI") as? [String: Any],
-           let address = bitcoinData["address"] as? String,
-           let amount = bitcoinData["amount"] as? String,
-           let label = bitcoinData["label"] as? String {
+           let _ = bitcoinData["address"] as? String,
+           let _ = bitcoinData["amount"] as? String,
+           let _ = bitcoinData["label"] as? String {
             // There's a Bitcoin URI.
             return true
         } else if let lightningData = UserDefaults.standard.object(forKey: "pendingLightningURI") as? [String: Any],
-           let invoice = lightningData["invoice"] as? String {
+           let _ = lightningData["invoice"] as? String {
             // There's a Lightning URI.
             return true
         } else {

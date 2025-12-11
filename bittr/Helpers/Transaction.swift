@@ -59,12 +59,12 @@ extension CanonicalTx {
         
         thisTransaction.id = self.transaction.computeTxid()
         thisTransaction.isLightning = false
-        thisTransaction.received = Int(LightningNodeService.shared.getWallet()!.sentAndReceived(tx: self.transaction).received.toSat())
-        thisTransaction.sent = Int(LightningNodeService.shared.getWallet()!.sentAndReceived(tx: self.transaction).sent.toSat())
+        thisTransaction.received = Int(BitcoinManager.shared.getWallet()!.sentAndReceived(tx: self.transaction).received.toSat())
+        thisTransaction.sent = Int(BitcoinManager.shared.getWallet()!.sentAndReceived(tx: self.transaction).sent.toSat())
         
         // Fees
         do {
-            thisTransaction.fee = Int(try LightningNodeService.shared.getWallet()!.calculateFee(tx: self.transaction).toSat())
+            thisTransaction.fee = Int(try BitcoinManager.shared.getWallet()!.calculateFee(tx: self.transaction).toSat())
         } catch {
             Log.info("810 Could not calculate fee.")
             DispatchQueue.main.async {

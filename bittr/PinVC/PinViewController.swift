@@ -6,7 +6,6 @@
 //
 
 import UIKit
-//import KeychainSwift
 
 class PinViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -29,7 +28,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var label9: UILabel!
     @IBOutlet weak var label0: UILabel!
     @IBOutlet weak var imageBackspace: UIImageView!
-    var allLabels = [UILabel]()
     
     // Buttons
     @IBOutlet weak var button1: UIButton!
@@ -117,18 +115,13 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.pinTextField.delegate = self
         
         // Get correct pin
-        if let actualPin = CacheManager.getPin() {
-            self.correctPin = actualPin
-        }
+        self.correctPin = CacheManager.getPin()
         
         // Configure button backgrounds.
         self.allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
         for eachBackground in self.allBackgrounds! {
             eachBackground.layer.cornerRadius = 45
         }
-        
-        // Button labels
-        self.allLabels = [self.label1, self.label2, self.label3, self.label4, self.label5, self.label6, self.label7, self.label8, self.label9, self.label0]
         
         // Observers
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
@@ -195,14 +188,12 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 return
             }
             
-            if let actualCorrectPin = self.correctPin {
-                if actualCorrectPin == self.pinTextField.text {
+            if self.correctPin != nil {
+                if self.correctPin! == self.pinTextField.text {
                     // Correct pin.
                     CacheManager.resetFailedPinAttempts()
-                    if let actualCoreVC = self.coreVC {
-                        self.pinSpinner.startAnimating()
-                        actualCoreVC.correctPin(spinner:self.pinSpinner)
-                    }
+                    self.pinSpinner.startAnimating()
+                    self.coreVC?.correctPin(spinner:self.pinSpinner)
                 } else {
                     // Wrong pin.
                     CacheManager.increaseFailedPinAttempts()
@@ -264,17 +255,17 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         self.view.backgroundColor = Colors.getColor("yelloworblue3")
         self.topLabel.textColor = Colors.getColor("blackorwhite")
+        self.imageBackspace.tintColor = Colors.getColor("blackorwhite")
+        self.confirmPinView.backgroundColor = Colors.getColor("blackorblue1")
+        self.pinTextField.textColor = Colors.getColor("blackorblue1")
+        for eachLabel in [self.label1, self.label2, self.label3, self.label4, self.label5, self.label6, self.label7, self.label8, self.label9, self.label0] {
+            eachLabel!.textColor = Colors.getColor("blackorwhite")
+        }
         if CacheManager.darkModeIsOn() {
             self.restoreButtonLabel.textColor = Colors.getColor("blackorwhite")
         } else {
             self.restoreButtonLabel.textColor = Colors.getColor("transparentblack")
         }
-        for eachLabel in self.allLabels {
-            eachLabel.textColor = Colors.getColor("blackorwhite")
-        }
-        self.imageBackspace.tintColor = Colors.getColor("blackorwhite")
-        self.confirmPinView.backgroundColor = Colors.getColor("blackorblue1")
-        self.pinTextField.textColor = Colors.getColor("blackorblue1")
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {

@@ -13,7 +13,7 @@ extension UIViewController {
     func isConnectedToPeer() async -> Bool {
         
         do {
-            let peers = try await LightningNodeService.shared.listPeers()
+            let peers = try await BitcoinManager.shared.listPeers()
             var peerIsConnected = false
             for eachPeer in peers {
                 if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
@@ -44,14 +44,14 @@ extension HomeViewController {
     func fetchAndPrintPeers() {
         
         // Print nodeID.
-        if let lightningPubKey = LightningNodeService.shared.nodeId() {
+        if let lightningPubKey = BitcoinManager.shared.nodeId() {
             print(lightningPubKey)
         }
         
         // Check peer connection.
         Task {
             await self.isConnectedToPeer()
-            LightningNodeService.shared.listenForEvents()
+            BitcoinManager.shared.listenForEvents()
         }
     }
 

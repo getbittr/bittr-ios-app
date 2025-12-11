@@ -1,5 +1,5 @@
 //
-//  LightningNodeService.swift
+//  BitcoinManager.swift
 //  bittr
 //
 //  Created by Tom Melters on 18/07/2023.
@@ -11,7 +11,7 @@ import BitcoinDevKit
 import Sentry
 import CryptoKit
 
-class LightningNodeService {
+class BitcoinManager {
     
     public var ldkNode: Node?
     private var network: LDKNode.Network
@@ -22,9 +22,9 @@ class LightningNodeService {
     private var xpub = ""
     private var coreVC:CoreViewController?
     
-    class var shared: LightningNodeService {
+    class var shared: BitcoinManager {
         struct Singleton {
-            static let instance = LightningNodeService(network: EnvironmentConfig.ldkNetwork)
+            static let instance = BitcoinManager(network: EnvironmentConfig.ldkNetwork)
         }
         return Singleton.instance
     }
@@ -120,7 +120,7 @@ class LightningNodeService {
             Log.info("Could not build newLdkNode. \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LightningNodeService row 130", key: "context")
+                    scope.setExtra(value: "BitcoinManager row 130", key: "context")
                 }
                 completion(false)
             }
@@ -138,7 +138,7 @@ class LightningNodeService {
             Log.info("Could not start newLdkNode. \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LightningNodeService row 147", key: "context")
+                    scope.setExtra(value: "BitcoinManager row 147", key: "context")
                 }
                 completion(false)
             }
@@ -237,7 +237,7 @@ class LightningNodeService {
                 self.coreVC?.stopLightning(message: errorMessage)
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 231", key: "context")
+                        scope.setExtra(value: "BitcoinManager row 231", key: "context")
                     }
                     SentrySDK.metrics.increment(key: "sync.bdk.failure")
                 }
@@ -326,7 +326,7 @@ class LightningNodeService {
             // Check peer connection.
             var peers = [PeerDetails]()
             do {
-                peers = try await LightningNodeService.shared.listPeers()
+                peers = try await BitcoinManager.shared.listPeers()
             } catch {
                 self.handleError(error: error, row: 282, stopLightning: false)
             }
@@ -366,7 +366,7 @@ class LightningNodeService {
         }
         DispatchQueue.main.async {
             SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "LightningNodeService row \(row)", key: "context")
+                scope.setExtra(value: "BitcoinManager row \(row)", key: "context")
             }
             SentrySDK.metrics.increment(key: "sync.walletsync.failure")
         }
@@ -385,7 +385,7 @@ class LightningNodeService {
             if !didEstablishPeerConnection {
                 do {
                     let nodeId = EnvironmentConfig.lightningNodeId
-                    try LightningNodeService.shared.ldkNode?.disconnect(nodeId: nodeId)
+                    try BitcoinManager.shared.ldkNode?.disconnect(nodeId: nodeId)
                 } catch {
                     let errorMessage:String = {
                         if let nodeError = error as? NodeError {
@@ -397,7 +397,7 @@ class LightningNodeService {
                     DispatchQueue.main.async {
                         Log.info("Can't disconnect from peer: \(errorMessage).")
                         SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "LightningNodeService row 277", key: "context")
+                            scope.setExtra(value: "BitcoinManager row 277", key: "context")
                         }
                     }
                 }
@@ -413,7 +413,7 @@ class LightningNodeService {
             // Peer connection task.
             group.addTask {
                 do {
-                    try await LightningNodeService.shared.connect(
+                    try await BitcoinManager.shared.connect(
                         nodeId: EnvironmentConfig.lightningNodeId,
                         address: EnvironmentConfig.lightningNodeAddress,
                         persist: true
@@ -432,7 +432,7 @@ class LightningNodeService {
                         // Handle UI error showing here, like showing an alert
                         Log.info("Can't connect to peer: \(errorMessage).")
                         SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "LightningNodeService row 319", key: "context")
+                            scope.setExtra(value: "BitcoinManager row 319", key: "context")
                         }
                     }
                     return false
@@ -463,7 +463,7 @@ class LightningNodeService {
         Task {
             do {
                 // Get channels.
-                let channels = try await LightningNodeService.shared.listChannels()
+                let channels = try await BitcoinManager.shared.listChannels()
                 var activeChannel:ChannelDetails?
                 for eachChannel in channels {
                     if eachChannel.isChannelReady {
@@ -479,7 +479,7 @@ class LightningNodeService {
                 }
                 
                 // Get payments.
-                var payments = try await LightningNodeService.shared.listPayments()
+                var payments = try await BitcoinManager.shared.listPayments()
                 // Remove onchain payments from array.
                 for (index, eachPayment) in payments.enumerated().reversed() {
                     switch eachPayment.kind {
@@ -498,7 +498,7 @@ class LightningNodeService {
                 Log.info("Error listing channels: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 369", key: "context")
+                        scope.setExtra(value: "BitcoinManager row 369", key: "context")
                     }
                 }
             }
@@ -586,7 +586,7 @@ class LightningNodeService {
                     self.coreVC!.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
                         return tx1.chainPosition.isBefore(tx2.chainPosition)
                     }
-                    Task { self.coreVC!.bittrWallet.lightningChannels = try await LightningNodeService.shared.listChannels() }
+                    Task { self.coreVC!.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels() }
                     
                     DispatchQueue.main.async {
                         self.coreVC!.homeVC!.loadWalletData()
@@ -600,7 +600,7 @@ class LightningNodeService {
                 Log.info("Error completing light sync: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 462", key: "context")
+                        scope.setExtra(value: "BitcoinManager row 462", key: "context")
                     }
                     completion(false)
                 }
@@ -669,7 +669,7 @@ class LightningNodeService {
     }
     
     func resetNodeState() {
-        Log.info("🔍 [DEBUG] LightningNodeService - Resetting node state")
+        Log.info("🔍 [DEBUG] BitcoinManager - Resetting node state")
         
         // Clear node reference
         self.ldkNode = nil
@@ -686,7 +686,7 @@ class LightningNodeService {
         // Reset other state variables
         self.xpub = ""
         
-        Log.info("🔍 [DEBUG] LightningNodeService - Node state reset completed")
+        Log.info("🔍 [DEBUG] BitcoinManager - Node state reset completed")
     }
     
     func listenForEvents() {
@@ -701,7 +701,7 @@ class LightningNodeService {
                 Log.info("Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LightningNodeService row 564", key: "context")
+                        scope.setExtra(value: "BitcoinManager row 564", key: "context")
                     }
                 }
             }

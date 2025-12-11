@@ -208,19 +208,19 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         
         // Generate message and signature.
         let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(ibanEntity.emailToken.prefix(32)). IBAN: \(ibanEntity.yourIbanNumber)"
-        let signature = try! LightningNodeService.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)
+        let signature = try! BitcoinManager.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)
         
         Task {
             do {
-                let lightningSignature = try await LightningNodeService.shared.signMessage(message: message)
+                let lightningSignature = try await BitcoinManager.shared.signMessage(message: message)
                 
                 // Get real onchain address.
-                let wallet = LightningNodeService.shared.getWallet()
+                let wallet = BitcoinManager.shared.getWallet()
                 let firstAddress = wallet?.peekAddress(keychain: .external, index: 0).address.description ?? ""
                 
                 // Get node ID.
                 var lightningPubKey = String()
-                if let pubkeyString = LightningNodeService.shared.nodeId() {
+                if let pubkeyString = BitcoinManager.shared.nodeId() {
                     lightningPubKey = pubkeyString
                 } else {
                     Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
@@ -229,7 +229,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
                 
                 // Get xpub.
-                let xpub = LightningNodeService.shared.getXpub()
+                let xpub = BitcoinManager.shared.getXpub()
                 
                 // Gather parameters.
                 let parameters: [String: Any] = [

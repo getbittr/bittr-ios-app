@@ -20,7 +20,7 @@ extension CoreViewController {
         self.launchSignup(onPage: 2)
         
         // Show signup.
-        self.showSignupView()
+        self.showSignup()
     }
     
     func launchSignup(onPage:Int) {
@@ -55,7 +55,7 @@ extension CoreViewController {
         
         Task {
             let didStartLDK = await withCheckedContinuation { continuation in
-                LightningNodeService.shared.startLDK { didStartLDK in
+                BitcoinManager.shared.startLDK { didStartLDK in
                     continuation.resume(returning: didStartLDK)
                 }
             }
@@ -81,7 +81,7 @@ extension CoreViewController {
     func checkChannelsAndReset() {
         Task {
             do {
-                let channels = try await LightningNodeService.shared.listChannels()
+                let channels = try await BitcoinManager.shared.listChannels()
                 DispatchQueue.main.async {
                     if channels.count > 0 {
                         // Check if we've recently initiated channel closure
@@ -134,7 +134,7 @@ extension CoreViewController {
         self.hideAlert()
         Task {
             do {
-                let channels = try await LightningNodeService.shared.listChannels()
+                let channels = try await BitcoinManager.shared.listChannels()
                 var closingChannel:ChannelDetails?
                 for eachChannel in channels {
                     if eachChannel.isChannelReady {
@@ -142,7 +142,7 @@ extension CoreViewController {
                     }
                 }
                 if closingChannel != nil {
-                    try LightningNodeService.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
+                    try BitcoinManager.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                     
                     // Mark that we've initiated channel closure
                     UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -186,7 +186,7 @@ extension CoreViewController {
         self.hideAlert()
         Task {
             do {
-                let channels = try await LightningNodeService.shared.listChannels()
+                let channels = try await BitcoinManager.shared.listChannels()
                 var closingChannel:ChannelDetails?
                 for eachChannel in channels {
                     if eachChannel.isChannelReady {
@@ -197,7 +197,7 @@ extension CoreViewController {
                     // Try force close (unilateral closure)
                     Log.info("🔍 [DEBUG] ResetApp - Attempting force close for channel.")
                     print("Channel ID: \(closingChannel!.userChannelId)")
-                    try LightningNodeService.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
+                    try BitcoinManager.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                     
                     // Mark that we've initiated channel closure
                     UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -245,28 +245,27 @@ extension CoreViewController {
         UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
         
         // Clear mnemonic from cache
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        CacheManager.removeMnemonic()
         
         // Remove wallet from device and remove corresponding cached data.
         do {
             Log.info("🔍 [DEBUG] ResetApp - Starting wallet reset cleanup")
             
             // Always try to stop the node first if it exists
-            if LightningNodeService.shared.ldkNode != nil {
+            if BitcoinManager.shared.ldkNode != nil {
                 Log.info("🔍 [DEBUG] ResetApp - Stopping Lightning node")
-                try LightningNodeService.shared.stop()
+                try BitcoinManager.shared.stop()
                 Log.info("🔍 [DEBUG] ResetApp - Lightning node stopped successfully")
             }
             
             // Always clean up documents directory
             Log.info("🔍 [DEBUG] ResetApp - Cleaning up documents directory")
-            try LightningNodeService.shared.deleteDocuments()
+            try BitcoinManager.shared.deleteDocuments()
             Log.info("🔍 [DEBUG] ResetApp - Documents directory cleaned successfully")
             
             // Reset node state to clear all references
             Log.info("🔍 [DEBUG] ResetApp - Resetting node state")
-            LightningNodeService.shared.resetNodeState()
+            BitcoinManager.shared.resetNodeState()
             Log.info("🔍 [DEBUG] ResetApp - Node state reset completed")
             
             // Clear all cached data
@@ -285,7 +284,7 @@ extension CoreViewController {
             // Even if everything fails, try to clean up documents
             do {
                 Log.info("🔍 [DEBUG] ResetApp - Attempting final fallback document cleanup")
-                try LightningNodeService.shared.deleteDocuments()
+                try BitcoinManager.shared.deleteDocuments()
                 Log.info("🔍 [DEBUG] ResetApp - Final fallback document cleanup successful")
             } catch {
                 Log.info("❌ [DEBUG] ResetApp - Final fallback document cleanup failed: \(error.localizedDescription)")
@@ -309,7 +308,7 @@ extension CoreViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             Log.info("🔍 [DEBUG] ResetApp - Launching signup after cleanup")
             self.launchSignup(onPage: 3) // Page 3 is create wallet
-            self.showSignupView()
+            self.showSignup()
             
             // Show HomeVC.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
@@ -336,10 +335,10 @@ extension CoreViewController {
         Task {
             do {
                 Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Syncing wallet to get updated channel count")
-                try LightningNodeService.shared.syncWallets()
+                try BitcoinManager.shared.syncWallets()
                 
                 // Get fresh channel data
-                let updatedChannels = try await LightningNodeService.shared.listChannels()
+                let updatedChannels = try await BitcoinManager.shared.listChannels()
                 Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
                 
                 DispatchQueue.main.async {
@@ -361,24 +360,6 @@ extension CoreViewController {
                     }
                 }
             }
-        }
-    }
-    
-    func showSignupView() {
-        
-        // Show SignupVC.
-        self.signupContainerView.alpha = 1
-        
-        // Raise Signup view back into view.
-        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.signupBottom])
-            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.signupBottom])
-            self.blackSignupBackground.alpha = 1
-            self.view.layoutIfNeeded()
-        } completion: { finished in
-            // Hide PinVC.
-            self.pinContainerView.alpha = 0
         }
     }
 

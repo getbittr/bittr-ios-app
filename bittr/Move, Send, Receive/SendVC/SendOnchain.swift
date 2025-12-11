@@ -93,13 +93,13 @@ extension SendViewController {
                 self.confirmEuroLabel.text = "\(Int(self.onchainAmountInSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
                 
                 // Create transaction.
-                if let actualWallet = LightningNodeService.shared.getWallet() {
+                if let actualWallet = BitcoinManager.shared.getWallet() {
                     let actualAddress:String = invoiceText!
                     
                     Task {
                         do {
                             // Get estimated fees.
-                            let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                            let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
                             self.feeLow = Float(Int(feeEstimates[6]!*10))/10
                             self.feeMedium = Float(Int(feeEstimates[3]!*10))/10
                             self.feeHigh = Float(Int(feeEstimates[1]!*10))/10
@@ -308,7 +308,7 @@ extension SendViewController {
         self.sendSpinner.startAnimating()
         
         // Get wallet.
-        if let actualWallet = LightningNodeService.shared.getWallet() {
+        if let actualWallet = BitcoinManager.shared.getWallet() {
             
             // Get address.
             let actualAddress:String = self.confirmAddressLabel.text!
@@ -325,7 +325,7 @@ extension SendViewController {
             Task {
                 do {
                     let tx = try self.getTx(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet, selectedVbyte: selectedVbyte)
-                    if let client = LightningNodeService.shared.getClient() {
+                    if let client = BitcoinManager.shared.getClient() {
                         
                         // Broadcast transaction.
                         let txid = try client.transactionBroadcast(tx: tx)
@@ -374,7 +374,7 @@ extension SendViewController {
     @objc func addNewTxToTable() {
         self.hideAlert()
         
-        LightningNodeService.shared.lightSync() { success in
+        BitcoinManager.shared.lightSync() { success in
             if success, self.coreVC?.bittrWallet.transactionsOnchain != nil {
                 for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain! {
                     if eachTransaction.transaction.computeTxid() == self.newTxId {
@@ -454,7 +454,7 @@ extension UIViewController {
     
     func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
         
-        if let actualWallet = LightningNodeService.shared.getWallet() {
+        if let actualWallet = BitcoinManager.shared.getWallet() {
             do {
                 let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
                 _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)

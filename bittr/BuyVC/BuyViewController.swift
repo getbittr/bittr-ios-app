@@ -172,7 +172,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         let depositCodesString = depositCodes.joined(separator: ",")
         
         // If LDK Node has not been started, we cannot sign the message or get the node ID.
-        if LightningNodeService.shared.ldkNode == nil { return }
+        if BitcoinManager.shared.ldkNode == nil { return }
         
         // Start spinner
         self.updateDataSpinner.startAnimating()
@@ -183,8 +183,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             
             do {
                 // Gather parameters.
-                let lightningSignature = try await LightningNodeService.shared.signMessage(message: depositCodesString)
-                let lightningPubKey = LightningNodeService.shared.nodeId()!
+                let lightningSignature = try await BitcoinManager.shared.signMessage(message: depositCodesString)
+                let lightningPubKey = BitcoinManager.shared.nodeId()!
                 
                 let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/deposit_code_info?deposit_codes=\(depositCodesString)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)"
                 

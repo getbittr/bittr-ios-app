@@ -55,7 +55,7 @@ extension CoreViewController {
         
         Task {
             do {
-                let invoice = try await LightningNodeService.shared.receivePaymentWithHash(
+                let invoice = try await BitcoinManager.shared.receivePaymentWithHash(
                     amountMsat: UInt64(amountMsats),
                     descriptionHash: descriptionHash,
                     expirySecs: 3600

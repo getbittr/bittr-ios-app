@@ -271,7 +271,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0) - Int(activeChannel!.counterpartyUnspendablePunishmentReserve)
                 
                 // Calculate available onchain satoshis minus fast fee.
-                if let actualWallet = LightningNodeService.shared.getWallet() {
+                if let actualWallet = BitcoinManager.shared.getWallet() {
                     
                     // Calculate maximum sendable onchain amount at lowest fee.
                     let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
@@ -279,7 +279,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     
                     do {
                         // Get fees.
-                        let feeEstimates = try LightningNodeService.shared.getEsploraClient()!.getFeeEstimates()
+                        let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
                         // Select highest fee.
                         let highestFeePerVbyte = Float(Int(feeEstimates[1]!*10))/10
                         // Get own onchain address.

@@ -22,7 +22,7 @@ class BackgroundSync {
     }
     
     func lightSync() {
-        LightningNodeService.shared.lightSync() { _ in }
+        BitcoinManager.shared.lightSync() { _ in }
     }
     
     func stop() {
