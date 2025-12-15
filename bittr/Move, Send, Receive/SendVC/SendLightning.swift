@@ -179,7 +179,7 @@ extension UIViewController {
                     SentrySDK.capture(message: "Invalid invoice.") { scope in
                         scope.setExtra(value: "SendLightning row 180", key: "context")
                     }
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         } else {
