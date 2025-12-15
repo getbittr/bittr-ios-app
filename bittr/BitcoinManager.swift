@@ -464,12 +464,7 @@ class BitcoinManager {
             do {
                 // Get channels.
                 let channels = try await BitcoinManager.shared.listChannels()
-                var activeChannel:ChannelDetails?
-                for eachChannel in channels {
-                    if eachChannel.isChannelReady {
-                        activeChannel = eachChannel
-                    }
-                }
+                let activeChannel = channels.getActiveChannel()
                 
                 // Register funding transaction ID.
                 if activeChannel != nil {

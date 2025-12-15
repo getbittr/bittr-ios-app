@@ -24,7 +24,7 @@ extension SendViewController {
             // Check for LNURL address.
             if invoiceText != nil, invoiceText!.lowercased().contains("lnurl") {
                 // Handle LNURL.
-                self.confirmLightningTransaction(lnurlinvoice: invoiceText!, sendVC: self, receiveVC: nil, lnurlNote: nil)
+                self.confirmLightningTransaction(lnurlinvoice: invoiceText!, lnurlNote: nil)
                 return
             }
             
@@ -137,15 +137,10 @@ extension SendViewController {
                             
                             // Animation from main view to confirm view.
                             DispatchQueue.main.async {
-                                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                                    NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-                                    self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
-                                    NSLayoutConstraint.activate([self.scrollViewTrailing])
-                                    self.view.layoutIfNeeded()
-                                }
                                 self.nextLabel.alpha = 1
                                 self.arrowIcon.alpha = 1
                                 self.nextSpinner.stopAnimating()
+                                self.slideFromSendToConfirm()
                             }
                         } catch {
                             Log.info("Error: \(error.localizedDescription)")
@@ -386,13 +381,7 @@ extension SendViewController {
         }
         
         self.resetFields()
-        // Slide back to leftmost scroll view.
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-            self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.scrollViewTrailing])
-            self.view.layoutIfNeeded()
-        }
+        self.slideFromConfirmToSend()
     }
     
     @objc override func cancelSwapOffer() {

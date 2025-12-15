@@ -241,12 +241,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     func calculateSendableAmount() {
         
-        let activeChannel: LDKNode.ChannelDetails? = {
-            for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-                if eachChannel.isChannelReady { return eachChannel }
-            }
-            return nil
-        }()
+        let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
         
         if activeChannel == nil {
             // There is no active Lightning channel.
@@ -369,14 +364,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         let amountToBeSent = Int((self.amountTextField.text ?? "0").toNumber())
         if amountToBeSent != 0 {
             // Get active channel.
-            let activeChannel:LDKNode.ChannelDetails? = {
-                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-                    if eachChannel.isChannelReady {
-                            return eachChannel
-                    }
-                }
-                return nil
-            }()
+            let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+            
             let maxAmount = (activeChannel?.inboundHtlcMaximumMsat ?? 0)/1000
             if amountToBeSent > maxAmount {
                 // You can't receive or send this much.

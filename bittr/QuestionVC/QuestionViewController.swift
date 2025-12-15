@@ -54,14 +54,7 @@ class QuestionViewController: UIViewController {
         if let actualType = self.questionType {
             
             // Get active channel.
-            let activeChannel:ChannelDetails? = {
-                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-                    if eachChannel.isChannelReady {
-                            return eachChannel
-                    }
-                }
-                return nil
-            }()
+            let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
             
             if activeChannel != nil {
                 self.setChannelChart(forChannel: activeChannel!)
@@ -129,4 +122,17 @@ class QuestionViewController: UIViewController {
         }
     }
     
+}
+
+extension [ChannelDetails] {
+    
+    func getActiveChannel() -> ChannelDetails? {
+        
+        for eachChannel in self {
+            if eachChannel.isChannelReady {
+                    return eachChannel
+            }
+        }
+        return nil
+    }
 }

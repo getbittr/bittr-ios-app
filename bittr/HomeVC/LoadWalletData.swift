@@ -22,15 +22,13 @@ extension HomeViewController {
         
         // Calculate lightning balance by adding up the values of each channel.
         self.coreVC!.bittrWallet.satoshisLightning = 0
-        for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-            if eachChannel.isChannelReady {
-                if Int(eachChannel.outboundCapacityMsat/1000) != 0 {
-                    // Channel balance is more than punishment reserve.
-                    self.coreVC!.bittrWallet.satoshisLightning += Int((eachChannel.outboundCapacityMsat / 1000) + (eachChannel.unspendablePunishmentReserve ?? 0))
-                } else {
-                    // Channel balance is less than punishment reserve.
-                    self.coreVC!.bittrWallet.satoshisLightning += Int(eachChannel.channelValueSats - eachChannel.inboundCapacityMsat/1000 - eachChannel.counterpartyUnspendablePunishmentReserve)
-                }
+        if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
+            if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
+                // Channel balance is more than punishment reserve.
+                self.coreVC!.bittrWallet.satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
+            } else {
+                // Channel balance is less than punishment reserve.
+                self.coreVC!.bittrWallet.satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
             }
         }
         

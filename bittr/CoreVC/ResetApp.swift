@@ -135,12 +135,8 @@ extension CoreViewController {
         Task {
             do {
                 let channels = try await BitcoinManager.shared.listChannels()
-                var closingChannel:ChannelDetails?
-                for eachChannel in channels {
-                    if eachChannel.isChannelReady {
-                        closingChannel = eachChannel
-                    }
-                }
+                let closingChannel = channels.getActiveChannel()
+                
                 if closingChannel != nil {
                     try BitcoinManager.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
                     
@@ -187,12 +183,8 @@ extension CoreViewController {
         Task {
             do {
                 let channels = try await BitcoinManager.shared.listChannels()
-                var closingChannel:ChannelDetails?
-                for eachChannel in channels {
-                    if eachChannel.isChannelReady {
-                        closingChannel = eachChannel
-                    }
-                }
+                let closingChannel = channels.getActiveChannel()
+                
                 if closingChannel != nil {
                     // Try force close (unilateral closure)
                     Log.info("🔍 [DEBUG] ResetApp - Attempting force close for channel.")

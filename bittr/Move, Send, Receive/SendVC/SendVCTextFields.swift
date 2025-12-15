@@ -14,7 +14,7 @@ extension SendViewController {
         // Same logic as doneButtonTapped for return key
         if textField == self.toTextField {
             // If it's a lightning invoice with amount, go straight to confirmation
-            if (textField.text ?? "").prefix(2) == "ln" {
+            if (textField.text ?? "").hasPrefix("ln") {
                 if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue() {
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         // Invoice has amount, go straight to confirmation
@@ -22,14 +22,14 @@ extension SendViewController {
                         self.amountTextField.text = "\(invoiceAmount)"
                         self.btcLabel.text = "Sats"
                         self.selectedCurrency = .satoshis
-                        self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
+                        self.confirmLightningTransaction(lnurlinvoice: nil, lnurlNote: nil)
                         return true
                     }
                 }
             } else if (textField.text ?? "").contains("@") {
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
-                self.hideScannerView(forView: .lightning)
+                self.hideScanner()
                 self.handleLNURL(code: textField.text!, sendVC: self, receiveVC: nil)
                 return true
             }

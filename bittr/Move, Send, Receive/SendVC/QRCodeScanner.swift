@@ -122,10 +122,10 @@ extension SendViewController {
         } else if code.lowercased().contains("bitcoin:") {
             // This is a regular Bitcoin URI (on-chain).
             addressType = .onchain
-        } else if code.lowercased().split(separator: "&").first!.prefix(2) == "ln" {
+        } else if code.lowercased().split(separator: "&").first!.hasPrefix("ln") {
             // This is a Lightning invoice.
             addressType = .lightning
-        } else if self.isValidEmail(code.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)) {
+        } else if code.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
             // This is an LNURL.
             addressType = .lightning
         } else {
@@ -133,12 +133,12 @@ extension SendViewController {
             addressType = self.onchainOrLightning
         }
         
-        if scanned, !code.contains("bitcoin") && !code.lowercased().contains("ln") && !self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
+        if scanned, !code.contains("bitcoin") && !code.lowercased().hasPrefix("ln") && !code.trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
             // No valid address.
             self.toTextField.text = nil
             self.amountTextField.text = nil
             self.showAlert(presentingController: self, title: Language.getWord(withID: "noaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-        } else if code.lowercased().contains("lnurl") || self.isValidEmail(code.trimmingCharacters(in: .whitespacesAndNewlines)) {
+        } else if code.lowercased().contains("lnurl") || code.trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
             // Valid LNURL code.
             self.toTextField.text = code
             self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
@@ -244,7 +244,7 @@ extension SendViewController {
                         }
                         
                         // Handle Lightning invoice if it's a direct ln... address
-                        if bitcoinAddress.prefix(2) == "ln" {
+                        if bitcoinAddress.hasPrefix("ln") {
                             if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: bitcoinAddress).getValue() {
                                 if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                                     let invoiceAmount = Int(invoiceAmountMilli)/1000
@@ -266,7 +266,6 @@ extension SendViewController {
         }
         
         self.onchainOrLightning = addressType
-        
-        self.hideScannerView(forView: self.onchainOrLightning)
+        self.hideScanner()
     }
 }

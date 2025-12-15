@@ -89,7 +89,7 @@ extension ReceiveViewController {
         
         print("Code: " + code)
         
-        if code.lowercased().contains("lnurl") || self.isValidEmail(code.lowercased().trimmingCharacters(in: .whitespacesAndNewlines))  {
+        if code.lowercased().contains("lnurl") || code.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail()  {
             // Valid LNURL code.
             self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: ""), sendVC: nil, receiveVC: self)
         }

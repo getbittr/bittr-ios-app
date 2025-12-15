@@ -202,12 +202,8 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         Task {
             do {
                 let channels = try await BitcoinManager.shared.listChannels()
-                var closingChannel:ChannelDetails?
-                for eachChannel in channels {
-                    if eachChannel.isChannelReady {
-                        closingChannel = eachChannel
-                    }
-                }
+                let closingChannel = channels.getActiveChannel()
+                
                 if closingChannel == nil {
                     DispatchQueue.main.async {
                         self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
@@ -252,12 +248,8 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         Task {
             do {
                 let channels = try await BitcoinManager.shared.listChannels()
-                var closingChannel:ChannelDetails?
-                for eachChannel in channels {
-                    if eachChannel.isChannelReady {
-                        closingChannel = eachChannel
-                    }
-                }
+                let closingChannel = channels.getActiveChannel()
+                
                 if closingChannel == nil {
                     self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }

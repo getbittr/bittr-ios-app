@@ -246,12 +246,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let moveVC = segue.destination as? MoveViewController {
                 moveVC.coreVC = self.coreVC
                 moveVC.homeVC = self
-                self.moveVC = moveVC
-                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-                    if eachChannel.isChannelReady {
-                        moveVC.maximumReceivableLNSats = Int((eachChannel.unspendablePunishmentReserve ?? 0)*10)
-                    }
+                if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
+                    moveVC.maximumReceivableLNSats = Int((activeChannel.unspendablePunishmentReserve ?? 0)*10)
                 }
+                self.moveVC = moveVC
             }
         } else if segue.identifier == "HomeToSend" {
             if let sendVC = segue.destination as? SendViewController {
@@ -272,10 +270,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let receiveVC = segue.destination as? ReceiveViewController {
                 receiveVC.homeVC = self
                 receiveVC.coreVC = self.coreVC
-                for eachChannel in self.coreVC!.bittrWallet.lightningChannels {
-                    if eachChannel.isChannelReady {
-                        receiveVC.maximumReceivableLNSats = Int((eachChannel.unspendablePunishmentReserve ?? 0)*10)
-                    }
+                if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
+                    receiveVC.maximumReceivableLNSats = Int((activeChannel.unspendablePunishmentReserve ?? 0)*10)
                 }
             }
         } else if segue.identifier == "HomeToTransaction" {

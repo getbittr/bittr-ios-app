@@ -23,7 +23,7 @@ extension UIViewController {
             receiveVC?.startLNURLSpinner()
             
             var url = ""
-            if self.isValidEmail(code) {
+            if code.isValidEmail() {
                 // This is an LNURL email.
                 let urlDomain = String(code.split(separator: "@")[1])
                 let urlUsername = String(code.split(separator: "@")[0])
@@ -158,9 +158,9 @@ extension UIViewController {
                         SentrySDK.metrics.increment(key: "lnurl.pay.success")
                         DispatchQueue.main.async {
                             if sendVC != nil {
-                                sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, sendVC: sendVC, receiveVC: receiveVC, lnurlNote: receivedDescription)
+                                sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
                             } else if receiveVC != nil {
-                                receiveVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, sendVC: sendVC, receiveVC: receiveVC, lnurlNote: receivedDescription)
+                                receiveVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
                             } else {
                                 let alert = UIAlertController(title: Language.getWord(withID: "invoice"), message: "\(Language.getWord(withID:"lnurlpayment"))\n\n\(receivedInvoice)", preferredStyle: .alert)
                                 alert.addAction(UIAlertAction(title: Language.getWord(withID: "copy"), style: .cancel, handler: { _ in

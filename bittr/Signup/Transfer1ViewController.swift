@@ -269,7 +269,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     func updateButtonColor() {
         
-        if self.ibanTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) != "" && self.isValidEmail(self.emailTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "") {
+        if self.ibanTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) != "" && (self.emailTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isValidEmail() {
             
             self.nextView.backgroundColor = UIColor.black
         } else {
@@ -321,13 +321,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
 
 extension UIViewController {
     
-    func isValidEmail(_ email: String) -> Bool {
-        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-
-        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
-        return emailPred.evaluate(with: email)
-    }
-    
     func didSendDetailsToBittr(email:String, iban:String, completion: @escaping (Bool) -> Void) async {
         
         // Send email and IBAN to bittr API for verification. Bittr will send email and validate IBAN.
@@ -364,5 +357,15 @@ extension UIViewController {
                 completion(false)
             }
         }
+    }
+}
+
+extension String {
+    
+    func isValidEmail() -> Bool {
+        
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: self)
     }
 }

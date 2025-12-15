@@ -196,30 +196,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.setWords()
         self.setBasicStyling()
         
-        // Set "You can send X satoshis" label
-        self.setSendAllLabel(forView: .lightning)
-        
         // Set default currency to satoshis
         self.btcLabel.text = "Sats"
         
-        // Initialize UI for Lightning mode
-        self.hideScannerView(forView: .lightning)
+        // Initialize UI and set Send All.
+        self.hideScanner()
         
-        // Handle pending URI data from segue
-        if let bitcoinURI = self.pendingBitcoinURI {
-            self.setAddressFromURI(address: bitcoinURI.address, amount: bitcoinURI.amount, label: bitcoinURI.label)
-            self.pendingBitcoinURI = nil // Clear after handling
-        }
-        
-        if let lightningURI = self.pendingLightningURI {
-            self.setInvoiceFromURI(invoice: lightningURI)
-            self.pendingLightningURI = nil // Clear after handling
-        }
+        // Handle pending URI data from segue.
+        self.checkForPendingURI()
     }
     
-    func setSendAllLabel(forView:OnchainOrLightning) {
+    func setSendAllLabel() {
         
-        if forView == .onchain {
+        if self.onchainOrLightning == .onchain {
             // Set "Send all" for onchain transactions.
             if self.maximumSendableOnchainBtc == nil {
                 self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
@@ -230,6 +219,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             // Set "Send all" for lightning payments.
             let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats)".addSpaces())
+        }
+    }
+    
+    func checkForPendingURI() {
+        
+        if self.pendingBitcoinURI != nil {
+            self.setAddressFromURI(address: self.pendingBitcoinURI!.address, amount: self.pendingBitcoinURI!.amount, label: self.pendingBitcoinURI!.label)
+            self.pendingBitcoinURI = nil // Clear after handling
+        }
+        
+        if self.pendingLightningURI != nil {
+            self.setInvoiceFromURI(invoice: self.pendingLightningURI!)
+            self.pendingLightningURI = nil // Clear after handling
         }
     }
     
@@ -258,8 +260,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        if (captureSession?.isRunning == true) {
-            captureSession.stopRunning()
+        if (self.captureSession?.isRunning == true) {
+            self.captureSession.stopRunning()
         }
     }
     
@@ -321,23 +323,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     
     @objc func doneButtonTapped() {
         // Only handle amount field since address field doesn't have a Done button
-        if amountTextField.isFirstResponder {
+        if self.amountTextField.isFirstResponder {
             
             // Check if we have pending LNURL data
-            if let callback = pendingLNURLCallback,
-               let minAmount = pendingLNURLMinAmount,
-               let maxAmount = pendingLNURLMaxAmount {
+            if self.pendingLNURLCallback != nil, self.pendingLNURLMinAmount != nil, self.pendingLNURLMaxAmount != nil {
                 // Handle LNURL amount completion
-                handleLNURLAmountCompletion()
-            } else if let callback = pendingWithdrawCallback,
-                      let minAmount = pendingWithdrawMinAmount,
-                      let maxAmount = pendingWithdrawMaxAmount {
+                self.handleLNURLAmountCompletion()
+            } else if self.pendingWithdrawCallback != nil, self.pendingWithdrawMinAmount != nil, self.pendingWithdrawMaxAmount != nil {
                 // Handle withdraw request amount completion
-                handleWithdrawAmountCompletion()
+                self.handleWithdrawAmountCompletion()
             } else {
                 // Move to next step
-                amountTextField.resignFirstResponder()
-                self.nextButtonTapped(nextButton)
+                self.amountTextField.resignFirstResponder()
+                self.nextButtonTapped(self.nextButton)
             }
         }
     }
@@ -378,30 +376,22 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if enteredAmount < minAmount || enteredAmount > maxAmount {
             let minSats = minAmount / 1000
             let maxSats = maxAmount / 1000
-            showAlert(presentingController: self, 
-                     title: Language.getWord(withID: "oops"), 
-                     message: "Amount must be between \(minSats) and \(maxSats) satoshis", 
-                     buttons: [Language.getWord(withID: "okay")], 
-                     actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
         // Store description before clearing
-        let description = pendingLNURLDescription
+        let description = self.pendingLNURLDescription
         
         // Clear pending data
-        pendingLNURLCallback = nil
-        pendingLNURLDescription = nil
-        pendingLNURLMinAmount = nil
-        pendingLNURLMaxAmount = nil
+        self.pendingLNURLCallback = nil
+        self.pendingLNURLDescription = nil
+        self.pendingLNURLMinAmount = nil
+        self.pendingLNURLMaxAmount = nil
         
         // Send the LNURL payment request
-        amountTextField.resignFirstResponder()
-        self.sendPayRequest(callbackURL: callback, 
-                           amount: enteredAmount, 
-                           sendVC: self, 
-                           receiveVC: nil, 
-                           receivedDescription: description)
+        self.amountTextField.resignFirstResponder()
+        self.sendPayRequest(callbackURL: callback, amount: enteredAmount, sendVC: self, receiveVC: nil, receivedDescription: description)
     }
     
     func handleWithdrawAmountCompletion() {
@@ -421,22 +411,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if enteredAmount < minAmount || enteredAmount > maxAmount {
             let minSats = minAmount / 1000
             let maxSats = maxAmount / 1000
-            showAlert(presentingController: self, 
-                     title: Language.getWord(withID: "oops"), 
-                     message: "Amount must be between \(minSats) and \(maxSats) satoshis", 
-                     buttons: [Language.getWord(withID: "okay")], 
-                     actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
         // Clear pending withdraw data
-        pendingWithdrawCallback = nil
-        pendingWithdrawK1 = nil
-        pendingWithdrawMinAmount = nil
-        pendingWithdrawMaxAmount = nil
+        self.pendingWithdrawCallback = nil
+        self.pendingWithdrawK1 = nil
+        self.pendingWithdrawMinAmount = nil
+        self.pendingWithdrawMaxAmount = nil
         
         // Send the withdraw request
-        amountTextField.resignFirstResponder()
+        self.amountTextField.resignFirstResponder()
         self.sendWithdrawRequest(callbackURL: callback, amount: enteredAmount, k1: k1, sendVC: self, receiveVC: nil)
     }
     
@@ -479,7 +465,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
         self.view.endEditing(true)
         if let actualString = UIPasteboard.general.string {
-            if !actualString.contains("bitcoin"), !actualString.lowercased().contains("ln"), !actualString.lowercased().contains("@") {
+            if !actualString.contains("bitcoin"), !actualString.lowercased().hasPrefix("ln"), !actualString.lowercased().contains("@") {
                 self.toTextField.text = actualString
             } else {
                 self.handleScannedOrPastedString(actualString, scanned: false)
@@ -508,106 +494,56 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.view.endEditing(true)
         
         // Check if we have pending LNURL data FIRST (for when Next button shows "Done")
-        if let callback = pendingLNURLCallback,
-           let minAmount = pendingLNURLMinAmount,
-           let maxAmount = pendingLNURLMaxAmount {
-            handleLNURLAmountCompletion()
+        if self.pendingLNURLCallback != nil, self.pendingLNURLMinAmount != nil, self.pendingLNURLMaxAmount != nil {
+            self.handleLNURLAmountCompletion()
             return
         }
         
         // Check if we have pending withdraw request data
-        if let callback = pendingWithdrawCallback,
-           let minAmount = pendingWithdrawMinAmount,
-           let maxAmount = pendingWithdrawMaxAmount {
-            handleWithdrawAmountCompletion()
+        if self.pendingWithdrawCallback != nil, self.pendingWithdrawMinAmount != nil, self.pendingWithdrawMaxAmount != nil {
+            self.handleWithdrawAmountCompletion()
             return
         }
         
-        if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == .onchain {
-            // Check onchain transaction.
-            self.checkSendOnchain()
-        } else if self.nextLabel.text == Language.getWord(withID: "next") && self.onchainOrLightning == .lightning {
-            // Confirm lightning payment.
+        if self.nextLabel.text == Language.getWord(withID: "next") {
             
-            // Check if address/invoice field is empty
-            if (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == "" {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
-            
-            if (self.amountTextField.text ?? "") == "" {
-                if (self.toTextField.text ?? "").lowercased().hasPrefix("ln") {
-                    if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.toTextField.text!).getValue() {
-                        if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                            let invoiceAmount = Int(invoiceAmountMilli)/1000
-                            self.amountTextField.text = "\(invoiceAmount)"
-                            self.btcLabel.text = "Sats"
-                            self.selectedCurrency = .satoshis
-                            self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
-                        } else {
-                            // Zero invoice.
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    } else {
-                        // Invalid lightning invoice
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    }
-                } else {
-                    if (self.toTextField.text ?? "").lowercased().contains("@") {
-                        // LNURL. No amount needed.
-                        self.handleLNURL(code: self.toTextField.text!, sendVC: self, receiveVC: nil)
-                    } else {
-                        // Not a lightning invoice, amount is required
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    }
-                }
+            if self.onchainOrLightning == .onchain {
+                // Check onchain transaction.
+                self.checkSendOnchain()
             } else {
-                // Convert amount to satoshis based on current currency
-                var satoshisValue: Int
-                if self.selectedCurrency == .satoshis {
-                    satoshisValue = Int(self.amountTextField.text!.toNumber())
-                } else if self.selectedCurrency == .bitcoin {
-                    let btcAmount = self.amountTextField.text!.toNumber()
-                    guard btcAmount.isFinite && !btcAmount.isNaN else {
-                        Log.info("579 Invalid BTC amount.")
-                        print("⚠️ Warning: Invalid BTC amount: \(btcAmount)")
-                        return
-                    }
-                    satoshisValue = btcAmount.inSatoshis()
-                } else { // .currency (fiat)
-                    let fiatAmount = self.amountTextField.text!.toNumber()
-                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-                    let btcAmount = fiatAmount / bitcoinValue.currentValue
-                    
-                    guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                        Log.info("589 Invalid values.")
-                        print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                        return
-                    }
-                    satoshisValue = btcAmount.inSatoshis()
-                }
-                
-                self.amountTextField.text = "\(satoshisValue)"
-                self.btcLabel.text = "Sats"
-                self.selectedCurrency = .satoshis
-                self.confirmLightningTransaction(lnurlinvoice: nil, sendVC: self, receiveVC: nil, lnurlNote: nil)
+                // Check lightning transaction.
+                self.checkSendLightning()
             }
-        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == .onchain {
-            // Hide QR scanner, show onchain.
-            self.hideScannerView(forView: .onchain)
-        } else if self.nextLabel.text == Language.getWord(withID: "manualinput"), self.onchainOrLightning == .lightning {
-            // Hide QR scanner, show lightning.
-            self.hideScannerView(forView: .lightning)
+        } else if self.nextLabel.text == Language.getWord(withID: "manualinput") {
+            // Hide QR scanner.
+            self.hideScanner()
         }
     }
     
     @IBAction func editButtonTapped(_ sender: UIButton) {
         // Slide back to leftmost scroll view.
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-            self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.scrollViewTrailing])
-            self.view.layoutIfNeeded()
+        self.slideFromConfirmToSend()
+    }
+    
+    func slideFromConfirmToSend() {
+        DispatchQueue.main.async {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+                self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.scrollViewTrailing])
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
+    func slideFromSendToConfirm() {
+        DispatchQueue.main.async {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.scrollViewTrailing])
+                self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.scrollViewTrailing])
+                self.view.layoutIfNeeded()
+            }
         }
     }
     
@@ -651,8 +587,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.onchainOrLightning = .lightning
             }
         }
-        self.hideScannerView(forView: self.onchainOrLightning)
-        self.setSendAllLabel(forView: self.onchainOrLightning)
+        self.hideScanner()
     }
     
     @IBAction func feeButtonTapped(_ sender: UIButton) {

@@ -476,7 +476,8 @@ class Language: NSObject {
             "signupvc2": "Please confirm the above statements in order to proceed.",
             "transfer1vc": "Please enter your IBAN and email in order to proceed.",
             "transfer15vc": "Please enter the verification code in order to proceed.",
-            "transfer15vc2": "Something went wrong verifying your code. Please restart the app and try again. (Error: <error>)"
+            "transfer15vc2": "Something went wrong verifying your code. Please restart the app and try again. (Error: <error>)",
+            "lnurlbetween": "Amount must be between <min> and <max> satoshis."
             
         ]
         
