@@ -217,7 +217,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
         } else {
             // Set "Send all" for lightning payments.
-            let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
+            let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats)".addSpaces())
         }
     }
@@ -233,25 +233,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             self.setInvoiceFromURI(invoice: self.pendingLightningURI!)
             self.pendingLightningURI = nil // Clear after handling
         }
-    }
-    
-    func formatBitcoinAmount(_ btcValue: Double) -> String {
-        // Debug: print the values to see what's happening
-        print("Debug - btcValue: \(btcValue)")
-        
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 8
-        formatter.maximumFractionDigits = 8
-        
-        // Handle very small amounts (less than 1 satoshi)
-        if btcValue < 0.00000001 {
-            return "0.00000000"
-        }
-        
-        let result = formatter.string(from: NSNumber(value: btcValue)) ?? "0.00000000"
-        print("Debug - formatted result: \(result)")
-        return result
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -726,6 +707,28 @@ extension String {
     
     func fixDecimals() -> String {
         return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
+    }
+}
+
+extension CGFloat {
+    
+    func formattedBitcoin() -> String {
+        // Debug: print the values to see what's happening
+        print("Debug - btcValue: \(self)")
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 8
+        formatter.maximumFractionDigits = 8
+        
+        // Handle very small amounts (less than 1 satoshi)
+        if self < 0.00000001 {
+            return "0.00000000"
+        }
+        
+        let result = formatter.string(from: NSNumber(value: self)) ?? "0.00000000"
+        print("Debug - formatted result: \(result)")
+        return result
     }
 }
 

@@ -135,8 +135,8 @@ extension PaymentDetails {
         thisTransaction.isLightning = true
         thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: thisTransaction.id)
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
-        if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
-            thisTransaction.channelId = actualChannels.first!.channelId
+        if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+            thisTransaction.channelId = activeChannel.channelId
         }
         
         
@@ -182,8 +182,8 @@ extension BittrTransaction {
         let transferFee = self.transferFee.toNumber().inSatoshis()
         thisTransaction.transferFee = CGFloat(transferFee)
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: self.txId)
-        if let actualChannels = coreVC?.bittrWallet.lightningChannels, actualChannels.first != nil {
-            thisTransaction.channelId = actualChannels.first!.channelId
+        if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+            thisTransaction.channelId = activeChannel.channelId
         }
         
         // Return new transaction.

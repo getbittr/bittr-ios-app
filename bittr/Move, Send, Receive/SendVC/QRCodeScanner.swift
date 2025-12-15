@@ -169,7 +169,7 @@ extension SendViewController {
                     if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningCode.replacingOccurrences(of: "lightning=", with: "")).getValue() {
                         if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                             let invoiceAmount = Int(invoiceAmountMilli)/1000
-                            if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000 {
+                            if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
                                 // We can't send this much in Lightning. Send onchain.
                                 self.handleScannedOrPastedString(bitcoinCode, scanned: scanned)
                                 return

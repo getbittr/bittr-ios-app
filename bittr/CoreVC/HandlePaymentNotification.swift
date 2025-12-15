@@ -335,7 +335,7 @@ extension CoreViewController {
                         let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
                         if sendVC ?? receiveVC != nil {
                             // SendVC or ReceiveVC if open. Handle transaction there.
-                            (sendVC ?? receiveVC)!.addNewPaymentToTable(thisPayment: paymentDetails, delegate: (sendVC ?? receiveVC)!)
+                            (sendVC ?? receiveVC)!.addNewPaymentToTable(thisPayment: paymentDetails)
                         } else {
                             // Handle transaction in HomeVC.
                             self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)

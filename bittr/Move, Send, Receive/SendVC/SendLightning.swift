@@ -166,11 +166,20 @@ extension UIViewController {
                     self.showAlert(
                         presentingController: self,
                         title: Language.getWord(withID: "sendtransaction"),
-                        message: Language.getWord(withID: "lightningconfirmation").replacingOccurrences(of: "<amount>", with: String(invoiceAmount)).replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency).replacingOccurrences(of: "<convertedamount>", with: convertedValue).replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)),
+                        message: Language.getWord(withID: "lightningconfirmation")
+                            .replacingOccurrences(of: "<amount>", with: String(invoiceAmount))
+                            .replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency)
+                            .replacingOccurrences(of: "<convertedamount>", with: convertedValue)
+                            .replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)),
                         buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")],
                         actions: [#selector(self.cancelLightningPayment), #selector(self.performLightningPayment)])
                 } else {
                     // Invalid invoice.
+                    Log.info("Invalid invoice: \(invoiceText)")
+                    SentrySDK.capture(message: "Invalid invoice.") { scope in
+                        scope.setExtra(value: "SendLightning row 180", key: "context")
+                    }
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         } else {
@@ -244,7 +253,7 @@ extension UIViewController {
         
         // Reset helper text to default
         if let sendVC = sendVC {
-            let lightningSats = sendVC.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0
+            let lightningSats = sendVC.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0
             sendVC.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats/1000)".addSpaces())
         }
         sendVC?.temporaryInvoiceNote = nil
@@ -268,24 +277,27 @@ extension UIViewController {
             if await self.isConnectedToPeer() {
                 // Is connected to peer.
                 
-                let invoiceText = sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText
+                // Get invoice, amount, and invoice type.
+                let invoiceText = (sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText).replacingOccurrences(of: " ", with: "")
+                let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
+                let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC!.temporaryIsZeroAmountInvoice
+                
+                // Reset variables.
                 sendVC?.temporaryInvoiceText = ""
                 receiveVC?.temporaryInvoiceText = ""
-                let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
                 sendVC?.temporaryInvoiceAmount = 0
                 receiveVC?.temporaryInvoiceAmount = 0
-                let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC!.temporaryIsZeroAmountInvoice
                 sendVC?.temporaryIsZeroAmountInvoice = false
                 receiveVC?.temporaryIsZeroAmountInvoice = false
                 
-                print("Invoice text: " + String(invoiceText.replacingOccurrences(of: " ", with: "")))
+                print("Invoice text: " + String(invoiceText))
                 
                 do {
                     if isZeroAmountInvoice {
-                        let _ = try await BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))), amount: invoiceAmount)
+                        let _ = try await BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
                         SentrySDK.metrics.increment(key: "lightning.payment.success")
                     } else {
-                        let _ = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: String(invoiceText.replacingOccurrences(of: " ", with: ""))))
+                        let _ = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
                         SentrySDK.metrics.increment(key: "lightning.payment.success")
                     }
                 } catch {
@@ -323,39 +335,9 @@ extension UIViewController {
                         sendVC?.nextLabel.alpha = 1
                         sendVC?.arrowIcon.alpha = 1
                         sendVC?.nextSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.tryPeerReconnection)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
                         SentrySDK.metrics.increment(key: "lightning.payment.failure.2")
                     }
-                }
-            }
-        }
-    }
-    
-    @objc func tryPeerReconnection() {
-        self.hideAlert()
-        
-        let sendVC = self as? SendViewController
-        let receiveVC = self as? ReceiveViewController
-        
-        sendVC?.nextLabel.alpha = 0
-        sendVC?.arrowIcon.alpha = 0
-        sendVC?.nextSpinner.startAnimating()
-        
-        Task {
-            if await BitcoinManager.shared.didEstablishPeerConnection() {
-                // Did reconnect.
-                Log.info("Did reconnect to peer.")
-                DispatchQueue.main.async {
-                    self.performLightningPayment()
-                }
-            } else {
-                // Can't reconnect.
-                Log.info("Could not reconnect to peer.")
-                DispatchQueue.main.async {
-                    sendVC?.nextLabel.alpha = 1
-                    sendVC?.arrowIcon.alpha = 1
-                    sendVC?.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.tryPeerReconnection)])
                 }
             }
         }
@@ -387,7 +369,7 @@ extension UIViewController {
         
         // Reset helper text to default
         if let sendVC = sendVC {
-            let lightningSats = sendVC.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0
+            let lightningSats = sendVC.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0
             sendVC.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats/1000)".addSpaces())
         }
     }
@@ -421,13 +403,13 @@ extension UIViewController {
         }
     }
     
-    func addNewPaymentToTable(thisPayment:PaymentDetails, delegate:Any?) {
+    func addNewPaymentToTable(thisPayment:PaymentDetails) {
         self.hideAlert()
         
         // Set view controllers.
-        let sendVC = delegate as? SendViewController
-        let receiveVC = delegate as? ReceiveViewController
-        let swapVC = delegate as? SwapViewController
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
+        let swapVC = self as? SwapViewController
         let coreVC = sendVC?.coreVC ?? receiveVC?.coreVC ?? swapVC?.coreVC
         
         // Update views.

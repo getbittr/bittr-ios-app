@@ -15,16 +15,27 @@ import Sentry
 extension SendViewController {
     
     func checkSendOnchain() {
-        // Slide from leftmost to rightmost scroll view.
         
         if self.checkInternetConnection() {
-            // Set invoice text from text field.
-            let invoiceText = self.toTextField.text
+            
+            // Check address.
+            let enteredAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if enteredAddress.isEmpty {
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
+            
+            // Check amount.
+            let enteredAmount = (self.amountTextField.text ?? "0").toNumber()
+            if enteredAmount == 0 {
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
             
             // Check for LNURL address.
-            if invoiceText != nil, invoiceText!.lowercased().contains("lnurl") {
+            if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail() {
                 // Handle LNURL.
-                self.confirmLightningTransaction(lnurlinvoice: invoiceText!, lnurlNote: nil)
+                self.confirmLightningTransaction(lnurlinvoice: enteredAddress, lnurlNote: nil)
                 return
             }
             
@@ -35,34 +46,25 @@ extension SendViewController {
             case .satoshis: divideBy = 100000000
             case .currency: divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
             }
-            self.onchainAmountInSatoshis = (self.amountTextField.text!.toNumber()/divideBy).inSatoshis()
+            self.onchainAmountInSatoshis = (enteredAmount/divideBy).inSatoshis()
             
-            if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" || self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0  {
-                
-                // Fields are left empty or the amount is set to zero.
-                var errorMessage = ""
-                if invoiceText == nil || invoiceText?.trimmingCharacters(in: .whitespaces) == "" {
-                    errorMessage = Language.getWord(withID: "enteraddress")
-                } else if self.amountTextField.text == nil || self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) == "" || self.onchainAmountInSatoshis == 0 {
-                    errorMessage = Language.getWord(withID: "enteramount")
-                }
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                
-            } else if self.onchainAmountInSatoshis > self.coreVC!.bittrWallet.satoshisOnchain {
-                // Check if we have sufficient Lightning balance for a swap
-                let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000
+            // Check balance.
+            if self.onchainAmountInSatoshis > self.coreVC!.bittrWallet.satoshisOnchain {
+                // Insufficient onchain balance.
+                // Check if we have sufficient Lightning balance for a swap.
+                let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
                 
                 Log.info("DEBUG - Onchain payment validation:")
                 print("  - btcAmount: \(self.coreVC!.bittrWallet.satoshisOnchain.inBTC())")
                 print("  - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
-                print("  - maximumSendableLNSats: \((self.coreVC?.bittrWallet.lightningChannels.first?.outboundCapacityMsat ?? 0)/1000)")
+                print("  - maximumSendableLNSats: \((self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)")
                 print("  - satoshisLightning: \(self.coreVC?.bittrWallet.satoshisLightning ?? -1)")
                 print("  - availableLightningBalance: \(availableLightningBalance)")
                 print("  - Is Lightning balance sufficient? \(availableLightningBalance >= self.onchainAmountInSatoshis)")
                 
                 if availableLightningBalance >= self.onchainAmountInSatoshis {
                     Log.info("DEBUG - Offering Lightning swap option")
-                    print("DEBUG - Setting pendingOnchainAddress for swap: \(invoiceText ?? "nil")")
+                    print("DEBUG - Setting pendingOnchainAddress for swap: \(enteredAddress)")
                     print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
                     // Suggest swap from Lightning to onchain
                     self.showAlert(
@@ -73,7 +75,7 @@ extension SendViewController {
                         actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                     )
                     // Store the address for the swap
-                    self.pendingOnchainAddress = invoiceText!
+                    self.pendingOnchainAddress = enteredAddress
                     print("DEBUG - pendingOnchainAddress is now: \(self.pendingOnchainAddress)")
                 } else {
                     Log.info("DEBUG - Lightning balance insufficient, showing regular insufficient funds message")
@@ -81,6 +83,8 @@ extension SendViewController {
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
+                // Sufficient onchain balance.
+                
                 // Start button animation.
                 self.nextLabel.alpha = 0
                 self.arrowIcon.alpha = 0
@@ -88,14 +92,12 @@ extension SendViewController {
                 
                 // Set confirmation labels.
                 let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-                self.confirmAddressLabel.text = invoiceText
-                self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInSatoshis.inBTC())) BTC"
+                self.confirmAddressLabel.text = enteredAddress
+                self.confirmAmountLabel.text = self.onchainAmountInSatoshis.inBTC().formattedBitcoin() + " BTC"
                 self.confirmEuroLabel.text = "\(Int(self.onchainAmountInSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
                 
                 // Create transaction.
                 if let actualWallet = BitcoinManager.shared.getWallet() {
-                    let actualAddress:String = invoiceText!
-                    
                     Task {
                         do {
                             // Get estimated fees.
@@ -105,8 +107,7 @@ extension SendViewController {
                             self.feeHigh = Float(Int(feeEstimates[1]!*10))/10
                             
                             // Get transaction size.
-                            let size = try self.getSize(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet)
-                            print("High: \(self.feeHigh*Float(size)), Medium: \(self.feeMedium*Float(size)), Low: \(self.feeLow*Float(size))")
+                            let size = try self.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet)
                             
                             // Calculate lowest sats.
                             let lowestSats:Float = self.feeLow*Float(size)
@@ -171,6 +172,15 @@ extension SendViewController {
                                 }
                             }
                         }
+                    }
+                } else {
+                    // Wallet unavailable.
+                    self.nextLabel.alpha = 1
+                    self.arrowIcon.alpha = 1
+                    self.nextSpinner.stopAnimating()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(message: "Wallet unavailable") { scope in
+                        scope.setExtra(value: "SendOnchain row 186", key: "context")
                     }
                 }
             }
@@ -242,7 +252,7 @@ extension SendViewController {
     func checkFeeAvailability(feeInSats:Int, actualAmount:Int, availableBalance:Int) -> Bool {
         
         if feeInSats + actualAmount > availableBalance {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: "\(Language.getWord(withID: "youravailablebalance")) (\(availableBalance) sats) \(Language.getWord(withID: "isinsufficient")).", buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(availableBalance) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
             return false
         } else {
             return true
@@ -252,12 +262,19 @@ extension SendViewController {
     @objc func handleAmountChange() {
         self.hideAlert()
         
-        self.amountTextField.text = "\((self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats).inBTC())".replacingOccurrences(of: "00000000001", with: "").replacingOccurrences(of: "99999999999", with: "").replacingOccurrences(of: "0000000001", with: "").replacingOccurrences(of: "9999999999", with: "")
+        // New amount.
+        self.onchainAmountInSatoshis = self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats
         
+        // Update amount text field.
+        self.amountTextField.text = self.onchainAmountInSatoshis.inBTC().formattedBitcoin()
+        self.selectBTCCurrency()
+        
+        // Update confirmation labels.
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        self.confirmAmountLabel.text = "\(formatBitcoinAmount(self.onchainAmountInSatoshis.inBTC())) BTC"
+        self.confirmAmountLabel.text = self.onchainAmountInSatoshis.inBTC().formattedBitcoin() + " BTC"
         self.confirmEuroLabel.text = "\(Int(self.onchainAmountInSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
         
+        // Switch fee selection.
         self.switchFeeSelection(tappedFee:self.selectedFee)
     }
     
@@ -283,6 +300,7 @@ extension SendViewController {
         case .high: feeSatoshis = (self.satsFast.text ?? "no").replacingOccurrences(of: " sats", with: "")
         }
         
+        // Double-check transaction details.
         self.showAlert(
             presentingController: self,
             title: Language.getWord(withID: "sendtransaction"),

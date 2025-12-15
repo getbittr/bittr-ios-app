@@ -118,8 +118,7 @@ class Language: NSObject {
             "cannotproceed": "We couldn't proceed to the next step",
             "highfeerate": "High fee rate",
             "highfeerate2": "The fee you've selected costs more than 10 % of the bitcoin you're sending. Make sure this is as intended.",
-            "youravailablebalance": "Your available balance",
-            "isinsufficient": "is insufficient to cover this fee",
+            "insufficientonchainbalance": "Your available balance (<fee>) is insufficient to cover this fee.",
             "updateamount": "Update amount",
             "close": "Close",
             "lowfee": "Low fee",
@@ -477,7 +476,8 @@ class Language: NSObject {
             "transfer1vc": "Please enter your IBAN and email in order to proceed.",
             "transfer15vc": "Please enter the verification code in order to proceed.",
             "transfer15vc2": "Something went wrong verifying your code. Please restart the app and try again. (Error: <error>)",
-            "lnurlbetween": "Amount must be between <min> and <max> satoshis."
+            "lnurlbetween": "Amount must be between <min> and <max> satoshis.",
+            "invalidinvoice": "The following is not a valid invoice.\n\n<invoice>"
             
         ]
         
