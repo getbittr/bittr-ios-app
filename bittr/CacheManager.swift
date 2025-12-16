@@ -20,6 +20,7 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lastaddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
+        defaults.removeObject(forKey: "lastFullSync")
         self.resetFailedPinAttempts()
     }
     
@@ -1285,6 +1286,25 @@ class CacheManager: NSObject {
             return completedLessons
         } else {
             return [String]()
+        }
+    }
+    
+    // MARK: - Full sync
+    
+    static func newFullSync() {
+        let currentDate = Date()
+        let dateFormatter = DateFormatter()
+        let dateString = dateFormatter.string(from: currentDate)
+        UserDefaults.standard.set(dateString, forKey: "lastFullSync")
+    }
+    
+    static func lastFullSync() -> Date? {
+        if let dateString = UserDefaults.standard.value(forKey: "lastFullSync") as? String {
+            let dateFormatter = DateFormatter()
+            let syncDate = dateFormatter.date(from: dateString)
+            return syncDate
+        } else {
+            return nil
         }
     }
     

@@ -250,15 +250,6 @@ class BitcoinManager {
         Log.info("Will sync wallet.")
         // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
         
-        // Build sync request.
-        var syncRequest:FullScanRequest?
-        do {
-            syncRequest = try self.bdkWallet!.startFullScan().build()
-        } catch {
-            self.handleError(error: error, row: 212, stopLightning: true)
-            return
-        }
-        
         // Check Electrum Client.
         if self.electrumClient == nil {
             do {
@@ -269,19 +260,59 @@ class BitcoinManager {
             }
         }
         
-        // Run full scan.
+        // Perform a full scan or a sync with BDK.
         var update:Update?
-        do {
-            update = try self.electrumClient!.fullScan(
-                request: syncRequest!,
-                stopGap: UInt64(25),
-                batchSize: UInt64(25),
-                fetchPrevTxouts: true
-            )
-        } catch {
-            self.handleError(error: error, row: 236, stopLightning: true)
-            return
-        }
+        /*if CacheManager.lastFullSync() != nil {
+            Log.info("Will perform a light sync.")
+            
+            // Build request.
+            var syncRequest:SyncRequest?
+            do {
+                syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
+            } catch {
+                self.handleError(error: error, row: 283, stopLightning: true)
+                return
+            }
+            
+            // Run light sync.
+            do {
+                update = try self.electrumClient!.sync(
+                    request: syncRequest!,
+                    batchSize: UInt64(25),
+                    fetchPrevTxouts: true
+                )
+            } catch {
+                self.handleError(error: error, row: 281, stopLightning: true)
+                return
+            }
+        } else {*/
+            Log.info("Will perform a full scan.")
+            
+            // Build request.
+            var syncRequest:FullScanRequest?
+            do {
+                syncRequest = try self.bdkWallet!.startFullScan().build()
+            } catch {
+                self.handleError(error: error, row: 212, stopLightning: true)
+                return
+            }
+            
+            // Run full scan.
+            do {
+                update = try self.electrumClient!.fullScan(
+                    request: syncRequest!,
+                    stopGap: UInt64(25),
+                    batchSize: UInt64(25),
+                    fetchPrevTxouts: true
+                )
+            } catch {
+                self.handleError(error: error, row: 236, stopLightning: true)
+                return
+            }
+            
+            // Update cache.
+            //CacheManager.newFullSync()
+        //}
         
         // Apply update to BDK wallet.
         do {
@@ -291,9 +322,9 @@ class BitcoinManager {
             return
         }
         
-        // Check wallet persist.
+        // Persist wallet changes.
         do {
-            try self.bdkWallet!.persist(connection: self.connection!)
+            let _ = try self.bdkWallet!.persist(connection: self.connection!)
         } catch {
             self.handleError(error: error, row: 250, stopLightning: false)
         }
@@ -617,6 +648,9 @@ class BitcoinManager {
     
     func walletReset() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            // Remove last full sync from cache.
+            UserDefaults.standard.removeObject(forKey: "lastFullSync")
+            // Restart BDK.
             self.startBDK(coreViewController: nil)
         }
     }
