@@ -410,22 +410,17 @@ class CacheManager: NSObject {
     }
     
     
-    static func getLightningTransactions() -> [Transaction]? {
+    static func getLightningTransactions() -> [Transaction] {
         
-        let envKey = EnvironmentConfig.cacheKey(for: "lightning")
-        
-        let defaults = UserDefaults.standard
-        let cachedData = defaults.value(forKey: envKey) as? NSDictionary
-        
-        if let actualExistingCache = cachedData {
+        if let cachedData = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "lightning")) as? NSDictionary {
             var allTransactions = [NSMutableDictionary]()
-            for (transactionId, transactionData) in actualExistingCache {
+            for (transactionId, transactionData) in cachedData {
                 allTransactions.append((transactionData as! NSDictionary).mutableCopy() as! NSMutableDictionary)
             }
             let parsedTransactions = self.getTransactions(transactionsDict: allTransactions)
             return parsedTransactions
         } else {
-            return nil
+            return [Transaction]()
         }
     }
     

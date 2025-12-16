@@ -15,7 +15,7 @@ extension HomeViewController {
     func loadWalletData() {
         
         // Ensure CoreVC availability.
-        if self.coreVC == nil {
+        guard self.coreVC != nil else {
             self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
@@ -32,70 +32,37 @@ extension HomeViewController {
             }
         }
         
-        // Collect transaction IDs to be checked with Bittr API.
-        var txIds = [String]()
-        
-        // Set onchain transactions.
-        var receivedTransactions = [CanonicalTx]()
-        if let actualReceivedTransactions = self.coreVC!.bittrWallet.transactionsOnchain {
-            receivedTransactions = actualReceivedTransactions
-            // Add all onchain transaction IDs.
-            for eachTransaction in actualReceivedTransactions {
-                txIds += [eachTransaction.transaction.computeTxid()]
-            }
-        }
-        
-        // Add cached Lightning payments to array.
-        self.newTransactions.removeAll()
-        if let cachedLightningTransactions = CacheManager.getLightningTransactions() {
-            self.newTransactions += cachedLightningTransactions
-            for eachTransaction in self.newTransactions {
-                self.cachedLightningIds += [eachTransaction.id]
-                if eachTransaction.isSwap {
-                    self.cachedLightningIds += [eachTransaction.lightningID]
-                    self.cachedLightningIds += [eachTransaction.onchainID]
-                    
-                    for (index, eachNewTransaction) in self.newTransactions.enumerated().reversed() {
-                        if eachNewTransaction.id == eachTransaction.lightningID || eachNewTransaction.id == eachTransaction.onchainID {
-                            self.newTransactions.remove(at: index)
-                        }
-                    }
-                }
-            }
-        }
-            
-        // Add all Lightning payment IDs that haven't yet been cached.
-        var receivedPayments = [PaymentDetails]()
-        if let actualReceivedPayments = self.coreVC!.bittrWallet.transactionsLightning {
-            receivedPayments = actualReceivedPayments
-            // Add all lightning payment IDs.
-            for eachPayment in actualReceivedPayments {
-                if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
-                    txIds += [eachPayment.kind.preimageAsString ?? eachPayment.id]
-                }
-            }
-        }
-            
-        // Add funding transaction ID.
-        if let cachedFundingTxo = CacheManager.getTxoID() {
-            txIds += [cachedFundingTxo]
-        }
-            
         Task {
             // Check whether transactions were Bittr purchases.
-            await self.fetchTransactionData(txIds:txIds, sendAll: false)
+            await self.getBittrTransactionDetails(sendAll: false)
             
             DispatchQueue.main.async {
-                self.updateTransactionHistory(receivedTransactions: receivedTransactions, receivedPayments: receivedPayments)
+                self.updateTransactionHistory()
             }
         }
     }
     
     
-    func updateTransactionHistory(receivedTransactions:[CanonicalTx], receivedPayments:[PaymentDetails]) {
+    func updateTransactionHistory() {
+        
+        // Add cached Lightning payments to array.
+        self.newTransactions = CacheManager.getLightningTransactions()
+        for eachTransaction in self.newTransactions {
+            self.cachedLightningIds += [eachTransaction.id]
+            if eachTransaction.isSwap {
+                self.cachedLightningIds += [eachTransaction.lightningID]
+                self.cachedLightningIds += [eachTransaction.onchainID]
+                
+                for (index, eachNewTransaction) in self.newTransactions.enumerated().reversed() {
+                    if eachNewTransaction.id == eachTransaction.lightningID || eachNewTransaction.id == eachTransaction.onchainID {
+                        self.newTransactions.remove(at: index)
+                    }
+                }
+            }
+        }
         
         // Create onchain transaction entities.
-        for eachTransaction in receivedTransactions {
+        for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain {
             if !self.cachedLightningIds.contains(eachTransaction.transaction.computeTxid()) {
                 // Onchain transaction isn't part of a previously cached swap transaction.
                 let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
@@ -104,7 +71,7 @@ extension HomeViewController {
         }
         
         // Create lightning transaction entities.
-        for eachPayment in receivedPayments {
+        for eachPayment in self.coreVC!.bittrWallet.transactionsLightning {
             // Add succeeded new payments to table.
             if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
                 let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
@@ -142,7 +109,7 @@ extension HomeViewController {
     }
     
     
-    func fetchTransactionData(txIds:[String], sendAll:Bool) async -> Bool {
+    func getBittrTransactionDetails(sendAll:Bool) async -> Bool {
         
         // Check if transactions were Bittr purchases with the Bittr API.
         
@@ -158,97 +125,116 @@ extension HomeViewController {
             return false
         }
         
+        // Create array of transaction IDs to send to Bittr.
+        var sendableTxIDs = [String]()
+        if sendAll {
+            // Send all transaction IDs to Bittr again.
+            for eachTransaction in self.visibleTransactions {
+                sendableTxIDs += [eachTransaction.id]
+            }
+        } else {
+            // Only send new transaction IDs to Bittr.
+            
+            // Add all onchain transaction IDs.
+            for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain {
+                let txID = eachTransaction.transaction.computeTxid()
+                if !CacheManager.getSentToBittr().contains(txID) {
+                    sendableTxIDs += [txID]
+                }
+            }
+            
+            // Add all lightning payment IDs.
+            for eachPayment in self.coreVC!.bittrWallet.transactionsLightning {
+                let txID = eachPayment.kind.preimageAsString ?? eachPayment.id
+                if eachPayment.status == .succeeded, eachPayment.direction == .inbound, !CacheManager.getSentToBittr().contains(txID) {
+                    sendableTxIDs += [txID]
+                }
+            }
+            
+            // Add funding transaction ID.
+            if let cachedFundingTxID = CacheManager.getTxoID(), !CacheManager.getSentToBittr().contains(cachedFundingTxID) {
+                sendableTxIDs += [cachedFundingTxID]
+            }
+        }
+        
         // Add previously cached transactions to Bittr transactions array.
         self.bittrTransactions.removeAllObjects()
-        for eachTransaction in self.lastCachedTransactions {
+        for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() {
             if eachTransaction.isBittr {
                 self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
             }
         }
         
-        // Create array of transaction IDs to send to Bittr.
-        var newTxIds = [String]()
-        if sendAll {
-            // Send all transaction IDs to Bittr again.
-            for eachTransaction in self.visibleTransactions {
-                newTxIds += [eachTransaction.id]
-            }
-        } else {
-            // Only send new transaction IDs to Bittr.
-            for eachTxId in txIds {
-                if !CacheManager.getSentToBittr().contains(eachTxId) {
-                    newTxIds += [eachTxId]
-                }
-            }
-        }
-        
-        if newTxIds.count == 0 {
+        // Check if any IDs need to be sent.
+        if sendableTxIDs.count == 0 {
             Log.info("There are no new TxIds being sent to Bittr.")
             return false
-        } else {
-            Log.info("Will send \(newTxIds.count) TxIds to Bittr.")
-            do {
-                let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: newTxIds, depositCodes: depositCodes)
-                Log.info("Bittr transactions: \(bittrApiTransactions.count)")
-                
-                CacheManager.updateSentToBittr(txids: newTxIds)
-                
-                if bittrApiTransactions.count == 0 {
-                    // There are no Bittr transactions.
-                    return false
-                } else {
-                    // There are Bittr transactions.
-                    var newTransactionsWereFound = false
+        }
+        
+        Log.info("Will send \(sendableTxIDs.count) TxIds to Bittr.")
+        do {
+            let bittrApiTransactions = try await BittrService.shared.fetchBittrTransactions(txIds: sendableTxIDs, depositCodes: depositCodes)
+            Log.info("Bittr transactions: \(bittrApiTransactions.count)")
+            
+            CacheManager.updateSentToBittr(txids: sendableTxIDs)
+            
+            if bittrApiTransactions.count == 0 {
+                // There are no Bittr transactions.
+                return false
+            }
+            
+            // There are Bittr transactions.
+            // Check if any information is new.
+            var newTransactionsWereFound = false
+            
+            for eachTransaction in bittrApiTransactions {
+                if let cachedFundingTxID = CacheManager.getTxoID(), eachTransaction.txId == cachedFundingTxID {
+                    // This is a channel funding transaction.
+                    let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
                     
-                    for eachTransaction in bittrApiTransactions {
-                        if eachTransaction.txId == CacheManager.getTxoID() ?? "" {
-                            // This is the funding Txo.
-                            let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
-                            
-                            newTransactionsWereFound = true
-                            self.newTransactions += [thisTransaction]
-                            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
-                        } else {
-                            self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee], forKey: eachTransaction.txId)
-                            
-                            if sendAll {
-                                // Check transactions that were previously not recognized.
-                                for eachExistingTransaction in self.visibleTransactions {
-                                    if eachExistingTransaction.id == eachTransaction.txId {
-                                        newTransactionsWereFound = true
-                                        eachExistingTransaction.isBittr = true
-                                        eachExistingTransaction.purchaseAmount = eachTransaction.purchaseAmount.toNumber()
-                                        eachExistingTransaction.currency = eachTransaction.currency
-                                        let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
-                                        eachExistingTransaction.transferFee = CGFloat(transferFee)
-                                        if eachExistingTransaction.isLightning {
-                                            CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
-                                        }
-                                    }
+                    newTransactionsWereFound = true
+                    self.newTransactions += [thisTransaction]
+                    CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                } else {
+                    // This is not a channel funding transaction.
+                    self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee], forKey: eachTransaction.txId)
+                    
+                    if sendAll {
+                        // Check transactions that were previously not recognized.
+                        for eachExistingTransaction in self.visibleTransactions {
+                            if eachExistingTransaction.id == eachTransaction.txId {
+                                newTransactionsWereFound = true
+                                eachExistingTransaction.isBittr = true
+                                eachExistingTransaction.purchaseAmount = eachTransaction.purchaseAmount.toNumber()
+                                eachExistingTransaction.currency = eachTransaction.currency
+                                let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
+                                eachExistingTransaction.transferFee = CGFloat(transferFee)
+                                if eachExistingTransaction.isLightning {
+                                    CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
                                 }
                             }
                         }
                     }
-                    
-                    if sendAll {
-                        if newTransactionsWereFound {
-                            CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
-                            self.homeTableView.reloadData()
-                        }
-                        return newTransactionsWereFound
-                    } else {
-                        return true
-                    }
                 }
-            } catch {
-                Log.info("Bittr error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LoadWalletData row 266", key: "context")
-                    }
-                }
-                return false
             }
+            
+            if sendAll {
+                if newTransactionsWereFound {
+                    CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
+                    self.homeTableView.reloadData()
+                }
+                return newTransactionsWereFound
+            } else {
+                return true
+            }
+        } catch {
+            Log.info("Bittr error: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "LoadWalletData row 266", key: "context")
+                }
+            }
+            return false
         }
     }
     

@@ -57,10 +57,9 @@ extension HomeViewController {
             
             self.visibleTransactions = cachedTransactions
             self.newTransactions = cachedTransactions
-            self.lastCachedTransactions = cachedTransactions
             
             self.bittrTransactions.removeAllObjects()
-            for eachTransaction in self.lastCachedTransactions {
+            for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
                     self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
                 }

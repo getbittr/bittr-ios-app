@@ -70,7 +70,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Transactions
     var visibleTransactions = [Transaction]()
     var newTransactions = [Transaction]()
-    var lastCachedTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
     var bittrTransactions = NSMutableDictionary() // Key is the txID, Value is purchaseAmount and currency.
     var cachedLightningIds = [String]()
@@ -361,11 +360,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         if paymentDetails != nil {
-            if self.coreVC!.bittrWallet.transactionsLightning != nil {
-                self.coreVC!.bittrWallet.transactionsLightning! += [paymentDetails!]
-            } else {
-                self.coreVC!.bittrWallet.transactionsLightning = [paymentDetails!]
-            }
+            self.coreVC!.bittrWallet.transactionsLightning += [paymentDetails!]
         }
         
         // Update balance label.

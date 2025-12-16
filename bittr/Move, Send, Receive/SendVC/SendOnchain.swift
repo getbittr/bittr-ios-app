@@ -388,8 +388,8 @@ extension SendViewController {
         self.hideAlert()
         
         BitcoinManager.shared.lightSync() { success in
-            if success, self.coreVC?.bittrWallet.transactionsOnchain != nil {
-                for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain! {
+            if success {
+                for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain {
                     if eachTransaction.transaction.computeTxid() == self.newTxId {
                         self.completedTransaction = eachTransaction.createTransaction(coreVC: self.coreVC!, bittrTransactions: nil)
                         self.performSegue(withIdentifier: "SendToTransaction", sender: self)

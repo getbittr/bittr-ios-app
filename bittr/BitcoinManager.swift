@@ -605,7 +605,7 @@ class BitcoinManager {
                 try self.bdkWallet!.applyUpdate(update: update)
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) || (self.coreVC!.bittrWallet.transactionsOnchain?.count ?? 0) != self.bdkWallet!.transactions().count {
+                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) || self.coreVC!.bittrWallet.transactionsOnchain.count != self.bdkWallet!.transactions().count {
                     
                     self.coreVC!.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
                     self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())

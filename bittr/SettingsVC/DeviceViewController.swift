@@ -256,7 +256,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         self.transactionsLabel.alpha = 0
         self.transactionsSpinner.startAnimating()
         Task {
-            let didReceiveNewInformation = await self.homeVC!.fetchTransactionData(txIds: [String](), sendAll: true)
+            let didReceiveNewInformation = await self.homeVC!.getBittrTransactionDetails(sendAll: true)
             DispatchQueue.main.async {
                 self.transactionsLabel.alpha = 1
                 self.transactionsSpinner.stopAnimating()
