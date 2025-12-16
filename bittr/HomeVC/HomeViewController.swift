@@ -292,8 +292,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    @objc func resetWallet() {
-        
+    func resetWallet() {
         Log.info("Reset wallet.")
         
         self.visibleTransactions.removeAll()
@@ -317,17 +316,23 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.headerProblemImage.alpha = 0
         self.couldNotFetchConversion = false
         self.didFetchConversion = false
-        
-        self.coreVC?.checkmarkSyncing.alpha = 0
-        self.coreVC?.spinnerSyncing.startAnimating()
-        self.coreVC?.checkmarkFinal.alpha = 0
+        self.coreVC?.walletHasSynced = false
         
         if self.coreVC!.walletSync != nil {
             self.coreVC!.walletSync!.stop()
             self.coreVC!.walletSync = nil
         }
         
+        // Perform reset.
         BitcoinManager.shared.walletReset()
+        
+        // Show syncing status.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.coreVC?.checkmarkSyncing.alpha = 0
+            self.coreVC?.spinnerSyncing.startAnimating()
+            self.coreVC?.checkmarkFinal.alpha = 0
+            self.coreVC?.showSyncView()
+        }
     }
     
     func addLightningTransaction(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
