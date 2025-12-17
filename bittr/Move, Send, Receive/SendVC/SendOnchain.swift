@@ -389,8 +389,8 @@ extension SendViewController {
         
         BitcoinManager.shared.lightSync() { success in
             if success {
-                for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain {
-                    if eachTransaction.transaction.computeTxid() == self.newTxId {
+                for eachTransaction in self.coreVC!.bittrWallet.allTransactions {
+                    if eachTransaction.kind.transactionID == self.newTxId {
                         self.completedTransaction = eachTransaction.createTransaction(coreVC: self.coreVC!, bittrTransactions: nil)
                         self.performSegue(withIdentifier: "SendToTransaction", sender: self)
                     }

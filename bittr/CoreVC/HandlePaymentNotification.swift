@@ -159,8 +159,8 @@ extension CoreViewController {
                     // Cache payment details.
                     if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                         let newTimestamp = Int(Date().timeIntervalSince1970)
-                        CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
-                        CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: notificationId)
+                        CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
+                        CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: notificationId)
                         Log.info("Did cache invoice data.")
                     }
                     
@@ -267,7 +267,7 @@ extension CoreViewController {
                     
                     if self.varSpecialData != nil {
                         // This is an incoming Bittr payout.
-                        self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
+                        self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.transactionID ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
                         // This is a normal incoming payment.
                         let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)

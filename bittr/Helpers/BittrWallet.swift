@@ -19,8 +19,7 @@ class BittrWallet: NSObject {
     var lightningChannels = [ChannelDetails]()
     
     // Transactions
-    var transactionsOnchain = [CanonicalTx]()
-    var transactionsLightning = [PaymentDetails]()
+    var allTransactions = [PaymentDetails]()
     
     // Blockchain
     var currentHeight:Int?

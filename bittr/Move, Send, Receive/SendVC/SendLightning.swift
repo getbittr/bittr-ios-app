@@ -420,7 +420,7 @@ extension UIViewController {
         
         // Cache invoice note.
         if let temporaryInvoiceNote = (sendVC?.temporaryInvoiceNote ?? receiveVC?.temporaryInvoiceNote) {
-            CacheManager.storeTransactionNote(txid: thisPayment.kind.preimageAsString ?? thisPayment.id, note: temporaryInvoiceNote)
+            CacheManager.storeTransactionNote(txid: thisPayment.kind.transactionID ?? thisPayment.id, note: temporaryInvoiceNote)
             sendVC?.temporaryInvoiceNote = nil
             receiveVC?.temporaryInvoiceNote = nil
         }

@@ -20,7 +20,10 @@ extension HomeViewController {
             return
         }
         
-        // Calculate lightning balance by adding up the values of each channel.
+        // Get the onchain balance.
+        self.coreVC?.bittrWallet.satoshisOnchain = Int(BitcoinManager.shared.ldkNode!.listBalances().totalOnchainBalanceSats)
+        
+        // Get the lightning balance, by adding up the values of each channel.
         self.coreVC!.bittrWallet.satoshisLightning = 0
         if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
             if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
@@ -61,29 +64,24 @@ extension HomeViewController {
             }
         }
         
-        // Create onchain transaction entities.
-        for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain {
-            if !self.cachedLightningIds.contains(eachTransaction.transaction.computeTxid()) {
-                // Onchain transaction isn't part of a previously cached swap transaction.
-                let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
-                self.newTransactions += [thisTransaction]
-            }
-        }
-        
-        // Create lightning transaction entities.
-        for eachPayment in self.coreVC!.bittrWallet.transactionsLightning {
+        // Create new transaction entities.
+        for eachPayment in self.coreVC!.bittrWallet.allTransactions {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.preimageAsString ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
+                
+                // Create transaction.
                 let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
-                if eachPayment.status == .succeeded {
+                
+                // Cache succeeded Lightning payments.
+                if thisTransaction.isLightning, eachPayment.status == .succeeded {
                     CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                 }
             }
             
             // Make sure there are no duplicate transactions.
-            if eachPayment.kind.preimageAsString != nil {
-                if self.cachedLightningIds.contains(eachPayment.kind.preimageAsString!), self.cachedLightningIds.contains(eachPayment.id) {
+            if eachPayment.kind.transactionID != nil {
+                if self.cachedLightningIds.contains(eachPayment.kind.transactionID!), self.cachedLightningIds.contains(eachPayment.id) {
                     for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
                         if eachTransaction.id == eachPayment.id {
                             self.newTransactions.remove(at: index)
@@ -91,6 +89,7 @@ extension HomeViewController {
                     }
                 }
             }
+            
         }
         
         // Check for matching swap transactions.
@@ -135,17 +134,9 @@ extension HomeViewController {
         } else {
             // Only send new transaction IDs to Bittr.
             
-            // Add all onchain transaction IDs.
-            for eachTransaction in self.coreVC!.bittrWallet.transactionsOnchain {
-                let txID = eachTransaction.transaction.computeTxid()
-                if !CacheManager.getSentToBittr().contains(txID) {
-                    sendableTxIDs += [txID]
-                }
-            }
-            
             // Add all lightning payment IDs.
-            for eachPayment in self.coreVC!.bittrWallet.transactionsLightning {
-                let txID = eachPayment.kind.preimageAsString ?? eachPayment.id
+            for eachPayment in self.coreVC!.bittrWallet.allTransactions {
+                let txID = eachPayment.kind.transactionID ?? eachPayment.id
                 if eachPayment.status == .succeeded, eachPayment.direction == .inbound, !CacheManager.getSentToBittr().contains(txID) {
                     sendableTxIDs += [txID]
                 }
@@ -623,10 +614,10 @@ extension UILabel{
 }
 
 extension PaymentKind {
-    var preimageAsString: String? {
+    var transactionID: String? {
         switch self {
-        case .onchain:
-            return nil
+        case .onchain(let txID, _):
+            return txID
         case .bolt11(_, let preimage, _):
             return preimage
         case .bolt11Jit(_, let preimage, _, _, _):

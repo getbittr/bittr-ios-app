@@ -70,8 +70,8 @@ class SwapManager: NSObject {
             DispatchQueue.main.async {
                 if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                     let newTimestamp = Int(Date().timeIntervalSince1970)
-                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, timestamp: newTimestamp)
-                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.preimageAsString ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
+                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
                     Log.info("Did cache invoice data.")
                 }
                 

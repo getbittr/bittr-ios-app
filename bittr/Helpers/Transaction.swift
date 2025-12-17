@@ -57,66 +57,6 @@ enum SwapStatus {
     case failed
 }
 
-extension CanonicalTx {
-    
-    func createTransaction(coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
-        
-        // Create transaction object.
-        let thisTransaction = Transaction()
-        
-        thisTransaction.id = self.transaction.computeTxid()
-        thisTransaction.isLightning = false
-        thisTransaction.received = Int(BitcoinManager.shared.getWallet()!.sentAndReceived(tx: self.transaction).received.toSat())
-        thisTransaction.sent = Int(BitcoinManager.shared.getWallet()!.sentAndReceived(tx: self.transaction).sent.toSat())
-        
-        // Fees
-        do {
-            thisTransaction.fee = Int(try BitcoinManager.shared.getWallet()!.calculateFee(tx: self.transaction).toSat())
-        } catch {
-            Log.info("810 Could not calculate fee.")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "Transaction row 71", key: "context")
-                }
-            }
-        }
-        
-        // Height
-        switch self.chainPosition {
-        case .unconfirmed(timestamp: let timestamp):
-            thisTransaction.timestamp = Int(timestamp ?? UInt64(Date().timeIntervalSince1970))
-            thisTransaction.height = 0
-            thisTransaction.confirmations = 0
-        case .confirmed(confirmationBlockTime: let confirmationBlockTime, transitively: _):
-            thisTransaction.timestamp = Int(confirmationBlockTime.confirmationTime)
-            thisTransaction.height = Int(confirmationBlockTime.blockId.height)
-            if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
-                thisTransaction.confirmations = (actualCurrentHeight - thisTransaction.height) + 1
-            }
-        }
-        
-        // Description and note
-        thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
-        if CacheManager.getInvoiceDescription(preimage: thisTransaction.id) != "" {
-            thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
-        }
-        
-        // Check if transaction is Bittr.
-        if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id) {
-            thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).toNumber()
-            thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
-            if let transferFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? String {
-                let transferFee = transferFeeString.toNumber().inSatoshis()
-                thisTransaction.transferFee = CGFloat(transferFee)
-            }
-        }
-        
-        // Return new transaction.
-        return thisTransaction
-    }
-}
-
 extension PaymentDetails {
     
     func createTransaction(coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
@@ -124,21 +64,54 @@ extension PaymentDetails {
         // Create transaction object.
         let thisTransaction = Transaction()
         
-        thisTransaction.id = self.kind.preimageAsString ?? self.id
-        thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
+        // ID.
+        thisTransaction.id = self.kind.transactionID ?? self.id
+        
+        // Kind, status, and timestamp.
+        switch self.kind {
+        case .onchain(txid: _, status: let status):
+            // Onchain transaction.
+            thisTransaction.isLightning = false
+            
+            // Set status and timestamp.
+            switch status {
+            case .confirmed(blockHash: _, height: let height, timestamp: let timestamp):
+                thisTransaction.timestamp = Int(timestamp)
+                thisTransaction.height = Int(height)
+                if let currentHeight = coreVC?.bittrWallet.currentHeight {
+                    thisTransaction.confirmations = currentHeight - Int(height) + 1
+                }
+            case .unconfirmed:
+                thisTransaction.timestamp = Int(self.latestUpdateTimestamp)
+                thisTransaction.height = 0
+                thisTransaction.confirmations = 0
+            }
+        default:
+            // Lightning payment.
+            thisTransaction.isLightning = true
+            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: thisTransaction.id)
+            
+            // Set channel ID.
+            if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+                thisTransaction.channelId = activeChannel.channelId
+            }
+        }
+        
+        // Amount
         if self.direction == .inbound {
             thisTransaction.received = Int(self.amountMsat ?? 0)/1000
         } else {
             thisTransaction.sent = Int(self.amountMsat ?? 0)/1000
-            thisTransaction.fee = CacheManager.getLightningFees(preimage: thisTransaction.id)
-        }
-        thisTransaction.isLightning = true
-        thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: thisTransaction.id)
-        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
-        if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
-            thisTransaction.channelId = activeChannel.channelId
+            if thisTransaction.isLightning {
+                thisTransaction.fee = CacheManager.getLightningFees(preimage: thisTransaction.id)
+            } else {
+                thisTransaction.fee = Int(self.feePaidMsat ?? 0)/1000
+            }
         }
         
+        // Note and Description.
+        thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
+        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
         
         // Check if transaction is Bittr.
         if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id) {

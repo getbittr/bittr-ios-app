@@ -337,14 +337,6 @@ class BitcoinManager {
             self.coreVC?.updateSync(action: .start, type: .final)
         }
         
-        // Get the confirmed balance from the wallet.
-        self.coreVC?.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
-        
-        // Retrieve a list of transaction details from the wallet, excluding raw transaction data.
-        self.coreVC?.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
-            return tx1.chainPosition.isBefore(tx2.chainPosition)
-        }
-        
         // Get current height.
         do {
             self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
@@ -355,20 +347,7 @@ class BitcoinManager {
         
         Task {
             // Check peer connection.
-            var peers = [PeerDetails]()
-            do {
-                peers = try await BitcoinManager.shared.listPeers()
-            } catch {
-                self.handleError(error: error, row: 282, stopLightning: false)
-            }
-            var peerIsConnected = false
-            for eachPeer in peers {
-                if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
-                    peerIsConnected = true
-                }
-            }
-            
-            // Proceed to next step.
+            let peerIsConnected = await self.coreVC!.isConnectedToPeer()
             DispatchQueue.global(qos: .background).async {
                 if peerIsConnected {
                     // We're already connected to peer.
@@ -493,31 +472,25 @@ class BitcoinManager {
         
         Task {
             do {
+                
                 // Get channels.
                 let channels = try await BitcoinManager.shared.listChannels()
                 let activeChannel = channels.getActiveChannel()
                 
-                // Register funding transaction ID.
+                // Get funding transaction ID.
                 if activeChannel != nil {
                     if let channelTxoID = activeChannel!.fundingTxo?.txid as? String {
                         CacheManager.storeTxoID(txoID: channelTxoID)
                     }
                 }
                 
-                // Get payments.
-                var payments = try await BitcoinManager.shared.listPayments()
-                // Remove onchain payments from array.
-                for (index, eachPayment) in payments.enumerated().reversed() {
-                    switch eachPayment.kind {
-                    case .onchain(txid: _, status: _): payments.remove(at: index)
-                    default: break
-                    }
-                }
+                // Get transactions.
+                let payments = try await BitcoinManager.shared.listPayments()
                 
-                // Send notification with all details.
+                // Handle details in HomeVC.
                 DispatchQueue.main.async {
                     self.coreVC?.bittrWallet.lightningChannels = channels
-                    self.coreVC?.bittrWallet.transactionsLightning = payments
+                    self.coreVC?.bittrWallet.allTransactions = payments
                     self.coreVC?.homeVC?.loadWalletData()
                 }
             } catch {
@@ -552,28 +525,28 @@ class BitcoinManager {
         }
         
         let bytes = [UInt8](data)
-        let signedMessage = try ldkNode!.signMessage(msg: bytes)
+        let signedMessage = self.ldkNode!.signMessage(msg: bytes)
         
         return signedMessage
     }
     
     func listPeers() async throws -> [PeerDetails] {
-        let peers = ldkNode!.listPeers()
+        let peers = self.ldkNode!.listPeers()
         return peers
     }
     
     func listPayments() async throws -> [PaymentDetails] {
-        let payments = ldkNode!.listPayments()
+        let payments = self.ldkNode!.listPayments()
         return payments
     }
     
     func listChannels() async throws -> [LDKNode.ChannelDetails] {
-        let channels = ldkNode!.listChannels()
+        let channels = self.ldkNode!.listChannels()
         return channels
     }
     
     func connect(nodeId: PublicKey, address: String, persist: Bool) async throws {
-        try ldkNode!.connect(
+        try self.ldkNode!.connect(
             nodeId: nodeId,
             address: address,
             persist: persist
@@ -605,13 +578,12 @@ class BitcoinManager {
                 try self.bdkWallet!.applyUpdate(update: update)
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.bdkWallet!.balance().total.toSat()) || self.coreVC!.bittrWallet.transactionsOnchain.count != self.bdkWallet!.transactions().count {
+                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.ldkNode!.listPayments().count {
                     
-                    self.coreVC!.bittrWallet.satoshisOnchain = Int(self.bdkWallet!.balance().total.toSat())
+                    self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
                     self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
-                    self.coreVC!.bittrWallet.transactionsOnchain = self.bdkWallet!.transactions().sorted { (tx1, tx2) in
-                        return tx1.chainPosition.isBefore(tx2.chainPosition)
-                    }
+                    self.coreVC!.bittrWallet.allTransactions = self.ldkNode!.listPayments()
+                    
                     Task { self.coreVC!.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels() }
                     
                     DispatchQueue.main.async {
@@ -635,15 +607,15 @@ class BitcoinManager {
     }
     
     func syncWallets() throws {
-        try ldkNode!.syncWallets()
+        try self.ldkNode!.syncWallets()
     }
     
     func getWallet() -> BitcoinDevKit.Wallet? {
-        return bdkWallet
+        return self.bdkWallet
     }
     
     func getXpub() -> String {
-        return xpub
+        return self.xpub
     }
     
     func walletReset() {
@@ -657,28 +629,28 @@ class BitcoinManager {
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
         let invoiceDescription = Bolt11InvoiceDescription.direct(description: description)
-        let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
+        let invoice = try self.ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
         return invoice
     }
     
     func receivePaymentWithHash(amountMsat: UInt64, descriptionHash: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
         let invoiceDescription = Bolt11InvoiceDescription.hash(hash: descriptionHash)
-        let invoice = try ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
+        let invoice = try self.ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
         return invoice
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().send(invoice: invoice, sendingParameters: nil)
+        let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, sendingParameters: nil)
         return paymentHash
     }
     
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
-        let paymentHash = try ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), sendingParameters: nil)
+        let paymentHash = try self.ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), sendingParameters: nil)
         return paymentHash
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
-        if let invoiceDetails = ldkNode!.payment(paymentId: paymentHash) {
+        if let invoiceDetails = self.ldkNode!.payment(paymentId: paymentHash) {
             return invoiceDetails
         } else {
             return nil
@@ -753,7 +725,7 @@ class BitcoinManager {
         channelConfig: ChannelConfig?,
         announceChannel: Bool = false
     ) async throws -> UserChannelId {
-        let userChannelId = try ldkNode!.openChannel(
+        let userChannelId = try self.ldkNode!.openChannel(
             nodeId: nodeId,
             address: address,
             channelAmountSats: channelAmountSats,

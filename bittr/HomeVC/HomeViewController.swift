@@ -365,7 +365,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         if paymentDetails != nil {
-            self.coreVC!.bittrWallet.transactionsLightning += [paymentDetails!]
+            self.coreVC!.bittrWallet.allTransactions += [paymentDetails!]
         }
         
         // Update balance label.
