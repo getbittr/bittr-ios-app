@@ -67,7 +67,7 @@ extension HomeViewController {
         // Create new transaction entities.
         for eachPayment in self.coreVC!.bittrWallet.allTransactions {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0) || (eachPayment.status == .pending && eachPayment.kind.isOnchain && eachPayment.direction == .inbound)) {
                 
                 // Create transaction.
                 let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
@@ -628,6 +628,15 @@ extension PaymentKind {
             return preimage
         case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
             return preimage
+        }
+    }
+    
+    var isOnchain: Bool {
+        switch self {
+        case .onchain(_, _):
+            return true
+        default:
+            return false
         }
     }
 }
