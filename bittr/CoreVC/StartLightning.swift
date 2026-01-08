@@ -51,9 +51,9 @@ extension CoreViewController {
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
                 SentrySDK.metrics.increment(key: "sync.ldk.success")
-                DispatchQueue.global(qos: .background).async {
-                    BitcoinManager.shared.startBDK(coreViewController: self)
-                }
+                
+                BitcoinManager.shared.setCoreVC(self)
+                BitcoinManager.shared.startBDK()
             } else {
                 Log.info("Could not start node.")
                 SentrySDK.metrics.increment(key: "sync.ldk.failure")
@@ -68,7 +68,8 @@ extension CoreViewController {
         if BitcoinManager.shared.ldkNode != nil, BitcoinManager.shared.ldkNode!.status().isRunning {
             
             // LDK is already running. Start BDK.
-            BitcoinManager.shared.startBDK(coreViewController: self)
+            BitcoinManager.shared.setCoreVC(self)
+            BitcoinManager.shared.startBDK()
         } else {
             // LDK isn't running yet.
             self.startLightning()

@@ -158,90 +158,87 @@ class BitcoinManager {
         }
     }
     
-    func startBDK(coreViewController:CoreViewController?) {
-        
-        if self.coreVC == nil, coreViewController != nil {
-            self.coreVC = coreViewController
-        }
+    func setCoreVC(_ thisCoreVC:CoreViewController) {
+        self.coreVC = thisCoreVC
+    }
+    
+    func startBDK() {
         
         DispatchQueue.global(qos: .background).async {
             
             // BDK launch.
-            do {
-                if self.bdkWallet == nil {
-                    Log.info("Will start blockchain and wallet.")
-                    
-                    // Attempt to create a mnemonic object from the provided mnemonic string.
-                    let mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
-                    
-                    // Create a BIP32 extended root key using the mnemonic and a nil password
-                    let bip32ExtendedRootKey = DescriptorSecretKey(network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin, mnemonic: mnemonic, password: nil)
-                    
-                    // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
-                    let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin)
-                    
-                    // Get XPUB.
-                    let descriptor = bip84ExternalDescriptor.description
-                    let components = descriptor.components(separatedBy: "]")
-                    if components.count > 1 {
-                        let xpubPart = components[1].split(separator: "/").first
-                        if let xpub = xpubPart {
-                            self.xpub = String(xpub)
-                        } else {
-                            Log.info("Error: Could not extract XPUB")
-                        }
-                    } else {
-                        Log.info("Error: Descriptor format not recognized")
-                    }
-                    
-                    // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
-                    let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
-                    
-                    // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
-                    var wallet:Wallet
-                    self.connection = try Connection.createConnection()
-                    if self.connection == nil {
-                        Log.info("Could not create connection.")
-                        return
-                    }
-                    
-                    wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
-                    self.bdkWallet = wallet
-                    
-                    // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
-                    let electrum = try ElectrumClient(url: EnvironmentConfig.electrumURL)
-                    self.electrumClient = electrum
-                    
-                    Log.info("Did initiate wallet and blockchain.")
-                    DispatchQueue.main.async {
-                        SentrySDK.metrics.increment(key: "sync.bdk.success")
-                        self.coreVC?.updateSync(action: .complete, type: .bdk)
-                        self.coreVC?.updateSync(action: .start, type: .sync)
-                    }
+            if self.bdkWallet == nil {
+                Log.info("Will start blockchain and wallet.")
+                
+                // Attempt to create a mnemonic object from the provided mnemonic string.
+                let mnemonic:BitcoinDevKit.Mnemonic
+                do {
+                    mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
+                } catch {
+                    self.handleError(error: error, row: 178, stopLightning: true)
+                    return
                 }
                 
-                // Proceed to wallet sync.
-                self.initialWalletSync()
+                // Create a BIP32 extended root key using the mnemonic and a nil password
+                let bip32ExtendedRootKey = DescriptorSecretKey(network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin, mnemonic: mnemonic, password: nil)
                 
-            } catch {
-                Log.info("Some error occurred. \(error.localizedDescription)")
-                let errorMessage:String = {
-                    if let esploraError = error as? BitcoinDevKit.EsploraError {
-                        return esploraError.getErrorMessage()
-                    } else if let electrumError = error as? BitcoinDevKit.ElectrumError {
-                        return electrumError.getErrorMessage()
+                // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
+                let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin)
+                
+                // Get XPUB.
+                let descriptor = bip84ExternalDescriptor.description
+                let components = descriptor.components(separatedBy: "]")
+                if components.count > 1 {
+                    let xpubPart = components[1].split(separator: "/").first
+                    if let xpub = xpubPart {
+                        self.xpub = String(xpub)
                     } else {
-                        return error.localizedDescription
+                        Log.info("Error: Could not extract XPUB")
                     }
-                }()
-                self.coreVC?.stopLightning(message: errorMessage)
+                } else {
+                    Log.info("Error: Descriptor format not recognized")
+                }
+                
+                // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
+                let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
+                
+                // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
+                do {
+                    self.connection = try Connection.createConnection()
+                } catch {
+                    self.handleError(error: error, row: 211, stopLightning: true)
+                    return
+                }
+                
+                let wallet:BitcoinDevKit.Wallet
+                do {
+                    wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+                } catch {
+                    self.handleError(error: error, row: 218, stopLightning: true)
+                    return
+                }
+                self.bdkWallet = wallet
+                
+                // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
+                let electrum:BitcoinDevKit.ElectrumClient
+                do {
+                    electrum = try ElectrumClient(url: EnvironmentConfig.electrumURL)
+                } catch {
+                    self.handleError(error: error, row: 228, stopLightning: true)
+                    return
+                }
+                self.electrumClient = electrum
+                
+                Log.info("Did initiate wallet and blockchain.")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 231", key: "context")
-                    }
-                    SentrySDK.metrics.increment(key: "sync.bdk.failure")
+                    SentrySDK.metrics.increment(key: "sync.bdk.success")
+                    self.coreVC?.updateSync(action: .complete, type: .bdk)
+                    self.coreVC?.updateSync(action: .start, type: .sync)
                 }
             }
+            
+            // Proceed to wallet sync.
+            self.initialWalletSync()
         }
     }
     
@@ -623,7 +620,7 @@ class BitcoinManager {
             // Remove last full sync from cache.
             UserDefaults.standard.removeObject(forKey: "lastFullSync")
             // Restart BDK.
-            self.startBDK(coreViewController: nil)
+            self.startBDK()
         }
     }
     
