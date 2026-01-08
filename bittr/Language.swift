@@ -435,6 +435,7 @@ class Language: NSObject {
             "fundingBatchClosure": "the funding batch was closed.",
             "htlCsTimedOut": "the hashed timelock contracts timed out.",
             "peerFeerateTooLow": "the proposed fee rate was too low.",
+            "locallyCoopClosedUnfundedChannel": "the connection was closed cooperatively (locally, unfunded channel).",
             "url": "URL",
             "transfer3Amount": "Amount",
             "transfer3AmountLabel": "You can buy up to 999 € worth of bitcoin per 30 days from bittr.",

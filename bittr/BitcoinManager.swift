@@ -46,8 +46,8 @@ class BitcoinManager {
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
         
         let config = Config(
-            storageDirPath: storageManager.getDocumentsDirectory(),
-            network: network,
+            storageDirPath: self.storageManager.getDocumentsDirectory(),
+            network: self.network,
             listeningAddresses: correctListeningAddresses,
             announcementAddresses: nil,
             nodeAlias: nil,
@@ -56,7 +56,7 @@ class BitcoinManager {
             anchorChannelsConfig: AnchorChannelsConfig(
                 trustedPeersNoReserve: [ PublicKey(EnvironmentConfig.lightningNodeId) ],
                 perChannelReserveSats: UInt64(1000)),
-            sendingParameters: nil
+            routeParameters: nil
         )
         
         // Set mnemonic string.
@@ -640,12 +640,12 @@ class BitcoinManager {
     }
     
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
-        let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, sendingParameters: nil)
+        let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, routeParameters: nil)
         return paymentHash
     }
     
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
-        let paymentHash = try self.ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), sendingParameters: nil)
+        let paymentHash = try self.ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), routeParameters: nil)
         return paymentHash
     }
     

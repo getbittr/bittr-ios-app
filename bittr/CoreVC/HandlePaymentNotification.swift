@@ -307,6 +307,8 @@ extension CoreViewController {
                             answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "htlCsTimedOut"))
                         case .peerFeerateTooLow(peerFeerateSatPerKw: _, requiredFeerateSatPerKw: _):
                             answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "peerFeerateTooLow"))
+                        case .locallyCoopClosedUnfundedChannel:
+                            answer = answer.replacingOccurrences(of: "<reason>", with: Language.getWord(withID: "closedlightningchannel3") + Language.getWord(withID: "locallyCoopClosedUnfundedChannel"))
                         }
                     }
                     answer = answer.replacingOccurrences(of: "<reason>", with: "")
@@ -386,8 +388,12 @@ extension CoreViewController {
                 return
             case .paymentForwarded(prevChannelId: _, nextChannelId: _, prevUserChannelId: _, nextUserChannelId: _, prevNodeId: _, nextNodeId: _, totalFeeEarnedMsat: _, skimmedFeeMsat: _, claimFromOnchainTx: _, outboundAmountForwardedMsat: _):
                 return
-            case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _):
+            case .channelReady(channelId: _, userChannelId: _, counterpartyNodeId: _, fundingTxo: _):
                 self.syncLDKnode()
+            case .splicePending(channelId: let channelId, userChannelId: let userChannelId, counterpartyNodeId: let counterpartyNodeId, newFundingTxo: let newFundingTxo):
+                return
+            case .spliceFailed(channelId: let channelId, userChannelId: let userChannelId, counterpartyNodeId: let counterpartyNodeId, abandonedFundingTxo: let abandonedFundingTxo):
+                return
             }
         }
     }

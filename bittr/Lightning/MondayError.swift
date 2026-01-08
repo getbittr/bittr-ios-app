@@ -158,20 +158,6 @@ func handleNodeError(_ error: NodeError) -> MondayError {
     case .LiquidityFeeTooHigh(message: let message):
         return .init(title: "LiquidityFeeTooHigh", detail: message)
         
-    /*case .UriParameterParsingFailed(message: let message):
-        return .init(title: "UriParameterParsingFailed", detail: message)
-        
-    case .InvalidUri(message: let message):
-        return .init(title: "InvalidUri", detail: message)
-        
-    case .InvalidQuantity(message: let message):
-        return .init(title: "InvalidQuantity", detail: message)
-        
-    case .InvalidNodeAlias(message: let message):
-        return .init(title: "InvalidNodeAlias", detail: message)
-        
-    case .MessageSigningFailed(message: let message):
-        return .init(title: "MessageSigningFailed", detail: message)*/
     case .InvalidCustomTlvs(message: let message):
         return .init(title: "InvalidCustomTlvs", detail: message)
     case .UriParameterParsingFailed(message: let message):
@@ -186,6 +172,12 @@ func handleNodeError(_ error: NodeError) -> MondayError {
         return .init(title: "InvalidDateTime", detail: message)
     case .InvalidFeeRate(message: let message):
         return .init(title: "InvalidFeeRate", detail: message)
+    case .ChannelSplicingFailed(message: let message):
+        return .init(title: "ChannelSplicingFailed", detail: message)
+    case .InvalidBlindedPaths(message: let message):
+        return .init(title: "InvalidBlindedPaths", detail: message)
+    case .AsyncPaymentServicesDisabled(message: let message):
+        return .init(title: "AsyncPaymentServicesDisabled", detail: message)
     }
     
 }
