@@ -210,14 +210,12 @@ class BitcoinManager {
                     return
                 }
                 
-                let wallet:BitcoinDevKit.Wallet
                 do {
-                    wallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+                    self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
                 } catch {
                     self.handleError(error: error, row: 218, stopLightning: true)
                     return
                 }
-                self.bdkWallet = wallet
                 
                 // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
                 let electrum:BitcoinDevKit.ElectrumClient
@@ -557,48 +555,82 @@ class BitcoinManager {
     
     func lightSync(completion: @escaping (Bool) -> Void) {
         
-        guard self.bdkWallet != nil else { return }
-        guard self.electrumClient != nil else { return }
-        guard self.coreVC != nil else { return }
-        guard self.getEsploraClient() != nil else { return }
+        guard (self.bdkWallet != nil &&
+               self.electrumClient != nil &&
+               self.coreVC != nil &&
+               self.getEsploraClient() != nil) else {
+            completion(false)
+            return
+        }
         
         DispatchQueue.global(qos: .background).async {
+            Log.info("Will light sync wallet.")
+            
+            // Create sync request.
+            let syncRequest:SyncRequest
             do {
-                Log.info("Will light sync wallet.")
-                // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
-                let syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
-                let update = try self.electrumClient!.sync(
+                syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
+            } catch {
+                self.handleError(error: error, row: 570, stopLightning: false)
+                completion(false)
+                return
+            }
+            
+            // Create update.
+            let update:Update
+            do {
+                update = try self.electrumClient!.sync(
                     request: syncRequest,
                     batchSize: UInt64(25),
                     fetchPrevTxouts: true
                 )
+            } catch {
+                self.handleError(error: error, row: 582, stopLightning: false)
+                completion(false)
+                return
+            }
+            
+            // Apply update to wallet.
+            do {
                 try self.bdkWallet!.applyUpdate(update: update)
+            } catch {
+                self.handleError(error: error, row: 594, stopLightning: false)
+            }
+            
+            // Persist update to wallet.
+            do {
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
+            } catch {
+                self.handleError(error: error, row: 603, stopLightning: false)
+            }
+            
+            // Check if any changes have been found.
+            if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.ldkNode!.listPayments().count {
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.ldkNode!.listPayments().count {
-                    
-                    self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
+                self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
+                do {
                     self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
-                    self.coreVC!.bittrWallet.allTransactions = self.ldkNode!.listPayments()
-                    
-                    Task { self.coreVC!.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels() }
-                    
-                    DispatchQueue.main.async {
-                        self.coreVC!.homeVC!.loadWalletData()
-                        self.coreVC!.homeVC!.moveVC?.updateLabels()
+                } catch {
+                    self.handleError(error: error, row: 611, stopLightning: false)
+                }
+                self.coreVC!.bittrWallet.allTransactions = self.ldkNode!.listPayments()
+                
+                Task {
+                    do {
+                        self.coreVC!.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels()
+                        
+                        DispatchQueue.main.async {
+                            self.coreVC!.homeVC!.loadWalletData()
+                            self.coreVC!.homeVC!.moveVC?.updateLabels()
+                            completion(true)
+                        }
+                    } catch {
+                        self.handleError(error: error, row: 619, stopLightning: false)
                         completion(true)
                     }
-                } else {
-                    DispatchQueue.main.async { completion(false) }
                 }
-            } catch {
-                Log.info("Error completing light sync: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 462", key: "context")
-                    }
-                    completion(false)
-                }
+            } else {
+                DispatchQueue.main.async { completion(false) }
             }
         }
     }
