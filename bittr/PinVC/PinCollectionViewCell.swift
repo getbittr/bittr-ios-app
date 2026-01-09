@@ -14,9 +14,9 @@ class PinCollectionViewCell: UICollectionViewCell {
     
     override func awakeFromNib() {
         
-        cellCard.layer.cornerRadius = 13
-        pinView.layer.cornerRadius = 5
+        self.cellCard.layer.cornerRadius = 13
+        self.cellCard.setShadow()
+        self.pinView.layer.cornerRadius = 5
     }
-    
     
 }
