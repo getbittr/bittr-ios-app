@@ -62,7 +62,7 @@ extension SendViewController {
                 self.labelRegularLeading.constant = 15
                 self.labelInstantTrailing.constant = 20
                 leadingConstraint = self.labelInstant
-                leadingConstant = -35
+                leadingConstant = -30
             }
             
             NSLayoutConstraint.deactivate([self.nextViewTop, self.selectionLeading, self.selectionTrailing])
