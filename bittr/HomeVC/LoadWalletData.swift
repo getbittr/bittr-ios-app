@@ -238,7 +238,7 @@ extension HomeViewController {
         }
         
         // Update bitcoin sign alpha.
-        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.35 : 0.18
+        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.43 : 0.18
         
         // Calculate total balance
         let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning

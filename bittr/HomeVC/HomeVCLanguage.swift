@@ -49,7 +49,6 @@ extension HomeViewController {
         self.backgroundColorTopView.backgroundColor = Colors.getColor("yelloworblue3")
         self.bottomCurve.fillColor = Colors.getColor("yelloworblue3")
         self.balanceCard.backgroundColor = Colors.getColor("yelloworblue2")
-        self.conversionLabel.textColor = Colors.getColor("black0.5orwhite0.5")
         
         self.satsLabel.textColor = Colors.getColor("blackorwhite")
         
@@ -58,11 +57,13 @@ extension HomeViewController {
             self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
             self.headerDetailsImage.image = UIImage(named: "icondetailsyellow")
             self.headerCurrencyImage.image = UIImage(named: "iconexchangeyellow")
+            self.conversionLabel.textColor = UIColor(red: 150/255, green: 177/255, blue: 204/255, alpha: 1)
         } else {
             self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
             self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")
             self.headerDetailsImage.image = UIImage(named: "icondetailswhite")
             self.headerCurrencyImage.image = UIImage(named: "iconexchange")
+            self.conversionLabel.textColor = UIColor(red: 201/255, green: 154/255, blue: 0/255, alpha: 1)
         }
         
         if self.balanceLabel.alpha == 1 {
