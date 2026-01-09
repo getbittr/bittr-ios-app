@@ -362,6 +362,8 @@ class BitcoinManager {
                 return esploraError.getErrorMessage()
             } else if let electrumError = error as? BitcoinDevKit.ElectrumError {
                 return electrumError.getErrorMessage()
+            } else if let cannotConnectError = error as? BitcoinDevKit.CannotConnectError {
+                return cannotConnectError.getErrorMessage()
             } else {
                 return error.localizedDescription
             }

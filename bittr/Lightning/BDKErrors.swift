@@ -171,3 +171,14 @@ extension BitcoinDevKit.ElectrumError {
         }
     }
 }
+
+extension BitcoinDevKit.CannotConnectError {
+    
+    func getErrorMessage() -> String {
+        
+        switch self {
+        case .Include(height: let height):
+            return "Cannot connect (height: \(height))."
+        }
+    }
+}
