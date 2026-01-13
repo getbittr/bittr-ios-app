@@ -11,10 +11,7 @@ import Sentry
 class ValueViewController: UIViewController {
 
     // General
-    @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var centerCard: UIView!
-    @IBOutlet weak var iconExchange: UIImageView!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var currentValueLabel: UILabel!
     @IBOutlet weak var valueSpinner: UIActivityIndicatorView!
     @IBOutlet weak var noDataLabel: UILabel!
@@ -67,7 +64,6 @@ class ValueViewController: UIViewController {
         self.profitView.alpha = 0
 
         // Button titles
-        self.downButton.setTitle("", for: .normal)
         self.weekButton.setTitle("", for: .normal)
         
         // Card styling
@@ -91,8 +87,8 @@ class ValueViewController: UIViewController {
         self.fiveYearsView.layer.shadowOpacity = 0
         
         // Colors and language
-        self.setLanguage()
         self.changeColors()
+        self.addHeader(iconLight: "iconexchange", iconDark: "iconexchangeyellow", title: Language.getWord(withID: "bitcoinvalue"))
         
         // Load graph
         self.graphView.valueVC = self
@@ -322,7 +318,7 @@ class ValueViewController: UIViewController {
         
         // Remove existing lines and labels.
         for eachSubview in self.centerCard.subviews {
-            if eachSubview != self.graphView, eachSubview != self.headerLabel, eachSubview != self.iconExchange, eachSubview != self.currentValueLabel, eachSubview != self.weekView, eachSubview != self.monthView, eachSubview != self.yearView, eachSubview != self.fiveYearsView, eachSubview != self.buttonsView, eachSubview != self.profitView {
+            if eachSubview != self.graphView, eachSubview != self.currentValueLabel, eachSubview != self.weekView, eachSubview != self.monthView, eachSubview != self.yearView, eachSubview != self.fiveYearsView, eachSubview != self.buttonsView, eachSubview != self.profitView {
                 eachSubview.removeFromSuperview()
             }
         }
@@ -576,26 +572,11 @@ class ValueViewController: UIViewController {
         return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
     }
     
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true)
-    }
-    
-    func setLanguage() {
-        self.headerLabel.text = Language.getWord(withID: "bitcoinvalue")
-    }
-    
     func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
-        self.centerCard.backgroundColor = Colors.getColor("yelloworblue1")
-        self.headerLabel.textColor = Colors.getColor("whiteoryellow")
+        self.centerCard.backgroundColor = Colors.getColor("yelloworblue2")
         self.currentValueLabel.textColor = Colors.getColor("blackorwhite")
         self.valueSpinner.color = Colors.getColor("blackorwhite")
-        
-        if CacheManager.darkModeIsOn() {
-            self.iconExchange.image = UIImage(named: "iconexchangeyellow")
-        } else {
-            self.iconExchange.image = UIImage(named: "iconexchange")
-        }
     }
 }
