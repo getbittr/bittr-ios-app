@@ -11,7 +11,6 @@ extension SendViewController {
     
     func setWords() {
         
-        self.sendBitcoinLabel.text = Language.getWord(withID: "sendbitcoin")
         self.toLabel.text = Language.getWord(withID: "addressandamount")
         self.toTextField.placeholder = Language.getWord(withID: "enteraddress")
         self.labelRegular.text = Language.getWord(withID: "regular")
@@ -91,7 +90,6 @@ extension SendViewController {
     func setBasicStyling() {
         
         // Button titles
-        self.downButton.setTitle("", for: .normal)
         self.amountButton.setTitle("", for: .normal)
         self.availableButton.setTitle("", for: .normal)
         self.pasteButton.setTitle("", for: .normal)

@@ -11,7 +11,6 @@ extension TransactionViewController {
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "transaction")
         self.titleAmount.text = Language.getWord(withID: "amount")
         self.titleType.text = Language.getWord(withID: "type")
         self.titleSwapId.text = Language.getWord(withID: "swapid")
@@ -31,7 +30,7 @@ extension TransactionViewController {
         
         // Card
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
-        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue1")
+        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
         
         // Date
         self.labelDate.textColor = Colors.getColor("blackorwhite")

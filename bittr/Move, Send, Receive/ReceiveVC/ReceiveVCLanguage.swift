@@ -12,7 +12,6 @@ extension ReceiveViewController {
     func setBasicStyling() {
         
         // Button titles
-        self.downButton.setTitle("", for: .normal)
         self.copyAddressButton.setTitle("", for: .normal)
         self.bothCopyAddressButton.setTitle("", for: .normal)
         self.refreshButton.setTitle("", for: .normal)
@@ -70,7 +69,6 @@ extension ReceiveViewController {
     
     func setWords() {
         
-        self.topLabel.text = Language.getWord(withID: "receivebitcoin")
         self.labelRegular.text = Language.getWord(withID: "regular")
         self.labelBoth.text = Language.getWord(withID: "both")
         self.labelInstant.text = Language.getWord(withID: "instant")

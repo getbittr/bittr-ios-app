@@ -10,8 +10,6 @@ import UIKit
 class MoveViewController: UIViewController {
 
     // Elements
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var channelButton: UIButton!
     @IBOutlet weak var subtitleLabel: UILabel!
     
@@ -62,7 +60,6 @@ class MoveViewController: UIViewController {
         super.viewDidLoad()
         
         // Button titles.
-        self.downButton.setTitle("", for: .normal)
         self.receiveButton.setTitle("", for: .normal)
         self.sendButton.setTitle("", for: .normal)
         self.channelButton.setTitle("", for: .normal)
@@ -86,6 +83,7 @@ class MoveViewController: UIViewController {
         // Set language and colors.
         self.updateLabels()
         self.changeColors()
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "balance"))
         
         // If we're coming from a Lightning payment, automatically trigger the swap segue
         if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
@@ -119,10 +117,6 @@ class MoveViewController: UIViewController {
         self.conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
         self.conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
         self.conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
-    }
-    
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true, completion: nil)
     }
     
     @IBAction func receiveButtonTapped(_ sender: UIButton) {

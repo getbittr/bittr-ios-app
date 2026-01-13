@@ -8,10 +8,6 @@
 import UIKit
 
 class TransactionViewController: UIViewController {
-
-    // Top bar
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerLabel: UILabel!
     
     // Yellow card
     @IBOutlet weak var yellowCard: UIView!
@@ -122,7 +118,6 @@ class TransactionViewController: UIViewController {
         
         // Button titles
         self.buttonSwapStatus.setTitle("", for: .normal)
-        self.downButton.setTitle("", for: .normal)
         self.feesQuestionButton.setTitle("", for: .normal)
         self.buttonDescription.setTitle("", for: .normal)
         self.copyButtonTopId.setTitle("", for: .normal)
@@ -150,6 +145,7 @@ class TransactionViewController: UIViewController {
         // Language
         self.setWords()
         self.changeColors()
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "transaction"))
         self.setTransactionData()
     }
     
@@ -400,10 +396,6 @@ class TransactionViewController: UIViewController {
         self.addANoteStack.alpha = 0
         self.addANoteStackHeight.constant = 0
         self.view.layoutIfNeeded()
-    }
-    
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true)
     }
     
     @IBAction func noteButtonTapped(_ sender: UIButton) {

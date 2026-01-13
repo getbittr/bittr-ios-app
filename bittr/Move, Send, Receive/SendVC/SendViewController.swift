@@ -14,11 +14,6 @@ import LightningDevKit
 import Sentry
 
 class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
-
-    // General
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var topIcon: UIImageView!
-    @IBOutlet weak var sendBitcoinLabel: UILabel!
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -195,6 +190,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.changeColors()
         self.setWords()
         self.setBasicStyling()
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "sendbitcoin"))
         
         // Set default currency to satoshis
         self.btcLabel.text = "Sats"
@@ -286,10 +282,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             fieldFrame = fieldFrame.insetBy(dx: 0, dy: -25)
             self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
         }
-    }
-    
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true, completion: nil)
     }
     
     @IBAction func amountButtonTapped(_ sender: UIButton) {

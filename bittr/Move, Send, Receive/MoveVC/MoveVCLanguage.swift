@@ -11,7 +11,6 @@ extension MoveViewController {
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "balance")
         self.subtitleLabel.text = Language.getWord(withID: "walletsubtitle")
         self.labelRegular.text = Language.getWord(withID: "regular")
         self.labelInstant.text = Language.getWord(withID: "instant")

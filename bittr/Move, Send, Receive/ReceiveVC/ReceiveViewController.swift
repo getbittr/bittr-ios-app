@@ -14,11 +14,6 @@ import BitcoinDevKit
 import AVFoundation
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
-
-    // General
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var topLabel: UILabel!
-    @IBOutlet weak var topIcon: UIImageView!
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -168,6 +163,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.setWords()
         self.changeColors()
         self.setBasicStyling()
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "receivebitcoin"))
     }
     
     func resetQRs(resetAddress:Bool) {
@@ -308,10 +304,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             }
         }
         return UIImage(systemName: "xmark.circle") ?? UIImage()
-    }
-    
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true, completion: nil)
     }
     
     @IBAction func switchTapped(_ sender: UIButton) {
