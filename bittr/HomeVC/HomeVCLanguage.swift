@@ -23,9 +23,9 @@ extension HomeViewController {
         self.headerLabel.textColor = Colors.getColor("whiteoryellow")
         self.headerSpinner.color = Colors.getColor("whiteoryellow")
         
-        self.sendButtonView.backgroundColor = Colors.getColor("white0.7orblue1")
-        self.receiveButtonView.backgroundColor = Colors.getColor("white0.7orblue1")
-        self.buyButtonView.backgroundColor = Colors.getColor("white0.7orblue1")
+        self.sendButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.receiveButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.buyButtonView.backgroundColor = Colors.getColor("white0.7orblue2")
         
         self.sendLabel.textColor = Colors.getColor("blackorwhite")
         self.receiveLabel.textColor = Colors.getColor("blackorwhite")
@@ -48,7 +48,7 @@ extension HomeViewController {
         self.backgroundColorView.backgroundColor = Colors.getColor("yelloworblue3")
         self.backgroundColorTopView.backgroundColor = Colors.getColor("yelloworblue3")
         self.bottomCurve.fillColor = Colors.getColor("yelloworblue3")
-        self.balanceCard.backgroundColor = Colors.getColor("yelloworblue2")
+        self.balanceCard.backgroundColor = Colors.getColor("yelloworblue3")
         
         self.satsLabel.textColor = Colors.getColor("blackorwhite")
         
@@ -57,7 +57,7 @@ extension HomeViewController {
             self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
             self.headerDetailsImage.image = UIImage(named: "icondetailsyellow")
             self.headerCurrencyImage.image = UIImage(named: "iconexchangeyellow")
-            self.conversionLabel.textColor = UIColor(red: 150/255, green: 177/255, blue: 204/255, alpha: 1)
+            self.conversionLabel.textColor = UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1)
         } else {
             self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
             self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")

@@ -69,7 +69,7 @@ class LessonCollectionViewCell: UICollectionViewCell {
         self.lessonTitle.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
-            self.blurView.backgroundColor = UIColor(displayP3Red: 60/255, green: 96/255, blue: 133/255, alpha: 0.3)
+            self.blurView.backgroundColor = UIColor(displayP3Red: 57/255, green: 81/255, blue: 115/255, alpha: 0.3)
         } else {
             self.blurView.backgroundColor = UIColor(displayP3Red: 235/255, green: 189/255, blue: 65/255, alpha: 0.3)
         }

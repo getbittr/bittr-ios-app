@@ -21,7 +21,7 @@ extension HomeViewController {
                     let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                     self.balanceLabel.attributedText = attributedText
                     self.balanceLabel.alpha = 1
-                    self.bitcoinSign.alpha = CacheManager.darkModeIsOn() ? 0.43 : 0.18
+                    self.bitcoinSign.alpha = CacheManager.darkModeIsOn() ? 0.47 : 0.18
                     
                     self.balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
                     

@@ -238,7 +238,7 @@ extension HomeViewController {
         }
         
         // Update bitcoin sign alpha.
-        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.43 : 0.18
+        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.47 : 0.18
         
         // Calculate total balance
         let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
@@ -273,7 +273,7 @@ extension HomeViewController {
         let adjustedSize = Int(font.pointSize)
         
         // Set HTML balance text.
-        let transparentColor = CacheManager.darkModeIsOn() ? "150, 177, 204" : "201, 154, 0"
+        let transparentColor = CacheManager.darkModeIsOn() ? "170, 190, 217" : "201, 154, 0"
         let fillColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "0, 0, 0"
         self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)</span></center>"
         
