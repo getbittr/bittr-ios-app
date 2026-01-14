@@ -15,7 +15,6 @@ import BitcoinDevKit
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
 
     // General
-    @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var mainScrollView: UIScrollView!
     @IBOutlet weak var mainContentView: UIView!
     @IBOutlet weak var mainContentViewBottom: NSLayoutConstraint!
@@ -25,8 +24,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var centerCard: UIView!
     @IBOutlet weak var centerCardLeading: NSLayoutConstraint!
     @IBOutlet weak var centerBackground: UIButton!
-    @IBOutlet weak var swapIcon: UIImageView!
-    @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var subtitleLabel: UILabel!
     @IBOutlet weak var moveLabel: UILabel!
     @IBOutlet weak var amountTextField: UITextField!
@@ -104,7 +101,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         
         // Button titles
-        self.downButton.setTitle("", for: .normal)
         self.centerBackground.setTitle("", for: .normal)
         self.contentBackground.setTitle("", for: .normal)
         self.nextButton.setTitle("", for: .normal)
@@ -142,6 +138,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Set colors and language
         self.changeColors()
         self.setLanguage()
+        self.addHeader(iconLight: "iconswapwhite", iconDark: "iconswap", title: Language.getWord(withID: "swapfunds"))
         
         // Check if there's an ongoing swap and automatically show it (only if from background notification)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

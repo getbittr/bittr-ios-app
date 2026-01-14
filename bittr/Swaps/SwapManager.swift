@@ -165,6 +165,11 @@ class SwapManager: NSObject {
                                 let refundLeafOutput = refundLeaf["output"] as? String,
                                 let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
                                 
+                                if swapVC.coreVC?.bittrWallet.ongoingSwap == nil {
+                                    // SwapVC has been closed while awaiting API response.
+                                    return
+                                }
+                                
                                 swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
                                 swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
                                 swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzOnchainAddress = onchainAddress

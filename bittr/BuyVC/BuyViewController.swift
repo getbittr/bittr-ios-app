@@ -11,11 +11,13 @@ import Sentry
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
     // General
+    @IBOutlet weak var downIcon: UIImageView!
     @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var centerView: UIView!
+    @IBOutlet weak var headerIcon: UIImageView!
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
@@ -285,6 +287,13 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.emptyLabel.textColor = Colors.getColor("blackorwhite")
+        self.headerLabel.textColor = Colors.getColor("whiteoryellow")
+        self.updateDataSpinner.color = Colors.getColor("whiteoryellow")
+        
+        if CacheManager.darkModeIsOn() {
+            self.headerIcon.image = UIImage(named: "iconpiggyyellow")
+            self.downIcon.image = UIImage(named: "downarrow32yellow")
+        }
     }
     
     func setWords() {

@@ -104,6 +104,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Corner radii
         self.confirmPinView.layer.cornerRadius = 8
+        self.confirmPinView.setShadow()
         
         // Button titles
         let allButtons = [self.confirmPinButton, self.restoreWalletButton, self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, self.button7, self.button8, self.button9, self.button0, self.buttonBackspace]
