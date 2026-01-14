@@ -35,8 +35,8 @@ extension CoreViewController {
             self.walletLabel.textColor = UIColor.white
             self.academyLabel.textColor = UIColor.white
             
-            self.bittrText.image = UIImage(named: "bittrtextwhite")
-            self.finalLogo.image = UIImage(named: "logodarkmode80")
+            self.finalLogoDarkMode.alpha = 1
+            self.bittrTextDarkMode.alpha = 1
         } else {
             // Dark mode is off.
             self.leftImageUnselected.image = UIImage(named: "menuwalletblack")
@@ -45,8 +45,8 @@ extension CoreViewController {
             self.walletLabel.textColor = UIColor(displayP3Red: 83/255, green: 83/255, blue: 83/255, alpha: 1)
             self.academyLabel.textColor = UIColor(displayP3Red: 83/255, green: 83/255, blue: 83/255, alpha: 1)
             
-            self.bittrText.image = UIImage(named: "bittrtext")
-            self.finalLogo.image = UIImage(named: "logo80")
+            self.finalLogoDarkMode.alpha = 0
+            self.bittrTextDarkMode.alpha = 0
         }
     }
     

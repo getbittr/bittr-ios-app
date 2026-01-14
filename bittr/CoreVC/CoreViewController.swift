@@ -35,10 +35,12 @@ class CoreViewController: UIViewController {
     
     // Top screen views
     @IBOutlet weak var finalLogo: UIImageView!
+    @IBOutlet weak var finalLogoDarkMode: UIImageView!
     @IBOutlet weak var coverView: UIView!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var lowerTopBar: UIView!
     @IBOutlet weak var bittrText: UIImageView!
+    @IBOutlet weak var bittrTextDarkMode: UIImageView!
     @IBOutlet weak var upperYellowCurve: BottomCurveView!
     @IBOutlet weak var lowerYellowCurve: BottomCurveView!
     
