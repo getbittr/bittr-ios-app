@@ -10,8 +10,6 @@ import UIKit
 class OneLessonViewController: UIViewController {
     
     // UI elements
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var mainScrollView: UIScrollView!
     @IBOutlet weak var mainContentView: UIView!
     @IBOutlet weak var mainContentViewHeight: NSLayoutConstraint!
@@ -29,15 +27,12 @@ class OneLessonViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Button titles
-        self.downButton.setTitle("", for: .normal)
-        
         // Color management
         self.changeColors()
         
         if self.thisLesson != nil {
             
-            self.headerLabel.text = self.thisLesson!.title
+            self.addHeader(iconLight: "iconacademy", iconDark: "iconacademyyellow", title: self.thisLesson!.title)
             self.loadPage()
         }
         
@@ -109,10 +104,6 @@ class OneLessonViewController: UIViewController {
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "reloadcollectionview"), object: nil, userInfo: nil) as Notification)
             self.dismiss(animated: true)
         }
-    }
-    
-    @IBAction func downTapped(_ sender: UIButton) {
-        self.dismiss(animated: true)
     }
     
     func changeColors() {

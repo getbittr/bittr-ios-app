@@ -10,9 +10,6 @@ import LDKNode
 import Sentry
 
 class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
-
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerLabel: UILabel!
     
     // Language view
     @IBOutlet weak var languageView: UIView!
@@ -82,7 +79,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         super.viewDidLoad()
 
         // Button titles
-        self.downButton.setTitle("", for: .normal)
         self.tokenButton.setTitle("", for: .normal)
         self.keyButton.setTitle("", for: .normal)
         self.imagesButton.setTitle("", for: .normal)
@@ -108,17 +104,25 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
+        // Set colors and language.
+        self.changeColors()
+        self.setWords()
+        
+        // Set dark mode switch.
         if CacheManager.darkModeIsOn() {
             self.darkModeSwitch.setOn(true, animated: false)
         }
         
-        self.changeColors()
-        self.setWords()
-        
+        // Set language settings.
         if CacheManager.getLanguage() == "en_US" {
             self.languageRightLabel.text = "English"
         }
         
+        // Sync lightning channels.
+        self.syncChannels()
+    }
+    
+    func syncChannels() {
         Task {
             do {
                 if BitcoinManager.shared.ldkNode != nil {
@@ -138,10 +142,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
                 }
             }
         }
-    }
-
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true)
     }
     
     @IBAction func languageButtonTapped(_ sender: UIButton) {
@@ -405,11 +405,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate {
         
         self.questionCircle.tintColor = Colors.getColor("blackorwhite")
         
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "devicedetails2"))
     }
     
     @objc func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "devicedetails2")
         self.subheaderLabel.text = Language.getWord(withID: "accessdetails")
         self.darkModeLabel.text = "🌙  " + Language.getWord(withID: "darkmode")
         self.tokenLabel.text = "📱  " + Language.getWord(withID: "devicetoken")
