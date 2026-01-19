@@ -130,8 +130,9 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Collection view
         self.pinCollectionView.delegate = self
         self.pinCollectionView.dataSource = self
-        
-        // Set colors
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
         self.changeColors()
     }
     

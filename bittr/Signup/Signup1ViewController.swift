@@ -64,13 +64,16 @@ class Signup1ViewController: UIViewController {
         self.cardView.setShadow()
         
         // Set colors, words, article.
-        self.changeColors()
         self.setWords()
         Task {
             await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
                 self.pageArticle1 = article ?? Article()
             })
         }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        self.changeColors()
     }
     
     @IBAction func restoreButtonClicked(_ sender: UIButton) {

@@ -84,6 +84,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         if let cell = tableView.dequeueReusableCell(withIdentifier: "DeviceCell", for: indexPath) as? DeviceTableViewCell {
             
             cell.deviceVC = self
+            cell.changeColors()
             
             cell.cellIcon.image = UIImage(systemName: self.deviceItems[indexPath.row]["icon"] ?? "bitcoinsign.circle")
             cell.cellTitle.text = self.deviceItems[indexPath.row]["label"] ?? ""
@@ -92,6 +93,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
             let cellTag = self.deviceItems[indexPath.row]["id"]!
             cell.cellButton.accessibilityIdentifier = cellTag
             
+            cell.hideDarkMode()
             switch cellTag {
             case "language":
                 if CacheManager.getLanguage() == "en_US" {
@@ -99,6 +101,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                 }
             case "lightningchannels":
                 self.syncChannels(channelsLabel: cell.buttonLabel)
+            case "darkmode":
+                cell.showDarkMode()
             default: break
             }
             
@@ -316,23 +320,12 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
-    @IBAction func darkModeSwitched(_ sender: UISwitch) {
-        if sender.isOn {
-            // Dark mode has been switched on.
-            CacheManager.updateDarkMode(isOn: true)
-        } else {
-            // Dark mode has been switched off.
-            CacheManager.updateDarkMode(isOn: false)
-        }
-        
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
-    }
-    
     @objc func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subheaderLabel.textColor = Colors.getColor("blackorwhite")
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "devicedetails2"))
+        self.deviceTableView.reloadData()
     }
     
     @objc func setWords() {

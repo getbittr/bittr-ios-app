@@ -70,6 +70,7 @@ extension CoreViewController {
                             self.changeColors()
                             self.upperYellowCurve.alpha = 1
                             self.lowerYellowCurve.alpha = 1
+                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
                         }
                     }
                 }

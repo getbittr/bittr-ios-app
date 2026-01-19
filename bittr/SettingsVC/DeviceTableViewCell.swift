@@ -22,6 +22,9 @@ class DeviceTableViewCell: UITableViewCell {
     @IBOutlet weak var imageSun: UIImageView!
     @IBOutlet weak var imageMoon: UIImageView!
     @IBOutlet weak var imageDevice: UIImageView!
+    @IBOutlet weak var buttonSun: UIButton!
+    @IBOutlet weak var buttonMoon: UIButton!
+    @IBOutlet weak var buttonDevice: UIButton!
     
     // Variables
     var deviceVC:DeviceViewController?
@@ -31,6 +34,9 @@ class DeviceTableViewCell: UITableViewCell {
         
         // Button titles.
         self.cellButton.setTitle("", for: .normal)
+        self.buttonSun.setTitle("", for: .normal)
+        self.buttonMoon.setTitle("", for: .normal)
+        self.buttonDevice.setTitle("", for: .normal)
         
         // Corner radii.
         self.cellCard.layer.cornerRadius = 13
@@ -63,6 +69,30 @@ class DeviceTableViewCell: UITableViewCell {
         }
     }
     
+    @IBAction func darkModeTapped(_ sender: UIButton) {
+        
+        self.imageSun.tintColor = Colors.getColor("blackorwhite")
+        self.imageMoon.tintColor = Colors.getColor("blackorwhite")
+        self.imageDevice.tintColor = Colors.getColor("blackorwhite")
+        
+        switch sender.tag {
+        case 0:
+            self.imageSun.tintColor = Colors.getColor("yellow")
+            CacheManager.updateDarkMode(.light)
+        case 1:
+            self.imageMoon.tintColor = Colors.getColor("yellow")
+            CacheManager.updateDarkMode(.dark)
+        case 2:
+            self.imageDevice.tintColor = Colors.getColor("yellow")
+            CacheManager.updateDarkMode(.device)
+        default: break
+        }
+        
+        CacheManager.setCurrentDarkMode(darkModeIsOn: self.deviceVC!.darkModeIsOn())
+        
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
+    }
+    
     func animateCell() {
         self.cellSpinner.startAnimating()
         self.buttonLabel.alpha = 0
@@ -80,6 +110,29 @@ class DeviceTableViewCell: UITableViewCell {
         self.cellTitle.textColor = Colors.getColor("blackorwhite")
         self.buttonLabel.textColor = Colors.getColor("blackorwhite")
         self.cellSpinner.color = Colors.getColor("blackorwhite")
+    }
+    
+    func showDarkMode() {
+        self.cellButton.alpha = 0
+        self.darkModeView.alpha = 1
+        
+        self.imageSun.tintColor = Colors.getColor("blackorwhite")
+        self.imageMoon.tintColor = Colors.getColor("blackorwhite")
+        self.imageDevice.tintColor = Colors.getColor("blackorwhite")
+        
+        switch CacheManager.darkMode() {
+        case .light:
+            self.imageSun.tintColor = Colors.getColor("yellow")
+        case .dark:
+            self.imageMoon.tintColor = Colors.getColor("yellow")
+        case .device:
+            self.imageDevice.tintColor = Colors.getColor("yellow")
+        }
+    }
+    
+    func hideDarkMode() {
+        self.cellButton.alpha = 1
+        self.darkModeView.alpha = 0
     }
 }
 

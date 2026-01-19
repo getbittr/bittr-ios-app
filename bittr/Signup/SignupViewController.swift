@@ -46,7 +46,9 @@ class SignupViewController: UIViewController {
 
         NotificationCenter.default.addObserver(self, selector: #selector(screenshotTaken), name: UIApplication.userDidTakeScreenshotNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
         self.changeColors()
     }
     
