@@ -10,8 +10,6 @@ import UIKit
 class ProfitViewController: UIViewController {
 
     // General
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var subtitleLabel: UILabel!
     
     // Views
@@ -36,7 +34,6 @@ class ProfitViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        self.downButton.setTitle("", for: .normal)
         self.investedView.layer.cornerRadius = 13
         self.divestedView.layer.cornerRadius = 13
         self.currentValueView.layer.cornerRadius = 13
@@ -50,10 +47,7 @@ class ProfitViewController: UIViewController {
         
         self.changeColors()
         self.setWords()
-    }
-    
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true, completion: nil)
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "yourprofits"))
     }
     
     func changeColors() {
@@ -76,7 +70,6 @@ class ProfitViewController: UIViewController {
     
     func setWords() {
         
-        self.headerLabel.text = Language.getWord(withID: "yourprofits")
         self.subtitleLabel.text = Language.getWord(withID: "profitsubtitle")
         self.investedLabel.text = "⬇️  " + Language.getWord(withID: "totalinvestment")
         self.currentLabel.text = "💰  " + Language.getWord(withID: "currentvalue")
