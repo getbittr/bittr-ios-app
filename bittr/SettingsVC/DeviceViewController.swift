@@ -14,6 +14,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     // Table view
     @IBOutlet weak var deviceTableView: UITableView!
     @IBOutlet weak var deviceTableViewHeight: NSLayoutConstraint!
+    
+    // Table items
     let deviceItems = [
         ["id":"darkmode", "label":Language.getWord(withID: "darkmode"), "button":"", "icon":"moon.fill"],
         ["id":"language", "label":Language.getWord(withID: "language"), "button":"", "icon":"globe.europe.africa.fill"],
@@ -34,6 +36,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     var homeVC:HomeViewController?
     var tappedCell:DeviceTableViewCell?
     var temporaryNotificationToken = ""
+    var channelsCount:String?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,19 +56,22 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.setWords()
     }
     
-    func syncChannels(channelsLabel:UILabel) {
+    func syncChannels() {
         Task {
             do {
                 if BitcoinManager.shared.ldkNode != nil {
                     let channels = try await BitcoinManager.shared.listChannels()
                     Log.info("Channels: \(channels.count)")
-                    channelsLabel.text = "\(channels.count)"
+                    self.channelsCount = "\(channels.count)"
+                    self.deviceTableView.reloadData()
+                    self.deviceTableView.reloadData()
                 } else {
-                    channelsLabel.text = "Syncing"
+                    self.channelsCount = "Syncing"
                 }
             } catch {
                 Log.info("Error listing channels: \(error.localizedDescription)")
-                channelsLabel.text = "0"
+                self.channelsCount = "0"
+                self.deviceTableView.reloadData()
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "DeviceViewController row 136", key: "context")
@@ -100,7 +106,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                     cell.buttonLabel.text = "English"
                 }
             case "lightningchannels":
-                self.syncChannels(channelsLabel: cell.buttonLabel)
+                if self.channelsCount == nil {
+                    self.syncChannels()
+                } else {
+                    cell.buttonLabel.text = self.channelsCount!
+                }
             case "darkmode":
                 cell.showDarkMode()
             default: break

@@ -244,16 +244,34 @@ extension HomeViewController {
         let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
         let totalBalanceSatsString = "\(totalBalanceSats)"
         
+        // Load balance label.
+        self.loadBalanceLabel(amount: totalBalanceSatsString)
+        
+        // Convert balance to EUR / CHF.
+        self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
+        
+        // Start timer
+        if self.coreVC!.walletSync == nil {
+            self.coreVC!.walletSync = BackgroundSync()
+            self.coreVC!.walletSync!.start()
+        }
+    }
+    
+    func loadBalanceLabel(amount:String) {
+        
+        // Update bitcoin sign alpha.
+        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.47 : 0.18
+        
         // Create balance representation with bold satoshis.
         let allZeros = ["", "0.00 000 00", "0.00 000 0", "0.00 000 ", "0.00 00", "0.00 0", "0.00 ", "0.0", "0."]
         var zeros = ""
-        var numbers = totalBalanceSatsString.addSpaces()
+        var numbers = amount.addSpaces()
         var sats = "  sats"
         
-        if totalBalanceSatsString.count < 9 {
-            zeros = allZeros[totalBalanceSatsString.count]
+        if amount.count < 9 {
+            zeros = allZeros[amount.count]
         } else {
-            numbers = "\(totalBalanceSats.inBTC())".replacingOccurrences(of: ",", with: ".")
+            numbers = "\(amount.toNumber().inBTC())".replacingOccurrences(of: ",", with: ".")
             let decimalsCount = numbers.split(separator: ".")[1].count
             var decimalsToAdd = 8 - decimalsCount
             while decimalsToAdd > 0 {
@@ -278,9 +296,6 @@ extension HomeViewController {
         let fillColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "0, 0, 0"
         self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)\(sats)</span></center>"
         
-        // Store HTML balance text to cache.
-        CacheManager.updateCachedData(data: self.balanceText, key: "balance")
-        
         if let htmlData = self.balanceText.data(using: .unicode) {
             
             var attributedText = NSAttributedString()
@@ -301,16 +316,7 @@ extension HomeViewController {
             self.bitcoinSign.alpha = bitcoinSignAlpha
             
             // Store satoshis balance string to cache.
-            CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")
-            
-            // Convert balance to EUR / CHF.
-            self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
-            
-            // Start timer
-            if self.coreVC!.walletSync == nil {
-                self.coreVC!.walletSync = BackgroundSync()
-                self.coreVC!.walletSync!.start()
-            }
+            CacheManager.updateCachedData(data: amount, key: "satsbalance")
         }
     }
     
