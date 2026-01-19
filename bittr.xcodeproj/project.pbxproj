@@ -38,6 +38,7 @@
 		052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171312CB430B8006C5663 /* SendVCLanguage.swift */; };
 		052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052DC6922AA853B700CD59B0 /* Transaction.swift */; };
 		052E98C22F1638FF000035A8 /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052E98C12F1638FC000035A8 /* UIViewController.swift */; };
+		052E98D02F1DFB3E000035A8 /* DeviceTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052E98CF2F1DFB37000035A8 /* DeviceTableViewCell.swift */; };
 		052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052EC7472D63254B00170FE4 /* WebSocketManager.swift */; };
 		053021AC2E7017A400B23226 /* CoreVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AB2E7017A000B23226 /* CoreVCLanguage.swift */; };
 		053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */; };
@@ -222,6 +223,7 @@
 		052171312CB430B8006C5663 /* SendVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendVCLanguage.swift; sourceTree = "<group>"; };
 		052DC6922AA853B700CD59B0 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		052E98C12F1638FC000035A8 /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
+		052E98CF2F1DFB37000035A8 /* DeviceTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTableViewCell.swift; sourceTree = "<group>"; };
 		052EC7472D63254B00170FE4 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		053021AB2E7017A000B23226 /* CoreVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreVCLanguage.swift; sourceTree = "<group>"; };
 		053021AD2E701ED300B23226 /* HandleLightningAddressNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleLightningAddressNotification.swift; sourceTree = "<group>"; };
@@ -765,11 +767,12 @@
 		05F8DC5929F2B449008052B5 /* SettingsVC */ = {
 			isa = PBXGroup;
 			children = (
-				0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */,
 				05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */,
 				050B4BAD2A16579D00563F29 /* SettingsTableViewCell.swift */,
+				0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */,
 				0595AB082B2EE7E900375498 /* WebsiteViewController.swift */,
 				0564B2432B5FEF0E001ECCF0 /* DeviceViewController.swift */,
+				052E98CF2F1DFB37000035A8 /* DeviceTableViewCell.swift */,
 			);
 			path = SettingsVC;
 			sourceTree = "<group>";
@@ -1121,6 +1124,7 @@
 				058B2FD42EE9B5A70010693D /* URIs.swift in Sources */,
 				05117AF32EAA2B2E00A5E4E6 /* Label.swift in Sources */,
 				058B2FE02EEA9ED30010693D /* BottomCurveView.swift in Sources */,
+				052E98D02F1DFB3E000035A8 /* DeviceTableViewCell.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,

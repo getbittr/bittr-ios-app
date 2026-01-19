@@ -45,26 +45,24 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "SettingsCell", for: indexPath) as? SettingsTableViewCell
-        
-        if let actualCell = cell {
+        if let cell = tableView.dequeueReusableCell(withIdentifier: "SettingsCell", for: indexPath) as? SettingsTableViewCell {
             
-            actualCell.layer.zPosition = CGFloat(indexPath.row)
-            actualCell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
-            actualCell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
-            actualCell.settingsCardLabel.text = Language.getWord(withID: self.settings[indexPath.row]["label"] ?? "Unnamed")
-            actualCell.settingsButton.accessibilityIdentifier = self.settings[indexPath.row]["id"] ?? ""
+            cell.layer.zPosition = CGFloat(indexPath.row)
+            cell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
+            cell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
+            cell.settingsCardLabel.text = Language.getWord(withID: self.settings[indexPath.row]["label"] ?? "Unnamed")
+            cell.settingsButton.accessibilityIdentifier = self.settings[indexPath.row]["id"] ?? ""
             
             if self.settings[indexPath.row]["id"] == "currency" {
-                actualCell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
+                cell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
             } else {
-                actualCell.currencyLabel.text = ""
+                cell.currencyLabel.text = ""
             }
             
-            return actualCell
+            return cell
+        } else {
+            return UITableViewCell()
         }
-        
-        return UITableViewCell()
     }
     
     @IBAction func settingsTapped(_ sender: UIButton) {

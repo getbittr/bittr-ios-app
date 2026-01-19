@@ -144,6 +144,9 @@ class CoreViewController: UIViewController {
             self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
         }
         
+        // Identify current dark mode.
+        CacheManager.setCurrentDarkMode(darkModeIsOn: self.darkModeIsOn())
+        
         // Corner radii.
         self.selectedView.layer.cornerRadius = 8
         self.pendingView.layer.cornerRadius = 13

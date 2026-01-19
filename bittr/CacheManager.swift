@@ -1024,16 +1024,52 @@ class CacheManager: NSObject {
     
     // MARK: - Dark mode
     
-    static func updateDarkMode(isOn:Bool) {
-        UserDefaults.standard.set(isOn, forKey: "darkmode")
+    static func setCurrentDarkMode(darkModeIsOn:Bool) {
+        var currentSetting = "light"
+        if darkModeIsOn {
+            currentSetting = "dark"
+        }
+        UserDefaults.standard.set(currentSetting, forKey: "currentdarkmode")
     }
     
     static func darkModeIsOn() -> Bool {
-        
-        if let darkModeStatus = UserDefaults.standard.value(forKey: "darkmode") as? Bool {
-            return darkModeStatus
+        if let darkModeStatus = UserDefaults.standard.value(forKey: "currentdarkmode") as? String {
+            if darkModeStatus == "dark" {
+                return true
+            } else {
+                return false
+            }
         } else {
             return false
+        }
+    }
+    
+    static func updateDarkMode(_ setting:DarkMode) {
+        
+        var newSetting = "light"
+        switch setting {
+        case .light:
+            newSetting = "light"
+        case .dark:
+            newSetting = "dark"
+        case .device:
+            newSetting = "device"
+        }
+        UserDefaults.standard.set(newSetting, forKey: "darkmode")
+    }
+    
+    static func darkMode() -> DarkMode {
+        
+        if let darkModeStatus = UserDefaults.standard.value(forKey: "darkmode") as? String {
+            var setDarkMode:DarkMode = .device
+            if darkModeStatus == "light" {
+                setDarkMode = .light
+            } else if darkModeStatus == "dark" {
+                setDarkMode = .dark
+            }
+            return setDarkMode
+        } else {
+            return .device
         }
     }
     
