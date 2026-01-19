@@ -248,6 +248,7 @@ extension HomeViewController {
         let allZeros = ["", "0.00 000 00", "0.00 000 0", "0.00 000 ", "0.00 00", "0.00 0", "0.00 ", "0.0", "0."]
         var zeros = ""
         var numbers = totalBalanceSatsString.addSpaces()
+        var sats = "  sats"
         
         if totalBalanceSatsString.count < 9 {
             zeros = allZeros[totalBalanceSatsString.count]
@@ -264,18 +265,18 @@ extension HomeViewController {
                 decimalsToAdd -= 1
             }
             bitcoinSignAlpha = 1
+            sats = ""
         }
         
         // Set text to invisible label to calculate font size for HTML text.
         self.balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
         let font = self.balanceLabelInvisible.adjustedFont()
-        self.satsLabel.font = font
         let adjustedSize = Int(font.pointSize)
         
         // Set HTML balance text.
         let transparentColor = CacheManager.darkModeIsOn() ? "170, 190, 217" : "201, 154, 0"
         let fillColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "0, 0, 0"
-        self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)</span></center>"
+        self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)\(sats)</span></center>"
         
         // Store HTML balance text to cache.
         CacheManager.updateCachedData(data: self.balanceText, key: "balance")
@@ -298,17 +299,6 @@ extension HomeViewController {
             self.balanceLabel.attributedText = attributedText
             self.balanceLabel.alpha = 1
             self.bitcoinSign.alpha = bitcoinSignAlpha
-            
-            // Don't show "sats" label if user has 1 or more bitcoin.
-            if bitcoinSignAlpha == 1 {
-                self.satsLabel.alpha = 0
-                self.satsLabel.text = ""
-                self.satsLabelLeading.constant = 0
-            } else {
-                self.satsLabel.alpha = 1
-                self.satsLabel.text = "sats"
-                self.satsLabelLeading.constant = 12
-            }
             
             // Store satoshis balance string to cache.
             CacheManager.updateCachedData(data: totalBalanceSatsString, key: "satsbalance")

@@ -28,8 +28,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var balanceLabelInvisible: UILabel!
     @IBOutlet weak var bitcoinSign: UIImageView!
     @IBOutlet weak var balanceLabel: UILabel!
-    @IBOutlet weak var satsLabel: UILabel!
-    @IBOutlet weak var satsLabelLeading: NSLayoutConstraint!
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var balanceCardButton: UIButton!
     var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
@@ -308,7 +306,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.balanceCardGainLabel.alpha = 0
         self.balanceLabel.alpha = 0
         self.bitcoinSign.alpha = 0
-        self.satsLabel.alpha = 0
         self.conversionLabel.alpha = 0
         self.homeTableView.reloadData()
         

@@ -50,8 +50,6 @@ extension HomeViewController {
         self.bottomCurve.fillColor = Colors.getColor("yelloworblue3")
         self.balanceCard.backgroundColor = Colors.getColor("yelloworblue3")
         
-        self.satsLabel.textColor = Colors.getColor("blackorwhite")
-        
         if CacheManager.darkModeIsOn() {
             self.bitcoinSign.image = UIImage(named: "gilroybitcoinwhite")
             self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")

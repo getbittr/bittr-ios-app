@@ -24,9 +24,6 @@ extension HomeViewController {
                     self.bitcoinSign.alpha = CacheManager.darkModeIsOn() ? 0.47 : 0.18
                     
                     self.balanceLabelInvisible.text = "B " + (balanceLabel.text?.replacingOccurrences(of: "\n", with: "") ?? "0.00 123 123") + " sats"
-                    
-                    self.satsLabel.font = self.balanceLabelInvisible.adjustedFont()
-                    self.satsLabel.alpha = 1
                 } catch {
                     Log.info("Couldn't fetch text: \(error.localizedDescription)")
                     DispatchQueue.main.async {
