@@ -230,27 +230,24 @@ class SwapManager: NSObject {
         if let actualWallet = BitcoinManager.shared.getWallet() {
             
             Task {
-                do {
-                    // Get current fees for fast onchain transaction.
-                    let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
-                    let high = feeEstimates[1]!
-                    let feeHigh = Float(Int(high*10))/10
-                    
-                    // Calculate transaction size.
-                    let size = try await swapVC.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet)
-                    
-                    // Calculate fees.
-                    let feesForOnchainPayment:Int = Int(CGFloat(feeHigh*Float(size)))
-                    let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
-                    print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
-                    
-                    // Confirm fees with user.
-                    DispatchQueue.main.async {
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = feeHigh
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = feesForOnchainPayment
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
-                        swapVC.confirmExpectedFees()
+                if swapVC.highestFeePerVbyte == nil {
+                    let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
+                    if feeEstimates == nil {
+                        Log.info("Could not fetch fee estimates.")
+                        DispatchQueue.main.async {
+                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                        return
                     }
+                    
+                    // Select highest fee.
+                    swapVC.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
+                }
+                
+                var size:UInt64
+                do {
+                    // Calculate transaction size.
+                    size = try await swapVC.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet)
                 } catch {
                     Log.info("Error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
@@ -259,6 +256,20 @@ class SwapManager: NSObject {
                             scope.setExtra(value: "SwapManager row 249", key: "context")
                         }
                     }
+                    return
+                }
+                    
+                // Calculate fees.
+                let feesForOnchainPayment:Int = Int(CGFloat(swapVC.highestFeePerVbyte!*Float(size)))
+                let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
+                print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
+                
+                // Confirm fees with user.
+                DispatchQueue.main.async {
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = swapVC.highestFeePerVbyte!
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = feesForOnchainPayment
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
+                    swapVC.confirmExpectedFees()
                 }
             }
         }

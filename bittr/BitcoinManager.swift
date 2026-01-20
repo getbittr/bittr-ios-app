@@ -672,6 +672,34 @@ class BitcoinManager {
         }
     }
     
+    func getFeeEstimates() async -> NSDictionary? {
+        
+        var receivedDictionary:NSDictionary
+        do {
+            receivedDictionary = try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
+                        switch result {
+                        case .success(let receivedDictionary):
+                            continuation.resume(returning: receivedDictionary)
+                        case .failure(let error):
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                }
+            }
+        } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "BitcoinManager row 385", key: "context")
+                }
+            }
+            return nil
+        }
+        
+        return receivedDictionary
+    }
+    
     func syncWallets() throws {
         try self.ldkNode!.syncWallets()
     }
@@ -708,6 +736,18 @@ class BitcoinManager {
     func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
         let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, routeParameters: nil)
         return paymentHash
+    }
+    
+    func sendOnchainPayment(address:String, amountSats:UInt64, feeRateSatVb:UInt64) -> Txid? {
+        
+        let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: feeRateSatVb)
+        
+        do {
+            let onchainID = try self.ldkNode!.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
+            return onchainID
+        } catch {
+            return nil
+        }
     }
     
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {

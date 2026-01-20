@@ -97,15 +97,23 @@ extension SendViewController {
                 self.confirmEuroLabel.text = "\(Int(self.onchainAmountInSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
                 
                 // Create transaction.
-                if let actualWallet = BitcoinManager.shared.getWallet() {
-                    Task {
+                Task {
+                    let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
+                    if feeEstimates == nil {
+                        DispatchQueue.main.async {
+                            self.nextLabel.alpha = 1
+                            self.arrowIcon.alpha = 1
+                            self.nextSpinner.stopAnimating()
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Couldn't fetch recommended fees.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                        return
+                    }
+                    self.feeLow = Float(feeEstimates!["economyFee"] as! Double)
+                    self.feeMedium = Float(feeEstimates!["hourFee"] as! Double)
+                    self.feeHigh = Float(feeEstimates!["fastestFee"] as! Double)
+                    
+                    if let actualWallet = BitcoinManager.shared.getWallet() {
                         do {
-                            // Get estimated fees.
-                            let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
-                            self.feeLow = Float(Int(feeEstimates[6]!*10))/10
-                            self.feeMedium = Float(Int(feeEstimates[3]!*10))/10
-                            self.feeHigh = Float(Int(feeEstimates[1]!*10))/10
-                            
                             // Get transaction size.
                             let size = try self.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet)
                             
@@ -172,15 +180,15 @@ extension SendViewController {
                                 }
                             }
                         }
-                    }
-                } else {
-                    // Wallet unavailable.
-                    self.nextLabel.alpha = 1
-                    self.arrowIcon.alpha = 1
-                    self.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(message: "Wallet unavailable") { scope in
-                        scope.setExtra(value: "SendOnchain row 186", key: "context")
+                    } else {
+                        // Wallet unavailable.
+                        self.nextLabel.alpha = 1
+                        self.arrowIcon.alpha = 1
+                        self.nextSpinner.stopAnimating()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.capture(message: "Wallet unavailable") { scope in
+                            scope.setExtra(value: "SendOnchain row 186", key: "context")
+                        }
                     }
                 }
             }

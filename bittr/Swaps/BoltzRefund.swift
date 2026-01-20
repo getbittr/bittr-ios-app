@@ -29,8 +29,8 @@ class BoltzRefund {
     /// Calculates transaction fee using the highest priority fee rate
     /// Both claim and refund transactions are always 99 vbytes in size
     static func calculateClaimOrRefundTransactionFee() async throws -> Int {
-        let feeEstimates = try BitcoinManager.shared.getEsploraClient()!.getFeeEstimates()
-        let highPriorityFeeRate = feeEstimates[1]! // Highest priority fee rate
+        let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
+        let highPriorityFeeRate = feeEstimates!["fastestFee"] as! Double
         let transactionSizeVBytes = 99 // Fixed size for claim/refund transactions
         
         let calculatedFee = Int(highPriorityFeeRate * Double(transactionSizeVBytes))
