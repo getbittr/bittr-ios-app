@@ -332,15 +332,10 @@ class BitcoinManager {
             self.coreVC?.updateSync(action: .start, type: .final)
         }
         
-        // Get current height.
-        do {
-            self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
-        } catch {
-            self.handleError(error: error, row: 272, stopLightning: true)
-            return
-        }
-        
         Task {
+            // Get latest block height.
+            let _ = await self.didGetLatestBlockHeight()
+            
             // Check peer connection.
             let peerIsConnected = await self.coreVC!.isConnectedToPeer()
             DispatchQueue.global(qos: .background).async {
@@ -352,6 +347,45 @@ class BitcoinManager {
                     self.connectToLightningPeer()
                 }
             }
+        }
+    }
+    
+    func didGetLatestBlockHeight() async -> Bool {
+        
+        var receivedDictionary:NSDictionary
+        do {
+            receivedDictionary = try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    await CallsManager.makeApiCall(url: "https://mempool.space/api/blocks/tip/height", parameters: nil, getOrPost: .get) { result in
+                        switch result {
+                        case .success(let receivedDictionary):
+                            continuation.resume(returning: receivedDictionary)
+                        case .failure(let error):
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                }
+            }
+        } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "BitcoinManager row 385", key: "context")
+                }
+            }
+            return false
+        }
+        
+        if let blockHeight = receivedDictionary["result"] as? Int {
+            Log.info("Block height: \(blockHeight)")
+            self.coreVC?.bittrWallet.currentHeight = blockHeight
+            return true
+        } else {
+            DispatchQueue.main.async {
+                SentrySDK.capture(message: "Could not get latest block height. \(receivedDictionary)") { scope in
+                    scope.setExtra(value: "BitcoinManager row 377", key: "context")
+                }
+            }
+            return false
         }
     }
     
@@ -609,15 +643,16 @@ class BitcoinManager {
             // Check if any changes have been found.
             if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.ldkNode!.listPayments().count {
                 
+                // Update balance.
                 self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
-                do {
-                    self.coreVC?.bittrWallet.currentHeight = Int(try self.getEsploraClient()!.getHeight())
-                } catch {
-                    self.handleError(error: error, row: 611, stopLightning: false)
-                }
+                
+                // Update transactions.
                 self.coreVC!.bittrWallet.allTransactions = self.ldkNode!.listPayments()
                 
                 Task {
+                    // Get latest block height.
+                    let _ = await self.didGetLatestBlockHeight()
+                    
                     do {
                         self.coreVC!.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels()
                         

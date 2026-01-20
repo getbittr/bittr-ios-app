@@ -64,9 +64,9 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                     Log.info("Channels: \(channels.count)")
                     self.channelsCount = "\(channels.count)"
                     self.deviceTableView.reloadData()
-                    self.deviceTableView.reloadData()
                 } else {
                     self.channelsCount = "Syncing"
+                    self.deviceTableView.reloadData()
                 }
             } catch {
                 Log.info("Error listing channels: \(error.localizedDescription)")

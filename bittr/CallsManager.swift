@@ -52,9 +52,11 @@ class CallsManager: NSObject {
                 
                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
                     do {
-                        let dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: []) as? NSDictionary
-                        if let actualDataDict = dataDictionary {
+                        let dataDictionary = try JSONSerialization.jsonObject(with: receivedData, options: [.fragmentsAllowed])
+                        if let actualDataDict = dataDictionary as? NSDictionary {
                             completion(.success(actualDataDict))
+                        } else if let actualInt = dataDictionary as? Int {
+                            completion(.success(["result": actualInt] as NSDictionary))
                         } else {
                             completion(.failure(.decodingFailed))
                             return

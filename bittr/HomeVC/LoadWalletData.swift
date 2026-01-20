@@ -237,9 +237,6 @@ extension HomeViewController {
             return
         }
         
-        // Update bitcoin sign alpha.
-        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.47 : 0.18
-        
         // Calculate total balance
         let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
         let totalBalanceSatsString = "\(totalBalanceSats)"
@@ -298,7 +295,7 @@ extension HomeViewController {
         
         if let htmlData = self.balanceText.data(using: .unicode) {
             
-            var attributedText = NSAttributedString()
+            var attributedText:NSAttributedString
             do {
                 attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
             } catch {
