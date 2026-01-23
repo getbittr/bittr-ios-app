@@ -176,7 +176,7 @@ class SignupViewController: UIViewController {
     }
     
     @objc func changeColors() {
-        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.view.backgroundColor = Colors.getColor("yelloworblue3")
     }
     
 }

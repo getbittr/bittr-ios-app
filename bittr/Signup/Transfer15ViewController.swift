@@ -125,12 +125,27 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 DispatchQueue.main.async {
                     self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
                 }
-            } else if settings.authorizationStatus == .authorized, CacheManager.getRegistrationToken() == nil {
+            } else if settings.authorizationStatus != .authorized {
+                // Notifications have been rejected..
+                DispatchQueue.main.async {
+                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.cancelLoading)])
+                }
+            } else if CacheManager.getRegistrationToken() == nil {
                 // Notifications preference has been set but token hasn't been cached.
                 self.askForPushNotifications()
             } else {
                 self.sendCodeToBittr()
             }
+        }
+    }
+    
+    
+    @objc func cancelLoading() {
+        self.hideAlert()
+        DispatchQueue.main.async {
+            self.nextButtonLabel.alpha = 1
+            self.nextButtonArrow.alpha = 1
+            self.nextButtonActivityIndicator.stopAnimating()
         }
     }
     
@@ -478,29 +493,28 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
     }
     
     @objc func askForPushNotifications() {
-        
         self.hideAlert()
         
         let current = UNUserNotificationCenter.current()
         current.getNotificationSettings { (settings) in
             
-            if settings.authorizationStatus == .notDetermined {
-                // User hasn't set their preference yet.
+            if settings.authorizationStatus != .authorized {
+                // User hasn't authorized notifications yet.
                 
                 current.delegate = self
                 current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
                     
                     Log.info("Permission granted: \(granted)")
                     guard granted else {
-                        self.sendCodeToBittr()
+                        self.checkPushNotificationStatus()
                         return
                     }
                     
                     // Double check that the preference is now authorized.
-                    current.getNotificationSettings { (settings) in
-                        Log.info("Notification settings: \(settings)")
-                        guard settings.authorizationStatus == .authorized else {
-                            self.sendCodeToBittr()
+                    current.getNotificationSettings { (updatedSettings) in
+                        Log.info("Notification settings: \(updatedSettings)")
+                        guard updatedSettings.authorizationStatus == .authorized else {
+                            self.checkPushNotificationStatus()
                             return
                         }
                         DispatchQueue.main.async {
@@ -510,7 +524,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         }
                     }
                 }
-            } else if settings.authorizationStatus == .authorized {
+            } else {
                 // User has already authorized notifications.
                 DispatchQueue.main.async {
                     // Register for notifications.
