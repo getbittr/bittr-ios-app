@@ -10,40 +10,21 @@ import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
 import Sentry
-import BitcoinDevKit
 
-extension ReceiveViewController {
+extension UIViewController {
     
-    func getNewOnchainAddress(new:Bool) -> String? {
-        
-        let wallet = BitcoinManager.shared.getWallet()
-        if new {
-            // Get a new address.
-            if let address = wallet?.revealNextAddress(keychain: .external).address.description {
-                return address
-            } else {
-                return nil
-            }
-        } else {
-            // Get last unused address.
-            if let address = wallet?.nextUnusedAddress(keychain: .external).address.description {
-                return address
-            } else {
-                return nil
-            }
-        }
-    }
-    
-    func getOnchainAddress() -> String? {
-        
+    func getCachedOnchainAddress() -> String? {
         if let cachedAddress = CacheManager.getLastAddress() {
             Log.info("Show cached address.")
             return cachedAddress
         } else {
-            Log.info("Show new address.")
+            Log.info("No cached address available.")
             return nil
         }
     }
+}
+
+extension ReceiveViewController {
     
     @objc func confirmOnchainAddress() {
         self.hideAlert()
@@ -96,26 +77,25 @@ extension ReceiveViewController {
             }
                 
             if !resetAddress {
-                if let cachedOnchainAddress = self.getOnchainAddress() {
+                // Show cached onchain address.
+                if let cachedOnchainAddress = self.getCachedOnchainAddress() {
                     onchainAddressToDisplay = cachedOnchainAddress
-                } else if let newOnchainAddress = self.getNewOnchainAddress(new: false) {
+                } else if let newOnchainAddress = BitcoinManager.shared.getNewOnchainAddress() {
                     CacheManager.storeLastAddress(newAddress: newOnchainAddress)
                     onchainAddressToDisplay = newOnchainAddress
                 }
             } else {
-                var new = false
-                if didDoublecheckLastUsedAddress {
-                    new = true
+                // Show new onchain address.
+                if self.didDoublecheckLastUsedAddress {
                     self.didDoublecheckLastUsedAddress = false
-                }
-                if let newOnchainAddress = self.getNewOnchainAddress(new: new) {
-                    if self.getOnchainAddress() != nil, self.getOnchainAddress()! == newOnchainAddress {
-                        // Old address is unused.
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [#selector(self.confirmUnusedOnchainAddress), #selector(self.confirmOnchainAddress)])
-                    } else {
+                    if let newOnchainAddress = BitcoinManager.shared.getNewOnchainAddress() {
                         CacheManager.storeLastAddress(newAddress: newOnchainAddress)
                         onchainAddressToDisplay = newOnchainAddress
                     }
+                } else {
+                    // First doublecheck whether the user really intends to reveal a new address.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [#selector(self.confirmUnusedOnchainAddress), #selector(self.confirmOnchainAddress)])
+                    return
                 }
             }
             

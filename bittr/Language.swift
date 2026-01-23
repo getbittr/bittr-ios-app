@@ -349,7 +349,7 @@ class Language: NSObject {
             "reset": "Reset",
             "resetpin": "Reset PIN",
             "newaddress": "new address",
-            "newaddress2": "The current address is unused. Would you like to get a new one anyway?",
+            "newaddress2": "Are you sure you wish to reveal a new address?\n\nThe best practice is to only reveal a new address once the previous one has been used.\n\nIn an extreme scenario, revealing excessive addresses without using them may lead to wallet syncing issues.",
             "notificationsrequired": "Notifications Required",
             "notificationsrequiredmessage": "To process swaps, you need to be online. We'd like to notify you once your transaction is confirmed so that you can finalize the swap in the app. Please allow notification permissions.",
             "swapstatusupdate": "Your swap status has been updated",

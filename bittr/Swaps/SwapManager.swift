@@ -379,8 +379,6 @@ class SwapManager: NSObject {
         let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
         
         let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
-
-        let wallet = BitcoinManager.shared.getWallet()
         
         // Use provided payout address if available, otherwise get a new unused address
         let destinationAddress: String?
@@ -389,7 +387,7 @@ class SwapManager: NSObject {
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
-            destinationAddress = wallet?.nextUnusedAddress(keychain: .external).address.description
+            destinationAddress = BitcoinManager.shared.getNewOnchainAddress()
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")

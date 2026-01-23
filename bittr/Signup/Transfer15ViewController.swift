@@ -215,8 +215,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 let lightningSignature = try await BitcoinManager.shared.signMessage(message: message)
                 
                 // Get real onchain address.
-                let wallet = BitcoinManager.shared.getWallet()
-                let firstAddress = wallet?.peekAddress(keychain: .external, index: 0).address.description ?? ""
+                let firstAddress = BitcoinManager.shared.getNewOnchainAddress() ?? ""
                 
                 // Get node ID.
                 var lightningPubKey = String()

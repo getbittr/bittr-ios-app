@@ -206,64 +206,65 @@ class BoltzRefund {
             Log.info("❌ No ongoing swap found")
             return ClaimResult(success: false, transactionId: nil)
         }
+        
+        let boltzServerPublicKeyBytes = try! ongoingSwap.claimPublicKey!.bytes
+        
+        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
+            dataRepresentation: boltzServerPublicKeyBytes,
+            format: .compressed
+        )
+        
+        let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
+        
+        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
+        
+        // Aggregate public keys without sorting
+        let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
+        let aggregatedPublicKey = try P256K.MuSig.aggregate(publicKeys, sortKeys: false)
+        
+        let claimLeafOutputHex = ongoingSwap.claimLeafOutput!
+        let refundLeafOutputHex = ongoingSwap.refundLeafOutput!
+        
+        let tapTweakHash = try computeTapLeafHash(
+            aggregatedPublicKey: aggregatedPublicKey,
+            claimLeafOutputHex: claimLeafOutputHex,
+            refundLeafOutputHex: refundLeafOutputHex
+        )
+        
+        // Apply the x-only tweak to the aggregated public key's x-only key
+        // For Taproot, we need to use x-only tweaking which properly updates the key aggregation cache
+        let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
+        
+        let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
+        
+        let lockupTxHex = ongoingSwap.lockupTx!
+        
+        // Calculate the correct transaction hash from the lockup transaction
+        guard let txHash = calculateTransactionHash(from: lockupTxHex),
+              let tweakedKey = Data(hexString: tweakedKeyHex) else {
+            Log.info("❌ Failed to parse hex data or calculate transaction hash")
+            return ClaimResult(success: false, transactionId: nil)
+        }
             
-            let boltzServerPublicKeyBytes = try! ongoingSwap.claimPublicKey!.bytes
-            
-            let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
-                dataRepresentation: boltzServerPublicKeyBytes,
-                format: .compressed
-            )
-            
-            let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
-            
-            let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
-            
-            // Aggregate public keys without sorting
-            let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
-            let aggregatedPublicKey = try P256K.MuSig.aggregate(publicKeys, sortKeys: false)
-            
-            let claimLeafOutputHex = ongoingSwap.claimLeafOutput!
-            let refundLeafOutputHex = ongoingSwap.refundLeafOutput!
-            
-            let tapTweakHash = try computeTapLeafHash(
-                aggregatedPublicKey: aggregatedPublicKey,
-                claimLeafOutputHex: claimLeafOutputHex,
-                refundLeafOutputHex: refundLeafOutputHex
-            )
-            
-            // Apply the x-only tweak to the aggregated public key's x-only key
-            // For Taproot, we need to use x-only tweaking which properly updates the key aggregation cache
-            let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
-            
-            let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
-            
-            let lockupTxHex = ongoingSwap.lockupTx!
-            
-            // Calculate the correct transaction hash from the lockup transaction
-            guard let txHash = calculateTransactionHash(from: lockupTxHex),
-                  let tweakedKey = Data(hexString: tweakedKeyHex) else {
-                Log.info("❌ Failed to parse hex data or calculate transaction hash")
+        if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
+                
+            let destinationAddress = BitcoinManager.shared.getNewOnchainAddress()
+            if destinationAddress == nil {
+                Log.info("No address available.")
                 return ClaimResult(success: false, transactionId: nil)
             }
-            
-            if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
-                
-            guard let wallet = BitcoinManager.shared.getWallet() else {
-                throw APIError.requestFailed("Wallet not available")
-            }
-            let destinationAddress = wallet.nextUnusedAddress(keychain: .external).address.description
             
             // Calculate refund transaction fee
             let refundFee = try await calculateClaimOrRefundTransactionFee()
             
             let refundTx = constructSingleRefundTransaction(
-                  swapOutput: swapOutput,              // Same output from detectSwap
-                  txHash: txHash,                // Hash of lockup transaction
-                  destinationAddress: destinationAddress,     // Where to send refunded funds
-                  timeoutBlockHeight: 0,          // Block height when refund becomes valid
-                  fee: refundFee,                  // Transaction fee in satoshis
-                  network: network
-              )
+                swapOutput: swapOutput,        // Same output from detectSwap
+                txHash: txHash,                // Hash of lockup transaction
+                destinationAddress: destinationAddress!,     // Where to send refunded funds
+                timeoutBlockHeight: 0,         // Block height when refund becomes valid
+                fee: refundFee,                // Transaction fee in satoshis
+                network: network
+            )
             
             let serializedTx = refundTx.serialize()
             

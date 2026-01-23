@@ -471,9 +471,12 @@ extension UIViewController {
         
         if let actualWallet = BitcoinManager.shared.getWallet() {
             do {
-                let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
-                _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
-                return nil
+                if let actualAddress = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
+                    _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
+                    return nil
+                } else {
+                    return 0
+                }
             } catch {
                 if let bdkError = error as? BitcoinDevKit.CreateTxError {
                     switch bdkError {

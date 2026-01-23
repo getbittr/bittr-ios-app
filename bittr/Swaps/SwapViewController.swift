@@ -284,12 +284,19 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                         self.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
                         
                         // Get own onchain address.
-                        let actualAddress:String = actualWallet.peekAddress(keychain: .external, index: 0).address.description
+                        let actualAddress:String? = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress()
+                        if actualAddress == nil {
+                            Log.info("Could not fetch address.")
+                            DispatchQueue.main.async {
+                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                            }
+                            return
+                        }
                         
                         var sizeinVbytes:UInt64
                         do {
                             // Calculate transaction size.
-                            sizeinVbytes = try self.getSize(address: actualAddress, amountSats: maximumSendableOnchainSats, wallet: actualWallet)
+                            sizeinVbytes = try self.getSize(address: actualAddress!, amountSats: maximumSendableOnchainSats, wallet: actualWallet)
                         } catch {
                             Log.info("Error: \(error.localizedDescription)")
                             SentrySDK.capture(error: error) { scope in
