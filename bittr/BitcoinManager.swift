@@ -681,7 +681,15 @@ class BitcoinManager {
                     await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
                         switch result {
                         case .success(let receivedDictionary):
-                            continuation.resume(returning: receivedDictionary)
+                            // Minimum fee is 1 sat/vByte.
+                            let mutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
+                            for (key, value) in mutableDictionary {
+                                if (value as? Double) == nil || (key as? String) == nil { continuation.resume(returning: receivedDictionary) }
+                                if (value as! Double) < 1 {
+                                    mutableDictionary.setValue(Double(1), forKey: (key as! String))
+                                }
+                            }
+                            continuation.resume(returning: mutableDictionary)
                         case .failure(let error):
                             continuation.resume(throwing: error)
                         }
