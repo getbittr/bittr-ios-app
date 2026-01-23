@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import BitcoinDevKit
 import UserNotifications
 import Sentry
 

@@ -7,7 +7,6 @@
 import P256K
 import Foundation
 import CryptoKit
-import BitcoinDevKit
 
 // MARK: - Claim Result
 

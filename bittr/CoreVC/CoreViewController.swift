@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import BitcoinDevKit
 
 class CoreViewController: UIViewController {
     

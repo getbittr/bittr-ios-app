@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import BitcoinDevKit
 import UserNotifications
 import Sentry
 

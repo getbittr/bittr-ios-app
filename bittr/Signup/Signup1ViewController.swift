@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import BitcoinDevKit
 
 class Signup1ViewController: UIViewController {
 

@@ -10,7 +10,6 @@ import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
 import Sentry
-import BitcoinDevKit
 import AVFoundation
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {

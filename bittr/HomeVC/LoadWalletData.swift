@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import BitcoinDevKit
 import LDKNode
 import Sentry
 

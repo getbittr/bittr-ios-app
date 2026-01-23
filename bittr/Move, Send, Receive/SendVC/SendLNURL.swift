@@ -12,7 +12,6 @@ import CodeScanner
 import LDKNode
 import LightningDevKit
 import Sentry
-import BitcoinDevKit
 
 extension UIViewController {
     

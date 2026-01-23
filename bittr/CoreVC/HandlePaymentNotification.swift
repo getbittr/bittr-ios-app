@@ -193,10 +193,8 @@ extension CoreViewController {
                     } catch {
                         Log.info("Error occurred: \(error.localizedDescription)")
                         DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
-                            }
                             self.hidePendingView()
+                            var sendToSentry = true
                             
                             if let bittrServiceError = error as? BittrServiceError {
                                 switch bittrServiceError {
@@ -208,6 +206,10 @@ extension CoreViewController {
                                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                                     } else {
                                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                        if message == "This payment has already been processed." {
+                                            // No need to notify Sentry.
+                                            sendToSentry = false
+                                        }
                                     }
                                 default:
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
@@ -217,6 +219,12 @@ extension CoreViewController {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
                                 } else {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                }
+                            }
+                            
+                            if sendToSentry {
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
                                 }
                             }
                         }

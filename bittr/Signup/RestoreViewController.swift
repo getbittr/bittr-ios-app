@@ -100,8 +100,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.mnemonic12.delegate = self
         
         // Configure MnemonicTextField properties
-        let textFields = [self.mnemonic1, self.mnemonic2, self.mnemonic3, self.mnemonic4, self.mnemonic5, self.mnemonic6, 
-                         self.mnemonic7, self.mnemonic8, self.mnemonic9, self.mnemonic10, self.mnemonic11, self.mnemonic12]
+        let textFields = [self.mnemonic1, self.mnemonic2, self.mnemonic3, self.mnemonic4, self.mnemonic5, self.mnemonic6, self.mnemonic7, self.mnemonic8, self.mnemonic9, self.mnemonic10, self.mnemonic11, self.mnemonic12]
         
         for (index, textField) in textFields.enumerated() {
             textField?.tag = index + 1
