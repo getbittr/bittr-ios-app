@@ -147,10 +147,10 @@ struct BittrWidgetEntryView : View {
 
     var body: some View {
         ZStack {
-            ContainerRelativeShape().fill(Color(UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)))
+            ContainerRelativeShape().fill(Color("YellowOrDark2"))
             VStack {
                 HStack {
-                    Image("iconpiggywhite")
+                    Image("iconpiggy")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 16, height: 16)
@@ -159,7 +159,7 @@ struct BittrWidgetEntryView : View {
                     Text("bitcoin value")
                         .font(.custom("Gilroy-Bold", size: 16))
                         .fontWeight(.bold)
-                        .foregroundColor(Color.white.opacity(1))
+                        .foregroundColor(Color("WhiteOrYellow"))
                         .font(.title3)
                         .padding(.top, 3)
                         .lineLimit(1)
@@ -177,6 +177,7 @@ struct BittrWidgetEntryView : View {
                     .padding(.top, 6)
                     .padding(.leading, 3)
                     .padding(.trailing, 3)
+                    .foregroundColor(Color("BlackOrWhite"))
                 
                 Spacer()
                 
@@ -186,7 +187,7 @@ struct BittrWidgetEntryView : View {
                     Text("\(entry.currency)")
                         .font(.custom("Gilroy-Bold", size: 18))
                         .fontWeight(.bold)
-                        .foregroundColor(Color.white.opacity(1))
+                        .foregroundColor(Color("WhiteOrYellow"))
                         .font(.title3)
                         .padding(.trailing, 23)
                         .padding(.bottom, 20)
