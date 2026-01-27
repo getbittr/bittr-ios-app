@@ -60,7 +60,20 @@ class BitcoinManager {
         )
         
         // Set mnemonic string.
-        let mnemonicString = self.getMnemonic()
+        let mnemonicString:String
+        if let cachedMnemonic = CacheManager.getMnemonic() {
+            mnemonicString = cachedMnemonic
+        } else {
+            // No cached mnemonic available.
+            Log.info("Could not get mnemonic from cache.")
+            DispatchQueue.main.async {
+                SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
+                    scope.setExtra(value: "BitcoinManager row 71", key: "context")
+                }
+                completion(false)
+            }
+            return
+        }
         
         // Set LDK background syncing.
         let backgroundSync = BackgroundSyncConfig(
