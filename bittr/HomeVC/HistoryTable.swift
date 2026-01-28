@@ -35,11 +35,11 @@ extension HomeViewController {
             if thisTransaction.received - thisTransaction.sent < 0 {
                 plusSymbol = "-"
             }
-            cell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            cell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent - thisTransaction.fee).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Conversion
             let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-            let transactionValue = (thisTransaction.received - thisTransaction.sent).inBTC()
+            let transactionValue = (thisTransaction.received - thisTransaction.sent - thisTransaction.fee).inBTC()
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
             cell.eurosLabel.text = "\(balanceValue) \(bitcoinValue.chosenCurrency)"
