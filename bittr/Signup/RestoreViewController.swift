@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import BitcoinDevKit
 import Sentry
 
 class RestoreViewController: UIViewController, UITextFieldDelegate {
@@ -283,9 +282,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             // We're restoring an existing wallet.
                             
                             // Validate mnemonic using BitcoinDevKit before storing
-                            do {
-                                print("Validating mnemonic with BitcoinDevKit: \(enteredMnemonic)")
-                                _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: enteredMnemonic)
+                            print("Validating mnemonic with BitcoinDevKit: \(enteredMnemonic)")
+                            if BitcoinManager.shared.isValidMnemonic(enteredMnemonic) {
                                 Log.info("Mnemonic validation successful")
                                 
                                 // Store restorable mnemonic in cache.
@@ -304,12 +302,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 self.restoreButtonText.alpha = 1
                                 Log.info("Restore process completed successfully")
                                 
-                            } catch {
-                                Log.info("Mnemonic validation failed: \(error)")
+                            } else {
+                                Log.info("Mnemonic validation failed.")
                                 DispatchQueue.main.async {
-                                    SentrySDK.capture(error: error) { scope in
-                                        scope.setExtra(value: "RestoreViewController row 313", key: "context")
-                                    }
                                     self.restoreButtonSpinner.stopAnimating()
                                     self.restoreButtonText.alpha = 1
                                     self.showAlert(

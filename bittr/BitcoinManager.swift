@@ -934,10 +934,48 @@ class BitcoinManager {
         return details
     }
     
+    func sendOnchainTransaction(address:String, amountSats:Int, selectedVbyte:Float?) throws -> [String] {
+        
+        // Create transaction.
+        let tx:BitcoinDevKit.Transaction
+        do {
+            tx = try BitcoinManager.shared.getTx(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
+        } catch {
+            throw error
+        }
+        
+        // Check Electrum availability.
+        guard self.electrumClient != nil else {
+            throw WalletError.clientNotInitiated
+        }
+        
+        // Broadcast transaction.
+        let txId:String
+        do {
+            txId = try self.electrumClient!.transactionBroadcast(tx: tx)
+        } catch {
+            throw error
+        }
+        
+        let rawData = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
+        return [txId, rawData]
+    }
+    
+    func isValidMnemonic(_ thisMnemonic:String) -> Bool {
+        do {
+            _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: thisMnemonic)
+            return true
+        } catch {
+            // Could not generate mnemonic.
+            return false
+        }
+    }
+    
 }
 
 enum WalletError: Error {
     case walletNotInitiated
+    case clientNotInitiated
 }
 
 extension FileManager {

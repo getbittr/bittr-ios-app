@@ -10,7 +10,6 @@ import LDKNode
 import UserNotifications
 import LightningDevKit
 import Sentry
-import BitcoinDevKit
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
 

@@ -9,7 +9,6 @@ import UIKit
 import LDKNode
 import Sentry
 import P256K
-import BitcoinDevKit
 import CryptoKit
 import LightningDevKit
 
@@ -278,36 +277,9 @@ class SwapManager: NSObject {
             
         // Send onchain transaction.
         Task {
+            let txIdAndRawData:[String]
             do {
-                let tx = try BitcoinManager.shared.getTx(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: ongoingSwap.feeHigh!)
-                
-                if let client = BitcoinManager.shared.getClient() {
-                    
-                    let txid = try client.transactionBroadcast(tx: tx)
-                    
-                    print("Transaction ID: \(txid)")
-                
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        Log.info("Successful transaction.")
-                        
-                        // Update swap object.
-                        ongoingSwap.sentOnchainTransactionID = txid
-                        ongoingSwap.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txid
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
-                        self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
-                        
-                        // Create transaction object.
-                        CacheManager.storeInvoiceDescription(preimage: txid, desc: ongoingSwap.dateID)
-                        CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-                        
-                        // Update Home table.
-                        BitcoinManager.shared.lightSync() { _ in }
-                        
-                        // Call didCompleteOnchainTransaction to set up WebSocket monitoring
-                        swapVC.didCompleteOnchainTransaction()
-                    }
-                }
+                txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: ongoingSwap.feeHigh!)
             } catch {
                 // Log the exact error for debugging
                 Log.info("Transaction error: \(error.localizedDescription)")
@@ -324,6 +296,31 @@ class SwapManager: NSObject {
                         scope.setExtra(value: "SwapManager row 308", key: "context")
                     }
                 }
+                return
+            }
+            let txId = txIdAndRawData[0]
+            let rawData = txIdAndRawData[1]
+            print("Transaction ID: \(txId)")
+        
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                Log.info("Successful transaction.")
+                
+                // Update swap object.
+                ongoingSwap.sentOnchainTransactionID = txId
+                ongoingSwap.lockupTx = rawData
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txId
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = ongoingSwap.lockupTx
+                self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
+                
+                // Create transaction object.
+                CacheManager.storeInvoiceDescription(preimage: txId, desc: ongoingSwap.dateID)
+                CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+                
+                // Update Home table.
+                BitcoinManager.shared.lightSync() { _ in }
+                
+                // Call didCompleteOnchainTransaction to set up WebSocket monitoring
+                swapVC.didCompleteOnchainTransaction()
             }
         }
     }
