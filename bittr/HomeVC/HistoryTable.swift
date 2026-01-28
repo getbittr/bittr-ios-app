@@ -32,7 +32,7 @@ extension HomeViewController {
             
             // Satoshis
             var plusSymbol = "+"
-            if thisTransaction.received - thisTransaction.sent < 0 {
+            if thisTransaction.received - thisTransaction.sent - thisTransaction.fee < 0 {
                 plusSymbol = "-"
             }
             cell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent - thisTransaction.fee).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")

@@ -246,7 +246,7 @@ class TransactionViewController: UIViewController {
             self.feesQuestionStack.alpha = 1
             self.feesQuestionStackWidth.constant = 22
             self.feesQuestionButton.alpha = 1
-        } else if (self.tappedTransaction.received-self.tappedTransaction.sent) < 0 {
+        } else if (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee) < 0 {
             // Outbound transaction.
             self.feesStackHeight.constant = 55
             self.feesStack.alpha = 1
@@ -348,7 +348,7 @@ class TransactionViewController: UIViewController {
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
         } else {
             // Onchain or Lightning transaction.
-            let transactionValue = (self.tappedTransaction.received-self.tappedTransaction.sent).inBTC()
+            let transactionValue = (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee).inBTC()
             let balanceValue = String(transactionValue*bitcoinValue.currentValue).replacingOccurrences(of: "-", with: "").addSpaces()
             self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
             

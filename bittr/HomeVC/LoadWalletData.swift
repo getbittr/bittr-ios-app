@@ -66,7 +66,7 @@ extension HomeViewController {
         // Create new transaction entities.
         for eachPayment in self.coreVC!.bittrWallet.allTransactions {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && Int((eachPayment.amountMsat ?? 0)/1000) > 0) || (eachPayment.status == .pending && eachPayment.kind.isOnchain && eachPayment.direction == .inbound)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (Int((eachPayment.amountMsat ?? 0)/1000) > 0 || Int((eachPayment.feePaidMsat ?? 0)/1000) > 0)) || (eachPayment.status == .pending && eachPayment.kind.isOnchain && eachPayment.direction == .inbound)) {
                 
                 // Create transaction.
                 let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
