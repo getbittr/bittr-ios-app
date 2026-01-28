@@ -333,8 +333,7 @@ extension SendViewController {
         // Broadcast transaction.
         let txid:String
         do {
-            let txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: actualAddress, amountSats: self.onchainAmountInSatoshis, selectedVbyte: selectedVbyte)
-            txid = txIdAndRawData[0]
+            txid = try BitcoinManager.shared.sendOnchainPayment(address: actualAddress, amountSats: UInt64(self.onchainAmountInSatoshis), feeRateSatVb: UInt64(selectedVbyte))
         } catch {
             Log.info("Transaction error: \(error.localizedDescription)")
             DispatchQueue.main.async {
