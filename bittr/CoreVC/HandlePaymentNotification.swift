@@ -508,19 +508,17 @@ extension CoreViewController {
                 try BitcoinManager.shared.syncWallets()
                 Log.info("Did sync LDK node.")
                 
-                Task {
-                    // Fetch channel details.
-                    self.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels()
-                    Log.info("Did list channels.")
-                    
-                    // Reset balance and transactions.
-                    DispatchQueue.main.async {
-                        Log.info("Will reload wallet data.")
-                        self.homeVC!.loadWalletData()
-                    }
+                // Fetch channel details.
+                self.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+                Log.info("Did list channels.")
+                
+                // Reset balance and transactions.
+                DispatchQueue.main.async {
+                    Log.info("Will reload wallet data.")
+                    self.homeVC!.loadWalletData()
                 }
             } catch {
-                Log.info("Could not sync LDK node or fetch channels. \(error.localizedDescription)")
+                Log.info("Could not sync LDK node. \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "HandlePaymentNotification row 484", key: "context")

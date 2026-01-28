@@ -57,27 +57,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func syncChannels() {
-        Task {
-            do {
-                if BitcoinManager.shared.ldkNode != nil {
-                    let channels = try await BitcoinManager.shared.listChannels()
-                    Log.info("Channels: \(channels.count)")
-                    self.channelsCount = "\(channels.count)"
-                    self.deviceTableView.reloadData()
-                } else {
-                    self.channelsCount = "Syncing"
-                    self.deviceTableView.reloadData()
-                }
-            } catch {
-                Log.info("Error listing channels: \(error.localizedDescription)")
-                self.channelsCount = "0"
-                self.deviceTableView.reloadData()
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "DeviceViewController row 136", key: "context")
-                    }
-                }
-            }
+        if BitcoinManager.shared.ldkNode != nil {
+            let channels = BitcoinManager.shared.listChannels()
+            Log.info("Channels: \(channels.count)")
+            self.channelsCount = "\(channels.count)"
+            self.deviceTableView.reloadData()
+        } else {
+            self.channelsCount = "Syncing"
+            self.deviceTableView.reloadData()
         }
     }
     

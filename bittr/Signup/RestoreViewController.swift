@@ -281,8 +281,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             Log.info("Wallet restore mode detected")
                             // We're restoring an existing wallet.
                             
-                            // Validate mnemonic using BitcoinDevKit before storing
-                            print("Validating mnemonic with BitcoinDevKit: \(enteredMnemonic)")
+                            // Validate mnemonic before storing.
+                            print("Validating mnemonic: \(enteredMnemonic)")
                             if BitcoinManager.shared.isValidMnemonic(enteredMnemonic) {
                                 Log.info("Mnemonic validation successful")
                                 

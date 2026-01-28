@@ -88,47 +88,43 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 }
             } else if self.coreVC != nil {
                 // Wallet is ready
-                Task {
-                    let channels = try await BitcoinManager.shared.listChannels()
-                    DispatchQueue.main.async {
-                        if channels.count > 0 {
-                            // Check if we've recently initiated channel closure
-                            let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
-                            let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
-                            let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
-                            
-                            // Stop spinner
-                            self.coreVC!.genericSpinner.stopAnimating()
-                            self.coreVC!.fullViewCover.alpha = 0
-                            
-                            // If channel closure was initiated within the last 30 minutes, allow reset
-                            if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-                                Log.info("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
-                                // Allow wallet reset since channel is in closing process
-                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                            } else {
-                                // Clear old channel closing state if it's been too long
-                                if channelClosingInitiated && timeSinceClosure >= 120 {
-                                    UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                                    UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                                }
-                                
-                                // Wallet cannot be restored with open channels.
-                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
-                            }
-                        } else {
-                            // Clear channel closing state since no channels exist
+                let channels = BitcoinManager.shared.listChannels()
+                if channels.count > 0 {
+                    // Check if we've recently initiated channel closure
+                    let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
+                    let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
+                    let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
+                    
+                    // Stop spinner
+                    self.coreVC!.genericSpinner.stopAnimating()
+                    self.coreVC!.fullViewCover.alpha = 0
+                    
+                    // If channel closure was initiated within the last 30 minutes, allow reset
+                    if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
+                        Log.info("🔍 [DEBUG] Settings - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                        // Allow wallet reset since channel is in closing process
+                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                    } else {
+                        // Clear old channel closing state if it's been too long
+                        if channelClosingInitiated && timeSinceClosure >= 120 {
                             UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
                             UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                            
-                            if self.coreVC!.resettingPin {
-                                // We're removing the wallet without signing in.
-                                self.walletRestoreConfirmed()
-                            } else {
-                                // Retore wallet.
-                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                            }
                         }
+                        
+                        // Wallet cannot be restored with open channels.
+                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                    }
+                } else {
+                    // Clear channel closing state since no channels exist
+                    UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                    UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                    
+                    if self.coreVC!.resettingPin {
+                        // We're removing the wallet without signing in.
+                        self.walletRestoreConfirmed()
+                    } else {
+                        // Retore wallet.
+                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
                     }
                 }
             }
@@ -197,17 +193,10 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     @objc func closeChannelConfirmed() {
         self.hideAlert()
-        Task {
+        
+        if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             do {
-                let channels = try await BitcoinManager.shared.listChannels()
-                let closingChannel = channels.getActiveChannel()
-                
-                if closingChannel == nil {
-                    DispatchQueue.main.async {
-                        self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
-                    }
-                }
-                try BitcoinManager.shared.closeChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
+                try BitcoinManager.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
                 UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -238,24 +227,23 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                     }
                 }
             }
+        } else {
+            DispatchQueue.main.async {
+                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+            }
         }
     }
     
     @objc func forceCloseChannel() {
         self.hideAlert()
-        Task {
+        
+        if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
+            // Try force close (unilateral closure)
+            Log.info("Attempting force close for channel.")
+            print("🔍 [DEBUG] Channel ID: \(closingChannel.userChannelId)")
+            
             do {
-                let channels = try await BitcoinManager.shared.listChannels()
-                let closingChannel = channels.getActiveChannel()
-                
-                if closingChannel == nil {
-                    self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
-                
-                // Try force close (unilateral closure)
-                Log.info("Attempting force close for channel.")
-                print("🔍 [DEBUG] Channel ID: \(closingChannel!.userChannelId)")
-                try BitcoinManager.shared.forceCloseChannel(userChannelId: closingChannel!.userChannelId, counterPartyNodeId: closingChannel!.counterpartyNodeId)
+                try BitcoinManager.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
                 
                 // Mark that we've initiated channel closure
                 UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
@@ -266,7 +254,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                     self.didCloseChannel()
                     self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.proceedToRestoreAfterChannelClose)])
                 }
-                
             } catch {
                 Log.info("❌ [DEBUG] Settings - Force close failed: \(error)")
                 Log.info("❌ [DEBUG] Settings - Force close error type: \(type(of: error))")
@@ -279,6 +266,8 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                     }
                 }
             }
+        } else {
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -299,32 +288,30 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         }
         
         // Trigger a fresh sync to get updated channel data
-        Task {
-            do {
-                Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
-                try BitcoinManager.shared.syncWallets()
+        do {
+            Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Syncing wallet to get updated channel count")
+            try BitcoinManager.shared.syncWallets()
+            
+            // Get fresh channel data
+            let updatedChannels = BitcoinManager.shared.listChannels()
+            Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
+            
+            DispatchQueue.main.async {
+                // Update the cached channel data
+                self.coreVC!.bittrWallet.lightningChannels = updatedChannels
                 
-                // Get fresh channel data
-                let updatedChannels = try await BitcoinManager.shared.listChannels()
-                Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
-                
-                DispatchQueue.main.async {
-                    // Update the cached channel data
-                    self.coreVC!.bittrWallet.lightningChannels = updatedChannels
-                    
-                    // Update balance if needed
-                    if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
-                        self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
-                    }
-                    
-                    Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")
+                // Update balance if needed
+                if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
+                    self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
                 }
-            } catch {
-                Log.info("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SettingsViewController row 318", key: "context")
-                    }
+                
+                Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")
+            }
+        } catch {
+            Log.info("❌ [DEBUG] Settings - didCloseChannel() - Error syncing after channel closure: \(error)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SettingsViewController row 318", key: "context")
                 }
             }
         }

@@ -12,28 +12,19 @@ extension UIViewController {
     
     func isConnectedToPeer() async -> Bool {
         
-        do {
-            let peers = try await BitcoinManager.shared.listPeers()
-            var peerIsConnected = false
-            for eachPeer in peers {
-                if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
-                    peerIsConnected = true
-                }
+        let peers = BitcoinManager.shared.listPeers()
+        var peerIsConnected = false
+        for eachPeer in peers {
+            if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
+                peerIsConnected = true
             }
-            if peerIsConnected {
-                Log.info("Did successfully check peer connection.")
-                return true
-            } else {
-                Log.info("Not connected to peer.")
-                return false
-            }
-        } catch {
-            Log.info("Error listing peers: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "FetchAndPrint row 34", key: "context")
-                }
-            }
+        }
+        
+        if peerIsConnected {
+            Log.info("Did successfully check peer connection.")
+            return true
+        } else {
+            Log.info("Not connected to peer.")
             return false
         }
     }

@@ -514,37 +514,24 @@ class BitcoinManager {
     
     func getChannelsAndPayments() {
         
-        Task {
-            do {
-                
-                // Get channels.
-                let channels = try await BitcoinManager.shared.listChannels()
-                let activeChannel = channels.getActiveChannel()
-                
-                // Get funding transaction ID.
-                if activeChannel != nil {
-                    if let channelTxoID = activeChannel!.fundingTxo?.txid as? String {
-                        CacheManager.storeTxoID(txoID: channelTxoID)
-                    }
-                }
-                
-                // Get transactions.
-                let payments = try await BitcoinManager.shared.listPayments()
-                
-                // Handle details in HomeVC.
-                DispatchQueue.main.async {
-                    self.coreVC?.bittrWallet.lightningChannels = channels
-                    self.coreVC?.bittrWallet.allTransactions = payments
-                    self.coreVC?.homeVC?.loadWalletData()
-                }
-            } catch {
-                Log.info("Error listing channels: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 369", key: "context")
-                    }
-                }
+        // Get channels.
+        let channels = BitcoinManager.shared.listChannels()
+        
+        // Get funding transaction ID.
+        if let activeChannel = channels.getActiveChannel() {
+            if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
+                CacheManager.storeTxoID(txoID: channelTxoID)
             }
+        }
+        
+        // Get transactions.
+        let payments = BitcoinManager.shared.listPayments()
+        
+        // Handle details in HomeVC.
+        DispatchQueue.main.async {
+            self.coreVC?.bittrWallet.lightningChannels = channels
+            self.coreVC?.bittrWallet.allTransactions = payments
+            self.coreVC?.homeVC?.loadWalletData()
         }
     }
     
@@ -574,17 +561,17 @@ class BitcoinManager {
         return signedMessage
     }
     
-    func listPeers() async throws -> [PeerDetails] {
+    func listPeers() -> [PeerDetails] {
         let peers = self.ldkNode!.listPeers()
         return peers
     }
     
-    func listPayments() async throws -> [PaymentDetails] {
+    func listPayments() -> [PaymentDetails] {
         let payments = self.ldkNode!.listPayments()
         return payments
     }
     
-    func listChannels() async throws -> [LDKNode.ChannelDetails] {
+    func listChannels() -> [LDKNode.ChannelDetails] {
         let channels = self.ldkNode!.listChannels()
         return channels
     }
@@ -653,29 +640,32 @@ class BitcoinManager {
                 self.handleError(error: error, row: 603, stopLightning: false)
             }
             
+            // Sync LDKNode.
+            do {
+                _ = try self.syncWallets()
+            } catch {
+                self.handleError(error: error, row: 660, stopLightning: false)
+            }
+            
             // Check if any changes have been found.
-            if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.ldkNode!.listPayments().count {
+            if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
                 
                 // Update balance.
                 self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
                 
                 // Update transactions.
-                self.coreVC!.bittrWallet.allTransactions = self.ldkNode!.listPayments()
+                self.coreVC!.bittrWallet.allTransactions = self.listPayments()
+                
+                // Update channels.
+                self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
                 
                 Task {
                     // Get latest block height.
                     let _ = await self.didGetLatestBlockHeight()
                     
-                    do {
-                        self.coreVC!.bittrWallet.lightningChannels = try await BitcoinManager.shared.listChannels()
-                        
-                        DispatchQueue.main.async {
-                            self.coreVC!.homeVC!.loadWalletData()
-                            self.coreVC!.homeVC!.moveVC?.updateLabels()
-                            completion(true)
-                        }
-                    } catch {
-                        self.handleError(error: error, row: 619, stopLightning: false)
+                    DispatchQueue.main.async {
+                        self.coreVC!.homeVC!.loadWalletData()
+                        self.coreVC!.homeVC!.moveVC?.updateLabels()
                         completion(true)
                     }
                 }
@@ -694,12 +684,15 @@ class BitcoinManager {
                     await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
                         switch result {
                         case .success(let receivedDictionary):
-                            // Minimum fee is 1 sat/vByte.
                             let mutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
                             for (key, value) in mutableDictionary {
                                 if (value as? Double) == nil || (key as? String) == nil { continuation.resume(returning: receivedDictionary) }
                                 if (value as! Double) < 1 {
+                                    // Minimum fee is 1 sat/vByte.
                                     mutableDictionary.setValue(Double(1), forKey: (key as! String))
+                                } else {
+                                    // LDKNode requires a rounded number for sat/vByte.
+                                    mutableDictionary.setValue((value as! Double).rounded(), forKey: (key as! String))
                                 }
                             }
                             continuation.resume(returning: mutableDictionary)
@@ -774,16 +767,16 @@ class BitcoinManager {
         }
     }
     
-    func sendOnchainPayment(address:String, amountSats:UInt64, feeRateSatVb:UInt64) -> Txid? {
+    func sendOnchainPayment(address:String, amountSats:UInt64, feeRateSatVb:UInt64) throws -> String {
         
+        // Set fee rate.
         let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: feeRateSatVb)
         
-        do {
-            let onchainID = try self.ldkNode!.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
-            return onchainID
-        } catch {
-            return nil
-        }
+        // Broadcast transaction.
+        let onchainID = try self.ldkNode!.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
+        
+        // Return transaction ID.
+        return onchainID.description
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
