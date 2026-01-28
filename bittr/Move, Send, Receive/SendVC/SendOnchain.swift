@@ -112,83 +112,74 @@ extension SendViewController {
                     self.feeMedium = Float(feeEstimates!["hourFee"] as! Double)
                     self.feeHigh = Float(feeEstimates!["fastestFee"] as! Double)
                     
-                    if let actualWallet = BitcoinManager.shared.getWallet() {
-                        do {
-                            // Get transaction size.
-                            let size = try self.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet)
-                            
-                            // Calculate lowest sats.
-                            let lowestSats:Float = self.feeLow*Float(size)
-                            let availableSatsForFee:Float = Float(self.coreVC!.bittrWallet.satoshisOnchain - self.onchainAmountInSatoshis)
-                            if lowestSats > availableSatsForFee {
-                                // There aren't enough sats available to pay for the cheapest fee.
-                                let availableSatsPerVb:Float = availableSatsForFee / Float(size)
-                                self.feeLow = Float(Int(availableSatsPerVb * 10))/10
-                                
-                                self.slowTimeLabel.text = "Slow"
-                                self.highlightView(selectedFee: .low)
-                                self.selectedFee = .low
-                            } else {
-                                self.slowTimeLabel.text = "1 day"
-                                self.highlightView(selectedFee: .medium)
-                                self.selectedFee = .medium
+                    // Get transaction size.
+                    let size:UInt64
+                    do {
+                        size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis)
+                    } catch {
+                        Log.info("Error: \(error.localizedDescription)")
+                        
+                        // Generate error message.
+                        var sendToSentry = true
+                        var errorMessage = error.localizedDescription
+                        if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                            errorMessage = bdkError.getErrorMessage()
+                            switch bdkError {
+                            case .CoinSelection(errorMessage: _): sendToSentry = false
+                            default: sendToSentry = true
                             }
-                            
-                            // Set satoshis text.
-                            self.satsFast.text = "\(Int(self.feeHigh*Float(size))) sats"
-                            self.satsMedium.text = "\(Int(self.feeMedium*Float(size))) sats"
-                            self.satsSlow.text = "\(Int(self.feeLow*Float(size))) sats"
-                            
-                            // Set converted text.
-                            self.eurosFast.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeHigh, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
-                            self.eurosMedium.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeMedium, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
-                            self.eurosSlow.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeLow, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
-                            
-                            // Animation from main view to confirm view.
-                            DispatchQueue.main.async {
-                                self.nextLabel.alpha = 1
-                                self.arrowIcon.alpha = 1
-                                self.nextSpinner.stopAnimating()
-                                self.slideFromSendToConfirm()
-                            }
-                        } catch {
-                            Log.info("Error: \(error.localizedDescription)")
-                            
-                            // Generate error message.
-                            var sendToSentry = true
-                            var errorMessage = error.localizedDescription
-                            if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                                errorMessage = bdkError.getErrorMessage()
-                                switch bdkError {
-                                case .CoinSelection(errorMessage: _): sendToSentry = false
-                                default: sendToSentry = true
-                                }
-                            } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
-                                errorMessage = bdkError.getErrorMessage()
-                            }
-                            
-                            // Show alert.
-                            DispatchQueue.main.async {
-                                self.nextLabel.alpha = 1
-                                self.arrowIcon.alpha = 1
-                                self.nextSpinner.stopAnimating()
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                if sendToSentry {
-                                    SentrySDK.capture(error: error) { scope in
-                                        scope.setExtra(value: "SendOnchain row 167", key: "context")
-                                    }
+                        } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
+                            errorMessage = bdkError.getErrorMessage()
+                        }
+                        
+                        // Show alert.
+                        DispatchQueue.main.async {
+                            self.nextLabel.alpha = 1
+                            self.arrowIcon.alpha = 1
+                            self.nextSpinner.stopAnimating()
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            if sendToSentry {
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "SendOnchain row 167", key: "context")
                                 }
                             }
                         }
+                        return
+                    }
+                    
+                    // Calculate lowest sats.
+                    let lowestSats:Float = self.feeLow*Float(size)
+                    let availableSatsForFee:Float = Float(self.coreVC!.bittrWallet.satoshisOnchain - self.onchainAmountInSatoshis)
+                    if lowestSats > availableSatsForFee {
+                        // There aren't enough sats available to pay for the cheapest fee.
+                        let availableSatsPerVb:Float = availableSatsForFee / Float(size)
+                        self.feeLow = Float(Int(availableSatsPerVb * 10))/10
+                        
+                        self.slowTimeLabel.text = "Slow"
+                        self.highlightView(selectedFee: .low)
+                        self.selectedFee = .low
                     } else {
-                        // Wallet unavailable.
+                        self.slowTimeLabel.text = "1 day"
+                        self.highlightView(selectedFee: .medium)
+                        self.selectedFee = .medium
+                    }
+                    
+                    // Set satoshis text.
+                    self.satsFast.text = "\(Int(self.feeHigh*Float(size))) sats"
+                    self.satsMedium.text = "\(Int(self.feeMedium*Float(size))) sats"
+                    self.satsSlow.text = "\(Int(self.feeLow*Float(size))) sats"
+                    
+                    // Set converted text.
+                    self.eurosFast.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeHigh, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
+                    self.eurosMedium.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeMedium, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
+                    self.eurosSlow.text = self.convertFees(transactionSize: size, satsPerVbyte: self.feeLow, bitcoinValue: bitcoinValue) + " " + bitcoinValue.chosenCurrency
+                    
+                    // Animation from main view to confirm view.
+                    DispatchQueue.main.async {
                         self.nextLabel.alpha = 1
                         self.arrowIcon.alpha = 1
                         self.nextSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(message: "Wallet unavailable") { scope in
-                            scope.setExtra(value: "SendOnchain row 186", key: "context")
-                        }
+                        self.slideFromSendToConfirm()
                     }
                 }
             }
@@ -327,68 +318,58 @@ extension SendViewController {
         // Start spinner.
         self.sendLabel.alpha = 0
         self.sendSpinner.startAnimating()
+            
+        // Get address.
+        let actualAddress:String = self.confirmAddressLabel.text!
         
-        // Get wallet.
-        if let actualWallet = BitcoinManager.shared.getWallet() {
-            
-            // Get address.
-            let actualAddress:String = self.confirmAddressLabel.text!
-            
-            // Get fees.
-            var selectedVbyte:Float
-            switch self.selectedFee {
-            case .low: selectedVbyte = self.feeLow
-            case .medium: selectedVbyte = self.feeMedium
-            case .high: selectedVbyte = self.feeHigh
-            }
-            
-            // Create transaction.
-            Task {
-                do {
-                    let tx = try self.getTx(address: actualAddress, amountSats: self.onchainAmountInSatoshis, wallet: actualWallet, selectedVbyte: selectedVbyte)
-                    if let client = BitcoinManager.shared.getClient() {
-                        
-                        // Broadcast transaction.
-                        let txid = try client.transactionBroadcast(tx: tx)
-                        print("Transaction ID: \(txid)")
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            Log.info("Successful transaction.")
-                            SentrySDK.metrics.increment(key: "onchain.transaction.success")
-                            self.sendLabel.alpha = 1
-                            self.sendSpinner.stopAnimating()
-                            self.newTxId = txid
-                            
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            Log.info("Client not available.")
-                            self.sendLabel.alpha = 1
-                            self.sendSpinner.stopAnimating()
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            SentrySDK.metrics.increment(key: "onchain.transaction.failure.3")
-                        }
-                    }
-                } catch {
-                    Log.info("Transaction error: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
+        // Get fees.
+        var selectedVbyte:Float
+        switch self.selectedFee {
+        case .low: selectedVbyte = self.feeLow
+        case .medium: selectedVbyte = self.feeMedium
+        case .high: selectedVbyte = self.feeHigh
+        }
+        
+        // Create transaction.
+        Task {
+            do {
+                let tx = try BitcoinManager.shared.getTx(address: actualAddress, amountSats: self.onchainAmountInSatoshis, selectedVbyte: selectedVbyte)
+                if let client = BitcoinManager.shared.getClient() {
+                    
+                    // Broadcast transaction.
+                    let txid = try client.transactionBroadcast(tx: tx)
+                    print("Transaction ID: \(txid)")
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        Log.info("Successful transaction.")
+                        SentrySDK.metrics.increment(key: "onchain.transaction.success")
                         self.sendLabel.alpha = 1
                         self.sendSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SendOnchain row 349", key: "context")
-                        }
-                        SentrySDK.metrics.increment(key: "onchain.transaction.failure.2")
+                        self.newTxId = txid
+                        
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        Log.info("Client not available.")
+                        self.sendLabel.alpha = 1
+                        self.sendSpinner.stopAnimating()
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        SentrySDK.metrics.increment(key: "onchain.transaction.failure.3")
                     }
                 }
+            } catch {
+                Log.info("Transaction error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.sendLabel.alpha = 1
+                    self.sendSpinner.stopAnimating()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SendOnchain row 349", key: "context")
+                    }
+                    SentrySDK.metrics.increment(key: "onchain.transaction.failure.2")
+                }
             }
-        } else {
-            Log.info("Wallet instance not available.")
-            SentrySDK.metrics.increment(key: "onchain.transaction.failure.1")
-            self.sendLabel.alpha = 1
-            self.sendSpinner.stopAnimating()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -469,83 +450,48 @@ extension UIViewController {
     
     func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
         
-        if let actualWallet = BitcoinManager.shared.getWallet() {
-            do {
-                if let actualAddress = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
-                    _ = try self.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, wallet: actualWallet, selectedVbyte: nil)
-                    return nil
-                } else {
-                    return 0
-                }
-            } catch {
-                if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                    switch bdkError {
-                    case .InsufficientFunds(needed: let needed, available: _):
+        do {
+            if let actualAddress = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
+                _ = try BitcoinManager.shared.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, selectedVbyte: nil)
+                return nil
+            } else {
+                return 0
+            }
+        } catch {
+            if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                switch bdkError {
+                case .InsufficientFunds(needed: let needed, available: _):
+                    let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
+                    let neededAmount:Double = Int(needed).inBTC()
+                    let minimumFees:Double = neededAmount - btcOnchain
+                    let spendableBtcAmount = btcOnchain - minimumFees
+                    if spendableBtcAmount < 0 {
+                        return 0
+                    } else {
+                        return spendableBtcAmount
+                    }
+                case .CoinSelection(errorMessage: let errorMessage):
+                    if errorMessage.contains("Insufficient funds") {
                         let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
-                        let neededAmount:Double = Int(needed).inBTC()
+                        let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
                         let minimumFees:Double = neededAmount - btcOnchain
                         let spendableBtcAmount = btcOnchain - minimumFees
                         if spendableBtcAmount < 0 {
                             return 0
+                        } else if spendableBtcAmount > btcOnchain {
+                            return nil
                         } else {
                             return spendableBtcAmount
                         }
-                    case .CoinSelection(errorMessage: let errorMessage):
-                        if errorMessage.contains("Insufficient funds") {
-                            let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
-                            let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
-                            let minimumFees:Double = neededAmount - btcOnchain
-                            let spendableBtcAmount = btcOnchain - minimumFees
-                            if spendableBtcAmount < 0 {
-                                return 0
-                            } else if spendableBtcAmount > btcOnchain {
-                                return nil
-                            } else {
-                                return spendableBtcAmount
-                            }
-                        } else {
-                            return nil
-                        }
-                    default: return nil
+                    } else {
+                        return nil
                     }
-                } else {
-                    return nil
+                default: return nil
                 }
+            } else {
+                return nil
             }
-        } else {
-            return nil
         }
-    }
-    
-    func getSize(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet) throws -> UInt64 {
-        
-        let tx = try self.getTx(address: address, amountSats: amountSats, wallet: wallet, selectedVbyte: nil)
-        let size = tx.vsize()
-        
-        return size
-    }
-    
-    func getTx(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
-        
-        let details = try self.getPsbt(address: address, amountSats: amountSats, wallet: wallet, selectedVbyte: selectedVbyte)
-        let tx = try details.extractTx()
-        
-        return tx
-    }
-    
-    func getPsbt(address:String, amountSats:Int, wallet:BitcoinDevKit.Wallet, selectedVbyte:Float?) throws -> BitcoinDevKit.Psbt {
-        
-        let network = EnvironmentConfig.bitcoinDevKitNetwork
-        let address = try Address(address: address, network: network)
-        let script = address.scriptPubkey()
-        var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))
-        if selectedVbyte != nil {
-            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte!)))
-        }
-        let details = try txBuilder.finish(wallet: wallet)
-        let _ = try wallet.sign(psbt: details, signOptions: nil)
-        
-        return details
     }
     
 }

@@ -264,73 +264,64 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0) - Int(activeChannel!.counterpartyUnspendablePunishmentReserve)
                 
                 // Calculate available onchain satoshis minus fast fee.
-                if let actualWallet = BitcoinManager.shared.getWallet() {
-                    
-                    // Calculate maximum sendable onchain amount at lowest fee.
-                    let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
-                    let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
-                    
-                    Task {
-                        let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-                        if feeEstimates == nil {
-                            Log.info("Could not fetch fee estimates.")
-                            DispatchQueue.main.async {
-                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                            }
-                            return
-                        }
-                        
-                        // Select highest fee.
-                        self.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
-                        
-                        // Get own onchain address.
-                        let actualAddress:String? = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress()
-                        if actualAddress == nil {
-                            Log.info("Could not fetch address.")
-                            DispatchQueue.main.async {
-                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                            }
-                            return
-                        }
-                        
-                        var sizeinVbytes:UInt64
-                        do {
-                            // Calculate transaction size.
-                            sizeinVbytes = try self.getSize(address: actualAddress!, amountSats: maximumSendableOnchainSats, wallet: actualWallet)
-                        } catch {
-                            Log.info("Error: \(error.localizedDescription)")
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "SwapVC row 308", key: "context")
-                            }
-                            DispatchQueue.main.async {
-                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                            }
-                            return
-                        }
-                        
-                        // Calculate highest fee in satoshis.
-                        let satoshisFee:Int = Int(self.highestFeePerVbyte! * Float(sizeinVbytes))
-                        
-                        // Onchain satoshis minus highest fee.
-                        let sendableSatoshis = self.coreVC!.bittrWallet.satoshisOnchain - satoshisFee
-                        
-                        // Set label.
+                // Calculate maximum sendable onchain amount at lowest fee.
+                let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
+                
+                Task {
+                    let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
+                    if feeEstimates == nil {
+                        Log.info("Could not fetch fee estimates.")
                         DispatchQueue.main.async {
-                            if sendableSatoshis > availableChannelSpace {
-                                // We have enough onchain satoshis to fill up the entire channel.
-                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(availableChannelSpace)".addSpaces())
-                            } else {
-                                // We don't have enough onchain satoshis to fill up the entire channel.
-                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(sendableSatoshis)".addSpaces())
-                            }
+                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                        }
+                        return
+                    }
+                    
+                    // Select highest fee.
+                    self.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
+                    
+                    // Get own onchain address.
+                    let actualAddress:String? = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress()
+                    if actualAddress == nil {
+                        Log.info("Could not fetch address.")
+                        DispatchQueue.main.async {
+                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                        }
+                        return
+                    }
+                    
+                    var sizeinVbytes:UInt64
+                    do {
+                        // Calculate transaction size.
+                        sizeinVbytes = try BitcoinManager.shared.getSize(address: actualAddress!, amountSats: maximumSendableOnchainSats)
+                    } catch {
+                        Log.info("Error: \(error.localizedDescription)")
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SwapVC row 308", key: "context")
+                        }
+                        DispatchQueue.main.async {
+                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                        }
+                        return
+                    }
+                    
+                    // Calculate highest fee in satoshis.
+                    let satoshisFee:Int = Int(self.highestFeePerVbyte! * Float(sizeinVbytes))
+                    
+                    // Onchain satoshis minus highest fee.
+                    let sendableSatoshis = self.coreVC!.bittrWallet.satoshisOnchain - satoshisFee
+                    
+                    // Set label.
+                    DispatchQueue.main.async {
+                        if sendableSatoshis > availableChannelSpace {
+                            // We have enough onchain satoshis to fill up the entire channel.
+                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(availableChannelSpace)".addSpaces())
+                        } else {
+                            // We don't have enough onchain satoshis to fill up the entire channel.
+                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(sendableSatoshis)".addSpaces())
                         }
                     }
-                } else {
-                    Log.info("Cannot get BDK wallet in SwapVC.")
-                    SentrySDK.capture(message: "Cannot get BDK wallet in SwapVC.") { scope in
-                        scope.setExtra(value: "SwapVC row 319", key: "context")
-                    }
-                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                 }
             }
         }

@@ -725,10 +725,6 @@ class BitcoinManager {
         try self.ldkNode!.syncWallets()
     }
     
-    func getWallet() -> BitcoinDevKit.Wallet? {
-        return self.bdkWallet
-    }
-    
     func getXpub() -> String {
         return self.xpub
     }
@@ -903,6 +899,45 @@ class BitcoinManager {
         return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
     }
     
+    func getSize(address:String, amountSats:Int) throws -> UInt64 {
+        
+        let tx = try self.getTx(address: address, amountSats: amountSats, selectedVbyte: nil)
+        let size = tx.vsize()
+        
+        return size
+    }
+    
+    func getTx(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
+        
+        let details = try self.getPsbt(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
+        let tx = try details.extractTx()
+        
+        return tx
+    }
+    
+    func getPsbt(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Psbt {
+        
+        guard self.bdkWallet != nil else {
+            throw WalletError.walletNotInitiated
+        }
+        
+        let network = EnvironmentConfig.bitcoinDevKitNetwork
+        let address = try Address(address: address, network: network)
+        let script = address.scriptPubkey()
+        var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))
+        if selectedVbyte != nil {
+            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte!)))
+        }
+        let details = try txBuilder.finish(wallet: self.bdkWallet!)
+        let _ = try self.bdkWallet!.sign(psbt: details, signOptions: nil)
+        
+        return details
+    }
+    
+}
+
+enum WalletError: Error {
+    case walletNotInitiated
 }
 
 extension FileManager {

@@ -227,50 +227,47 @@ class SwapManager: NSObject {
         guard let ongoingSwap = await swapVC.coreVC!.bittrWallet.ongoingSwap else {return}
         
         // Check what the onchain fees will be for sending this onchain payment.
-        if let actualWallet = BitcoinManager.shared.getWallet() {
-            
-            Task {
-                if swapVC.highestFeePerVbyte == nil {
-                    let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-                    if feeEstimates == nil {
-                        Log.info("Could not fetch fee estimates.")
-                        DispatchQueue.main.async {
-                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                        return
-                    }
-                    
-                    // Select highest fee.
-                    swapVC.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
-                }
-                
-                var size:UInt64
-                do {
-                    // Calculate transaction size.
-                    size = try await swapVC.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet)
-                } catch {
-                    Log.info("Error: \(error.localizedDescription)")
+        Task {
+            if swapVC.highestFeePerVbyte == nil {
+                let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
+                if feeEstimates == nil {
+                    Log.info("Could not fetch fee estimates.")
                     DispatchQueue.main.async {
-                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SwapManager row 249", key: "context")
-                        }
+                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                     return
                 }
-                    
-                // Calculate fees.
-                let feesForOnchainPayment:Int = Int(CGFloat(swapVC.highestFeePerVbyte!*Float(size)))
-                let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
-                print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
                 
-                // Confirm fees with user.
+                // Select highest fee.
+                swapVC.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
+            }
+            
+            var size:UInt64
+            do {
+                // Calculate transaction size.
+                size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!)
+            } catch {
+                Log.info("Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = swapVC.highestFeePerVbyte!
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = feesForOnchainPayment
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
-                    swapVC.confirmExpectedFees()
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SwapManager row 249", key: "context")
+                    }
                 }
+                return
+            }
+                
+            // Calculate fees.
+            let feesForOnchainPayment:Int = Int(CGFloat(swapVC.highestFeePerVbyte!*Float(size)))
+            let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
+            print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
+            
+            // Confirm fees with user.
+            DispatchQueue.main.async {
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = swapVC.highestFeePerVbyte!
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = feesForOnchainPayment
+                swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
+                swapVC.confirmExpectedFees()
             }
         }
     }
@@ -280,54 +277,51 @@ class SwapManager: NSObject {
         guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
             
         // Send onchain transaction.
-        if let actualWallet = BitcoinManager.shared.getWallet() {
-            
-            Task {
-                do {
-                    let tx = try await swapVC.getTx(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, wallet: actualWallet, selectedVbyte: ongoingSwap.feeHigh!)
+        Task {
+            do {
+                let tx = try BitcoinManager.shared.getTx(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: ongoingSwap.feeHigh!)
+                
+                if let client = BitcoinManager.shared.getClient() {
                     
-                    if let client = BitcoinManager.shared.getClient() {
-                        
-                        let txid = try client.transactionBroadcast(tx: tx)
-                        
-                        print("Transaction ID: \(txid)")
+                    let txid = try client.transactionBroadcast(tx: tx)
                     
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            Log.info("Successful transaction.")
-                            
-                            // Update swap object.
-                            ongoingSwap.sentOnchainTransactionID = txid
-                            ongoingSwap.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txid
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
-                            self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
-                            
-                            // Create transaction object.
-                            CacheManager.storeInvoiceDescription(preimage: txid, desc: ongoingSwap.dateID)
-                            CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-                            
-                            // Update Home table.
-                            BitcoinManager.shared.lightSync() { _ in }
-                            
-                            // Call didCompleteOnchainTransaction to set up WebSocket monitoring
-                            swapVC.didCompleteOnchainTransaction()
-                        }
+                    print("Transaction ID: \(txid)")
+                
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        Log.info("Successful transaction.")
+                        
+                        // Update swap object.
+                        ongoingSwap.sentOnchainTransactionID = txid
+                        ongoingSwap.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txid
+                        swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
+                        self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
+                        
+                        // Create transaction object.
+                        CacheManager.storeInvoiceDescription(preimage: txid, desc: ongoingSwap.dateID)
+                        CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+                        
+                        // Update Home table.
+                        BitcoinManager.shared.lightSync() { _ in }
+                        
+                        // Call didCompleteOnchainTransaction to set up WebSocket monitoring
+                        swapVC.didCompleteOnchainTransaction()
                     }
-                } catch {
-                    // Log the exact error for debugging
-                    Log.info("Transaction error: \(error.localizedDescription)")
-                    
-                    DispatchQueue.main.async {
-                        swapVC.showAlert(
-                            presentingController: swapVC,
-                            title: Language.getWord(withID: "paymentfailed"),
-                            message: Language.getWord(withID: "paymentfailed3"),
-                            buttons: [Language.getWord(withID: "okay")],
-                            actions: nil
-                        )
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SwapManager row 308", key: "context")
-                        }
+                }
+            } catch {
+                // Log the exact error for debugging
+                Log.info("Transaction error: \(error.localizedDescription)")
+                
+                DispatchQueue.main.async {
+                    swapVC.showAlert(
+                        presentingController: swapVC,
+                        title: Language.getWord(withID: "paymentfailed"),
+                        message: Language.getWord(withID: "paymentfailed3"),
+                        buttons: [Language.getWord(withID: "okay")],
+                        actions: nil
+                    )
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SwapManager row 308", key: "context")
                     }
                 }
             }
