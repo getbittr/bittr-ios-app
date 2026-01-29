@@ -11,66 +11,31 @@ import Sentry
 
 extension CoreViewController {
     
-    @objc func handlePaymentNotification(notification:NSNotification) {
+    func handlePayoutNotification(_ notification:BittrNotification) {
+        Log.info("Will handle payout notification.")
         
-        Log.info("=== handlePaymentNotification called ===")
-        Log.info("userHasSignedIn: \(self.userHasSignedIn)")
-        Log.info("wasNotified: \(self.wasNotified)")
-        Log.info("needsToHandleNotification: \(self.needsToHandleNotification)")
+        // Set notification for handling.
+        self.lightningNotification = notification
         
-        if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-            
-            // Check for the special key that indicates this is a silent notification.
-            if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
-                print("Received special data: \(specialData)")
-                
-                CacheManager.storeLatestNotification(specialData: specialData)
-                
-                // Check if we received a notification while the app was closed
-                let receivedNotificationWhileClosed = UserDefaults.standard.bool(forKey: "receivedNotificationWhileClosed")
-                Log.info("receivedNotificationWhileClosed: \(receivedNotificationWhileClosed), wasNotified: \(self.wasNotified)")
-                
-                if self.userHasSignedIn {
-                    // User has signed in.
-                    Log.info("User is signed in, processing notification")
-                    
-                    self.varSpecialData = specialData
-                    
-                    if !receivedNotificationWhileClosed && !self.wasNotified {
-                        // App was open when notification came in.
-                        Log.info("App was open when notification came in - showing alert")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
-                    } else {
-                        // App was closed when notification came in and was subsequently opened.
-                        Log.info("App was closed when notification came in - processing immediately")
-                        self.triggerPayout()
-                    }
-                    
-                    // Clear the flag after handling, regardless of which path we took
-                    UserDefaults.standard.set(false, forKey: "receivedNotificationWhileClosed")
-                    Log.info("Cleared receivedNotificationWhileClosed flag")
-                } else {
-                    // User hasn't signed in yet.
-                    Log.info("User not signed in - storing notification for later")
-                    self.needsToHandleNotification = true
-                    self.wasNotified = true
-                    self.lightningNotification = notification
-                    
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
-            } else if userInfo["payment_request_id"] is String {
-                // LNURL
-                self.handleLightningAddressNotification(notification: notification)
-            } else {
-                // No special key, so this is a normal notification.
-                Log.info("No special key found in notification.")
-                self.hidePendingView()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "notification"), message: Language.getWord(withID: "notificationhandlingfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            }
+        if !self.userHasSignedIn {
+            Log.info("User hasn't signed in yet. Storing notification for later.")
+            self.wasNotified = true
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        } else if !self.walletHasSynced {
+            Log.info("Wallet hasn't synced yet.")
+            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
+            self.showPendingView()
         } else {
-            // Hide loading UI
-            self.hidePendingView()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "notification"), message: Language.getWord(withID: "notificationhandlingfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            Log.info("Wallet has synced. Will process notification.")
+            if !self.wasNotified {
+                // App was open when notification came in.
+                Log.info("Will notify user of alert.")
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
+            } else {
+                // App was closed when notification came in and was subsequently opened.
+                Log.info("User has been notified of alert.")
+                self.triggerPayout()
+            }
         }
     }
     
@@ -91,156 +56,146 @@ extension CoreViewController {
         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
         self.showPendingView()
         self.facilitateNotificationPayout()
-        self.needsToHandleNotification = false
     }
-    
     
     @objc func facilitateNotificationPayout() {
         self.hideAlert()
+        Log.info("Will start payout process.")
         
-        Log.info("Did start payout process.")
-        
-        guard self.varSpecialData != nil else {
-            Log.info("No special data available.")
-            SentrySDK.capture(message: "No special data available while trying to handle notification payout.") { scope in
+        // Extract required data.
+        guard
+            self.lightningNotification != nil,
+            let notificationId = self.lightningNotification!.notificationID,
+            let amountMsat = self.lightningNotification!.amountMsat
+        else {
+            Log.info("No notification available for handling.")
+            SentrySDK.capture(message: "Required data unavailable while trying to handle notification payout.") { scope in
                 scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
             }
             self.hidePendingView()
+            self.lightningNotification = nil
             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
         }
-        
-        // Extract required data from specialData
-        if let notificationId = self.varSpecialData!["notification_id"] as? String {
-            let bitcoinAmountString = self.varSpecialData!["bitcoin_amount"] as? String ?? "0"
-            print("Bitcoin amount: \(bitcoinAmountString)")
-            let bitcoinAmount = bitcoinAmountString.toNumber()
-            let amountMsat = UInt64(bitcoinAmount.inSatoshis() * 1_000)
-            print("Amount msat: \(amountMsat)")
             
-            // Get pubkey.
-            var pubkey = String()
-            if let pubkeyString = BitcoinManager.shared.nodeId() {
-                pubkey = pubkeyString
-                Log.info("Did get public key.")
-            } else {
-                if BitcoinManager.shared.ldkNode == nil {
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+        // Get pubkey.
+        guard let pubkey:String = BitcoinManager.shared.nodeId() else {
+            Log.info("Pubkey unavailable.")
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+            return
+        }
+
+        // Call payoutLightning in an async context
+        Task {
+            if await self.isConnectedToPeer() {
+                Log.info("Is connected to peer.")
+                
+                // Create invoice.
+                let invoice:Bolt11Invoice
+                do {
+                    invoice = try await BitcoinManager.shared.receivePayment(
+                        amountMsat: UInt64(amountMsat),
+                        description: notificationId,
+                        expirySecs: 3600
+                    )
+                    Log.info("Did create invoice.")
+                } catch {
+                    Log.info("Couldn't create invoice.")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "HandlePaymentNotification row 141", key: "context")
+                        }
+                        self.hidePendingView()
+                        self.lightningNotification = nil
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                    }
                     return
                 }
-            }
-
-            // Call payoutLightning in an async context
-            Task {
-                if await self.isConnectedToPeer() {
-                    // Connected to peer.
                     
-                    // Create invoice.
-                    var invoice:Bolt11Invoice
-                    do {
-                        invoice = try await BitcoinManager.shared.receivePayment(
-                            amountMsat: amountMsat,
-                            description: notificationId,
-                            expirySecs: 3600
-                        )
-                        Log.info("Did create invoice.")
-                    } catch {
-                        // Couldn't create invoice.
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "HandlePaymentNotification row 141", key: "context")
-                            }
-                            self.hidePendingView()
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                // Cache payment details.
+                if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                    let newTimestamp = Int(Date().timeIntervalSince1970)
+                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: notificationId)
+                    Log.info("Did cache invoice data.")
+                }
+                
+                // Sign message.
+                let lightningSignature:String
+                do {
+                    lightningSignature = try await BitcoinManager.shared.signMessage(message: notificationId)
+                    Log.info("Did sign message.")
+                } catch {
+                    // Couldn't sign notification ID.
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "HandlePaymentNotification row 163", key: "context")
                         }
-                        return
+                        self.hidePendingView()
+                        self.lightningNotification = nil
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
                     }
-                        
-                    // Cache payment details.
-                    if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                        let newTimestamp = Int(Date().timeIntervalSince1970)
-                        CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
-                        CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: notificationId)
-                        Log.info("Did cache invoice data.")
-                    }
+                    return
+                }
+                
+                // Send response to Bittr.
+                do {
+                    let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                     
-                    // Sign message.
-                    var lightningSignature:String
-                    do {
-                        lightningSignature = try await BitcoinManager.shared.signMessage(message: notificationId)
-                        Log.info("Did sign message.")
-                    } catch {
-                        // Couldn't sign notification ID.
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "HandlePaymentNotification row 163", key: "context")
-                            }
-                            self.hidePendingView()
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
-                        }
-                        return
-                    }
-                    
-                    // Send response to Bittr.
-                    do {
-                        let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
-                        
-                        Log.info("Payout successful.")
-                        print("PreImage: \(payoutResponse.preImage ?? "N/A")")
-                        DispatchQueue.main.async {
-                            self.hidePendingView()
-                        }
-                    } catch {
-                        Log.info("Error occurred: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
-                            self.hidePendingView()
-                            var sendToSentry = true
-                            
-                            if let bittrServiceError = error as? BittrServiceError {
-                                switch bittrServiceError {
-                                case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
-                                    // Handle channel full with swap suggestion
-                                    self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
-                                case .serverError(let message):
-                                    if message.contains("try again"), self.varSpecialData != nil {
-                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
-                                    } else {
-                                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
-                                        if message == "This payment has already been processed." {
-                                            // No need to notify Sentry.
-                                            sendToSentry = false
-                                        }
-                                    }
-                                default:
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
-                                }
-                            } else {
-                                if error.localizedDescription.contains("try again"), self.varSpecialData != nil {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
-                                } else {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
-                                }
-                            }
-                            
-                            if sendToSentry {
-                                SentrySDK.capture(error: error) { scope in
-                                    scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Not connected to peer.
+                    Log.info("Payout successful.")
+                    print("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
                         self.hidePendingView()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                    }
+                } catch {
+                    Log.info("Error occurred: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        self.hidePendingView()
+                        var sendToSentry = true
+                        
+                        if let bittrServiceError = error as? BittrServiceError {
+                            switch bittrServiceError {
+                            case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
+                                // Handle channel full with swap suggestion
+                                self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
+                            case .serverError(let message):
+                                if message.contains("try again"), self.lightningNotification != nil {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                } else {
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                    if message == "This payment has already been processed." {
+                                        // No need to notify Sentry.
+                                        sendToSentry = false
+                                    }
+                                    self.lightningNotification = nil
+                                }
+                            default:
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.lightningNotification = nil
+                            }
+                        } else {
+                            if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                            } else {
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.lightningNotification = nil
+                            }
+                        }
+                        
+                        if sendToSentry {
+                            SentrySDK.capture(error: error) { scope in
+                                scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
+                            }
+                        }
                     }
                 }
+            } else {
+                Log.info("Not connected to peer.")
+                DispatchQueue.main.async {
+                    self.hidePendingView()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                }
             }
-        } else {
-            Log.info("Required data not found in notification.")
-            self.hidePendingView()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
         }
     }
     
@@ -249,8 +204,8 @@ extension CoreViewController {
         self.hideAlert()
         
         Task {
-            await BitcoinManager.shared.didEstablishPeerConnection()
-            if self.varSpecialData != nil {
+            _ = await BitcoinManager.shared.didEstablishPeerConnection()
+            DispatchQueue.main.async {
                 self.facilitateNotificationPayout()
             }
         }
@@ -273,7 +228,7 @@ extension CoreViewController {
                 if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
                     Log.info("Did receive payment details.")
                     
-                    if self.varSpecialData != nil {
+                    if self.lightningNotification != nil {
                         // This is an incoming Bittr payout.
                         self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.transactionID ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
@@ -469,7 +424,7 @@ extension CoreViewController {
                         DispatchQueue.main.async {
                             
                             // Add payout ID to cache.
-                            if self.varSpecialData != nil, let notificationId = self.varSpecialData!["notification_id"] as? String {
+                            if let notificationId = self.lightningNotification?.notificationID {
                                 CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
                             }
                             
@@ -528,54 +483,42 @@ extension CoreViewController {
         }
     }
     
-    @objc func handleSwapNotificationFromBackground(notification: NSNotification) {
+    func handleSwapNotificationFromBackground(_ notification: BittrNotification) {
         
-        // Prevent double handling
-        if self.isHandlingSwapNotification {
-            Log.info("Already handling swap notification, skipping")
+        guard notification.swapID != nil else {
+            Log.info("Swap ID is nil.")
+            self.lightningNotification = nil
+            return
+        }
+            
+        Log.info("Received swap notification from background for ID.")
+        
+        // Check if SwapViewController is already open - if so, ignore the notification
+        if self.isSwapViewControllerOpen() {
+            Log.info("SwapViewController is already open, ignoring notification")
             return
         }
         
-        if let userInfo = notification.userInfo as? [String: Any],
-           let swapID = userInfo["swap_id"] as? String {
+        // Check if user is signed in (PIN has been entered)
+        if !self.userHasSignedIn {
+            Log.info("User hasn't signed in yet, store notification for later.")
+            self.wasNotified = true
+            self.lightningNotification = notification
             
-            Log.info("Received swap notification from background for ID.")
-            print("Swap ID: \(swapID)")
-            
-            // Check if SwapViewController is already open - if so, ignore the notification
-            if self.isSwapViewControllerOpen() {
-                Log.info("SwapViewController is already open, ignoring notification")
-                return
-            }
-            
-            // Set flag to prevent double handling
-            self.isHandlingSwapNotification = true
-            
-            // Check if user is signed in (PIN has been entered)
-            if self.userHasSignedIn {
-                // User is signed in, handle notification immediately
-                self.handleSwapNotificationImmediately(swapID: swapID, userInfo: userInfo)
-                
-                // Clear the flag after handling
-                UserDefaults.standard.set(false, forKey: "receivedNotificationWhileClosed")
-            } else {
-                // User hasn't signed in yet, store notification for later
-                self.needsToHandleNotification = true
-                self.wasNotified = true
-                self.lightningNotification = notification
-                
-                // Reset the double handling flag since we're storing for later
-                self.isHandlingSwapNotification = false
-                
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            }
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        } else if !self.walletHasSynced {
+            Log.info("Wallet hasn't synced yet.")
+            self.lightningNotification = notification
+            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
+            self.showPendingView()
+        } else {
+            // User is signed in, handle notification immediately
+            self.handleSwapNotificationImmediately()
         }
     }
     
-    private func handleSwapNotificationImmediately(swapID: String, userInfo: [String: Any]) {
-        
-        self.needsToHandleNotification = false
-        self.isHandlingSwapNotification = false
+    private func handleSwapNotificationImmediately() {
+        self.lightningNotification = nil
         self.hidePendingView()
         
         // Load swap details from file
@@ -595,23 +538,14 @@ extension CoreViewController {
         // We just need to present the SwapViewController and it will handle the pending swap
         
         // Try to present through HomeViewController using the existing segue
-        if let homeVC = self.homeVC {
-            homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
-            
-            // After a short delay, trigger the swap button tap to go directly to swap
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                if let moveVC = homeVC.presentedViewController as? MoveViewController {
-                    // Set a flag to indicate this is from a background notification
-                    moveVC.isFromBackgroundNotification = true
-                    moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
-                }
-            }
+        if self.homeVC != nil {
+            self.homeVC!.openMoveVCFromBackgroundNotification = true
+            self.homeVC!.performSegue(withIdentifier: "HomeToMove", sender: self.homeVC!)
         }
     }
     
     func handleChannelFullWithSwapSuggestion(message: String, suggestedAmount: String, notificationId: String) {
         // Store the notification data for later use after swap
-        self.pendingNotificationData = self.varSpecialData
         self.pendingNotificationId = notificationId
         self.pendingSuggestedSwapAmount = Int(suggestedAmount) ?? 50000
         
@@ -629,7 +563,6 @@ extension CoreViewController {
     @objc override func cancelSwapOffer() {
         self.hideAlert()
         // Clear pending data
-        self.pendingNotificationData = nil
         self.pendingNotificationId = nil
         self.pendingSuggestedSwapAmount = 0
     }
@@ -686,7 +619,6 @@ extension CoreViewController {
                     )
                     
                     // Clear pending data
-                    self.pendingNotificationData = nil
                     self.pendingNotificationId = nil
                     self.pendingSuggestedSwapAmount = 0
                 }
@@ -722,43 +654,22 @@ extension CoreViewController {
             
             // First dismiss the current view controller
             self.dismiss(animated: true) {
-                // Then navigate through the existing segue pattern
+                // Then navigate through the existing segue pattern.
+                homeVC.openMoveVCFromBackgroundNotification = true
+                homeVC.pendingOnchainAmount = suggestedAmount
+                homeVC.pendingOnchainAddress = "" // No specific address needed
                 homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
-                
-                // After a short delay, trigger the swap button tap to go directly to swap
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if let moveVC = homeVC.presentedViewController as? MoveViewController {
-                        // Set flags to trigger onchain-to-lightning swap with pre-filled amount
-                        // We'll use a new flag to distinguish this from regular onchain payments
-                        moveVC.isFromBackgroundNotification = true
-                        moveVC.pendingOnchainAmount = suggestedAmount
-                        moveVC.pendingOnchainAddress = "" // No specific address needed
-                        moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
-                    }
-                }
             }
         }
     }
     
     private func isSwapViewControllerOpen() -> Bool {
         // Check if SwapViewController is currently presented in the view hierarchy
-        if let homeVC = self.homeVC {
-            // Check if HomeViewController has a presented view controller
-            if let presentedVC = homeVC.presentedViewController {
-                // Check if it's MoveViewController
-                if let moveVC = presentedVC as? MoveViewController {
-                    // Check if MoveViewController has a presented view controller (SwapViewController)
-                    if let swapVC = moveVC.presentedViewController as? SwapViewController {
-                        return true
-                    }
-                }
-                // Check if it's directly SwapViewController
-                if presentedVC is SwapViewController {
-                    return true
-                }
-            }
+        if self.homeVC?.moveVC?.swapVC != nil {
+            return true
+        } else {
+            return false
         }
-        return false
     }
 
 }

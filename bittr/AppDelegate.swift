@@ -7,7 +7,6 @@
 
 import UIKit
 import Sentry
-
 import UserNotifications
 
 @main
@@ -171,102 +170,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
         print("Device Token: \(token)")
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "showtoken"), object: nil, userInfo: ["token":token]) as Notification)
         
+        // Cache token.
         CacheManager.storeNotificationsToken(token: token)
-        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "resume2fa"), object: nil, userInfo: nil) as Notification)
+        
+        // Send token to DeviceVC and Transfer15VC.
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "receivedToken"), object: nil, userInfo: ["token":token]) as Notification)
     }
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         Log.info("Failed to register: \(error)")
-    }
-    
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        
-        // Handle the notification content even when app is in foreground
-        let userInfo = notification.request.content.userInfo
-        
-        if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
-            // Handle Lightning payment notifications in foreground
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: userInfo) as Notification)
-            }
-        } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
-            // Handle Bittr notifications in foreground
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: userInfo) as Notification)
-            }
-        } else if let swapData = userInfo["swap_notification"] as? [String: Any] {
-            // Handle swap-specific notifications in foreground
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "swapNotification"), object: nil, userInfo: swapData) as Notification)
-            }
-        } else if let lightningAddressData = userInfo["lightning_address_notification"] as? [String: Any] {
-            // Handle lightning address payment requests in foreground
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil, userInfo: lightningAddressData) as Notification)
-            }
-        } else {
-            self.handleUnexpectedNotification(4, userInfo: "\(userInfo)")
-        }
-        
-        completionHandler(.alert)
-    }
-    
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        
-        // Print entire userInfo dictionary to console
-        Log.info("=== didReceiveRemoteNotification called ===")
-        Log.info("Application state: \(UIApplication.shared.applicationState.rawValue)")
-        print("Received remote notification: \(userInfo)")
-        
-        // Handle notifications when app is not active (background or closed)
-        // Foreground notifications are handled in willPresent method
-        if UIApplication.shared.applicationState != .active {
-            Log.info("App is not active, storing notification")
-            // Set flag to indicate we received a notification while app was not active
-            UserDefaults.standard.set(true, forKey: "receivedNotificationWhileClosed")
-            Log.info("Set receivedNotificationWhileClosed flag to true")
-            
-            // Store the notification data for later processing when app becomes active
-            if let actualUserInfo = userInfo as [AnyHashable:Any]? {
-                if let specialData = userInfo["bittr_specific_data"] as? [String: Any] {
-                    UserDefaults.standard.set(actualUserInfo, forKey: "pendingPaymentNotification")
-                    print("Stored pending payment notification: \(actualUserInfo)")
-                } else if let specialData = userInfo["bittr_notification"] as? [String: Any] {
-                    UserDefaults.standard.set(actualUserInfo, forKey: "pendingBittrNotification")
-                    Log.info("Stored pending Bittr notification")
-                } else if let swapData = userInfo["swap_notification"] as? [String: Any] {
-                    UserDefaults.standard.set(actualUserInfo, forKey: "pendingSwapNotification")
-                    Log.info("Stored pending swap notification")
-                } else if let lightningAddressData = userInfo["lightning_address_notification"] as? [String: Any] {
-                    UserDefaults.standard.set(actualUserInfo, forKey: "pendingLightningAddressNotification")
-                    Log.info("Stored pending lightning address notification")
-                } else {
-                    // Unexpected notification type.
-                    Log.info("Unexpected notification type")
-                    self.handleUnexpectedNotification(1, userInfo: "\(userInfo)")
-                }
-            } else {
-                Log.info("Invalid userInfo format")
-                self.handleUnexpectedNotification(2, userInfo: "\(userInfo)")
-            }
-        } else {
-            Log.info("App is active, notification will be handled by willPresent method")
-        }
-        
-        completionHandler(.newData)
-    }
-
-    func handleUnexpectedNotification(_ typeNumber:Int, userInfo:String) {
-        let notificationData:[String:Any] = ["header_text":Language.getWord(withID: "notification"),"body_text":"\(Language.getWord(withID: "notificationhandlingfail")) [\(typeNumber)]"]
-        let questionInfo:[AnyHashable:Any] = ["bittr_notification":notificationData]
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            SentrySDK.capture(message: "Received notification with unexpected type \(typeNumber).") { scope in
-                scope.setExtra(value: userInfo, key: "userInfo")
-            }
-            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil, userInfo: questionInfo) as Notification)
-        }
     }
 
 }

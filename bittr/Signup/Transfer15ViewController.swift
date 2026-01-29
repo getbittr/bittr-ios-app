@@ -69,7 +69,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.codeTextField.textContentType = .oneTimeCode
         
         // Notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "resume2fa"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "receivedToken"), object: nil)
         
         // Set language and colors.
         self.changeColors()

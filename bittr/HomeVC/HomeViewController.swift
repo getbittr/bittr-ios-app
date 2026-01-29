@@ -80,6 +80,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Cove View Controller
     var coreVC:CoreViewController?
     var moveVC:MoveViewController?
+    var openMoveVCFromBackgroundNotification = false
+    var isFromOnchainPayment = false
+    var pendingOnchainAddress = ""
+    var pendingOnchainAmount = 0
+    var isFromLightningPayment = false
+    var pendingLightningInvoice = ""
     
     // Pending URI data for seamless segue
     var pendingBitcoinURI: (address: String, amount: String, label: String)?
@@ -242,10 +248,24 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let moveVC = segue.destination as? MoveViewController {
                 moveVC.coreVC = self.coreVC
                 moveVC.homeVC = self
+                self.moveVC = moveVC
+                moveVC.isFromOnchainPayment = self.isFromOnchainPayment
+                moveVC.pendingOnchainAddress = self.pendingOnchainAddress
+                moveVC.pendingOnchainAmount = self.pendingOnchainAmount
+                moveVC.isFromBackgroundNotification = self.openMoveVCFromBackgroundNotification
+                moveVC.isFromLightningPayment = self.isFromLightningPayment
+                moveVC.pendingLightningInvoice = self.pendingLightningInvoice
                 if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
                     moveVC.maximumReceivableLNSats = Int((activeChannel.unspendablePunishmentReserve ?? 0)*10)
                 }
-                self.moveVC = moveVC
+                
+                // Dismiss placeholders.
+                self.isFromOnchainPayment = false
+                self.pendingOnchainAddress = ""
+                self.pendingOnchainAmount = 0
+                self.openMoveVCFromBackgroundNotification = false
+                self.isFromLightningPayment = false
+                self.pendingLightningInvoice = ""
             }
         } else if segue.identifier == "HomeToSend" {
             if let sendVC = segue.destination as? SendViewController {
@@ -413,7 +433,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        performSegue(withIdentifier: "HomeToMove", sender: self)
+        self.performSegue(withIdentifier: "HomeToMove", sender: self)
     }
     
     @IBAction func syncingStatusTapped(_ sender: UIButton) {

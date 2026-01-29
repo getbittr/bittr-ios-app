@@ -526,15 +526,17 @@ extension HomeViewController {
             if self.coreVC!.needsToHandleURI() {
                 self.coreVC!.hidePendingView()
                 self.coreVC!.checkForPendingURIs()
-            } else if self.coreVC!.needsToHandleNotification, let actualNotification = self.coreVC!.lightningNotification {
-                // Check if it's a swap notification or payment notification
-                if let userInfo = actualNotification.userInfo as? [String: Any],
-                   let _ = userInfo["swap_id"] as? String {
-                    // It's a swap notification
-                    self.coreVC!.handleSwapNotificationFromBackground(notification: actualNotification)
-                } else {
-                    // It's a payment notification
-                    self.coreVC!.handlePaymentNotification(notification: actualNotification)
+            } else if let actualNotification = self.coreVC!.lightningNotification {
+                // Check if it's a swap notification or payment notification.
+                if actualNotification.type == .swap {
+                    // It's a swap notification.
+                    self.coreVC!.handleSwapNotificationFromBackground(actualNotification)
+                } else if actualNotification.type == .lightningPayout {
+                    // It's a payout notification.
+                    self.coreVC!.handlePayoutNotification(actualNotification)
+                } else if actualNotification.type == .lnUrl {
+                    // It's an LNURL notification.
+                    self.coreVC!.handleLightningAddressNotification(actualNotification)
                 }
             }
             

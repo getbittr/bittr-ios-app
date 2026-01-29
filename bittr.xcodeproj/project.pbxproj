@@ -54,6 +54,7 @@
 		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
 		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
 		055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055403682CC14FC0006F27CA /* SendLNURL.swift */; };
+		05546CF52F2A337B00512129 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05546CF42F2A337600512129 /* NotificationManager.swift */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05622A682DB61E3700D91066 /* AlertManager.swift */; };
 		05622A6B2DB8BA3700D91066 /* CallsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05622A6A2DB8BA3000D91066 /* CallsManager.swift */; };
@@ -238,6 +239,7 @@
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
 		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
 		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
+		05546CF42F2A337600512129 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		05622A682DB61E3700D91066 /* AlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertManager.swift; sourceTree = "<group>"; };
 		05622A6A2DB8BA3000D91066 /* CallsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallsManager.swift; sourceTree = "<group>"; };
@@ -669,6 +671,7 @@
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				05622A682DB61E3700D91066 /* AlertManager.swift */,
 				05622A6A2DB8BA3000D91066 /* CallsManager.swift */,
+				05546CF42F2A337600512129 /* NotificationManager.swift */,
 				051DDEF82C6B185C0002CF2D /* Colors.swift */,
 				052171252CB41577006C5663 /* Language.swift */,
 				05C3C08429CCB55600C1E695 /* AppDelegate.swift */,
@@ -1035,6 +1038,7 @@
 				05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */,
 				05622A6B2DB8BA3700D91066 /* CallsManager.swift in Sources */,
 				050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */,
+				05546CF52F2A337B00512129 /* NotificationManager.swift in Sources */,
 				05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */,
 				05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */,
 				052E98C22F1638FF000035A8 /* UIViewController.swift in Sources */,

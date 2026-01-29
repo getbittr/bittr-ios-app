@@ -47,7 +47,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.deviceTableViewHeight.constant = CGFloat(self.deviceItems.count * 55)
         
         // Notifications
-        NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "showtoken"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(showToken), name: NSNotification.Name(rawValue: "receivedToken"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         
@@ -239,15 +239,12 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func checkNotification() {
-        if self.homeVC?.coreVC != nil, (self.homeVC!.coreVC!.varSpecialData != nil || CacheManager.getLatestNotification() != nil) {
-            if self.homeVC!.coreVC!.varSpecialData == nil {
-                self.homeVC!.coreVC!.varSpecialData = CacheManager.getLatestNotification()!
-            }
-            self.homeVC!.coreVC!.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-            self.homeVC!.coreVC!.showPendingView()
-            self.homeVC!.coreVC!.facilitateNotificationPayout()
+        if self.homeVC?.coreVC != nil, CacheManager.getLastNotification() != nil {
+            Log.info("Notification found for retrying.")
+            self.homeVC!.coreVC!.newNotification()
             self.dismiss(animated: true)
         } else {
+            Log.info("No notification available for retrying.")
             self.showNotificationAlert()
         }
     }

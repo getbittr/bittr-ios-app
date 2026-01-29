@@ -49,6 +49,7 @@ class MoveViewController: UIViewController {
     // Home View Controller
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
+    var swapVC:SwapViewController?
     var isFromBackgroundNotification = false
     var isFromLightningPayment = false
     var pendingLightningInvoice = ""
@@ -85,15 +86,8 @@ class MoveViewController: UIViewController {
         self.changeColors()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "balance"))
         
-        // If we're coming from a Lightning payment, automatically trigger the swap segue
-        if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.performSegue(withIdentifier: "MoveToSwap", sender: self)
-            }
-        }
-        
-        // If we're coming from an onchain payment, automatically trigger the swap segue
-        if self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty {
+        // If we're coming from a Lightning or Onchain payment, automatically trigger the swap segue.
+        if self.isFromBackgroundNotification || (self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty) || (self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.performSegue(withIdentifier: "MoveToSwap", sender: self)
             }
@@ -143,6 +137,7 @@ class MoveViewController: UIViewController {
             if let swapVC = segue.destination as? SwapViewController {
                 swapVC.homeVC = self.homeVC
                 swapVC.coreVC = self.coreVC
+                self.swapVC = swapVC
                 swapVC.isFromBackgroundNotification = self.isFromBackgroundNotification
                 swapVC.isFromLightningPayment = self.isFromLightningPayment
                 swapVC.pendingLightningInvoice = self.pendingLightningInvoice

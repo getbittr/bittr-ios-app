@@ -91,9 +91,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Add notification observer for swap updates
-        NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotification), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
-        
         // Clear any stale data if this is a manual navigation (not from payment)
         if !self.isFromLightningPayment && !self.isFromOnchainPayment && !self.isFromBackgroundNotification {
             Log.info("DEBUG - Manual navigation to swap screen, clearing any stale data")
@@ -709,47 +706,43 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
     }
     
-    @objc func handleSwapNotification(notification: NSNotification) {
-        if let userInfo = notification.userInfo as? [String: Any],
-           let swapID = userInfo["swap_id"] as? String {
+    func handleSwapNotification(_ notification: BittrNotification) {
+        Log.info("Received swap notification.")
+        
+        guard notification.swapID != nil else { return }
+        guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
+        
+        // Set up the confirm view with loaded data
+        self.swapDirection = ongoingSwap.swapDirection
+        
+        // Ensure view is loaded before accessing UI elements
+        DispatchQueue.main.async {
+            // Update UI labels
+            self.confirmDirectionLabel?.text = ongoingSwap.dateID.contains("onchain to lightning") ?
+                Language.getWord(withID: "onchaintolightning") :
+                Language.getWord(withID: "lightningtoonchain")
+            self.confirmAmountLabel?.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
+            self.confirmFeesLabel?.text = "\((ongoingSwap.lightningFees ?? 0) + (ongoingSwap.onchainFees ?? 0))".addSpaces() + " sats"
             
-            Log.info("Received swap notification.")
-            print("For ID: \(swapID)")
-            
-            guard let ongoingSwap = self.coreVC?.bittrWallet.ongoingSwap else { return }
-            
-            // Set up the confirm view with loaded data
-            self.swapDirection = ongoingSwap.swapDirection
-            
-            // Ensure view is loaded before accessing UI elements
-            DispatchQueue.main.async {
-                // Update UI labels
-                self.confirmDirectionLabel?.text = ongoingSwap.dateID.contains("onchain to lightning") ?
-                    Language.getWord(withID: "onchaintolightning") :
-                    Language.getWord(withID: "lightningtoonchain")
-                self.confirmAmountLabel?.text = "\(ongoingSwap.satoshisAmount)".addSpaces() + " sats"
-                self.confirmFeesLabel?.text = "\((ongoingSwap.lightningFees ?? 0) + (ongoingSwap.onchainFees ?? 0))".addSpaces() + " sats"
+            // Set status based on notification data
+            if let status = notification.status {
+                self.confirmStatusLabel?.text = self.userFriendlyStatus(receivedStatus: status)
                 
-                // Set status based on notification data
-                if let status = userInfo["status"] as? String {
-                    self.confirmStatusLabel?.text = self.userFriendlyStatus(receivedStatus: status)
-                    
-                    // Stop spinner if swap is complete or failed
-                    if status == "transaction.claimed" || status == "invoice.settled" ||
-                       status == "swap.expired" || status == "transaction.failed" {
-                        self.confirmStatusSpinner?.stopAnimating()
-                    }
+                // Stop spinner if swap is complete or failed
+                if status == "transaction.claimed" || status == "invoice.settled" ||
+                   status == "swap.expired" || status == "transaction.failed" {
+                    self.confirmStatusSpinner?.stopAnimating()
                 }
-                
-                // Switch to confirm view
-                self.switchView("confirm")
-                
-                // Set up WebSocket if needed
-                self.webSocketManager = WebSocketManager()
-                self.webSocketManager!.delegate = self
-                self.webSocketManager!.swapID = ongoingSwap.boltzID!
-                self.webSocketManager!.connect()
             }
+            
+            // Switch to confirm view
+            self.switchView("confirm")
+            
+            // Set up WebSocket if needed
+            self.webSocketManager = WebSocketManager()
+            self.webSocketManager!.delegate = self
+            self.webSocketManager!.swapID = ongoingSwap.boltzID!
+            self.webSocketManager!.connect()
         }
     }
     

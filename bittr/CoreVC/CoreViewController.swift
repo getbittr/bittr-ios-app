@@ -79,13 +79,9 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     @IBOutlet weak var pendingLabel: UILabel!
-    var needsToHandleNotification = false
     var wasNotified = false
-    var lightningNotification:NSNotification?
-    var varSpecialData:[String: Any]?
+    var lightningNotification:BittrNotification?
     var receivedBittrTransaction:Transaction?
-    var isHandlingSwapNotification = false
-    var pendingNotificationData:[String: Any]?
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0
     
@@ -168,10 +164,7 @@ class CoreViewController: UIViewController {
         self.lowerYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
         
         // Add observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(handlePaymentNotification), name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleBittrNotification), name: NSNotification.Name(rawValue: "handlebittrnotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleSwapNotificationFromBackground), name: NSNotification.Name(rawValue: "swapNotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleLightningAddressNotification), name: NSNotification.Name(rawValue: "lightningAddressNotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(newNotification), name: NSNotification.Name(rawValue: "newNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleLightningURI), name: NSNotification.Name(rawValue: "handleLightningURI"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
@@ -217,12 +210,7 @@ class CoreViewController: UIViewController {
     
     private func checkForPendingNotifications() {
         // Check if we have a pending payment notification as a fallback
-        if let pendingPaymentNotification = UserDefaults.standard.dictionary(forKey: "pendingPaymentNotification") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "handlepaymentnotification"), object: nil, userInfo: pendingPaymentNotification) as Notification)
-            }
-            UserDefaults.standard.removeObject(forKey: "pendingPaymentNotification")
-        }
+        
     }
     
     override func viewWillDisappear(_ animated: Bool) {

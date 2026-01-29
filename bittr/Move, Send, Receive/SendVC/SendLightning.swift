@@ -387,17 +387,9 @@ extension UIViewController {
             // First dismiss the current view controller
             self.dismiss(animated: true) {
                 // Then navigate through the existing segue pattern
+                homeVC.isFromLightningPayment = true
+                homeVC.pendingLightningInvoice = pendingInvoice
                 homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
-                
-                // After a short delay, trigger the swap button tap to go directly to swap
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if let moveVC = homeVC.presentedViewController as? MoveViewController {
-                        // Set a flag to indicate this is from a Lightning payment
-                        moveVC.isFromLightningPayment = true
-                        moveVC.pendingLightningInvoice = pendingInvoice
-                        moveVC.performSegue(withIdentifier: "MoveToSwap", sender: moveVC)
-                    }
-                }
             }
         }
     }
