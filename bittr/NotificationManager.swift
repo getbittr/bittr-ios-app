@@ -11,15 +11,15 @@ import UIKit
 
 // MARK: Handling
 extension AppDelegate {
-    func handleNotification(_ receivedNotification:UNNotificationRequest) {
+    func handleNotification(userInfo:[AnyHashable:Any], id:String?, title:String?, body:String?) {
         
-        if CacheManager.getLastNotification() == nil || (CacheManager.getLastNotification()?.id != nil && CacheManager.getLastNotification()!.id! != receivedNotification.identifier) {
+        if CacheManager.getLastNotification() == nil || (CacheManager.getLastNotification()?.id != nil && CacheManager.getLastNotification()!.id! != id) {
             Log.info("Will cache new notification.")
             
-            let thisNotification = receivedNotification.content.userInfo.toNotification()
-            thisNotification.id = receivedNotification.identifier
-            thisNotification.title = receivedNotification.content.title
-            thisNotification.body = receivedNotification.content.body
+            let thisNotification = userInfo.toNotification()
+            thisNotification.id = id
+            thisNotification.title = title
+            thisNotification.body = body
             CacheManager.cacheLastNotification(thisNotification)
             
             Log.info("Notification type: \(thisNotification.type)")
@@ -29,7 +29,7 @@ extension AppDelegate {
                 thisNotification.handle()
             }
         } else {
-            Log.info("Notification has already been cached.")
+            Log.info("Notification has already been cached and handled.")
         }
     }
 }
@@ -150,16 +150,26 @@ extension AppDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         Log.info("Did receive notification while app was closed.")
         
-        self.handleNotification(response.notification.request)
+        let request = response.notification.request
+        self.handleNotification(userInfo: request.content.userInfo, id: request.identifier, title: request.content.title, body: request.content.body)
     }
     
     // Notification comes in while the app is in the foreground.
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         Log.info("Did receive notification while app was open.")
         
-        self.handleNotification(notification.request)
+        let request = notification.request
+        self.handleNotification(userInfo: request.content.userInfo, id: request.identifier, title: request.content.title, body: request.content.body)
         
         completionHandler([.banner, .list])
+    }
+    
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        Log.info("Did receive notification while app was closed. 2")
+        
+        self.handleNotification(userInfo: userInfo, id: UUID().uuidString, title: nil, body: nil)
+        
+        completionHandler(.newData)
     }
 }
 
