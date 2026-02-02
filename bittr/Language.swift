@@ -444,6 +444,8 @@ class Language: NSObject {
             "transfer3AmountLabel": "You can buy up to 999 € worth of bitcoin per 30 days from bittr.",
             "transfer3Lightning": "Instant payments",
             "transfer3LightningLabel": "For purchases under 100 €, we create a lightning connection. With lightning, you can send and receive instant payments against low fees. The setup of the connection incurs a one-time fee of 10 000 satoshis.",
+            "transfer3Connection": "Lightning connection",
+            "transfer3ConnectionLabel": "Lightning funds exist only on this device. Don't delete this app before closing your lightning connection.",
             "transfer3DCA": "Dollar-cost-averaging",
             "transfer3DCALabel": "Easily stack up on bitcoin by setting up a recurring bank transfer, e.g. 50 € every Monday.",
             "SpendingPolicyRequired": "Spending policy is not compatible with this kind of keychain.",
@@ -481,7 +483,9 @@ class Language: NSObject {
             "transfer15vc": "Please enter the verification code in order to proceed.",
             "transfer15vc2": "Something went wrong verifying your code. Please restart the app and try again. (Error: <error>)",
             "lnurlbetween": "Amount must be between <min> and <max> satoshis.",
-            "invalidinvoice2": "The following is not a valid invoice.\n\n<invoice>"
+            "invalidinvoice2": "The following is not a valid invoice.\n\n<invoice>",
+            "reminder": "Reminder",
+            "reminderbody": "The funds in your lightning connection exist only on this device. Don't delete this app before closing the connection."
             
         ]
         

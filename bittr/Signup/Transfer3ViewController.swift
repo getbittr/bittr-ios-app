@@ -29,6 +29,9 @@ class Transfer3ViewController: UIViewController {
     @IBOutlet weak var lightningCard: UIView!
     @IBOutlet weak var lightningTitle: UILabel!
     @IBOutlet weak var lightningLabel: UILabel!
+    @IBOutlet weak var connectionCard: UIView!
+    @IBOutlet weak var connectionTitle: UILabel!
+    @IBOutlet weak var connectionLabel: UILabel!
     @IBOutlet weak var dcaCard: UIView!
     @IBOutlet weak var dcaTitle: UILabel!
     @IBOutlet weak var dcaLabel: UILabel!
@@ -44,6 +47,7 @@ class Transfer3ViewController: UIViewController {
         self.nextView.layer.cornerRadius = 8
         self.amountCard.layer.cornerRadius = 8
         self.lightningCard.layer.cornerRadius = 8
+        self.connectionCard.layer.cornerRadius = 8
         self.dcaCard.layer.cornerRadius = 8
         self.centerView.layer.cornerRadius = 13
         self.centerView.setShadow()
@@ -108,6 +112,8 @@ class Transfer3ViewController: UIViewController {
         self.amountLabel.textColor = Colors.getColor("blackorwhite")
         self.lightningCard.backgroundColor = Colors.getColor("whiteorblue3")
         self.lightningLabel.textColor = Colors.getColor("blackorwhite")
+        self.connectionCard.backgroundColor = Colors.getColor("whiteorblue3")
+        self.connectionLabel.textColor = Colors.getColor("blackorwhite")
         self.dcaCard.backgroundColor = Colors.getColor("whiteorblue3")
         self.dcaLabel.textColor = Colors.getColor("blackorwhite")
         self.centerView.backgroundColor = Colors.getColor("yelloworblue1")
@@ -122,6 +128,8 @@ class Transfer3ViewController: UIViewController {
         self.amountLabel.text = Language.getWord(withID: "transfer3AmountLabel")
         self.lightningTitle.text = Language.getWord(withID: "transfer3Lightning")
         self.lightningLabel.text = Language.getWord(withID: "transfer3LightningLabel")
+        self.connectionTitle.text = Language.getWord(withID: "transfer3Connection")
+        self.connectionLabel.text = Language.getWord(withID: "transfer3ConnectionLabel")
         self.dcaTitle.text = Language.getWord(withID: "transfer3DCA")
         self.dcaLabel.text = Language.getWord(withID: "transfer3DCALabel")
     }

@@ -117,7 +117,7 @@ class Colors: NSObject {
         case .black: return UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: opacity)
         case .white: return UIColor(displayP3Red: 1, green: 1, blue: 1, alpha: opacity)
         
-        case .blue1: return UIColor(displayP3Red: 59/255, green: 83/255, blue: 123/255, alpha: opacity)
+        case .blue1: return UIColor(displayP3Red: 65/255, green: 88/255, blue: 128/255, alpha: opacity)
         case .blue2: return UIColor(displayP3Red: 75/255, green: 100/255, blue: 141/255, alpha: opacity)
         case .blue3: return UIColor(displayP3Red: 92/255, green: 121/255, blue: 165/255, alpha: opacity)
         

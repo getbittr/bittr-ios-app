@@ -37,6 +37,11 @@ class LightningPaymentViewController: UIViewController {
     @IBOutlet weak var nowLeftLabel: UILabel!
     @IBOutlet weak var nowLabel: UILabel!
     
+    // Alert
+    @IBOutlet weak var alertView: UIView!
+    @IBOutlet weak var alertTitle: UILabel!
+    @IBOutlet weak var alertBody: UILabel!
+    
     // Variables
     var receivedTransaction:Transaction?
     var coreVC:CoreViewController?
@@ -53,6 +58,7 @@ class LightningPaymentViewController: UIViewController {
         self.headerView.layer.cornerRadius = 13
         self.bodyView.layer.cornerRadius = 13
         self.dateView.layer.cornerRadius = 7
+        self.alertView.layer.cornerRadius = 13
         
         self.changeColors()
         self.setWords()
@@ -133,9 +139,7 @@ class LightningPaymentViewController: UIViewController {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         
-        if CacheManager.darkModeIsOn() {
-            self.bodyView.backgroundColor = Colors.getColor("whiteorblue2")
-        }
+        self.bodyView.backgroundColor = Colors.getColor("whiteorblue2")
         
         self.explanationLabel.textColor = Colors.getColor("blackorwhite")
         
@@ -154,6 +158,10 @@ class LightningPaymentViewController: UIViewController {
         
         self.nowLabel.textColor = Colors.getColor("blackorwhite")
         self.nowLeftLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Alert
+        self.alertView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.alertBody.textColor = Colors.getColor("blackorwhite")
     }
     
     func setWords() {
@@ -165,6 +173,8 @@ class LightningPaymentViewController: UIViewController {
         self.idLabel.text = Language.getWord(withID: "description")
         self.nowLeftLabel.text = Language.getWord(withID: "currentvalue")
         self.typeLabel.text = Language.getWord(withID: "instant")
+        self.alertTitle.text = Language.getWord(withID: "reminder")
+        self.alertBody.text = Language.getWord(withID: "reminderbody")
     }
     
 }
