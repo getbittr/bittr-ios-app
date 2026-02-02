@@ -16,10 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         SentrySDK.start { options in
             options.dsn = "https://a132893f0e0785733b108592f71efebc@o4507055777120256.ingest.us.sentry.io/4507055778758656"
-            options.debug = false // Enabled debug when first installing is always helpful
-            options.enableTracing = true
+            options.debug = false
+            options.tracesSampleRate = 1.0
             options.sendDefaultPii = false
-            options.enableMetrics = true
             
             // Redact sensitive data in Sentry events.
             options.beforeSend = { sentryEvent in
@@ -30,7 +29,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 
                 if let eventExceptions = sentryEvent.exceptions {
                     for eachException in eventExceptions {
-                        eachException.value = eachException.value.redactBTCValues()
+                        eachException.value = eachException.value?.redactBTCValues()
                         if let exceptionMechanism = eachException.mechanism {
                             if let mechanismDescription = exceptionMechanism.desc {
                                 eachException.mechanism!.desc = mechanismDescription.redactBTCValues()

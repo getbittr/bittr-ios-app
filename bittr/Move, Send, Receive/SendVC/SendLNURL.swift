@@ -41,7 +41,7 @@ extension UIViewController {
                         
                         switch result {
                         case .success(let actualDataDict):
-                            SentrySDK.metrics.increment(key: "lnurl.api.success")
+                            SentrySDK.metrics.count(key: "lnurl.api.success")
                             
                             if let receivedTag = actualDataDict["tag"] as? String {
                                 print("Tag: \(receivedTag)")
@@ -108,7 +108,7 @@ extension UIViewController {
                             }
                         case .failure(let error):
                             SentrySDK.capture(error: error)
-                            SentrySDK.metrics.increment(key: "lnurl.api.failure.1")
+                            SentrySDK.metrics.count(key: "lnurl.api.failure.1")
                             Log.info("Error 111: \(error.localizedDescription)")
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
@@ -126,7 +126,7 @@ extension UIViewController {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SendLNURL row 126", key: "context")
                 }
-                SentrySDK.metrics.increment(key: "lnurl.api.failure.2")
+                SentrySDK.metrics.count(key: "lnurl.api.failure.2")
                 sendVC?.stopLNURLSpinner()
                 receiveVC?.stopLNURLSpinner()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -154,7 +154,7 @@ extension UIViewController {
                     if let receivedInvoice = actualDataDict["pr"] as? String {
                         // Invoice received.
                         print("Invoice: \(receivedInvoice)")
-                        SentrySDK.metrics.increment(key: "lnurl.pay.success")
+                        SentrySDK.metrics.count(key: "lnurl.pay.success")
                         DispatchQueue.main.async {
                             if sendVC != nil {
                                 sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
@@ -169,18 +169,18 @@ extension UIViewController {
                             }
                         }
                     } else if let _ = actualDataDict["status"] as? String, let receivedDetail = actualDataDict["detail"] as? String {
-                        SentrySDK.metrics.increment(key: "lnurl.pay.failure.2")
+                        SentrySDK.metrics.count(key: "lnurl.pay.failure.2")
                         DispatchQueue.main.async {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(receivedDetail)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     } else {
-                        SentrySDK.metrics.increment(key: "lnurl.pay.failure.3")
+                        SentrySDK.metrics.count(key: "lnurl.pay.failure.3")
                         DispatchQueue.main.async {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) Unexpected error.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 case .failure(let error):
-                    SentrySDK.metrics.increment(key: "lnurl.pay.failure.1")
+                    SentrySDK.metrics.count(key: "lnurl.pay.failure.1")
                     Log.info("Error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -227,17 +227,17 @@ extension UIViewController {
                             // Response received.
                             if receivedStatus == "OK" {
                                 // Successful withdrawal.
-                                SentrySDK.metrics.increment(key: "lnurl.withdraw.success")
+                                SentrySDK.metrics.count(key: "lnurl.withdraw.success")
                             } else if receivedStatus == "ERROR" {
                                 // There was a problem.
-                                SentrySDK.metrics.increment(key: "lnurl.withdraw.failure.1")
+                                SentrySDK.metrics.count(key: "lnurl.withdraw.failure.1")
                                 if let receivedReason = actualDataDict["reason"] as? String {
                                     DispatchQueue.main.async {
                                         self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(receivedReason)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                     }
                                 }
                             } else {
-                                SentrySDK.metrics.increment(key: "lnurl.withdraw.failure.2")
+                                SentrySDK.metrics.count(key: "lnurl.withdraw.failure.2")
                                 DispatchQueue.main.async {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) Unexpected error.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
@@ -246,14 +246,14 @@ extension UIViewController {
                     case .failure(let error):
                         Log.info("Error: \(error.localizedDescription)")
                         SentrySDK.capture(error: error)
-                        SentrySDK.metrics.increment(key: "lnurl.withdraw.failure.3")
+                        SentrySDK.metrics.count(key: "lnurl.withdraw.failure.3")
                         DispatchQueue.main.async {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     }
                 }
             } catch {
-                SentrySDK.metrics.increment(key: "lnurl.withdraw.failure.4")
+                SentrySDK.metrics.count(key: "lnurl.withdraw.failure.4")
                 let errorMessage:String = {
                     if let nodeError = error as? NodeError {
                         return handleNodeError(nodeError).detail

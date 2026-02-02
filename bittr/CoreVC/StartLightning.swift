@@ -50,13 +50,13 @@ extension CoreViewController {
                 Log.info("Did start node.")
                 self.completeSync(type: .ldk)
                 self.startSync(type: .bdk)
-                SentrySDK.metrics.increment(key: "sync.ldk.success")
+                SentrySDK.metrics.count(key: "sync.ldk.success")
                 
                 BitcoinManager.shared.setCoreVC(self)
                 BitcoinManager.shared.startBDK()
             } else {
                 Log.info("Could not start node.")
-                SentrySDK.metrics.increment(key: "sync.ldk.failure")
+                SentrySDK.metrics.count(key: "sync.ldk.failure")
                 self.stopLightning(message: nil)
             }
         }

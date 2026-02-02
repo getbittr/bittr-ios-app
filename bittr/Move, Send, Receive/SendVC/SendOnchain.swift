@@ -343,7 +343,7 @@ extension SendViewController {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SendOnchain row 349", key: "context")
                 }
-                SentrySDK.metrics.increment(key: "onchain.transaction.failure.2")
+                SentrySDK.metrics.count(key: "onchain.transaction.failure.2")
             }
             return
         }
@@ -351,7 +351,7 @@ extension SendViewController {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             Log.info("Successful transaction.")
-            SentrySDK.metrics.increment(key: "onchain.transaction.success")
+            SentrySDK.metrics.count(key: "onchain.transaction.success")
             self.sendLabel.alpha = 1
             self.sendSpinner.stopAnimating()
             self.newTxId = txid

@@ -242,7 +242,7 @@ class BitcoinManager {
                 
                 Log.info("Did initiate wallet and blockchain.")
                 DispatchQueue.main.async {
-                    SentrySDK.metrics.increment(key: "sync.bdk.success")
+                    SentrySDK.metrics.count(key: "sync.bdk.success")
                     self.coreVC?.updateSync(action: .complete, type: .bdk)
                     self.coreVC?.updateSync(action: .start, type: .sync)
                 }
@@ -340,7 +340,7 @@ class BitcoinManager {
         // Update syncing status.
         Log.info("Did sync wallet.")
         DispatchQueue.main.async {
-            SentrySDK.metrics.increment(key: "sync.walletsync.success")
+            SentrySDK.metrics.count(key: "sync.walletsync.success")
             self.coreVC?.updateSync(action: .complete, type: .sync)
             self.coreVC?.updateSync(action: .start, type: .final)
         }
@@ -422,7 +422,7 @@ class BitcoinManager {
             SentrySDK.capture(error: error) { scope in
                 scope.setExtra(value: "BitcoinManager row \(row)", key: "context")
             }
-            SentrySDK.metrics.increment(key: "sync.walletsync.failure")
+            SentrySDK.metrics.count(key: "sync.walletsync.failure")
         }
     }
     

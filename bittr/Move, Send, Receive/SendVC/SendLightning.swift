@@ -294,10 +294,10 @@ extension UIViewController {
                 do {
                     if isZeroAmountInvoice {
                         let _ = try await BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
-                        SentrySDK.metrics.increment(key: "lightning.payment.success")
+                        SentrySDK.metrics.count(key: "lightning.payment.success")
                     } else {
                         let _ = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
-                        SentrySDK.metrics.increment(key: "lightning.payment.success")
+                        SentrySDK.metrics.count(key: "lightning.payment.success")
                     }
                 } catch {
                     let errorMessage:String = {
@@ -316,7 +316,7 @@ extension UIViewController {
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "SendLightning row 233", key: "context")
                         }
-                        SentrySDK.metrics.increment(key: "lightning.payment.failure.1")
+                        SentrySDK.metrics.count(key: "lightning.payment.failure.1")
                     }
                 }
             } else {
@@ -335,7 +335,7 @@ extension UIViewController {
                         sendVC?.arrowIcon.alpha = 1
                         sendVC?.nextSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
-                        SentrySDK.metrics.increment(key: "lightning.payment.failure.2")
+                        SentrySDK.metrics.count(key: "lightning.payment.failure.2")
                     }
                 }
             }
