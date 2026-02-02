@@ -239,7 +239,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             }
                 
             // Get real onchain address.
-            let firstAddress = CacheManager.getBittrAddress() ?? BitcoinManager.shared.getNewOnchainAddress() ?? ""
+            let firstAddress = CacheManager.getBittrAddress() ?? CacheManager.getLastAddress() ?? BitcoinManager.shared.getNewOnchainAddress() ?? ""
             
             // Get node ID.
             let lightningPubKey = BitcoinManager.shared.nodeId()
