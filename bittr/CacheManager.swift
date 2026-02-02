@@ -20,44 +20,11 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lastaddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
-        defaults.removeObject(forKey: "lastFullSync")
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
         self.resetFailedPinAttempts()
     }
     
-    static func deleteCache() {
-        
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "cache"))
-    }
-    
-    static func deleteLightningTransactions() {
-        
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
-    }
-    
-    static func emptyImage() {
-        
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let imagesDirectory = documentsPath.appendingPathComponent("images")
-        
-        do {
-            if FileManager.default.fileExists(atPath: imagesDirectory.path) {
-                try FileManager.default.removeItem(at: imagesDirectory)
-                Log.info("Successfully deleted images folder and its contents.")
-            } else {
-                Log.info("Images folder does not exist.")
-            }
-        } catch {
-            Log.info("Could not delete images folder. \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CacheManager row 53", key: "context")
-                }
-            }
-        }
-    }
-    
+    // MARK: - Bittr signup details
     
     static func parseDevice(deviceDict:NSDictionary) -> BittrWallet {
         
@@ -214,6 +181,7 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Images cache
     
     static func storeImageInCache(key:String, data:Data) {
         
@@ -236,6 +204,27 @@ class CacheManager: NSObject {
         }
     }
     
+    static func emptyImage() {
+        
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let imagesDirectory = documentsPath.appendingPathComponent("images")
+        
+        do {
+            if FileManager.default.fileExists(atPath: imagesDirectory.path) {
+                try FileManager.default.removeItem(at: imagesDirectory)
+                Log.info("Successfully deleted images folder and its contents.")
+            } else {
+                Log.info("Images folder does not exist.")
+            }
+        } catch {
+            Log.info("Could not delete images folder. \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "CacheManager row 53", key: "context")
+                }
+            }
+        }
+    }
     
     static func getImage(key:String) -> Data? {
         
@@ -254,6 +243,7 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Transactions
     
     static func parseTransactions(transactions:[Transaction]) -> [NSDictionary] {
         
@@ -385,7 +375,6 @@ class CacheManager: NSObject {
         return allTransactions
     }
     
-    
     static func storeLightningTransaction(thisTransaction:Transaction) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "lightning")
@@ -409,7 +398,6 @@ class CacheManager: NSObject {
         }
     }
     
-    
     static func getLightningTransactions() -> [Transaction] {
         
         if let cachedData = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "lightning")) as? NSDictionary {
@@ -424,6 +412,7 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - General cache
     
     static func updateCachedData(data:Any, key:String) {
         
@@ -572,6 +561,7 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Notifications token
     
     static func storeNotificationsToken(token:String) {
         
@@ -811,16 +801,6 @@ class CacheManager: NSObject {
             return actualCachedMnemonic
         } else {
             return nil
-        }
-    }
-    
-    static func removeMnemonic() {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        // Check if there's a cached mnemonic.
-        if (UserDefaults.standard.value(forKey: envKey) as? String) != nil {
-            // Remove cached mnemonic.
-            UserDefaults.standard.removeObject(forKey: envKey)
         }
     }
     
@@ -1302,20 +1282,17 @@ class CacheManager: NSObject {
         }
     }
     
-    // MARK: - Full sync
+    // MARK: - Bittr address
     
-    static func newFullSync() {
-        let currentDate = Date()
-        let dateFormatter = DateFormatter()
-        let dateString = dateFormatter.string(from: currentDate)
-        UserDefaults.standard.set(dateString, forKey: "lastFullSync")
+    static func storeBittrAddress(_ address:String) {
+        
+        UserDefaults.standard.set(address, forKey: "bittraddress")
     }
-    
-    static func lastFullSync() -> Date? {
-        if let dateString = UserDefaults.standard.value(forKey: "lastFullSync") as? String {
-            let dateFormatter = DateFormatter()
-            let syncDate = dateFormatter.date(from: dateString)
-            return syncDate
+        
+    static func getBittrAddress() -> String? {
+        
+        if let bittrAddress = UserDefaults.standard.value(forKey: "bittraddress") as? String {
+            return bittrAddress
         } else {
             return nil
         }

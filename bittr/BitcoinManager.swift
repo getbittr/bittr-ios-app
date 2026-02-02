@@ -733,8 +733,6 @@ class BitcoinManager {
     
     func walletReset() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            // Remove last full sync from cache.
-            UserDefaults.standard.removeObject(forKey: "lastFullSync")
             // Restart BDK.
             self.startBDK()
         }

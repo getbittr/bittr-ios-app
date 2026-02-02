@@ -279,12 +279,18 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                     
                     // Get own onchain address.
                     let actualAddress:String? = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress()
+                    
                     if actualAddress == nil {
                         Log.info("Could not fetch address.")
                         DispatchQueue.main.async {
                             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                         }
                         return
+                    }
+                    
+                    // Cache address in case no onchain address is currently cached.
+                    if self.getCachedOnchainAddress() == nil {
+                        CacheManager.storeLastAddress(newAddress: actualAddress!)
                     }
                     
                     var sizeinVbytes:UInt64

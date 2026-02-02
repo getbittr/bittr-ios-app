@@ -218,7 +218,7 @@ extension CoreViewController {
         UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
         
         // Clear mnemonic from cache
-        CacheManager.removeMnemonic()
+        CacheManager.deleteClientInfo()
         
         // Remove wallet from device and remove corresponding cached data.
         do {
@@ -240,12 +240,6 @@ extension CoreViewController {
             Log.info("🔍 [DEBUG] ResetApp - Resetting node state")
             BitcoinManager.shared.resetNodeState()
             Log.info("🔍 [DEBUG] ResetApp - Node state reset completed")
-            
-            // Clear all cached data
-            Log.info("🔍 [DEBUG] ResetApp - Clearing cached data")
-            CacheManager.deleteClientInfo()
-            Log.info("🔍 [DEBUG] ResetApp - Cached data cleared successfully")
-            
         } catch {
             Log.info("❌ [DEBUG] ResetApp - Error during cleanup: \(error.localizedDescription)")
             DispatchQueue.main.async {
@@ -267,8 +261,6 @@ extension CoreViewController {
                     }
                 }
             }
-            
-            CacheManager.deleteClientInfo()
         }
         
         // Hide signup view and launch create wallet flow

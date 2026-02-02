@@ -431,6 +431,13 @@ extension UIViewController {
         
         do {
             if let actualAddress = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
+                
+                // Cache address in case no onchain address is currently cached.
+                if self.getCachedOnchainAddress() == nil {
+                    CacheManager.storeLastAddress(newAddress: actualAddress)
+                }
+                
+                // Create PSBT, which will throw an error.
                 _ = try BitcoinManager.shared.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, selectedVbyte: nil)
                 return nil
             } else {

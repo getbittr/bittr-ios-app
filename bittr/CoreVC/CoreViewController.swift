@@ -187,7 +187,7 @@ class CoreViewController: UIViewController {
             // User has not completed signup.
             self.walletIsAvailable = false
             // Remove cached mnemonic.
-            CacheManager.removeMnemonic()
+            CacheManager.deleteClientInfo()
             // Show SignupVC.
             self.launchSignup(onPage: 3)
         }

@@ -54,6 +54,13 @@ extension CoreViewController {
                 
                 BitcoinManager.shared.setCoreVC(self)
                 BitcoinManager.shared.startBDK()
+                
+                // Upon first-ever wallet launch, store first onchain address as Bittr address.
+                if CacheManager.getBittrAddress() == nil, let onchainAddress = BitcoinManager.shared.getNewOnchainAddress() {
+                    
+                    CacheManager.storeBittrAddress(onchainAddress)
+                    Log.info("Did store Bittr address.")
+                }
             } else {
                 Log.info("Could not start node.")
                 SentrySDK.metrics.count(key: "sync.ldk.failure")

@@ -229,7 +229,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 let lightningSignature = try await BitcoinManager.shared.signMessage(message: message)
                 
                 // Get real onchain address.
-                let firstAddress = BitcoinManager.shared.getNewOnchainAddress() ?? ""
+                let firstAddress = CacheManager.getBittrAddress() ?? BitcoinManager.shared.getNewOnchainAddress() ?? ""
                 
                 // Get node ID.
                 var lightningPubKey = String()
