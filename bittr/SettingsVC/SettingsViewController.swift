@@ -340,10 +340,4 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         }
     }
     
-    @objc func changeColors() {
-        
-        self.appVersion.textColor = Colors.getColor("appversion")
-        self.view.backgroundColor = Colors.getColor("yelloworblue3")
-    }
-    
 }

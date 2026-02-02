@@ -1288,7 +1288,7 @@ class CacheManager: NSObject {
         
         UserDefaults.standard.set(address, forKey: "bittraddress")
     }
-        
+    
     static func getBittrAddress() -> String? {
         
         if let bittrAddress = UserDefaults.standard.value(forKey: "bittraddress") as? String {

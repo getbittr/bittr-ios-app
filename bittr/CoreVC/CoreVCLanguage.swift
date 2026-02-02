@@ -13,6 +13,7 @@ extension CoreViewController {
         
         // Main view.
         self.view.backgroundColor = Colors.getColor("grey3orblue1")
+        self.infoContainerView.backgroundColor = Colors.getColor("yelloworblue3")
         
         // Menu items.
         self.walletView.backgroundColor = Colors.getColor("grey3orblue1")

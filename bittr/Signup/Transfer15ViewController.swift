@@ -225,46 +225,9 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         let signature = try! BitcoinManager.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)
         
         Task {
+            let lightningSignature:String
             do {
-                let lightningSignature = try await BitcoinManager.shared.signMessage(message: message)
-                
-                // Get real onchain address.
-                let firstAddress = CacheManager.getBittrAddress() ?? BitcoinManager.shared.getNewOnchainAddress() ?? ""
-                
-                // Get node ID.
-                var lightningPubKey = String()
-                if let pubkeyString = BitcoinManager.shared.nodeId() {
-                    lightningPubKey = pubkeyString
-                } else {
-                    Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
-                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    return
-                }
-                
-                // Get xpub.
-                let xpub = BitcoinManager.shared.getXpub()
-                
-                // Gather parameters.
-                let parameters: [String: Any] = [
-                    "email": ibanEntity.yourEmail,
-                    "email_token": ibanEntity.emailToken,
-                    "bitcoin_address": firstAddress,
-                    "initial_address_type": "extended",
-                    "category": "ios",
-                    "bitcoin_message": message,
-                    "bitcoin_signature": signature,
-                    "iban": ibanEntity.yourIbanNumber,
-                    "lightning_pubkey": lightningPubKey,
-                    "lightning_signature": lightningSignature,
-                    "xpub_key": xpub,
-                    "xpub_addr_type": "bech32",
-                    "xpub_path": "m/0/x",
-                    "skip_xpub_usage_check": "true",
-                    "ios_device_token": CacheManager.getRegistrationToken() ?? ""
-                ]
-                
-                // Send details to Bittr.
-                self.createBittrAccount(ibanEntity: ibanEntity, parameters: parameters)
+                lightningSignature = try await BitcoinManager.shared.signMessage(message: message)
             } catch {
                 Log.info("310 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -272,7 +235,44 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                         scope.setExtra(value: "Transfer15ViewController row 313", key: "context")
                     }
                 }
+                return
             }
+                
+            // Get real onchain address.
+            let firstAddress = CacheManager.getBittrAddress() ?? BitcoinManager.shared.getNewOnchainAddress() ?? ""
+            
+            // Get node ID.
+            let lightningPubKey = BitcoinManager.shared.nodeId()
+            if lightningPubKey == nil {
+                Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
+            
+            // Get xpub.
+            let xpub = BitcoinManager.shared.getXpub()
+            
+            // Gather parameters.
+            let parameters: [String: Any] = [
+                "email": ibanEntity.yourEmail,
+                "email_token": ibanEntity.emailToken,
+                "bitcoin_address": firstAddress,
+                "initial_address_type": "extended",
+                "category": "ios",
+                "bitcoin_message": message,
+                "bitcoin_signature": signature,
+                "iban": ibanEntity.yourIbanNumber,
+                "lightning_pubkey": lightningPubKey!,
+                "lightning_signature": lightningSignature,
+                "xpub_key": xpub,
+                "xpub_addr_type": "bech32",
+                "xpub_path": "m/0/x",
+                "skip_xpub_usage_check": "true",
+                "ios_device_token": CacheManager.getRegistrationToken() ?? ""
+            ]
+            
+            // Send details to Bittr.
+            self.createBittrAccount(ibanEntity: ibanEntity, parameters: parameters)
         }
     }
     

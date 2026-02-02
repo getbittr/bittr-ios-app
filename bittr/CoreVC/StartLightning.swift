@@ -56,7 +56,7 @@ extension CoreViewController {
                 BitcoinManager.shared.startBDK()
                 
                 // Upon first-ever wallet launch, store first onchain address as Bittr address.
-                if CacheManager.getBittrAddress() == nil, let onchainAddress = BitcoinManager.shared.getNewOnchainAddress() {
+                if CacheManager.getBittrAddress() == nil, let onchainAddress = CacheManager.getLastAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
                     
                     CacheManager.storeBittrAddress(onchainAddress)
                     Log.info("Did store Bittr address.")
