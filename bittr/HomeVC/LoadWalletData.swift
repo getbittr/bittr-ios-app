@@ -462,6 +462,7 @@ extension HomeViewController {
         
         Log.info("Will calculate profits.")
         if self.coreVC == nil {
+            Log.info("Could not calculate profits with nil coreVC.")
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
@@ -483,10 +484,10 @@ extension HomeViewController {
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         
         if self.visibleTransactions.count == 0 || bittrTransactionsCount == 0 {
-            // There are no transactions.
+            Log.info("There are no transactions.")
             self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
         } else {
-            // There are transactions.
+            Log.info("There are transactions.")
             for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
                     let transactionValue = eachTransaction.received.inBTC()
@@ -511,6 +512,7 @@ extension HomeViewController {
         }
         
         if cachedData == false {
+            Log.info("Will calculate profits")
             
             // Check if conversion rates have been fetched successfully.
             if self.couldNotFetchConversion {
@@ -524,9 +526,11 @@ extension HomeViewController {
             
             // Check if notification needs handling.
             if self.coreVC!.needsToHandleURI() {
+                Log.info("Needs to handle URI.")
                 self.coreVC!.hidePendingView()
                 self.coreVC!.checkForPendingURIs()
             } else if let actualNotification = self.coreVC!.lightningNotification {
+                Log.info("Needs to handle push notification.")
                 // Check if it's a swap notification or payment notification.
                 if actualNotification.type == .swap {
                     // It's a swap notification.

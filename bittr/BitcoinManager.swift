@@ -562,16 +562,25 @@ class BitcoinManager {
     }
     
     func listPeers() -> [PeerDetails] {
+        guard self.ldkNode != nil else {
+            return []
+        }
         let peers = self.ldkNode!.listPeers()
         return peers
     }
     
     func listPayments() -> [PaymentDetails] {
+        guard self.ldkNode != nil else {
+            return []
+        }
         let payments = self.ldkNode!.listPayments()
         return payments
     }
     
     func listChannels() -> [LDKNode.ChannelDetails] {
+        guard self.ldkNode != nil else {
+            return []
+        }
         let channels = self.ldkNode!.listChannels()
         return channels
     }
