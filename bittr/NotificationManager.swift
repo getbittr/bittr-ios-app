@@ -13,7 +13,11 @@ import UIKit
 extension AppDelegate {
     func handleNotification(userInfo:[AnyHashable:Any], id:String?, title:String?, body:String?) {
         
-        if CacheManager.getLastNotification() == nil || (CacheManager.getLastNotification()?.id != nil && CacheManager.getLastNotification()!.id! != id) {
+        // Make sure the notification hasn't already been handled.
+        // Check whether there's a cached notification.
+        // Make sure the cached notification and the new one don't have the same ID.
+        // Make sure the cached notification came in more than 10 seconds ago.
+        if CacheManager.getLastNotification() == nil || ((CacheManager.getLastNotification()!.id == nil || CacheManager.getLastNotification()!.id! != id) && (CacheManager.getLastNotification()!.date == nil || Date().timeIntervalSince(CacheManager.getLastNotification()!.date!) > 10)) {
             Log.info("Will cache new notification.")
             
             let thisNotification = userInfo.toNotification()
