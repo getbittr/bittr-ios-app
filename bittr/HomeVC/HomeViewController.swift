@@ -80,6 +80,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Cove View Controller
     var coreVC:CoreViewController?
     var moveVC:MoveViewController?
+    var sendVC:SendViewController?
     var openMoveVCFromBackgroundNotification = false
     var isFromOnchainPayment = false
     var pendingOnchainAddress = ""
@@ -270,6 +271,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } else if segue.identifier == "HomeToSend" {
             if let sendVC = segue.destination as? SendViewController {
                 sendVC.coreVC = self.coreVC
+                self.sendVC = sendVC
                 
                 // Pass pending URI data if available
                 if let bitcoinURI = self.pendingBitcoinURI {

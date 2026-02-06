@@ -22,7 +22,7 @@ class Language: NSObject {
         
         let allWords:[String:String] = [
             "yourwallet": "your wallet",
-            "syncing": "",
+            "syncing": "Syncing",
             "send": "Send",
             "receive": "Receive",
             "buy": "Buy",
@@ -485,7 +485,8 @@ class Language: NSObject {
             "lnurlbetween": "Amount must be between <min> and <max> satoshis.",
             "invalidinvoice2": "The following is not a valid invoice.\n\n<invoice>",
             "reminder": "Reminder",
-            "reminderbody": "The funds in your lightning connection exist only on this device. Don't delete this app before closing the connection."
+            "reminderbody": "The funds in your lightning connection exist only on this device. Don't delete this app before closing the connection.",
+            "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet."
             
         ]
         

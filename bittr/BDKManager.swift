@@ -80,16 +80,17 @@ extension BitcoinManager {
                 Log.info("Did initiate wallet and blockchain.")
                 DispatchQueue.main.async {
                     SentrySDK.metrics.count(key: "sync.bdk.success")
-                    self.coreVC?.updateSync(action: .complete, type: .bdk)
-                    self.coreVC?.updateSync(action: .start, type: .sync)
                     completion(true)
                 }
+            } else {
+                completion(true)
             }
         }
     }
     
     func didSyncBdkWallet(completion: @escaping (Bool) -> Void) {
         Log.info("Will sync BDK wallet.")
+        self.bdkWalletIsScanning = true
         // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
         
         DispatchQueue.global(qos: .background).async {
@@ -99,6 +100,7 @@ extension BitcoinManager {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                 } catch {
                     self.handleError(error: error, row: 222, stopLightning: false)
+                    self.bdkWalletIsScanning = false
                     completion(false)
                     return
                 }
@@ -113,6 +115,7 @@ extension BitcoinManager {
                 syncRequest = try self.bdkWallet!.startFullScan().build()
             } catch {
                 self.handleError(error: error, row: 212, stopLightning: false)
+                self.bdkWalletIsScanning = false
                 completion(false)
                 return
             }
@@ -128,6 +131,7 @@ extension BitcoinManager {
                 )
             } catch {
                 self.handleError(error: error, row: 236, stopLightning: false)
+                self.bdkWalletIsScanning = false
                 completion(false)
                 return
             }
@@ -137,6 +141,7 @@ extension BitcoinManager {
                 try self.bdkWallet!.applyUpdate(update: update)
             } catch {
                 self.handleError(error: error, row: 243, stopLightning: false)
+                self.bdkWalletIsScanning = false
                 completion(false)
                 return
             }
@@ -150,6 +155,11 @@ extension BitcoinManager {
             
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
+            self.bdkWalletIsScanning = false
+            self.bdkWalletHasBeenScanned = true
+            DispatchQueue.main.async {
+                self.coreVC?.homeVC?.sendVC?.setSendAllLabel()
+            }
             completion(true)
         }
     }

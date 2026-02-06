@@ -53,6 +53,7 @@ extension SendViewController {
         )
         self.toTextField.textColor = Colors.getColor("blackorwhite")
         
+        self.bdkSpinner.color = Colors.getColor("blackorwhite")
         self.availableAmount.textColor = Colors.getColor("blackorwhite")
         self.questionCircle.tintColor = Colors.getColor("blackorwhite")
         self.btcView.backgroundColor = Colors.getColor("whiteorblue3")

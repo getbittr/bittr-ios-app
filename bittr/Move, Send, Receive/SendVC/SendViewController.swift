@@ -69,6 +69,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var questionCircle: UIImageView!
     @IBOutlet weak var availableButton: UIButton!
     @IBOutlet weak var availableButtonTop: NSLayoutConstraint! // 0 or -85
+    @IBOutlet weak var bdkSpinner: UIActivityIndicatorView!
     
     // Main scroll - QR scanner
     @IBOutlet weak var scannerView: UIView!
@@ -205,15 +206,56 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if self.onchainOrLightning == .onchain {
             // Set "Send all" for onchain transactions.
-            if self.maximumSendableOnchainBtc == nil {
-                self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+            
+            if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+                Log.info("BDK wallet isn't available yet.")
+                self.bdkWalletUnavailable()
+            } else {
+                Log.info("BDK wallet is available.")
+                self.bdkSpinner.stopAnimating()
+                
+                if self.maximumSendableOnchainBtc == nil {
+                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                }
+                let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
+                self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
             }
-            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
-            self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
         } else {
             // Set "Send all" for lightning payments.
+            self.bdkSpinner.stopAnimating()
             let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats)".addSpaces())
+        }
+    }
+    
+    func bdkWalletUnavailable() {
+        
+        // Show alert.
+        self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "0")
+        self.bdkSpinner.startAnimating()
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        
+        // Check whether BDK wallet is currently scanning.
+        if !BitcoinManager.shared.bdkWalletIsScanning {
+            Log.info("BDK wallet isn't scanning. Will start scan.")
+            
+            BitcoinManager.shared.didStartBDK { success in
+                if success {
+                    Log.info("Did start BDK.")
+                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                        if hasBeenSynced {
+                            Log.info("Did scan BDK wallet.")
+                            self.setSendAllLabel()
+                        } else {
+                            Log.info("Could not scan BDK wallet.")
+                        }
+                    }
+                } else {
+                    Log.info("Could not start BDK.")
+                }
+            }
+        } else {
+            Log.info("Waiting for BDK wallet to finish scanning.")
         }
     }
     
@@ -480,8 +522,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         if self.nextLabel.text == Language.getWord(withID: "next") {
             
             if self.onchainOrLightning == .onchain {
-                // Check onchain transaction.
-                self.checkSendOnchain()
+                if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+                    Log.info("BDK wallet isn't available yet.")
+                    self.bdkWalletUnavailable()
+                } else {
+                    // Check onchain transaction.
+                    self.checkSendOnchain()
+                }
             } else {
                 // Check lightning transaction.
                 self.checkSendLightning()

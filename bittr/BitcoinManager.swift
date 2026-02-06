@@ -21,6 +21,8 @@ class BitcoinManager {
     var bdkWallet: BitcoinDevKit.Wallet?
     var electrumClient: BitcoinDevKit.ElectrumClient?
     var connection: BitcoinDevKit.Connection?
+    var bdkWalletIsScanning = false
+    var bdkWalletHasBeenScanned = false
     
     // General
     private let storageManager = LightningStorage()
