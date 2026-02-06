@@ -250,7 +250,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
             }
             
             // Get xpub.
-            let xpub = BitcoinManager.shared.getXpub()
+            let xpub = BitcoinManager.shared.xpub
             
             // Gather parameters.
             let parameters: [String: Any] = [

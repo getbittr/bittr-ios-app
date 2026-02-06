@@ -55,6 +55,7 @@
 		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
 		055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055403682CC14FC0006F27CA /* SendLNURL.swift */; };
 		05546CF52F2A337B00512129 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05546CF42F2A337600512129 /* NotificationManager.swift */; };
+		05546D292F35B86E00512129 /* BDKManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05546D282F35B86700512129 /* BDKManager.swift */; };
 		055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055CC0F62A28ABB80000200A /* Signup4ViewController.swift */; };
 		05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05622A682DB61E3700D91066 /* AlertManager.swift */; };
 		05622A6B2DB8BA3700D91066 /* CallsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05622A6A2DB8BA3000D91066 /* CallsManager.swift */; };
@@ -240,6 +241,7 @@
 		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
 		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
 		05546CF42F2A337600512129 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		05546D282F35B86700512129 /* BDKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKManager.swift; sourceTree = "<group>"; };
 		055CC0F62A28ABB80000200A /* Signup4ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup4ViewController.swift; sourceTree = "<group>"; };
 		05622A682DB61E3700D91066 /* AlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertManager.swift; sourceTree = "<group>"; };
 		05622A6A2DB8BA3000D91066 /* CallsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallsManager.swift; sourceTree = "<group>"; };
@@ -668,6 +670,7 @@
 				05AF89722D436901009D629C /* Swaps */,
 				052E98C02F1638F2000035A8 /* Extensions */,
 				05D5D0E62A66825000A1E771 /* BitcoinManager.swift */,
+				05546D282F35B86700512129 /* BDKManager.swift */,
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				05622A682DB61E3700D91066 /* AlertManager.swift */,
 				05622A6A2DB8BA3000D91066 /* CallsManager.swift */,
@@ -1083,6 +1086,7 @@
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
 				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
+				05546D292F35B86E00512129 /* BDKManager.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* MondayError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
 				05D5D0EC2A66843B00A1E771 /* FileManager+Extensions.swift in Sources */,

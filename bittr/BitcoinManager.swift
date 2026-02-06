@@ -13,15 +13,21 @@ import CryptoKit
 
 class BitcoinManager {
     
-    public var ldkNode: Node?
+    // LDK Node
+    public var ldkNode: LDKNode.Node?
     private var network: LDKNode.Network
-    private let storageManager = LightningStorage()
-    private var connection: Connection?
-    private var electrumClient: ElectrumClient?
-    private var bdkWallet: BitcoinDevKit.Wallet?
-    private var xpub = ""
-    private var coreVC:CoreViewController?
     
+    // BDK
+    var bdkWallet: BitcoinDevKit.Wallet?
+    var electrumClient: BitcoinDevKit.ElectrumClient?
+    var connection: BitcoinDevKit.Connection?
+    
+    // General
+    private let storageManager = LightningStorage()
+    var xpub = ""
+    var coreVC:CoreViewController?
+    
+    // Shared
     class var shared: BitcoinManager {
         struct Singleton {
             static let instance = BitcoinManager(network: EnvironmentConfig.ldkNetwork)
@@ -158,209 +164,16 @@ class BitcoinManager {
         }
     }
     
-    func getMnemonic() -> String {
-        if let cachedMnemonic = CacheManager.getMnemonic() {
-            // Existing mnemonic.
-            return cachedMnemonic
-        } else {
-            // New mnemonic.
-            Log.info("Did not find mnemonic. Creating a new one.")
-            let newMnemonic:String = LDKNode.generateEntropyMnemonic(wordCount: .words12).description
-            CacheManager.storeMnemonic(newMnemonic)
-            return newMnemonic
-        }
+    func getNewMnemonic() -> String {
+        // New mnemonic.
+        Log.info("Creating a new mnemonic.")
+        let newMnemonic:String = LDKNode.generateEntropyMnemonic(wordCount: .words12).description
+        CacheManager.storeMnemonic(newMnemonic)
+        return newMnemonic
     }
     
     func setCoreVC(_ thisCoreVC:CoreViewController) {
         self.coreVC = thisCoreVC
-    }
-    
-    func startBDK() {
-        
-        DispatchQueue.global(qos: .background).async {
-            
-            // BDK launch.
-            if self.bdkWallet == nil {
-                Log.info("Will start blockchain and wallet.")
-                
-                // Attempt to create a mnemonic object from the provided mnemonic string.
-                let mnemonic:BitcoinDevKit.Mnemonic
-                do {
-                    mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
-                } catch {
-                    self.handleError(error: error, row: 178, stopLightning: true)
-                    return
-                }
-                
-                // Create a BIP32 extended root key using the mnemonic and a nil password
-                let bip32ExtendedRootKey = DescriptorSecretKey(network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin, mnemonic: mnemonic, password: nil)
-                
-                // Create a BIP84 external descriptor using the BIP32 extended root key, specifying the keychain as external and the network as testnet
-                let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.isDevelopment ? .signet : .bitcoin)
-                
-                // Get XPUB.
-                let descriptor = bip84ExternalDescriptor.description
-                let components = descriptor.components(separatedBy: "]")
-                if components.count > 1 {
-                    let xpubPart = components[1].split(separator: "/").first
-                    if let xpub = xpubPart {
-                        self.xpub = String(xpub)
-                    } else {
-                        Log.info("Error: Could not extract XPUB")
-                    }
-                } else {
-                    Log.info("Error: Descriptor format not recognized")
-                }
-                
-                // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
-                let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
-                
-                // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
-                do {
-                    self.connection = try Connection.createConnection()
-                } catch {
-                    self.handleError(error: error, row: 211, stopLightning: true)
-                    return
-                }
-                
-                do {
-                    self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
-                } catch {
-                    self.handleError(error: error, row: 218, stopLightning: true)
-                    return
-                }
-                
-                // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
-                let electrum:BitcoinDevKit.ElectrumClient
-                do {
-                    electrum = try ElectrumClient(url: EnvironmentConfig.electrumURL)
-                } catch {
-                    self.handleError(error: error, row: 228, stopLightning: true)
-                    return
-                }
-                self.electrumClient = electrum
-                
-                Log.info("Did initiate wallet and blockchain.")
-                DispatchQueue.main.async {
-                    SentrySDK.metrics.count(key: "sync.bdk.success")
-                    self.coreVC?.updateSync(action: .complete, type: .bdk)
-                    self.coreVC?.updateSync(action: .start, type: .sync)
-                }
-            }
-            
-            // Proceed to wallet sync.
-            self.initialWalletSync()
-        }
-    }
-    
-    
-    func initialWalletSync() {
-        Log.info("Will sync wallet.")
-        // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
-        
-        // Check Electrum Client.
-        if self.electrumClient == nil {
-            do {
-                self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
-            } catch {
-                self.handleError(error: error, row: 222, stopLightning: true)
-                return
-            }
-        }
-        
-        // Perform a full scan or a sync with BDK.
-        var update:Update?
-        /*if CacheManager.lastFullSync() != nil {
-            Log.info("Will perform a light sync.")
-            
-            // Build request.
-            var syncRequest:SyncRequest?
-            do {
-                syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
-            } catch {
-                self.handleError(error: error, row: 283, stopLightning: true)
-                return
-            }
-            
-            // Run light sync.
-            do {
-                update = try self.electrumClient!.sync(
-                    request: syncRequest!,
-                    batchSize: UInt64(25),
-                    fetchPrevTxouts: true
-                )
-            } catch {
-                self.handleError(error: error, row: 281, stopLightning: true)
-                return
-            }
-        } else {*/
-            Log.info("Will perform a full scan.")
-            
-            // Build request.
-            var syncRequest:FullScanRequest?
-            do {
-                syncRequest = try self.bdkWallet!.startFullScan().build()
-            } catch {
-                self.handleError(error: error, row: 212, stopLightning: true)
-                return
-            }
-            
-            // Run full scan.
-            do {
-                update = try self.electrumClient!.fullScan(
-                    request: syncRequest!,
-                    stopGap: UInt64(25),
-                    batchSize: UInt64(25),
-                    fetchPrevTxouts: true
-                )
-            } catch {
-                self.handleError(error: error, row: 236, stopLightning: true)
-                return
-            }
-            
-            // Update cache.
-            //CacheManager.newFullSync()
-        //}
-        
-        // Apply update to BDK wallet.
-        do {
-            try self.bdkWallet!.applyUpdate(update: update!)
-        } catch {
-            self.handleError(error: error, row: 243, stopLightning: true)
-            return
-        }
-        
-        // Persist wallet changes.
-        do {
-            let _ = try self.bdkWallet!.persist(connection: self.connection!)
-        } catch {
-            self.handleError(error: error, row: 250, stopLightning: false)
-        }
-        
-        // Update syncing status.
-        Log.info("Did sync wallet.")
-        DispatchQueue.main.async {
-            SentrySDK.metrics.count(key: "sync.walletsync.success")
-            self.coreVC?.updateSync(action: .complete, type: .sync)
-            self.coreVC?.updateSync(action: .start, type: .final)
-        }
-        
-        Task {
-            // Get latest block height.
-            let _ = await self.didGetLatestBlockHeight()
-            
-            // Check peer connection.
-            let peerIsConnected = await self.coreVC!.isConnectedToPeer()
-            DispatchQueue.global(qos: .background).async {
-                if peerIsConnected {
-                    // We're already connected to peer.
-                    self.getChannelsAndPayments()
-                } else {
-                    // Connect to peer.
-                    self.connectToLightningPeer()
-                }
-            }
-        }
     }
     
     func didGetLatestBlockHeight() async -> Bool {
@@ -439,7 +252,7 @@ class BitcoinManager {
             if !didEstablishPeerConnection {
                 do {
                     let nodeId = EnvironmentConfig.lightningNodeId
-                    try BitcoinManager.shared.ldkNode?.disconnect(nodeId: nodeId)
+                    try self.ldkNode?.disconnect(nodeId: nodeId)
                 } catch {
                     let errorMessage:String = {
                         if let nodeError = error as? NodeError {
@@ -467,7 +280,7 @@ class BitcoinManager {
             // Peer connection task.
             group.addTask {
                 do {
-                    try await BitcoinManager.shared.connect(
+                    try await self.connect(
                         nodeId: EnvironmentConfig.lightningNodeId,
                         address: EnvironmentConfig.lightningNodeAddress,
                         persist: true
@@ -515,7 +328,7 @@ class BitcoinManager {
     func getChannelsAndPayments() {
         
         // Get channels.
-        let channels = BitcoinManager.shared.listChannels()
+        let channels = self.listChannels()
         
         // Get funding transaction ID.
         if let activeChannel = channels.getActiveChannel() {
@@ -525,7 +338,7 @@ class BitcoinManager {
         }
         
         // Get transactions.
-        let payments = BitcoinManager.shared.listPayments()
+        let payments = self.listPayments()
         
         // Handle details in HomeVC.
         DispatchQueue.main.async {
@@ -611,43 +424,8 @@ class BitcoinManager {
         DispatchQueue.global(qos: .background).async {
             Log.info("Will light sync wallet.")
             
-            // Create sync request.
-            let syncRequest:SyncRequest
-            do {
-                syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
-            } catch {
-                self.handleError(error: error, row: 570, stopLightning: false)
-                completion(false)
-                return
-            }
-            
-            // Create update.
-            let update:Update
-            do {
-                update = try self.electrumClient!.sync(
-                    request: syncRequest,
-                    batchSize: UInt64(25),
-                    fetchPrevTxouts: true
-                )
-            } catch {
-                self.handleError(error: error, row: 582, stopLightning: false)
-                completion(false)
-                return
-            }
-            
-            // Apply update to wallet.
-            do {
-                try self.bdkWallet!.applyUpdate(update: update)
-            } catch {
-                self.handleError(error: error, row: 594, stopLightning: false)
-            }
-            
-            // Persist update to wallet.
-            do {
-                let _ = try self.bdkWallet!.persist(connection: self.connection!)
-            } catch {
-                self.handleError(error: error, row: 603, stopLightning: false)
-            }
+            // Light sync BDK.
+            _ = self.lightSyncBdkWallet()
             
             // Sync LDKNode.
             do {
@@ -658,6 +436,7 @@ class BitcoinManager {
             
             // Check if any changes have been found.
             if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
+                Log.info("Did find updates in light sync.")
                 
                 // Update balance.
                 self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
@@ -666,7 +445,7 @@ class BitcoinManager {
                 self.coreVC!.bittrWallet.allTransactions = self.listPayments()
                 
                 // Update channels.
-                self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+                self.coreVC!.bittrWallet.lightningChannels = self.listChannels()
                 
                 Task {
                     // Get latest block height.
@@ -725,10 +504,6 @@ class BitcoinManager {
     
     func syncWallets() throws {
         try self.ldkNode!.syncWallets()
-    }
-    
-    func getXpub() -> String {
-        return self.xpub
     }
     
     func walletReset() {
@@ -792,10 +567,6 @@ class BitcoinManager {
         } else {
             return nil
         }
-    }
-    
-    func getClient() -> ElectrumClient? {
-        return self.electrumClient
     }
     
     func getEsploraClient() -> EsploraClient? {
@@ -897,78 +668,6 @@ class BitcoinManager {
         let (privateKey, _) = try getPrivatePublicKeyForPath(path: path)
 
         return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
-    }
-    
-    func getSize(address:String, amountSats:Int) throws -> UInt64 {
-        
-        let tx = try self.getTx(address: address, amountSats: amountSats, selectedVbyte: nil)
-        let size = tx.vsize()
-        
-        return size
-    }
-    
-    func getTx(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
-        
-        let details = try self.getPsbt(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
-        let tx = try details.extractTx()
-        
-        return tx
-    }
-    
-    func getPsbt(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Psbt {
-        
-        guard self.bdkWallet != nil else {
-            throw WalletError.walletNotInitiated
-        }
-        
-        let network = EnvironmentConfig.bitcoinDevKitNetwork
-        let address = try Address(address: address, network: network)
-        let script = address.scriptPubkey()
-        var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))
-        if selectedVbyte != nil {
-            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte!)))
-        }
-        let details = try txBuilder.finish(wallet: self.bdkWallet!)
-        let _ = try self.bdkWallet!.sign(psbt: details, signOptions: nil)
-        
-        return details
-    }
-    
-    func sendOnchainTransaction(address:String, amountSats:Int, selectedVbyte:Float?) throws -> [String] {
-        
-        // Create transaction.
-        let tx:BitcoinDevKit.Transaction
-        do {
-            tx = try BitcoinManager.shared.getTx(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
-        } catch {
-            throw error
-        }
-        
-        // Check Electrum availability.
-        guard self.electrumClient != nil else {
-            throw WalletError.clientNotInitiated
-        }
-        
-        // Broadcast transaction.
-        let txId:String
-        do {
-            txId = try self.electrumClient!.transactionBroadcast(tx: tx)
-        } catch {
-            throw error
-        }
-        
-        let rawData = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
-        return [txId, rawData]
-    }
-    
-    func isValidMnemonic(_ thisMnemonic:String) -> Bool {
-        do {
-            _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: thisMnemonic)
-            return true
-        } catch {
-            // Could not generate mnemonic.
-            return false
-        }
     }
     
 }

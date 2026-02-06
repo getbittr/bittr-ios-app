@@ -98,7 +98,7 @@ class Signup1ViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             
             // Get mnemonic.
-            let _ = BitcoinManager.shared.getMnemonic()
+            let _ = BitcoinManager.shared.getNewMnemonic()
             
             // Stop spinner.
             self.createWalletLabel.alpha = 1
