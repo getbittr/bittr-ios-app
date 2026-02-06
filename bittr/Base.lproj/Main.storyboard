@@ -6154,6 +6154,9 @@
                                                             <constraint firstItem="3j7-j3-zld" firstAttribute="centerY" secondItem="vLL-IL-CeD" secondAttribute="centerY" constant="-1" id="rdf-6i-BE8"/>
                                                         </constraints>
                                                     </view>
+                                                    <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="8AE-DI-gIl">
+                                                        <rect key="frame" x="280.33333333333331" y="252" width="20" height="20"/>
+                                                    </activityIndicatorView>
                                                     <button opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="1" verticalCompressionResistancePriority="1" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="IDF-If-pTV">
                                                         <rect key="frame" x="82.666666666666671" y="244" width="197.66666666666663" height="36"/>
                                                         <state key="normal" title="Button"/>
@@ -6218,6 +6221,7 @@
                                                 <constraints>
                                                     <constraint firstItem="RfN-6t-CFr" firstAttribute="leading" secondItem="Oiy-uD-Qt1" secondAttribute="leading" constant="40" id="1wP-TB-4QJ"/>
                                                     <constraint firstItem="eqi-Ab-O8G" firstAttribute="leading" secondItem="RfN-6t-CFr" secondAttribute="leading" id="2ct-Fb-EtK"/>
+                                                    <constraint firstItem="8AE-DI-gIl" firstAttribute="centerY" secondItem="h0N-ZZ-MDX" secondAttribute="centerY" id="9bH-UM-KdH"/>
                                                     <constraint firstItem="eK1-0s-jg5" firstAttribute="leading" secondItem="Oiy-uD-Qt1" secondAttribute="leading" constant="40" id="B3r-mf-CXS"/>
                                                     <constraint firstItem="aVQ-zp-DKI" firstAttribute="top" secondItem="h0N-ZZ-MDX" secondAttribute="bottom" constant="25" id="BUs-Pk-CfH"/>
                                                     <constraint firstItem="G6w-Zd-EaD" firstAttribute="top" secondItem="Oiy-uD-Qt1" secondAttribute="top" id="Ce4-PV-0pc"/>
@@ -6238,6 +6242,7 @@
                                                     <constraint firstAttribute="trailing" secondItem="RfN-6t-CFr" secondAttribute="trailing" constant="40" id="jWV-5Q-qg8"/>
                                                     <constraint firstItem="RfN-6t-CFr" firstAttribute="top" secondItem="wOf-nO-uTC" secondAttribute="bottom" constant="10" id="nSG-QJ-PVY"/>
                                                     <constraint firstItem="h0N-ZZ-MDX" firstAttribute="top" secondItem="eqi-Ab-O8G" secondAttribute="bottom" constant="15" id="tDB-eT-BLC"/>
+                                                    <constraint firstItem="8AE-DI-gIl" firstAttribute="leading" secondItem="h0N-ZZ-MDX" secondAttribute="trailing" constant="10" id="uIL-w8-h9L"/>
                                                     <constraint firstItem="IDF-If-pTV" firstAttribute="trailing" secondItem="h0N-ZZ-MDX" secondAttribute="trailing" constant="10" id="vjG-q8-gfJ"/>
                                                     <constraint firstItem="G6w-Zd-EaD" firstAttribute="bottom" secondItem="Oiy-uD-Qt1" secondAttribute="bottom" id="wPr-oL-MGY"/>
                                                     <constraint firstItem="eK1-0s-jg5" firstAttribute="top" secondItem="Oiy-uD-Qt1" secondAttribute="top" constant="40" id="xXq-gk-pF5"/>
@@ -6571,6 +6576,7 @@
                         <outlet property="arrowIcon" destination="CGt-Ma-yCh" id="sPc-yM-ipw"/>
                         <outlet property="availableAmountLabel" destination="vLL-IL-CeD" id="Rrf-VG-NOe"/>
                         <outlet property="availableButton" destination="IDF-If-pTV" id="jlw-gy-o4M"/>
+                        <outlet property="bdkSpinner" destination="8AE-DI-gIl" id="i3G-aB-BYw"/>
                         <outlet property="centerBackground" destination="G6w-Zd-EaD" id="3JE-mA-Bu4"/>
                         <outlet property="centerCard" destination="Oiy-uD-Qt1" id="CAm-Gl-W40"/>
                         <outlet property="centerCardLeading" destination="s8f-wT-aIo" id="0RU-EQ-tsI"/>

@@ -33,6 +33,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var fromButton: UIButton!
     
     // Available view
+    @IBOutlet weak var bdkSpinner: UIActivityIndicatorView!
     @IBOutlet weak var availableAmountLabel: UILabel!
     @IBOutlet weak var availableButton: UIButton!
     @IBOutlet weak var questionMark: UIImageView!
@@ -235,6 +236,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     func calculateSendableAmount() {
         
+        self.bdkSpinner.stopAnimating()
         let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
         
         if activeChannel == nil {
@@ -249,6 +251,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(Int(activeChannel!.outboundCapacityMsat/1000))".addSpaces())
             } else {
                 // We can send our available channel space, if we have enough onchain satoshis.
+                
+                if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+                    Log.info("BDK wallet isn't available yet.")
+                    self.bdkWalletUnavailable()
+                    return
+                }
                 
                 if self.coreVC!.bittrWallet.satoshisOnchain == 0 {
                     // There are no onchain funds.
@@ -329,6 +337,34 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
     }
     
+    func bdkWalletUnavailable() {
+        self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+        self.bdkSpinner.startAnimating()
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        
+        if !BitcoinManager.shared.bdkWalletIsScanning {
+            Log.info("BDK wallet isn't scanning. Will start scan.")
+            
+            BitcoinManager.shared.didStartBDK { success in
+                if success {
+                    Log.info("Did start BDK.")
+                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                        if hasBeenSynced {
+                            Log.info("Did scan BDK wallet.")
+                            self.calculateSendableAmount()
+                        } else {
+                            Log.info("Could not scan BDK wallet.")
+                        }
+                    }
+                } else {
+                    Log.info("Could not start BDK.")
+                }
+            }
+        } else {
+            Log.info("Waiting for BDK wallet to finish scanning.")
+        }
+    }
+    
     @IBAction func downButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         self.dismiss(animated: true)
@@ -372,6 +408,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.view.endEditing(true)
         
         if self.nextSpinner.isAnimating { return }
+        
+        if self.swapDirection == .onchainToLightning && (BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned) {
+            Log.info("BDK wallet isn't available yet.")
+            self.bdkWalletUnavailable()
+            return
+        }
         
         let amountToBeSent = Int((self.amountTextField.text ?? "0").toNumber())
         if amountToBeSent != 0 {

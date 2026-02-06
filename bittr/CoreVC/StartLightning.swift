@@ -64,6 +64,11 @@ extension CoreViewController {
                             self.walletSync = BackgroundSync()
                             self.walletSync!.start()
                         }
+                        // Check if VCs are awaiting BDK scan.
+                        DispatchQueue.main.async {
+                            self.homeVC?.sendVC?.setSendAllLabel()
+                            self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
+                        }
                     } else {
                         Log.info("Could not scan BDK wallet.")
                     }

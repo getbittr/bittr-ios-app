@@ -157,9 +157,6 @@ extension BitcoinManager {
             Log.info("Did sync BDK wallet.")
             self.bdkWalletIsScanning = false
             self.bdkWalletHasBeenScanned = true
-            DispatchQueue.main.async {
-                self.coreVC?.homeVC?.sendVC?.setSendAllLabel()
-            }
             completion(true)
         }
     }

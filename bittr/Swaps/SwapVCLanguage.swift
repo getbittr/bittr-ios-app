@@ -38,6 +38,7 @@ extension SwapViewController {
         self.confirmStatusLabel.textColor = Colors.getColor("blackorwhite")
         self.availableAmountLabel.textColor = Colors.getColor("blackorwhite")
         self.questionMark.tintColor = Colors.getColor("blackorwhite")
+        self.bdkSpinner.color = Colors.getColor("blackorwhite")
         self.statusQuestionIcon.tintColor = Colors.getColor("blackorwhite")
         self.amountTextField.backgroundColor = Colors.getColor("white0.7orblue3")
         self.fromView.backgroundColor = Colors.getColor("whiteorblue3")
