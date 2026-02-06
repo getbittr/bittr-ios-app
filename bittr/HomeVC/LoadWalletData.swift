@@ -19,7 +19,19 @@ extension HomeViewController {
             return
         }
         
-        // Get the onchain balance.
+        // Get channels.
+        self.coreVC?.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+        // Get funding transaction ID.
+        if let activeChannel = self.coreVC?.bittrWallet.lightningChannels.getActiveChannel() {
+            if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
+                CacheManager.storeTxoID(txoID: channelTxoID)
+            }
+        }
+        
+        // Get transactions.
+        self.coreVC?.bittrWallet.allTransactions = BitcoinManager.shared.listPayments()
+        
+        // Get onchain balance.
         self.coreVC?.bittrWallet.satoshisOnchain = Int(BitcoinManager.shared.ldkNode!.listBalances().totalOnchainBalanceSats)
         
         // Get the lightning balance, by adding up the values of each channel.
@@ -36,7 +48,7 @@ extension HomeViewController {
         
         Task {
             // Check whether transactions were Bittr purchases.
-            await self.getBittrTransactionDetails(sendAll: false)
+            _ = await self.getBittrTransactionDetails(sendAll: false)
             
             DispatchQueue.main.async {
                 self.updateTransactionHistory()
@@ -245,12 +257,6 @@ extension HomeViewController {
         
         // Convert balance to EUR / CHF.
         self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
-        
-        // Start timer
-        if self.coreVC!.walletSync == nil {
-            self.coreVC!.walletSync = BackgroundSync()
-            self.coreVC!.walletSync!.start()
-        }
     }
     
     func loadBalanceLabel(amount:String) {
@@ -319,7 +325,7 @@ extension HomeViewController {
     
     func setConversion(btcValue:CGFloat, cachedData:Bool, updateTableAfterConversion:Bool) {
         
-        if self.coreVC == nil {
+        guard self.coreVC != nil else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }

@@ -264,11 +264,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 if currentMnemonic == enteredMnemonic {
                                     // Correct mnemonic has been entered.
                                     
-                                    // Start wallet.
-                                    self.coreVC!.startLightning()
-                                    
                                     // Proceed to next page.
                                     self.signupVC?.moveToPage(1)
+                                    
+                                    // Start wallet.
+                                    Task {
+                                        await self.coreVC!.startWallet()
+                                    }
                                 } else {
                                     // Entered mnemonic is incorrect.
                                     self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -289,11 +291,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 // Store restorable mnemonic in cache.
                                 CacheManager.storeMnemonic(enteredMnemonic)
                                 
-                                Log.info("About to start Lightning wallet...")
-                                // Start wallet.
-                                self.coreVC!.startLightning()
-                                Log.info("Lightning wallet started successfully")
-                                
                                 // Proceed to next page.
                                 self.signupVC?.moveToPage(1)
                                 Log.info("Moved to next page")
@@ -301,6 +298,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 self.restoreButtonSpinner.stopAnimating()
                                 self.restoreButtonText.alpha = 1
                                 Log.info("Restore process completed successfully")
+                                
+                                Log.info("About to start Lightning wallet...")
+                                // Start wallet.
+                                Task {
+                                    await self.coreVC!.startWallet()
+                                }
+                                Log.info("Lightning wallet started successfully")
                                 
                             } else {
                                 Log.info("Mnemonic validation failed.")

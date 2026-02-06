@@ -172,10 +172,6 @@ class BitcoinManager {
         return newMnemonic
     }
     
-    func setCoreVC(_ thisCoreVC:CoreViewController) {
-        self.coreVC = thisCoreVC
-    }
-    
     func didGetLatestBlockHeight() async -> Bool {
         
         var receivedDictionary:NSDictionary
@@ -240,36 +236,32 @@ class BitcoinManager {
     }
     
     
-    func connectToLightningPeer() {
+    func connectToLightningPeer() async -> Bool {
         
-        Task {
-            let didEstablishPeerConnection = await self.didEstablishPeerConnection()
-            
-            DispatchQueue.main.async {
-                self.getChannelsAndPayments()
-            }
-            
-            if !didEstablishPeerConnection {
-                do {
-                    let nodeId = EnvironmentConfig.lightningNodeId
-                    try self.ldkNode?.disconnect(nodeId: nodeId)
-                } catch {
-                    let errorMessage:String = {
-                        if let nodeError = error as? NodeError {
-                            return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
-                        } else {
-                            return "No error message"
-                        }
-                    }()
-                    DispatchQueue.main.async {
-                        Log.info("Can't disconnect from peer: \(errorMessage).")
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "BitcoinManager row 277", key: "context")
-                        }
+        let didEstablishPeerConnection = await self.didEstablishPeerConnection()
+        
+        if !didEstablishPeerConnection {
+            do {
+                let nodeId = EnvironmentConfig.lightningNodeId
+                try self.ldkNode?.disconnect(nodeId: nodeId)
+            } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
+                    } else {
+                        return "No error message"
+                    }
+                }()
+                DispatchQueue.main.async {
+                    Log.info("Can't disconnect from peer: \(errorMessage).")
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "BitcoinManager row 277", key: "context")
                     }
                 }
             }
         }
+        
+        return didEstablishPeerConnection
     }
     
     
@@ -321,30 +313,6 @@ class BitcoinManager {
             let first = await group.next() ?? false
             group.cancelAll()
             return first
-        }
-    }
-    
-    
-    func getChannelsAndPayments() {
-        
-        // Get channels.
-        let channels = self.listChannels()
-        
-        // Get funding transaction ID.
-        if let activeChannel = channels.getActiveChannel() {
-            if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
-                CacheManager.storeTxoID(txoID: channelTxoID)
-            }
-        }
-        
-        // Get transactions.
-        let payments = self.listPayments()
-        
-        // Handle details in HomeVC.
-        DispatchQueue.main.async {
-            self.coreVC?.bittrWallet.lightningChannels = channels
-            self.coreVC?.bittrWallet.allTransactions = payments
-            self.coreVC?.homeVC?.loadWalletData()
         }
     }
     
@@ -504,13 +472,6 @@ class BitcoinManager {
     
     func syncWallets() throws {
         try self.ldkNode!.syncWallets()
-    }
-    
-    func walletReset() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            // Restart BDK.
-            self.startBDK()
-        }
     }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {

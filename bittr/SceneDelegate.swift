@@ -72,7 +72,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         DispatchQueue.global(qos: .background).async {
             do {
-                if let nodeStatus = BitcoinManager.shared.status(), nodeStatus.isRunning {
+                if BitcoinManager.shared.status()?.isRunning == true {
                     Log.info("Will sync LDK node upon entering foreground.")
                     try BitcoinManager.shared.syncWallets()
                 }

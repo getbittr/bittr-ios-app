@@ -40,10 +40,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
         if let actualPreviousPin = self.previousPIN {
             if actualPreviousPin == enteredPin {
                 // Pin is correct.
-                // Start wallet.
-                if self.signupVC?.coreVC == nil { Log.info("CoreVC nil in Signup 6.") }
                 self.signupVC?.coreVC?.userHasSignedIn = true
-                self.signupVC?.coreVC?.startLightning()
                 self.signupVC?.enteredPin = ""
                 
                 // Move to next page.
@@ -52,6 +49,10 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 // Store pin in cache.
                 CacheManager.storePin(pin: actualPreviousPin)
                 
+                // Start wallet.
+                Task {
+                    await self.signupVC?.coreVC?.startWallet()
+                }
             } else {
                 // Pin is incorrect.
                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)

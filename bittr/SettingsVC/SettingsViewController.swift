@@ -182,7 +182,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             self.coreVC!.genericSpinner.startAnimating()
             
             // Sync wallet.
-            self.coreVC!.startLightning()
+            Task {
+                await self.coreVC!.startWallet()
+            }
         }
     }
     

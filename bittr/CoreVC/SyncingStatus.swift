@@ -49,47 +49,52 @@ extension CoreViewController {
     }
     
     func startSync(type:SyncType) {
-        switch type {
-        case .conversion:
-            self.spinnerConversion.startAnimating()
-            self.checkmarkConversion.alpha = 0
-        case .ldk:
-            self.spinnerLDK.startAnimating()
-            self.checkmarkLDK.alpha = 0
-        case .bdk:
-            self.spinnerBDK.startAnimating()
-            self.checkmarkBDK.alpha = 0
-        case .sync:
-            self.spinnerSyncing.startAnimating()
-            self.checkmarkSyncing.alpha = 0
-        case .final:
-            self.spinnerFinal.startAnimating()
-            self.checkmarkFinal.alpha = 0
+        DispatchQueue.main.async {
+            switch type {
+            case .conversion:
+                self.spinnerConversion.startAnimating()
+                self.checkmarkConversion.alpha = 0
+            case .ldk:
+                self.spinnerLDK.startAnimating()
+                self.checkmarkLDK.alpha = 0
+            case .bdk:
+                self.spinnerBDK.startAnimating()
+                self.checkmarkBDK.alpha = 0
+            case .sync:
+                self.spinnerSyncing.startAnimating()
+                self.checkmarkSyncing.alpha = 0
+            case .final:
+                self.spinnerFinal.startAnimating()
+                self.checkmarkFinal.alpha = 0
+            }
         }
     }
     
     func completeSync(type:SyncType) {
-        switch type {
-        case .conversion:
-            self.spinnerConversion.stopAnimating()
-            self.checkmarkConversion.alpha = 1
-        case .ldk:
-            self.spinnerLDK.stopAnimating()
-            self.checkmarkLDK.alpha = 1
-        case .bdk:
-            self.spinnerBDK.stopAnimating()
-            self.checkmarkBDK.alpha = 1
-        case .sync:
-            self.spinnerSyncing.stopAnimating()
-            self.checkmarkSyncing.alpha = 1
-        case .final:
-            self.spinnerFinal.stopAnimating()
-            self.checkmarkFinal.alpha = 1
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.hideSyncView()
+        DispatchQueue.main.async {
+            switch type {
+            case .conversion:
+                self.spinnerConversion.stopAnimating()
+                self.checkmarkConversion.alpha = 1
+            case .ldk:
+                self.spinnerLDK.stopAnimating()
+                self.checkmarkLDK.alpha = 1
+            case .bdk:
+                self.spinnerBDK.stopAnimating()
+                self.checkmarkBDK.alpha = 1
+            case .sync:
+                self.spinnerSyncing.stopAnimating()
+                self.checkmarkSyncing.alpha = 1
+            case .final:
+                self.spinnerFinal.stopAnimating()
+                self.checkmarkFinal.alpha = 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.hideSyncView()
+                }
             }
         }
     }
+    
 }
 
 enum SyncType {

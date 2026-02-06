@@ -11,7 +11,7 @@ import Sentry
 
 extension BitcoinManager {
     
-    func startBDK() {
+    func didStartBDK(completion: @escaping (Bool) -> Void) {
         DispatchQueue.global(qos: .background).async {
             
             // BDK launch.
@@ -23,7 +23,8 @@ extension BitcoinManager {
                 do {
                     mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
                 } catch {
-                    self.handleError(error: error, row: 178, stopLightning: true)
+                    self.handleError(error: error, row: 178, stopLightning: false)
+                    completion(false)
                     return
                 }
                 
@@ -54,14 +55,16 @@ extension BitcoinManager {
                 do {
                     self.connection = try Connection.createConnection()
                 } catch {
-                    self.handleError(error: error, row: 211, stopLightning: true)
+                    self.handleError(error: error, row: 211, stopLightning: false)
+                    completion(false)
                     return
                 }
                 
                 do {
                     self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
                 } catch {
-                    self.handleError(error: error, row: 218, stopLightning: true)
+                    self.handleError(error: error, row: 218, stopLightning: false)
+                    completion(false)
                     return
                 }
                 
@@ -69,7 +72,8 @@ extension BitcoinManager {
                 do {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                 } catch {
-                    self.handleError(error: error, row: 228, stopLightning: true)
+                    self.handleError(error: error, row: 228, stopLightning: false)
+                    completion(false)
                     return
                 }
                 
@@ -78,92 +82,75 @@ extension BitcoinManager {
                     SentrySDK.metrics.count(key: "sync.bdk.success")
                     self.coreVC?.updateSync(action: .complete, type: .bdk)
                     self.coreVC?.updateSync(action: .start, type: .sync)
+                    completion(true)
                 }
             }
-            
-            // Proceed to wallet sync.
-            self.syncBdkWallet()
         }
     }
     
-    func syncBdkWallet() {
-        Log.info("Will sync wallet.")
+    func didSyncBdkWallet(completion: @escaping (Bool) -> Void) {
+        Log.info("Will sync BDK wallet.")
         // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
         
-        // Check Electrum Client.
-        if self.electrumClient == nil {
-            do {
-                self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
-            } catch {
-                self.handleError(error: error, row: 222, stopLightning: true)
-                return
-            }
-        }
-        
-        // Perform a full scan.
-        Log.info("Will perform a full scan.")
-        
-        // Build request.
-        let syncRequest:FullScanRequest
-        do {
-            syncRequest = try self.bdkWallet!.startFullScan().build()
-        } catch {
-            self.handleError(error: error, row: 212, stopLightning: true)
-            return
-        }
-        
-        // Run full scan.
-        let update:Update
-        do {
-            update = try self.electrumClient!.fullScan(
-                request: syncRequest,
-                stopGap: UInt64(25),
-                batchSize: UInt64(25),
-                fetchPrevTxouts: true
-            )
-        } catch {
-            self.handleError(error: error, row: 236, stopLightning: true)
-            return
-        }
-        
-        // Apply update to BDK wallet.
-        do {
-            try self.bdkWallet!.applyUpdate(update: update)
-        } catch {
-            self.handleError(error: error, row: 243, stopLightning: true)
-            return
-        }
-        
-        // Persist wallet changes.
-        do {
-            let _ = try self.bdkWallet!.persist(connection: self.connection!)
-        } catch {
-            self.handleError(error: error, row: 250, stopLightning: false)
-        }
-        
-        // Update syncing status.
-        Log.info("Did sync wallet.")
-        DispatchQueue.main.async {
-            SentrySDK.metrics.count(key: "sync.walletsync.success")
-            self.coreVC?.updateSync(action: .complete, type: .sync)
-            self.coreVC?.updateSync(action: .start, type: .final)
-        }
-        
-        Task {
-            // Get latest block height.
-            let _ = await self.didGetLatestBlockHeight()
-            
-            // Check peer connection.
-            let peerIsConnected = await self.coreVC!.isConnectedToPeer()
-            DispatchQueue.global(qos: .background).async {
-                if peerIsConnected {
-                    // We're already connected to peer.
-                    self.getChannelsAndPayments()
-                } else {
-                    // Connect to peer.
-                    self.connectToLightningPeer()
+        DispatchQueue.global(qos: .background).async {
+            // Check Electrum Client.
+            if self.electrumClient == nil {
+                do {
+                    self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
+                } catch {
+                    self.handleError(error: error, row: 222, stopLightning: false)
+                    completion(false)
+                    return
                 }
             }
+            
+            // Perform a full scan.
+            Log.info("Will perform a full scan.")
+            
+            // Build request.
+            let syncRequest:FullScanRequest
+            do {
+                syncRequest = try self.bdkWallet!.startFullScan().build()
+            } catch {
+                self.handleError(error: error, row: 212, stopLightning: false)
+                completion(false)
+                return
+            }
+            
+            // Run full scan.
+            let update:Update
+            do {
+                update = try self.electrumClient!.fullScan(
+                    request: syncRequest,
+                    stopGap: UInt64(25),
+                    batchSize: UInt64(25),
+                    fetchPrevTxouts: true
+                )
+            } catch {
+                self.handleError(error: error, row: 236, stopLightning: false)
+                completion(false)
+                return
+            }
+            
+            // Apply update to BDK wallet.
+            do {
+                try self.bdkWallet!.applyUpdate(update: update)
+            } catch {
+                self.handleError(error: error, row: 243, stopLightning: false)
+                completion(false)
+                return
+            }
+            
+            // Persist wallet changes.
+            do {
+                let _ = try self.bdkWallet!.persist(connection: self.connection!)
+            } catch {
+                self.handleError(error: error, row: 250, stopLightning: false)
+            }
+            
+            // Update syncing status.
+            Log.info("Did sync BDK wallet.")
+            completion(true)
         }
     }
     

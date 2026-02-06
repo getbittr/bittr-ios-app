@@ -273,7 +273,7 @@ extension UIViewController {
         
         Task {
             // Check peer connection.
-            if await self.isConnectedToPeer() {
+            if self.isConnectedToPeer() {
                 // Is connected to peer.
                 
                 // Get invoice, amount, and invoice type.

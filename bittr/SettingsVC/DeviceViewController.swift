@@ -197,12 +197,10 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         
         self.tappedCell?.stopAnimating()
         
-        Task {
-            if await self.isConnectedToPeer() {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            } else {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
-            }
+        if self.isConnectedToPeer() {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        } else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
         }
     }
     

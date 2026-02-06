@@ -86,10 +86,10 @@ extension CoreViewController {
         }
 
         // Call payoutLightning in an async context
-        Task {
-            if await self.isConnectedToPeer() {
-                Log.info("Is connected to peer.")
-                
+        if self.isConnectedToPeer() {
+            Log.info("Is connected to peer.")
+            
+            Task {
                 // Create invoice.
                 let invoice:Bolt11Invoice
                 do {
@@ -111,7 +111,7 @@ extension CoreViewController {
                     }
                     return
                 }
-                    
+                
                 // Cache payment details.
                 if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                     let newTimestamp = Int(Date().timeIntervalSince1970)
@@ -189,12 +189,12 @@ extension CoreViewController {
                         }
                     }
                 }
-            } else {
-                Log.info("Not connected to peer.")
-                DispatchQueue.main.async {
-                    self.hidePendingView()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
-                }
+            }
+        } else {
+            Log.info("Not connected to peer.")
+            DispatchQueue.main.async {
+                self.hidePendingView()
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
             }
         }
     }
@@ -457,7 +457,7 @@ extension CoreViewController {
     }
     
     func syncLDKnode() {
-        if let nodeStatus = BitcoinManager.shared.status(), nodeStatus.isRunning {
+        if BitcoinManager.shared.status()?.isRunning == true {
             do {
                 // Sync LDK node.
                 try BitcoinManager.shared.syncWallets()

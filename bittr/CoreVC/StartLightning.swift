@@ -10,76 +10,127 @@ import LDKNode
 import Sentry
 
 extension CoreViewController {
-
-    func startLightning() {
+    
+    func startWallet() async {
         
-        // Update syncing progress.
-        self.startSync(type: .ldk)
+        // Sync LDKNode.
+        if BitcoinManager.shared.ldkNode == nil || BitcoinManager.shared.status()?.isRunning == false {
+            self.startSync(type: .ldk)
+            let didStartLDKNode = await self.startLightning()
+            guard didStartLDKNode else { return }
+        }
+        self.completeSync(type: .ldk)
         
-        Task {
-            let didStartNode = await withTaskGroup(of: Bool.self) { group -> Bool in
-                
-                // Start LDK node.
-                group.addTask {
-                    return await withCheckedContinuation { continuation in
-                        BitcoinManager.shared.startLDK { didStartLDK in
-                            continuation.resume(returning: didStartLDK)
-                        }
-                    }
-                }
-                
-                // 15 second timer.
-                group.addTask {
-                    do {
-                        try await Task.sleep(nanoseconds: UInt64(15) * NSEC_PER_SEC)
-                    } catch {
-                        return false
-                    }
-                    Log.info("Starting LDK Node takes too long.")
-                    return false
-                }
-                
-                // Check connection success.
-                let firstResult = await group.next() ?? false
-                group.cancelAll()
-                return firstResult
-            }
+        // Start final calculations.
+        self.startSync(type: .final)
+        
+        // Set CoreVC.
+        if BitcoinManager.shared.coreVC == nil {
+            BitcoinManager.shared.coreVC = self
+        }
+        
+        // Cache Bittr address.
+        // Upon first-ever wallet launch, store first onchain address as Bittr address.
+        if CacheManager.getBittrAddress() == nil, let onchainAddress = CacheManager.getLastAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
             
-            // Proceed to next step.
-            if didStartNode || (BitcoinManager.shared.ldkNode != nil && BitcoinManager.shared.ldkNode!.status().isRunning) {
-                Log.info("Did start node.")
-                self.completeSync(type: .ldk)
-                self.startSync(type: .bdk)
-                SentrySDK.metrics.count(key: "sync.ldk.success")
-                
-                BitcoinManager.shared.setCoreVC(self)
-                BitcoinManager.shared.startBDK()
-                
-                // Upon first-ever wallet launch, store first onchain address as Bittr address.
-                if CacheManager.getBittrAddress() == nil, let onchainAddress = CacheManager.getLastAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
-                    
-                    CacheManager.storeBittrAddress(onchainAddress)
-                    Log.info("Did store Bittr address.")
+            CacheManager.storeBittrAddress(onchainAddress)
+            Log.info("Did store Bittr address.")
+        }
+        
+        // Get latest block height.
+        let _ = await BitcoinManager.shared.didGetLatestBlockHeight()
+        
+        // Check peer connection.
+        if !self.isConnectedToPeer() {
+            // Connect to peer.
+            _ = await BitcoinManager.shared.connectToLightningPeer()
+        }
+        
+        // Get channels and payments.
+        // Load wallet data.
+        DispatchQueue.main.async {
+            self.homeVC?.loadWalletData()
+        }
+        
+        // Start BDK.
+        BitcoinManager.shared.didStartBDK { success in
+            if success {
+                Log.info("Did start BDK.")
+                BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                    if hasBeenSynced {
+                        Log.info("Did scan BDK wallet.")
+                        // Start timer
+                        if self.walletSync == nil {
+                            self.walletSync = BackgroundSync()
+                            self.walletSync!.start()
+                        }
+                    } else {
+                        Log.info("Could not scan BDK wallet.")
+                    }
                 }
             } else {
-                Log.info("Could not start node.")
+                Log.info("Could not start BDK.")
+            }
+        }
+    }
+
+    func startLightning() async -> Bool {
+        
+        var didStartNode = await withTaskGroup(of: Bool.self) { group -> Bool in
+            
+            // Start LDK node.
+            group.addTask {
+                return await withCheckedContinuation { continuation in
+                    BitcoinManager.shared.startLDK { didStartLDK in
+                        continuation.resume(returning: didStartLDK)
+                    }
+                }
+            }
+            
+            // 15 second timer.
+            group.addTask {
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(15) * NSEC_PER_SEC)
+                } catch {
+                    return false
+                }
+                Log.info("Starting LDK Node takes too long.")
+                return false
+            }
+            
+            // Check connection success.
+            let firstResult = await group.next() ?? false
+            group.cancelAll()
+            return firstResult
+        }
+        
+        // Check correct didStartNode boolean.
+        if !didStartNode, BitcoinManager.shared.status()?.isRunning == true {
+            didStartNode = true
+        }
+        
+        // Proceed to next step.
+        if didStartNode {
+            Log.info("Did start node.")
+            DispatchQueue.main.async {
+                SentrySDK.metrics.count(key: "sync.ldk.success")
+            }
+            return true
+        } else {
+            Log.info("Could not start node.")
+            DispatchQueue.main.async {
                 SentrySDK.metrics.count(key: "sync.ldk.failure")
                 self.stopLightning(message: nil)
             }
+            return false
         }
     }
     
     @objc func restartLightning() {
         
         self.hideAlert()
-        if BitcoinManager.shared.ldkNode != nil, BitcoinManager.shared.ldkNode!.status().isRunning {
-            
-            // LDK is already running. Start BDK.
-            BitcoinManager.shared.setCoreVC(self)
-            BitcoinManager.shared.startBDK()
-        } else {
-            // LDK isn't running yet.
-            self.startLightning()
+        Task {
+            await self.startWallet()
         }
     }
     

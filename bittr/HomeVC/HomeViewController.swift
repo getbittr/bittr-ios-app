@@ -340,14 +340,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         // Perform reset.
-        BitcoinManager.shared.walletReset()
-        
-        // Show syncing status.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.coreVC?.checkmarkSyncing.alpha = 0
-            self.coreVC?.spinnerSyncing.startAnimating()
-            self.coreVC?.checkmarkFinal.alpha = 0
-            self.coreVC?.showSyncView()
+        Task {
+            await self.coreVC!.startWallet()
         }
     }
     

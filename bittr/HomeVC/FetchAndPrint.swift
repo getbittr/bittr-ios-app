@@ -10,7 +10,7 @@ import Sentry
 
 extension UIViewController {
     
-    func isConnectedToPeer() async -> Bool {
+    func isConnectedToPeer() -> Bool {
         
         let peers = BitcoinManager.shared.listPeers()
         var peerIsConnected = false
@@ -40,10 +40,8 @@ extension HomeViewController {
         }
         
         // Check peer connection.
-        Task {
-            await self.isConnectedToPeer()
-            BitcoinManager.shared.listenForEvents()
-        }
+        _ = self.isConnectedToPeer()
+        BitcoinManager.shared.listenForEvents()
     }
 
 }

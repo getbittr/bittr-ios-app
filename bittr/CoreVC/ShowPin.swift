@@ -14,11 +14,13 @@ extension CoreViewController {
         // The correct pin has been entered in the PinVC and the wallet is ready to be synced and shown.
         self.userHasSignedIn = true
         
-        // Start wallet.
-        self.startLightning()
-        
         // Lower pin view.
         self.lowerPinView(spinner: spinner)
+        
+        // Start wallet.
+        Task {
+            await self.startWallet()
+        }
     }
     
     
@@ -38,10 +40,6 @@ extension CoreViewController {
                 // A notification will be handled after syncing the wallet.
                 self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
                 self.showPendingView()
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    self.showSyncView()
-                }
             }
         }
     }
