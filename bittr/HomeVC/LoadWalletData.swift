@@ -353,7 +353,7 @@ extension HomeViewController {
             // Conversion rate hasn't yet been fetched.
             Log.info("Did start currency conversion.")
             
-            self.coreVC!.startSync(type: .conversion)
+            self.coreVC!.startSync(.conversion)
             
             Task {
                 await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: .get) { result in
@@ -390,7 +390,7 @@ extension HomeViewController {
                                 }
                                 
                                 // Complete sync.
-                                self.coreVC!.completeSync(type: .conversion)
+                                self.coreVC!.completeSync(.conversion)
                             } else {
                                 self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 self.couldNotFetchConversion = true
@@ -528,7 +528,7 @@ extension HomeViewController {
             // Stop sync status spinner.
             self.headerSpinner.stopAnimating()
             self.coreVC!.walletHasSynced = true
-            self.coreVC!.completeSync(type: .final)
+            self.coreVC!.completeSync(.final)
             
             // Check if notification needs handling.
             if self.coreVC!.needsToHandleURI() {

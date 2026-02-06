@@ -15,14 +15,14 @@ extension CoreViewController {
         
         // Sync LDKNode.
         if BitcoinManager.shared.ldkNode == nil || BitcoinManager.shared.status()?.isRunning == false {
-            self.startSync(type: .ldk)
+            self.startSync(.ldk)
             let didStartLDKNode = await self.startLightning()
             guard didStartLDKNode else { return }
         }
-        self.completeSync(type: .ldk)
+        self.completeSync(.ldk)
         
         // Start final calculations.
-        self.startSync(type: .final)
+        self.startSync(.final)
         
         // Set CoreVC.
         if BitcoinManager.shared.coreVC == nil {

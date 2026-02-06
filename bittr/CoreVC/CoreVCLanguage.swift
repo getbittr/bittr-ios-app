@@ -55,8 +55,6 @@ extension CoreViewController {
         
         self.statusConversion.text = Language.getWord(withID: "fetchconversionrates")
         self.statusLightning.text = Language.getWord(withID: "startlightningnode")
-        self.statusBlockchain.text = Language.getWord(withID: "initiatewallet")
-        self.statusSyncing.text = Language.getWord(withID: "syncwallet")
         self.statusFinal.text = Language.getWord(withID: "finalcalculations")
     }
 }

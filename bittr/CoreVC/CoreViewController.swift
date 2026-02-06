@@ -107,8 +107,6 @@ class CoreViewController: UIViewController {
     // Syncing status
     @IBOutlet weak var statusConversion: UILabel!
     @IBOutlet weak var statusLightning: UILabel!
-    @IBOutlet weak var statusBlockchain: UILabel!
-    @IBOutlet weak var statusSyncing: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
     @IBOutlet weak var syncStack: UIView!
     @IBOutlet weak var syncViewBottom: NSLayoutConstraint!
@@ -118,13 +116,9 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusView: UIView!
     @IBOutlet weak var spinnerConversion: UIActivityIndicatorView!
     @IBOutlet weak var spinnerLDK: UIActivityIndicatorView!
-    @IBOutlet weak var spinnerBDK: UIActivityIndicatorView!
-    @IBOutlet weak var spinnerSyncing: UIActivityIndicatorView!
     @IBOutlet weak var spinnerFinal: UIActivityIndicatorView!
     @IBOutlet weak var checkmarkConversion: UIImageView!
     @IBOutlet weak var checkmarkLDK: UIImageView!
-    @IBOutlet weak var checkmarkBDK: UIImageView!
-    @IBOutlet weak var checkmarkSyncing: UIImageView!
     @IBOutlet weak var checkmarkFinal: UIImageView!
     
     // Generic spinner

@@ -43,12 +43,12 @@ extension CoreViewController {
     func updateSync(action:SyncAction, type:SyncType) {
         
         switch action {
-        case .complete: self.completeSync(type: type)
-        case .start: self.startSync(type: type)
+        case .complete: self.completeSync(type)
+        case .start: self.startSync(type)
         }
     }
     
-    func startSync(type:SyncType) {
+    func startSync(_ type:SyncType) {
         DispatchQueue.main.async {
             switch type {
             case .conversion:
@@ -57,12 +57,6 @@ extension CoreViewController {
             case .ldk:
                 self.spinnerLDK.startAnimating()
                 self.checkmarkLDK.alpha = 0
-            case .bdk:
-                self.spinnerBDK.startAnimating()
-                self.checkmarkBDK.alpha = 0
-            case .sync:
-                self.spinnerSyncing.startAnimating()
-                self.checkmarkSyncing.alpha = 0
             case .final:
                 self.spinnerFinal.startAnimating()
                 self.checkmarkFinal.alpha = 0
@@ -70,7 +64,7 @@ extension CoreViewController {
         }
     }
     
-    func completeSync(type:SyncType) {
+    func completeSync(_ type:SyncType) {
         DispatchQueue.main.async {
             switch type {
             case .conversion:
@@ -79,12 +73,6 @@ extension CoreViewController {
             case .ldk:
                 self.spinnerLDK.stopAnimating()
                 self.checkmarkLDK.alpha = 1
-            case .bdk:
-                self.spinnerBDK.stopAnimating()
-                self.checkmarkBDK.alpha = 1
-            case .sync:
-                self.spinnerSyncing.stopAnimating()
-                self.checkmarkSyncing.alpha = 1
             case .final:
                 self.spinnerFinal.stopAnimating()
                 self.checkmarkFinal.alpha = 1
@@ -100,8 +88,6 @@ extension CoreViewController {
 enum SyncType {
     case conversion
     case ldk
-    case bdk
-    case sync
     case final
 }
 

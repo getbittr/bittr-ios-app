@@ -471,7 +471,7 @@
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="YFi-PA-AqV" userLabel="Syncing Status View">
-                                        <rect key="frame" x="10" y="678" width="373" height="174"/>
+                                        <rect key="frame" x="10" y="728" width="373" height="124"/>
                                         <subviews>
                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="iconcloseblack" translatesAutoresizingMaskIntoConstraints="NO" id="rD8-oN-CWV">
                                                 <rect key="frame" x="343" y="22" width="12" height="12"/>
@@ -560,88 +560,8 @@
                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="mXf-gu-yLa"/>
                                                 </constraints>
                                             </view>
-                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="owH-Cf-uqt" userLabel="BDK View">
-                                                <rect key="frame" x="24" y="80" width="222" height="14"/>
-                                                <subviews>
-                                                    <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="Us5-dV-AoM" userLabel="Spinner BDK">
-                                                        <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
-                                                        <color key="color" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
-                                                    </activityIndicatorView>
-                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="iconcheck" translatesAutoresizingMaskIntoConstraints="NO" id="Aek-UB-yHx" userLabel="Checkmark BDK">
-                                                        <rect key="frame" x="3" y="-1" width="14" height="14"/>
-                                                        <color key="tintColor" systemColor="systemGreenColor"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" constant="14" id="8wr-uM-0Zk"/>
-                                                            <constraint firstAttribute="height" constant="14" id="hpv-R9-Bmc"/>
-                                                        </constraints>
-                                                    </imageView>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="initiate wallet and blockchain" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8o1-Lo-hMA">
-                                                        <rect key="frame" x="30" y="0.0" width="192" height="14"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="2" id="myK-ym-7YO"/>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="2" id="mzN-w4-Knq"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                </subviews>
-                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                <constraints>
-                                                    <constraint firstItem="Us5-dV-AoM" firstAttribute="centerY" secondItem="8o1-Lo-hMA" secondAttribute="centerY" id="4YM-Gx-9pP"/>
-                                                    <constraint firstItem="8o1-Lo-hMA" firstAttribute="leading" secondItem="Us5-dV-AoM" secondAttribute="trailing" constant="10" id="E2o-gM-9wP"/>
-                                                    <constraint firstAttribute="bottom" secondItem="8o1-Lo-hMA" secondAttribute="bottom" id="KEe-bp-GIq"/>
-                                                    <constraint firstItem="Aek-UB-yHx" firstAttribute="centerY" secondItem="Us5-dV-AoM" secondAttribute="centerY" constant="-1" id="Qcc-SG-xSX"/>
-                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="ZWt-Td-Fqb"/>
-                                                    <constraint firstItem="Us5-dV-AoM" firstAttribute="leading" secondItem="owH-Cf-uqt" secondAttribute="leading" id="ZjZ-sT-i04"/>
-                                                    <constraint firstAttribute="trailing" secondItem="8o1-Lo-hMA" secondAttribute="trailing" id="d0u-Ia-UsM"/>
-                                                    <constraint firstItem="8o1-Lo-hMA" firstAttribute="top" secondItem="owH-Cf-uqt" secondAttribute="top" id="lTh-7M-vXG"/>
-                                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="yf1-T1-1Lt"/>
-                                                    <constraint firstItem="Aek-UB-yHx" firstAttribute="centerX" secondItem="Us5-dV-AoM" secondAttribute="centerX" id="zjj-nb-cvk"/>
-                                                </constraints>
-                                            </view>
-                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="PVx-gE-6jL" userLabel="Syncing View">
-                                                <rect key="frame" x="23.999999999999993" y="105" width="102.33333333333331" height="14"/>
-                                                <subviews>
-                                                    <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="F92-n4-Rlb" userLabel="Spinner Syncing">
-                                                        <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
-                                                        <color key="color" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
-                                                    </activityIndicatorView>
-                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="iconcheck" translatesAutoresizingMaskIntoConstraints="NO" id="1al-co-Uek" userLabel="Checkmark Syncing">
-                                                        <rect key="frame" x="3" y="-1" width="14" height="14"/>
-                                                        <color key="tintColor" systemColor="systemGreenColor"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="14" id="Und-Mq-bjs"/>
-                                                            <constraint firstAttribute="width" constant="14" id="ilr-0Q-VN3"/>
-                                                        </constraints>
-                                                    </imageView>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="sync wallet" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LyL-nn-ECr">
-                                                        <rect key="frame" x="29.999999999999993" y="0.0" width="72.333333333333314" height="14"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="2" id="CfT-Rp-egE"/>
-                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="2" id="ipi-Pl-chp"/>
-                                                        </constraints>
-                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
-                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                </subviews>
-                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                <constraints>
-                                                    <constraint firstItem="1al-co-Uek" firstAttribute="centerX" secondItem="F92-n4-Rlb" secondAttribute="centerX" id="1hr-Ew-Sne"/>
-                                                    <constraint firstItem="1al-co-Uek" firstAttribute="centerY" secondItem="F92-n4-Rlb" secondAttribute="centerY" constant="-1" id="2jU-QV-TfL"/>
-                                                    <constraint firstItem="LyL-nn-ECr" firstAttribute="leading" secondItem="F92-n4-Rlb" secondAttribute="trailing" constant="10" id="T70-j3-mcc"/>
-                                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="adQ-IA-485"/>
-                                                    <constraint firstAttribute="bottom" secondItem="LyL-nn-ECr" secondAttribute="bottom" id="e3A-lg-KNH"/>
-                                                    <constraint firstItem="F92-n4-Rlb" firstAttribute="leading" secondItem="PVx-gE-6jL" secondAttribute="leading" id="hmh-n9-BuT"/>
-                                                    <constraint firstItem="LyL-nn-ECr" firstAttribute="top" secondItem="PVx-gE-6jL" secondAttribute="top" id="l2i-Rz-bWp"/>
-                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="nyt-SF-7h7"/>
-                                                    <constraint firstAttribute="trailing" secondItem="LyL-nn-ECr" secondAttribute="trailing" id="xtZ-kc-IgV"/>
-                                                    <constraint firstItem="F92-n4-Rlb" firstAttribute="centerY" secondItem="LyL-nn-ECr" secondAttribute="centerY" id="yDP-NA-CGO"/>
-                                                </constraints>
-                                            </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="yzm-sS-sRH" userLabel="Final View">
-                                                <rect key="frame" x="24" y="130" width="140.66666666666666" height="14"/>
+                                                <rect key="frame" x="24" y="80" width="140.66666666666666" height="14"/>
                                                 <subviews>
                                                     <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="lgz-o2-UPv" userLabel="Spinner Final">
                                                         <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
@@ -690,13 +610,9 @@
                                             <constraint firstItem="aRw-c8-cW6" firstAttribute="top" secondItem="YFi-PA-AqV" secondAttribute="top" constant="30" id="LvH-3i-b9w"/>
                                             <constraint firstItem="vWd-DR-ogj" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="Yw2-HC-wBr"/>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" id="auw-Iz-O5Q"/>
-                                            <constraint firstItem="yzm-sS-sRH" firstAttribute="top" secondItem="PVx-gE-6jL" secondAttribute="bottom" constant="11" id="d8U-VG-Nhc"/>
-                                            <constraint firstItem="PVx-gE-6jL" firstAttribute="top" secondItem="owH-Cf-uqt" secondAttribute="bottom" constant="11" id="lYy-MA-cFL"/>
+                                            <constraint firstItem="yzm-sS-sRH" firstAttribute="top" secondItem="vWd-DR-ogj" secondAttribute="bottom" constant="11" id="d8U-VG-Nhc"/>
                                             <constraint firstItem="aRw-c8-cW6" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="njv-11-usp"/>
-                                            <constraint firstItem="PVx-gE-6jL" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="op7-PJ-ww0"/>
-                                            <constraint firstItem="owH-Cf-uqt" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="s7f-rC-gBw"/>
                                             <constraint firstItem="rD8-oN-CWV" firstAttribute="trailing" secondItem="YFi-PA-AqV" secondAttribute="trailing" constant="-18" id="uLr-8s-WtF"/>
-                                            <constraint firstItem="owH-Cf-uqt" firstAttribute="top" secondItem="vWd-DR-ogj" secondAttribute="bottom" constant="11" id="xHD-lJ-uV2"/>
                                         </constraints>
                                     </view>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="sB1-PJ-Um7">
@@ -783,11 +699,9 @@
                         <outlet property="blackCoin" destination="9Zy-K2-oVL" id="cGh-GG-oWC"/>
                         <outlet property="blackSignupBackground" destination="Cu6-Uj-qlc" id="8Dn-Cs-ibo"/>
                         <outlet property="blackSignupButton" destination="rup-pA-CQL" id="VCS-qY-iUe"/>
-                        <outlet property="checkmarkBDK" destination="Aek-UB-yHx" id="Tt7-Hu-5sM"/>
                         <outlet property="checkmarkConversion" destination="W3M-5h-aEW" id="Dvz-9p-joM"/>
                         <outlet property="checkmarkFinal" destination="yHf-MB-l6q" id="mXo-JM-TF5"/>
                         <outlet property="checkmarkLDK" destination="N4s-bd-yW5" id="coq-OC-bpy"/>
-                        <outlet property="checkmarkSyncing" destination="1al-co-Uek" id="tSK-0P-3f9"/>
                         <outlet property="coin1" destination="jQn-pZ-ciW" id="LNL-1m-NqY"/>
                         <outlet property="coin3" destination="FJC-y9-NdA" id="GR5-gf-sCj"/>
                         <outlet property="coverView" destination="iP5-eR-61T" id="uyt-MN-YN6"/>
@@ -826,16 +740,12 @@
                         <outlet property="settingsView" destination="ldH-kf-pyt" id="NSZ-nI-Qnq"/>
                         <outlet property="signupBottom" destination="vJ2-GS-tK0" id="Oag-k7-IQG"/>
                         <outlet property="signupContainerView" destination="74v-iA-Zh9" id="hyk-O1-gTg"/>
-                        <outlet property="spinnerBDK" destination="Us5-dV-AoM" id="cDt-Dg-r4O"/>
                         <outlet property="spinnerConversion" destination="wLN-F6-6r7" id="lTg-p1-v4l"/>
                         <outlet property="spinnerFinal" destination="lgz-o2-UPv" id="dBr-MP-7Yh"/>
                         <outlet property="spinnerLDK" destination="19W-kF-Ob2" id="iRU-Vv-wdP"/>
-                        <outlet property="spinnerSyncing" destination="F92-n4-Rlb" id="v2Y-S3-smy"/>
-                        <outlet property="statusBlockchain" destination="8o1-Lo-hMA" id="xSq-kP-u5Q"/>
                         <outlet property="statusConversion" destination="MMy-9P-SqI" id="wF3-V1-ZTg"/>
                         <outlet property="statusFinal" destination="Q6h-cc-V1w" id="KkI-Pc-HmT"/>
                         <outlet property="statusLightning" destination="0rS-GJ-ypl" id="hGF-Pe-kGq"/>
-                        <outlet property="statusSyncing" destination="LyL-nn-ECr" id="HLH-ys-T2E"/>
                         <outlet property="statusView" destination="YFi-PA-AqV" id="Dxh-nJ-LYn"/>
                         <outlet property="syncCloseButton" destination="sB1-PJ-Um7" id="0GP-vQ-MO8"/>
                         <outlet property="syncStack" destination="APH-aW-YTV" id="VJa-jQ-cKR"/>
