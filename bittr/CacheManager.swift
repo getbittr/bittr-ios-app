@@ -308,12 +308,18 @@ class CacheManager: NSObject {
             }
             if let transactionTransferFee = eachTransaction["transferFee"] as? CGFloat {
                 thisTransaction.transferFee = transactionTransferFee
+            } else if let transactionTransferFee = eachTransaction["transferFee"] as? String {
+                thisTransaction.transferFee = transactionTransferFee.toNumber()
             }
             if let transactionSurcharge = eachTransaction["surcharge"] as? CGFloat {
                 thisTransaction.surcharge = transactionSurcharge
+            } else if let transactionSurcharge = eachTransaction["surcharge"] as? String {
+                thisTransaction.surcharge = transactionSurcharge.toNumber()
             }
             if let transactionBittrFee = eachTransaction["bittrFee"] as? CGFloat {
                 thisTransaction.bittrFee = transactionBittrFee
+            } else if let transactionBittrFee = eachTransaction["bittrFee"] as? String {
+                thisTransaction.bittrFee = transactionBittrFee.toNumber()
             }
             if let transactionReceived = eachTransaction["received"] as? Int {
                 thisTransaction.received = transactionReceived

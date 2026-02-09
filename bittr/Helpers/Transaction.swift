@@ -119,17 +119,23 @@ extension PaymentDetails {
             if let transferFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? String {
                 let transferFee = transferFeeString.toNumber().inSatoshis()
                 thisTransaction.transferFee = CGFloat(transferFee)
+            } else if let transferFee = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? CGFloat {
+                thisTransaction.transferFee = transferFee
             }
             
             // Surcharge.
             if let surchargeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["surcharge"] as? String {
                 let surcharge = surchargeString.toNumber()
                 thisTransaction.surcharge = surcharge
+            } else if let surcharge = (bittrTransactions![thisTransaction.id] as! [String:Any])["surcharge"] as? CGFloat {
+                thisTransaction.surcharge = surcharge
             }
             
             // Bittr fee.
             if let bittrFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["bittrFee"] as? String {
                 let bittrFee = bittrFeeString.toNumber()
+                thisTransaction.bittrFee = bittrFee
+            } else if let bittrFee = (bittrTransactions![thisTransaction.id] as! [String:Any])["bittrFee"] as? CGFloat {
                 thisTransaction.bittrFee = bittrFee
             }
         }

@@ -43,10 +43,6 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var cardFees: UIView!
     @IBOutlet weak var titleFees: UILabel!
     @IBOutlet weak var labelFees: UILabel!
-    @IBOutlet weak var feesQuestionStack: UIView!
-    @IBOutlet weak var feesQuestionStackWidth: NSLayoutConstraint!
-    @IBOutlet weak var feesQuestionImage: UIImageView!
-    @IBOutlet weak var feesQuestionButton: UIButton!
     
     // Confirmations stack
     @IBOutlet weak var confirmationsStack: UIView!
@@ -94,6 +90,21 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var titleProfit: UILabel!
     @IBOutlet weak var labelProfit: UILabel!
     
+    // Bittr fees stack
+    @IBOutlet weak var bittrFeesStack: UIView!
+    @IBOutlet weak var bittrFeesStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var cardBittrFees: UIView!
+    @IBOutlet weak var transferFeesStack: UIView!
+    @IBOutlet weak var titleTransferFee: UILabel!
+    @IBOutlet weak var labelTransferFee: UILabel!
+    @IBOutlet weak var bittrFeeStack: UIView!
+    @IBOutlet weak var titleBittrFee: UILabel!
+    @IBOutlet weak var labelBittrFee: UILabel!
+    @IBOutlet weak var surchargeStack: UIView!
+    @IBOutlet weak var surchargeStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var titleSurcharge: UILabel!
+    @IBOutlet weak var labelSurcharge: UILabel!
+    
     // Note stack
     @IBOutlet weak var noteStack: UIView!
     @IBOutlet weak var noteStackHeight: NSLayoutConstraint!
@@ -118,7 +129,6 @@ class TransactionViewController: UIViewController {
         
         // Button titles
         self.buttonSwapStatus.setTitle("", for: .normal)
-        self.feesQuestionButton.setTitle("", for: .normal)
         self.buttonDescription.setTitle("", for: .normal)
         self.copyButtonTopId.setTitle("", for: .normal)
         self.copyButtonBottomId.setTitle("", for: .normal)
@@ -140,6 +150,7 @@ class TransactionViewController: UIViewController {
         self.cardDescription.layer.cornerRadius = 8
         self.cardTopId.layer.cornerRadius = 8
         self.cardValue.layer.cornerRadius = 8
+        self.cardBittrFees.layer.cornerRadius = 8
         self.cardNote.layer.cornerRadius = 8
         
         // Language
@@ -238,14 +249,6 @@ class TransactionViewController: UIViewController {
                     self.labelFees.text = "0 sats"
                 }
             }
-        } else if self.tappedTransaction.isLightning, self.tappedTransaction.isFundingTransaction {
-            // Bittr channel funding transaction.
-            self.feesStackHeight.constant = 55
-            self.feesStack.alpha = 1
-            self.labelFees.text = "\(Int(self.tappedTransaction.transferFee.rounded())) sats"
-            self.feesQuestionStack.alpha = 1
-            self.feesQuestionStackWidth.constant = 22
-            self.feesQuestionButton.alpha = 1
         } else if (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee) < 0 {
             // Outbound transaction.
             self.feesStackHeight.constant = 55
@@ -382,6 +385,38 @@ class TransactionViewController: UIViewController {
             }
         }
         
+        // Bittr fees
+        if self.tappedTransaction.isBittr {
+            
+            NSLayoutConstraint.deactivate([self.bittrFeesStackHeight])
+            self.bittrFeesStackHeight = NSLayoutConstraint(item: self.bittrFeesStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.bittrFeesStackHeight])
+            self.bittrFeesStack.alpha = 1
+            
+            // Transfer fee.
+            self.labelTransferFee.text = "\(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
+            
+            // Currency.
+            let currencySymbol:String = {
+                if self.tappedTransaction.currency == "EUR" {
+                    return "€"
+                } else {
+                    return "CHF"
+                }
+            }()
+            
+            self.labelBittrFee.text = "\(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
+            
+            // Surcharge
+            if self.tappedTransaction.surcharge == 0 {
+                self.surchargeStackHeight.constant = 0
+                self.surchargeStack.alpha = 0
+            } else {
+                self.labelSurcharge.text = "\(self.tappedTransaction.surcharge.toString()) \(currencySymbol)"
+            }
+            
+        }
+        
         // Note
         if CacheManager.getTransactionNote(txid: self.tappedTransaction.id) != "" {
             self.labelNote.text = CacheManager.getTransactionNote(txid: self.tappedTransaction.id)
@@ -485,4 +520,27 @@ class TransactionViewController: UIViewController {
         }
     }
     
+}
+
+extension CGFloat {
+    
+    func toString() -> String {
+        
+        if self == 0 {
+            return "0"
+        } else {
+            var string = "\(self)".fixDecimals()
+            if string.split(separator: Locale.current.decimalSeparator!)[1].count == 1 {
+                
+                if string.split(separator: Locale.current.decimalSeparator!)[1] == "0" {
+                    
+                    return String(string.split(separator: Locale.current.decimalSeparator!)[0])
+                } else {
+                    return "\(string)0"
+                }
+            } else {
+                return string
+            }
+        }
+    }
 }

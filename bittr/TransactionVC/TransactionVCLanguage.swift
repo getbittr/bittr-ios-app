@@ -21,6 +21,9 @@ extension TransactionViewController {
         self.titleCurrentValue.text = Language.getWord(withID: "currentvalue")
         self.titlePurchaseValue.text = Language.getWord(withID: "purchasevalue")
         self.titleProfit.text = Language.getWord(withID: "profit")
+        self.titleTransferFee.text = Language.getWord(withID: "transferfee")
+        self.titleBittrFee.text = Language.getWord(withID: "bittrfee")
+        self.titleSurcharge.text = Language.getWord(withID: "surcharge")
         self.titleNote.text = Language.getWord(withID: "note")
         self.titleAddANote.text = Language.getWord(withID: "addanote")
         
@@ -53,7 +56,6 @@ extension TransactionViewController {
         // Fees
         self.cardFees.backgroundColor = Colors.getColor("whiteorblue3")
         self.labelFees.textColor = Colors.getColor("blackorwhite")
-        self.feesQuestionImage.tintColor = Colors.getColor("blackorwhite")
         
         // Confirmations
         self.cardConfirmations.backgroundColor = Colors.getColor("whiteorblue3")
@@ -74,6 +76,12 @@ extension TransactionViewController {
         self.cardValue.backgroundColor = Colors.getColor("whiteorblue3")
         self.labelCurrentValue.textColor = Colors.getColor("blackorwhite")
         self.labelPurchaseValue.textColor = Colors.getColor("blackorwhite")
+        
+        // Bittr fees
+        self.cardBittrFees.backgroundColor = Colors.getColor("whiteorblue3")
+        self.labelTransferFee.textColor = Colors.getColor("blackorwhite")
+        self.labelBittrFee.textColor = Colors.getColor("blackorwhite")
+        self.labelSurcharge.textColor = Colors.getColor("blackorwhite")
         
         // Note
         self.cardNote.backgroundColor = Colors.getColor("whiteorblue3")

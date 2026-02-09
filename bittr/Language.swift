@@ -486,7 +486,10 @@ class Language: NSObject {
             "invalidinvoice2": "The following is not a valid invoice.\n\n<invoice>",
             "reminder": "Reminder",
             "reminderbody": "The funds in your lightning connection exist only on this device. Don't delete this app before closing the connection.",
-            "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet."
+            "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet.",
+            "transferfee": "Transfer fee",
+            "bittrfee": "Bittr fee",
+            "surcharge": "Surcharge"
             
         ]
         
