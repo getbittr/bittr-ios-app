@@ -41,7 +41,7 @@ extension HomeViewController {
             self.bittrTransactions.removeAllObjects()
             for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
-                    self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
+                    self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.id)
                 }
             }
             

@@ -30,9 +30,11 @@ class Transaction: NSObject {
     
     // Bittr purchases
     var isBittr = false
-    var purchaseAmount: CGFloat = 0
     var currency = "EUR"
+    var purchaseAmount: CGFloat = 0
     var transferFee: CGFloat = 0
+    var surcharge: CGFloat = 0
+    var bittrFee: CGFloat = 0
     
     // Swaps
     var isSwap = false
@@ -110,11 +112,25 @@ extension PaymentDetails {
         // Check if transaction is Bittr.
         if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id) {
             thisTransaction.isBittr = true
-            thisTransaction.purchaseAmount = ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).toNumber()
             thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
+            thisTransaction.purchaseAmount = ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).toNumber()
+            
+            // Transfer fee.
             if let transferFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? String {
                 let transferFee = transferFeeString.toNumber().inSatoshis()
                 thisTransaction.transferFee = CGFloat(transferFee)
+            }
+            
+            // Surcharge.
+            if let surchargeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["surcharge"] as? String {
+                let surcharge = surchargeString.toNumber()
+                thisTransaction.surcharge = surcharge
+            }
+            
+            // Bittr fee.
+            if let bittrFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["bittrFee"] as? String {
+                let bittrFee = bittrFeeString.toNumber()
+                thisTransaction.bittrFee = bittrFee
             }
         }
         
@@ -136,6 +152,7 @@ extension BittrTransaction {
         thisTransaction.isLightning = true
         thisTransaction.isFundingTransaction = isFundingTransaction
         
+        // Date and time.
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
@@ -143,11 +160,14 @@ extension BittrTransaction {
         let transactionTimestamp = Int(transactionDate.timeIntervalSince1970)
         thisTransaction.timestamp = transactionTimestamp
         
+        // Bittr details.
         thisTransaction.isBittr = true
-        thisTransaction.purchaseAmount = self.purchaseAmount.toNumber()
         thisTransaction.currency = self.currency
-        let transferFee = self.transferFee.toNumber().inSatoshis()
-        thisTransaction.transferFee = CGFloat(transferFee)
+        thisTransaction.purchaseAmount = self.purchaseAmount.toNumber()
+        thisTransaction.transferFee = CGFloat(self.transferFee.toNumber().inSatoshis())
+        thisTransaction.surcharge = self.surcharge.toNumber()
+        thisTransaction.bittrFee = self.bittrFee.toNumber()
+        
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: self.txId)
         if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
             thisTransaction.channelId = activeChannel.channelId

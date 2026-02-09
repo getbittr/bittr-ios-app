@@ -255,12 +255,16 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.id, forKey: "id" as NSCopying)
             oneTransaction.setObject(eachTransaction.purchaseAmount, forKey: "purchaseAmount" as NSCopying)
             oneTransaction.setObject(eachTransaction.transferFee, forKey: "transferFee" as NSCopying)
+            oneTransaction.setObject(eachTransaction.surcharge, forKey: "surcharge" as NSCopying)
+            oneTransaction.setObject(eachTransaction.bittrFee, forKey: "bittrFee" as NSCopying)
             oneTransaction.setObject(eachTransaction.received, forKey: "received" as NSCopying)
             oneTransaction.setObject(eachTransaction.sent, forKey: "sent" as NSCopying)
             oneTransaction.setObject(eachTransaction.isBittr, forKey: "isBittr" as NSCopying)
             oneTransaction.setObject(eachTransaction.timestamp, forKey: "timestamp" as NSCopying)
             oneTransaction.setObject(eachTransaction.currency, forKey: "currency" as NSCopying)
-            oneTransaction.setObject(eachTransaction.height, forKey: "height" as NSCopying)
+            if eachTransaction.height != nil {
+                oneTransaction.setObject(eachTransaction.height!, forKey: "height" as NSCopying)
+            }
             oneTransaction.setObject(eachTransaction.isLightning, forKey: "isLightning" as NSCopying)
             oneTransaction.setObject(eachTransaction.fee, forKey: "fee" as NSCopying)
             oneTransaction.setObject(eachTransaction.channelId, forKey: "channelId" as NSCopying)
@@ -304,6 +308,12 @@ class CacheManager: NSObject {
             }
             if let transactionTransferFee = eachTransaction["transferFee"] as? CGFloat {
                 thisTransaction.transferFee = transactionTransferFee
+            }
+            if let transactionSurcharge = eachTransaction["surcharge"] as? CGFloat {
+                thisTransaction.surcharge = transactionSurcharge
+            }
+            if let transactionBittrFee = eachTransaction["bittrFee"] as? CGFloat {
+                thisTransaction.bittrFee = transactionBittrFee
             }
             if let transactionReceived = eachTransaction["received"] as? Int {
                 thisTransaction.received = transactionReceived

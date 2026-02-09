@@ -350,11 +350,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             self.coreVC!.walletSync!.stop()
             self.coreVC!.walletSync = nil
         }
-        
-        // Perform reset.
-        Task {
-            await self.coreVC!.startWallet()
-        }
     }
     
     func addLightningTransaction(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
@@ -389,7 +384,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Reload wallet when pulling down the view.
         
-        if scrollView.contentOffset.y < -200, self.didStartReset == false, !self.headerSpinner.isAnimating {
+        if scrollView.contentOffset.y < -200, !self.didStartReset, !self.headerSpinner.isAnimating {
             
             if !Reachability.isConnectedToNetwork() {
                 // User not connected to internet.
@@ -397,10 +392,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 return
             }
             
+            self.resetWallet()
             self.didStartReset = true
-            self.headerSpinner.startAnimating()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.resetWallet()
+                // Perform reset.
+                Task {
+                    await self.coreVC!.startWallet()
+                }
             }
         }
     }

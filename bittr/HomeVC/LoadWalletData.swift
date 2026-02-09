@@ -175,7 +175,7 @@ extension HomeViewController {
         self.bittrTransactions.removeAllObjects()
         for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() {
             if eachTransaction.isBittr {
-                self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
+                self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.id)
             }
         }
         
@@ -211,7 +211,7 @@ extension HomeViewController {
                     CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
                 } else {
                     // This is not a channel funding transaction.
-                    self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee], forKey: eachTransaction.txId)
+                    self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.txId)
                     
                     if sendAll {
                         // Check transactions that were previously not recognized.
@@ -223,6 +223,8 @@ extension HomeViewController {
                                 eachExistingTransaction.currency = eachTransaction.currency
                                 let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
                                 eachExistingTransaction.transferFee = CGFloat(transferFee)
+                                eachExistingTransaction.surcharge = eachTransaction.surcharge.toNumber()
+                                eachExistingTransaction.bittrFee = eachTransaction.bittrFee.toNumber()
                                 if eachExistingTransaction.isLightning {
                                     CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
                                 }
