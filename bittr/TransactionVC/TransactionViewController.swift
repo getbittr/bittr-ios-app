@@ -104,6 +104,9 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var surchargeStackHeight: NSLayoutConstraint!
     @IBOutlet weak var titleSurcharge: UILabel!
     @IBOutlet weak var labelSurcharge: UILabel!
+    @IBOutlet weak var buttonTransferFee: UIButton!
+    @IBOutlet weak var buttonBittrFee: UIButton!
+    @IBOutlet weak var buttonSurcharge: UIButton!
     
     // Note stack
     @IBOutlet weak var noteStack: UIView!
@@ -136,6 +139,9 @@ class TransactionViewController: UIViewController {
         self.urlButtonBottomId.setTitle("", for: .normal)
         self.buttonNote.setTitle("", for: .normal)
         self.buttonAddANote.setTitle("", for: .normal)
+        self.buttonTransferFee.setTitle("", for: .normal)
+        self.buttonBittrFee.setTitle("", for: .normal)
+        self.buttonSurcharge.setTitle("", for: .normal)
         
         // Yellow card styling
         self.yellowCard.setShadow()
@@ -497,6 +503,34 @@ class TransactionViewController: UIViewController {
         if CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription) != nil {
             self.performSegue(withIdentifier: "TransactionToSwap", sender: self)
         }
+    }
+    
+    @IBAction func bittrFeesTapped(_ sender: UIButton) {
+        Log.info("User tapped bittr fees. \(sender.tag)")
+        
+        let notificationTitle:String
+        let notificationBody:String
+        
+        switch sender.tag {
+        case 0: // Transfer fee
+            notificationTitle = Language.getWord(withID: "transferfee")
+            if self.tappedTransaction.isFundingTransaction {
+                notificationBody = Language.getWord(withID: "transferfee1")
+            } else if self.tappedTransaction.isLightning {
+                notificationBody = Language.getWord(withID: "transferfee2")
+            } else {
+                notificationBody = Language.getWord(withID: "transferfee3")
+            }
+        case 1: // Bittr fee
+            notificationTitle = Language.getWord(withID: "bittrfee")
+            notificationBody = Language.getWord(withID: "bittrfee1")
+        case 2: // Surcharge
+            notificationTitle = Language.getWord(withID: "surcharge")
+            notificationBody = Language.getWord(withID: "surcharge1")
+        default: return
+        }
+        
+        self.showAlert(presentingController: self, title: notificationTitle, message: notificationBody, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

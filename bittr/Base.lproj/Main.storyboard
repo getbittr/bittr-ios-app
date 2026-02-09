@@ -6856,7 +6856,7 @@
                                                         <rect key="frame" x="0.0" y="155" width="363" height="0.0"/>
                                                         <subviews>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Zdf-NG-6QO">
-                                                                <rect key="frame" x="10" y="10" width="343" height="45"/>
+                                                                <rect key="frame" x="10" y="10" width="343" height="14"/>
                                                                 <subviews>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ou8-ne-Kdk">
                                                                         <rect key="frame" x="15" y="16" width="84.666666666666671" height="16"/>
@@ -6878,7 +6878,7 @@
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
                                                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JmT-eu-OKC">
-                                                                        <rect key="frame" x="0.0" y="0.0" width="343" height="45"/>
+                                                                        <rect key="frame" x="0.0" y="0.0" width="343" height="14"/>
                                                                         <state key="normal" title="Button"/>
                                                                         <buttonConfiguration key="configuration" style="plain"/>
                                                                         <connections>
@@ -7197,7 +7197,7 @@
                                                     <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kEh-a6-5Wt">
                                                         <rect key="frame" x="0.0" y="259" width="363" height="0.0"/>
                                                         <subviews>
-                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="I0W-3Z-Xy3">
+                                                            <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="I0W-3Z-Xy3">
                                                                 <rect key="frame" x="10" y="10" width="343" height="101"/>
                                                                 <subviews>
                                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bR5-SL-jPX">
@@ -7231,14 +7231,26 @@
                                                                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
+                                                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="sVh-7v-Hnx">
+                                                                                <rect key="frame" x="0.0" y="0.0" width="313" height="28"/>
+                                                                                <state key="normal" title="Button"/>
+                                                                                <buttonConfiguration key="configuration" style="plain"/>
+                                                                                <connections>
+                                                                                    <action selector="bittrFeesTapped:" destination="EgO-Th-Xdr" eventType="touchUpInside" id="kir-uG-NAR"/>
+                                                                                </connections>
+                                                                            </button>
                                                                         </subviews>
                                                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" constant="28" id="1Pv-H2-blU"/>
                                                                             <constraint firstItem="EbS-1Q-rHq" firstAttribute="top" secondItem="bR5-SL-jPX" secondAttribute="top" constant="6" id="3uC-ZG-ii2"/>
+                                                                            <constraint firstAttribute="trailing" secondItem="sVh-7v-Hnx" secondAttribute="trailing" id="BOJ-UX-Us0"/>
+                                                                            <constraint firstAttribute="bottom" secondItem="sVh-7v-Hnx" secondAttribute="bottom" id="DGK-S9-P5j"/>
                                                                             <constraint firstItem="ytY-RR-Rg7" firstAttribute="leading" secondItem="EbS-1Q-rHq" secondAttribute="trailing" constant="8" id="ESC-d7-uLb"/>
                                                                             <constraint firstItem="dOi-Pu-Vsg" firstAttribute="top" secondItem="bR5-SL-jPX" secondAttribute="top" constant="6" id="WPY-iL-IbG"/>
                                                                             <constraint firstAttribute="trailing" secondItem="dOi-Pu-Vsg" secondAttribute="trailing" id="XJn-PD-45A"/>
+                                                                            <constraint firstItem="sVh-7v-Hnx" firstAttribute="top" secondItem="bR5-SL-jPX" secondAttribute="top" id="Yfc-kb-rle"/>
+                                                                            <constraint firstItem="sVh-7v-Hnx" firstAttribute="leading" secondItem="bR5-SL-jPX" secondAttribute="leading" id="jtw-Tg-tdZ"/>
                                                                             <constraint firstItem="ytY-RR-Rg7" firstAttribute="centerY" secondItem="EbS-1Q-rHq" secondAttribute="centerY" constant="-1" id="kFE-2E-dCV"/>
                                                                             <constraint firstItem="EbS-1Q-rHq" firstAttribute="leading" secondItem="bR5-SL-jPX" secondAttribute="leading" id="x9P-If-1qT"/>
                                                                         </constraints>
@@ -7274,14 +7286,26 @@
                                                                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
+                                                                            <button opaque="NO" tag="1" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="IS9-j7-TcJ">
+                                                                                <rect key="frame" x="0.0" y="0.0" width="313" height="28"/>
+                                                                                <state key="normal" title="Button"/>
+                                                                                <buttonConfiguration key="configuration" style="plain"/>
+                                                                                <connections>
+                                                                                    <action selector="bittrFeesTapped:" destination="EgO-Th-Xdr" eventType="touchUpInside" id="fBo-4M-BwT"/>
+                                                                                </connections>
+                                                                            </button>
                                                                         </subviews>
                                                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <constraints>
+                                                                            <constraint firstAttribute="bottom" secondItem="IS9-j7-TcJ" secondAttribute="bottom" id="0kE-jo-G8E"/>
                                                                             <constraint firstAttribute="height" constant="28" id="2Mc-Vd-vWf"/>
                                                                             <constraint firstItem="i6f-0t-G5C" firstAttribute="top" secondItem="QNF-SC-Mwn" secondAttribute="top" constant="6" id="6dS-wS-QHy"/>
                                                                             <constraint firstItem="f9L-ml-ziM" firstAttribute="centerY" secondItem="i6f-0t-G5C" secondAttribute="centerY" constant="-1" id="Geh-Y4-uTD"/>
                                                                             <constraint firstItem="f9L-ml-ziM" firstAttribute="leading" secondItem="i6f-0t-G5C" secondAttribute="trailing" constant="8" id="L0L-pI-ajo"/>
+                                                                            <constraint firstAttribute="trailing" secondItem="IS9-j7-TcJ" secondAttribute="trailing" id="RAi-ib-99X"/>
+                                                                            <constraint firstItem="IS9-j7-TcJ" firstAttribute="leading" secondItem="QNF-SC-Mwn" secondAttribute="leading" id="VOH-zz-ijl"/>
                                                                             <constraint firstItem="RnW-Mk-uQO" firstAttribute="top" secondItem="QNF-SC-Mwn" secondAttribute="top" constant="6" id="YS8-Wd-qkr"/>
+                                                                            <constraint firstItem="IS9-j7-TcJ" firstAttribute="top" secondItem="QNF-SC-Mwn" secondAttribute="top" id="ljM-oI-6e5"/>
                                                                             <constraint firstItem="i6f-0t-G5C" firstAttribute="leading" secondItem="QNF-SC-Mwn" secondAttribute="leading" id="vS0-wf-4dX"/>
                                                                             <constraint firstAttribute="trailing" secondItem="RnW-Mk-uQO" secondAttribute="trailing" id="zxO-FA-uzm"/>
                                                                         </constraints>
@@ -7317,6 +7341,14 @@
                                                                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
+                                                                            <button opaque="NO" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="wlr-Ww-sOE">
+                                                                                <rect key="frame" x="0.0" y="0.0" width="313" height="28"/>
+                                                                                <state key="normal" title="Button"/>
+                                                                                <buttonConfiguration key="configuration" style="plain"/>
+                                                                                <connections>
+                                                                                    <action selector="bittrFeesTapped:" destination="EgO-Th-Xdr" eventType="touchUpInside" id="T6P-am-3ZB"/>
+                                                                                </connections>
+                                                                            </button>
                                                                         </subviews>
                                                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <constraints>
@@ -7325,6 +7357,10 @@
                                                                             <constraint firstItem="QzF-Wm-Bn8" firstAttribute="centerY" secondItem="LWj-RQ-QNi" secondAttribute="centerY" constant="-1" id="AS3-ra-IhR"/>
                                                                             <constraint firstAttribute="height" constant="28" id="EwH-M4-0p8"/>
                                                                             <constraint firstAttribute="trailing" secondItem="1B0-9c-cb0" secondAttribute="trailing" id="GSL-0t-FaE"/>
+                                                                            <constraint firstAttribute="bottom" secondItem="wlr-Ww-sOE" secondAttribute="bottom" id="Gd8-a4-8m4"/>
+                                                                            <constraint firstItem="wlr-Ww-sOE" firstAttribute="leading" secondItem="5SU-Ws-AKA" secondAttribute="leading" id="Zxp-FT-8VB"/>
+                                                                            <constraint firstItem="wlr-Ww-sOE" firstAttribute="top" secondItem="5SU-Ws-AKA" secondAttribute="top" id="mLA-8o-PlN"/>
+                                                                            <constraint firstAttribute="trailing" secondItem="wlr-Ww-sOE" secondAttribute="trailing" id="rL9-Ta-EHY"/>
                                                                             <constraint firstItem="QzF-Wm-Bn8" firstAttribute="leading" secondItem="LWj-RQ-QNi" secondAttribute="trailing" constant="8" id="v8j-4M-E4t"/>
                                                                             <constraint firstItem="LWj-RQ-QNi" firstAttribute="leading" secondItem="5SU-Ws-AKA" secondAttribute="leading" id="yFr-WS-Ke4"/>
                                                                         </constraints>
@@ -7553,9 +7589,12 @@
                         <outlet property="bottomIdStack" destination="S8S-sW-CAN" id="o5L-9o-Bgf"/>
                         <outlet property="bottomIdStackHeight" destination="SXv-Lt-gmC" id="tCZ-Ar-gcs"/>
                         <outlet property="buttonAddANote" destination="2xw-Lx-VnE" id="HhP-3T-KJ2"/>
+                        <outlet property="buttonBittrFee" destination="IS9-j7-TcJ" id="vHz-hb-aOq"/>
                         <outlet property="buttonDescription" destination="JmT-eu-OKC" id="UBz-G2-mqz"/>
                         <outlet property="buttonNote" destination="eWK-5t-hc0" id="DQl-ed-DDH"/>
+                        <outlet property="buttonSurcharge" destination="wlr-Ww-sOE" id="KTj-id-HvK"/>
                         <outlet property="buttonSwapStatus" destination="VM8-Ai-e5w" id="eZA-Cz-sA4"/>
+                        <outlet property="buttonTransferFee" destination="sVh-7v-Hnx" id="xTb-NX-kGc"/>
                         <outlet property="cardAmount" destination="976-NA-lWL" id="gTN-YH-ZSi"/>
                         <outlet property="cardBittrFees" destination="I0W-3Z-Xy3" id="baT-uw-tqt"/>
                         <outlet property="cardConfirmations" destination="NBA-ef-hr7" id="ePH-JD-7hl"/>

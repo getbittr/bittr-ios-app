@@ -489,7 +489,12 @@ class Language: NSObject {
             "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet.",
             "transferfee": "Transfer fee",
             "bittrfee": "Bittr fee",
-            "surcharge": "Surcharge"
+            "surcharge": "Surcharge",
+            "transferfee1": "This is the first payout into your new lightning connection. For the setup of the connection, bittr incurs a one-time fee of 10 000 satoshis.\n\nThis fee covers the mining fees for opening and closing the connection, plus the reservation of funds on our side of the connection.\n\nFor any future payouts into this connection, there will be no additional mining fees.",
+            "transferfee2": "You have paid the mining fees for opening and closing a lightning connection in advance. While you are connected, there will be no additional mining fees.",
+            "transferfee3": "This fee does not go to bittr, but directly to the bitcoin miners. Due to the decentralized nature of the bitcoin network, miners have to be incentivized (partially with transaction fees) to keep the network secure.",
+            "bittrfee1": "Bittr does not charge subscription fees or take a cut in your gains. We charge a fixed fee of 1.5% on incoming funds.",
+            "surcharge1": "Bittr charges a € 1,00 surcharge for payments below € 100,00."
             
         ]
         
