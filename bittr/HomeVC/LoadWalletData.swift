@@ -114,8 +114,20 @@ extension HomeViewController {
         // Store transactions in cache.
         CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
         
-        // Start balance calculation.
-        self.setTotalSats(updateTableAfterConversion: true)
+        // Update balance label.
+        self.setTotalSats()
+        
+        // Update table.
+        self.visibleTransactions = self.newTransactions
+        self.reloadTransactionsTable()
+        
+        // Calculate profits.
+        self.calculateProfit()
+        
+        if !self.coreVC!.walletHasSynced {
+            // Finalize sync.
+            self.finalizeSync()
+        }
     }
     
     
@@ -241,7 +253,7 @@ extension HomeViewController {
     }
     
     
-    func setTotalSats(updateTableAfterConversion:Bool) {
+    func setTotalSats() {
         
         if self.coreVC == nil {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -256,7 +268,7 @@ extension HomeViewController {
         self.loadBalanceLabel(amount: totalBalanceSatsString)
         
         // Convert balance to EUR / CHF.
-        self.setConversion(btcValue: totalBalanceSats.inBTC(), cachedData: false, updateTableAfterConversion: updateTableAfterConversion)
+        self.setConversion()
     }
     
     func loadBalanceLabel(amount:String) {
@@ -323,91 +335,66 @@ extension HomeViewController {
     }
     
     
-    func setConversion(btcValue:CGFloat, cachedData:Bool, updateTableAfterConversion:Bool) {
+    func setConversion() {
         
         guard self.coreVC != nil else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
-        if self.didFetchConversion || self.couldNotFetchConversion {
-            // Conversion rate was already fetched.
-            Log.info("Did start currency conversion with cached conversion rate.")
-            
-            let conversionLabelText = self.updateConversionLabel(btcValue: btcValue)
-            
-            // Store conversion text to cache.
-            CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
-            
-            // Show label.
-            self.conversionLabel.alpha = 1
-            
-            if updateTableAfterConversion {
-                if cachedData == false {
-                    self.visibleTransactions = self.newTransactions
-                }
-                self.updateTableAfterConversion()
-                self.calculateProfit(cachedData: cachedData)
-            }
-        } else {
-            // Conversion rate hasn't yet been fetched.
-            Log.info("Did start currency conversion.")
-            
-            self.coreVC!.startSync(.conversion)
-            
-            Task {
-                await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: .get) { result in
-                    DispatchQueue.main.async {
-                        switch result {
-                        case .success(let receivedDictionary):
-                            if var actualEurValue = receivedDictionary["btc_eur"] as? String, var actualChfValue = receivedDictionary["btc_chf"] as? String {
-                                
-                                actualEurValue = actualEurValue.fixDecimals()
-                                actualChfValue = actualChfValue.fixDecimals()
-                                
-                                // Set updated conversion rates for EUR and CHF.
-                                self.coreVC!.bittrWallet.valueInEUR = actualEurValue.toNumber()
-                                self.coreVC!.bittrWallet.valueInCHF = actualChfValue.toNumber()
-                                
-                                // Store updated conversion rates in cache.
-                                CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
-                                CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
-                                
-                                self.didFetchConversion = true
-                                
-                                let conversionLabelText = self.updateConversionLabel(btcValue: btcValue)
-                                CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
-                                
-                                // Show conversion label.
-                                self.conversionLabel.alpha = 1
-                                
-                                if updateTableAfterConversion {
-                                    if cachedData == false {
-                                        self.visibleTransactions = self.newTransactions
-                                    }
-                                    self.updateTableAfterConversion()
-                                    self.calculateProfit(cachedData: cachedData)
-                                }
-                                
-                                // Complete sync.
-                                self.coreVC!.completeSync(.conversion)
-                            } else {
-                                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                self.couldNotFetchConversion = true
-                                self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
-                                SentrySDK.capture(message: "Received unexpected data from conversion API.")
-                            }
-                        case .failure(let error):
-                            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            self.couldNotFetchConversion = true
-                            self.setConversion(btcValue: btcValue, cachedData: cachedData, updateTableAfterConversion: updateTableAfterConversion)
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "LoadWalletData row 447", key: "context")
+        // Set, cache, and show conversion label.
+        let cachedBtcBalance = (CacheManager.getCachedData(key: "satsbalance") as? String ?? "0").toNumber().inBTC()
+        let conversionLabelText = self.updateConversionLabel(btcValue: cachedBtcBalance)
+        CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
+        self.conversionLabel.alpha = 1
+    }
+    
+    
+    func didFetchConversionRates() async -> Bool {
+        Log.info("Will download conversion rates.")
+        
+        let receivedDictionary:NSDictionary
+        do {
+            receivedDictionary = try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: .get) { result in
+                        DispatchQueue.main.async {
+                            switch result {
+                            case .success(let receivedDictionary):
+                                continuation.resume(returning: receivedDictionary)
+                            case .failure(let error):
+                                continuation.resume(throwing: error)
                             }
                         }
                     }
                 }
             }
+        } catch {
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "LoadWalletData row 394", key: "context")
+                }
+            }
+            Log.info("Could not download conversion rates.")
+            return false
+        }
+        
+        if let actualEurValue = receivedDictionary["btc_eur"] as? String, let actualChfValue = receivedDictionary["btc_chf"] as? String {
+            
+            // Set updated conversion rates for EUR and CHF.
+            self.coreVC!.bittrWallet.valueInEUR = actualEurValue.fixDecimals().toNumber()
+            self.coreVC!.bittrWallet.valueInCHF = actualChfValue.fixDecimals().toNumber()
+            
+            // Store updated conversion rates in cache.
+            CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
+            CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
+            
+            Log.info("Did successfully download conversion rates.")
+            return true
+        } else {
+            Log.info("Could not download conversion rates.")
+            SentrySDK.capture(message: "Received unexpected data from conversion API.")
+            return false
         }
     }
     
@@ -429,7 +416,7 @@ extension HomeViewController {
     }
     
     
-    func updateTableAfterConversion() {
+    func reloadTransactionsTable() {
         
         self.homeTableView.reloadData()
         self.homeTableView.alpha = 1
@@ -464,7 +451,7 @@ extension HomeViewController {
     }
     
     
-    func calculateProfit(cachedData:Bool) {
+    func calculateProfit() {
         
         Log.info("Will calculate profits.")
         if self.coreVC == nil {
@@ -516,53 +503,6 @@ extension HomeViewController {
                 }
             }
         }
-        
-        if cachedData == false {
-            Log.info("Will calculate profits")
-            
-            // Check if conversion rates have been fetched successfully.
-            if self.couldNotFetchConversion {
-                self.headerProblemImage.alpha = 1
-            }
-            
-            // Stop sync status spinner.
-            self.headerSpinner.stopAnimating()
-            self.coreVC!.walletHasSynced = true
-            self.coreVC!.completeSync(.final)
-            
-            // Check if notification needs handling.
-            if self.coreVC!.needsToHandleURI() {
-                Log.info("Needs to handle URI.")
-                self.coreVC!.hidePendingView()
-                self.coreVC!.checkForPendingURIs()
-            } else if let actualNotification = self.coreVC!.lightningNotification {
-                Log.info("Needs to handle push notification.")
-                // Check if it's a swap notification or payment notification.
-                if actualNotification.type == .swap {
-                    // It's a swap notification.
-                    self.coreVC!.handleSwapNotificationFromBackground(actualNotification)
-                } else if actualNotification.type == .lightningPayout {
-                    // It's a payout notification.
-                    self.coreVC!.handlePayoutNotification(actualNotification)
-                } else if actualNotification.type == .lnUrl {
-                    // It's an LNURL notification.
-                    self.coreVC!.handleLightningAddressNotification(actualNotification)
-                }
-            }
-            
-            // Check if peer connection has been successful.
-            self.fetchAndPrintPeers()
-            
-            // Check if wallet is being removed from device.
-            if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
-                // We're removing the wallet from the device.
-                let restoreButton = UIButton()
-                restoreButton.accessibilityIdentifier = "restore"
-                self.coreVC!.settingsVC!.settingsTapped(restoreButton)
-            }
-        } else {
-            Log.info("Did calculate cached profits.")
-        }
     }
     
     
@@ -595,6 +535,50 @@ extension HomeViewController {
         self.calculatedProfit = accumulatedProfit
         self.calculatedInvestments = accumulatedInvestments
         self.calculatedCurrentValue = accumulatedCurrentValue
+    }
+    
+    func finalizeSync() {
+        
+        // Check if conversion rates have been fetched successfully.
+        if self.couldNotFetchConversion {
+            self.headerProblemImage.alpha = 1
+        }
+        
+        // Stop sync status spinner.
+        self.headerSpinner.stopAnimating()
+        self.coreVC!.walletHasSynced = true
+        self.coreVC!.completeSync(.final)
+        
+        // Check if notification needs handling.
+        if self.coreVC!.needsToHandleURI() {
+            Log.info("Needs to handle URI.")
+            self.coreVC!.hidePendingView()
+            self.coreVC!.checkForPendingURIs()
+        } else if let actualNotification = self.coreVC!.lightningNotification {
+            Log.info("Needs to handle push notification.")
+            // Check if it's a swap notification or payment notification.
+            if actualNotification.type == .swap {
+                // It's a swap notification.
+                self.coreVC!.handleSwapNotificationFromBackground(actualNotification)
+            } else if actualNotification.type == .lightningPayout {
+                // It's a payout notification.
+                self.coreVC!.handlePayoutNotification(actualNotification)
+            } else if actualNotification.type == .lnUrl {
+                // It's an LNURL notification.
+                self.coreVC!.handleLightningAddressNotification(actualNotification)
+            }
+        }
+        
+        // Check if peer connection has been successful.
+        self.fetchAndPrintPeers()
+        
+        // Check if wallet is being removed from device.
+        if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
+            // We're removing the wallet from the device.
+            let restoreButton = UIButton()
+            restoreButton.accessibilityIdentifier = "restore"
+            self.coreVC!.settingsVC!.settingsTapped(restoreButton)
+        }
     }
 
 }
@@ -731,9 +715,6 @@ extension [Transaction] {
                                 swapTransaction.onchainID = eachTransaction.id
                             }
                             swapTransaction.height = eachTransaction.height
-                            if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
-                                swapTransaction.confirmations = (actualCurrentHeight - eachTransaction.height) + 1
-                            }
                             if swapTransaction.swapDirection == .lightningToOnchain {
                                 swapTransaction.timestamp = eachTransaction.timestamp
                                 swapTransaction.received = eachTransaction.received - eachTransaction.sent
@@ -801,9 +782,6 @@ extension [Transaction] {
                 } else {
                     swapTransaction.onchainID = (eachSetOfTransactions as! [Transaction])[0].id
                     swapTransaction.height = (eachSetOfTransactions as! [Transaction])[0].height
-                    if let actualCurrentHeight = coreVC?.bittrWallet.currentHeight {
-                        swapTransaction.confirmations = (actualCurrentHeight - swapTransaction.height) + 1
-                    }
                 }
                 
                 // Remove the individual transactions and add the combined swap transaction

@@ -87,7 +87,9 @@ extension HomeViewController {
             } else {
                 cell.hideLightningStack()
                 
-                if thisTransaction.confirmations < 1 && self.coreVC?.bittrWallet.currentHeight != nil {
+                let currentHeight = self.coreVC?.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+                
+                if thisTransaction.height == nil || (currentHeight - thisTransaction.height! + 1) < 1 {
                     // Unconfirmed transaction.
                     cell.satsLabel.textColor = Colors.getColor("unconfirmed")
                     cell.eurosLabel.textColor = Colors.getColor("unconfirmed")

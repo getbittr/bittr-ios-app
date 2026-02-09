@@ -20,8 +20,7 @@ class Transaction: NSObject {
     var note = ""
     
     // Onchain
-    var height = 0
-    var confirmations = 0
+    var height:Int?
     
     // Lightning
     var isLightning = false
@@ -77,13 +76,9 @@ extension PaymentDetails {
             case .confirmed(blockHash: _, height: let height, timestamp: let timestamp):
                 thisTransaction.timestamp = Int(timestamp)
                 thisTransaction.height = Int(height)
-                if let currentHeight = coreVC?.bittrWallet.currentHeight {
-                    thisTransaction.confirmations = currentHeight - Int(height) + 1
-                }
             case .unconfirmed:
                 thisTransaction.timestamp = Int(self.latestUpdateTimestamp)
-                thisTransaction.height = 0
-                thisTransaction.confirmations = 0
+                thisTransaction.height = nil
             }
         default:
             // Lightning payment.

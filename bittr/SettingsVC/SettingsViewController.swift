@@ -286,7 +286,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         self.coreVC!.bittrWallet.satoshisLightning = 0
         
         if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
-            self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
+            self.coreVC!.homeVC!.setTotalSats()
         }
         
         // Trigger a fresh sync to get updated channel data
@@ -304,7 +304,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 
                 // Update balance if needed
                 if self.coreVC!.homeVC!.balanceLabel.alpha == 1 {
-                    self.coreVC!.homeVC!.setTotalSats(updateTableAfterConversion: false)
+                    self.coreVC!.homeVC!.setTotalSats()
                 }
                 
                 Log.info("🔍 [DEBUG] Settings - didCloseChannel() - Channel cache updated successfully")

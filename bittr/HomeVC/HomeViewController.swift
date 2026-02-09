@@ -138,16 +138,26 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(openValueVC), name: NSNotification.Name(rawValue: "openvalue"), object: nil)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
         
         // Show cached data upon app startup.
         self.showCachedData()
+        self.downloadConversionAndBlockHeight()
     }
     
     
     func changeCurrency() {
-        
+        // Update conversion label.
         self.conversionLabel.alpha = 0
-        self.setConversion(btcValue: (self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning).inBTC(), cachedData: false, updateTableAfterConversion: true)
+        self.setConversion()
+        
+        // Update table.
+        self.reloadTransactionsTable()
+        
+        // Calculate profits.
+        self.calculateProfit()
     }
     
     
@@ -371,7 +381,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         // Update balance label.
-        self.setTotalSats(updateTableAfterConversion: false)
+        self.setTotalSats()
         self.moveVC?.updateLabels()
     }
     
@@ -388,7 +398,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
             
             self.didStartReset = true
-            self.resetWallet()
+            self.headerSpinner.startAnimating()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self.resetWallet()
+            }
         }
     }
     

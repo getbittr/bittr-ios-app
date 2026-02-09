@@ -37,9 +37,6 @@ extension CoreViewController {
             Log.info("Did store Bittr address.")
         }
         
-        // Get latest block height.
-        let _ = await BitcoinManager.shared.didGetLatestBlockHeight()
-        
         // Check peer connection.
         if !self.isConnectedToPeer() {
             // Connect to peer.
@@ -52,30 +49,43 @@ extension CoreViewController {
             self.homeVC?.loadWalletData()
         }
         
-        // Start BDK.
-        BitcoinManager.shared.didStartBDK { success in
-            if success {
-                Log.info("Did start BDK.")
-                BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                    if hasBeenSynced {
-                        Log.info("Did scan BDK wallet.")
+        // Start BDK if it's not already scanning.
+        if !BitcoinManager.shared.bdkWalletIsScanning {
+            BitcoinManager.shared.didStartBDK { success in
+                if success {
+                    Log.info("Did start BDK.")
+                    if !BitcoinManager.shared.bdkWalletHasBeenScanned {
+                        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                            if hasBeenSynced {
+                                Log.info("Did scan BDK wallet.")
+                                // Start timer
+                                if self.walletSync == nil {
+                                    self.walletSync = BackgroundSync()
+                                    self.walletSync!.start()
+                                }
+                                // Check if VCs are awaiting BDK scan.
+                                DispatchQueue.main.async {
+                                    self.homeVC?.sendVC?.setSendAllLabel()
+                                    self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
+                                }
+                            } else {
+                                Log.info("Could not scan BDK wallet.")
+                            }
+                        }
+                    } else {
+                        Log.info("Restart BDK light sync timer.")
                         // Start timer
                         if self.walletSync == nil {
                             self.walletSync = BackgroundSync()
                             self.walletSync!.start()
                         }
-                        // Check if VCs are awaiting BDK scan.
-                        DispatchQueue.main.async {
-                            self.homeVC?.sendVC?.setSendAllLabel()
-                            self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
-                        }
-                    } else {
-                        Log.info("Could not scan BDK wallet.")
                     }
+                } else {
+                    Log.info("Could not start BDK.")
                 }
-            } else {
-                Log.info("Could not start BDK.")
             }
+        } else {
+            Log.info("Awaiting BDK full scan.")
         }
     }
 

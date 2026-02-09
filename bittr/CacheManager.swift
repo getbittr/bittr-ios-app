@@ -282,7 +282,6 @@ class CacheManager: NSObject {
             } else {
                 oneTransaction.setObject(1, forKey: "swapdirection" as NSCopying)
             }
-            oneTransaction.setObject(eachTransaction.confirmations, forKey: "confirmations" as NSCopying)
             
             transactionsDict += [oneTransaction]
         }
@@ -362,9 +361,6 @@ class CacheManager: NSObject {
                 } else {
                     thisTransaction.swapDirection = .lightningToOnchain
                 }
-            }
-            if let confirmations = eachTransaction["confirmations"] as? Int {
-                thisTransaction.confirmations = confirmations
             }
             
             if thisTransaction.timestamp != 0 {
@@ -456,6 +452,11 @@ class CacheManager: NSObject {
                         actualMutableCache.setObject(actualData, forKey: key as NSCopying)
                         defaults.set(actualMutableCache, forKey: envKey)
                     }
+                } else if key == "height" {
+                    if let actualData = data as? Int {
+                        actualMutableCache.setObject(actualData, forKey: key as NSCopying)
+                        defaults.set(actualMutableCache, forKey: envKey)
+                    }
                 }
             }
         } else {
@@ -494,6 +495,12 @@ class CacheManager: NSObject {
                 }
             } else if key == "satsbalance" {
                 if let actualData = data as? String {
+                    let newCache = NSMutableDictionary()
+                    newCache.setObject(actualData, forKey: key as NSCopying)
+                    defaults.set(newCache, forKey: envKey)
+                }
+            } else if key == "height" {
+                if let actualData = data as? Int {
                     let newCache = NSMutableDictionary()
                     newCache.setObject(actualData, forKey: key as NSCopying)
                     defaults.set(newCache, forKey: envKey)
@@ -549,6 +556,12 @@ class CacheManager: NSObject {
             } else if key == "satsbalance" {
                 if let cachedSatsBalance = actualCachedData[key] as? String {
                     return cachedSatsBalance
+                } else {
+                    return nil
+                }
+            } else if key == "height" {
+                if let cachedHeight = actualCachedData[key] as? Int {
+                    return cachedHeight
                 } else {
                     return nil
                 }

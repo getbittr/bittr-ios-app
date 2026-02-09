@@ -258,9 +258,15 @@ class TransactionViewController: UIViewController {
             // Onchain transaction.
             self.confirmationsStackHeight.constant = 55
             self.confirmationsStack.alpha = 1
-            self.labelConfirmations.text = "\(self.tappedTransaction.confirmations)".addSpaces()
-            if self.tappedTransaction.confirmations < 1 {
+            
+            let currentHeight = self.coreVC!.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+            
+            if self.tappedTransaction.height == nil || (currentHeight - self.tappedTransaction.height! + 1) < 1 {
+                // Unconfirmed transaction.
                 self.labelConfirmations.text = Language.getWord(withID: "unconfirmed")
+            } else {
+                // Confirmed transaction.
+                self.labelConfirmations.text = "\(currentHeight - self.tappedTransaction.height! + 1)".addSpaces()
             }
         }
         

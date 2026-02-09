@@ -185,9 +185,6 @@ class CoreViewController: UIViewController {
             // Show SignupVC.
             self.launchSignup(onPage: 3)
         }
-        
-        // Check for pending notifications as a fallback
-        self.checkForPendingNotifications()
     }
     
     func showPinOrSignup() {
@@ -200,11 +197,6 @@ class CoreViewController: UIViewController {
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
         }
-    }
-    
-    private func checkForPendingNotifications() {
-        // Check if we have a pending payment notification as a fallback
-        
     }
     
     override func viewWillDisappear(_ animated: Bool) {

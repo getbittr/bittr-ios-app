@@ -10,7 +10,6 @@ import Sentry
 
 extension HomeViewController {
 
-    
     func showCachedData() {
         
         // Set cached Eur Value.
@@ -21,6 +20,16 @@ extension HomeViewController {
         // Set cached Chf Value.
         if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
             self.coreVC?.bittrWallet.valueInCHF = cachedChfValue
+        }
+        
+        // Set conversion.
+        if let actualCachedBalance = CacheManager.getCachedData(key: "satsbalance") as? String {
+            
+            // Show cached balance.
+            self.loadBalanceLabel(amount: actualCachedBalance)
+            
+            // Set conversion label.
+            self.setConversion()
         }
         
         // Set cached transactions.
@@ -35,14 +44,43 @@ extension HomeViewController {
                     self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency], forKey: eachTransaction.id)
                 }
             }
+            
+            // Reload table.
+            self.reloadTransactionsTable()
+            
+            // Calculate profits.
+            self.calculateProfit()
         }
+    }
+    
+    func downloadConversionAndBlockHeight() {
         
-        // Set conversion.
-        if let actualCachedBalance = CacheManager.getCachedData(key: "satsbalance") as? String {
+        Task {
+            // Download conversion rates.
+            self.coreVC?.startSync(.conversion)
+            self.didFetchConversion = await self.didFetchConversionRates()
+            if !self.didFetchConversion {
+                self.couldNotFetchConversion = true
+            } else {
+                self.coreVC?.completeSync(.conversion)
+            }
             
-            self.loadBalanceLabel(amount: actualCachedBalance)
+            // Download current block height.
+            if BitcoinManager.shared.coreVC == nil {
+                BitcoinManager.shared.coreVC = self.coreVC!
+            }
+            _ = await BitcoinManager.shared.didGetLatestBlockHeight()
             
-            self.setConversion(btcValue: actualCachedBalance.toNumber().inBTC(), cachedData: true, updateTableAfterConversion: true)
+            DispatchQueue.main.async {
+                // Update conversion label.
+                self.setConversion()
+                
+                // Update table.
+                self.reloadTransactionsTable()
+                
+                // Calculate profits.
+                self.calculateProfit()
+            }
         }
     }
 

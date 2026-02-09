@@ -196,12 +196,14 @@ class BitcoinManager {
                     scope.setExtra(value: "BitcoinManager row 385", key: "context")
                 }
             }
+            Log.info("Could not download latest block height.")
             return false
         }
         
         if let blockHeight = receivedDictionary["result"] as? Int {
             Log.info("Block height: \(blockHeight)")
             self.coreVC?.bittrWallet.currentHeight = blockHeight
+            CacheManager.updateCachedData(data: blockHeight, key: "height")
             return true
         } else {
             DispatchQueue.main.async {
@@ -209,6 +211,7 @@ class BitcoinManager {
                     scope.setExtra(value: "BitcoinManager row 377", key: "context")
                 }
             }
+            Log.info("Could not download latest block height.")
             return false
         }
     }
@@ -407,15 +410,6 @@ class BitcoinManager {
             // Check if any changes have been found.
             if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
-                
-                // Update balance.
-                self.coreVC!.bittrWallet.satoshisOnchain = Int(self.ldkNode!.listBalances().totalOnchainBalanceSats)
-                
-                // Update transactions.
-                self.coreVC!.bittrWallet.allTransactions = self.listPayments()
-                
-                // Update channels.
-                self.coreVC!.bittrWallet.lightningChannels = self.listChannels()
                 
                 Task {
                     // Get latest block height.

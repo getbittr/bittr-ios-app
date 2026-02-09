@@ -292,7 +292,7 @@ extension CoreViewController {
         self.bittrWallet.satoshisLightning = 0
         
         if self.homeVC!.balanceLabel.alpha == 1 {
-            self.homeVC!.setTotalSats(updateTableAfterConversion: false)
+            self.homeVC!.setTotalSats()
         }
         
         // Trigger a fresh sync to get updated channel data
@@ -310,7 +310,7 @@ extension CoreViewController {
                 
                 // Update balance if needed
                 if self.homeVC!.balanceLabel.alpha == 1 {
-                    self.homeVC!.setTotalSats(updateTableAfterConversion: false)
+                    self.homeVC!.setTotalSats()
                 }
                 
                 Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Channel cache updated successfully")
