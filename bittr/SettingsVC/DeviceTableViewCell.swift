@@ -65,6 +65,9 @@ class DeviceTableViewCell: UITableViewCell {
             self.deviceVC?.checkChannels()
         case "cache":
             self.deviceVC?.imagesButtonTapped()
+        case "pendingpayouts":
+            self.deviceVC?.checkPendingPayout()
+            self.deviceVC?.tappedCell = self
         default: return
         }
     }

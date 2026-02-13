@@ -495,7 +495,10 @@ class Language: NSObject {
             "transferfee3": "This fee does not go to bittr, but directly to the bitcoin miners. Due to the decentralized nature of the bitcoin network, miners have to be incentivized (partially with transaction fees) to keep the network secure.",
             "bittrfee1": "Bittr does not charge subscription fees or take a cut in your gains. We charge a fixed fee of 1.5% on incoming funds.",
             "surcharge1": "Bittr charges a € 1,00 surcharge for payments below € 100,00.",
-            "receivedatbittr": "Received at bittr"
+            "receivedatbittr": "Received at bittr",
+            "bittrpendingpayout": "Pending payout",
+            "bittrpendingpayout2": "There are no pending payouts available at this time. If you need our help, please contact support@getbittr.com.",
+            "bittrpendingpayout3": "There a pending payout available for handling. Would you like to do so now?"
             
         ]
         

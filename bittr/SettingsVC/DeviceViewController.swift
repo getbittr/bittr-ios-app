@@ -24,8 +24,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         ["id":"bittrpeer", "label":Language.getWord(withID: "bittrpeer"), "button":Language.getWord(withID: "check"), "icon":"point.topleft.down.to.point.bottomright.curvepath.fill"],
         ["id":"purchases", "label":Language.getWord(withID: "bittrpurchases"), "button":Language.getWord(withID: "check"), "icon":"banknote.fill"],
         ["id":"notification", "label":Language.getWord(withID: "bittrnotification"), "button":Language.getWord(withID: "retry"), "icon":"envelope.fill"],
-        ["id":"lightningchannels", "label":Language.getWord(withID: "lightningchannels2"), "button":"", "icon":"bolt.fill"],
-        ["id":"cache", "label":Language.getWord(withID: "cachedimages"), "button":Language.getWord(withID: "empty"), "icon":"photo.fill"]
+        ["id":"pendingpayouts", "label":Language.getWord(withID: "bittrpendingpayout"), "button":Language.getWord(withID: "check"), "icon":"hourglass"],
+        ["id":"lightningchannels", "label":Language.getWord(withID: "lightningchannels2"), "button":"", "icon":"bolt.fill"]
     ]
     
     // Header
@@ -37,6 +37,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     var tappedCell:DeviceTableViewCell?
     var temporaryNotificationToken = ""
     var channelsCount:String?
+    var pendingPayout:BittrPendingPayout?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -210,7 +211,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.tappedCell?.animateCell()
         
         Task {
-            await BitcoinManager.shared.didEstablishPeerConnection()
+            _ = await BitcoinManager.shared.didEstablishPeerConnection()
             self.checkPeerConnection()
         }
     }
@@ -312,6 +313,75 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
+    func checkPendingPayout() {
+        self.tappedCell?.animateCell()
+        
+        let lightningPubKey = BitcoinManager.shared.nodeId()!
+        print("Pubkey: \(lightningPubKey)")
+        let timestamp = Int(Date().timeIntervalSince1970)
+        print("Timestamp: \(timestamp)")
+        
+        Task {
+            let lightningSignature:String
+            do {
+                lightningSignature = try await BitcoinManager.shared.signMessage(message: "notifications:\(lightningPubKey):\(timestamp)")
+                print("Signature: \(lightningSignature)")
+            } catch {
+                Log.info("Could not sign message. \(error.localizedDescription)")
+                return
+            }
+            
+            await CallsManager.makeApiCall(url: "https://getbittr.com/api/notifications?timestamp=\(timestamp)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)", parameters: nil, getOrPost: .get) { result in
+                
+                DispatchQueue.main.async {
+                    self.tappedCell?.stopAnimating()
+                    self.tappedCell = nil
+                    
+                    switch result {
+                    case .success(let receivedDictionary):
+                        Log.info("Successfully received notifications dictionary.")
+                        print("Dictionary: \(receivedDictionary)")
+                        
+                        let receivedNotifications = receivedDictionary.toNotifications()
+                        print("Received notifications: \(receivedNotifications.count)")
+                        
+                        guard let lastNotification = receivedNotifications.last else {
+                            Log.info("No notifications received.")
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
+                        
+                        guard lastNotification.status != "acknowledged" else {
+                            Log.info("No unacknowledged payouts available.")
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
+                        
+                        Log.info("Payout available for handling.")
+                        self.pendingPayout = lastNotification
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.handlePendingPayout)])
+                    case .failure(let error):
+                        Log.info("Did not receive notifications dictionary: \(error)")
+                        DispatchQueue.main.async {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    @objc func handlePendingPayout() {
+        self.hideAlert()
+        
+        let thisNotification = BittrNotification()
+        thisNotification.id = UUID().uuidString
+        thisNotification.date = Date()
+        thisNotification.type = .lightningPayout
+        thisNotification.notificationID = self.pendingPayout!.id!
+        thisNotification.amountMsat = nil
+    }
+    
     @objc func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
@@ -345,3 +415,66 @@ extension UIViewController {
     }
 }
 
+extension NSDictionary {
+    
+    func toNotifications() -> [BittrPendingPayout] {
+        
+        if let data = self["data"] as? [NSDictionary] {
+            
+            var allPayouts = [BittrPendingPayout]()
+            
+            for eachDictionary in data {
+                guard
+                    let insertedAt = eachDictionary["inserted_at"] as? String,
+                    let sentAt = eachDictionary["sent_at"] as? String,
+                    let status = eachDictionary["status"] as? String,
+                    let notificationType = eachDictionary["notification_type"] as? String,
+                    let lightningInvoice = eachDictionary["lightning_invoice"] as? String,
+                    let attemptsCount = eachDictionary["attempts_count"] as? Int,
+                    let id = eachDictionary["id"] as? String,
+                    let lastAttemptAt = eachDictionary["last_attempt_at"] as? String,
+                    let transaction = eachDictionary["transaction"] as? NSDictionary
+                else {
+                    break
+                }
+                
+                let thisPendingPayout = BittrPendingPayout()
+                
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+                
+                thisPendingPayout.insertedAt = dateFormatter.date(from: insertedAt)
+                thisPendingPayout.sentAt = dateFormatter.date(from: sentAt)
+                thisPendingPayout.lastAttemptAt = dateFormatter.date(from: lastAttemptAt)
+                thisPendingPayout.status = status
+                thisPendingPayout.notificationType = notificationType
+                thisPendingPayout.lightningInvoice = lightningInvoice
+                thisPendingPayout.attemptsCount = attemptsCount
+                thisPendingPayout.id = id
+                thisPendingPayout.transaction = transaction
+                
+                allPayouts += [thisPendingPayout]
+            }
+            
+            allPayouts.sort { payout1, payout2 in
+                payout2.lastAttemptAt! > payout1.lastAttemptAt!
+            }
+            
+            return allPayouts
+        } else {
+            return []
+        }
+    }
+}
+
+class BittrPendingPayout: NSObject {
+    var attemptsCount:Int?
+    var id:String?
+    var insertedAt:Date?
+    var lastAttemptAt:Date?
+    var lightningInvoice:String?
+    var notificationType:String?
+    var sentAt:Date?
+    var status:String?
+    var transaction:NSDictionary?
+}
