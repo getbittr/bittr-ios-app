@@ -304,8 +304,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         } else if segue.identifier == "HomeToTransaction" {
             if let transactionVC = segue.destination as? TransactionViewController {
-                transactionVC.tappedTransaction = self.tappedTransaction
+                
                 transactionVC.coreVC = self.coreVC
+                if let newBittrPayout = self.coreVC?.receivedBittrTransaction {
+                    transactionVC.showConfetti = true
+                    transactionVC.tappedTransaction = newBittrPayout
+                    self.coreVC!.receivedBittrTransaction = nil
+                } else {
+                    transactionVC.tappedTransaction = self.tappedTransaction
+                }
             }
         } else if segue.identifier == "HomeToProfit" {
             if let profitVC = segue.destination as? ProfitViewController {

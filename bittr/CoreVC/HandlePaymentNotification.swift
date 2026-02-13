@@ -234,7 +234,7 @@ extension CoreViewController {
                     } else {
                         // This is a normal incoming payment.
                         let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
-                        self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
+                        self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
                     }
                 }
             case .channelClosed(channelId: _, userChannelId: _, counterpartyNodeId: _, reason: let reason):
@@ -361,14 +361,18 @@ extension CoreViewController {
         }
     }
     
-    func launchPaymentVC(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
+    func launchTransactionVC(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
-        self.receivedBittrTransaction = thisTransaction
+        if thisTransaction.isBittr {
+            self.receivedBittrTransaction = thisTransaction
+        } else {
+            self.homeVC?.tappedTransaction = thisTransaction
+        }
         
         DispatchQueue.main.async {
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
             if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
-                self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
             }
             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
         }
@@ -384,7 +388,7 @@ extension CoreViewController {
                     Log.info("Found correct transaction in transactions table.")
                     self.receivedBittrTransaction = eachTransaction
                     DispatchQueue.main.async {
-                        self.performSegue(withIdentifier: "CoreToLightning", sender: self)
+                        self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                     }
                 }
             }
@@ -430,14 +434,14 @@ extension CoreViewController {
                             
                             // Create transaction object.
                             let thisTransaction = bittrApiTransactions.first!.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
-                            self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: nil)
+                            self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: nil)
                         }
                     } else {
                         Log.info("channelPending: Received no transaction details from Bittr API.")
                         print("Funding txid: \(paymentPreimage)")
                         if paymentDetails != nil {
                             let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
-                            self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
+                            self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
                         }
                     }
                 } catch {
@@ -448,7 +452,7 @@ extension CoreViewController {
                         }
                         if paymentDetails != nil {
                             let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
-                            self.launchPaymentVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
+                            self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
                         }
                     }
                 }

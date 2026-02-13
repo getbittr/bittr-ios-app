@@ -6,8 +6,15 @@
 //
 
 import UIKit
+import SPConfetti
 
 class TransactionViewController: UIViewController {
+    
+    // General
+    @IBOutlet weak var mainScrollView: UIScrollView!
+    @IBOutlet weak var mainContentView: UIView!
+    @IBOutlet weak var mainContentViewHeight: NSLayoutConstraint!
+    @IBOutlet weak var mainCenterView: UIView!
     
     // Yellow card
     @IBOutlet weak var yellowCard: UIView!
@@ -126,9 +133,20 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var titleAddANote: UILabel!
     @IBOutlet weak var buttonAddANote: UIButton!
     
+    // Confetti items
+    @IBOutlet weak var bittrPayoutStack: UIView!
+    @IBOutlet weak var bittrPayoutStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var bittrPayoutSubtitle: UILabel!
+    @IBOutlet weak var alertStack: UIView!
+    @IBOutlet weak var alertStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var alertCard: UIView!
+    @IBOutlet weak var alertTitle: UILabel!
+    @IBOutlet weak var alertLabel: UILabel!
+    
     // Variables
     var tappedTransaction = Transaction()
     var coreVC:CoreViewController?
+    var showConfetti = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -148,9 +166,11 @@ class TransactionViewController: UIViewController {
         
         // Yellow card styling
         self.yellowCard.setShadow()
+        self.alertCard.setShadow()
         
         // Corner radii
         self.yellowCard.layer.cornerRadius = 13
+        self.alertCard.layer.cornerRadius = 13
         self.cardAmount.layer.cornerRadius = 8
         self.cardType.layer.cornerRadius = 8
         self.cardSwapId.layer.cornerRadius = 8
@@ -168,6 +188,37 @@ class TransactionViewController: UIViewController {
         self.changeColors()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "transaction"))
         self.setTransactionData()
+        
+        // Confetti
+        if self.showConfetti {
+            // Show piggy bank header.
+            NSLayoutConstraint.deactivate([self.bittrPayoutStackHeight, self.alertStackHeight])
+            self.bittrPayoutStackHeight = NSLayoutConstraint(item: self.bittrPayoutStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            self.alertStackHeight = NSLayoutConstraint(item: self.alertStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.bittrPayoutStackHeight, self.alertStackHeight])
+            self.bittrPayoutStack.alpha = 1
+            self.alertStack.alpha = 1
+        }
+    }
+    
+    func checkContentViewHeight() {
+        let centerViewHeight = self.mainCenterView.bounds.height
+        if centerViewHeight > self.mainContentView.bounds.height {
+            UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.mainContentViewHeight])
+                self.mainContentViewHeight = NSLayoutConstraint(item: self.mainContentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight)
+                NSLayoutConstraint.activate([self.mainContentViewHeight])
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        self.checkContentViewHeight()
+        if self.showConfetti {
+            SPConfettiConfiguration.particlesConfig.colors = [.red]
+            SPConfetti.startAnimating(.fullWidthToDown, particles: [.heart], duration: 2)
+        }
     }
     
     func setTransactionData() {

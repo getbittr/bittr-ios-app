@@ -28,6 +28,9 @@ extension TransactionViewController {
         self.titleBittrCurrentValue.text = Language.getWord(withID: "currentvalue")
         self.titleNote.text = Language.getWord(withID: "note")
         self.titleAddANote.text = Language.getWord(withID: "addanote")
+        self.bittrPayoutSubtitle.text = Language.getWord(withID: "goodjob")
+        self.alertTitle.text = Language.getWord(withID: "reminder")
+        self.alertLabel.text = Language.getWord(withID: "reminderbody")
         
     }
     
@@ -36,6 +39,10 @@ extension TransactionViewController {
         // Card
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
+        
+        // Alert
+        self.alertCard.backgroundColor = Colors.getColor("whiteorblue2")
+        self.alertLabel.textColor = Colors.getColor("blackorwhite")
         
         // Date
         self.labelDate.textColor = Colors.getColor("blackorwhite")
@@ -95,5 +102,8 @@ extension TransactionViewController {
         // Add a note
         self.titleAddANote.textColor = Colors.getColor("blackorwhite")
         self.imageAddANote.tintColor = Colors.getColor("blackorwhite")
+        
+        // Bittr
+        self.bittrPayoutSubtitle.textColor = Colors.getColor("blackorwhite")
     }
 }

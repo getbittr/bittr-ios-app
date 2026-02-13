@@ -99,13 +99,6 @@ extension CoreViewController {
                 questionVC.coreVC = self
                 questionVC.questionType = self.tappedType
             }
-        } else if segue.identifier == "CoreToLightning" {
-            if let lightningPaymentVC = segue.destination as? LightningPaymentViewController {
-                if let actualTransaction = self.receivedBittrTransaction {
-                    lightningPaymentVC.receivedTransaction = actualTransaction
-                    lightningPaymentVC.coreVC = self
-                }
-            }
         } else if segue.identifier == "CoreToArticle" {
             if let oneArticleVC = segue.destination as? ArticleViewController, self.tappedArticle != nil {
                 
