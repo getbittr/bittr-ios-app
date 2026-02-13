@@ -83,21 +83,17 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var cardValue: UIView!
     @IBOutlet weak var titleCurrentValue: UILabel!
     @IBOutlet weak var labelCurrentValue: UILabel!
-    @IBOutlet weak var profitStack: UIView!
-    @IBOutlet weak var profitStackHeight: NSLayoutConstraint!
-    @IBOutlet weak var titlePurchaseValue: UILabel!
-    @IBOutlet weak var labelPurchaseValue: UILabel!
-    @IBOutlet weak var titleProfit: UILabel!
-    @IBOutlet weak var labelProfit: UILabel!
+    @IBOutlet weak var valueStack: UIView!
+    @IBOutlet weak var valueStackHeight: NSLayoutConstraint!
     
     // Bittr fees stack
+    @IBOutlet weak var titleGrossAmount: UILabel!
+    @IBOutlet weak var labelGrossAmount: UILabel!
     @IBOutlet weak var bittrFeesStack: UIView!
     @IBOutlet weak var bittrFeesStackHeight: NSLayoutConstraint!
     @IBOutlet weak var cardBittrFees: UIView!
-    @IBOutlet weak var transferFeesStack: UIView!
     @IBOutlet weak var titleTransferFee: UILabel!
     @IBOutlet weak var labelTransferFee: UILabel!
-    @IBOutlet weak var bittrFeeStack: UIView!
     @IBOutlet weak var titleBittrFee: UILabel!
     @IBOutlet weak var labelBittrFee: UILabel!
     @IBOutlet weak var surchargeStack: UIView!
@@ -107,6 +103,13 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var buttonTransferFee: UIButton!
     @IBOutlet weak var buttonBittrFee: UIButton!
     @IBOutlet weak var buttonSurcharge: UIButton!
+    @IBOutlet weak var titleNetAmount: UILabel!
+    @IBOutlet weak var labelNetAmount: UILabel!
+    @IBOutlet weak var titleBittrCurrentValue: UILabel!
+    @IBOutlet weak var labelBittrCurrentValue: UILabel!
+    @IBOutlet weak var titleProfit: UILabel!
+    @IBOutlet weak var labelProfit: UILabel!
+    @IBOutlet weak var sumLine: UIView!
     
     // Note stack
     @IBOutlet weak var noteStack: UIView!
@@ -158,6 +161,7 @@ class TransactionViewController: UIViewController {
         self.cardValue.layer.cornerRadius = 8
         self.cardBittrFees.layer.cornerRadius = 8
         self.cardNote.layer.cornerRadius = 8
+        self.sumLine.layer.cornerRadius = 1
         
         // Language
         self.setWords()
@@ -356,39 +360,18 @@ class TransactionViewController: UIViewController {
         
         // Value
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        if self.tappedTransaction.isSwap {
-            // Swap.
-            let transactionValue = (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
-            let balanceValue = String(transactionValue*bitcoinValue.currentValue).replacingOccurrences(of: "-", with: "").addSpaces()
-            self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
-        } else {
-            // Onchain or Lightning transaction.
-            let transactionValue = (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee).inBTC()
-            let balanceValue = String(transactionValue*bitcoinValue.currentValue).replacingOccurrences(of: "-", with: "").addSpaces()
-            self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
-            
-            if self.tappedTransaction.isBittr {
-                self.profitStack.alpha = 1
-                self.profitStackHeight.constant = 56
-                
-                if self.tappedTransaction.purchaseAmount == 0 {
-                    // This is a lightning payment that was just received and has not yet been checked with the Bittr API.
-                    self.labelPurchaseValue.text = self.labelCurrentValue.text
-                    self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(bitcoinValue.chosenCurrency)"
-                } else {
-                    self.labelPurchaseValue.text = "\(self.tappedTransaction.purchaseAmount)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(bitcoinValue.chosenCurrency)"
-                    let profitValue = String((transactionValue*bitcoinValue.currentValue)-CGFloat(self.tappedTransaction.purchaseAmount)).addSpaces()
-                    self.labelProfit.text = "\(profitValue) \(bitcoinValue.chosenCurrency)"
-                }
-                
-                if (self.labelProfit.text ?? "").contains("-") {
-                    // Loss
-                    self.labelProfit.textColor = Colors.getColor("losstext")
-                } else {
-                    // Profit
-                    self.labelProfit.textColor = Colors.getColor("profittext")
-                }
+        let transactionValue:CGFloat = {
+            if self.tappedTransaction.isSwap {
+                return (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
+            } else {
+                return (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee).inBTC()
             }
+        }()
+        let balanceValue = "\((transactionValue*bitcoinValue.currentValue).twoDecimals())".replacingOccurrences(of: "-", with: "").addSpaces()
+        self.labelCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
+        if self.tappedTransaction.isBittr {
+            self.valueStack.alpha = 0
+            self.valueStackHeight.constant = 0
         }
         
         // Bittr fees
@@ -399,9 +382,6 @@ class TransactionViewController: UIViewController {
             NSLayoutConstraint.activate([self.bittrFeesStackHeight])
             self.bittrFeesStack.alpha = 1
             
-            // Transfer fee.
-            self.labelTransferFee.text = "\(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
-            
             // Currency.
             let currencySymbol:String = {
                 if self.tappedTransaction.currency == "EUR" {
@@ -411,14 +391,43 @@ class TransactionViewController: UIViewController {
                 }
             }()
             
-            self.labelBittrFee.text = "\(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
+            // Gross amount
+            self.labelGrossAmount.text = "\(self.tappedTransaction.purchaseAmount+self.tappedTransaction.surcharge)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(currencySymbol)"
             
             // Surcharge
             if self.tappedTransaction.surcharge == 0 {
                 self.surchargeStackHeight.constant = 0
                 self.surchargeStack.alpha = 0
             } else {
-                self.labelSurcharge.text = "\(self.tappedTransaction.surcharge.toString()) \(currencySymbol)"
+                self.labelSurcharge.text = "- \(self.tappedTransaction.surcharge.toString()) \(currencySymbol)"
+            }
+            
+            // Bittr fee
+            self.labelBittrFee.text = "- \(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
+            
+            // Transfer fee
+            self.labelTransferFee.text = "- \(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
+            
+            // Current value
+            self.labelBittrCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
+            
+            // Purchase value and profit
+            if self.tappedTransaction.purchaseAmount == 0 {
+                // This transaction has not yet been checked with the Bittr API.
+                self.labelNetAmount.text = self.labelCurrentValue.text
+                self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(bitcoinValue.chosenCurrency)"
+            } else {
+                self.labelNetAmount.text = "\(self.tappedTransaction.purchaseAmount-self.tappedTransaction.bittrFee)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(bitcoinValue.chosenCurrency)"
+                let profitValue = "\((transactionValue*bitcoinValue.currentValue - self.tappedTransaction.purchaseAmount + self.tappedTransaction.bittrFee).twoDecimals())".addSpaces()
+                self.labelProfit.text = "\(profitValue) \(bitcoinValue.chosenCurrency)".replacingOccurrences(of: "-", with: "- ")
+                
+                if (self.labelProfit.text ?? "").contains("-") {
+                    // Loss
+                    self.labelProfit.textColor = Colors.getColor("losstext")
+                } else {
+                    // Profit
+                    self.labelProfit.textColor = Colors.getColor("profittext")
+                }
             }
             
         }
@@ -557,6 +566,10 @@ class TransactionViewController: UIViewController {
 }
 
 extension CGFloat {
+    
+    func twoDecimals() -> CGFloat {
+        return (self*100).rounded()/100
+    }
     
     func toString() -> String {
         

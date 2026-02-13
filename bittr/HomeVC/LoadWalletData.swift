@@ -482,7 +482,6 @@ extension HomeViewController {
             Log.info("There are no transactions.")
             self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
         } else {
-            Log.info("There are transactions.")
             for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
                     let transactionValue = eachTransaction.received.inBTC()
