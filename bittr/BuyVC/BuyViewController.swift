@@ -165,16 +165,13 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func getDepositCodeData() {
         
-        // Gather deposit codes.
-        var depositCodes = [String]()
-        for eachIbanEntity in self.allIbanEntities {
-            depositCodes += [eachIbanEntity.yourUniqueCode]
-        }
-        if depositCodes.count == 0 { return }
-        let depositCodesString = depositCodes.joined(separator: ",")
-        
         // If LDK Node has not been started, we cannot sign the message or get the node ID.
         if BitcoinManager.shared.ldkNode == nil { return }
+        
+        // Gather parameters
+        let lightningPubKey = BitcoinManager.shared.nodeId()!
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let signature = "deposit_codes:\(lightningPubKey):\(timestamp)"
         
         // Start spinner
         self.updateDataSpinner.startAnimating()
@@ -183,45 +180,38 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // Delay the call 1 second to keep the spinner visible for a moment.
             try? await Task.sleep(nanoseconds: 1 * NSEC_PER_SEC)
             
+            let lightningSignature:String
             do {
                 // Gather parameters.
-                let lightningSignature = try await BitcoinManager.shared.signMessage(message: depositCodesString)
-                let lightningPubKey = BitcoinManager.shared.nodeId()!
-                
-                let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/deposit_code_info?deposit_codes=\(depositCodesString)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)"
-                
-                // Make API call.
-                await CallsManager.makeApiCall(url: envUrl, parameters: nil, getOrPost: .get) { result in
-                    
-                    DispatchQueue.main.async {
-                        self.updateDataSpinner.stopAnimating()
-                    }
-                    
-                    switch result {
-                    case .success(let receivedDictionary):
-                        self.parseNewData(receivedDictionary: receivedDictionary)
-                    case .failure(let error):
-                        Log.info("185 Error. \(error.localizedDescription)")
-                        let errorMessage:String = {
-                            switch error {
-                            case .invalidURL: return "We could not reach our server."
-                            case .requestFailed(let errorMessage): return errorMessage
-                            case .decodingFailed: return "We couldn't decode the data we received from our server."
-                            }
-                        }()
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "BuyViewController row 210", key: "context")
-                            }
-                        }
-                    }
-                }
+                lightningSignature = try await BitcoinManager.shared.signMessage(message: signature)
             } catch {
                 Log.info("185 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.updateDataSpinner.stopAnimating()
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BuyViewController row 220", key: "context")
+                        scope.setExtra(value: "BuyViewController row 203", key: "context")
+                    }
+                }
+                return
+            }
+                
+            let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/deposit_code?timestamp=\(timestamp)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)"
+            
+            // Make API call.
+            await CallsManager.makeApiCall(url: envUrl, parameters: nil, getOrPost: .get) { result in
+                
+                DispatchQueue.main.async {
+                    self.updateDataSpinner.stopAnimating()
+                    
+                    switch result {
+                    case .success(let receivedDictionary):
+                        print("Dictionary: \(receivedDictionary)")
+                        self.parseNewData(receivedDictionary: receivedDictionary)
+                    case .failure(let error):
+                        Log.info("185 Error. \(error.localizedDescription)")
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "BuyViewController row 210", key: "context")
+                        }
                     }
                 }
             }
@@ -230,40 +220,42 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     func parseNewData(receivedDictionary:NSDictionary) {
         
-        if let receivedEntities = receivedDictionary["data"] as? [NSDictionary] {
+        if let receivedEntity = receivedDictionary["data"] as? NSDictionary {
             // Entities received in expected format.
             var someDetailsHaveChanged = false
             
-            for eachEntity in receivedEntities {
-                if
-                    let depositCode = eachEntity["deposit_code"] as? String,
-                    let partnerIban = eachEntity["iban"] as? String,
-                    let partnerSwift = eachEntity["swift"] as? String {
-                    
-                    for (index, eachExistingEntity) in self.allIbanEntities.enumerated() {
-                        if eachExistingEntity.yourUniqueCode == depositCode {
-                            if partnerIban != eachExistingEntity.ourIbanNumber || partnerSwift != eachExistingEntity.ourSwift {
-                                // Details have changed.
-                                someDetailsHaveChanged = true
-                                
-                                // Update details in BuyVC.
-                                self.allIbanEntities[index].ourIbanNumber = partnerIban
-                                self.allIbanEntities[index].ourSwift = partnerSwift
-                                self.allIbanEntities[index].lightningAddressUsername = (eachEntity["lightning_address_username"] as? String) ?? self.allIbanEntities[index].lightningAddressUsername
-                                
-                                // Update details in CoreVC.
-                                for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                                    if eachWalletEntity.yourUniqueCode == depositCode {
-                                        self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourIbanNumber = partnerIban
-                                        self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourSwift = partnerSwift
-                                        self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername = (eachEntity["lightning_address_username"] as? String) ?? self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername
-                                    }
-                                }
-                                
-                                // Update details in cache.
-                                CacheManager.addBittrIban(ibanID: eachExistingEntity.id, ourIban: partnerIban, ourSwift: partnerSwift, yourCode: depositCode, lightningAddressUsername: eachEntity["lightning_address_username"] as? String)
+            guard
+                let depositCode = receivedEntity["deposit_code"] as? String,
+                let partnerIban = receivedEntity["iban"] as? String,
+                let partnerSwift = receivedEntity["swift"] as? String
+            else {
+                return
+            }
+            
+            let lightningAddressUsername = receivedEntity["lightning_address_username"] as? String
+                
+            for (index, eachExistingEntity) in self.allIbanEntities.enumerated() {
+                if eachExistingEntity.yourUniqueCode == depositCode {
+                    if partnerIban != eachExistingEntity.ourIbanNumber || partnerSwift != eachExistingEntity.ourSwift || lightningAddressUsername != eachExistingEntity.lightningAddressUsername {
+                        // Details have changed.
+                        someDetailsHaveChanged = true
+                        
+                        // Update details in BuyVC.
+                        self.allIbanEntities[index].ourIbanNumber = partnerIban
+                        self.allIbanEntities[index].ourSwift = partnerSwift
+                        self.allIbanEntities[index].lightningAddressUsername = lightningAddressUsername ?? self.allIbanEntities[index].lightningAddressUsername
+                        
+                        // Update details in CoreVC.
+                        for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                            if eachWalletEntity.yourUniqueCode == depositCode {
+                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourIbanNumber = partnerIban
+                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourSwift = partnerSwift
+                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername = lightningAddressUsername ?? self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername
                             }
                         }
+                        
+                        // Update details in cache.
+                        CacheManager.addBittrIban(ibanID: eachExistingEntity.id, ourIban: partnerIban, ourSwift: partnerSwift, yourCode: depositCode, lightningAddressUsername: lightningAddressUsername)
                     }
                 }
             }
