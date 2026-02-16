@@ -450,14 +450,14 @@ class TransactionViewController: UIViewController {
                 self.surchargeStackHeight.constant = 0
                 self.surchargeStack.alpha = 0
             } else {
-                self.labelSurcharge.text = "- \(self.tappedTransaction.surcharge.toString()) \(currencySymbol)"
+                self.labelSurcharge.text = "\(self.tappedTransaction.surcharge.toString()) \(currencySymbol)"
             }
             
             // Bittr fee
-            self.labelBittrFee.text = "- \(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
+            self.labelBittrFee.text = "\(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
             
             // Transfer fee
-            self.labelTransferFee.text = "- \(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
+            self.labelTransferFee.text = "\(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
             
             // Current value
             self.labelBittrCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
@@ -625,17 +625,11 @@ extension CGFloat {
     func toString() -> String {
         
         if self == 0 {
-            return "0"
+            return "0\(Locale.current.decimalSeparator!)00"
         } else {
-            var string = "\(self)".fixDecimals()
+            let string = "\(self)".fixDecimals()
             if string.split(separator: Locale.current.decimalSeparator!)[1].count == 1 {
-                
-                if string.split(separator: Locale.current.decimalSeparator!)[1] == "0" {
-                    
-                    return String(string.split(separator: Locale.current.decimalSeparator!)[0])
-                } else {
-                    return "\(string)0"
-                }
+                return "\(string)0"
             } else {
                 return string
             }

@@ -12,6 +12,7 @@ class HistoryTableViewCell: UITableViewCell {
     // Date
     @IBOutlet weak var dateView: UIView!
     @IBOutlet weak var dayLabel: UILabel!
+    @IBOutlet weak var yearLabel: UILabel!
     
     // Value
     @IBOutlet weak var satsLabel: UILabel!
@@ -100,6 +101,7 @@ class HistoryTableViewCell: UITableViewCell {
     @objc func changeColors() {
         
         self.cardView.backgroundColor = Colors.getColor("whiteorblue2")
+        self.yearLabel.textColor = Colors.getColor("blackorwhite")
         self.satsLabel.textColor = Colors.getColor("blackorwhite")
         self.eurosLabel.textColor = Colors.getColor("blackorwhite")
         self.dayLabel.textColor = Colors.getColor("blackorwhite")

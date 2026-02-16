@@ -36,103 +36,172 @@ class SwapManager: NSObject {
     
     
     static func onchainToLightning(amountMsat:UInt64, swapVC:SwapViewController, existingInvoice:String? = nil) async {
+            
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMddHHmmss"
+        let idString = dateFormatter.string(from: Date())
         
-        do {
+        let invoice: String
+        var actualAmountMsat: UInt64 = amountMsat
+        
+        if let existingInvoice = existingInvoice {
+            Log.info("Use the existing invoice (for Lightning payment case)")
+            invoice = existingInvoice
             
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyyMMddHHmmss"
-            let idString = dateFormatter.string(from: Date())
-            
-            var invoice: String
-            var actualAmountMsat: UInt64 = amountMsat
-            
-            if let existingInvoice = existingInvoice {
-                // Use the existing invoice (for Lightning payment case)
-                invoice = existingInvoice
-                
-                // Parse the existing invoice to get the actual amount
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue() {
-                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        actualAmountMsat = invoiceAmountMilli
-                    }
+            // Parse the existing invoice to get the actual amount
+            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue() {
+                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                    actualAmountMsat = invoiceAmountMilli
                 }
-            } else {
-                // Create an invoice for the amount we want to move.
+            }
+        } else {
+            Log.info("Create an invoice for the amount we want to move.")
+            do {
                 invoice = try await BitcoinManager.shared.receivePayment(
                     amountMsat: amountMsat,
                     description: "Swap onchain to lightning \(idString)",
                     expirySecs: 3600
                 ).description
-            }
-            
-            // Store invoice in cache.
-            DispatchQueue.main.async {
-                if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                    let newTimestamp = Int(Date().timeIntervalSince1970)
-                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
-                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
-                    Log.info("Did cache invoice data.")
-                }
-                
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap onchain to lightning \(idString)"
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.createdInvoice = invoice.description
-            }
-            
-            // Get next swap index and derive key dynamically
-            let swapIndex = CacheManager.incrementSwapIndex()
-            let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
-            
-            let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
-            
-            // Get device token for webhook URL
-            let deviceToken = CacheManager.getRegistrationToken() ?? ""
-            
-            // Check if we have a registration token (notifications enabled)
-            if deviceToken.isEmpty {
+            } catch {
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return handleNodeError(nodeError).detail
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
                 DispatchQueue.main.async {
                     swapVC.nextLabel.alpha = 1
                     swapVC.arrowIcon.alpha = 1
                     swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(
-                        presentingController: swapVC,
-                        title: Language.getWord(withID: "notificationsrequired"),
-                        message: Language.getWord(withID: "notificationsrequiredmessage"),
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: [#selector(swapVC.askForPushNotifications)]
-                    )
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SwapManager row 209", key: "context")
+                    }
                 }
                 return
             }
+        }
+        
+        // Store invoice in cache.
+        DispatchQueue.main.async {
+            if let invoiceHash = swapVC.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                let newTimestamp = Int(Date().timeIntervalSince1970)
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
+                CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
+                Log.info("Did cache invoice data.")
+            }
             
-            let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
-            
-            // Create POST API call.
-            let parameters: [String: Any] = [
-                "from": "BTC",
-                "to": "BTC",
-                "invoice": invoice,
-                "refundPublicKey": publicKey,
-                "webhook": [
-                    "url": webhookURL,
-                    "hashSwapId": false
-                ]
+            swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap onchain to lightning \(idString)"
+            swapVC.coreVC!.bittrWallet.ongoingSwap!.createdInvoice = invoice.description
+        }
+        
+        // Get next swap index and derive key dynamically
+        let swapIndex = CacheManager.incrementSwapIndex()
+        let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
+        
+        let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+        
+        // Get device token for webhook URL
+        let deviceToken = CacheManager.getRegistrationToken() ?? ""
+        
+        // Check if we have a registration token (notifications enabled)
+        if deviceToken.isEmpty {
+            DispatchQueue.main.async {
+                swapVC.nextLabel.alpha = 1
+                swapVC.arrowIcon.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(
+                    presentingController: swapVC,
+                    title: Language.getWord(withID: "notificationsrequired"),
+                    message: Language.getWord(withID: "notificationsrequiredmessage"),
+                    buttons: [Language.getWord(withID: "okay")],
+                    actions: [#selector(swapVC.askForPushNotifications)]
+                )
+            }
+            return
+        }
+        
+        let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
+        
+        // Create POST API call.
+        let parameters: [String: Any] = [
+            "from": "BTC",
+            "to": "BTC",
+            "invoice": invoice,
+            "refundPublicKey": publicKey,
+            "webhook": [
+                "url": webhookURL,
+                "hashSwapId": false
             ]
+        ]
 
-            let apiURL = EnvironmentConfig.boltzBaseURL
-            
-            Task {
-                await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: .post) { result in
-                    
-                    switch result {
-                    case .failure(let error):
+        let apiURL = EnvironmentConfig.boltzBaseURL
+        
+        Task {
+            await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: .post) { result in
+                
+                switch result {
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        swapVC.nextLabel.alpha = 1
+                        swapVC.arrowIcon.alpha = 1
+                        swapVC.nextSpinner.stopAnimating()
+                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
+                case .success(let receivedDictionary):
+                    if let errorMessage = receivedDictionary["error"] as? String {
                         DispatchQueue.main.async {
                             swapVC.nextLabel.alpha = 1
                             swapVC.arrowIcon.alpha = 1
                             swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            swapVC.showAlert(
+                                presentingController: swapVC,
+                                title: Language.getWord(withID: "error"),
+                                message: errorMessage,
+                                buttons: [Language.getWord(withID: "okay")],
+                                actions: nil
+                            )
                         }
-                    case .success(let receivedDictionary):
-                        if let errorMessage = receivedDictionary["error"] as? String {
+                        return
+                    }
+                    
+                    // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
+                        
+                    print(receivedDictionary)
+                    
+                    DispatchQueue.main.async {
+                        if
+                            let onchainAddress = receivedDictionary["address"] as? String,
+                            let expectedAmount = receivedDictionary["expectedAmount"] as? Int,
+                            let swapID = receivedDictionary["id"] as? String,
+                            let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
+                            let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
+                            let claimLeafOutput = claimLeaf["output"] as? String,
+                            let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
+                            let refundLeafOutput = refundLeaf["output"] as? String,
+                            let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
+                            
+                            if swapVC.coreVC?.bittrWallet.ongoingSwap == nil {
+                                // SwapVC has been closed while awaiting API response.
+                                return
+                            }
+                            
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzOnchainAddress = onchainAddress
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = expectedAmount
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
+                            swapVC.coreVC!.bittrWallet.ongoingSwap!.claimPublicKey = claimPublicKey
+                            
+                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
+                            
+                            Task {
+                                await self.checkOnchainFees(swapVC: swapVC)
+                            }
+                        } else {
+                            // Expected data unavailable.
                             DispatchQueue.main.async {
                                 swapVC.nextLabel.alpha = 1
                                 swapVC.arrowIcon.alpha = 1
@@ -140,82 +209,13 @@ class SwapManager: NSObject {
                                 swapVC.showAlert(
                                     presentingController: swapVC,
                                     title: Language.getWord(withID: "error"),
-                                    message: errorMessage,
+                                    message: Language.getWord(withID: "swaperror2"),
                                     buttons: [Language.getWord(withID: "okay")],
                                     actions: nil
                                 )
                             }
-                            return
-                        }
-                        
-                        // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
-                            
-                        print(receivedDictionary)
-                        
-                        DispatchQueue.main.async {
-                            if
-                                let onchainAddress = receivedDictionary["address"] as? String,
-                                let expectedAmount = receivedDictionary["expectedAmount"] as? Int,
-                                let swapID = receivedDictionary["id"] as? String,
-                                let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
-                                let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
-                                let claimLeafOutput = claimLeaf["output"] as? String,
-                                let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
-                                let refundLeafOutput = refundLeaf["output"] as? String,
-                                let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
-                                
-                                if swapVC.coreVC?.bittrWallet.ongoingSwap == nil {
-                                    // SwapVC has been closed while awaiting API response.
-                                    return
-                                }
-                                
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzOnchainAddress = onchainAddress
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = expectedAmount
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.claimPublicKey = claimPublicKey
-                                
-                                self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
-                                
-                                Task {
-                                    await self.checkOnchainFees(swapVC: swapVC)
-                                }
-                            } else {
-                                // Expected data unavailable.
-                                DispatchQueue.main.async {
-                                    swapVC.nextLabel.alpha = 1
-                                    swapVC.arrowIcon.alpha = 1
-                                    swapVC.nextSpinner.stopAnimating()
-                                    swapVC.showAlert(
-                                        presentingController: swapVC,
-                                        title: Language.getWord(withID: "error"),
-                                        message: Language.getWord(withID: "swaperror2"),
-                                        buttons: [Language.getWord(withID: "okay")],
-                                        actions: nil
-                                    )
-                                }
-                            }
                         }
                     }
-                }
-            }
-        } catch {
-            let errorMessage:String = {
-                if let nodeError = error as? NodeError {
-                    return handleNodeError(nodeError).detail
-                } else {
-                    return error.localizedDescription
-                }
-            }()
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 209", key: "context")
                 }
             }
         }

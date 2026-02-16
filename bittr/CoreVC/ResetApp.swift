@@ -43,10 +43,10 @@ extension CoreViewController {
         
         if nodeIsRunning {
             // Node is already running, check for channels directly
-            checkChannelsAndReset()
+            self.checkChannelsAndReset()
         } else {
             // Node is not running, we need to start it first to check for channels
-            startNodeAndCheckChannels()
+            self.startNodeAndCheckChannels()
         }
     }
     
@@ -81,8 +81,7 @@ extension CoreViewController {
     func checkChannelsAndReset() {
         
         DispatchQueue.main.async {
-            let channels = BitcoinManager.shared.listChannels()
-            if channels.count > 0 {
+            if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
                 // Check if we've recently initiated channel closure
                 let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
                 let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
@@ -90,7 +89,7 @@ extension CoreViewController {
                 
                 // If channel closure was initiated within the last 2 minutes, allow reset
                 if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-                    Log.info("🔍 [DEBUG] ResetApp - Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
+                    Log.info("Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
                     // Allow wallet reset since channel is in closing process
                     self.performWalletReset(nodeIsRunning: true)
                 } else {
@@ -124,36 +123,27 @@ extension CoreViewController {
         
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             do {
+                Log.info("Will attempt channel closure.")
                 try BitcoinManager.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
-                
-                // Mark that we've initiated channel closure
-                UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
-                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
-                
-                // Successful channel closure.
-                DispatchQueue.main.async {
-                    self.didCloseChannel()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
-                }
             } catch {
-                // Unsuccessful channel closure.
-                Log.info("❌ [DEBUG] ResetApp - Channel closure failed with error: \(error)")
-                Log.info("❌ [DEBUG] ResetApp - Error type: \(type(of: error))")
-                Log.info("❌ [DEBUG] ResetApp - Error description: \(error.localizedDescription)")
-                
-                // Log additional error details if available
-                if let nsError = error as NSError? {
-                    Log.info("❌ [DEBUG] ResetApp - NSError domain: \(nsError.domain)")
-                    Log.info("❌ [DEBUG] ResetApp - NSError code: \(nsError.code)")
-                    Log.info("❌ [DEBUG] ResetApp - NSError userInfo: \(nsError.userInfo)")
-                }
-                
+                Log.info("Unsuccessful channel closure.")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 170", key: "context")
                     }
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
                 }
+                return
+            }
+                
+            // Mark that we've initiated channel closure
+            UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+            
+            // Successful channel closure.
+            DispatchQueue.main.async {
+                self.didCloseChannel()
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
             }
         } else {
             // No channels to close, proceed with reset
@@ -168,32 +158,30 @@ extension CoreViewController {
         
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             // Try force close (unilateral closure)
-            Log.info("🔍 [DEBUG] ResetApp - Attempting force close for channel.")
+            Log.info("Attempting force close for channel.")
             print("Channel ID: \(closingChannel.userChannelId)")
             
             do {
                 try BitcoinManager.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
-                
-                // Mark that we've initiated channel closure
-                UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
-                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
-                
-                // Successful force close
-                DispatchQueue.main.async {
-                    self.didCloseChannel()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
-                }
             } catch {
-                Log.info("❌ [DEBUG] ResetApp - Force close failed: \(error)")
-                Log.info("❌ [DEBUG] ResetApp - Force close error type: \(type(of: error))")
-                Log.info("❌ [DEBUG] ResetApp - Force close error description: \(error.localizedDescription)")
-                
+                Log.info("Unsuccessful channel closure.")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 213", key: "context")
                     }
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
+                return
+            }
+                
+            // Mark that we've initiated channel closure
+            UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
+            
+            // Successful force close
+            DispatchQueue.main.async {
+                self.didCloseChannel()
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
             }
         } else {
             // No channels to close, proceed with reset

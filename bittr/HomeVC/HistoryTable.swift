@@ -30,6 +30,16 @@ extension HomeViewController {
             let transactionDateString = dateFormatter.string(from: transactionDate)
             cell.dayLabel.text = transactionDateString
             
+            // Year
+            dateFormatter.dateFormat = "yyyy"
+            if indexPath.row != 0, dateFormatter.string(from: Date(timeIntervalSince1970: Double(self.visibleTransactions[indexPath.row-1].timestamp))) != dateFormatter.string(from: Date(timeIntervalSince1970: Double(thisTransaction.timestamp))) {
+                
+                cell.yearLabel.text = dateFormatter.string(from: Date(timeIntervalSince1970: Double(thisTransaction.timestamp)))
+                cell.yearLabel.alpha = 0.5
+            } else {
+                cell.yearLabel.alpha = 0
+            }
+            
             // Satoshis
             var plusSymbol = "+"
             if thisTransaction.received - thisTransaction.sent - thisTransaction.fee < 0 {
@@ -122,7 +132,16 @@ extension HomeViewController {
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         
-        return 75
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current
+        dateFormatter.dateFormat = "yyyy"
+        
+        if indexPath.row != 0, dateFormatter.string(from: Date(timeIntervalSince1970: Double(self.visibleTransactions[indexPath.row-1].timestamp))) != dateFormatter.string(from: Date(timeIntervalSince1970: Double(self.visibleTransactions[indexPath.row].timestamp))) {
+            
+            return 102
+        } else {
+            return 75
+        }
     }
 
 }

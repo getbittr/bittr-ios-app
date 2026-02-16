@@ -14,20 +14,11 @@ import Sentry
 extension ReceiveViewController {
     
     func getZeroInvoice(enteredDescription:String) async -> String? {
+        
+        let invoiceDescription = Bolt11InvoiceDescription.direct(description: enteredDescription)
+        let zeroInvoice:Bolt11Invoice
         do {
-            let invoiceDescription = Bolt11InvoiceDescription.direct(description: enteredDescription)
-            let zeroInvoice = try BitcoinManager.shared.ldkNode!.bolt11Payment().receiveVariableAmount(description: invoiceDescription, expirySecs: 3600)
-            
-            DispatchQueue.main.async {
-                if let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                    let newTimestamp = Int(Date().timeIntervalSince1970)
-                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
-                    if enteredDescription != "" {
-                        CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: enteredDescription)
-                    }
-                }
-            }
-            return zeroInvoice.description
+            zeroInvoice = try BitcoinManager.shared.ldkNode!.bolt11Payment().receiveVariableAmount(description: invoiceDescription, expirySecs: 3600)
         } catch {
             let errorMessage:String = {
                 if let nodeError = error as? NodeError {
@@ -44,6 +35,18 @@ extension ReceiveViewController {
             }
             return nil
         }
+            
+        DispatchQueue.main.async {
+            if let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                let newTimestamp = Int(Date().timeIntervalSince1970)
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
+                if enteredDescription != "" {
+                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: enteredDescription)
+                }
+            }
+        }
+        
+        return zeroInvoice.description
     }
     
     func getRegularInvoice(amountMsat: UInt64, description: String, expirySecs: UInt32) async -> String? {
