@@ -571,10 +571,7 @@ extension HomeViewController {
         
         // Check if wallet is being removed from device.
         if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
-            // We're removing the wallet from the device.
-            let restoreButton = UIButton()
-            restoreButton.accessibilityIdentifier = "restore"
-            self.coreVC!.settingsVC!.settingsTapped(restoreButton)
+            self.coreVC!.restoreWalletTapped()
         }
     }
 

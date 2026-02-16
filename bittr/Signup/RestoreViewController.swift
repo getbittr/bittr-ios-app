@@ -351,12 +351,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func removeWalletButtonTapped(_ sender: UIButton) {
-        
-        if self.coreVC != nil, self.coreVC!.settingsVC != nil {
-            let restoreButton = UIButton()
-            restoreButton.accessibilityIdentifier = "restore"
-            self.coreVC!.settingsVC!.settingsTapped(restoreButton)
-        }
+        self.coreVC!.restoreWalletTapped()
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {

@@ -39,6 +39,76 @@ extension CoreViewController {
         }
     }
     
+    func restoreWalletTapped() {
+        Log.info("Restore wallet tapped.")
+        
+        if !self.walletHasSynced {
+            if self.resettingPin {
+                Log.info("The user wants to remove the wallet from the Reset PIN view.")
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [nil, #selector(self.walletRemoveAlert)])
+            } else {
+                Log.info("The wallet is syncing.")
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+        } else {
+            Log.info("Wallet is ready.")
+            if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
+                // Check if we've recently initiated channel closure.
+                
+                // Stop spinner
+                self.genericSpinner.stopAnimating()
+                self.fullViewCover.alpha = 0
+                
+                // If channel closure was initiated within the last 2 minutes, allow reset.
+                if self.channelWasClosedRecently() {
+                    // Allow wallet reset since channel is in closing process.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                } else {
+                    // Wallet cannot be restored with open channels.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                }
+            } else {
+                // Clear channel closing state since no channels exist
+                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+                
+                if self.resettingPin {
+                    // We're removing the wallet without signing in.
+                    self.walletRestoreConfirmed()
+                } else {
+                    // Retore wallet.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                }
+            }
+        }
+    }
+    
+    @objc func walletRemoveAlert() {
+        self.hideAlert()
+        
+        // The user wishes to remove the wallet from the device, without signing in.
+        Log.info("Start wallet in background.")
+        
+        // Activate spinner.
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
+        
+        // Sync wallet.
+        Task {
+            await self.startWallet()
+        }
+    }
+    
+    @objc func walletRestoreConfirmed() {
+        self.hideAlert()
+        self.resetApp(nodeIsRunning: true)
+    }
+    
+    @objc func walletRestoreAlert() {
+        self.hideAlert()
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreConfirmed)])
+    }
+    
     func resetApp(nodeIsRunning:Bool) {
         
         if nodeIsRunning {
@@ -82,23 +152,11 @@ extension CoreViewController {
         
         DispatchQueue.main.async {
             if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
-                // Check if we've recently initiated channel closure
-                let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
-                let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
-                let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
-                
-                // If channel closure was initiated within the last 2 minutes, allow reset
-                if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-                    Log.info("Channel closure initiated \(Int(timeSinceClosure/60)) minutes ago, allowing wallet reset")
-                    // Allow wallet reset since channel is in closing process
+                // Check if we've recently initiated channel closure.
+                if self.channelWasClosedRecently() {
+                    // Allow wallet reset since channel is in closing process.
                     self.performWalletReset(nodeIsRunning: true)
                 } else {
-                    // Clear old channel closing state if it's been too long
-                    if channelClosingInitiated && timeSinceClosure >= 120 {
-                        UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                        UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                    }
-                    
                     // Wallet cannot be reset with open channels.
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
                 }
@@ -210,26 +268,27 @@ extension CoreViewController {
         
         // Remove wallet from device and remove corresponding cached data.
         do {
-            Log.info("🔍 [DEBUG] ResetApp - Starting wallet reset cleanup")
+            Log.info("Starting wallet reset cleanup")
             
             // Always try to stop the node first if it exists
             if BitcoinManager.shared.ldkNode != nil {
-                Log.info("🔍 [DEBUG] ResetApp - Stopping Lightning node")
+                Log.info("Stopping Lightning node")
                 try BitcoinManager.shared.stop()
-                Log.info("🔍 [DEBUG] ResetApp - Lightning node stopped successfully")
+                Log.info("Lightning node stopped successfully")
             }
             
             // Always clean up documents directory
-            Log.info("🔍 [DEBUG] ResetApp - Cleaning up documents directory")
+            Log.info("Cleaning up documents directory")
             try BitcoinManager.shared.deleteDocuments()
-            Log.info("🔍 [DEBUG] ResetApp - Documents directory cleaned successfully")
+            Log.info("Documents directory cleaned successfully")
             
             // Reset node state to clear all references
-            Log.info("🔍 [DEBUG] ResetApp - Resetting node state")
+            Log.info("Resetting node state")
             BitcoinManager.shared.resetNodeState()
-            Log.info("🔍 [DEBUG] ResetApp - Node state reset completed")
+            Log.info("Node state reset completed")
+            
         } catch {
-            Log.info("❌ [DEBUG] ResetApp - Error during cleanup: \(error.localizedDescription)")
+            Log.info("Error during cleanup: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "ResetApp row 269", key: "context")
@@ -238,11 +297,11 @@ extension CoreViewController {
             
             // Even if everything fails, try to clean up documents
             do {
-                Log.info("🔍 [DEBUG] ResetApp - Attempting final fallback document cleanup")
+                Log.info("Attempting final fallback document cleanup")
                 try BitcoinManager.shared.deleteDocuments()
-                Log.info("🔍 [DEBUG] ResetApp - Final fallback document cleanup successful")
+                Log.info("Final fallback document cleanup successful")
             } catch {
-                Log.info("❌ [DEBUG] ResetApp - Final fallback document cleanup failed: \(error.localizedDescription)")
+                Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 282", key: "context")
@@ -259,7 +318,7 @@ extension CoreViewController {
         
         // Launch signup on create wallet page after a delay to ensure cleanup is complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            Log.info("🔍 [DEBUG] ResetApp - Launching signup after cleanup")
+            Log.info("ResetApp - Launching signup after cleanup")
             self.launchSignup(onPage: 3) // Page 3 is create wallet
             self.showSignup()
             
@@ -274,7 +333,7 @@ extension CoreViewController {
     }
     
     func didCloseChannel() {
-        Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Clearing channel cache and triggering sync")
+        Log.info("didCloseChannel() - Clearing channel cache and triggering sync")
         
         self.bittrWallet.lightningChannels = [ChannelDetails]()
         self.bittrWallet.satoshisLightning = 0
@@ -285,32 +344,55 @@ extension CoreViewController {
         
         // Trigger a fresh sync to get updated channel data
         do {
-            Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Syncing wallet to get updated channel count")
+            Log.info("Syncing wallet to get updated channel count")
             try BitcoinManager.shared.syncWallets()
-            
-            // Get fresh channel data
-            let updatedChannels = BitcoinManager.shared.listChannels()
-            Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Updated channel count: \(updatedChannels.count)")
-            
-            DispatchQueue.main.async {
-                // Update the cached channel data
-                self.bittrWallet.lightningChannels = updatedChannels
-                
-                // Update balance if needed
-                if self.homeVC!.balanceLabel.alpha == 1 {
-                    self.homeVC!.setTotalSats()
-                }
-                
-                Log.info("🔍 [DEBUG] ResetApp - didCloseChannel() - Channel cache updated successfully")
-            }
         } catch {
-            Log.info("❌ [DEBUG] ResetApp - didCloseChannel() - Error syncing after channel closure: \(error)")
+            Log.info("Error syncing after channel closure: \(error)")
             DispatchQueue.main.async {
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "ResetApp row 347", key: "context")
                 }
             }
+            return
+        }
+            
+        // Get fresh channel data
+        let updatedChannels = BitcoinManager.shared.listChannels()
+        Log.info("Updated channel count: \(updatedChannels.count)")
+        
+        DispatchQueue.main.async {
+            // Update the cached channel data
+            self.bittrWallet.lightningChannels = updatedChannels
+            
+            // Update balance if needed
+            if self.homeVC!.balanceLabel.alpha == 1 {
+                self.homeVC!.setTotalSats()
+            }
+            
+            Log.info("Channel cache updated successfully")
         }
     }
 
+}
+
+extension UIViewController {
+    
+    func channelWasClosedRecently() -> Bool {
+        let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
+        let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
+        let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
+        
+        // If channel closure was initiated within the last 2 minutes, allow reset
+        if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
+            return true
+        } else {
+            // Clear old channel closing state if it's been too long
+            if channelClosingInitiated && timeSinceClosure >= 120 {
+                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
+                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
+            }
+            return false
+        }
+    }
+    
 }
