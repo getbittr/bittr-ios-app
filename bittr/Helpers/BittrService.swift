@@ -194,11 +194,12 @@ struct BittrTransaction: Codable {
     let historicalExchangeRate: String
     let datetime: String
     let currency: String
-    let purchaseAmount: String
     let bitcoinAmount: String
     let transferFee: String // Onchain fees or lightning connection establishment fees.
     let bittrFee: String // 1.5 % of purchase amount after surcharge.
     let surcharge: String // 1€ for purchases under 100€.
+    let fiatNetAmount: String
+    let fiatGrossAmount: String
 
     enum CodingKeys: String, CodingKey {
         case txId = "tx_id"
@@ -206,11 +207,12 @@ struct BittrTransaction: Codable {
         case historicalExchangeRate = "historical_exchange_rate"
         case datetime
         case currency
-        case purchaseAmount = "purchase_amount"
         case bitcoinAmount = "bitcoin_amount"
         case transferFee = "transfer_fee"
         case bittrFee = "bittr_fee"
         case surcharge
+        case fiatNetAmount = "fiat_amount_net"
+        case fiatGrossAmount = "fiat_amount_gross"
     }
 }
 

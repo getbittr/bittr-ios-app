@@ -113,10 +113,10 @@ extension SendViewController {
         print("Code: " + code)
         
         // Parse code components.
-        let bitcoinAddress = code.extractBitcoinAddress()
-        let lightningInvoice = code.extractLightningInvoice()
-        let lnurl = code.extractLNURL()
-        let amount = code.extractAmount()
+        let bitcoinAddress = code.lowercased().extractBitcoinAddress()
+        let lightningInvoice = code.lowercased().extractLightningInvoice()
+        let lnurl = code.lowercased().extractLNURL()
+        let amount = code.lowercased().extractAmount()
         
         // Check and handle parsed code components.
         if lnurl != nil {
@@ -211,6 +211,8 @@ extension String {
         let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
         for eachComponent in components {
             if eachComponent.isValidEmail() {
+                return eachComponent
+            } else if eachComponent.hasPrefix("lnurl") {
                 return eachComponent
             }
         }

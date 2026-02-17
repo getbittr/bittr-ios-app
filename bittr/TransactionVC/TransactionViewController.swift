@@ -443,7 +443,7 @@ class TransactionViewController: UIViewController {
             }()
             
             // Gross amount
-            self.labelGrossAmount.text = "\(self.tappedTransaction.purchaseAmount+self.tappedTransaction.surcharge)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(currencySymbol)"
+            self.labelGrossAmount.text = "\(self.tappedTransaction.fiatGrossAmount)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(currencySymbol)"
             
             // Surcharge
             if self.tappedTransaction.surcharge == 0 {
@@ -463,13 +463,13 @@ class TransactionViewController: UIViewController {
             self.labelBittrCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
             
             // Purchase value and profit
-            if self.tappedTransaction.purchaseAmount == 0 {
+            if self.tappedTransaction.fiatNetAmount == 0 {
                 // This transaction has not yet been checked with the Bittr API.
                 self.labelNetAmount.text = self.labelCurrentValue.text
                 self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(bitcoinValue.chosenCurrency)"
             } else {
-                self.labelNetAmount.text = "\(self.tappedTransaction.purchaseAmount-self.tappedTransaction.bittrFee)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(bitcoinValue.chosenCurrency)"
-                let profitValue = "\((transactionValue*bitcoinValue.currentValue - self.tappedTransaction.purchaseAmount + self.tappedTransaction.bittrFee).twoDecimals())".addSpaces()
+                self.labelNetAmount.text = "\(self.tappedTransaction.fiatNetAmount)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(bitcoinValue.chosenCurrency)"
+                let profitValue = "\((transactionValue*bitcoinValue.currentValue - self.tappedTransaction.fiatNetAmount).twoDecimals())".addSpaces()
                 self.labelProfit.text = "\(profitValue) \(bitcoinValue.chosenCurrency)".replacingOccurrences(of: "-", with: "- ")
                 
                 if (self.labelProfit.text ?? "").contains("-") {

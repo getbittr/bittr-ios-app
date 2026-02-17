@@ -501,6 +501,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         if (sender.accessibilityIdentifier ?? "") == "onchain", self.bitcoinQR != "" {
             self.toTextField.text = self.bitcoinQR
+            self.bitcoinQR = ""
         } else {
             // Reset fields.
             self.resetFields()

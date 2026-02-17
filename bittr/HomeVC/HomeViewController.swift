@@ -68,7 +68,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var visibleTransactions = [Transaction]()
     var newTransactions = [Transaction]()
     var fetchedTransactions = [[String:String]]()
-    var bittrTransactions = NSMutableDictionary() // Key is the txID, Value is purchaseAmount and currency.
+    var bittrTransactions = NSMutableDictionary()
     var cachedLightningIds = [String]()
     var tappedTransaction = Transaction()
     

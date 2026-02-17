@@ -418,7 +418,6 @@ extension CoreViewController {
                         Log.info("DEBUG - Bittr API returned transaction:")
                         print("  - txId: \(firstTransaction.txId)")
                         print("  - bitcoinAmount: '\(firstTransaction.bitcoinAmount)'")
-                        print("  - purchaseAmount: '\(firstTransaction.purchaseAmount)'")
                         print("  - currency: '\(firstTransaction.currency)'")
                         print("  - transferFee: '\(firstTransaction.transferFee)'")
                         print("  - datetime: '\(firstTransaction.datetime)'")

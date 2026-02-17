@@ -58,15 +58,15 @@ extension HomeViewController {
             if thisTransaction.isBittr {
                 cell.showBittrStack()
                 
-                if thisTransaction.purchaseAmount == 0 {
+                if thisTransaction.fiatNetAmount == 0 {
                     // No purchase amount has been received yet from the Bittr API.
-                    thisTransaction.purchaseAmount = (transactionValue*bitcoinValue.currentValue).rounded()
+                    thisTransaction.fiatNetAmount = (transactionValue*bitcoinValue.currentValue).rounded()
                 }
                 let relativeGain:Int = {
-                    if thisTransaction.purchaseAmount == 0 {
+                    if thisTransaction.fiatNetAmount == 0 {
                         return 0
                     } else {
-                        let calculatedGain = (CGFloat(Int((transactionValue*bitcoinValue.currentValue).rounded()) - Int(thisTransaction.purchaseAmount.rounded())) / thisTransaction.purchaseAmount) * 100
+                        let calculatedGain = (((transactionValue*bitcoinValue.currentValue - thisTransaction.fiatNetAmount) / thisTransaction.fiatNetAmount) * 100).rounded()
                         return Int(calculatedGain.isFinite ? calculatedGain : 0)
                     }
                 }()

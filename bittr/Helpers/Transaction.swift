@@ -31,7 +31,8 @@ class Transaction: NSObject {
     // Bittr purchases
     var isBittr = false
     var currency = "EUR"
-    var purchaseAmount: CGFloat = 0
+    var fiatNetAmount: CGFloat = 0
+    var fiatGrossAmount: CGFloat = 0
     var transferFee: CGFloat = 0
     var surcharge: CGFloat = 0
     var bittrFee: CGFloat = 0
@@ -111,9 +112,25 @@ extension PaymentDetails {
         
         // Check if transaction is Bittr.
         if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id) {
+            
             thisTransaction.isBittr = true
             thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
-            thisTransaction.purchaseAmount = ((bittrTransactions![thisTransaction.id] as! [String:Any])["amount"] as! String).toNumber()
+            
+            // Fiat net amount.
+            if let fiatNetAmountString = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatNetAmount"] as? String {
+                let fiatNetAmount = fiatNetAmountString.toNumber().inSatoshis()
+                thisTransaction.fiatNetAmount = CGFloat(fiatNetAmount)
+            } else if let fiatNetAmount = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatNetAmount"] as? CGFloat {
+                thisTransaction.fiatNetAmount = fiatNetAmount
+            }
+            
+            // Fiat gross amount.
+            if let fiatGrossAmountString = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatGrossAmount"] as? String {
+                let fiatGrossAmount = fiatGrossAmountString.toNumber().inSatoshis()
+                thisTransaction.fiatGrossAmount = CGFloat(fiatGrossAmount)
+            } else if let fiatGrossAmount = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatGrossAmount"] as? CGFloat {
+                thisTransaction.fiatGrossAmount = fiatGrossAmount
+            }
             
             // Transfer fee.
             if let transferFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? String {
@@ -169,7 +186,8 @@ extension BittrTransaction {
         // Bittr details.
         thisTransaction.isBittr = true
         thisTransaction.currency = self.currency
-        thisTransaction.purchaseAmount = self.purchaseAmount.toNumber()
+        thisTransaction.fiatNetAmount = self.fiatNetAmount.toNumber()
+        thisTransaction.fiatGrossAmount = self.fiatGrossAmount.toNumber()
         thisTransaction.transferFee = CGFloat(self.transferFee.toNumber().inSatoshis())
         thisTransaction.surcharge = self.surcharge.toNumber()
         thisTransaction.bittrFee = self.bittrFee.toNumber()

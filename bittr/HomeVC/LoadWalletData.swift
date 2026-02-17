@@ -170,7 +170,7 @@ extension HomeViewController {
         self.bittrTransactions.removeAllObjects()
         for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() {
             if eachTransaction.isBittr {
-                self.bittrTransactions.setValue(["amount":"\(eachTransaction.purchaseAmount)", "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.id)
+                self.bittrTransactions.setValue(["fiatNetAmount":eachTransaction.fiatNetAmount, "fiatGrossAmount":eachTransaction.fiatGrossAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.id)
             }
         }
         
@@ -216,7 +216,7 @@ extension HomeViewController {
                 CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
             } else {
                 // This is not a channel funding transaction.
-                self.bittrTransactions.setValue(["amount":eachTransaction.purchaseAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.txId)
+                self.bittrTransactions.setValue(["fiatNetAmount":eachTransaction.fiatNetAmount, "fiatGrossAmount":eachTransaction.fiatGrossAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee], forKey: eachTransaction.txId)
                 
                 if sendAll {
                     // Check transactions that were previously not recognized.
@@ -224,7 +224,8 @@ extension HomeViewController {
                         if eachExistingTransaction.id == eachTransaction.txId {
                             newTransactionsWereFound = true
                             eachExistingTransaction.isBittr = true
-                            eachExistingTransaction.purchaseAmount = eachTransaction.purchaseAmount.toNumber()
+                            eachExistingTransaction.fiatNetAmount = eachTransaction.fiatNetAmount.toNumber()
+                            eachExistingTransaction.fiatGrossAmount = eachTransaction.fiatGrossAmount.toNumber()
                             eachExistingTransaction.currency = eachTransaction.currency
                             let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
                             eachExistingTransaction.transferFee = CGFloat(transferFee)
@@ -481,10 +482,10 @@ extension HomeViewController {
             for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
                     let transactionValue = eachTransaction.received.inBTC()
-                    let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-Int(eachTransaction.purchaseAmount.rounded())
+                    let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-Int(eachTransaction.fiatNetAmount.rounded())
                     
                     accumulatedProfit += transactionProfit
-                    accumulatedInvestments += Int(eachTransaction.purchaseAmount.rounded())
+                    accumulatedInvestments += Int(eachTransaction.fiatNetAmount.rounded())
                     accumulatedCurrentValue += Int((transactionValue*bitcoinValue.currentValue).rounded())
                     
                     handledTransactions += 1
