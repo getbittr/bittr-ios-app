@@ -434,7 +434,6 @@ extension NSDictionary {
                     let sentAt = eachDictionary["sent_at"] as? String,
                     let status = eachDictionary["status"] as? String,
                     let notificationType = eachDictionary["notification_type"] as? String,
-                    let lightningInvoice = eachDictionary["lightning_invoice"] as? String,
                     let attemptsCount = eachDictionary["attempts_count"] as? Int,
                     let id = eachDictionary["id"] as? String,
                     let lastAttemptAt = eachDictionary["last_attempt_at"] as? String,
@@ -453,7 +452,6 @@ extension NSDictionary {
                 thisPendingPayout.lastAttemptAt = dateFormatter.date(from: lastAttemptAt)
                 thisPendingPayout.status = status
                 thisPendingPayout.notificationType = notificationType
-                thisPendingPayout.lightningInvoice = lightningInvoice
                 thisPendingPayout.attemptsCount = attemptsCount
                 thisPendingPayout.id = id
                 thisPendingPayout.transaction = transaction

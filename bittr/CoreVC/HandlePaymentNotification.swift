@@ -432,6 +432,7 @@ extension CoreViewController {
                             // Add payout ID to cache.
                             if let notificationId = self.lightningNotification?.notificationID {
                                 CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
+                                self.lightningNotification = nil
                             }
                             
                             // Create transaction object.
