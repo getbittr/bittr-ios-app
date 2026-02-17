@@ -110,162 +110,145 @@ extension SendViewController {
     }
     
     func handleScannedOrPastedString(_ code:String, scanned:Bool) {
-        
         print("Code: " + code)
         
-        var addressType:OnchainOrLightning = .onchain
+        // Parse code components.
+        let bitcoinAddress = code.extractBitcoinAddress()
+        let lightningInvoice = code.extractLightningInvoice()
+        let lnurl = code.extractLNURL()
+        let amount = code.extractAmount()
         
-        // Check bitcoin or lightning in code to switch view if needed.
-        if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
-            // This is a Bitcoin QR with lightning parameter.
-            addressType = .lightning
-        } else if code.lowercased().contains("bitcoin:") {
-            // This is a regular Bitcoin URI (on-chain).
-            addressType = .onchain
-        } else if code.lowercased().split(separator: "&").first!.hasPrefix("ln") {
-            // This is a Lightning invoice.
-            addressType = .lightning
-        } else if code.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
-            // This is an LNURL.
-            addressType = .lightning
-        } else {
-            // Unsure about the code.
-            addressType = self.onchainOrLightning
-        }
-        
-        if scanned, !code.contains("bitcoin") && !code.lowercased().hasPrefix("ln") && !code.trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
-            // No valid address.
-            self.toTextField.text = nil
-            self.amountTextField.text = nil
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "noaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-        } else if code.lowercased().contains("lnurl") || code.trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
-            // Valid LNURL code.
-            self.toTextField.text = code
-            self.handleLNURL(code: code.replacingOccurrences(of: "lightning:", with: "").trimmingCharacters(in: .whitespacesAndNewlines), sendVC: self, receiveVC: nil)
-        } else {
-            // Valid address
+        // Check and handle parsed code components.
+        if lnurl != nil {
+            Log.info("Did find LNURL.")
             
-            if code.lowercased().split(separator: "&").first!.contains("bitcoin:"), code.lowercased().split(separator: "&").last!.contains("lightning=") {
-                // This is a Bitcoin QR.
+            self.toTextField.text = lnurl!
+            self.handleLNURL(code: lnurl!, sendVC: self, receiveVC: nil)
+            self.onchainOrLightning = .lightning
+            self.hideScanner()
+        } else if lightningInvoice != nil {
+            Log.info("Did find invoice.")
+            
+            // Example QR
+            // bitcoin:bc1qhg5nndn8ngrykjun9k7rgczw2x3ywwtcf0hplz?amount=0.00001&lightning=lnbc10u1pnma0z3dqqnp4q0wy5shnpskxc050schq0r5gkkk39e5w89qzfcd5fz9ngejqjwhavpp5vfpx5dwh97vf7wrvcu9mt006mkdft5fjzfnrqakf6288dhj9r2pssp5e64sv4zyf4esy4wgdkdndtne2lxr4lf0ndpy2e0n3qm80kfty77q9qyysgqcqpcxqrrssrzjqd54day770dcv0n0fhp57f9vuxd7zack3gy8p6pletmw0f5rsv439apyqqqqqqqqqvqqqqlgqqqqqqgq2qvw6n7wd6x6ej47u5a2k253jy65js489qvrf36v8mnw79u3hvaz9k3926ypm2d92h7wxlff7gtyen3ny0gp9mqwjhj8kvk3w9kaq5dxqqtqwll6
+            
+            // Check if we have sufficient funds in Lightning.
+            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningInvoice!).getValue() {
                 
-                // Example QR
-                // bitcoin:bc1qhg5nndn8ngrykjun9k7rgczw2x3ywwtcf0hplz?amount=0.00001&lightning=lnbc10u1pnma0z3dqqnp4q0wy5shnpskxc050schq0r5gkkk39e5w89qzfcd5fz9ngejqjwhavpp5vfpx5dwh97vf7wrvcu9mt006mkdft5fjzfnrqakf6288dhj9r2pssp5e64sv4zyf4esy4wgdkdndtne2lxr4lf0ndpy2e0n3qm80kfty77q9qyysgqcqpcxqrrssrzjqd54day770dcv0n0fhp57f9vuxd7zack3gy8p6pletmw0f5rsv439apyqqqqqqqqqvqqqqlgqqqqqqgq2qvw6n7wd6x6ej47u5a2k253jy65js489qvrf36v8mnw79u3hvaz9k3926ypm2d92h7wxlff7gtyen3ny0gp9mqwjhj8kvk3w9kaq5dxqqtqwll6
+                let invoiceAmount:Int = {
+                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                        // Regular invoice
+                        return Int(invoiceAmountMilli)/1000
+                    } else {
+                        // Zero invoice
+                        return amount ?? 0
+                    }
+                }()
                 
-                let codeElements = code.split(separator: "&")
-                var bitcoinCode = ""
-                var lightningCode = ""
-                for eachElement in codeElements {
-                    if String(eachElement).contains("bitcoin:") {
-                        bitcoinCode = String(eachElement)
-                    } else if String(eachElement).contains("lightning=") {
-                        lightningCode = String(eachElement)
-                    }
-                }
-                
-                if bitcoinCode != "", lightningCode != "" {
-                    // Codes have been correctly recognized.
-                    
-                    // Check if we have sufficient funds in Lightning.
-                    if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningCode.replacingOccurrences(of: "lightning=", with: "")).getValue() {
-                        if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                            let invoiceAmount = Int(invoiceAmountMilli)/1000
-                            if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
-                                // We can't send this much in Lightning. Send onchain.
-                                self.handleScannedOrPastedString(bitcoinCode, scanned: scanned)
-                                return
-                            } else {
-                                // We have sufficient funds in Lightning.
-                                self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
-                                self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
-                                self.amountTextField.text = "\(invoiceAmount)"
-                                self.btcLabel.text = "Sats"
-                                self.selectedCurrency = .satoshis
-                                addressType = .lightning
-                            }
-                        } else {
-                            // Zero invoice.
-                            self.bitcoinQR = bitcoinCode.split(separator: "?").first!.replacingOccurrences(of: "bitcoin:", with: "")
-                            self.toTextField.text = lightningCode.replacingOccurrences(of: "lightning=", with: "")
-                            addressType = .lightning
-                        }
-                    }
-                }
-            } else {
-                // This is a normal onchain or lightning QR.
-                
-                let address = code.lowercased().replacingOccurrences(of: "bitcoin:", with: "").replacingOccurrences(of: "lightning:", with: "").replacingOccurrences(of: "lightning=", with: "")
-                let components = address.components(separatedBy: "?")
-                if let bitcoinAddress = components.first {
-                    // Success.
-                    
-                    // Switch to the appropriate mode based on addressType
-                    if addressType == .onchain {
-                        // Switch to regular (on-chain) mode
-                        if let regularButton = self.regularButton {
-                            regularButton.sendActions(for: .touchUpInside)
-                        }
-                    } else if addressType == .lightning {
-                        // Switch to instant (Lightning) mode
-                        if let instantButton = self.instantButton {
-                            instantButton.sendActions(for: .touchUpInside)
-                        }
-                    }
-                    
-                    // Wait a moment for the mode switch to complete, then set the address and amount
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.toTextField.text = bitcoinAddress
-                        
-                        if components.count > 1 {
-                            if components[1].contains("amount") {
-                                let amountString = components[1].components(separatedBy: "&")
-                                
-                                let numberFormatter = NumberFormatter()
-                                numberFormatter.numberStyle = .decimal
-                                let bitcoinAmount = (numberFormatter.number(from: amountString[0].replacingOccurrences(of: "amount=", with: "").fixDecimals()) ?? 0).decimalValue as NSNumber
-                                
-                                // Convert BTC amount to satoshis
-                                if let btcAmount = Double("\(bitcoinAmount)") {
-                                    let satoshis = Int(btcAmount * 100_000_000) // Convert BTC to satoshis
-                                    self.amountTextField.text = "\(satoshis)"
-                                    self.btcLabel.text = "Sats"
-                                    self.selectedCurrency = .satoshis
-                                    print("QR Scanner: Converted Bitcoin URI amount from \(bitcoinAmount) BTC to \(satoshis) satoshis")
-                                } else {
-                                    // If conversion fails, set the amount as-is
-                                    self.amountTextField.text = "\(bitcoinAmount)"
-                                    Log.info("QR Scanner: Could not convert Bitcoin URI amount.")
-                                    print("Setting as-is: \(bitcoinAmount)")
-                                }
-                            } else {
-                                self.amountTextField.text = nil
-                            }
-                        } else {
-                            self.amountTextField.text = nil
-                        }
-                        
-                        // Handle Lightning invoice if it's a direct ln... address
-                        if bitcoinAddress.hasPrefix("ln") {
-                            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: bitcoinAddress).getValue() {
-                                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                                    let invoiceAmount = Int(invoiceAmountMilli)/1000
-                                    self.amountTextField.text = "\(invoiceAmount)"
-                                    self.btcLabel.text = "Sats"
-                                    self.selectedCurrency = .satoshis
-                                } else {
-                                    self.amountTextField.text = nil
-                                }
-                            }
-                        }
-                    }
+                if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
+                    // We can't send this much in Lightning. Send onchain.
+                    self.handleScannedOrPastedString(bitcoinAddress!, scanned: scanned)
+                    return
                 } else {
-                    self.toTextField.text = nil
-                    self.amountTextField.text = nil
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    // We have sufficient funds in Lightning.
+                    self.toTextField.text = lightningInvoice!
+                    self.amountTextField.text = "\(invoiceAmount)"
+                    self.btcLabel.text = "Sats"
+                    self.selectedCurrency = .satoshis
+                    self.onchainOrLightning = .lightning
+                }
+                
+                if bitcoinAddress != nil {
+                    Log.info("Did also find onchain address.")
+                    self.bitcoinQR = bitcoinAddress!
                 }
             }
+        } else if bitcoinAddress != nil {
+            Log.info("Did find onchain address.")
+            self.toTextField.text = bitcoinAddress!
+            self.onchainOrLightning = .onchain
+            if amount != nil, amount != 0 {
+                self.amountTextField.text = "\(amount!)"
+                self.btcLabel.text = "Sats"
+                self.selectedCurrency = .satoshis
+            }
+        } else {
+            Log.info("Did not find a valid address or invoice.")
+            self.toTextField.text = nil
+            self.amountTextField.text = nil
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
         }
         
-        self.onchainOrLightning = addressType
+        // Hide QR scanner and switch views to onchain or lightning.
         self.hideScanner()
+    }
+}
+
+extension String {
+    
+    func extractBitcoinAddress() -> String? {
+        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
+        for eachComponent in components {
+            if eachComponent.isValidBitcoinAddress() {
+                return eachComponent
+            }
+        }
+        return nil
+    }
+    
+    func extractLightningInvoice() -> String? {
+        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
+        for eachComponent in components {
+            if eachComponent.isValidInvoice() {
+                return eachComponent
+            }
+        }
+        return nil
+    }
+    
+    func extractLNURL() -> String? {
+        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
+        for eachComponent in components {
+            if eachComponent.isValidEmail() {
+                return eachComponent
+            }
+        }
+        return nil
+    }
+    
+    func extractAmount() -> Int? {
+        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?"))
+        for eachComponent in components {
+            if eachComponent.contains("amount=") {
+                return eachComponent.replacingOccurrences(of: "amount=", with: "").toNumber().inSatoshis()
+            }
+        }
+        return nil
+    }
+    
+    func isValidBitcoinAddress() -> Bool {
+        let patterns = [
+            "^1[a-km-zA-HJ-NP-Z1-9]{25,34}$",  // P2PKH Mainnet
+            "^[mn2][a-km-zA-HJ-NP-Z1-9]{33}$",  // P2PKH or P2SH Testnet
+            "^bc1[qzp][a-z0-9]{38,}$",  // Bech32 Mainnet
+            "^tb1[qzp][a-z0-9]{38,}$",  // Bech32 Testnet
+        ]
+        return patterns.contains {
+            self.range(of: $0, options: [.regularExpression, .caseInsensitive]) != nil
+        }
+    }
+    
+    func isValidInvoice() -> Bool {
+        if self.hasPrefix("ln") {
+            let bolt11Invoice = Bolt11Invoice.fromStr(s: self)
+            if bolt11Invoice.isOk(), bolt11Invoice.getValue() != nil {
+                return true
+            } else {
+                return false
+            }
+        } else {
+            return false
+        }
     }
 }

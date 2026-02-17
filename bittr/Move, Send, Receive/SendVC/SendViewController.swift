@@ -354,94 +354,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
     }
     
-    func handleLNURLAmountCompletion() {
-        
-        guard let callback = pendingLNURLCallback,
-              let minAmount = pendingLNURLMinAmount,
-              let maxAmount = pendingLNURLMaxAmount,
-              let amountText = amountTextField.text,
-              !amountText.isEmpty else {
-            return
-        }
-        
-        // Convert amount to millisatoshis based on current currency
-        var enteredAmount: Int
-        if self.selectedCurrency == .satoshis {
-            enteredAmount = Int(amountText.toNumber()) * 1000 // Convert satoshis to millisatoshis
-        } else if self.selectedCurrency == .bitcoin {
-            enteredAmount = amountText.toNumber().inSatoshis() * 1000 // Convert to millisatoshis
-        } else { // .currency (fiat)
-            let fiatAmount = amountText.toNumber()
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-            let btcAmount = fiatAmount / bitcoinValue.currentValue
-            
-            // Safety check for invalid values
-            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                Log.info("376 Invalid values.")
-                print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                return
-            }
-            
-            let satoshis = btcAmount.inSatoshis()
-            enteredAmount = satoshis * 1000 // Convert to millisatoshis
-        }
-        
-        // Validate amount is within range
-        if enteredAmount < minAmount || enteredAmount > maxAmount {
-            let minSats = minAmount / 1000
-            let maxSats = maxAmount / 1000
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
-        // Store description before clearing
-        let description = self.pendingLNURLDescription
-        
-        // Clear pending data
-        self.pendingLNURLCallback = nil
-        self.pendingLNURLDescription = nil
-        self.pendingLNURLMinAmount = nil
-        self.pendingLNURLMaxAmount = nil
-        
-        // Send the LNURL payment request
-        self.amountTextField.resignFirstResponder()
-        self.sendPayRequest(callbackURL: callback, amount: enteredAmount, sendVC: self, receiveVC: nil, receivedDescription: description)
-    }
-    
-    func handleWithdrawAmountCompletion() {
-        guard let callback = pendingWithdrawCallback,
-              let k1 = pendingWithdrawK1,
-              let minAmount = pendingWithdrawMinAmount,
-              let maxAmount = pendingWithdrawMaxAmount,
-              let amountText = amountTextField.text,
-              !amountText.isEmpty else {
-            return
-        }
-        
-        // Convert amount to millisatoshis
-        let enteredAmount = Int(amountText.toNumber()) * 1000
-        
-        // Validate amount is within range
-        if enteredAmount < minAmount || enteredAmount > maxAmount {
-            let minSats = minAmount / 1000
-            let maxSats = maxAmount / 1000
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
-        // Clear pending withdraw data
-        self.pendingWithdrawCallback = nil
-        self.pendingWithdrawK1 = nil
-        self.pendingWithdrawMinAmount = nil
-        self.pendingWithdrawMaxAmount = nil
-        
-        // Send the withdraw request
-        self.amountTextField.resignFirstResponder()
-        self.sendWithdrawRequest(callbackURL: callback, amount: enteredAmount, k1: k1, sendVC: self, receiveVC: nil)
-    }
-    
-    
-    
     @objc func selectBTCCurrency() {
         self.btcLabel.text = "BTC"
         self.selectedCurrency = .bitcoin
@@ -479,11 +391,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
         self.view.endEditing(true)
         if let actualString = UIPasteboard.general.string {
-            if !actualString.contains("bitcoin"), !actualString.lowercased().hasPrefix("ln"), !actualString.lowercased().contains("@") {
-                self.toTextField.text = actualString
-            } else {
-                self.handleScannedOrPastedString(actualString, scanned: false)
-            }
+            self.handleScannedOrPastedString(actualString, scanned: false)
         }
     }
     
