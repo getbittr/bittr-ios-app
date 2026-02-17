@@ -570,7 +570,7 @@ extension HomeViewController {
         self.fetchAndPrintPeers()
         
         // Check if wallet is being removed from device.
-        if self.coreVC!.resettingPin, self.coreVC!.genericSpinner.isAnimating {
+        if (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
             self.coreVC!.restoreWalletTapped()
         }
     }

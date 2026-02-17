@@ -40,14 +40,22 @@ extension CoreViewController {
     }
     
     func restoreWalletTapped() {
+        // This function is reached from:
+        // - The RestoreVC in case the user has lost their mnemonic and pin (before syncing).
+        // - The HomeVC finalizeSync function in case the user has lost their mnemonic and pin (after syncing).
+        // - The PinVC in case the user has entered the wrong pin 10 times.
+        // - The SettingsVC when the user wants to remove their wallet.
         Log.info("Restore wallet tapped.")
         
         if !self.walletHasSynced {
             if self.resettingPin {
                 Log.info("The user wants to remove the wallet from the Reset PIN view.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [nil, #selector(self.walletRemoveAlert)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [nil, #selector(self.startWalletInBackground)])
+            } else if self.removingWalletForIncorrectPin {
+                Log.info("Will start wallet in background.")
+                self.startWalletInBackground()
             } else {
-                Log.info("The wallet is syncing.")
+                Log.info("Wallet is syncing.")
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
@@ -62,19 +70,27 @@ extension CoreViewController {
                 // If channel closure was initiated within the last 2 minutes, allow reset.
                 if self.channelWasClosedRecently() {
                     // Allow wallet reset since channel is in closing process.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                    if self.removingWalletForIncorrectPin {
+                        self.performWalletReset()
+                    } else {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
+                    }
                 } else {
-                    // Wallet cannot be restored with open channels.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                    Log.info("Wallet cannot be restored with open channels.")
+                    if self.removingWalletForIncorrectPin {
+                        self.closeChannelConfirmed()
+                    } else {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                    }
                 }
             } else {
                 // Clear channel closing state since no channels exist
                 UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
                 UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
                 
-                if self.resettingPin {
-                    // We're removing the wallet without signing in.
-                    self.walletRestoreConfirmed()
+                if self.resettingPin || self.removingWalletForIncorrectPin {
+                    Log.info("Removing wallet without signing in.")
+                    self.performWalletReset()
                 } else {
                     // Retore wallet.
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
@@ -83,7 +99,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func walletRemoveAlert() {
+    @objc func startWalletInBackground() {
         self.hideAlert()
         
         // The user wishes to remove the wallet from the device, without signing in.
@@ -99,76 +115,9 @@ extension CoreViewController {
         }
     }
     
-    @objc func walletRestoreConfirmed() {
-        self.hideAlert()
-        self.resetApp(nodeIsRunning: true)
-    }
-    
     @objc func walletRestoreAlert() {
         self.hideAlert()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreConfirmed)])
-    }
-    
-    func resetApp(nodeIsRunning:Bool) {
-        
-        if nodeIsRunning {
-            // Node is already running, check for channels directly
-            self.checkChannelsAndReset()
-        } else {
-            // Node is not running, we need to start it first to check for channels
-            self.startNodeAndCheckChannels()
-        }
-    }
-    
-    func startNodeAndCheckChannels() {
-        // Start the Lightning node first
-        
-        Task {
-            let didStartLDK = await withCheckedContinuation { continuation in
-                BitcoinManager.shared.startLDK { didStartLDK in
-                    continuation.resume(returning: didStartLDK)
-                }
-            }
-            
-            if didStartLDK {
-                // Wait a moment for the node to fully initialize
-                // 2 seconds
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                
-                // Now check for channels
-                DispatchQueue.main.async {
-                    self.checkChannelsAndReset()
-                }
-            } else {
-                // If we can't start the node, proceed with reset anyway
-                DispatchQueue.main.async {
-                    self.performWalletReset(nodeIsRunning: false)
-                }
-            }
-        }
-    }
-    
-    func checkChannelsAndReset() {
-        
-        DispatchQueue.main.async {
-            if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
-                // Check if we've recently initiated channel closure.
-                if self.channelWasClosedRecently() {
-                    // Allow wallet reset since channel is in closing process.
-                    self.performWalletReset(nodeIsRunning: true)
-                } else {
-                    // Wallet cannot be reset with open channels.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
-                }
-            } else {
-                // Clear channel closing state since no channels exist
-                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                
-                // Proceed with wallet reset
-                self.performWalletReset(nodeIsRunning: true)
-            }
-        }
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.performWalletReset)])
     }
     
     @objc func closeChannelAlert() {
@@ -189,7 +138,11 @@ extension CoreViewController {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 170", key: "context")
                     }
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                    if self.removingWalletForIncorrectPin {
+                        self.forceCloseChannel()
+                    } else {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                    }
                 }
                 return
             }
@@ -200,13 +153,17 @@ extension CoreViewController {
             
             // Successful channel closure.
             DispatchQueue.main.async {
-                self.didCloseChannel()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
+                if self.removingWalletForIncorrectPin {
+                    self.performWalletReset()
+                } else {
+                    self.didCloseChannel()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.performWalletReset)])
+                }
             }
         } else {
             // No channels to close, proceed with reset
             DispatchQueue.main.async {
-                self.performWalletReset(nodeIsRunning: true)
+                self.performWalletReset()
             }
         }
     }
@@ -227,7 +184,9 @@ extension CoreViewController {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "ResetApp row 213", key: "context")
                     }
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    if !self.removingWalletForIncorrectPin {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
                 }
                 return
             }
@@ -238,26 +197,27 @@ extension CoreViewController {
             
             // Successful force close
             DispatchQueue.main.async {
-                self.didCloseChannel()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.channelClosedProceedWithReset)])
+                if self.removingWalletForIncorrectPin {
+                    self.performWalletReset()
+                } else {
+                    self.didCloseChannel()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.performWalletReset)])
+                }
             }
         } else {
             // No channels to close, proceed with reset
             DispatchQueue.main.async {
-                self.performWalletReset(nodeIsRunning: true)
+                self.performWalletReset()
             }
         }
     }
     
-    @objc func channelClosedProceedWithReset() {
+    @objc func performWalletReset() {
         self.hideAlert()
-        self.performWalletReset(nodeIsRunning: true)
-    }
-    
-    func performWalletReset(nodeIsRunning: Bool) {
         
         // Reset PIN reset state
         self.resettingPin = false
+        self.removingWalletForIncorrectPin = false
         
         // Clear channel closing state
         UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
@@ -325,7 +285,6 @@ extension CoreViewController {
             // Show HomeVC.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 self.homeVC!.view.alpha = 1
-                self.resettingPin = false
                 self.genericSpinner.stopAnimating()
                 self.fullViewCover.alpha = 0
             }

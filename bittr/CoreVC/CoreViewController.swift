@@ -74,6 +74,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var blackSignupButton: UIButton!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     var resettingPin = false
+    var removingWalletForIncorrectPin = false
     
     // Variables for notification handling
     @IBOutlet weak var pendingView: UIView!
