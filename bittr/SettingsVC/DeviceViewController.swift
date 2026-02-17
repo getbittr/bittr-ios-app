@@ -345,14 +345,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                         let receivedNotifications = receivedDictionary.toNotifications()
                         print("Received notifications: \(receivedNotifications.count)")
                         
-                        guard let lastNotification = receivedNotifications.last else {
+                        guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
                             Log.info("No notifications received.")
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            return
-                        }
-                        
-                        guard lastNotification.status != "acknowledged" else {
-                            Log.info("No unacknowledged payouts available.")
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             return
                         }
@@ -374,12 +368,23 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     @objc func handlePendingPayout() {
         self.hideAlert()
         
+        // Create notification.
         let thisNotification = BittrNotification()
         thisNotification.id = UUID().uuidString
         thisNotification.date = Date()
         thisNotification.type = .lightningPayout
         thisNotification.notificationID = self.pendingPayout!.id!
-        thisNotification.amountMsat = nil
+        thisNotification.amountMsat = (self.pendingPayout!.transaction!["bitcoin_amount"] as! String).toNumber().inSatoshis() * 1000
+        
+        // Cache notification.
+        CacheManager.cacheLastNotification(thisNotification)
+        
+        // Handle notification payout.
+        self.coreVC?.wasNotified = true
+        self.coreVC?.handlePayoutNotification(thisNotification)
+        
+        // Dismiss DeviceVC.
+        self.dismiss(animated: true)
     }
     
     @objc func changeColors() {
@@ -421,7 +426,7 @@ extension NSDictionary {
         
         if let data = self["data"] as? [NSDictionary] {
             
-            var allPayouts = [BittrPendingPayout]()
+            var pendingPayouts = [BittrPendingPayout]()
             
             for eachDictionary in data {
                 guard
@@ -453,14 +458,16 @@ extension NSDictionary {
                 thisPendingPayout.id = id
                 thisPendingPayout.transaction = transaction
                 
-                allPayouts += [thisPendingPayout]
+                if thisPendingPayout.notificationType == "payout", thisPendingPayout.status == "sent" {
+                    pendingPayouts += [thisPendingPayout]
+                }
             }
             
-            allPayouts.sort { payout1, payout2 in
+            pendingPayouts.sort { payout1, payout2 in
                 payout2.lastAttemptAt! > payout1.lastAttemptAt!
             }
             
-            return allPayouts
+            return pendingPayouts
         } else {
             return []
         }

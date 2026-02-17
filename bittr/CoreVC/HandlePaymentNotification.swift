@@ -55,7 +55,9 @@ extension CoreViewController {
         self.hideAlert()
         self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
         self.showPendingView()
-        self.facilitateNotificationPayout()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.facilitateNotificationPayout()
+        }
     }
     
     @objc func facilitateNotificationPayout() {
