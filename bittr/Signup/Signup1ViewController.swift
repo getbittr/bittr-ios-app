@@ -83,11 +83,7 @@ class Signup1ViewController: UIViewController {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         // Check internet connection.
-        if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
+        guard (self.signupVC?.coreVC ?? self.signupVC ?? self).checkInternetConnection() else { return }
         
         // Start spinner.
         self.createWalletLabel.alpha = 0

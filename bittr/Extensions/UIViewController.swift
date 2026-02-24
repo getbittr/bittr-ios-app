@@ -9,6 +9,17 @@ import UIKit
 
 extension UIViewController {
     
+    func checkInternetConnection() -> Bool {
+    // Check internet connection.
+    if !Reachability.isConnectedToNetwork() {
+        // User not connected to internet.
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        return false
+    } else {
+        return true
+    }
+}
+    
     func addHeader(iconLight:String, iconDark:String, title:String) {
         
         let headerView = UIView()

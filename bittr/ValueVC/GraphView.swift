@@ -275,9 +275,3 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     
 }
 
-extension CGFloat {
-    func between(a: CGFloat, b: CGFloat) -> Bool {
-        return self >= Swift.min(a, b) && self <= Swift.max(a, b)
-    }
-}
-

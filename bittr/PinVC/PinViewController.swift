@@ -175,11 +175,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         switch self.embeddingView {
         case .core:
             // Check internet connection.
-            if !Reachability.isConnectedToNetwork() {
-                // User not connected to internet.
-                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
+            guard (self.coreVC ?? self).checkInternetConnection() else { return }
             
             if CacheManager.getFailedPinAttempts() > 9 {
                 Log.info("Wrong pin has been entered 10 times.")

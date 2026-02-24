@@ -215,11 +215,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
+        guard self.coreVC!.checkInternetConnection() else { return }
         
         self.performSegue(withIdentifier: "HomeToSend", sender: self)
     }
@@ -232,11 +228,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return
         }
         
-        if !Reachability.isConnectedToNetwork() {
-            // User not connected to internet.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
+        guard self.coreVC!.checkInternetConnection() else { return }
         
         self.performSegue(withIdentifier: "HomeToReceive", sender: self)
     }
@@ -393,11 +385,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if scrollView.contentOffset.y < -200, !self.didStartReset, !self.headerSpinner.isAnimating {
             
-            if !Reachability.isConnectedToNetwork() {
-                // User not connected to internet.
-                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "checkyourconnection"), message: Language.getWord(withID: "trytoconnect"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
+            guard self.coreVC!.checkInternetConnection() else { return }
             
             self.resetWallet()
             self.didStartReset = true
@@ -475,43 +463,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
 extension String {
     
-    func addSpaces() -> String {
-        
-        var balanceValue = self
-        if balanceValue.fixDecimals().contains(Locale.current.decimalSeparator!) {
-            balanceValue = String(self.fixDecimals().split(separator: Locale.current.decimalSeparator!)[0])
-        }
-        
-        switch balanceValue.count {
-        case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
-        case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
-        case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
-        case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
-        case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
-        case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
-        default:
-            balanceValue = balanceValue[0..<balanceValue.count]
-        }
-        
-        if self.fixDecimals().contains(Locale.current.decimalSeparator!) {
-            var decimals = String(self.fixDecimals().split(separator: Locale.current.decimalSeparator!)[1])
-            if decimals.count == 1 {
-                decimals += "0"
-            } else if decimals.count > 2 {
-                decimals = decimals[0..<2]
-            }
-            return (balanceValue + Locale.current.decimalSeparator! + decimals)
-        } else {
-            return balanceValue
-        }
-    }
-
     var length: Int {
         return count
     }

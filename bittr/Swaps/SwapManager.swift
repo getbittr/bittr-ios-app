@@ -617,58 +617,53 @@ class SwapManager: NSObject {
     }
     
     static func checkReverseSwapFees(swapVC:SwapViewController) {
-        
         guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
+        guard swapVC.checkInternetConnection() else { return }
         
         // Check requested invoice amount.
-        if swapVC.checkInternetConnection() {
+        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: ongoingSwap.boltzInvoice!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
+        
+        // Lightning invoice.
+        let invoiceAmount = Int(invoiceAmountMilli)/1000
+        
+        // Calculate onchain fees.
+        // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
+        // The invoice amount includes Boltz fees, so we need to calculate the actual on-chain amount
+        let finalOnchainAmount = ongoingSwap.satoshisAmount // This is what the user wants to receive
+        let onchainFees:Int = invoiceAmount - finalOnchainAmount
+        
+        // Note: The claim transaction fee is already included in the on-chain amount requested
+        // so the user will receive exactly the amount they input
+        
+        // Calculate maximum total routing fees.
+        let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
+        
+        // Calculate claim transaction fee
+        Task {
+            do {
+                let claimTransactionFee = try await BoltzRefund.calculateClaimOrRefundTransactionFee()
                 
-            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: ongoingSwap.boltzInvoice!).getValue() {
-                // Lightning invoice.
-                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                    let invoiceAmount = Int(invoiceAmountMilli)/1000
+                DispatchQueue.main.async {
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.claimTransactionFee = claimTransactionFee
                     
-                    // Calculate onchain fees.
-                    // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
-                    // The invoice amount includes Boltz fees, so we need to calculate the actual on-chain amount
-                    let finalOnchainAmount = ongoingSwap.satoshisAmount // This is what the user wants to receive
-                    let onchainFees:Int = invoiceAmount - finalOnchainAmount
+                    // Confirm fees with user.
+                    swapVC.confirmExpectedFees()
+                }
+            } catch {
+                Log.info("❌ Failed to calculate claim transaction fee: \(error)")
+                // Fallback to default fee calculation without claim transaction fee
+                DispatchQueue.main.async {
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
+                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
                     
-                    // Note: The claim transaction fee is already included in the on-chain amount requested
-                    // so the user will receive exactly the amount they input
-                    
-                    // Calculate maximum total routing fees.
-                    let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
-                    
-                    // Calculate claim transaction fee
-                    Task {
-                        do {
-                            let claimTransactionFee = try await BoltzRefund.calculateClaimOrRefundTransactionFee()
-                            
-                            DispatchQueue.main.async {
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.claimTransactionFee = claimTransactionFee
-                                
-                                // Confirm fees with user.
-                                swapVC.confirmExpectedFees()
-                            }
-                        } catch {
-                            Log.info("❌ Failed to calculate claim transaction fee: \(error)")
-                            // Fallback to default fee calculation without claim transaction fee
-                            DispatchQueue.main.async {
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
-                                swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
-                                
-                                // Confirm fees with user.
-                                swapVC.confirmExpectedFees()
-                                SentrySDK.capture(error: error) { scope in
-                                    scope.setExtra(value: "SwapManager row 654", key: "context")
-                                }
-                            }
-                        }
+                    // Confirm fees with user.
+                    swapVC.confirmExpectedFees()
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SwapManager row 654", key: "context")
                     }
                 }
             }

@@ -615,24 +615,3 @@ class TransactionViewController: UIViewController {
     }
     
 }
-
-extension CGFloat {
-    
-    func twoDecimals() -> CGFloat {
-        return (self*100).rounded()/100
-    }
-    
-    func toString() -> String {
-        
-        if self == 0 {
-            return "0\(Locale.current.decimalSeparator!)00"
-        } else {
-            let string = "\(self)".fixDecimals()
-            if string.split(separator: Locale.current.decimalSeparator!)[1].count == 1 {
-                return "\(string)0"
-            } else {
-                return string
-            }
-        }
-    }
-}
