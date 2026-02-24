@@ -57,22 +57,16 @@ func handleNodeError(_ error: NodeError) -> MondayError {
         return .init(title: "OnchainTxCreationFailed", detail: message)
         
     case .PaymentSendingFailed(message: let message):
-        return .init(title: "PaymentSendingFailed", detail: message)
+        return .init(title: "PaymentSendingFailed", detail: "\(message)\n\nThe recipient may not have sufficient inbound space in their Lightning channel, or no route may be available between your channel and theirs.")
         
     case .OnchainTxSigningFailed(message: let message):
         return .init(title: "OnchainTxSigningFailed", detail: message)
-        
-        /*case .MessageSigningFailed(message: let message):
-         return .init(title: "MessageSigningFailed", detail: message)*/
         
     case .GossipUpdateFailed(message: let message):
         return .init(title: "GossipUpdateFailed", detail: message)
         
     case .InvalidAddress(message: let message):
         return .init(title: "InvalidAddress", detail: message)
-        
-        //case .InvalidNetAddress(message: let message):
-        //return .init(title: "InvalidNetAddress", detail: message)
         
     case .InvalidPublicKey(message: let message):
         return .init(title: "InvalidPublicKey", detail: message)
@@ -160,22 +154,31 @@ func handleNodeError(_ error: NodeError) -> MondayError {
         
     case .InvalidCustomTlvs(message: let message):
         return .init(title: "InvalidCustomTlvs", detail: message)
+        
     case .UriParameterParsingFailed(message: let message):
         return .init(title: "UriParameterParsingFailed", detail: message)
+        
     case .InvalidUri(message: let message):
         return .init(title: "InvalidUri", detail: message)
+        
     case .InvalidQuantity(message: let message):
         return .init(title: "InvalidQuantity", detail: message)
+        
     case .InvalidNodeAlias(message: let message):
         return .init(title: "InvalidNodeAlias", detail: message)
+        
     case .InvalidDateTime(message: let message):
         return .init(title: "InvalidDateTime", detail: message)
+        
     case .InvalidFeeRate(message: let message):
         return .init(title: "InvalidFeeRate", detail: message)
+        
     case .ChannelSplicingFailed(message: let message):
         return .init(title: "ChannelSplicingFailed", detail: message)
+        
     case .InvalidBlindedPaths(message: let message):
         return .init(title: "InvalidBlindedPaths", detail: message)
+        
     case .AsyncPaymentServicesDisabled(message: let message):
         return .init(title: "AsyncPaymentServicesDisabled", detail: message)
     }
