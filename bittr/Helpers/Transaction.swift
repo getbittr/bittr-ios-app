@@ -36,6 +36,7 @@ class Transaction: NSObject {
     var transferFee: CGFloat = 0
     var surcharge: CGFloat = 0
     var bittrFee: CGFloat = 0
+    var historicalExchangeRate: CGFloat = 0
     
     // Swaps
     var isSwap = false
@@ -155,6 +156,14 @@ extension PaymentDetails {
             } else if let bittrFee = (bittrTransactions![thisTransaction.id] as! [String:Any])["bittrFee"] as? CGFloat {
                 thisTransaction.bittrFee = bittrFee
             }
+            
+            // Historical exchange rate.
+            if let historicalExchangeRateString = (bittrTransactions![thisTransaction.id] as! [String:Any])["historicalExchangeRate"] as? String {
+                let historicalExchangeRate = historicalExchangeRateString.toNumber()
+                thisTransaction.historicalExchangeRate = historicalExchangeRate
+            } else if let historicalExchangeRate = (bittrTransactions![thisTransaction.id] as! [String:Any])["historicalExchangeRate"] as? CGFloat {
+                thisTransaction.historicalExchangeRate = historicalExchangeRate
+            }
         }
         
         // Return new transaction.
@@ -191,6 +200,7 @@ extension BittrTransaction {
         thisTransaction.transferFee = CGFloat(self.transferFee.toNumber().inSatoshis())
         thisTransaction.surcharge = self.surcharge.toNumber()
         thisTransaction.bittrFee = self.bittrFee.toNumber()
+        thisTransaction.historicalExchangeRate = self.historicalExchangeRate.toNumber()
         
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: self.txId)
         if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {

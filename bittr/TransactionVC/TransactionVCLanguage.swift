@@ -26,6 +26,7 @@ extension TransactionViewController {
         self.titleSurcharge.text = Language.getWord(withID: "surcharge")
         self.titleNetAmount.text = Language.getWord(withID: "purchasevalue")
         self.titleBittrCurrentValue.text = Language.getWord(withID: "currentvalue")
+        self.titleExchangeRate.text = Language.getWord(withID: "exchangerate")
         self.titleNote.text = Language.getWord(withID: "note")
         self.titleAddANote.text = Language.getWord(withID: "addanote")
         self.bittrPayoutSubtitle.text = Language.getWord(withID: "goodjob")
@@ -92,6 +93,7 @@ extension TransactionViewController {
         self.labelBittrFee.textColor = Colors.getColor("blackorwhite")
         self.labelSurcharge.textColor = Colors.getColor("blackorwhite")
         self.labelNetAmount.textColor = Colors.getColor("blackorwhite")
+        self.labelExchangeRate.textColor = Colors.getColor("blackorwhite")
         self.labelBittrCurrentValue.textColor = Colors.getColor("blackorwhite")
         self.sumLine.backgroundColor = Colors.getColor("blackorwhite")
         

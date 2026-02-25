@@ -258,6 +258,7 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.transferFee, forKey: "transferFee" as NSCopying)
             oneTransaction.setObject(eachTransaction.surcharge, forKey: "surcharge" as NSCopying)
             oneTransaction.setObject(eachTransaction.bittrFee, forKey: "bittrFee" as NSCopying)
+            oneTransaction.setObject(eachTransaction.historicalExchangeRate, forKey: "historicalExchangeRate" as NSCopying)
             oneTransaction.setObject(eachTransaction.received, forKey: "received" as NSCopying)
             oneTransaction.setObject(eachTransaction.sent, forKey: "sent" as NSCopying)
             oneTransaction.setObject(eachTransaction.isBittr, forKey: "isBittr" as NSCopying)
@@ -309,6 +310,9 @@ class CacheManager: NSObject {
             }
             if let transactionFiatGrossAmount = eachTransaction["fiatGrossAmount"] as? CGFloat {
                 thisTransaction.fiatGrossAmount = transactionFiatGrossAmount
+            }
+            if let historicalExchangeRate = eachTransaction["historicalExchangeRate"] as? CGFloat {
+                thisTransaction.historicalExchangeRate = historicalExchangeRate
             }
             if let transactionTransferFee = eachTransaction["transferFee"] as? CGFloat {
                 thisTransaction.transferFee = transactionTransferFee
