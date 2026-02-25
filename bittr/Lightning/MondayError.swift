@@ -57,7 +57,7 @@ func handleNodeError(_ error: NodeError) -> MondayError {
         return .init(title: "OnchainTxCreationFailed", detail: message)
         
     case .PaymentSendingFailed(message: let message):
-        return .init(title: "PaymentSendingFailed", detail: "\(message)\n\nThe recipient may not have sufficient inbound space in their Lightning channel, or no route may be available between your channel and theirs.")
+        return .init(title: "PaymentSendingFailed", detail: "\(message)\n\nThe recipient may not have sufficient inbound space in their Lightning connection, or no route may be available between your connection and theirs.")
         
     case .OnchainTxSigningFailed(message: let message):
         return .init(title: "OnchainTxSigningFailed", detail: message)
