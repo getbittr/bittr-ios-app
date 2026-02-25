@@ -313,80 +313,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
-    func checkPendingPayout() {
-        self.tappedCell?.animateCell()
-        
-        let lightningPubKey = BitcoinManager.shared.nodeId()!
-        print("Pubkey: \(lightningPubKey)")
-        let timestamp = Int(Date().timeIntervalSince1970)
-        print("Timestamp: \(timestamp)")
-        
-        Task {
-            let lightningSignature:String
-            do {
-                lightningSignature = try await BitcoinManager.shared.signMessage(message: "notifications:\(lightningPubKey):\(timestamp)")
-                print("Signature: \(lightningSignature)")
-            } catch {
-                Log.info("Could not sign message. \(error.localizedDescription)")
-                return
-            }
-            
-            await CallsManager.makeApiCall(url: "https://getbittr.com/api/notifications?timestamp=\(timestamp)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)", parameters: nil, getOrPost: .get) { result in
-                
-                DispatchQueue.main.async {
-                    self.tappedCell?.stopAnimating()
-                    self.tappedCell = nil
-                    
-                    switch result {
-                    case .success(let receivedDictionary):
-                        Log.info("Successfully received notifications dictionary.")
-                        print("Dictionary: \(receivedDictionary)")
-                        
-                        let receivedNotifications = receivedDictionary.toNotifications()
-                        print("Received notifications: \(receivedNotifications.count)")
-                        
-                        guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
-                            Log.info("No notifications received.")
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            return
-                        }
-                        
-                        Log.info("Payout available for handling.")
-                        self.pendingPayout = lastNotification
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.handlePendingPayout)])
-                    case .failure(let error):
-                        Log.info("Did not receive notifications dictionary: \(error)")
-                        DispatchQueue.main.async {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    @objc func handlePendingPayout() {
-        self.hideAlert()
-        
-        // Create notification.
-        let thisNotification = BittrNotification()
-        thisNotification.id = UUID().uuidString
-        thisNotification.date = Date()
-        thisNotification.type = .lightningPayout
-        thisNotification.notificationID = self.pendingPayout!.id!
-        thisNotification.amountMsat = (self.pendingPayout!.transaction!["bitcoin_amount"] as! String).toNumber().inSatoshis() * 1000
-        
-        // Cache notification.
-        CacheManager.cacheLastNotification(thisNotification)
-        
-        // Handle notification payout.
-        self.coreVC?.wasNotified = true
-        self.coreVC?.handlePayoutNotification(thisNotification)
-        
-        // Dismiss DeviceVC.
-        self.dismiss(animated: true)
-    }
-    
     @objc func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
@@ -417,6 +343,87 @@ extension UIViewController {
                 return false
             }
         }
+    }
+    
+    func checkPendingPayout() {
+        
+        let deviceVC = self as? DeviceViewController
+        let coreVC = self as? CoreViewController
+        deviceVC?.tappedCell?.animateCell()
+        
+        let lightningPubKey = BitcoinManager.shared.nodeId()!
+        let timestamp = Int(Date().timeIntervalSince1970)
+        
+        Task {
+            let lightningSignature:String
+            do {
+                lightningSignature = try await BitcoinManager.shared.signMessage(message: "notifications:\(lightningPubKey):\(timestamp)")
+            } catch {
+                Log.info("Could not sign message. \(error.localizedDescription)")
+                return
+            }
+            
+            await CallsManager.makeApiCall(url: "https://getbittr.com/api/notifications?timestamp=\(timestamp)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)", parameters: nil, getOrPost: .get) { result in
+                
+                DispatchQueue.main.async {
+                    deviceVC?.tappedCell?.stopAnimating()
+                    deviceVC?.tappedCell = nil
+                    
+                    switch result {
+                    case .success(let receivedDictionary):
+                        Log.info("Successfully received notifications dictionary.")
+                        
+                        let receivedNotifications = receivedDictionary.toNotifications()
+                        print("Received notifications: \(receivedNotifications.count)")
+                        
+                        guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
+                            Log.info("No notifications received.")
+                            if deviceVC != nil {
+                                deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            }
+                            return
+                        }
+                        
+                        Log.info("Payout available for handling.")
+                        deviceVC?.pendingPayout = lastNotification
+                        coreVC?.pendingPayout = lastNotification
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.handlePendingPayout)])
+                    case .failure(let error):
+                        Log.info("Did not receive notifications dictionary: \(error)")
+                        if deviceVC != nil {
+                            deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    @objc func handlePendingPayout() {
+        self.hideAlert()
+        
+        let deviceVC = self as? DeviceViewController
+        let coreVC = self as? CoreViewController
+        let pendingPayout = deviceVC?.pendingPayout ?? coreVC!.pendingPayout!
+        
+        // Create notification.
+        let thisNotification = BittrNotification()
+        thisNotification.id = UUID().uuidString
+        thisNotification.date = Date()
+        thisNotification.type = .lightningPayout
+        thisNotification.notificationID = pendingPayout.id!
+        thisNotification.amountMsat = (pendingPayout.transaction!["bitcoin_amount"] as! String).toNumber().inSatoshis() * 1000
+        
+        // Cache notification.
+        CacheManager.cacheLastNotification(thisNotification)
+        
+        // Handle notification payout.
+        (deviceVC?.coreVC ?? coreVC!).wasNotified = true
+        (deviceVC?.coreVC ?? coreVC!).handlePayoutNotification(thisNotification)
+        
+        // Dismiss DeviceVC.
+        coreVC?.pendingPayout = nil
+        deviceVC?.dismiss(animated: true)
     }
 }
 

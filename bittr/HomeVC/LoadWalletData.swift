@@ -565,6 +565,17 @@ extension HomeViewController {
                 // It's an LNURL notification.
                 self.coreVC!.handleLightningAddressNotification(actualNotification)
             }
+        } else {
+            var userHasBittrAccount = false
+            for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+                if eachIbanEntity.yourUniqueCode != "" {
+                    userHasBittrAccount = true
+                }
+            }
+            if userHasBittrAccount {
+                Log.info("Check for pending payout.")
+                self.coreVC!.checkPendingPayout()
+            }
         }
         
         // Check if peer connection has been successful.

@@ -85,6 +85,7 @@ class CoreViewController: UIViewController {
     var receivedBittrTransaction:Transaction?
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0
+    var pendingPayout:BittrPendingPayout?
     
     // Connection to VCs
     var homeVC:HomeViewController?
