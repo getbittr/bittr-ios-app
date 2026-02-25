@@ -10,17 +10,19 @@ import LDKNode
 
 class QuestionViewController: UIViewController {
 
-    @IBOutlet weak var finalLogo: UIImageView!
-    @IBOutlet weak var bittrText: UIImageView!
-    @IBOutlet weak var downButton: UIButton!
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var headerLabel: UILabel!
+    // Generic items
+    @IBOutlet weak var yellowCard: UIView!
+    
+    // Labels
     @IBOutlet weak var answerLabel: UILabel!
-    @IBOutlet weak var answerLabelBottom: NSLayoutConstraint!
     
     // Channel chart
+    @IBOutlet weak var channelStack: UIView!
+    @IBOutlet weak var channelStackHeight: NSLayoutConstraint!
     @IBOutlet weak var channelView: UIView!
+    @IBOutlet weak var yourBalanceTitle: UILabel!
     @IBOutlet weak var yourBalanceLabel: UILabel!
+    @IBOutlet weak var receiveLimitTitle: UILabel!
     @IBOutlet weak var receiveLimitLabel: UILabel!
     @IBOutlet weak var totalLabel: UILabel!
     @IBOutlet weak var barView: UIView!
@@ -36,20 +38,17 @@ class QuestionViewController: UIViewController {
         super.viewDidLoad()
 
         // Corner radii and button titles
-        self.downButton.setTitle("", for: .normal)
-        self.headerView.layer.cornerRadius = 13
-        self.channelView.layer.cornerRadius = 13
+        self.yellowCard.layer.cornerRadius = 13
+        self.channelView.layer.cornerRadius = 8
         self.barView.layer.cornerRadius = 2
         
         // Channel view shadow
         self.channelView.setShadow()
-        
-        if let actualHeader = headerText, let actualAnswer = answerText {
-            self.headerLabel.text = actualHeader
-            self.answerLabel.text = actualAnswer
-        }
+        self.yellowCard.setShadow()
         
         self.changeColors()
+        self.answerLabel.text = self.answerText ?? ""
+        var topHeaderText = self.headerText ?? ""
         
         if let actualType = self.questionType {
             
@@ -77,14 +76,17 @@ class QuestionViewController: UIViewController {
                 }
             } else {
                 if actualType == "lightningreceivable" {
-                    self.headerLabel.text = Language.getWord(withID: "questionvc6")
+                    topHeaderText = Language.getWord(withID: "questionvc6")
                     self.answerLabel.text = Language.getWord(withID: "lightningexplanation1")
                 } else if actualType == "lightningsendable" {
-                    self.headerLabel.text = Language.getWord(withID: "questionvc12")
+                    topHeaderText = Language.getWord(withID: "questionvc12")
                     self.answerLabel.text = Language.getWord(withID: "questionvc13")
                 }
             }
         }
+        
+        // Add header
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: topHeaderText)
     }
     
     @IBAction func downButtonTapped(_ sender: UIButton) {
@@ -100,26 +102,22 @@ class QuestionViewController: UIViewController {
         NSLayoutConstraint.deactivate([self.balanceBarWidth])
         self.balanceBarWidth = NSLayoutConstraint(item: self.balanceBar, attribute: .width, relatedBy: .equal, toItem: self.barView, attribute: .width, multiplier: CGFloat((forChannel.outboundCapacityMsat/1000)+(forChannel.unspendablePunishmentReserve ?? 0))/CGFloat(forChannel.channelValueSats), constant: 0)
         NSLayoutConstraint.activate([self.balanceBarWidth])
-        self.answerLabelBottom.constant = 140
+        self.channelStackHeight.constant = 30 + self.channelView.frame.height
+        self.channelStack.alpha = 1
         self.view.layoutIfNeeded()
-        
-        self.channelView.alpha = 1
     }
     
     func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
+        self.channelView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.yourBalanceTitle.textColor = Colors.getColor("blackoryellow")
+        self.receiveLimitTitle.textColor = Colors.getColor("blackoryellow")
+        self.yourBalanceLabel.textColor = Colors.getColor("blackorwhite")
+        self.receiveLimitLabel.textColor = Colors.getColor("blackorwhite")
+        self.totalLabel.textColor = Colors.getColor("blackorwhite")
         self.answerLabel.textColor = Colors.getColor("blackorwhite")
-        
-        if CacheManager.darkModeIsOn() {
-            // Dark mode is on.
-            self.bittrText.image = UIImage(named: "bittrtextwhite")
-            self.finalLogo.image = UIImage(named: "logodarkmode80")
-        } else {
-            // Dark mode is off.
-            self.bittrText.image = UIImage(named: "bittrtext")
-            self.finalLogo.image = UIImage(named: "logo80")
-        }
     }
     
 }

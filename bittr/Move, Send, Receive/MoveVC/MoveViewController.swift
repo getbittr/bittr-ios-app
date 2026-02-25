@@ -84,6 +84,7 @@ class MoveViewController: UIViewController {
         // Set language and colors.
         self.updateLabels()
         self.changeColors()
+        self.setWords()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "balance"))
         
         // If we're coming from a Lightning or Onchain payment, automatically trigger the swap segue.
