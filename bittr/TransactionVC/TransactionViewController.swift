@@ -28,6 +28,8 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var labelAmount: UILabel!
     
     // Type stack
+    @IBOutlet weak var typeStack: UIView!
+    @IBOutlet weak var typeStackHeight: NSLayoutConstraint!
     @IBOutlet weak var cardType: UIView!
     @IBOutlet weak var titleType: UILabel!
     @IBOutlet weak var labelType: UILabel!
@@ -67,6 +69,8 @@ class TransactionViewController: UIViewController {
     @IBOutlet weak var buttonDescription: UIButton!
     
     // IDs stack
+    @IBOutlet weak var idStack: UIView!
+    @IBOutlet weak var idStackHeight: NSLayoutConstraint!
     @IBOutlet weak var cardTopId: UIView!
     @IBOutlet weak var titleTopId: UILabel!
     @IBOutlet weak var labelTopId: UILabel!
@@ -258,7 +262,10 @@ class TransactionViewController: UIViewController {
         }
         
         // Type
-        if self.tappedTransaction.isSwap {
+        if self.showConfetti {
+            self.typeStack.alpha = 0
+            self.typeStackHeight.constant = 0
+        } else if self.tappedTransaction.isSwap {
             switch self.tappedTransaction.swapDirection {
             case .onchainToLightning:
                 self.labelType.text = Language.getWord(withID: "onchaintolightning")
@@ -335,7 +342,12 @@ class TransactionViewController: UIViewController {
         }
         
         // Description
-        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap {
+        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.showConfetti {
+            
+            if self.tappedTransaction.isBittr {
+                self.labelDescription.numberOfLines = 1
+                self.labelDescription.lineBreakMode = .byTruncatingMiddle
+            }
             
             self.labelDescription.text = self.tappedTransaction.lnDescription
             NSLayoutConstraint.deactivate([self.descriptionStackHeight])
@@ -346,7 +358,12 @@ class TransactionViewController: UIViewController {
         }
         
         // IDs
-        if self.tappedTransaction.isSwap {
+        if self.showConfetti {
+            self.idStack.alpha = 0
+            NSLayoutConstraint.deactivate([self.idStackHeight])
+            self.idStackHeight = NSLayoutConstraint(item: self.idStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.idStackHeight])
+        } else if self.tappedTransaction.isSwap {
             self.bottomIdStack.alpha = 1
             self.bottomIdStackHeight.constant = 29
             if self.tappedTransaction.swapDirection == .onchainToLightning {
