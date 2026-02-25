@@ -150,16 +150,8 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     }
 
     func coordYFor(index: Int) -> CGFloat {
-        
-        //var correction:CGFloat = 0
-        //if data[index] == (data.max() ?? 0) { correction = 3 }
         let differenceValueAndMin = data[index] - (data.min() ?? 0)
         let differenceMaxAndMin = (data.max() ?? 0) - (data.min() ?? 0)
-        /*if bounds.height - (bounds.height * ((differenceValueAndMin) / (differenceMaxAndMin))) < 3 {
-            correction = 3
-        } else if bounds.height - (bounds.height * ((differenceValueAndMin) / (differenceMaxAndMin))) > bounds.height - 13 {
-            correction = -13
-        }*/
         return (bounds.height - 25) - ((bounds.height - 30) * ((differenceValueAndMin) / (differenceMaxAndMin)))
     }
 
@@ -172,13 +164,13 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         context!.saveGState()
         context!.setShadow(offset: CGSize(width: 0, height: 9), blur: 15, color: UIColor.black.cgColor)
         context!.setAlpha(0.4)
-        UIColor.white.setStroke()
+        Colors.getColor("whiteoryellow").setStroke()
         path.lineWidth = 4
         path.stroke()
         context!.restoreGState()
         
         let path2:UIBezierPath = quadCurvedPath()
-        UIColor.white.setStroke()
+        Colors.getColor("whiteoryellow").setStroke()
         path2.lineWidth = 4
         path2.stroke()
     }
@@ -191,7 +183,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         var p1 = CGPoint(x: 30, y: coordYFor(index: 0))
         path.move(to: p1)
         
-        drawPoint(point: p1, color: UIColor.white, radius: 2)
+        drawPoint(point: p1, color: Colors.getColor("whiteoryellow"), radius: 2)
         
         if (data.count == 2) {
             path.addLine(to: CGPoint(x: step + 30, y: coordYFor(index: 1)))
@@ -203,7 +195,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         for i in 1..<data.count {
             
             let p2 = CGPoint(x: step * CGFloat(i) + 30, y: coordYFor(index: i))
-            drawPoint(point: p2, color: UIColor.white, radius: 2)
+            drawPoint(point: p2, color: Colors.getColor("whiteoryellow"), radius: 2)
             var p3: CGPoint?
             if i < data.count - 1 {
                 p3 = CGPoint(x: step * CGFloat(i + 1) + 30, y: coordYFor(index: i + 1))

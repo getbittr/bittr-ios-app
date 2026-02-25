@@ -54,11 +54,11 @@ class DeviceTableViewCell: UITableViewCell {
         case "publickey":
             self.deviceVC?.getPublicKey()
         case "bittrpeer":
+            self.deviceVC?.tappedCell = self
             self.deviceVC?.checkPeerConnection()
-            self.deviceVC?.tappedCell = self
         case "purchases":
-            self.deviceVC?.checkPurchases()
             self.deviceVC?.tappedCell = self
+            self.deviceVC?.checkPurchases()
         case "notification":
             self.deviceVC?.checkNotification()
         case "lightningchannels":
@@ -66,8 +66,8 @@ class DeviceTableViewCell: UITableViewCell {
         case "cache":
             self.deviceVC?.imagesButtonTapped()
         case "pendingpayouts":
-            self.deviceVC?.checkPendingPayout()
             self.deviceVC?.tappedCell = self
+            self.deviceVC?.checkPendingPayout()
         default: return
         }
     }
