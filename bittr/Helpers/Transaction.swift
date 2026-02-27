@@ -61,7 +61,7 @@ enum SwapStatus {
 
 extension PaymentDetails {
     
-    func createTransaction(coreVC:CoreViewController?, bittrTransactions:NSMutableDictionary?) -> Transaction {
+    func createTransaction(coreVC:CoreViewController?, bittrTransactions:[String:BittrTransaction]?) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()
@@ -112,58 +112,30 @@ extension PaymentDetails {
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
         
         // Check if transaction is Bittr.
-        if bittrTransactions != nil, (bittrTransactions!.allKeys as! [String]).contains(thisTransaction.id) {
+        if bittrTransactions != nil, let thisBittrTransaction = bittrTransactions![thisTransaction.id] {
             
             thisTransaction.isBittr = true
-            thisTransaction.currency = (bittrTransactions![thisTransaction.id] as! [String:Any])["currency"] as! String
+            
+            // Currency
+            thisTransaction.currency = thisBittrTransaction.currency
             
             // Fiat net amount.
-            if let fiatNetAmountString = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatNetAmount"] as? String {
-                let fiatNetAmount = fiatNetAmountString.toNumber().inSatoshis()
-                thisTransaction.fiatNetAmount = CGFloat(fiatNetAmount)
-            } else if let fiatNetAmount = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatNetAmount"] as? CGFloat {
-                thisTransaction.fiatNetAmount = fiatNetAmount
-            }
+            thisTransaction.fiatNetAmount = thisBittrTransaction.fiatNetAmount.toNumber()
             
             // Fiat gross amount.
-            if let fiatGrossAmountString = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatGrossAmount"] as? String {
-                let fiatGrossAmount = fiatGrossAmountString.toNumber().inSatoshis()
-                thisTransaction.fiatGrossAmount = CGFloat(fiatGrossAmount)
-            } else if let fiatGrossAmount = (bittrTransactions![thisTransaction.id] as! [String:Any])["fiatGrossAmount"] as? CGFloat {
-                thisTransaction.fiatGrossAmount = fiatGrossAmount
-            }
+            thisTransaction.fiatGrossAmount = thisBittrTransaction.fiatGrossAmount.toNumber()
             
             // Transfer fee.
-            if let transferFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? String {
-                let transferFee = transferFeeString.toNumber().inSatoshis()
-                thisTransaction.transferFee = CGFloat(transferFee)
-            } else if let transferFee = (bittrTransactions![thisTransaction.id] as! [String:Any])["transferFee"] as? CGFloat {
-                thisTransaction.transferFee = transferFee
-            }
+            thisTransaction.transferFee = CGFloat(thisBittrTransaction.transferFee.toNumber().inSatoshis())
             
             // Surcharge.
-            if let surchargeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["surcharge"] as? String {
-                let surcharge = surchargeString.toNumber()
-                thisTransaction.surcharge = surcharge
-            } else if let surcharge = (bittrTransactions![thisTransaction.id] as! [String:Any])["surcharge"] as? CGFloat {
-                thisTransaction.surcharge = surcharge
-            }
+            thisTransaction.surcharge = thisBittrTransaction.surcharge.toNumber()
             
             // Bittr fee.
-            if let bittrFeeString = (bittrTransactions![thisTransaction.id] as! [String:Any])["bittrFee"] as? String {
-                let bittrFee = bittrFeeString.toNumber()
-                thisTransaction.bittrFee = bittrFee
-            } else if let bittrFee = (bittrTransactions![thisTransaction.id] as! [String:Any])["bittrFee"] as? CGFloat {
-                thisTransaction.bittrFee = bittrFee
-            }
+            thisTransaction.bittrFee = thisBittrTransaction.bittrFee.toNumber()
             
             // Historical exchange rate.
-            if let historicalExchangeRateString = (bittrTransactions![thisTransaction.id] as! [String:Any])["historicalExchangeRate"] as? String {
-                let historicalExchangeRate = historicalExchangeRateString.toNumber()
-                thisTransaction.historicalExchangeRate = historicalExchangeRate
-            } else if let historicalExchangeRate = (bittrTransactions![thisTransaction.id] as! [String:Any])["historicalExchangeRate"] as? CGFloat {
-                thisTransaction.historicalExchangeRate = historicalExchangeRate
-            }
+            thisTransaction.historicalExchangeRate = thisBittrTransaction.historicalExchangeRate.toNumber()
         }
         
         // Return new transaction.

@@ -38,10 +38,10 @@ extension HomeViewController {
             self.visibleTransactions = cachedTransactions
             self.newTransactions = cachedTransactions
             
-            self.bittrTransactions.removeAllObjects()
+            self.bittrTransactions = [:]
             for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
-                    self.bittrTransactions.setValue(["fiatNetAmount":eachTransaction.fiatNetAmount, "fiatGrossAmount":eachTransaction.fiatGrossAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee, "historicalExchangeRate":eachTransaction.historicalExchangeRate], forKey: eachTransaction.id)
+                    self.bittrTransactions.updateValue(BittrTransaction(txId: "", transferType: "", historicalExchangeRate: "\(eachTransaction.historicalExchangeRate)", datetime: "", currency: eachTransaction.currency, bitcoinAmount: "", transferFee: "\(eachTransaction.transferFee.inBTC())", bittrFee: "\(eachTransaction.bittrFee)", surcharge: "\(eachTransaction.surcharge)", fiatNetAmount: "\(eachTransaction.fiatNetAmount)", fiatGrossAmount: "\(eachTransaction.fiatGrossAmount)"), forKey: eachTransaction.id)
                 }
             }
             

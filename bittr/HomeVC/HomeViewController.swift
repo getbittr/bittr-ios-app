@@ -67,8 +67,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Transactions
     var visibleTransactions = [Transaction]()
     var newTransactions = [Transaction]()
-    var fetchedTransactions = [[String:String]]()
-    var bittrTransactions = NSMutableDictionary()
+    var bittrTransactions = [String:BittrTransaction]()
     var cachedLightningIds = [String]()
     var tappedTransaction = Transaction()
     
@@ -77,10 +76,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var didFetchConversion = false
     var couldNotFetchConversion = false
     
-    // Cove View Controller
+    // Other VCs
     var coreVC:CoreViewController?
     var moveVC:MoveViewController?
     var sendVC:SendViewController?
+    
+    // Pending variables
     var openMoveVCFromBackgroundNotification = false
     var isFromOnchainPayment = false
     var pendingOnchainAddress = ""
@@ -103,29 +104,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Corner radii
-        self.buyButtonView.layer.cornerRadius = 8
-        self.sendButtonView.layer.cornerRadius = 8
-        self.receiveButtonView.layer.cornerRadius = 8
-        self.headerView.layer.cornerRadius = 13
-        self.balanceCard.layer.cornerRadius = 13
-        self.balanceCardProfitView.layer.cornerRadius = 13
-        
-        // Button titles
-        self.profitButton.setTitle("", for: .normal)
-        self.buyButton.setTitle("", for: .normal)
-        self.sendButton.setTitle("", for: .normal)
-        self.receiveButton.setTitle("", for: .normal)
-        self.balanceCardButton.setTitle("", for: .normal)
-        self.headerViewButton.setTitle("", for: .normal)
-        self.currencyButton.setTitle("", for: .normal)
-        
-        // Balance card shadow
-        self.balanceCard.setShadow()
-        self.sendButtonView.setShadow()
-        self.receiveButtonView.setShadow()
-        self.buyButtonView.setShadow()
-        
         // Table view
         self.homeTableView.delegate = self
         self.homeTableView.dataSource = self
@@ -133,6 +111,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Check if dark mode is on.
         self.changeColors()
         self.setWords()
+        self.setBasicStyling()
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
@@ -320,37 +299,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    func resetWallet() {
-        Log.info("Reset wallet.")
-        
-        self.visibleTransactions.removeAll()
-        self.newTransactions.removeAll()
-        self.calculatedProfit = 0
-        self.calculatedInvestments = 0
-        self.calculatedCurrentValue = 0
-        self.coreVC?.bittrWallet.satoshisOnchain = 0
-        self.coreVC?.bittrWallet.satoshisLightning = 0
-        
-        self.noTransactionsLabel.alpha = 0
-        self.balanceCardProfitView.alpha = 0
-        self.balanceCardGainLabel.alpha = 0
-        self.balanceLabel.alpha = 0
-        self.bitcoinSign.alpha = 0
-        self.conversionLabel.alpha = 0
-        self.homeTableView.reloadData()
-        
-        self.headerSpinner.startAnimating()
-        self.headerProblemImage.alpha = 0
-        self.couldNotFetchConversion = false
-        self.didFetchConversion = false
-        self.coreVC?.walletHasSynced = false
-        
-        if self.coreVC!.walletSync != nil {
-            self.coreVC!.walletSync!.stop()
-            self.coreVC!.walletSync = nil
-        }
-    }
-    
     func addLightningTransaction(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
         // Add new transaction.
@@ -377,25 +325,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Update balance label.
         self.setTotalSats()
         self.moveVC?.updateLabels()
-    }
-    
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        
-        // Reload wallet when pulling down the view.
-        
-        if scrollView.contentOffset.y < -200, !self.didStartReset, !self.headerSpinner.isAnimating {
-            
-            guard self.coreVC!.checkInternetConnection() else { return }
-            
-            self.resetWallet()
-            self.didStartReset = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                // Perform reset.
-                Task {
-                    await self.coreVC!.startWallet()
-                }
-            }
-        }
     }
     
     

@@ -79,4 +79,30 @@ extension HomeViewController {
             self.setNoTransactionsLabel()
         }
     }
+    
+    func setBasicStyling() {
+        
+        // Corner radii
+        self.buyButtonView.layer.cornerRadius = 8
+        self.sendButtonView.layer.cornerRadius = 8
+        self.receiveButtonView.layer.cornerRadius = 8
+        self.headerView.layer.cornerRadius = 13
+        self.balanceCard.layer.cornerRadius = 13
+        self.balanceCardProfitView.layer.cornerRadius = 13
+        
+        // Button titles
+        self.profitButton.setTitle("", for: .normal)
+        self.buyButton.setTitle("", for: .normal)
+        self.sendButton.setTitle("", for: .normal)
+        self.receiveButton.setTitle("", for: .normal)
+        self.balanceCardButton.setTitle("", for: .normal)
+        self.headerViewButton.setTitle("", for: .normal)
+        self.currencyButton.setTitle("", for: .normal)
+        
+        // Balance card shadow
+        self.balanceCard.setShadow()
+        self.sendButtonView.setShadow()
+        self.receiveButtonView.setShadow()
+        self.buyButtonView.setShadow()
+    }
 }

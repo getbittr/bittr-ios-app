@@ -167,10 +167,10 @@ extension HomeViewController {
         }
         
         // Add previously cached transactions to Bittr transactions array.
-        self.bittrTransactions.removeAllObjects()
+        self.bittrTransactions = [:]
         for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() {
             if eachTransaction.isBittr {
-                self.bittrTransactions.setValue(["fiatNetAmount":eachTransaction.fiatNetAmount, "fiatGrossAmount":eachTransaction.fiatGrossAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee, "historicalExchangeRate":eachTransaction.historicalExchangeRate], forKey: eachTransaction.id)
+                self.bittrTransactions.updateValue(BittrTransaction(txId: "", transferType: "", historicalExchangeRate: "\(eachTransaction.historicalExchangeRate)", datetime: "", currency: eachTransaction.currency, bitcoinAmount: "", transferFee: "\(eachTransaction.transferFee.inBTC())", bittrFee: "\(eachTransaction.bittrFee)", surcharge: "\(eachTransaction.surcharge)", fiatNetAmount: "\(eachTransaction.fiatNetAmount)", fiatGrossAmount: "\(eachTransaction.fiatGrossAmount)"), forKey: eachTransaction.id)
             }
         }
         
@@ -216,7 +216,7 @@ extension HomeViewController {
                 CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
             } else {
                 // This is not a channel funding transaction.
-                self.bittrTransactions.setValue(["fiatNetAmount":eachTransaction.fiatNetAmount, "fiatGrossAmount":eachTransaction.fiatGrossAmount, "currency":eachTransaction.currency, "transferFee":eachTransaction.transferFee, "surcharge":eachTransaction.surcharge, "bittrFee":eachTransaction.bittrFee, "historicalExchangeRate":eachTransaction.historicalExchangeRate], forKey: eachTransaction.txId)
+                self.bittrTransactions.updateValue(eachTransaction, forKey: eachTransaction.txId)
                 
                 if sendAll {
                     // Check transactions that were previously not recognized.
