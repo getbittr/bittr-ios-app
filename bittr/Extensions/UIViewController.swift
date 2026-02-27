@@ -119,4 +119,52 @@ extension UIViewController {
         self.dismiss(animated: true)
     }
     
+    @objc func askForPushNotifications() {
+        self.hideAlert()
+        
+        let homeVC = self as? HomeViewController
+        let swapVC = self as? SwapViewController
+        let transfer15VC = self as? Transfer15ViewController
+        let deviceVC = self as? DeviceViewController
+        
+        let current = UNUserNotificationCenter.current()
+        current.getNotificationSettings { (settings) in
+            
+            if settings.authorizationStatus == .notDetermined {
+                // User hasn't set their preference yet.
+                
+                current.delegate = (homeVC ?? swapVC ?? transfer15VC ?? deviceVC)
+                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                    
+                    Log.info("Permission granted: \(granted)")
+                    guard granted else {
+                        transfer15VC?.checkPushNotificationStatus()
+                        return
+                    }
+                    
+                    // Double check that the preference is now authorized.
+                    current.getNotificationSettings { (updatedSettings) in
+                        Log.info("Notification settings: \(updatedSettings)")
+                        guard updatedSettings.authorizationStatus == .authorized else {
+                            transfer15VC?.checkPushNotificationStatus()
+                            return
+                        }
+                        DispatchQueue.main.async {
+                            // Register for notifications.
+                            transfer15VC?.start2Fa = true
+                            UIApplication.shared.registerForRemoteNotifications()
+                        }
+                    }
+                }
+            } else if settings.authorizationStatus == .authorized {
+                // User has already authorized notifications.
+                DispatchQueue.main.async {
+                    // Register for notifications.
+                    transfer15VC?.start2Fa = true
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+    }
+    
 }

@@ -122,39 +122,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         present(actionSheet, animated: true, completion: nil)
     }
     
-    func getToken() {
-        
-        let current = UNUserNotificationCenter.current()
-        current.getNotificationSettings { (settings) in
-            
-            if settings.authorizationStatus != .authorized {
-                // User hasn't accepted push notifications.
-                
-                current.delegate = self
-                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-                    
-                    Log.info("Permission granted: \(granted)")
-                    guard granted else {return}
-                    
-                    // Double check that the preference is now authorized.
-                    current.getNotificationSettings { (settings) in
-                        Log.info("Notification settings: \(settings)")
-                        guard settings.authorizationStatus == .authorized else {return}
-                        DispatchQueue.main.async {
-                            // Register for notifications.
-                            UIApplication.shared.registerForRemoteNotifications()
-                        }
-                    }
-                }
-            } else {
-                // User has accepted push notifications.
-                DispatchQueue.main.async {
-                    UIApplication.shared.registerForRemoteNotifications()
-                }
-            }
-        }
-    }
-    
     @objc func showToken(notification:NSNotification) {
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {

@@ -492,49 +492,6 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
         self.view.endEditing(true)
     }
     
-    @objc func askForPushNotifications() {
-        self.hideAlert()
-        
-        let current = UNUserNotificationCenter.current()
-        current.getNotificationSettings { (settings) in
-            
-            if settings.authorizationStatus != .authorized {
-                // User hasn't authorized notifications yet.
-                
-                current.delegate = self
-                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-                    
-                    Log.info("Permission granted: \(granted)")
-                    guard granted else {
-                        self.checkPushNotificationStatus()
-                        return
-                    }
-                    
-                    // Double check that the preference is now authorized.
-                    current.getNotificationSettings { (updatedSettings) in
-                        Log.info("Notification settings: \(updatedSettings)")
-                        guard updatedSettings.authorizationStatus == .authorized else {
-                            self.checkPushNotificationStatus()
-                            return
-                        }
-                        DispatchQueue.main.async {
-                            // Register for notifications.
-                            self.start2Fa = true
-                            UIApplication.shared.registerForRemoteNotifications()
-                        }
-                    }
-                }
-            } else {
-                // User has already authorized notifications.
-                DispatchQueue.main.async {
-                    // Register for notifications.
-                    self.start2Fa = true
-                    UIApplication.shared.registerForRemoteNotifications()
-                }
-            }
-        }
-    }
-    
     func changeColors() {
         
         self.topLabel.textColor = Colors.getColor("blackorwhite")

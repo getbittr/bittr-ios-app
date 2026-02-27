@@ -714,46 +714,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.view.endEditing(true)
     }
     
-    @objc func askForPushNotifications() {
-        
-        self.hideAlert()
-        
-        let current = UNUserNotificationCenter.current()
-        current.getNotificationSettings { (settings) in
-            
-            if settings.authorizationStatus == .notDetermined {
-                // User hasn't set their preference yet.
-                
-                current.delegate = self
-                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-                    
-                    Log.info("Permission granted: \(granted)")
-                    guard granted else {
-                        return
-                    }
-                    
-                    // Double check that the preference is now authorized.
-                    current.getNotificationSettings { (settings) in
-                        Log.info("Notification settings: \(settings)")
-                        guard settings.authorizationStatus == .authorized else {
-                            return
-                        }
-                        DispatchQueue.main.async {
-                            // Register for notifications.
-                            UIApplication.shared.registerForRemoteNotifications()
-                        }
-                    }
-                }
-            } else if settings.authorizationStatus == .authorized {
-                // User has already authorized notifications.
-                DispatchQueue.main.async {
-                    // Register for notifications.
-                    UIApplication.shared.registerForRemoteNotifications()
-                }
-            }
-        }
-    }
-    
     func handleSwapNotification(_ notification: BittrNotification) {
         Log.info("Received swap notification.")
         

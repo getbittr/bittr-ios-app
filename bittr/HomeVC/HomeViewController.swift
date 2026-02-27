@@ -327,35 +327,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.moveVC?.updateLabels()
     }
     
-    
-    func askForPushNotifications() {
-        
-        let current = UNUserNotificationCenter.current()
-        current.getNotificationSettings { (settings) in
-            
-            if settings.authorizationStatus == .notDetermined {
-                // User hasn't set their preference yet.
-                
-                current.delegate = self
-                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-                    
-                    Log.info("Permission granted: \(granted)")
-                    guard granted else {return}
-                    
-                    // Double check that the preference is now authorized.
-                    current.getNotificationSettings { (settings) in
-                        Log.info("Notification settings: \(settings)")
-                        guard settings.authorizationStatus == .authorized else {return}
-                        DispatchQueue.main.async {
-                            // Register for notifications.
-                            UIApplication.shared.registerForRemoteNotifications()
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
         
         if !self.coreVC!.walletHasSynced {
@@ -388,33 +359,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.performSegue(withIdentifier: "HomeToValue", sender: self)
     }
     
-}
-
-extension String {
-    
-    var length: Int {
-        return count
-    }
-
-    subscript (i: Int) -> String {
-        return self[i ..< i + 1]
-    }
-
-    func substring(fromIndex: Int) -> String {
-        return self[min(fromIndex, length) ..< length]
-    }
-
-    func substring(toIndex: Int) -> String {
-        return self[0 ..< max(0, toIndex)]
-    }
-
-    subscript (r: Range<Int>) -> String {
-        let range = Range(uncheckedBounds: (lower: max(0, min(length, r.lowerBound)),
-                                            upper: min(length, max(0, r.upperBound))))
-        let start = index(startIndex, offsetBy: range.lowerBound)
-        let end = index(start, offsetBy: range.upperBound - range.lowerBound)
-        return String(self[start ..< end])
-    }
 }
 
 extension UIView {

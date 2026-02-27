@@ -50,7 +50,7 @@ class DeviceTableViewCell: UITableViewCell {
         case "language":
             self.deviceVC?.changeLanguage()
         case "devicetoken":
-            self.deviceVC?.getToken()
+            self.deviceVC?.askForPushNotifications()
         case "publickey":
             self.deviceVC?.getPublicKey()
         case "bittrpeer":
