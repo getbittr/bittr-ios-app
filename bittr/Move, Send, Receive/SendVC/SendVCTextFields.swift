@@ -30,7 +30,7 @@ extension SendViewController {
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
                 self.hideScanner()
-                self.handleLNURL(code: textField.text!, sendVC: self, receiveVC: nil)
+                self.handleLNURL(code: textField.text!)
                 return true
             }
             

@@ -37,7 +37,7 @@ extension ReceiveViewController {
         }
             
         DispatchQueue.main.async {
-            if let invoiceHash = self.getInvoiceHash(invoiceString: zeroInvoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+            if let invoiceHash = zeroInvoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                 let newTimestamp = Int(Date().timeIntervalSince1970)
                 CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
                 if enteredDescription != "" {
@@ -58,7 +58,7 @@ extension ReceiveViewController {
                 expirySecs: expirySecs
             )
             DispatchQueue.main.async {
-                if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                     CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
                 }
             }

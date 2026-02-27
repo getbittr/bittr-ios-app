@@ -44,9 +44,9 @@ extension SendViewController {
                     // Invalid lightning invoice
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
-            } else if enteredInvoice.lowercased().isValidEmail() {
+            } else if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
                 // LNURL. No amount needed.
-                self.handleLNURL(code: enteredInvoice.lowercased(), sendVC: self, receiveVC: nil)
+                self.handleLNURL(code: enteredInvoice.lowercased())
             } else {
                 // Not a lightning invoice, amount is required
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -101,7 +101,7 @@ extension UIViewController {
         // Check for LNURL address.
         if invoiceText.lowercased().contains("lnurl") || invoiceText.lowercased().isValidEmail() {
             // LNURL code.
-            self.handleLNURL(code: invoiceText.replacingOccurrences(of: "lightning:", with: ""), sendVC: sendVC, receiveVC: nil)
+            self.handleLNURL(code: invoiceText.replacingOccurrences(of: "lightning:", with: ""))
             return
         }
         

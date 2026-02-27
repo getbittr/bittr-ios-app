@@ -123,7 +123,7 @@ extension SendViewController {
             Log.info("Did find LNURL.")
             
             self.toTextField.text = lnurl!
-            self.handleLNURL(code: lnurl!, sendVC: self, receiveVC: nil)
+            self.handleLNURL(code: lnurl!)
             self.onchainOrLightning = .lightning
             self.hideScanner()
         } else if lightningInvoice != nil {

@@ -10,7 +10,6 @@ import UIKit
 import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
-import LightningDevKit
 import Sentry
 
 extension SendViewController {
@@ -22,6 +21,7 @@ extension SendViewController {
               let maxAmount = pendingLNURLMaxAmount,
               let amountText = amountTextField.text,
               !amountText.isEmpty else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -40,6 +40,7 @@ extension SendViewController {
             guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
                 Log.info("376 Invalid values.")
                 print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
@@ -66,7 +67,7 @@ extension SendViewController {
         
         // Send the LNURL payment request
         self.amountTextField.resignFirstResponder()
-        self.sendPayRequest(callbackURL: callback, amount: enteredAmount, sendVC: self, receiveVC: nil, receivedDescription: description)
+        self.sendPayRequest(callbackURL: callback, amount: enteredAmount, receivedDescription: description)
     }
     
     func handleWithdrawAmountCompletion() {
@@ -76,6 +77,7 @@ extension SendViewController {
               let maxAmount = pendingWithdrawMaxAmount,
               let amountText = amountTextField.text,
               !amountText.isEmpty else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
         
@@ -98,14 +100,17 @@ extension SendViewController {
         
         // Send the withdraw request
         self.amountTextField.resignFirstResponder()
-        self.sendWithdrawRequest(callbackURL: callback, amount: enteredAmount, k1: k1, sendVC: self, receiveVC: nil)
+        self.sendWithdrawRequest(callbackURL: callback, amount: enteredAmount, k1: k1)
     }
     
 }
 
 extension UIViewController {
     
-    func handleLNURL(code:String, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+    func handleLNURL(code:String) {
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
         
         sendVC?.startLNURLSpinner()
         receiveVC?.startLNURLSpinner()
@@ -145,69 +150,77 @@ extension UIViewController {
                     switch result {
                     case .success(let actualDataDict):
                         SentrySDK.metrics.count(key: "lnurl.api.success")
+                        guard let receivedTag = actualDataDict["tag"] as? String else {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
+                        print("Tag: \(receivedTag)")
                         
-                        if let receivedTag = actualDataDict["tag"] as? String {
-                            print("Tag: \(receivedTag)")
-                            
-                            if receivedTag == "payRequest", let receivedCallback = actualDataDict["callback"] as? String, let minSendable = actualDataDict["minSendable"] as? Int, let maxSendable = actualDataDict["maxSendable"] as? Int {
-                                    
-                                // Check if this LNURL contains a description.
-                                var receivedDescription:String?
-                                if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
-                                    for eachDataPair in parsedMetadata {
-                                        if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
-                                            receivedDescription = eachDataPair[1]
-                                        }
-                                    }
-                                }
+                        if receivedTag == "payRequest",
+                            let receivedCallback = actualDataDict["callback"] as? String,
+                            let minSendable = actualDataDict["minSendable"] as? Int,
+                            let maxSendable = actualDataDict["maxSendable"] as? Int {
                                 
-                                if minSendable == maxSendable {
-                                    // Min and max are the same.
-                                    self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, sendVC: sendVC, receiveVC: receiveVC, receivedDescription: receivedDescription)
-                                } else {
-                                    // Min and max are different. Update UI to show range and focus amount field.
-                                    let minSats = minSendable / 1000
-                                    let maxSats = maxSendable / 1000
-                                    
-                                    // Update the label to show the range
-                                    sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
-                                    
-                                    // Clear and focus the amount field
-                                    sendVC?.amountTextField.text = ""
-                                    sendVC?.amountTextField.becomeFirstResponder()
-                                    
-                                    // Store the callback and description for when user enters amount
-                                    sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
-                                    sendVC?.pendingLNURLDescription = receivedDescription
-                                    sendVC?.pendingLNURLMinAmount = minSendable
-                                    sendVC?.pendingLNURLMaxAmount = maxSendable
-                                }
-                            } else if receivedTag == "withdrawRequest", let receivedCallback = actualDataDict["callback"] as? String, let receivedK1 = actualDataDict["k1"] as? String, let minWithdrawable = actualDataDict["minWithdrawable"] as? Int, let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
-                                    
-                                var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
-                                if minWithdrawable == maxWithdrawable {
-                                    // Min and max are the same.
-                                    alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), preferredStyle: .alert)
-                                } else {
-                                    // Min and max aren't the same. Choose amount.
-                                    alert.addTextField { (textField) in
-                                        textField.keyboardType = .numberPad
+                            // Check if this LNURL contains a description.
+                            var receivedDescription:String?
+                            if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
+                                for eachDataPair in parsedMetadata {
+                                    if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
+                                        receivedDescription = eachDataPair[1]
                                     }
                                 }
-                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                    
-                                    var amountText = minWithdrawable
-                                    if minWithdrawable != maxWithdrawable {
-                                        // Min and max aren't the same.
-                                        amountText = Int((alert.textFields![0].text ?? "0").toNumber()) * 1000
-                                    }
-                                    self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1, sendVC: sendVC, receiveVC: receiveVC)
-                                }))
-                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                                self.present(alert, animated: true)
-                            } else {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
+                            
+                            if minSendable == maxSendable {
+                                // Min and max are the same.
+                                self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
+                            } else {
+                                // Min and max are different. Update UI to show range and focus amount field.
+                                let minSats = minSendable / 1000
+                                let maxSats = maxSendable / 1000
+                                
+                                // Update the label to show the range
+                                sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
+                                
+                                // Clear and focus the amount field
+                                sendVC?.amountTextField.text = ""
+                                sendVC?.amountTextField.becomeFirstResponder()
+                                
+                                // Store the callback and description for when user enters amount
+                                sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+                                sendVC?.pendingLNURLDescription = receivedDescription
+                                sendVC?.pendingLNURLMinAmount = minSendable
+                                sendVC?.pendingLNURLMaxAmount = maxSendable
+                            }
+                        } else if receivedTag == "withdrawRequest",
+                            let receivedCallback = actualDataDict["callback"] as? String,
+                            let receivedK1 = actualDataDict["k1"] as? String,
+                            let minWithdrawable = actualDataDict["minWithdrawable"] as? Int,
+                            let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
+                                
+                            var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
+                            if minWithdrawable == maxWithdrawable {
+                                // Min and max are the same.
+                                alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), preferredStyle: .alert)
+                            } else {
+                                // Min and max aren't the same. Choose amount.
+                                alert.addTextField { (textField) in
+                                    textField.keyboardType = .numberPad
+                                }
+                            }
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
+                                
+                                var amountText = minWithdrawable
+                                if minWithdrawable != maxWithdrawable {
+                                    // Min and max aren't the same.
+                                    amountText = Int((alert.textFields![0].text ?? "0").toNumber()) * 1000
+                                }
+                                self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
+                            }))
+                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
+                            self.present(alert, animated: true)
+                        } else {
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     case .failure(let error):
                         SentrySDK.capture(error: error)
@@ -224,7 +237,10 @@ extension UIViewController {
         // {"tag":"payRequest","callback":"https://spiritedlizard2.lnbits.com/lnurlp/api/v1/lnurl/cb/FRV7Uj","minSendable":10000,"maxSendable":10000,"metadata":"[[\"text/plain\", \"Payment to tom\"], [\"text/identifier\", \"tom@spiritedlizard2.lnbits.com\"]]"}
     }
     
-    func sendPayRequest(callbackURL:String, amount:Int, sendVC:SendViewController?, receiveVC:ReceiveViewController?, receivedDescription:String?) {
+    func sendPayRequest(callbackURL:String, amount:Int, receivedDescription:String?) {
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
         
         sendVC?.startLNURLSpinner()
         receiveVC?.startLNURLSpinner()
@@ -233,46 +249,29 @@ extension UIViewController {
         
         Task {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
-                
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     receiveVC?.stopLNURLSpinner()
-                }
-                
-                switch result {
-                case .success(let actualDataDict):
-                    if let receivedInvoice = actualDataDict["pr"] as? String {
+                    
+                    switch result {
+                    case .success(let actualDataDict):
+                        // Check invoice.
+                        guard let receivedInvoice = actualDataDict["pr"] as? String else {
+                            SentrySDK.metrics.count(key: "lnurl.pay.failure.2")
+                            let errorMessage:String = (actualDataDict["detail"] as? String) ?? "Unexpected error"
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
                         // Invoice received.
                         print("Invoice: \(receivedInvoice)")
                         SentrySDK.metrics.count(key: "lnurl.pay.success")
-                        DispatchQueue.main.async {
-                            if sendVC != nil {
-                                sendVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
-                            } else if receiveVC != nil {
-                                receiveVC!.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
-                            } else {
-                                let alert = UIAlertController(title: Language.getWord(withID: "invoice"), message: "\(Language.getWord(withID:"lnurlpayment"))\n\n\(receivedInvoice)", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: Language.getWord(withID: "copy"), style: .cancel, handler: { _ in
-                                    UIPasteboard.general.string = receivedInvoice
-                                }))
-                                self.present(alert, animated: true)
-                            }
-                        }
-                    } else if let _ = actualDataDict["status"] as? String, let receivedDetail = actualDataDict["detail"] as? String {
-                        SentrySDK.metrics.count(key: "lnurl.pay.failure.2")
-                        DispatchQueue.main.async {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(receivedDetail)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    } else {
-                        SentrySDK.metrics.count(key: "lnurl.pay.failure.3")
-                        DispatchQueue.main.async {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) Unexpected error.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        }
-                    }
-                case .failure(let error):
-                    SentrySDK.metrics.count(key: "lnurl.pay.failure.1")
-                    Log.info("Error: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
+                        
+                        // Pay invoice.
+                        (sendVC ?? receiveVC)?.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
+                        
+                    case .failure(let error):
+                        SentrySDK.metrics.count(key: "lnurl.pay.failure.1")
+                        Log.info("Error: \(error.localizedDescription)")
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
@@ -283,7 +282,10 @@ extension UIViewController {
         // {"detail":"Unable to connect to https://api.getalby.com.","status":"pending"}
     }
     
-    func sendWithdrawRequest(callbackURL:String, amount:Int, k1:String, sendVC:SendViewController?, receiveVC:ReceiveViewController?) {
+    func sendWithdrawRequest(callbackURL:String, amount:Int, k1:String) {
+        
+        let sendVC = self as? SendViewController
+        let receiveVC = self as? ReceiveViewController
         
         sendVC?.startLNURLSpinner()
         receiveVC?.startLNURLSpinner()
@@ -317,7 +319,7 @@ extension UIViewController {
             }
                 
             DispatchQueue.main.async {
-                if let invoiceHash = self.getInvoiceHash(invoiceString: invoice.description), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                     CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
                 }
             }
@@ -329,43 +331,27 @@ extension UIViewController {
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     receiveVC?.stopLNURLSpinner()
-                }
-                
-                switch result {
-                case .success(let actualDataDict):
-                    if let receivedStatus = actualDataDict["status"] as? String {
-                        // Response received.
-                        if receivedStatus == "OK" {
-                            // Successful withdrawal.
-                            SentrySDK.metrics.count(key: "lnurl.withdraw.success")
-                        } else if receivedStatus == "ERROR" {
-                            // There was a problem.
+                    
+                    switch result {
+                    case .success(let actualDataDict):
+                        guard let receivedStatus = actualDataDict["status"] as? String, receivedStatus == "OK" else {
                             SentrySDK.metrics.count(key: "lnurl.withdraw.failure.1")
-                            if let receivedReason = actualDataDict["reason"] as? String {
-                                DispatchQueue.main.async {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(receivedReason)", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                }
-                            }
-                        } else {
-                            SentrySDK.metrics.count(key: "lnurl.withdraw.failure.2")
-                            DispatchQueue.main.async {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) Unexpected error.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
+                            let errorMessage:String = (actualDataDict["reason"] as? String) ?? "Unexpected error"
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
                         }
-                    }
-                case .failure(let error):
-                    Log.info("Error: \(error.localizedDescription)")
-                    SentrySDK.capture(error: error)
-                    SentrySDK.metrics.count(key: "lnurl.withdraw.failure.3")
-                    DispatchQueue.main.async {
+                        // Successful withdrawal.
+                        SentrySDK.metrics.count(key: "lnurl.withdraw.success")
+                    case .failure(let error):
+                        Log.info("Error: \(error.localizedDescription)")
+                        SentrySDK.capture(error: error)
+                        SentrySDK.metrics.count(key: "lnurl.withdraw.failure.3")
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
             }
         }
     }
-    
-    // MARK: - LNURL Withdraw Request Methods
     
     @objc func confirmWithdrawRequest() {
         guard let sendVC = self as? SendViewController,
@@ -376,32 +362,13 @@ extension UIViewController {
         }
         
         // Use the fixed amount (min and max are the same)
-        sendWithdrawRequest(callbackURL: callback, amount: minAmount, k1: k1, sendVC: sendVC, receiveVC: nil)
+        sendWithdrawRequest(callbackURL: callback, amount: minAmount, k1: k1)
         
         // Clear pending data
         sendVC.pendingWithdrawCallback = nil
         sendVC.pendingWithdrawK1 = nil
         sendVC.pendingWithdrawMinAmount = nil
         sendVC.pendingWithdrawMaxAmount = nil
-    }
-    
-    func getInvoiceHash(invoiceString:String) -> String? {
-        let result = Bolt11Invoice.fromStr(s: invoiceString)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return nil
-            }
-        } else if let error = result.getError() {
-            Log.info("Failed to parse invoice: \(error)")
-            return nil
-        } else {
-            return nil
-        }
     }
 }
 
