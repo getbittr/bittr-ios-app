@@ -57,4 +57,31 @@ extension CoreViewController {
         self.statusLightning.text = Language.getWord(withID: "startlightningnode")
         self.statusFinal.text = Language.getWord(withID: "finalcalculations")
     }
+    
+    func setBasicStyling() {
+        
+        // Corner radii
+        self.selectedView.layer.cornerRadius = 8
+        self.pendingView.layer.cornerRadius = 13
+        self.statusView.layer.cornerRadius = 13
+        self.settingsView.layer.cornerRadius = 8
+        self.academyView.layer.cornerRadius = 8
+        self.walletView.layer.cornerRadius = 8
+        
+        // Shadows
+        self.walletView.setShadow()
+        self.academyView.setShadow()
+        self.settingsView.setShadow()
+        
+        // Button titles
+        self.leftButton.setTitle("", for: .normal)
+        self.middleButton.setTitle("", for: .normal)
+        self.rightButton.setTitle("", for: .normal)
+        self.syncCloseButton.setTitle("", for: .normal)
+        
+        // Set curve color to yellow for app launch.
+        self.upperYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 0.85)
+        self.lowerYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
+        
+    }
 }

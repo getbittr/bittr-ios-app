@@ -23,7 +23,7 @@ extension BitcoinManager {
                 do {
                     mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
                 } catch {
-                    self.handleError(error: error, row: 178, stopLightning: false)
+                    self.handleError(error: error, row: 178)
                     completion(false)
                     return
                 }
@@ -55,7 +55,7 @@ extension BitcoinManager {
                 do {
                     self.connection = try Connection.createConnection()
                 } catch {
-                    self.handleError(error: error, row: 211, stopLightning: false)
+                    self.handleError(error: error, row: 211)
                     completion(false)
                     return
                 }
@@ -63,7 +63,7 @@ extension BitcoinManager {
                 do {
                     self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
                 } catch {
-                    self.handleError(error: error, row: 218, stopLightning: false)
+                    self.handleError(error: error, row: 218)
                     completion(false)
                     return
                 }
@@ -72,7 +72,7 @@ extension BitcoinManager {
                 do {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                 } catch {
-                    self.handleError(error: error, row: 228, stopLightning: false)
+                    self.handleError(error: error, row: 228)
                     completion(false)
                     return
                 }
@@ -99,7 +99,7 @@ extension BitcoinManager {
                 do {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                 } catch {
-                    self.handleError(error: error, row: 222, stopLightning: false)
+                    self.handleError(error: error, row: 222)
                     self.bdkWalletIsScanning = false
                     completion(false)
                     return
@@ -114,7 +114,7 @@ extension BitcoinManager {
             do {
                 syncRequest = try self.bdkWallet!.startFullScan().build()
             } catch {
-                self.handleError(error: error, row: 212, stopLightning: false)
+                self.handleError(error: error, row: 212)
                 self.bdkWalletIsScanning = false
                 completion(false)
                 return
@@ -130,7 +130,7 @@ extension BitcoinManager {
                     fetchPrevTxouts: true
                 )
             } catch {
-                self.handleError(error: error, row: 236, stopLightning: false)
+                self.handleError(error: error, row: 236)
                 self.bdkWalletIsScanning = false
                 completion(false)
                 return
@@ -140,7 +140,7 @@ extension BitcoinManager {
             do {
                 try self.bdkWallet!.applyUpdate(update: update)
             } catch {
-                self.handleError(error: error, row: 243, stopLightning: false)
+                self.handleError(error: error, row: 243)
                 self.bdkWalletIsScanning = false
                 completion(false)
                 return
@@ -150,7 +150,7 @@ extension BitcoinManager {
             do {
                 let _ = try self.bdkWallet!.persist(connection: self.connection!)
             } catch {
-                self.handleError(error: error, row: 250, stopLightning: false)
+                self.handleError(error: error, row: 250)
             }
             
             // Update syncing status.
@@ -168,7 +168,7 @@ extension BitcoinManager {
         do {
             syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
         } catch {
-            self.handleError(error: error, row: 570, stopLightning: false)
+            self.handleError(error: error, row: 570)
             return false
         }
         
@@ -181,7 +181,7 @@ extension BitcoinManager {
                 fetchPrevTxouts: true
             )
         } catch {
-            self.handleError(error: error, row: 582, stopLightning: false)
+            self.handleError(error: error, row: 582)
             return false
         }
         
@@ -189,14 +189,14 @@ extension BitcoinManager {
         do {
             try self.bdkWallet!.applyUpdate(update: update)
         } catch {
-            self.handleError(error: error, row: 594, stopLightning: false)
+            self.handleError(error: error, row: 594)
         }
         
         // Persist update to wallet.
         do {
             _ = try self.bdkWallet!.persist(connection: self.connection!)
         } catch {
-            self.handleError(error: error, row: 603, stopLightning: false)
+            self.handleError(error: error, row: 603)
         }
         
         return true

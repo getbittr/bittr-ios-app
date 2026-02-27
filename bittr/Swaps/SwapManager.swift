@@ -56,31 +56,20 @@ class SwapManager: NSObject {
             }
         } else {
             Log.info("Create an invoice for the amount we want to move.")
-            do {
-                invoice = try await BitcoinManager.shared.receivePayment(
-                    amountMsat: amountMsat,
-                    description: "Swap onchain to lightning \(idString)",
-                    expirySecs: 3600
-                ).description
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).detail
-                    } else {
-                        return error.localizedDescription
-                    }
-                }()
+            guard let thisInvoice = await BitcoinManager.shared.getInvoice(
+                amountMsat: amountMsat,
+                description: "Swap onchain to lightning \(idString)",
+                expirySecs: 3600)
+            else {
                 DispatchQueue.main.async {
                     swapVC.nextLabel.alpha = 1
                     swapVC.arrowIcon.alpha = 1
                     swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapManager row 209", key: "context")
-                    }
+                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 return
             }
+            invoice = thisInvoice.description
         }
         
         // Store invoice in cache.

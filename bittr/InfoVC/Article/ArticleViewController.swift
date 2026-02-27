@@ -19,7 +19,6 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     // Article and image
     var article:Article?
-    var headerImage:UIImage?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,12 +40,8 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         self.downButton.setTitle("", for: .normal)
         
         // Set image
-        if let actualHeaderImage = headerImage {
-            self.oneArticleImage.image = actualHeaderImage
-        } else {
-            if let actualData = CacheManager.getImage(key: self.article?.image ?? "") {
-                self.oneArticleImage.image = UIImage(data: actualData)
-            }
+        if let actualData = CacheManager.getImage(key: self.article?.image ?? "") {
+            self.oneArticleImage.image = UIImage(data: actualData)
         }
         
         // Download image if needed

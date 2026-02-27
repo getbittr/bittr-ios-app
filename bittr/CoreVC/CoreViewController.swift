@@ -15,9 +15,37 @@ class CoreViewController: UIViewController {
     var userHasSignedIn = false
     var walletHasSynced = false
     
+    // Pin reset
+    var resettingPin = false
+    var removingWalletForIncorrectPin = false
+    
     // Client details
     var bittrWallet = BittrWallet()
     var walletSync:BackgroundSync?
+    
+    // Pending notifications
+    var wasNotified = false
+    var lightningNotification:BittrNotification?
+    var receivedBittrTransaction:Transaction?
+    var pendingNotificationId:String?
+    var pendingSuggestedSwapAmount:Int = 0
+    var pendingPayout:BittrPendingPayout?
+    
+    // Other VCs
+    var homeVC:HomeViewController?
+    var settingsVC:SettingsViewController?
+    var signupVC:SignupViewController?
+    var buyVC:BuyViewController?
+    
+    // Articles and Academy
+    var allArticles:[String:Article]?
+    var tappedArticle:String?
+    var downloadedAcademy:[Level]?
+    
+    // QuestionVC
+    var tappedQuestion = ""
+    var tappedAnswer = ""
+    var tappedType:String?
     
     // Startup animation elements
     @IBOutlet weak var coin1: UIImageView!
@@ -71,40 +99,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
     @IBOutlet weak var blackSignupBackground: UIView!
-    @IBOutlet weak var blackSignupButton: UIButton!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
-    var resettingPin = false
-    var removingWalletForIncorrectPin = false
     
     // Variables for notification handling
     @IBOutlet weak var pendingView: UIView!
     @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
     @IBOutlet weak var pendingLabel: UILabel!
-    var wasNotified = false
-    var lightningNotification:BittrNotification?
-    var receivedBittrTransaction:Transaction?
-    var pendingNotificationId:String?
-    var pendingSuggestedSwapAmount:Int = 0
-    var pendingPayout:BittrPendingPayout?
-    
-    // Connection to VCs
-    var homeVC:HomeViewController?
-    var settingsVC:SettingsViewController?
-    var signupVC:SignupViewController?
-    var buyVC:BuyViewController?
-    
-    // Articles
-    var allArticles:[String:Article]?
-    var allImages:[String:Data]?
-    var tappedArticle:String?
-    
-    // Academy
-    var downloadedAcademy:[Level]?
-    
-    // Elements for QuestionVC
-    var tappedQuestion = ""
-    var tappedAnswer = ""
-    var tappedType:String?
     
     // Syncing status
     @IBOutlet weak var statusConversion: UILabel!
@@ -138,27 +138,6 @@ class CoreViewController: UIViewController {
         // Identify current dark mode.
         CacheManager.setCurrentDarkMode(darkModeIsOn: self.darkModeIsOn())
         
-        // Corner radii.
-        self.selectedView.layer.cornerRadius = 8
-        self.pendingView.layer.cornerRadius = 13
-        self.statusView.layer.cornerRadius = 13
-        self.settingsView.layer.cornerRadius = 8
-        self.academyView.layer.cornerRadius = 8
-        self.walletView.layer.cornerRadius = 8
-        self.walletView.setShadow()
-        self.academyView.setShadow()
-        self.settingsView.setShadow()
-        
-        // Button titles
-        self.leftButton.setTitle("", for: .normal)
-        self.middleButton.setTitle("", for: .normal)
-        self.rightButton.setTitle("", for: .normal)
-        self.syncCloseButton.setTitle("", for: .normal)
-        
-        // Set curve color to yellow for app launch.
-        self.upperYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 0.85)
-        self.lowerYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
-        
         // Add observers.
         NotificationCenter.default.addObserver(self, selector: #selector(newNotification), name: NSNotification.Name(rawValue: "newNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
@@ -168,6 +147,7 @@ class CoreViewController: UIViewController {
         
         // Set words.
         self.setWords()
+        self.setBasicStyling()
         
         // Check wallet.
         self.checkWalletAvailability()
@@ -205,19 +185,6 @@ class CoreViewController: UIViewController {
         if self.walletSync != nil {
             self.walletSync!.stop()
             self.walletSync = nil
-        }
-    }
-    
-    @IBAction func blackSignupButtonTapped(_ sender: UIButton) {
-        
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
-            
-            self.syncViewBottom.constant = 0
-            self.blackSignupBackground.alpha = 0
-            self.view.layoutIfNeeded()
-        }) { _ in
-            self.statusView.alpha = 0
-            self.blackSignupButton.alpha = 0
         }
     }
     

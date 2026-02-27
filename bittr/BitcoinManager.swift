@@ -216,22 +216,8 @@ class BitcoinManager {
         }
     }
     
-    func handleError(error:Error, row:Int, stopLightning:Bool) {
+    func handleError(error:Error, row:Int) {
         Log.info("Some error occurred. \(error.localizedDescription)")
-        let errorMessage:String = {
-            if let esploraError = error as? BitcoinDevKit.EsploraError {
-                return esploraError.getErrorMessage()
-            } else if let electrumError = error as? BitcoinDevKit.ElectrumError {
-                return electrumError.getErrorMessage()
-            } else if let cannotConnectError = error as? BitcoinDevKit.CannotConnectError {
-                return cannotConnectError.getErrorMessage()
-            } else {
-                return error.localizedDescription
-            }
-        }()
-        if stopLightning {
-            self.coreVC?.stopLightning(message: errorMessage)
-        }
         DispatchQueue.main.async {
             SentrySDK.capture(error: error) { scope in
                 scope.setExtra(value: "BitcoinManager row \(row)", key: "context")
@@ -404,7 +390,7 @@ class BitcoinManager {
             do {
                 _ = try self.syncWallets()
             } catch {
-                self.handleError(error: error, row: 660, stopLightning: false)
+                self.handleError(error: error, row: 660)
             }
             
             // Check if any changes have been found.
@@ -468,6 +454,25 @@ class BitcoinManager {
     
     func syncWallets() throws {
         try self.ldkNode!.syncWallets()
+    }
+    
+    func getInvoice(amountMsat: UInt64, description:String, expirySecs:UInt32) async -> Bolt11Invoice? {
+        do {
+            let invoice = try await self.receivePayment(
+                amountMsat: amountMsat,
+                description: description,
+                expirySecs: expirySecs)
+            Log.info("Did create invoice.")
+            return invoice
+        } catch {
+            Log.info("Couldn't create invoice.")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "BitcoinManager row 470", key: "context")
+                }
+            }
+            return nil
+        }
     }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {

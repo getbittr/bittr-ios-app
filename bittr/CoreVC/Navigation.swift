@@ -101,10 +101,6 @@ extension CoreViewController {
             }
         } else if segue.identifier == "CoreToArticle" {
             if let oneArticleVC = segue.destination as? ArticleViewController, self.tappedArticle != nil {
-                
-                if self.allImages != nil, let thisImage = self.allImages![self.tappedArticle!] {
-                    oneArticleVC.headerImage = UIImage(data: thisImage)
-                }
                 let article = self.allArticles?[self.tappedArticle!] ?? Article()
                 oneArticleVC.article = article
             }

@@ -497,7 +497,8 @@ class Language: NSObject {
             "bittrpendingpayout2": "There are no pending payouts available at this time. If you need our help, please contact support@getbittr.com.",
             "bittrpendingpayout3": "There's a pending payout available for handling. Would you like to do so now?",
             "failedinvoicepayment1": "This invoice could not be paid, due to the following error:\n\n<message>",
-            "exchangerate": "Exchange rate"
+            "exchangerate": "Exchange rate",
+            "invoicecreatefail": "We could not create an invoice. Please try again later."
             
         ]
         

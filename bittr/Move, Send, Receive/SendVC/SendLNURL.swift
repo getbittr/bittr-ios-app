@@ -291,29 +291,16 @@ extension UIViewController {
         receiveVC?.startLNURLSpinner()
         
         Task {
-            let invoice:LDKNode.Bolt11Invoice
-            do {
-                invoice = try await BitcoinManager.shared.receivePayment(
-                    amountMsat: UInt64(amount),
-                    description: "",
-                    expirySecs: 3600
-                )
-            } catch {
-                SentrySDK.metrics.count(key: "lnurl.withdraw.failure.4")
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).detail
-                    } else {
-                        return error.localizedDescription
-                    }
-                }()
+            guard let invoice = await BitcoinManager.shared.getInvoice(
+                amountMsat: UInt64(amount),
+                description: "",
+                expirySecs: 3600)
+            else {
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     receiveVC?.stopLNURLSpinner()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SendLNURL row 266", key: "context")
-                    }
+                    SentrySDK.metrics.count(key: "lnurl.withdraw.failure.4")
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 return
             }

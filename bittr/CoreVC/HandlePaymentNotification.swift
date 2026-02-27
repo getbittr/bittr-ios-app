@@ -93,20 +93,12 @@ extension CoreViewController {
             
             Task {
                 // Create invoice.
-                let invoice:Bolt11Invoice
-                do {
-                    invoice = try await BitcoinManager.shared.receivePayment(
-                        amountMsat: UInt64(amountMsat),
-                        description: notificationId,
-                        expirySecs: 3600
-                    )
-                    Log.info("Did create invoice.")
-                } catch {
-                    Log.info("Couldn't create invoice.")
+                guard let invoice = await BitcoinManager.shared.getInvoice(
+                    amountMsat: UInt64(amountMsat),
+                    description: notificationId,
+                    expirySecs: 3600)
+                else {
                     DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 141", key: "context")
-                        }
                         self.hidePendingView()
                         self.lightningNotification = nil
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)

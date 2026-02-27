@@ -135,7 +135,7 @@ extension CoreViewController {
             Log.info("Could not start node.")
             DispatchQueue.main.async {
                 SentrySDK.metrics.count(key: "sync.ldk.failure")
-                self.stopLightning(message: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
             }
             return false
         }
@@ -146,15 +146,6 @@ extension CoreViewController {
         self.hideAlert()
         Task {
             await self.startWallet()
-        }
-    }
-    
-    func stopLightning(message:String?) {
-        
-        if message != nil {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "walletconnectfail")) Error: \(message!)", buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
-        } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
         }
     }
 

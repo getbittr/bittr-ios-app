@@ -51,34 +51,23 @@ extension ReceiveViewController {
     
     func getRegularInvoice(amountMsat: UInt64, description: String, expirySecs: UInt32) async -> String? {
         
-        do {
-            let invoice = try await BitcoinManager.shared.receivePayment(
-                amountMsat: amountMsat,
-                description: description,
-                expirySecs: expirySecs
-            )
+        guard let invoice = await BitcoinManager.shared.getInvoice(
+            amountMsat: amountMsat,
+            description: description,
+            expirySecs: expirySecs)
+        else {
             DispatchQueue.main.async {
-                if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
-                }
-            }
-            return "\(invoice)"
-        } catch {
-            let errorMessage:String = {
-                if let nodeError = error as? NodeError {
-                    return "\(handleNodeError(nodeError))"
-                } else {
-                    return error.localizedDescription
-                }
-            }()
-            DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "ReceiveLightning row 77", key: "context")
-                }
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
             return nil
         }
+        
+        DispatchQueue.main.async {
+            if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
+            }
+        }
+        return "\(invoice)"
     }
     
 }
