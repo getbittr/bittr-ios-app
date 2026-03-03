@@ -335,6 +335,11 @@ extension CoreViewController {
                         case .invoiceRequestRejected: failureReason = Language.getWord(withID: "invoiceRequestRejected")
                         case .blindedPathCreationFailed: failureReason = Language.getWord(withID: "blindedPathCreationFailed")
                         }
+                        
+                        // Inform Sentry.
+                        SentrySDK.capture(message: failureReason) { scope in
+                            scope.setExtra(value: "HandlePaymentNotification row 341", key: "context")
+                        }
                     }
                     
                     // Show alert.

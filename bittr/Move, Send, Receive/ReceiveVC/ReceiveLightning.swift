@@ -22,7 +22,7 @@ extension ReceiveViewController {
         } catch {
             let errorMessage:String = {
                 if let nodeError = error as? NodeError {
-                    return "\(handleNodeError(nodeError))"
+                    return "\(handleNodeError(nodeError).detail)"
                 } else {
                     return error.localizedDescription
                 }

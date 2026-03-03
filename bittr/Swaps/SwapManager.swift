@@ -661,60 +661,49 @@ class SwapManager: NSObject {
     
     static func sendLightningPayment(swapVC:SwapViewController) {
         // Fees confirmed by user, pay Boltz invoice.
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { 
+        guard swapVC.coreVC?.bittrWallet.ongoingSwap != nil else {
             Log.info("❌ No ongoing swap found in sendLightningPayment")
             return
         }
+        
+        Log.info("Will pay Boltz invoice.")
+        swapVC.performLightningPayment()
+    }
+    
+    static func didReceivePaymentHash(_ paymentHash:PaymentHash, swapVC:SwapViewController) {
+        Log.info("Did receive payment hash.")
+        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
+            Log.info("❌ No ongoing swap found in sendLightningPayment")
+            return
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            let thisPayment = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash)
             
-        Task {
-            do {
-                Log.info("Will pay Boltz invoice.")
-                let paymentHash = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: ongoingSwap.boltzInvoice!))
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    let thisPayment = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash)
-                    
-                    if (thisPayment != nil && thisPayment!.status == .failed) || (thisPayment == nil) {
-                        // Payment came back failed.
-                        swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
-                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        return
-                    }
-                    
-                    // Success payment
-                    swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
-                    
-                    // Store transaction details in cache.
-                    CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-                    CacheManager.storeInvoiceDescription(preimage: ongoingSwap.preimage!, desc: ongoingSwap.dateID)
-                    
-                    // Calculate fees
-                    if Int(thisPayment!.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
-                        let feesIncurred = (Int(thisPayment!.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
-                        CacheManager.storePaymentFees(preimage: ongoingSwap.preimage!, fees: feesIncurred)
-                    }
-                    
-                    swapVC.webSocketManager = WebSocketManager()
-                    swapVC.webSocketManager!.delegate = swapVC
-                    swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
-                    swapVC.webSocketManager!.connect()
-                }
-            } catch {
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).detail
-                    } else {
-                        return error.localizedDescription
-                    }
-                }()
-                DispatchQueue.main.async {
-                    // General error alert
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapManager row 716", key: "context")
-                    }
-                }
+            if (thisPayment != nil && thisPayment!.status == .failed) || (thisPayment == nil) {
+                // Payment came back failed.
+                swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
             }
+            
+            // Success payment
+            swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
+            
+            // Store transaction details in cache.
+            CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+            CacheManager.storeInvoiceDescription(preimage: ongoingSwap.preimage!, desc: ongoingSwap.dateID)
+            
+            // Calculate fees
+            if Int(thisPayment!.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
+                let feesIncurred = (Int(thisPayment!.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
+                CacheManager.storePaymentFees(preimage: ongoingSwap.preimage!, fees: feesIncurred)
+            }
+            
+            swapVC.webSocketManager = WebSocketManager()
+            swapVC.webSocketManager!.delegate = swapVC
+            swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
+            swapVC.webSocketManager!.connect()
         }
     }
 }

@@ -257,6 +257,7 @@ extension UIViewController {
         
         let sendVC = self as? SendViewController
         let receiveVC = self as? ReceiveViewController
+        let swapVC = self as? SwapViewController
         
         sendVC?.nextLabel.alpha = 0
         sendVC?.arrowIcon.alpha = 0
@@ -264,53 +265,7 @@ extension UIViewController {
         
         Task {
             // Check peer connection.
-            if self.isConnectedToPeer() {
-                // Is connected to peer.
-                
-                // Get invoice, amount, and invoice type.
-                let invoiceText = (sendVC?.temporaryInvoiceText ?? receiveVC!.temporaryInvoiceText).replacingOccurrences(of: " ", with: "")
-                let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC!.temporaryInvoiceAmount
-                let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC!.temporaryIsZeroAmountInvoice
-                
-                // Reset variables.
-                sendVC?.temporaryInvoiceText = ""
-                receiveVC?.temporaryInvoiceText = ""
-                sendVC?.temporaryInvoiceAmount = 0
-                receiveVC?.temporaryInvoiceAmount = 0
-                sendVC?.temporaryIsZeroAmountInvoice = false
-                receiveVC?.temporaryIsZeroAmountInvoice = false
-                
-                print("Invoice text: " + String(invoiceText))
-                
-                do {
-                    if isZeroAmountInvoice {
-                        let _ = try await BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
-                        SentrySDK.metrics.count(key: "lightning.payment.success")
-                    } else {
-                        let _ = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
-                        SentrySDK.metrics.count(key: "lightning.payment.success")
-                    }
-                } catch {
-                    let errorMessage:String = {
-                        if let nodeError = error as? NodeError {
-                            return "\(handleNodeError(nodeError))"
-                        } else {
-                            return error.localizedDescription
-                        }
-                    }()
-                    DispatchQueue.main.async {
-                        // General error alert
-                        sendVC?.nextLabel.alpha = 1
-                        sendVC?.arrowIcon.alpha = 1
-                        sendVC?.nextSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SendLightning row 233", key: "context")
-                        }
-                        SentrySDK.metrics.count(key: "lightning.payment.failure.1")
-                    }
-                }
-            } else {
+            guard self.isConnectedToPeer() else {
                 // Not connected to peer.
                 if await BitcoinManager.shared.didEstablishPeerConnection() {
                     // Did reconnect.
@@ -328,6 +283,58 @@ extension UIViewController {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
                         SentrySDK.metrics.count(key: "lightning.payment.failure.2")
                     }
+                }
+                return
+            }
+            // Is connected to peer.
+            
+            // Get invoice, amount, and invoice type.
+            let invoiceText = (sendVC?.temporaryInvoiceText ?? receiveVC?.temporaryInvoiceText ?? swapVC!.coreVC!.bittrWallet.ongoingSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
+            let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC?.temporaryInvoiceAmount ?? 0
+            let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC?.temporaryIsZeroAmountInvoice ?? false
+            
+            // Reset variables.
+            sendVC?.temporaryInvoiceText = ""
+            receiveVC?.temporaryInvoiceText = ""
+            sendVC?.temporaryInvoiceAmount = 0
+            receiveVC?.temporaryInvoiceAmount = 0
+            sendVC?.temporaryIsZeroAmountInvoice = false
+            receiveVC?.temporaryIsZeroAmountInvoice = false
+            
+            print("Invoice text: " + String(invoiceText))
+            
+            do {
+                if isZeroAmountInvoice {
+                    Log.info("Perform sendZeroAmountPayment.")
+                    let _ = try await BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
+                    SentrySDK.metrics.count(key: "lightning.payment.success")
+                } else {
+                    Log.info("Perform sendPayment.")
+                    let paymentHash = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
+                    SentrySDK.metrics.count(key: "lightning.payment.success")
+                    if swapVC != nil {
+                        SwapManager.didReceivePaymentHash(paymentHash, swapVC: swapVC!)
+                    }
+                }
+            } catch {
+                Log.info("LDKnode is running: \(BitcoinManager.shared.status()?.isRunning ?? false)")
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return "\(handleNodeError(nodeError).detail)"
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
+                DispatchQueue.main.async {
+                    // General error alert
+                    sendVC?.nextLabel.alpha = 1
+                    sendVC?.arrowIcon.alpha = 1
+                    sendVC?.nextSpinner.stopAnimating()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SendLightning row 233", key: "context")
+                    }
+                    SentrySDK.metrics.count(key: "lightning.payment.failure.1")
                 }
             }
         }
