@@ -301,6 +301,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func addLightningTransaction(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
+        // Remove any duplicate transactions.
+        var didFindDuplicateTransaction = false
+        for (index, eachTransaction) in self.visibleTransactions.enumerated().reversed() {
+            if eachTransaction.id == thisTransaction.id {
+                didFindDuplicateTransaction = true
+                self.visibleTransactions.remove(at: index)
+            }
+        }
+        
         // Add new transaction.
         self.visibleTransactions += [thisTransaction]
         self.visibleTransactions = self.visibleTransactions.performSwapMatching(coreVC: self.coreVC!)
@@ -314,17 +323,19 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.noTransactionsLabel.alpha = 0
         
-        // Update balance and transactions.
-        self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
-        self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
-        
-        if paymentDetails != nil {
-            self.coreVC!.bittrWallet.allTransactions += [paymentDetails!]
+        if !didFindDuplicateTransaction {
+            // Update balance and transactions.
+            self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+            self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+            
+            if paymentDetails != nil {
+                self.coreVC!.bittrWallet.allTransactions += [paymentDetails!]
+            }
+            
+            // Update balance label.
+            self.setTotalSats()
+            self.moveVC?.updateLabels()
         }
-        
-        // Update balance label.
-        self.setTotalSats()
-        self.moveVC?.updateLabels()
     }
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
