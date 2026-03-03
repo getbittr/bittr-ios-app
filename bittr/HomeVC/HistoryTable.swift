@@ -62,11 +62,16 @@ extension HomeViewController {
                     // No purchase amount has been received yet from the Bittr API.
                     thisTransaction.fiatNetAmount = (transactionValue*bitcoinValue.currentValue).rounded()
                 }
+                var correctConversion = bitcoinValue.currentValue
+                let selectedCurrency = (thisTransaction.currency == "EUR") ? "€" : "CHF"
+                if selectedCurrency != bitcoinValue.chosenCurrency {
+                    correctConversion = (selectedCurrency == "€") ? (self.coreVC!.bittrWallet.valueInEUR ?? 0) : (self.coreVC!.bittrWallet.valueInCHF ?? 0)
+                }
                 let relativeGain:Int = {
                     if thisTransaction.fiatNetAmount == 0 {
                         return 0
                     } else {
-                        let calculatedGain = (((transactionValue*bitcoinValue.currentValue - thisTransaction.fiatNetAmount) / thisTransaction.fiatNetAmount) * 100).rounded()
+                        let calculatedGain = (((transactionValue*correctConversion - thisTransaction.fiatNetAmount) / thisTransaction.fiatNetAmount) * 100).rounded()
                         return Int(calculatedGain.isFinite ? calculatedGain : 0)
                     }
                 }()
