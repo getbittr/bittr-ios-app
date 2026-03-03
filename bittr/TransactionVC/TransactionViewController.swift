@@ -488,11 +488,21 @@ class TransactionViewController: UIViewController {
             if self.tappedTransaction.fiatNetAmount == 0 {
                 // This transaction has not yet been checked with the Bittr API.
                 self.labelNetAmount.text = self.labelCurrentValue.text
-                self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(bitcoinValue.chosenCurrency)"
+                self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(currencySymbol)"
             } else {
-                self.labelNetAmount.text = "\(self.tappedTransaction.fiatNetAmount - 0.01)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(bitcoinValue.chosenCurrency)"
-                let profitValue = "\((transactionValue*bitcoinValue.currentValue - (self.tappedTransaction.fiatNetAmount-0.01)).twoDecimals())".addSpaces()
-                self.labelProfit.text = "\(profitValue) \(bitcoinValue.chosenCurrency)".replacingOccurrences(of: "-", with: "- ")
+                self.labelNetAmount.text = "\(self.tappedTransaction.fiatNetAmount - 0.01)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(currencySymbol)"
+                
+                var correctConversion = bitcoinValue.currentValue
+                if bitcoinValue.chosenCurrency != currencySymbol {
+                    if currencySymbol == "€" {
+                        correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
+                    } else {
+                        correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
+                    }
+                    self.labelBittrCurrentValue.text = "\((transactionValue*correctConversion).twoDecimals())".replacingOccurrences(of: "-", with: "").addSpaces() + " \(currencySymbol)"
+                }
+                let profitValue = "\((transactionValue*correctConversion - (self.tappedTransaction.fiatNetAmount-0.01)).twoDecimals())".addSpaces()
+                self.labelProfit.text = "\(profitValue) \(currencySymbol)".replacingOccurrences(of: "-", with: "- ")
                 
                 if (self.labelProfit.text ?? "").contains("-") {
                     // Loss
