@@ -21,9 +21,6 @@ class MoveViewController: UIViewController {
     @IBOutlet weak var sendLabel: UILabel!
     @IBOutlet weak var receiveLabel: UILabel!
     
-    // Values
-    var maximumReceivableLNSats:Int?
-    
     // Views
     @IBOutlet weak var yellowCard: UIView!
     @IBOutlet weak var viewTotal: UIView!
@@ -50,6 +47,11 @@ class MoveViewController: UIViewController {
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
     var swapVC:SwapViewController?
+    
+    // Values
+    var maximumReceivableLNSats:Int?
+    
+    // Pending payments
     var isFromBackgroundNotification = false
     var isFromLightningPayment = false
     var pendingLightningInvoice = ""
@@ -60,32 +62,15 @@ class MoveViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Button titles.
-        self.receiveButton.setTitle("", for: .normal)
-        self.sendButton.setTitle("", for: .normal)
-        self.channelButton.setTitle("", for: .normal)
-        self.swapButton.setTitle("", for: .normal)
-        
-        // Corner radii
-        self.leftCard.layer.cornerRadius = 8
-        self.rightCard.layer.cornerRadius = 8
-        self.viewTotal.layer.cornerRadius = 13
-        self.viewRegular.layer.cornerRadius = 13
-        self.viewInstant.layer.cornerRadius = 13
-        self.yellowCard.layer.cornerRadius = 20
-        self.swapView.layer.cornerRadius = self.swapView.bounds.height/2
-        self.rightCard.setShadow()
-        self.leftCard.setShadow()
-        
-        // Shadows
-        self.yellowCard.setShadow()
-        self.swapView.setShadow()
-        
         // Set language and colors.
+        self.setBasicStyling()
         self.updateLabels()
         self.changeColors()
         self.setWords()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "balance"))
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
         
         // If we're coming from a Lightning or Onchain payment, automatically trigger the swap segue.
         if self.isFromBackgroundNotification || (self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty) || (self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty) {

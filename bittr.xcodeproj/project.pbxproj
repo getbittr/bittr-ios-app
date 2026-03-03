@@ -128,6 +128,7 @@
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305362F517F4E003DE7CF /* ReloadWallet.swift */; };
+		05E305392F5189D7003DE7CF /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305382F5189D6003DE7CF /* UIView.swift */; };
 		05E483502D29049D007A5834 /* ValueViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E4834F2D29049D007A5834 /* ValueViewController.swift */; };
 		05E7434F2A357AB6007755A2 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */; };
 		05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E743502A3581F9007755A2 /* RestoreViewController.swift */; };
@@ -316,6 +317,7 @@
 		05D5D0EB2A66843B00A1E771 /* FileManager+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileManager+Extensions.swift"; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E305362F517F4E003DE7CF /* ReloadWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReloadWallet.swift; sourceTree = "<group>"; };
+		05E305382F5189D6003DE7CF /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
 		05E4834F2D29049D007A5834 /* ValueViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValueViewController.swift; sourceTree = "<group>"; };
 		05E7434E2A357AB6007755A2 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05E743502A3581F9007755A2 /* RestoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewController.swift; sourceTree = "<group>"; };
@@ -475,6 +477,7 @@
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				05E305382F5189D6003DE7CF /* UIView.swift */,
 				05EB5CA12F4D846C00FF2157 /* Int.swift */,
 				05EB5C9D2F4D832D00FF2157 /* UITextField.swift */,
 				05EB5C9B2F4D814100FF2157 /* String.swift */,
@@ -1082,6 +1085,7 @@
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
 				053022002E7803BC00B23226 /* SendVCTextFields.swift in Sources */,
 				05117ADA2EA732FC00A5E4E6 /* Page.swift in Sources */,
+				05E305392F5189D7003DE7CF /* UIView.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,

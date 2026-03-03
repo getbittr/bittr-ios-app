@@ -170,7 +170,7 @@ extension HomeViewController {
         self.bittrTransactions = [:]
         for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() {
             if eachTransaction.isBittr {
-                self.bittrTransactions.updateValue(BittrTransaction(txId: "", transferType: "", historicalExchangeRate: "\(eachTransaction.historicalExchangeRate)", datetime: "", currency: eachTransaction.currency, bitcoinAmount: "", transferFee: "\(eachTransaction.transferFee.inBTC())", bittrFee: "\(eachTransaction.bittrFee)", surcharge: "\(eachTransaction.surcharge)", fiatNetAmount: "\(eachTransaction.fiatNetAmount)", fiatGrossAmount: "\(eachTransaction.fiatGrossAmount)"), forKey: eachTransaction.id)
+                self.bittrTransactions.updateValue(eachTransaction.toBittrTransaction(), forKey: eachTransaction.id)
             }
         }
         

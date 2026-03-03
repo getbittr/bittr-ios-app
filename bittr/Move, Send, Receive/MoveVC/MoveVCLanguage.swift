@@ -48,4 +48,28 @@ extension MoveViewController {
             self.swapIcon.image = UIImage(named: "iconswapwhite")
         }
     }
+    
+    func setBasicStyling() {
+        
+        // Button titles.
+        self.receiveButton.setTitle("", for: .normal)
+        self.sendButton.setTitle("", for: .normal)
+        self.channelButton.setTitle("", for: .normal)
+        self.swapButton.setTitle("", for: .normal)
+        
+        // Corner radii
+        self.leftCard.layer.cornerRadius = 8
+        self.rightCard.layer.cornerRadius = 8
+        self.viewTotal.layer.cornerRadius = 13
+        self.viewRegular.layer.cornerRadius = 13
+        self.viewInstant.layer.cornerRadius = 13
+        self.yellowCard.layer.cornerRadius = 20
+        self.swapView.layer.cornerRadius = self.swapView.bounds.height/2
+        self.rightCard.setShadow()
+        self.leftCard.setShadow()
+        
+        // Shadows
+        self.yellowCard.setShadow()
+        self.swapView.setShadow()
+    }
 }

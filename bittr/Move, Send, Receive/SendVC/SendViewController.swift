@@ -387,14 +387,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.showScannerView()
     }
     
-    @IBAction func keyboardButtonTapped(_ sender: UIButton) {
-        
-        if let actualCaptureSession = captureSession {
-            actualCaptureSession.stopRunning()
-        }
-        self.toTextField.becomeFirstResponder()
-    }
-    
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
     }

@@ -183,3 +183,25 @@ extension BittrTransaction {
         return thisTransaction
     }
 }
+
+extension Transaction {
+    
+    func toBittrTransaction() -> BittrTransaction {
+        
+        let bittrTransaction = BittrTransaction(
+            txId: "",
+            transferType: "",
+            historicalExchangeRate: "\(self.historicalExchangeRate)",
+            datetime: "",
+            currency: self.currency,
+            bitcoinAmount: "",
+            transferFee: "\(self.transferFee.inBTC())",
+            bittrFee: "\(self.bittrFee)",
+            surcharge: "\(self.surcharge)",
+            fiatNetAmount: "\(self.fiatNetAmount)",
+            fiatGrossAmount: "\(self.fiatGrossAmount)"
+        )
+        
+        return bittrTransaction
+    }
+}
