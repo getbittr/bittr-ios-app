@@ -483,10 +483,33 @@ extension HomeViewController {
             for eachTransaction in self.visibleTransactions {
                 if eachTransaction.isBittr {
                     let transactionValue = eachTransaction.received.inBTC()
-                    let transactionProfit = Int((transactionValue*bitcoinValue.currentValue).rounded())-Int(eachTransaction.fiatNetAmount.rounded())
+                    var correctConversion = bitcoinValue.currentValue
                     
-                    accumulatedProfit += transactionProfit
-                    accumulatedInvestments += Int(eachTransaction.fiatNetAmount.rounded())
+                    let transactionCurrency:String = {
+                        if eachTransaction.currency == "EUR" {
+                            return "€"
+                        } else {
+                            return "CHF"
+                        }
+                    }()
+                    if transactionCurrency != bitcoinValue.chosenCurrency {
+                        if transactionCurrency == "€" {
+                            correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
+                        } else {
+                            correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
+                        }
+                    }
+                    
+                    var transactionProfit = (transactionValue*correctConversion) - eachTransaction.fiatNetAmount
+                    var transactionInvestment = eachTransaction.fiatNetAmount
+                    
+                    if transactionCurrency != bitcoinValue.chosenCurrency {
+                        transactionProfit = (transactionProfit/correctConversion)*bitcoinValue.currentValue
+                        transactionInvestment = (eachTransaction.fiatNetAmount/correctConversion)*bitcoinValue.currentValue
+                    }
+                    
+                    accumulatedProfit += Int(transactionProfit.rounded())
+                    accumulatedInvestments += Int(transactionInvestment.rounded())
                     accumulatedCurrentValue += Int((transactionValue*bitcoinValue.currentValue).rounded())
                     
                     handledTransactions += 1
@@ -508,7 +531,7 @@ extension HomeViewController {
     func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
         
         if accumulatedInvestments != 0 {
-            self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "") //  (\(currencySymbol) \(accumulatedProfit))"
+            self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
             self.balanceCardGainLabel.alpha = 1
             self.balanceCardProfitView.alpha = 1
         } else {
