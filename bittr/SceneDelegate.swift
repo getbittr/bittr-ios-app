@@ -71,25 +71,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
         
         DispatchQueue.global(qos: .background).async {
-            do {
-                if BitcoinManager.shared.status()?.isRunning == true {
-                    Log.info("Will sync LDK node upon entering foreground.")
-                    try BitcoinManager.shared.syncWallets()
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SceneDelegate row 68", key: "context")
+            if BitcoinManager.shared.status()?.isRunning == true {
+                Log.info("Will sync LDK node upon entering foreground.")
+                try? BitcoinManager.shared.syncWallets()
+                
+                // Check peer connection.
+                if !isConnectedToPeer() {
+                    Task {
+                        _ = await BitcoinManager.shared.connectToLightningPeer()
                     }
                 }
-                let errorMessage:String = {
-                    if let nodeError = error as? NodeError {
-                        return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
-                    } else {
-                        return error.localizedDescription
-                    }
-                }()
-                Log.info("Could not sync LDK node. Error: \(errorMessage)")
             }
         }
     }

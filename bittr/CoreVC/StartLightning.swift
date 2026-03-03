@@ -38,7 +38,7 @@ extension CoreViewController {
         }
         
         // Check peer connection.
-        if !self.isConnectedToPeer() {
+        if !isConnectedToPeer() {
             // Connect to peer.
             _ = await BitcoinManager.shared.connectToLightningPeer()
         }

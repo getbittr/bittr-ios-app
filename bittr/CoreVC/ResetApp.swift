@@ -128,6 +128,20 @@ extension CoreViewController {
     @objc func closeChannelConfirmed() {
         self.hideAlert()
         
+        guard isConnectedToPeer() else {
+            Task {
+                let didConnectToPeer = await BitcoinManager.shared.connectToLightningPeer()
+                DispatchQueue.main.async {
+                    if didConnectToPeer {
+                        self.closeChannelConfirmed()
+                    } else {
+                        self.forceCloseChannel()
+                    }
+                }
+            }
+            return
+        }
+        
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             do {
                 Log.info("Will attempt channel closure.")

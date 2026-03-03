@@ -88,7 +88,7 @@ extension CoreViewController {
         }
 
         // Call payoutLightning in an async context
-        if self.isConnectedToPeer() {
+        if isConnectedToPeer() {
             Log.info("Is connected to peer.")
             
             Task {

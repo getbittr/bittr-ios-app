@@ -265,7 +265,7 @@ extension UIViewController {
         
         Task {
             // Check peer connection.
-            guard self.isConnectedToPeer() else {
+            guard isConnectedToPeer() else {
                 // Not connected to peer.
                 if await BitcoinManager.shared.didEstablishPeerConnection() {
                     // Did reconnect.

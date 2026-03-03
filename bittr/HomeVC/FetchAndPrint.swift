@@ -7,26 +7,23 @@
 
 import UIKit
 import Sentry
-
-extension UIViewController {
     
-    func isConnectedToPeer() -> Bool {
-        
-        let peers = BitcoinManager.shared.listPeers()
-        var peerIsConnected = false
-        for eachPeer in peers {
-            if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
-                peerIsConnected = true
-            }
+func isConnectedToPeer() -> Bool {
+    
+    let peers = BitcoinManager.shared.listPeers()
+    var peerIsConnected = false
+    for eachPeer in peers {
+        if eachPeer.nodeId == EnvironmentConfig.lightningNodeId, eachPeer.isConnected {
+            peerIsConnected = true
         }
-        
-        if peerIsConnected {
-            Log.info("Did successfully check peer connection.")
-            return true
-        } else {
-            Log.info("Not connected to peer.")
-            return false
-        }
+    }
+    
+    if peerIsConnected {
+        Log.info("Did successfully check peer connection.")
+        return true
+    } else {
+        Log.info("Not connected to peer.")
+        return false
     }
 }
 
@@ -40,7 +37,7 @@ extension HomeViewController {
         }
         
         // Check peer connection.
-        _ = self.isConnectedToPeer()
+        _ = isConnectedToPeer()
         BitcoinManager.shared.listenForEvents()
     }
 
