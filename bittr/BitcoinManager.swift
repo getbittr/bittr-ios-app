@@ -375,7 +375,8 @@ class BitcoinManager {
         guard (self.bdkWallet != nil &&
                self.electrumClient != nil &&
                self.coreVC != nil &&
-               self.getEsploraClient() != nil) else {
+               self.getEsploraClient() != nil &&
+               self.ldkNode != nil ) else {
             completion(false)
             return
         }
