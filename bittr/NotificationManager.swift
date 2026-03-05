@@ -66,6 +66,10 @@ extension CoreViewController {
                 }
             case .lnUrl:
                 self.handleLightningAddressNotification(thisNotification)
+            case .htlcIncoming:
+                self.handleHTLCNotification(thisNotification)
+            case .htlcExpired:
+                self.handleHTLCExpiredNotification(thisNotification)
             case .unknown:
                 self.handleBittrNotification(thisNotification)
             }
@@ -115,6 +119,8 @@ enum BittrNotificationType {
     case information
     case swap
     case lnUrl
+    case htlcIncoming
+    case htlcExpired
     case unknown
 }
 
@@ -227,6 +233,19 @@ extension BittrNotification {
             if self.status != nil {
                 thisDictionary.setValue(self.status!, forKey: "status")
             }
+        case .htlcIncoming:
+            thisDictionary.setValue("htlcIncoming", forKey: "type")
+        case .htlcExpired:
+            thisDictionary.setValue("htlcExpired", forKey: "type")
+            if self.headerText != nil {
+                thisDictionary.setValue(self.headerText!, forKey: "headerText")
+            }
+            if self.bodyText != nil {
+                thisDictionary.setValue(self.bodyText!, forKey: "bodyText")
+            }
+            if self.timeSent != nil {
+                thisDictionary.setValue(self.timeSent!, forKey: "timeSent")
+            }
         case .lnUrl:
             thisDictionary.setValue("lnUrl", forKey: "type")
             if self.amountMsat != nil {
@@ -298,6 +317,17 @@ extension [AnyHashable:Any] {
                 thisNotification.status = status
             }
             
+        } else if let notificationData = self["htlc_notification"] as? [String: Any] {
+            if notificationData["expired"] as? Bool == true {
+                thisNotification.type = .htlcExpired
+                thisNotification.headerText = notificationData["header_text"] as? String
+                thisNotification.bodyText = notificationData["body_text"] as? String
+                thisNotification.timeSent = notificationData["time_sent"] as? String
+            } else {
+                thisNotification.type = .htlcIncoming
+            }
+        } else if self["htlc_notification"] != nil {
+            thisNotification.type = .htlcIncoming
         } else if let notificationData = self["lightning_address_notification"] as? [String: Any] {
             
             // LNURL request.
@@ -366,6 +396,8 @@ extension NSDictionary {
             case "information": thisNotification.type = .information
             case "swap": thisNotification.type = .swap
             case "lnUrl": thisNotification.type = .lnUrl
+            case "htlcIncoming": thisNotification.type = .htlcIncoming
+            case "htlcExpired": thisNotification.type = .htlcExpired
             default: thisNotification.type = .unknown
             }
         } else {
@@ -394,6 +426,16 @@ extension NSDictionary {
             if let status = self["status"] as? String {
                 thisNotification.status = status
             }
+        case .htlcExpired:
+            if let headerText = self["headerText"] as? String {
+                thisNotification.headerText = headerText
+            }
+            if let bodyText = self["bodyText"] as? String {
+                thisNotification.bodyText = bodyText
+            }
+            if let timeSent = self["timeSent"] as? String {
+                thisNotification.timeSent = timeSent
+            }
         case .lnUrl:
             if let amountMsat = self["amountMsat"] as? Int {
                 thisNotification.amountMsat = amountMsat
@@ -410,7 +452,7 @@ extension NSDictionary {
             if let endpoint = self["endpoint"] as? String {
                 thisNotification.endpoint = endpoint
             }
-        case .unknown:
+        case .htlcIncoming, .unknown:
             break
         }
         

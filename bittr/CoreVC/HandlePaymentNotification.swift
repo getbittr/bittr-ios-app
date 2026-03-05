@@ -14,13 +14,12 @@ extension CoreViewController {
     func handlePayoutNotification(_ notification:BittrNotification) {
         Log.info("Will handle payout notification.")
         
-        // Set notification for handling.
         self.lightningNotification = notification
         
         if !self.userHasSignedIn {
             Log.info("User hasn't signed in yet. Storing notification for later.")
             self.wasNotified = true
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            // No alert: let them unlock as quickly as possible.
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
             self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
@@ -35,6 +34,78 @@ extension CoreViewController {
                 // App was closed when notification came in and was subsequently opened.
                 Log.info("User has been notified of alert.")
                 self.triggerPayout()
+            }
+        }
+    }
+    
+    func handleHTLCNotification(_ notification: BittrNotification) {
+        Log.info("Will handle HTLC (incoming payment) notification.")
+        self.lightningNotification = notification
+        if !self.userHasSignedIn {
+            self.wasNotified = true
+            // No alert: let them unlock as quickly as possible.
+        } else if !self.walletHasSynced {
+            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
+            self.showPendingView()
+        } else {
+            if !self.wasNotified {
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerHTLCReady)])
+            } else {
+                self.triggerHTLCReady()
+            }
+        }
+    }
+    
+    @objc func triggerHTLCReady() {
+        self.hideAlert()
+        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
+        self.showPendingView()
+        self.lightningNotification = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.facilitateHTLCReady()
+        }
+    }
+    
+    func handleHTLCExpiredNotification(_ notification: BittrNotification) {
+        // Payment already failed; don't show any "incoming payment" modal.
+        self.lightningNotification = nil
+        let title = notification.headerText ?? Language.getWord(withID: "htlc_expired_title")
+        let body = notification.bodyText ?? Language.getWord(withID: "htlc_expired_body")
+        self.launchQuestion(question: title, answer: body, type: nil)
+    }
+    
+    private func facilitateHTLCReady() {
+        guard let depositCode = self.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
+            self.hidePendingView()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            return
+        }
+        guard let pubkey = BitcoinManager.shared.nodeId() else {
+            self.hidePendingView()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            return
+        }
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let message = "htlc_ready:\(depositCode):\(timestamp)"
+        Task {
+            do {
+                let signature = try await BitcoinManager.shared.signMessage(message: message)
+                let response = try await BittrService.shared.htlcReady(depositCode: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature)
+                await MainActor.run {
+                    self.hidePendingView()
+                    if response.success, response.action == "resumed" {
+                        // No alert – the incoming payment screen will show automatically
+                    } else if response.success, response.action == "failed_timeout" {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                    } else {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: response.error ?? Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.hidePendingView()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
+                }
             }
         }
     }
@@ -343,7 +414,8 @@ extension CoreViewController {
                     }
                     
                     // Show alert.
-                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: failureReason), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    let reasonText = failureReason.isEmpty ? "" : " \(failureReason)."
+                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 
             case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):

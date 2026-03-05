@@ -585,6 +585,8 @@ extension HomeViewController {
             } else if actualNotification.type == .lightningPayout {
                 // It's a payout notification.
                 self.coreVC!.handlePayoutNotification(actualNotification)
+            } else if actualNotification.type == .htlcIncoming {
+                self.coreVC!.handleHTLCNotification(actualNotification)
             } else if actualNotification.type == .lnUrl {
                 // It's an LNURL notification.
                 self.coreVC!.handleLightningAddressNotification(actualNotification)

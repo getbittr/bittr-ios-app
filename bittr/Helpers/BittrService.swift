@@ -158,6 +158,39 @@ class BittrService {
         }
     }
     
+    /// Signal that the app is ready to receive an incoming HTLC (call once when wallet is unlocked after HTLC push).
+    func htlcReady(depositCode: String, timestamp: Int, pubkey: String, signature: String) async throws -> HtlcReadyResponse {
+        let url = URL(string: "\(EnvironmentConfig.bittrAPIBaseURL)/htlc-interceptor/ready")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(HtlcReadyRequest(deposit_code: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature))
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let decoded = try JSONDecoder().decode(HtlcReadyResponse.self, from: data)
+        
+        guard let http = response as? HTTPURLResponse else {
+            throw BittrServiceError.serverError("Invalid response")
+        }
+        if (200...299).contains(http.statusCode) {
+            return decoded
+        }
+        throw BittrServiceError.serverError(decoded.error ?? "Unknown error")
+    }
+    
+}
+
+struct HtlcReadyRequest: Encodable {
+    let deposit_code: String
+    let timestamp: Int
+    let pubkey: String
+    let signature: String
+}
+
+struct HtlcReadyResponse: Codable {
+    let success: Bool
+    let action: String?
+    let error: String?
 }
 
 struct BittrPayoutResponse: Codable {

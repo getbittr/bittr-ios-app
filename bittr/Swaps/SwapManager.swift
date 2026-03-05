@@ -683,7 +683,7 @@ class SwapManager: NSObject {
             if (thisPayment != nil && thisPayment!.status == .failed) || (thisPayment == nil) {
                 // Payment came back failed.
                 swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: ""), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
             }
             
