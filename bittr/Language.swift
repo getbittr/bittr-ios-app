@@ -211,7 +211,7 @@ class Language: NSObject {
             "bittrpayout": "Bittr payout",
             "incomingpayment": "Incoming payment",
             "htlc_expired_title": "Payment expired",
-            "htlc_expired_body": "When someone tries to pay you via Lightning, we send you a notification. You have about a minute to open the app so the payment can go through.\n\nWith Lightning, both you and the sender need to have the app open. Regular bitcoin payments are different: you can receive those even when you're offline.",
+            "htlc_expired_body": "When someone tries to pay you via Lightning, we send you a notification. You have about 5 minutes to open the app so the payment can go through.\n\nWith Lightning, both you and the sender need to have the app open. Regular bitcoin payments are different: you can receive those even when you're offline.",
             "newbittrpayment": "You're receiving a new payment! Tap Okay to receive it now and continue what you're doing after.",
             "receivingpayment": "receiving payment",
             "pleasesignin": "Please sign in and wait a moment to receive your payment.",
