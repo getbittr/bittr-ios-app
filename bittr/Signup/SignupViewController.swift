@@ -112,14 +112,14 @@ class SignupViewController: UIViewController {
         (newChild as? Transfer1ViewController)?.signupVC = self
         (newChild as? Transfer1ViewController)?.coreVC = self.coreVC
         
-        (newChild as? Transfer15ViewController)?.signupVC = self
-        (newChild as? Transfer15ViewController)?.coreVC = self.coreVC
-        
         (newChild as? Transfer2ViewController)?.signupVC = self
         (newChild as? Transfer2ViewController)?.coreVC = self.coreVC
         
         (newChild as? Transfer3ViewController)?.signupVC = self
         (newChild as? Transfer3ViewController)?.coreVC = self.coreVC
+        
+        (newChild as? Transfer4ViewController)?.signupVC = self
+        (newChild as? Transfer4ViewController)?.coreVC = self.coreVC
         
         // Add new view controller to correct container view.
         self.addChild(newChild)

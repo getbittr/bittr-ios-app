@@ -334,7 +334,7 @@ extension UIViewController {
         let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
         await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
             
-            let presentingController = (self as? Transfer1ViewController)?.signupVC?.coreVC ?? (self as? Transfer1ViewController)?.ibanVC ?? (self as? Transfer15ViewController)?.signupVC?.coreVC ?? (self as? Transfer15ViewController)?.ibanVC ?? self
+            let presentingController = (self as? Transfer1ViewController)?.signupVC?.coreVC ?? (self as? Transfer1ViewController)?.ibanVC ?? (self as? Transfer2ViewController)?.signupVC?.coreVC ?? (self as? Transfer2ViewController)?.ibanVC ?? self
             
             switch result {
             case .success(let json):

@@ -26,7 +26,7 @@ class RegisterIbanViewController: UIViewController {
     var coreVC:CoreViewController?
     var currentPage = 0
     var transfer1VC: Transfer1ViewController?
-    var transfer15VC: Transfer15ViewController?
+    var transfer15VC: Transfer2ViewController?
     var currentIbanID = ""
     var allContainerViews = [UIView]()
     var embedViewIdentifiers = ["Signup7", "Transfer1", "Transfer15", "Transfer2", "Transfer3"]
@@ -62,14 +62,14 @@ class RegisterIbanViewController: UIViewController {
         (newChild as? Transfer1ViewController)?.ibanVC = self
         (newChild as? Transfer1ViewController)?.coreVC = self.coreVC
         
-        (newChild as? Transfer15ViewController)?.ibanVC = self
-        (newChild as? Transfer15ViewController)?.coreVC = self.coreVC
-        
         (newChild as? Transfer2ViewController)?.ibanVC = self
         (newChild as? Transfer2ViewController)?.coreVC = self.coreVC
         
         (newChild as? Transfer3ViewController)?.ibanVC = self
         (newChild as? Transfer3ViewController)?.coreVC = self.coreVC
+        
+        (newChild as? Transfer4ViewController)?.ibanVC = self
+        (newChild as? Transfer4ViewController)?.coreVC = self.coreVC
         
         // Add new view controller to correct container view.
         self.addChild(newChild)

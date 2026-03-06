@@ -124,7 +124,7 @@ extension UIViewController {
         
         let homeVC = self as? HomeViewController
         let swapVC = self as? SwapViewController
-        let transfer15VC = self as? Transfer15ViewController
+        let transfer15VC = self as? Transfer2ViewController
         let deviceVC = self as? DeviceViewController
         
         let current = UNUserNotificationCenter.current()
