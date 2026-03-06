@@ -410,23 +410,11 @@
 		050B4BAF2A1BBB6400563F29 /* Signup */ = {
 			isa = PBXGroup;
 			children = (
+				057B42E52F5A9BFC00BA5C44 /* Restore Wallet */,
+				057B42E42F5A9BE600BA5C44 /* Create Wallet */,
+				057B42E62F5A9C0800BA5C44 /* Bittr Signup */,
 				058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */,
 				3791605C2E1D99D300024560 /* MnemonicTextField.swift */,
-				050B4BB02A1BBB9600563F29 /* SignupViewController.swift */,
-				050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */,
-				050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */,
-				05CF93392A1E711B0084A221 /* Signup3ViewController.swift */,
-				055CC0F62A28ABB80000200A /* Signup4ViewController.swift */,
-				05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */,
-				05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */,
-				05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */,
-				05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */,
-				05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */,
-				05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */,
-				05E7434E2A357AB6007755A2 /* Transfer4ViewController.swift */,
-				05E743502A3581F9007755A2 /* RestoreViewController.swift */,
-				051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */,
-				051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */,
 			);
 			path = Signup;
 			sourceTree = "<group>";
@@ -495,6 +483,42 @@
 				05B30E222E2542C900CF10EC /* ReceiveVC */,
 			);
 			path = "Move, Send, Receive";
+			sourceTree = "<group>";
+		};
+		057B42E42F5A9BE600BA5C44 /* Create Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				050B4BB02A1BBB9600563F29 /* SignupViewController.swift */,
+				050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */,
+				050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */,
+				05CF93392A1E711B0084A221 /* Signup3ViewController.swift */,
+				055CC0F62A28ABB80000200A /* Signup4ViewController.swift */,
+				05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */,
+				05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */,
+				05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */,
+			);
+			path = "Create Wallet";
+			sourceTree = "<group>";
+		};
+		057B42E52F5A9BFC00BA5C44 /* Restore Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				05E743502A3581F9007755A2 /* RestoreViewController.swift */,
+				051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */,
+				051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */,
+			);
+			path = "Restore Wallet";
+			sourceTree = "<group>";
+		};
+		057B42E62F5A9C0800BA5C44 /* Bittr Signup */ = {
+			isa = PBXGroup;
+			children = (
+				05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */,
+				05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */,
+				05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */,
+				05E7434E2A357AB6007755A2 /* Transfer4ViewController.swift */,
+			);
+			path = "Bittr Signup";
 			sourceTree = "<group>";
 		};
 		058B2FD22EE9A7F40010693D /* Article */ = {
