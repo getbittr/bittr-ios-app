@@ -1,5 +1,5 @@
 //
-//  MondayError.swift
+//  LDKNodeError.swift
 //  bittr
 //
 //  Created by Tom Melters on 25/07/2023.
@@ -8,12 +8,12 @@
 import Foundation
 import LDKNode
 
-struct MondayError {
+struct LDKNodeError {
     let title: String
     let detail: String
 }
 
-func handleNodeError(_ error: NodeError) -> MondayError {
+func handleNodeError(_ error: NodeError) -> LDKNodeError {
     
     switch error {
         
