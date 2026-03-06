@@ -1313,20 +1313,4 @@ class CacheManager: NSObject {
         }
     }
     
-    // MARK: - Bittr address
-    
-    static func storeBittrAddress(_ address:String) {
-        
-        UserDefaults.standard.set(address, forKey: "bittraddress")
-    }
-    
-    static func getBittrAddress() -> String? {
-        
-        if let bittrAddress = UserDefaults.standard.value(forKey: "bittraddress") as? String {
-            return bittrAddress
-        } else {
-            return nil
-        }
-    }
-    
 }

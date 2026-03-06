@@ -273,4 +273,9 @@ extension BitcoinManager {
             return false
         }
     }
+    
+    func getBittrAddress() -> String {
+        let bittrAddress = self.bdkWallet!.peekAddress(keychain: .external, index: 0).address.description
+        return bittrAddress
+    }
 }

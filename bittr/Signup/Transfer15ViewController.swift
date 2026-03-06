@@ -237,13 +237,24 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 }
                 return
             }
-                
+            
+            // Check whether BDK wallet has loaded.
+            var bdkAttempts = 0
+            while BitcoinManager.shared.bdkWallet == nil {
+                if bdkAttempts < 4 {
+                    try? await Task.sleep(nanoseconds: 3 * NSEC_PER_SEC)
+                    bdkAttempts += 1
+                } else {
+                    // There's a problem loading BDK.
+                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    return
+                }
+            }
             // Get real onchain address.
-            let firstAddress = CacheManager.getBittrAddress() ?? CacheManager.getLastAddress() ?? BitcoinManager.shared.getNewOnchainAddress() ?? ""
+            let firstAddress = BitcoinManager.shared.getBittrAddress()
             
             // Get node ID.
-            let lightningPubKey = BitcoinManager.shared.nodeId()
-            if lightningPubKey == nil {
+            guard let lightningPubKey = BitcoinManager.shared.nodeId() else {
                 Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
@@ -262,7 +273,7 @@ class Transfer15ViewController: UIViewController, UITextFieldDelegate, UNUserNot
                 "bitcoin_message": message,
                 "bitcoin_signature": signature,
                 "iban": ibanEntity.yourIbanNumber,
-                "lightning_pubkey": lightningPubKey!,
+                "lightning_pubkey": lightningPubKey,
                 "lightning_signature": lightningSignature,
                 "xpub_key": xpub,
                 "xpub_addr_type": "bech32",

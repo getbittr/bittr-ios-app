@@ -29,14 +29,6 @@ extension CoreViewController {
             BitcoinManager.shared.coreVC = self
         }
         
-        // Cache Bittr address.
-        // Upon first-ever wallet launch, store first onchain address as Bittr address.
-        if CacheManager.getBittrAddress() == nil, let onchainAddress = CacheManager.getLastAddress() ?? BitcoinManager.shared.getNewOnchainAddress() {
-            
-            CacheManager.storeBittrAddress(onchainAddress)
-            Log.info("Did store Bittr address.")
-        }
-        
         // Check peer connection.
         if !isConnectedToPeer() {
             // Connect to peer.

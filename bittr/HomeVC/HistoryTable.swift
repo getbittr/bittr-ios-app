@@ -104,7 +104,7 @@ extension HomeViewController {
                 
                 let currentHeight = self.coreVC?.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
                 
-                if thisTransaction.height == nil || (currentHeight - thisTransaction.height! + 1) < 1 {
+                if ((thisTransaction.height == nil || (currentHeight - thisTransaction.height! + 1) < 1)) && !(thisTransaction.isSwap && thisTransaction.swapStatus != .pending) {
                     // Unconfirmed transaction.
                     cell.satsLabel.textColor = Colors.getColor("unconfirmed")
                     cell.eurosLabel.textColor = Colors.getColor("unconfirmed")
