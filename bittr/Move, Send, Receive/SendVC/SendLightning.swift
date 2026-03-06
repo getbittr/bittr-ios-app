@@ -289,7 +289,7 @@ extension UIViewController {
             // Is connected to peer.
             
             // Get invoice, amount, and invoice type.
-            let invoiceText = (sendVC?.temporaryInvoiceText ?? receiveVC?.temporaryInvoiceText ?? swapVC!.coreVC!.bittrWallet.ongoingSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
+            let invoiceText = (sendVC?.temporaryInvoiceText ?? receiveVC?.temporaryInvoiceText ?? swapVC!.thisSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
             let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? receiveVC?.temporaryInvoiceAmount ?? 0
             let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? receiveVC?.temporaryIsZeroAmountInvoice ?? false
             
@@ -312,8 +312,8 @@ extension UIViewController {
                     Log.info("Perform sendPayment.")
                     let paymentHash = try await BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
                     SentrySDK.metrics.count(key: "lightning.payment.success")
-                    if swapVC != nil {
-                        SwapManager.didReceivePaymentHash(paymentHash, swapVC: swapVC!)
+                    if swapVC?.swapStatusVC != nil {
+                        SwapManager.didReceivePaymentHash(paymentHash, swapVC: swapVC!.swapStatusVC!)
                     }
                 }
             } catch {

@@ -11,7 +11,7 @@ import Sentry
 
 class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
-    var delegate: Any?
+    var delegate:SwapStatusViewController?
     var swapID:String?
     var webSocketTask: URLSessionWebSocketTask?
     var url = URL(string: EnvironmentConfig.webSocketURL)!
@@ -143,7 +143,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
     }
     
     func handleReceivedMessage(_ jsonDict: [String: Any]) {
-        guard let delegate = self.delegate as? SwapViewController else {
+        guard self.delegate != nil else {
             Log.info("No delegate set for received message.")
             return
         }
@@ -159,7 +159,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
         // Ensure status update is performed on the main thread
         DispatchQueue.main.async {
-            delegate.receivedStatusUpdate(status: receivedStatus, fullMessage: firstArg)
+            self.delegate!.receivedStatusUpdate(status: receivedStatus, fullMessage: firstArg)
         }
     }
 

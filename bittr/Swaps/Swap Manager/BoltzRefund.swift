@@ -40,8 +40,8 @@ class BoltzRefund {
     // MARK: - Main Claim Function
     
     /// Claims a lightning-to-onchain swap by generating and broadcasting the claim transaction
-    static func claimLightningToOnchainSwap(swapVC: SwapViewController) async throws -> ClaimResult {
-        guard let ongoingSwap = await swapVC.coreVC?.bittrWallet.ongoingSwap else {
+    static func claimLightningToOnchainSwap(swapVC: SwapStatusViewController) async throws -> ClaimResult {
+        guard let ongoingSwap = await swapVC.thisSwap else {
             Log.info("❌ No ongoing swap found")
             return ClaimResult(success: false, transactionId: nil)
         }
@@ -54,6 +54,7 @@ class BoltzRefund {
             claimFee = try await calculateClaimOrRefundTransactionFee()
             // Store the calculated fee for future use
             ongoingSwap.claimTransactionFee = claimFee
+            swapVC.thisSwap = ongoingSwap
             CacheManager.saveLatestSwap(ongoingSwap)
         }
         
@@ -190,18 +191,18 @@ class BoltzRefund {
     // MARK: - Legacy Function (keeping for backward compatibility)
     
     /// Legacy function name - now calls the new production-ready function
-    static func tryBoltzClaimInternalTransactionGeneration(swapVC: SwapViewController) async throws -> ClaimResult {
+    static func tryBoltzClaimInternalTransactionGeneration(swapVC: SwapStatusViewController) async throws -> ClaimResult {
         return try await claimLightningToOnchainSwap(swapVC: swapVC)
     }
     
     /// Legacy function name - now calls the new production-ready function
-    static func tryBoltzRefund(swapVC: SwapViewController) async throws -> ClaimResult {
+    static func tryBoltzRefund(swapVC: SwapStatusViewController) async throws -> ClaimResult {
         return try await refundOnchainToLightningSwap(swapVC: swapVC)
     }
     
     /// Refunds an onchain-to-lightning swap by generating and broadcasting the refund transaction
-    static func refundOnchainToLightningSwap(swapVC: SwapViewController) async throws -> ClaimResult {
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
+    static func refundOnchainToLightningSwap(swapVC: SwapStatusViewController) async throws -> ClaimResult {
+        guard let ongoingSwap = swapVC.thisSwap else {
             Log.info("❌ No ongoing swap found")
             return ClaimResult(success: false, transactionId: nil)
         }

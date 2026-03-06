@@ -64,6 +64,8 @@
 		0577C3F92AFA28180047A3DC /* BittrService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0577C3F82AFA28180047A3DC /* BittrService.swift */; };
 		0579B2712A0530F80007891F /* SendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2702A0530F80007891F /* SendViewController.swift */; };
 		0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2722A0531470007891F /* ReceiveViewController.swift */; };
+		057B42E92F5AA20E00BA5C44 /* SwapStatusViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057B42E82F5AA20E00BA5C44 /* SwapStatusViewController.swift */; };
+		057B42ED2F5ABCA200BA5C44 /* SendableAmount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */; };
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */; };
@@ -257,6 +259,8 @@
 		0577C3F82AFA28180047A3DC /* BittrService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrService.swift; sourceTree = "<group>"; };
 		0579B2702A0530F80007891F /* SendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendViewController.swift; sourceTree = "<group>"; };
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
+		057B42E82F5AA20E00BA5C44 /* SwapStatusViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapStatusViewController.swift; sourceTree = "<group>"; };
+		057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAmount.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapVCLanguage.swift; sourceTree = "<group>"; };
@@ -533,6 +537,36 @@
 			path = Notifications;
 			sourceTree = "<group>";
 		};
+		057B42EB2F5ABABC00BA5C44 /* SwapVC */ = {
+			isa = PBXGroup;
+			children = (
+				05AF89752D437073009D629C /* SwapViewController.swift */,
+				057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */,
+				057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */,
+			);
+			path = SwapVC;
+			sourceTree = "<group>";
+		};
+		057B42EE2F5AD5CE00BA5C44 /* Swap Manager */ = {
+			isa = PBXGroup;
+			children = (
+				05AF89732D436920009D629C /* SwapManager.swift */,
+				3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */,
+				37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */,
+				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
+				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
+			);
+			path = "Swap Manager";
+			sourceTree = "<group>";
+		};
+		057B42EF2F5AD5E900BA5C44 /* SwapStatusVC */ = {
+			isa = PBXGroup;
+			children = (
+				057B42E82F5AA20E00BA5C44 /* SwapStatusViewController.swift */,
+			);
+			path = SwapStatusVC;
+			sourceTree = "<group>";
+		};
 		058B2FD22EE9A7F40010693D /* Article */ = {
 			isa = PBXGroup;
 			children = (
@@ -616,13 +650,9 @@
 		05AF89722D436901009D629C /* Swaps */ = {
 			isa = PBXGroup;
 			children = (
-				05AF89752D437073009D629C /* SwapViewController.swift */,
-				05AF89732D436920009D629C /* SwapManager.swift */,
-				3767E2AB2E157FC40017BB67 /* BoltzSwiftSDK.swift */,
-				37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */,
-				37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */,
-				052EC7472D63254B00170FE4 /* WebSocketManager.swift */,
-				057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */,
+				057B42EB2F5ABABC00BA5C44 /* SwapVC */,
+				057B42EF2F5AD5E900BA5C44 /* SwapStatusVC */,
+				057B42EE2F5AD5CE00BA5C44 /* Swap Manager */,
 				05B30E2D2E26281200CF10EC /* Swap.swift */,
 			);
 			path = Swaps;
@@ -1058,6 +1088,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				05EB5C9A2F4D807C00FF2157 /* CGFloat.swift in Sources */,
+				057B42ED2F5ABCA200BA5C44 /* SendableAmount.swift in Sources */,
 				05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */,
 				05D417972CC930C400B87745 /* ReceiveQRScanner.swift in Sources */,
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
@@ -1117,6 +1148,7 @@
 				058B2FBD2EE7DE5E0010693D /* SignupSetArticle.swift in Sources */,
 				05EB5C9C2F4D814300FF2157 /* String.swift in Sources */,
 				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
+				057B42E92F5AA20E00BA5C44 /* SwapStatusViewController.swift in Sources */,
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,

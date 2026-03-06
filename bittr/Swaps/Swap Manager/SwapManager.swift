@@ -81,8 +81,8 @@ class SwapManager: NSObject {
                 Log.info("Did cache invoice data.")
             }
             
-            swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap onchain to lightning \(idString)"
-            swapVC.coreVC!.bittrWallet.ongoingSwap!.createdInvoice = invoice.description
+            swapVC.thisSwap!.dateID = "Swap onchain to lightning \(idString)"
+            swapVC.thisSwap!.createdInvoice = invoice.description
         }
         
         // Get next swap index and derive key dynamically
@@ -171,20 +171,20 @@ class SwapManager: NSObject {
                             let refundLeafOutput = refundLeaf["output"] as? String,
                             let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
                             
-                            if swapVC.coreVC?.bittrWallet.ongoingSwap == nil {
+                            if swapVC.thisSwap == nil {
                                 // SwapVC has been closed while awaiting API response.
                                 return
                             }
                             
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzOnchainAddress = onchainAddress
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = expectedAmount
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.claimPublicKey = claimPublicKey
+                            swapVC.thisSwap!.privateKey = privateKey
+                            swapVC.thisSwap!.boltzID = swapID
+                            swapVC.thisSwap!.boltzOnchainAddress = onchainAddress
+                            swapVC.thisSwap!.boltzExpectedAmount = expectedAmount
+                            swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
+                            swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
+                            swapVC.thisSwap!.claimPublicKey = claimPublicKey
                             
-                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
+                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
                             
                             Task {
                                 await self.checkOnchainFees(swapVC: swapVC)
@@ -211,8 +211,7 @@ class SwapManager: NSObject {
     }
     
     static func checkOnchainFees(swapVC:SwapViewController) async {
-        
-        guard let ongoingSwap = await swapVC.coreVC!.bittrWallet.ongoingSwap else {return}
+        guard let ongoingSwap = await swapVC.thisSwap else {return}
         
         // Check what the onchain fees will be for sending this onchain payment.
         Task {
@@ -252,65 +251,60 @@ class SwapManager: NSObject {
             
             // Confirm fees with user.
             DispatchQueue.main.async {
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.feeHigh = swapVC.highestFeePerVbyte!
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = feesForOnchainPayment
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = feesForLightningPayment
+                swapVC.thisSwap!.feeHigh = swapVC.highestFeePerVbyte!
+                swapVC.thisSwap!.onchainFees = feesForOnchainPayment
+                swapVC.thisSwap!.lightningFees = feesForLightningPayment
                 swapVC.confirmExpectedFees()
             }
         }
     }
     
     static func sendOnchainPayment(swapVC:SwapViewController) {
-        
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
+        guard swapVC.thisSwap != nil else { return }
             
         // Send onchain transaction.
-        Task {
-            let txIdAndRawData:[String]
-            do {
-                txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: ongoingSwap.feeHigh!)
-            } catch {
-                // Log the exact error for debugging
-                Log.info("Transaction error: \(error.localizedDescription)")
-                
-                DispatchQueue.main.async {
-                    swapVC.showAlert(
-                        presentingController: swapVC,
-                        title: Language.getWord(withID: "paymentfailed"),
-                        message: Language.getWord(withID: "paymentfailed3"),
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: nil
-                    )
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapManager row 308", key: "context")
-                    }
+        let txIdAndRawData:[String]
+        do {
+            txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: swapVC.thisSwap!.boltzOnchainAddress!, amountSats: swapVC.thisSwap!.boltzExpectedAmount!, selectedVbyte: swapVC.thisSwap!.feeHigh!)
+        } catch {
+            // Log the exact error for debugging
+            Log.info("Transaction error: \(error.localizedDescription)")
+            
+            DispatchQueue.main.async {
+                swapVC.showAlert(
+                    presentingController: swapVC,
+                    title: Language.getWord(withID: "paymentfailed"),
+                    message: Language.getWord(withID: "paymentfailed3"),
+                    buttons: [Language.getWord(withID: "okay")],
+                    actions: nil
+                )
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "SwapManager row 308", key: "context")
                 }
-                return
             }
-            let txId = txIdAndRawData[0]
-            let rawData = txIdAndRawData[1]
-            print("Transaction ID: \(txId)")
-        
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                Log.info("Successful transaction.")
-                
-                // Update swap object.
-                ongoingSwap.sentOnchainTransactionID = txId
-                ongoingSwap.lockupTx = rawData
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.sentOnchainTransactionID = txId
-                swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx = ongoingSwap.lockupTx
-                self.updateSwapFileWithLockupTx(swapID: swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID!, lockupTx: swapVC.coreVC!.bittrWallet.ongoingSwap!.lockupTx!)
-                
-                // Create transaction object.
-                CacheManager.storeInvoiceDescription(preimage: txId, desc: ongoingSwap.dateID)
-                CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-                
-                // Update Home table.
-                BitcoinManager.shared.lightSync() { _ in }
-                
-                // Call didCompleteOnchainTransaction to set up WebSocket monitoring
-                swapVC.didCompleteOnchainTransaction()
-            }
+            return
+        }
+        let txId = txIdAndRawData[0]
+        let rawData = txIdAndRawData[1]
+        print("Transaction ID: \(txId)")
+    
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            Log.info("Successful transaction.")
+            
+            // Update swap object.
+            swapVC.thisSwap!.sentOnchainTransactionID = txId
+            swapVC.thisSwap!.lockupTx = rawData
+            self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: swapVC.thisSwap!.lockupTx!)
+            
+            // Create transaction object.
+            CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
+            CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+            
+            // Update Home table.
+            BitcoinManager.shared.lightSync() { _ in }
+            
+            // Call didCompleteOnchainTransaction to set up WebSocket monitoring
+            swapVC.swapStatusVC?.didCompleteOnchainTransaction()
         }
     }
     
@@ -445,10 +439,10 @@ class SwapManager: NSObject {
                     // Example success: {id = yes7P5Hn2FD5; invoice = lnbcrt505610n1p58093msp5k4f2jxgmu059lc8awdccdy8ppx9uw0wtxhmwa0ytna48ykpjlu9spp5augg6x7kd2dj2gs0z5lnpj98pvyyf4kpmrtt43sp8vawdrgm7l2qdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq3glstd77evhlg2qywjku4lj4mffufgc2wy6trxsjar5a2mdzp6e9308z4d4prhjs03vegamm7raw0ln5k94l5lz8vu5yewz7hf6w7yqpjqj2mj; lockupAddress = bcrt1p32hqu3ve32x524994sxpewdvdznfjgd0ya2xh40z6x9tj5s2mmusx273a3; refundPublicKey = 035578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3; swapTree = {claimLeaf = {output = 82012088a91475b687397f92783b38c7381725bfcf27d65eef3f8820036f6171920eec6d2f377e4c0ab88960307c7d9d817ddf65585bc28a8334be1aac; version = 192;}; refundLeaf = {output = 205578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3ad024d01b1; version = 192;};}; timeoutBlockHeight = 333;}
                     
                     DispatchQueue.main.async {
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.dateID = "Swap lightning to onchain " + idString
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.privateKey = privateKey
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.preimage = randomPreimage.hexEncodedString()
-                        swapVC.coreVC!.bittrWallet.ongoingSwap!.destinationAddress = destinationAddress
+                        swapVC.thisSwap!.dateID = "Swap lightning to onchain " + idString
+                        swapVC.thisSwap!.privateKey = privateKey
+                        swapVC.thisSwap!.preimage = randomPreimage.hexEncodedString()
+                        swapVC.thisSwap!.destinationAddress = destinationAddress
                         
                         // Save swap details to file
                         if let swapID = receivedDictionary["id"] as? String,
@@ -459,13 +453,17 @@ class SwapManager: NSObject {
                            let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
                            let refundLeafOutput = refundLeaf["output"] as? String,
                            let refundPublicKey = receivedDictionary["refundPublicKey"] as? String {
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzID = swapID
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzInvoice = boltzInvoice
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.claimLeafOutput = claimLeafOutput
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.refundLeafOutput = refundLeafOutput
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.refundPublicKey = refundPublicKey
-                            swapVC.coreVC!.bittrWallet.ongoingSwap!.sentLightningPaymentID = randomPreimage.hexEncodedString()
-                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: CacheManager.swapToDictionary(swapVC.coreVC!.bittrWallet.ongoingSwap!))
+                            swapVC.thisSwap!.boltzID = swapID
+                            swapVC.thisSwap!.boltzInvoice = boltzInvoice
+                            swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
+                            swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
+                            swapVC.thisSwap!.refundPublicKey = refundPublicKey
+                            swapVC.thisSwap!.sentLightningPaymentID = randomPreimage.hexEncodedString()
+                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
+                            
+                            // Store transaction details in cache.
+                            CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+                            CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
                             
                             self.checkReverseSwapFees(swapVC: swapVC)
                         } else {
@@ -588,9 +586,9 @@ class SwapManager: NSObject {
         print("Updated swap file with fees for ID: \(swapID)")
     }
     
-    static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapViewController) {
+    static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapStatusViewController) {
         // Load swap details to get the description and user amount
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
+        guard let ongoingSwap = swapVC.thisSwap else {
             Log.info("Could not load swap details.")
             return
         }
@@ -606,11 +604,11 @@ class SwapManager: NSObject {
     }
     
     static func checkReverseSwapFees(swapVC:SwapViewController) {
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else { return }
+        guard swapVC.thisSwap != nil else { return }
         guard swapVC.checkInternetConnection() else { return }
         
         // Check requested invoice amount.
-        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: ongoingSwap.boltzInvoice!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
+        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: swapVC.thisSwap!.boltzInvoice!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
         
         // Lightning invoice.
         let invoiceAmount = Int(invoiceAmountMilli)/1000
@@ -618,7 +616,7 @@ class SwapManager: NSObject {
         // Calculate onchain fees.
         // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
         // The invoice amount includes Boltz fees, so we need to calculate the actual on-chain amount
-        let finalOnchainAmount = ongoingSwap.satoshisAmount // This is what the user wants to receive
+        let finalOnchainAmount = swapVC.thisSwap!.satoshisAmount // This is what the user wants to receive
         let onchainFees:Int = invoiceAmount - finalOnchainAmount
         
         // Note: The claim transaction fee is already included in the on-chain amount requested
@@ -633,21 +631,21 @@ class SwapManager: NSObject {
                 let claimTransactionFee = try await BoltzRefund.calculateClaimOrRefundTransactionFee()
                 
                 DispatchQueue.main.async {
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.claimTransactionFee = claimTransactionFee
+                    swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
+                    swapVC.thisSwap!.onchainFees = onchainFees
+                    swapVC.thisSwap!.lightningFees = lightningFees
+                    swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
                     
                     // Confirm fees with user.
                     swapVC.confirmExpectedFees()
                 }
             } catch {
-                Log.info("❌ Failed to calculate claim transaction fee: \(error)")
+                Log.info("Failed to calculate claim transaction fee: \(error)")
                 // Fallback to default fee calculation without claim transaction fee
                 DispatchQueue.main.async {
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.onchainFees = onchainFees
-                    swapVC.coreVC!.bittrWallet.ongoingSwap!.lightningFees = lightningFees
+                    swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
+                    swapVC.thisSwap!.onchainFees = onchainFees
+                    swapVC.thisSwap!.lightningFees = lightningFees
                     
                     // Confirm fees with user.
                     swapVC.confirmExpectedFees()
@@ -659,20 +657,9 @@ class SwapManager: NSObject {
         }
     }
     
-    static func sendLightningPayment(swapVC:SwapViewController) {
-        // Fees confirmed by user, pay Boltz invoice.
-        guard swapVC.coreVC?.bittrWallet.ongoingSwap != nil else {
-            Log.info("❌ No ongoing swap found in sendLightningPayment")
-            return
-        }
-        
-        Log.info("Will pay Boltz invoice.")
-        swapVC.performLightningPayment()
-    }
-    
-    static func didReceivePaymentHash(_ paymentHash:PaymentHash, swapVC:SwapViewController) {
+    static func didReceivePaymentHash(_ paymentHash:PaymentHash, swapVC:SwapStatusViewController) {
         Log.info("Did receive payment hash.")
-        guard let ongoingSwap = swapVC.coreVC?.bittrWallet.ongoingSwap else {
+        guard swapVC.thisSwap != nil else {
             Log.info("❌ No ongoing swap found in sendLightningPayment")
             return
         }
@@ -690,19 +677,15 @@ class SwapManager: NSObject {
             // Success payment
             swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingtransaction")
             
-            // Store transaction details in cache.
-            CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
-            CacheManager.storeInvoiceDescription(preimage: ongoingSwap.preimage!, desc: ongoingSwap.dateID)
-            
             // Calculate fees
-            if Int(thisPayment!.amountMsat ?? 0)/1000 > ongoingSwap.satoshisAmount {
-                let feesIncurred = (Int(thisPayment!.amountMsat ?? 0)/1000) - ongoingSwap.satoshisAmount
-                CacheManager.storePaymentFees(preimage: ongoingSwap.preimage!, fees: feesIncurred)
+            if Int(thisPayment!.amountMsat ?? 0)/1000 > swapVC.thisSwap!.satoshisAmount {
+                let feesIncurred = (Int(thisPayment!.amountMsat ?? 0)/1000) - swapVC.thisSwap!.satoshisAmount
+                CacheManager.storePaymentFees(preimage: swapVC.thisSwap!.preimage!, fees: feesIncurred)
             }
             
             swapVC.webSocketManager = WebSocketManager()
             swapVC.webSocketManager!.delegate = swapVC
-            swapVC.webSocketManager!.swapID = ongoingSwap.boltzID!
+            swapVC.webSocketManager!.swapID = swapVC.thisSwap!.boltzID!
             swapVC.webSocketManager!.connect()
         }
     }

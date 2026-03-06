@@ -167,4 +167,17 @@ extension UIViewController {
         }
     }
     
+    func getCorrectBitcoinValue(coreVC:CoreViewController) -> BitcoinValue {
+        
+        let bitcoinValue = BitcoinValue()
+        bitcoinValue.currentValue = coreVC.bittrWallet.valueInEUR ?? 0.0
+        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+            bitcoinValue.currentValue = coreVC.bittrWallet.valueInCHF ?? 0.0
+            bitcoinValue.chosenCurrency = "CHF"
+            bitcoinValue.apiUrl = "https://getbittr.com/api/price/btc/historical/chf"
+        }
+        
+        return bitcoinValue
+    }
+    
 }

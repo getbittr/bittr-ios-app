@@ -246,7 +246,7 @@ class TransactionViewController: UIViewController {
                 self.labelAmount.text = "\(String(self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             } else if self.tappedTransaction.swapStatus == .pending {
                 if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
-                    let convertedSwap = CacheManager.dictionaryToSwap(swapDictionary)
+                    let convertedSwap = swapDictionary.toSwap()
                     self.labelAmount.text = "\(convertedSwap.satoshisAmount)".addSpaces() + " sats"
                 } else {
                     self.labelAmount.text = "\(String(self.tappedTransaction.received - self.tappedTransaction.sent).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
@@ -313,7 +313,7 @@ class TransactionViewController: UIViewController {
             } else {
                 // Pending swap.
                 if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
-                    let convertedSwap = CacheManager.dictionaryToSwap(swapDictionary)
+                    let convertedSwap = swapDictionary.toSwap()
                     self.labelFees.text = "\(self.tappedTransaction.sent - self.tappedTransaction.received - convertedSwap.satoshisAmount)".addSpaces() + " sats"
                 } else {
                     self.labelFees.text = "0 sats"
@@ -593,7 +593,7 @@ class TransactionViewController: UIViewController {
     
     @IBAction func openSwapTapped(_ sender: UIButton) {
         if CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription) != nil {
-            self.performSegue(withIdentifier: "TransactionToSwap", sender: self)
+            self.performSegue(withIdentifier: "TransactionToSwapStatus", sender: self)
         }
     }
     
@@ -632,8 +632,8 @@ class TransactionViewController: UIViewController {
                     websiteVC.tappedUrl = actualTappedUrl
                 }
             }
-        } else if segue.identifier == "TransactionToSwap" {
-            if let swapVC = segue.destination as? SwapViewController {
+        } else if segue.identifier == "TransactionToSwapStatus" {
+            if let swapVC = segue.destination as? SwapStatusViewController {
                 swapVC.coreVC = self.coreVC
                 let tappedSwap = Swap()
                 tappedSwap.boltzID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription)!
@@ -641,7 +641,7 @@ class TransactionViewController: UIViewController {
                 tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
                 tappedSwap.lightningFees = 0
                 tappedSwap.swapDirection = self.tappedTransaction.swapDirection
-                swapVC.tappedSwapTransaction = tappedSwap
+                swapVC.thisSwap = tappedSwap
             }
         }
     }

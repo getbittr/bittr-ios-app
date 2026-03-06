@@ -597,7 +597,7 @@ extension CoreViewController {
         self.hidePendingView()
         
         // Load swap details from file
-        if (self.bittrWallet.ongoingSwap ?? CacheManager.getLatestSwap()) != nil {
+        if CacheManager.getLatestSwap() != nil {
             Log.info("Loaded swap details from background.")
             
             // Go directly to swap screen without showing alert
