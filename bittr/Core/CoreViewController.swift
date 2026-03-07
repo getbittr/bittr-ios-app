@@ -31,11 +31,16 @@ class CoreViewController: UIViewController {
     var pendingSuggestedSwapAmount:Int = 0
     var pendingPayout:BittrPendingPayout?
     
+    // Pending variables
+    var isFromLightningPayment = false
+    var pendingLightningInvoice = ""
+    
     // Other VCs
     var homeVC:HomeViewController?
     var settingsVC:SettingsViewController?
     var signupVC:SignupViewController?
     var buyVC:BuyViewController?
+    var swapVC:SwapViewController?
     
     // Articles and Academy
     var allArticles:[String:Article]?

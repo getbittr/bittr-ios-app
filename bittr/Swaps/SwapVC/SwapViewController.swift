@@ -55,7 +55,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     // Swap details
     var swapDirection:SwapDirection = .lightningToOnchain
-    var isFromBackgroundNotification = false
     var isFromLightningPayment = false
     var pendingLightningInvoice = ""
     var isFromOnchainPayment = false
@@ -80,25 +79,17 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     func handlePendingSwaps() {
         
         // Check if there's an ongoing swap and automatically show it (only if from background notification)
-        if !self.isFromLightningPayment && !self.isFromOnchainPayment && !self.isFromBackgroundNotification {
-            Log.info("Manual navigation to swap screen, clearing any stale data")
-            self.clearPendingSwapData()
-            
-        } else if self.isFromBackgroundNotification && self.pendingOnchainAmount > 0 {
-            Log.info("Handle notification-based onchain-to-lightning swap")
-            self.handleNotificationSwap()
-            
-        } else if self.isFromBackgroundNotification {
-            Log.info("Calling checkForOngoingSwap")
-            self.checkForOngoingSwap()
-            
-        } else if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
+        if self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty {
             Log.info("Handle pending Lightning invoice")
             self.handlePendingLightningInvoice()
             
         } else if self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty {
             Log.info("Handle pending onchain payment")
             self.handlePendingOnchainPayment()
+            
+        } else if self.pendingOnchainAmount > 0 {
+            Log.info("Handle swap suggested from pending Bittr payout.")
+            self.handleNotificationSwap()
             
         }
     }
@@ -315,16 +306,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.showStatusView()
     }
     
-    func checkForOngoingSwap() {
-        // Check if there's an ongoing swap and automatically show it
-        if let pendingSwap = CacheManager.getLatestSwap() {
-            self.thisSwap = pendingSwap
-            
-            // Switch to confirm view
-            self.showStatusView()
-        }
-    }
-    
     func handlePendingLightningInvoice() {
         // Parse the pending Lightning invoice to get the amount
         if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.pendingLightningInvoice).getValue() {
@@ -335,6 +316,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.amountTextField.text = "\(invoiceAmount)"
                 self.swapDirection = .onchainToLightning
                 self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
+                
+                // Start loading.
+                self.nextLabel.alpha = 0
+                self.arrowIcon.alpha = 0
+                self.nextSpinner.startAnimating()
                 
                 // Create Swap object.
                 self.thisSwap = Swap()
@@ -361,6 +347,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.amountTextField.text = "\(self.pendingOnchainAmount)"
         self.swapDirection = .lightningToOnchain
         self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
+        
+        // Start loading.
+        self.nextLabel.alpha = 0
+        self.arrowIcon.alpha = 0
+        self.nextSpinner.startAnimating()
         
         // Create Swap object.
         self.thisSwap = Swap()

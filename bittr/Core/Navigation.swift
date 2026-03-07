@@ -104,6 +104,17 @@ extension CoreViewController {
                 let article = self.allArticles?[self.tappedArticle!] ?? Article()
                 oneArticleVC.article = article
             }
+        } else if segue.identifier == "CoreToSwap" {
+            if let swapVC = segue.destination as? SwapViewController {
+                self.swapVC = swapVC
+                swapVC.coreVC = self
+                swapVC.isFromLightningPayment = self.isFromLightningPayment
+                swapVC.pendingLightningInvoice = self.pendingLightningInvoice
+                swapVC.pendingOnchainAmount = self.pendingSuggestedSwapAmount
+                self.isFromLightningPayment = false
+                self.pendingLightningInvoice = ""
+                self.pendingSuggestedSwapAmount = 0
+            }
         }
     }
     

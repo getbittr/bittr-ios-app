@@ -385,24 +385,9 @@ extension SendViewController {
     
     @objc func swapAndPayOnchain() {
         self.hideAlert()
-        Log.info("DEBUG - swapAndPayOnchain called")
-        print("DEBUG - pendingOnchainAddress: \(self.pendingOnchainAddress)")
-        print("DEBUG - onchainAmountInSatoshis: \(self.onchainAmountInSatoshis)")
-        // Navigate to swap screen with the pending address using existing segue pattern
-        if let homeVC = self.coreVC?.homeVC {
-            // Store the pending address in a way that can be accessed by the swap screen
-            let pendingAddress = self.pendingOnchainAddress
-            let pendingAmount = self.onchainAmountInSatoshis
-            print("DEBUG - Passing to MoveViewController: address=\(pendingAddress), amount=\(pendingAmount)")
-            // First dismiss the current view controller
-            self.dismiss(animated: true) {
-                // Then navigate through the existing segue pattern
-                homeVC.isFromOnchainPayment = true
-                homeVC.pendingOnchainAddress = pendingAddress
-                homeVC.pendingOnchainAmount = pendingAmount
-                homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
-            }
-        }
+        Log.info("swapAndPayOnchain called.")
+        
+        self.performSegue(withIdentifier: "SendToSwap", sender: self)
     }
 }
 

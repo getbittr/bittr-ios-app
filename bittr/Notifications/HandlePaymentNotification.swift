@@ -569,7 +569,7 @@ extension CoreViewController {
         Log.info("Received swap notification from background for ID.")
         
         // Check if SwapViewController is already open - if so, ignore the notification
-        if self.isSwapViewControllerOpen() {
+        if self.swapVC != nil || self.homeVC?.swapStatusVC != nil {
             Log.info("SwapViewController is already open, ignoring notification")
             return
         }
@@ -592,30 +592,14 @@ extension CoreViewController {
         }
     }
     
-    private func handleSwapNotificationImmediately() {
+    func handleSwapNotificationImmediately() {
         self.lightningNotification = nil
         self.hidePendingView()
         
         // Load swap details from file
         if CacheManager.getLatestSwap() != nil {
             Log.info("Loaded swap details from background.")
-            
-            // Go directly to swap screen without showing alert
-            DispatchQueue.main.async {
-                self.openSwapViewController()
-            }
-        }
-    }
-    
-    @objc func openSwapViewController() {
-        // Use the existing pending swap functionality
-        // The swap details are already stored in ongoingSwapDictionary
-        // We just need to present the SwapViewController and it will handle the pending swap
-        
-        // Try to present through HomeViewController using the existing segue
-        if self.homeVC != nil {
-            self.homeVC!.openMoveVCFromBackgroundNotification = true
-            self.homeVC!.performSegue(withIdentifier: "HomeToMove", sender: self.homeVC!)
+            self.performSegue(withIdentifier: "HomeToSwapStatus", sender: self)
         }
     }
     
@@ -721,30 +705,10 @@ extension CoreViewController {
         self.hideAlert()
         
         // Navigate to swap screen using existing pattern
-        if let homeVC = self.homeVC {
-            // Use the stored suggested swap amount
-            let suggestedAmount = self.pendingSuggestedSwapAmount
-            Log.info("DEBUG - swapAndPayForNotification:")
-            print("Suggested amount: \(suggestedAmount)")
-            
-            // First dismiss the current view controller
-            self.dismiss(animated: true) {
-                // Then navigate through the existing segue pattern.
-                homeVC.openMoveVCFromBackgroundNotification = true
-                homeVC.pendingOnchainAmount = suggestedAmount
-                homeVC.pendingOnchainAddress = "" // No specific address needed
-                homeVC.performSegue(withIdentifier: "HomeToMove", sender: homeVC)
-            }
-        }
-    }
-    
-    private func isSwapViewControllerOpen() -> Bool {
-        // Check if SwapViewController is currently presented in the view hierarchy
-        if self.homeVC?.moveVC?.swapVC != nil {
-            return true
-        } else {
-            return false
-        }
+        // Use the stored suggested swap amount
+        Log.info("swapAndPayForNotification called.")
+        
+        self.performSegue(withIdentifier: "CoreToSwap", sender: self)
     }
 
 }

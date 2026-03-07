@@ -465,12 +465,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         
         // Show new transaction in TransactionVC.
         if segue.identifier == "SendToTransaction" {
-            let transactionVC = segue.destination as? TransactionViewController
-            if let actualTransactionVC = transactionVC {
+            if let transactionVC = segue.destination as? TransactionViewController {
                 if let actualCompletedTransaction = self.completedTransaction {
-                    actualTransactionVC.tappedTransaction = actualCompletedTransaction
-                    actualTransactionVC.coreVC = self.coreVC
+                    transactionVC.tappedTransaction = actualCompletedTransaction
+                    transactionVC.coreVC = self.coreVC
                 }
+            }
+        } else if segue.identifier == "SendToSwap" {
+            if let swapVC = segue.destination as? SwapViewController {
+                swapVC.isFromOnchainPayment = true
+                swapVC.pendingOnchainAmount = self.onchainAmountInSatoshis
+                swapVC.pendingOnchainAddress = self.pendingOnchainAddress
+                swapVC.coreVC = self.coreVC
+                self.coreVC?.swapVC = swapVC
             }
         }
     }

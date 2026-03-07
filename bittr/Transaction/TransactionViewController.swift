@@ -635,6 +635,7 @@ class TransactionViewController: UIViewController {
         } else if segue.identifier == "TransactionToSwapStatus" {
             if let swapVC = segue.destination as? SwapStatusViewController {
                 swapVC.coreVC = self.coreVC
+                self.coreVC?.homeVC?.swapStatusVC = swapVC
                 let tappedSwap = Swap()
                 tappedSwap.boltzID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription)!
                 tappedSwap.satoshisAmount = self.tappedTransaction.received

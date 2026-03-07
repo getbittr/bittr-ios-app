@@ -51,14 +51,6 @@ class MoveViewController: UIViewController {
     // Values
     var maximumReceivableLNSats:Int?
     
-    // Pending payments
-    var isFromBackgroundNotification = false
-    var isFromLightningPayment = false
-    var pendingLightningInvoice = ""
-    var isFromOnchainPayment = false
-    var pendingOnchainAddress = ""
-    var pendingOnchainAmount = 0
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -68,16 +60,6 @@ class MoveViewController: UIViewController {
         self.changeColors()
         self.setWords()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "balance"))
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        
-        // If we're coming from a Lightning or Onchain payment, automatically trigger the swap segue.
-        if self.isFromBackgroundNotification || (self.isFromLightningPayment && !self.pendingLightningInvoice.isEmpty) || (self.isFromOnchainPayment && !self.pendingOnchainAddress.isEmpty) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.performSegue(withIdentifier: "MoveToSwap", sender: self)
-            }
-        }
     }
     
     func updateLabels() {
@@ -124,23 +106,7 @@ class MoveViewController: UIViewController {
                 swapVC.homeVC = self.homeVC
                 swapVC.coreVC = self.coreVC
                 self.swapVC = swapVC
-                swapVC.isFromBackgroundNotification = self.isFromBackgroundNotification
-                swapVC.isFromLightningPayment = self.isFromLightningPayment
-                swapVC.pendingLightningInvoice = self.pendingLightningInvoice
-                swapVC.isFromOnchainPayment = self.isFromOnchainPayment
-                swapVC.pendingOnchainAddress = self.pendingOnchainAddress
-                swapVC.pendingOnchainAmount = self.pendingOnchainAmount
-                print("DEBUG - MoveViewController: Performing segue to SwapViewController with address: \(self.pendingOnchainAddress), amount: \(self.pendingOnchainAmount)")
-                
-                // Clear the pending data after passing it to prevent it from being reused
-                if self.isFromLightningPayment || self.isFromOnchainPayment {
-                    Log.info("DEBUG - Clearing pending data in MoveViewController after passing to SwapViewController")
-                    self.pendingLightningInvoice = ""
-                    self.pendingOnchainAddress = ""
-                    self.pendingOnchainAmount = 0
-                    self.isFromLightningPayment = false
-                    self.isFromOnchainPayment = false
-                }
+                self.coreVC?.swapVC = swapVC
             }
         }
     }
