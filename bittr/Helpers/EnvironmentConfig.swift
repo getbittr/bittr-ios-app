@@ -112,7 +112,7 @@ struct EnvironmentConfig {
     
     /// RGS Server URL based on environment
     static var rgsServerURL: String {
-        isDevelopment ? "https://rapidsync.lightningdevkit.org/testnet/snapshot/" : "https://rapidsync.lightningdevkit.org/snapshot/"
+        isDevelopment ? "https://rapidsync.lightningdevkit.org/testnet/snapshot/" : "https://rapidsync.lightningdevkit.org/snapshot/v2"
     }
     
     // MARK: - Lightning Configuration
