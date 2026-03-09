@@ -23,6 +23,7 @@ extension ConfirmSendViewController {
         self.yellowCard.layer.cornerRadius = 13
         self.addressView.layer.cornerRadius = 8
         self.amountView.layer.cornerRadius = 8
+        self.lightningFeesView.layer.cornerRadius = 8
         self.feesViewFast.layer.cornerRadius = 8
         self.feesViewMedium.layer.cornerRadius = 8
         self.feesViewSlow.layer.cornerRadius = 8
@@ -45,10 +46,12 @@ extension ConfirmSendViewController {
         self.addressLabel.textColor = Colors.getColor("blackorwhite")
         self.amountLabel.textColor = Colors.getColor("blackorwhite")
         self.amountFiatLabel.textColor = Colors.getColor("blackorwhite")
+        self.lightningFeesLabel.textColor = Colors.getColor("blackorwhite")
         self.feesTopLabel.textColor = Colors.getColor("blackorwhite")
         
         self.addressView.backgroundColor = Colors.getColor("whiteorblue3")
         self.amountView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.lightningFeesView.backgroundColor = Colors.getColor("whiteorblue3")
         
         self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
         self.feesViewMedium.backgroundColor = Colors.getColor("whiteorblue3")
@@ -73,6 +76,7 @@ extension ConfirmSendViewController {
         self.topLabel.text = Language.getWord(withID: "checkdetails")
         self.addressTitle.text = Language.getWord(withID: "address")
         self.amountTitle.text = Language.getWord(withID: "amount")
+        self.lightningFeesTitle.text = Language.getWord(withID: "estimatedfees")
         self.feesTopLabel.text = Language.getWord(withID: "feerate")
         self.confirmLabel.text = Language.getWord(withID: "send")
         

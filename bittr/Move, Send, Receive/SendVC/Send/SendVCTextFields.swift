@@ -15,16 +15,12 @@ extension SendViewController {
         if textField == self.toTextField {
             // If it's a lightning invoice with amount, go straight to confirmation
             if (textField.text ?? "").hasPrefix("ln") {
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue() {
-                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        // Invoice has amount, go straight to confirmation
-                        let invoiceAmount = Int(invoiceAmountMilli)/1000
-                        self.amountTextField.text = "\(invoiceAmount)"
-                        self.btcLabel.text = "Sats"
-                        self.selectedCurrency = .satoshis
-                        self.confirmLightningTransaction(lnurlinvoice: nil, lnurlNote: nil)
-                        return true
-                    }
+                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                    // Invoice has amount, go straight to confirmation
+                    self.onchainOrLightning = .lightning
+                    self.updateLabels()
+                    self.checkSendLightning()
+                    return true
                 }
             } else if (textField.text ?? "").contains("@") {
                 self.view.endEditing(true)

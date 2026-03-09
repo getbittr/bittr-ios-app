@@ -28,43 +28,37 @@ extension SendViewController {
             self.toTextField.text = lnurl!
             self.handleLNURL(code: lnurl!)
             self.onchainOrLightning = .lightning
-            self.updateLabels()
         } else if lightningInvoice != nil {
             Log.info("Did find invoice.")
             
-            // Example QR
-            // bitcoin:bc1qhg5nndn8ngrykjun9k7rgczw2x3ywwtcf0hplz?amount=0.00001&lightning=lnbc10u1pnma0z3dqqnp4q0wy5shnpskxc050schq0r5gkkk39e5w89qzfcd5fz9ngejqjwhavpp5vfpx5dwh97vf7wrvcu9mt006mkdft5fjzfnrqakf6288dhj9r2pssp5e64sv4zyf4esy4wgdkdndtne2lxr4lf0ndpy2e0n3qm80kfty77q9qyysgqcqpcxqrrssrzjqd54day770dcv0n0fhp57f9vuxd7zack3gy8p6pletmw0f5rsv439apyqqqqqqqqqvqqqqlgqqqqqqgq2qvw6n7wd6x6ej47u5a2k253jy65js489qvrf36v8mnw79u3hvaz9k3926ypm2d92h7wxlff7gtyen3ny0gp9mqwjhj8kvk3w9kaq5dxqqtqwll6
+            self.toTextField.text = lightningInvoice!
+            self.onchainOrLightning = .lightning
             
             // Check if we have sufficient funds in Lightning.
             if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningInvoice!).getValue() {
-                
-                let invoiceAmount:Int = {
-                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        // Regular invoice
-                        return Int(invoiceAmountMilli)/1000
+                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                    // Regular invoice
+                    let invoiceAmount = Int(invoiceAmountMilli)/1000
+                    
+                    if invoiceAmount <= (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
+                        // We have sufficient funds in Lightning.
+                        
+                        self.amountTextField.text = "\(invoiceAmount)"
+                        self.btcLabel.text = "Sats"
+                        self.selectedCurrency = .satoshis
                     } else {
-                        // Zero invoice
-                        return amount ?? 0
+                        if bitcoinAddress != nil {
+                            // We can't send this much in Lightning. Send onchain.
+                            self.handleScannedOrPastedString(bitcoinAddress!)
+                            return
+                        }
                     }
-                }()
-                
-                if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
-                    // We can't send this much in Lightning. Send onchain.
-                    self.handleScannedOrPastedString(bitcoinAddress!)
-                    return
-                } else {
-                    // We have sufficient funds in Lightning.
-                    self.toTextField.text = lightningInvoice!
-                    self.amountTextField.text = "\(invoiceAmount)"
-                    self.btcLabel.text = "Sats"
-                    self.selectedCurrency = .satoshis
-                    self.onchainOrLightning = .lightning
                 }
-                
-                if bitcoinAddress != nil {
-                    Log.info("Did also find onchain address.")
-                    self.bitcoinQR = bitcoinAddress!
-                }
+            }
+            
+            if bitcoinAddress != nil {
+                Log.info("Did also find onchain address.")
+                self.bitcoinQR = bitcoinAddress!
             }
         } else if bitcoinAddress != nil {
             Log.info("Did find onchain address.")
@@ -83,7 +77,7 @@ extension SendViewController {
             return
         }
         
-        // Hide QR scanner and switch views to onchain or lightning.
+        // Update labels.
         self.updateLabels()
     }
 }

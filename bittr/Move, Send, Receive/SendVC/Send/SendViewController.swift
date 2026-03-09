@@ -123,12 +123,14 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     var temporaryIsZeroAmountInvoice = false
     
     // Confirm variables
+    var confirmSendVC:ConfirmSendViewController?
     var confirmSatoshis:Int = 0
     var confirmAddress = ""
     var feePerVbLow:Float = 0
     var feePerVbMedium:Float = 0
     var feePerVbHigh:Float = 0
     var confirmTxSize:Float = 0
+    var confirmLightningFees:Int = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -397,6 +399,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         let newChild = storyboard.instantiateViewController(withIdentifier: "ConfirmSend")
         (newChild as? ConfirmSendViewController)?.coreVC = self.coreVC
         (newChild as? ConfirmSendViewController)?.sendVC = self
+        self.confirmSendVC = newChild as? ConfirmSendViewController
         
         self.addChild(newChild)
         newChild.view.frame.size = self.confirmContainer.frame.size

@@ -24,65 +24,64 @@ extension SendViewController {
         }
         
         // Check amount.
-        let enteredAmount = self.amountTextField.text ?? ""
-        if enteredAmount.isEmpty {
-            // No amount has been entered.
-            if enteredInvoice.lowercased().hasPrefix("ln") {
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: enteredInvoice).getValue() {
-                    if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                        // Normal invoice.
-                        let invoiceAmount = Int(invoiceAmountMilli)/1000
-                        self.amountTextField.text = "\(invoiceAmount)"
-                        self.btcLabel.text = "Sats"
-                        self.selectedCurrency = .satoshis
-                        self.confirmLightningTransaction(lnurlinvoice: nil, lnurlNote: nil)
-                    } else {
-                        // Zero invoice, needs amount.
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    }
-                } else {
-                    // Invalid lightning invoice
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
-            } else if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
-                // LNURL. No amount needed.
-                self.handleLNURL(code: enteredInvoice.lowercased())
+        let satoshisAmount:Int
+        if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: enteredInvoice).getValue() {
+            // Valid invoice.
+            if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                // Normal invoice.
+                satoshisAmount = Int(invoiceAmountMilli)/1000
             } else {
-                // Not a lightning invoice, amount is required
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                // Zero invoice, needs amount.
+                let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if enteredAmount.isEmpty {
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    return
+                } else {
+                    switch self.selectedCurrency {
+                    case .satoshis:
+                        satoshisAmount = Int(enteredAmount.toNumber())
+                    case .bitcoin:
+                        let btcAmount = enteredAmount.toNumber()
+                        guard btcAmount.isFinite && !btcAmount.isNaN else {
+                            Log.info("579 Invalid BTC amount.")
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
+                        satoshisAmount = btcAmount.inSatoshis()
+                    case .currency:
+                        let fiatAmount = enteredAmount.toNumber()
+                        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                        let btcAmount = fiatAmount / bitcoinValue.currentValue
+                        
+                        guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                            Log.info("589 Invalid values.")
+                            self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            return
+                        }
+                        satoshisAmount = btcAmount.inSatoshis()
+                    }
+                }
             }
+        } else if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
+            // LNURL. No amount needed.
+            self.handleLNURL(code: enteredInvoice.lowercased())
+            return
         } else {
-            // Convert amount to satoshis based on current currency.
-            var satoshisValue: Int
-            switch self.selectedCurrency {
-            case .satoshis:
-                satoshisValue = Int(enteredAmount.toNumber())
-            case .bitcoin:
-                let btcAmount = enteredAmount.toNumber()
-                guard btcAmount.isFinite && !btcAmount.isNaN else {
-                    Log.info("579 Invalid BTC amount.")
-                    print("⚠️ Warning: Invalid BTC amount: \(btcAmount)")
-                    return
-                }
-                satoshisValue = btcAmount.inSatoshis()
-            case .currency:
-                let fiatAmount = enteredAmount.toNumber()
-                let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-                let btcAmount = fiatAmount / bitcoinValue.currentValue
-                
-                guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                    Log.info("589 Invalid values.")
-                    print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                    return
-                }
-                satoshisValue = btcAmount.inSatoshis()
-            }
-            
-            self.amountTextField.text = "\(satoshisValue)"
-            self.btcLabel.text = "Sats"
-            self.selectedCurrency = .satoshis
-            self.confirmLightningTransaction(lnurlinvoice: nil, lnurlNote: nil)
+            // Invalid invoice. Ask for amount.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
         }
+        
+        // Set fields
+        self.amountTextField.text = "\(satoshisAmount)"
+        self.btcLabel.text = "Sats"
+        self.selectedCurrency = .satoshis
+        
+        // Confirm
+        self.confirmSatoshis = satoshisAmount
+        self.confirmAddress = enteredInvoice
+        
+        self.confirmLightningTransaction(lnurlinvoice: nil, lnurlNote: nil)
     }
 }
 
@@ -166,16 +165,23 @@ extension UIViewController {
         receiveVC?.temporaryInvoiceNote = lnurlNote
         
         // Confirm details.
-        self.showAlert(
-            presentingController: self,
-            title: Language.getWord(withID: "sendtransaction"),
-            message: Language.getWord(withID: "lightningconfirmation")
-                .replacingOccurrences(of: "<amount>", with: String(invoiceAmount))
-                .replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency)
-                .replacingOccurrences(of: "<convertedamount>", with: convertedValue)
-                .replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)),
-            buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")],
-            actions: [#selector(self.cancelLightningPayment), #selector(self.performLightningPayment)])
+        if sendVC != nil, lnurlinvoice == nil {
+            // SendVC
+            sendVC!.confirmLightningFees = maximumRoutingFeesSat
+            sendVC!.slideFromSendToConfirm()
+        } else {
+            // ReceiveVC or LNURL.
+            self.showAlert(
+                presentingController: self,
+                title: Language.getWord(withID: "sendtransaction"),
+                message: Language.getWord(withID: "lightningconfirmation")
+                    .replacingOccurrences(of: "<amount>", with: String(invoiceAmount))
+                    .replacingOccurrences(of: "<currency>", with: bitcoinValue.chosenCurrency)
+                    .replacingOccurrences(of: "<convertedamount>", with: convertedValue)
+                    .replacingOccurrences(of: "<fees>", with: String(maximumRoutingFeesSat)),
+                buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")],
+                actions: [#selector(self.cancelLightningPayment), #selector(self.performLightningPayment)])
+        }
     }
     
     func checkAvailableOnchainBalance(invoiceAmount:Int, availableLightningBalance:UInt64, invoiceText:String?) {
@@ -255,13 +261,17 @@ extension UIViewController {
     @objc func performLightningPayment() {
         self.hideAlert()
         
-        let sendVC = self as? SendViewController
+        let confirmSendVC = self as? ConfirmSendViewController
+        let sendVC = (self as? SendViewController) ?? confirmSendVC?.sendVC
         let receiveVC = self as? ReceiveViewController
         let swapVC = self as? SwapViewController
         
         sendVC?.nextLabel.alpha = 0
         sendVC?.arrowIcon.alpha = 0
         sendVC?.nextSpinner.startAnimating()
+        
+        confirmSendVC?.confirmLabel.alpha = 0
+        confirmSendVC?.confirmSpinner.startAnimating()
         
         Task {
             // Check peer connection.
@@ -280,6 +290,8 @@ extension UIViewController {
                         sendVC?.nextLabel.alpha = 1
                         sendVC?.arrowIcon.alpha = 1
                         sendVC?.nextSpinner.stopAnimating()
+                        confirmSendVC?.confirmLabel.alpha = 1
+                        confirmSendVC?.confirmSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
                         SentrySDK.metrics.count(key: "lightning.payment.failure.2")
                     }
@@ -330,6 +342,8 @@ extension UIViewController {
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.arrowIcon.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
+                    confirmSendVC?.confirmLabel.alpha = 1
+                    confirmSendVC?.confirmSpinner.stopAnimating()
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "SendLightning row 233", key: "context")
@@ -405,6 +419,8 @@ extension UIViewController {
         sendVC?.nextLabel.alpha = 1
         sendVC?.arrowIcon.alpha = 1
         sendVC?.nextSpinner.stopAnimating()
+        sendVC?.confirmSendVC?.confirmLabel.alpha = 1
+        sendVC?.confirmSendVC?.confirmSpinner.stopAnimating()
         sendVC?.resetFields()
         
         // Cache invoice note.

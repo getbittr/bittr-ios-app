@@ -505,7 +505,8 @@ class Language: NSObject {
             "1hour": "1 hour",
             "1day": "1 day",
             "slow": "Slow",
-            "scanner": "Scanner"
+            "scanner": "Scanner",
+            "estimatedfees": "Estimated fees"
             
         ]
         
