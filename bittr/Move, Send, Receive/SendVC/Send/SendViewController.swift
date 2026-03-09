@@ -87,43 +87,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var arrowIconLeading: NSLayoutConstraint!
     @IBOutlet weak var arrowIcon: UIImageView!
     
-    // Onchain confirm scroll
-    @IBOutlet weak var confirmHeaderView: UIView!
-    @IBOutlet weak var confirmHeaderLabel: UILabel!
-    @IBOutlet weak var confirmTopLabel: UILabel!
-    @IBOutlet weak var yellowCard: UIView!
-    @IBOutlet weak var confirmToCard: UIView!
-    @IBOutlet weak var confirmAmountCard: UIView!
-    @IBOutlet weak var confirmAddressLabel: UILabel!
-    @IBOutlet weak var confirmAmountLabel: UILabel!
-    @IBOutlet weak var confirmEuroLabel: UILabel!
-    @IBOutlet weak var editView: UIView!
-    @IBOutlet weak var editButton: UIButton!
-    @IBOutlet weak var sendView: UIView!
-    @IBOutlet weak var sendButton: UIButton!
-    @IBOutlet weak var sendSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var sendLabel: UILabel!
-    @IBOutlet weak var labelAddress: UILabel!
-    @IBOutlet weak var labelAmount: UILabel!
-    
-    // Onchain confirm scroll - Fees
-    @IBOutlet weak var feesTopLabel: UILabel!
-    @IBOutlet weak var fastView: UIView!
-    @IBOutlet weak var mediumView: UIView!
-    @IBOutlet weak var slowView: UIView!
-    @IBOutlet weak var satsFast: UILabel!
-    @IBOutlet weak var satsMedium: UILabel!
-    @IBOutlet weak var satsSlow: UILabel!
-    @IBOutlet weak var eurosFast: UILabel!
-    @IBOutlet weak var eurosMedium: UILabel!
-    @IBOutlet weak var eurosSlow: UILabel!
-    @IBOutlet weak var timeFast: UILabel!
-    @IBOutlet weak var timeMedium: UILabel!
-    @IBOutlet weak var timeSlow: UILabel!
-    @IBOutlet weak var fastButton: UIButton!
-    @IBOutlet weak var mediumButton: UIButton!
-    @IBOutlet weak var slowButton: UIButton!
-    @IBOutlet weak var slowTimeLabel: UILabel!
+    // Confirm view
+    @IBOutlet weak var confirmContainer: UIView!
     
     // Spinner view
     @IBOutlet weak var spinnerView: UIView!
@@ -136,7 +101,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var maximumSendableOnchainBtc:Double?
     var completedTransaction:Transaction?
     var onchainAmountInSatoshis:Int = 0
-    var newTxId = ""
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
     var pendingOnchainAddress = ""
@@ -167,12 +131,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     var temporaryInvoiceNote:String?
     var temporaryIsZeroAmountInvoice = false
     
-    // Fees
-    var feeLow:Float = 0.0
-    var feeMedium:Float = 0.0
-    var feeHigh:Float = 0.0
-    var selectedFee:SelectedFee = .medium
-    var selectedFeeInSats = 0
+    // Confirm variables
+    var confirmSatoshis:Int = 0
+    var confirmAddress = ""
+    var feePerVbLow:Float = 0
+    var feePerVbMedium:Float = 0
+    var feePerVbHigh:Float = 0
+    var confirmTxSize:Float = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -426,11 +391,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
     }
     
-    @IBAction func editButtonTapped(_ sender: UIButton) {
-        // Slide back to leftmost scroll view.
-        self.slideFromConfirmToSend()
-    }
-    
     func slideFromConfirmToSend() {
         DispatchQueue.main.async {
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
@@ -438,12 +398,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
                 NSLayoutConstraint.activate([self.scrollViewTrailing])
                 self.view.layoutIfNeeded()
+            } completion: { _ in
+                self.removeConfirmView()
             }
         }
     }
     
     func slideFromSendToConfirm() {
         DispatchQueue.main.async {
+            self.loadConfirmView()
+            
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 NSLayoutConstraint.deactivate([self.scrollViewTrailing])
                 self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
@@ -453,11 +417,22 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         }
     }
     
-    @IBAction func sendButtonTapped(_ sender: UIButton) {
-        guard self.checkInternetConnection() else { return }
+    func loadConfirmView() {
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        let newChild = storyboard.instantiateViewController(withIdentifier: "ConfirmSend")
+        (newChild as? ConfirmSendViewController)?.coreVC = self.coreVC
+        (newChild as? ConfirmSendViewController)?.sendVC = self
         
-        // Send onchain transaction.
-        self.confirmSendOnchain()
+        self.addChild(newChild)
+        newChild.view.frame.size = self.confirmContainer.frame.size
+        self.confirmContainer.addSubview(newChild.view)
+        newChild.didMove(toParent: self)
+    }
+    
+    func removeConfirmView() {
+        for eachSubview in self.confirmContainer.subviews {
+            eachSubview.removeFromSuperview()
+        }
     }
     
     
@@ -504,16 +479,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.hideScanner()
     }
     
-    @IBAction func feeButtonTapped(_ sender: UIButton) {
-        if sender.accessibilityIdentifier! == "high" {
-            self.switchFeeSelection(tappedFee: .high)
-        } else if sender.accessibilityIdentifier! == "medium" {
-            self.switchFeeSelection(tappedFee: .medium)
-        } else {
-            self.switchFeeSelection(tappedFee: .low)
-        }
-    }
-    
     @IBAction func btcButtonTapped(_ sender: UIButton) {
         
         let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
@@ -546,10 +511,4 @@ enum SelectedCurrency {
     case bitcoin
     case satoshis
     case currency
-}
-
-enum SelectedFee {
-    case low
-    case medium
-    case high
 }

@@ -17,12 +17,7 @@ extension SendViewController {
         self.labelInstant.text = Language.getWord(withID: "instant")
         self.amountTextField.placeholder = Language.getWord(withID: "enteramount")
         self.nextLabel.text = Language.getWord(withID: "next")
-        self.confirmHeaderLabel.text = Language.getWord(withID: "confirmtransaction")
-        self.confirmTopLabel.text = Language.getWord(withID: "checkdetails")
-        self.labelAddress.text = Language.getWord(withID: "address")
-        self.labelAmount.text = Language.getWord(withID: "amount")
-        self.feesTopLabel.text = Language.getWord(withID: "feerate")
-        self.sendLabel.text = Language.getWord(withID: "send")
+        
         self.stackLabelQR.text = Language.getWord(withID: "sendvcscan")
         self.stackLabelPaste.text = Language.getWord(withID: "sendvcpaste")
         self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
@@ -64,28 +59,6 @@ extension SendViewController {
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
         self.amountTextField.textColor = Colors.getColor("blackorwhite")
-        
-        self.confirmTopLabel.textColor = Colors.getColor("blackorwhite")
-        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
-        self.confirmToCard.backgroundColor = Colors.getColor("whiteorblue3")
-        self.confirmAmountCard.backgroundColor = Colors.getColor("whiteorblue3")
-        self.confirmAddressLabel.textColor = Colors.getColor("blackorwhite")
-        self.confirmAmountLabel.textColor = Colors.getColor("blackorwhite")
-        self.confirmEuroLabel.textColor = Colors.getColor("blackorwhite")
-        
-        self.feesTopLabel.textColor = Colors.getColor("blackorwhite")
-        self.timeFast.textColor = Colors.getColor("blackoryellow")
-        self.timeMedium.textColor = Colors.getColor("blackoryellow")
-        self.timeSlow.textColor = Colors.getColor("blackoryellow")
-        self.satsFast.textColor = Colors.getColor("blackorwhite")
-        self.satsMedium.textColor = Colors.getColor("blackorwhite")
-        self.satsSlow.textColor = Colors.getColor("blackorwhite")
-        self.eurosFast.textColor = Colors.getColor("blackorwhite")
-        self.eurosMedium.textColor = Colors.getColor("blackorwhite")
-        self.eurosSlow.textColor = Colors.getColor("blackorwhite")
-        self.fastView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.mediumView.backgroundColor = Colors.getColor("whiteorblue3")
-        self.slowView.backgroundColor = Colors.getColor("white0.7orblue2")
     }
     
     func setBasicStyling() {
@@ -97,13 +70,8 @@ extension SendViewController {
         self.backgroundButton.setTitle("", for: .normal)
         self.centerBackgroundButton.setTitle("", for: .normal)
         self.nextButton.setTitle("", for: .normal)
-        self.editButton.setTitle("", for: .normal)
-        self.sendButton.setTitle("", for: .normal)
         self.regularButton.setTitle("", for: .normal)
         self.instantButton.setTitle("", for: .normal)
-        self.fastButton.setTitle("", for: .normal)
-        self.mediumButton.setTitle("", for: .normal)
-        self.slowButton.setTitle("", for: .normal)
         self.qrButton.setTitle("", for: .normal)
         self.toButton.setTitle("", for: .normal)
         self.btcButton.setTitle("", for: .normal)
@@ -112,28 +80,15 @@ extension SendViewController {
         self.toView.layer.cornerRadius = 8
         self.amountView.layer.cornerRadius = 8
         self.nextView.layer.cornerRadius = 8
-        self.confirmHeaderView.layer.cornerRadius = 13
-        self.editView.layer.cornerRadius = 8
-        self.sendView.layer.cornerRadius = 8
         self.switchView.layer.cornerRadius = 13
         self.switchSelectionView.layer.cornerRadius = 8
         self.scannerView.layer.cornerRadius = 13
-        self.yellowCard.layer.cornerRadius = 20
-        self.confirmToCard.layer.cornerRadius = 8
-        self.confirmAmountCard.layer.cornerRadius = 8
-        self.fastView.layer.cornerRadius = 8
-        self.mediumView.layer.cornerRadius = 8
-        self.slowView.layer.cornerRadius = 8
         self.backgroundQR.layer.cornerRadius = 8
         self.backgroundPaste.layer.cornerRadius = 8
         self.spinnerBox.layer.cornerRadius = 13
         self.btcView.layer.cornerRadius = 8
         
         // Shadows
-        self.yellowCard.setShadow()
-        self.fastView.setShadow()
-        self.mediumView.setShadow()
-        self.slowView.setShadow()
         self.backgroundQR.setShadow()
         self.backgroundPaste.setShadow()
         self.btcView.setShadow()

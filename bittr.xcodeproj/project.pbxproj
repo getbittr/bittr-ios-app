@@ -25,6 +25,8 @@
 		05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF62EAA754500A5E4E6 /* Demo Data.swift */; };
 		05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF82EAB749F00A5E4E6 /* Image.swift */; };
 		05117B9E2EDEC6AC00A5E4E6 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117B9D2EDEC6AA00A5E4E6 /* Log.swift */; };
+		051AB88B2F5E816B00DFC39F /* ConfirmSendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */; };
+		051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
 		051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D778E2A9DEAC8002107C0 /* PinViewController.swift */; };
 		051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */; };
@@ -220,6 +222,8 @@
 		05117AF62EAA754500A5E4E6 /* Demo Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Demo Data.swift"; sourceTree = "<group>"; };
 		05117AF82EAB749F00A5E4E6 /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
 		05117B9D2EDEC6AA00A5E4E6 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmSendViewController.swift; sourceTree = "<group>"; };
+		051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmLanguage.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		051D778E2A9DEAC8002107C0 /* PinViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinViewController.swift; sourceTree = "<group>"; };
 		051D77902A9DF8E3002107C0 /* Restore2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore2ViewController.swift; sourceTree = "<group>"; };
@@ -466,6 +470,25 @@
 			path = OneLessonVC;
 			sourceTree = "<group>";
 		};
+		051AB88C2F5E8F8E00DFC39F /* Send */ = {
+			isa = PBXGroup;
+			children = (
+				0579B2702A0530F80007891F /* SendViewController.swift */,
+				053021FF2E7803B700B23226 /* SendVCTextFields.swift */,
+				052171312CB430B8006C5663 /* SendVCLanguage.swift */,
+			);
+			path = Send;
+			sourceTree = "<group>";
+		};
+		051AB88D2F5E8F9F00DFC39F /* Confirm */ = {
+			isa = PBXGroup;
+			children = (
+				051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */,
+				051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */,
+			);
+			path = Confirm;
+			sourceTree = "<group>";
+		};
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
@@ -670,9 +693,8 @@
 		05B30E212E2542B300CF10EC /* SendVC */ = {
 			isa = PBXGroup;
 			children = (
-				0579B2702A0530F80007891F /* SendViewController.swift */,
-				053021FF2E7803B700B23226 /* SendVCTextFields.swift */,
-				052171312CB430B8006C5663 /* SendVCLanguage.swift */,
+				051AB88C2F5E8F8E00DFC39F /* Send */,
+				051AB88D2F5E8F9F00DFC39F /* Confirm */,
 				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
 				055403682CC14FC0006F27CA /* SendLNURL.swift */,
 				05EB5C9F2F4D834300FF2157 /* SendURI.swift */,
@@ -1155,6 +1177,7 @@
 				052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */,
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
+				051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */,
 				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
 				05546D292F35B86E00512129 /* BDKManager.swift in Sources */,
 				05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */,
@@ -1165,6 +1188,7 @@
 				05117AF12EAA1A0500A5E4E6 /* OneLessonViewController.swift in Sources */,
 				052171322CB430BC006C5663 /* SendVCLanguage.swift in Sources */,
 				0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */,
+				051AB88B2F5E816B00DFC39F /* ConfirmSendViewController.swift in Sources */,
 				05117AF52EAA31C300A5E4E6 /* Button.swift in Sources */,
 				05980B582A46F8DA001F312F /* CacheManager.swift in Sources */,
 				3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */,

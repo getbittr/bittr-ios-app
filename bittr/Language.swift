@@ -501,7 +501,11 @@ class Language: NSObject {
             "bittrpendingpayout3": "There's a pending payout available for handling. Would you like to do so now?",
             "failedinvoicepayment1": "This invoice could not be paid, due to the following error:\n\n<message>",
             "exchangerate": "Exchange rate",
-            "invoicecreatefail": "We could not create an invoice. Please try again later."
+            "invoicecreatefail": "We could not create an invoice. Please try again later.",
+            "10mins": "10 mins",
+            "1hour": "1 hour",
+            "1day": "1 day",
+            "slow": "Slow"
             
         ]
         
