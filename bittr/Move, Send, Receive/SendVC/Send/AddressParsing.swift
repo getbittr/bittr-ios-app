@@ -1,115 +1,18 @@
 //
-//  QRCodeScanner.swift
+//  AddressParsing.swift
 //  bittr
 //
 //  Created by Tom Melters on 02/07/2024.
 //
 
 import UIKit
-import AVFoundation
 import LNURLDecoder
 import LightningDevKit
 import Sentry
 
 extension SendViewController {
     
-    func showScannerView() {
-        
-        if fixQrScanner() {
-            // Open QR scanner.
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.addressStack.alpha = 0
-                self.toLabel.alpha = 0
-                self.toView.alpha = 0
-                self.pasteButton.alpha = 0
-                self.amountStack.alpha = 0
-                self.availableAmount.alpha = 0
-                self.availableButton.alpha = 0
-                self.scannerView.alpha = 1
-                
-                // Update Next button
-                self.nextLabel.text = Language.getWord(withID: "manualinput")
-                self.arrowIconWidth.constant = 0
-                self.arrowIconLeading.constant = 0
-                
-                NSLayoutConstraint.deactivate([self.nextViewTop])
-                self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.scannerView, attribute: .bottom, multiplier: 1, constant: 30)
-                NSLayoutConstraint.activate([self.nextViewTop])
-                
-                self.view.layoutIfNeeded()
-            }
-            
-            if (self.captureSession?.isRunning == false) {
-                DispatchQueue.global(qos: .background).async {
-                    self.captureSession.startRunning()
-                }
-            }
-        } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "scanningnotsupported"), message: Language.getWord(withID: "scanningnotavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-        }
-    }
-    
-    func fixQrScanner() -> Bool {
-        
-        captureSession = AVCaptureSession()
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-            self.scannerWorks = false
-            return false
-        }
-        let videoInput: AVCaptureDeviceInput
-        do {
-            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-        } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "QRCodeScanner row 61", key: "context")
-                }
-            }
-            self.scannerWorks = false
-            return false
-        }
-        
-        if (captureSession.canAddInput(videoInput)) {
-            captureSession.addInput(videoInput)
-        } else {
-            return false
-        }
-        
-        let metadataOutput = AVCaptureMetadataOutput()
-        
-        if (captureSession.canAddOutput(metadataOutput)) {
-            captureSession.addOutput(metadataOutput)
-
-            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            metadataOutput.metadataObjectTypes = [.qr]
-        } else {
-            return false
-        }
-        
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.frame = self.scannerView.layer.bounds
-        previewLayer.videoGravity = .resizeAspectFill
-        self.scannerView.layer.addSublayer(previewLayer)
-        
-        self.scannerWorks = true
-        return true
-    }
-    
-    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        
-        if let actualCaptureSession = captureSession {
-            actualCaptureSession.stopRunning()
-        }
-
-        if let metadataObject = metadataObjects.first {
-            guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
-            guard let stringValue = readableObject.stringValue else { return }
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-            self.handleScannedOrPastedString(stringValue, scanned: true)
-        }
-    }
-    
-    func handleScannedOrPastedString(_ code:String, scanned:Bool) {
+    func handleScannedOrPastedString(_ code:String) {
         print("Code: " + code)
         
         // Parse code components.
@@ -125,7 +28,7 @@ extension SendViewController {
             self.toTextField.text = lnurl!
             self.handleLNURL(code: lnurl!)
             self.onchainOrLightning = .lightning
-            self.hideScanner()
+            self.updateLabels()
         } else if lightningInvoice != nil {
             Log.info("Did find invoice.")
             
@@ -147,7 +50,7 @@ extension SendViewController {
                 
                 if invoiceAmount > (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
                     // We can't send this much in Lightning. Send onchain.
-                    self.handleScannedOrPastedString(bitcoinAddress!, scanned: scanned)
+                    self.handleScannedOrPastedString(bitcoinAddress!)
                     return
                 } else {
                     // We have sufficient funds in Lightning.
@@ -181,7 +84,7 @@ extension SendViewController {
         }
         
         // Hide QR scanner and switch views to onchain or lightning.
-        self.hideScanner()
+        self.updateLabels()
     }
 }
 

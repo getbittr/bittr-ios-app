@@ -43,6 +43,10 @@ extension UIViewController {
         } else {
             headerIcon.image = UIImage(named: iconLight)
         }
+        if headerIcon.image == nil {
+            headerIcon.image = UIImage(systemName: iconLight)
+            headerIcon.tintColor = Colors.getColor("whiteoryellow")
+        }
         headerIcon.clipsToBounds = false
         headerIcon.contentMode = .scaleAspectFit
         headerView.addSubview(headerIcon)
@@ -60,7 +64,7 @@ extension UIViewController {
         headerLabel.clipsToBounds = false
         headerLabel.font = UIFont(name: "Gilroy-Bold", size: 18)
         headerLabel.textColor = Colors.getColor("whiteoryellow")
-        headerLabel.text = title
+        headerLabel.text = title.lowercased()
         headerLabel.numberOfLines = 1
         headerLabel.textAlignment = .left
         headerLabel.lineBreakMode = .byTruncatingTail

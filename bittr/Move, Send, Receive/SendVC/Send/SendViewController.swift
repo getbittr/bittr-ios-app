@@ -7,12 +7,10 @@
 
 import UIKit
 import LDKNode
-import CodeScanner
-import AVFoundation
 import LightningDevKit
 import Sentry
 
-class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
+class SendViewController: UIViewController, UITextFieldDelegate {
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -71,15 +69,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     @IBOutlet weak var availableButtonTop: NSLayoutConstraint! // 0 or -85
     @IBOutlet weak var bdkSpinner: UIActivityIndicatorView!
     
-    // Main scroll - QR scanner
-    @IBOutlet weak var scannerView: UIView!
-    var captureSession: AVCaptureSession!
-    var previewLayer: AVCaptureVideoPreviewLayer!
-    var scannerWorks = false
-    
     // Main scroll - Next button
     @IBOutlet weak var nextView: UIView! // Background
-    @IBOutlet weak var nextViewTop: NSLayoutConstraint!
     @IBOutlet weak var nextSpinner: UIActivityIndicatorView!
     @IBOutlet weak var nextLabel: UILabel! // Next or Manual input
     @IBOutlet weak var nextButton: UIButton!
@@ -161,7 +152,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
         self.btcLabel.text = "Sats"
         
         // Initialize UI and set Send All.
-        self.hideScanner()
+        self.updateLabels()
         
         // Handle pending URI data from segue.
         self.checkForPendingURI()
@@ -227,12 +218,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        if (self.captureSession?.isRunning == true) {
-            self.captureSession.stopRunning()
-        }
     }
     
     func checkContentViewHeight() {
@@ -337,19 +322,15 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
     }
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
-        
-        if let actualCaptureSession = captureSession {
-            actualCaptureSession.stopRunning()
-        }
         self.view.endEditing(true)
         if let actualString = UIPasteboard.general.string {
-            self.handleScannedOrPastedString(actualString, scanned: false)
+            self.handleScannedOrPastedString(actualString)
         }
     }
     
     @IBAction func qrButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-        self.showScannerView()
+        self.performSegue(withIdentifier: "SendToScanner", sender: self)
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
@@ -371,23 +352,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
             return
         }
         
-        if self.nextLabel.text == Language.getWord(withID: "next") {
-            
-            if self.onchainOrLightning == .onchain {
-                if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
-                    Log.info("BDK wallet isn't available yet.")
-                    self.bdkWalletUnavailable()
-                } else {
-                    // Check onchain transaction.
-                    self.checkSendOnchain()
-                }
+        if self.onchainOrLightning == .onchain {
+            if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+                Log.info("BDK wallet isn't available yet.")
+                self.bdkWalletUnavailable()
             } else {
-                // Check lightning transaction.
-                self.checkSendLightning()
+                // Check onchain transaction.
+                self.checkSendOnchain()
             }
-        } else if self.nextLabel.text == Language.getWord(withID: "manualinput") {
-            // Hide QR scanner.
-            self.hideScanner()
+        } else {
+            // Check lightning transaction.
+            self.checkSendLightning()
         }
     }
     
@@ -454,6 +429,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 swapVC.coreVC = self.coreVC
                 self.coreVC?.swapVC = swapVC
             }
+        } else if segue.identifier == "SendToScanner" {
+            if let scannerVC = segue.destination as? ScannerViewController {
+                scannerVC.sendVC = self
+            }
         }
     }
     
@@ -476,7 +455,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, AVCaptureMetada
                 self.onchainOrLightning = .lightning
             }
         }
-        self.hideScanner()
+        self.updateLabels()
     }
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {

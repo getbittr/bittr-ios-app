@@ -29,7 +29,7 @@ extension SendViewController {
             } else if (textField.text ?? "").contains("@") {
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
-                self.hideScanner()
+                self.updateLabels()
                 self.handleLNURL(code: textField.text!)
                 return true
             }

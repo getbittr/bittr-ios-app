@@ -78,7 +78,6 @@ class Language: NSObject {
             "enterinvoice": "Enter invoice",
             "enteraddress": "Enter address",
             "enteramount": "Enter amount",
-            "manualinput": "Close camera",
             "confirmtransaction": "confirm transaction",
             "checkdetails": "Make sure these details are correct.",
             "feerate": "Select your preferred fee rate.",
@@ -505,7 +504,8 @@ class Language: NSObject {
             "10mins": "10 mins",
             "1hour": "1 hour",
             "1day": "1 day",
-            "slow": "Slow"
+            "slow": "Slow",
+            "scanner": "Scanner"
             
         ]
         

@@ -82,7 +82,6 @@ extension SendViewController {
         self.nextView.layer.cornerRadius = 8
         self.switchView.layer.cornerRadius = 13
         self.switchSelectionView.layer.cornerRadius = 8
-        self.scannerView.layer.cornerRadius = 13
         self.backgroundQR.layer.cornerRadius = 8
         self.backgroundPaste.layer.cornerRadius = 8
         self.spinnerBox.layer.cornerRadius = 13

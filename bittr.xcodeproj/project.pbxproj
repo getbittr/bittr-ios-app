@@ -141,7 +141,7 @@
 		05EB5C9E2F4D832F00FF2157 /* UITextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9D2F4D832D00FF2157 /* UITextField.swift */; };
 		05EB5CA02F4D834600FF2157 /* SendURI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9F2F4D834300FF2157 /* SendURI.swift */; };
 		05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5CA12F4D846C00FF2157 /* Int.swift */; };
-		05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */; };
+		05F1FB5E2C33DD08004AE14F /* AddressParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */; };
 		05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5F2C33E043004AE14F /* SendOnchain.swift */; };
 		05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB612C33E1CD004AE14F /* SendLightning.swift */; };
 		05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB632C341852004AE14F /* SendSwitch.swift */; };
@@ -150,6 +150,7 @@
 		05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */; };
 		05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */; };
 		05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */; };
+		05FD3AFC2F5EB92A00974FEA /* ScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD3AFB2F5EB92A00974FEA /* ScannerViewController.swift */; };
 		05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */; };
 		05FD58C32A28DF3A00CDFEF9 /* Signup6ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */; };
 		05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */; };
@@ -335,7 +336,7 @@
 		05EB5C9F2F4D834300FF2157 /* SendURI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendURI.swift; sourceTree = "<group>"; };
 		05EB5CA12F4D846C00FF2157 /* Int.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Int.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
-		05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeScanner.swift; sourceTree = "<group>"; };
+		05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressParsing.swift; sourceTree = "<group>"; };
 		05F1FB5F2C33E043004AE14F /* SendOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendOnchain.swift; sourceTree = "<group>"; };
 		05F1FB612C33E1CD004AE14F /* SendLightning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLightning.swift; sourceTree = "<group>"; };
 		05F1FB632C341852004AE14F /* SendSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendSwitch.swift; sourceTree = "<group>"; };
@@ -344,6 +345,7 @@
 		05F418EB2BAC12C0005CFAD0 /* HandleBittrNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandleBittrNotification.swift; sourceTree = "<group>"; };
 		05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTableViewCell.swift; sourceTree = "<group>"; };
 		05F8DC5C29F2B46A008052B5 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		05FD3AFB2F5EB92A00974FEA /* ScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerViewController.swift; sourceTree = "<group>"; };
 		05FD58C02A28C6CC00CDFEF9 /* Signup5ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup5ViewController.swift; sourceTree = "<group>"; };
 		05FD58C22A28DF3A00CDFEF9 /* Signup6ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup6ViewController.swift; sourceTree = "<group>"; };
 		05FD58C42A2A0B0E00CDFEF9 /* Signup7ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup7ViewController.swift; sourceTree = "<group>"; };
@@ -477,7 +479,8 @@
 				053021FF2E7803B700B23226 /* SendVCTextFields.swift */,
 				052171312CB430B8006C5663 /* SendVCLanguage.swift */,
 				05F1FB632C341852004AE14F /* SendSwitch.swift */,
-				05F1FB5D2C33DD08004AE14F /* QRCodeScanner.swift */,
+				05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */,
+				05FD3AFB2F5EB92A00974FEA /* ScannerViewController.swift */,
 			);
 			path = Send;
 			sourceTree = "<group>";
@@ -1133,7 +1136,7 @@
 				05A8BD822B750A8F002F0282 /* ResetApp.swift in Sources */,
 				05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */,
 				052E98C22F1638FF000035A8 /* UIViewController.swift in Sources */,
-				05F1FB5E2C33DD08004AE14F /* QRCodeScanner.swift in Sources */,
+				05F1FB5E2C33DD08004AE14F /* AddressParsing.swift in Sources */,
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
 				37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */,
 				05117AD82EA7328500A5E4E6 /* Component.swift in Sources */,
@@ -1232,6 +1235,7 @@
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
+				05FD3AFC2F5EB92A00974FEA /* ScannerViewController.swift in Sources */,
 				05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */,
 				05117B9E2EDEC6AC00A5E4E6 /* Log.swift in Sources */,
 				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,

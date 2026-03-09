@@ -14,28 +14,10 @@ extension SendViewController {
         self.amountTextField.text = nil
     }
     
-    func hideScanner() {
-        
-        if let actualCaptureSession = captureSession {
-            actualCaptureSession.stopRunning()
-        }
-        
-        self.scannerView.alpha = 0
-        self.amountStack.alpha = 1
-        self.addressStack.alpha = 1
-        self.toLabel.alpha = 1
-        self.toView.alpha = 1
-        self.pasteButton.alpha = 1
-        self.availableButton.alpha = 1
-        
-        // Update Next label
-        self.nextLabel.text = Language.getWord(withID: "next")
-        self.arrowIconWidth.constant = 11
-        self.arrowIconLeading.constant = 10
+    func updateLabels() {
         
         // Update available amount
         self.setSendAllLabel()
-        self.availableAmount.alpha = 1
         
         if self.onchainOrLightning == .onchain {
             self.toLabel.text = Language.getWord(withID: "addressandamount")
@@ -65,11 +47,10 @@ extension SendViewController {
                 leadingConstant = -30
             }
             
-            NSLayoutConstraint.deactivate([self.nextViewTop, self.selectionLeading, self.selectionTrailing])
-            self.nextViewTop = NSLayoutConstraint(item: self.nextView, attribute: .top, relatedBy: .equal, toItem: self.availableAmount, attribute: .bottom, multiplier: 1, constant: 30)
+            NSLayoutConstraint.deactivate([self.selectionLeading, self.selectionTrailing])
             self.selectionLeading = NSLayoutConstraint(item: self.switchSelectionView, attribute: .leading, relatedBy: .equal, toItem: leadingConstraint, attribute: .leading, multiplier: 1, constant: leadingConstant)
             self.selectionTrailing = NSLayoutConstraint(item: self.switchSelectionView, attribute: .trailing, relatedBy: .equal, toItem: leadingConstraint, attribute: .trailing, multiplier: 1, constant: 15)
-            NSLayoutConstraint.activate([self.nextViewTop, self.selectionLeading, self.selectionTrailing])
+            NSLayoutConstraint.activate([self.selectionLeading, self.selectionTrailing])
             
             self.view.layoutIfNeeded()
         }
