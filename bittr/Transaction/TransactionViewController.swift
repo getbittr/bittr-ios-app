@@ -490,7 +490,12 @@ class TransactionViewController: UIViewController {
                 self.labelNetAmount.text = self.labelCurrentValue.text
                 self.labelProfit.text = "0" + Locale.current.decimalSeparator! + "00 " + "\(currencySymbol)"
             } else {
-                self.labelNetAmount.text = "\(self.tappedTransaction.fiatNetAmount - 0.01)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(currencySymbol)"
+                // Fix any discrepancies in net amount displaying.
+                if self.tappedTransaction.transferFee == 0 {
+                    self.tappedTransaction.fiatNetAmount = self.tappedTransaction.fiatGrossAmount - self.tappedTransaction.surcharge - self.tappedTransaction.bittrFee
+                }
+                
+                self.labelNetAmount.text = "\(self.tappedTransaction.fiatNetAmount)\(Locale.current.decimalSeparator!)00".addSpaces() + " \(currencySymbol)"
                 
                 var correctConversion = bitcoinValue.currentValue
                 if bitcoinValue.chosenCurrency != currencySymbol {
@@ -501,7 +506,7 @@ class TransactionViewController: UIViewController {
                     }
                     self.labelBittrCurrentValue.text = "\((transactionValue*correctConversion).twoDecimals())".replacingOccurrences(of: "-", with: "").addSpaces() + " \(currencySymbol)"
                 }
-                let profitValue = "\((transactionValue*correctConversion - (self.tappedTransaction.fiatNetAmount-0.01)).twoDecimals())".addSpaces()
+                let profitValue = "\((transactionValue*correctConversion - (self.tappedTransaction.fiatNetAmount)).twoDecimals())".addSpaces()
                 self.labelProfit.text = "\(profitValue) \(currencySymbol)".replacingOccurrences(of: "-", with: "- ")
                 
                 if (self.labelProfit.text ?? "").contains("-") {
@@ -516,10 +521,16 @@ class TransactionViewController: UIViewController {
         }
         
         // Note
-        if CacheManager.getTransactionNote(txid: self.tappedTransaction.id) != "" {
+        if self.showConfetti {
+            // Hide Add a Note for Bittr payout summary.
+            self.addANoteStack.alpha = 0
+            self.addANoteStackHeight.constant = 0
+        } else if CacheManager.getTransactionNote(txid: self.tappedTransaction.id) != "" {
+            // There's a note.
             self.labelNote.text = CacheManager.getTransactionNote(txid: self.tappedTransaction.id)
             self.showNoteStack()
         } else {
+            // There's no note.
             self.addANoteStack.alpha = 1
             self.addANoteStackHeight.constant = 45
         }
