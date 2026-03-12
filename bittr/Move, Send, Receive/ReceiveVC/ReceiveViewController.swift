@@ -106,12 +106,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var lnInvoiceCopy: UIImageView!
     @IBOutlet weak var copyInvoiceButton: UIButton!
     
-    // LNURL spinner
-    @IBOutlet weak var spinnerView: UIView!
-    @IBOutlet weak var spinnerBox: UIView!
-    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var spinnerLabel: UILabel!
-    
     // Variables
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
@@ -185,10 +179,24 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.labelInstant.alpha = 0.3
             self.iconLightning.alpha = 0.3
             
+            // Switch activated button colors
             self.viewRegular.backgroundColor = Colors.getColor("whiteorblue3")
             self.viewRegular.layer.shadowOpacity = 0.1
             self.viewBoth.backgroundColor = Colors.getColor("white0.7orblue1")
             self.viewBoth.layer.shadowOpacity = 0
+            
+            // Switch QR view position
+            self.centerViewBothCenterX.constant = self.yellowCard.frame.width
+            self.amountAndDescriptionStackHeight.constant = 156
+            self.amountAndDescriptionStack.alpha = 1
+            
+            // Alphas
+            self.centerViewRegular.alpha = 1
+            self.centerViewBoth.alpha = 0
+            self.centerViewInstant.alpha = 0
+            self.centerViewLnurl.alpha = 0
+            
+            self.view.layoutIfNeeded()
         } else if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
             
             // Show LNURL
@@ -302,10 +310,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         // Center QR view
         let centerViewAlphas:[[Int]] = [[1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]]
-        let viewWidths:[CGFloat] = [330, 0, -330, -660]
+        let viewWidths:[CGFloat] = [1, 0, -1, -2]
         let amountStackHeight:[CGFloat] = [156, 156, 156, 0]
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            self.centerViewBothCenterX.constant = viewWidths[sender.tag]
+            self.centerViewBothCenterX.constant = self.yellowCard.frame.width * viewWidths[sender.tag]
             self.amountAndDescriptionStackHeight.constant = amountStackHeight[sender.tag]
             self.amountAndDescriptionStack.alpha = [1, 1, 1, 0][sender.tag]
             

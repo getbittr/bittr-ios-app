@@ -26,20 +26,19 @@ extension ReceiveViewController {
         
         // Corner radii
         self.yellowCard.layer.cornerRadius = 13
-        self.qrView.layer.cornerRadius = 13
-        self.bothQrView.layer.cornerRadius = 13
+        self.qrView.layer.cornerRadius = 8
+        self.bothQrView.layer.cornerRadius = 8
         self.addressView.layer.cornerRadius = 8
         self.bothAddressView.layer.cornerRadius = 8
         self.bothAmountView.layer.cornerRadius = 8
         self.bothDescriptionView.layer.cornerRadius = 8
-        self.lnConfirmationQRView.layer.cornerRadius = 13
+        self.lnConfirmationQRView.layer.cornerRadius = 8
         self.lnConfirmationAddressView.layer.cornerRadius = 8
-        self.spinnerBox.layer.cornerRadius = 13
         self.viewRegular.layer.cornerRadius = 8
         self.viewBoth.layer.cornerRadius = 8
         self.viewInstant.layer.cornerRadius = 8
         self.viewLnurl.layer.cornerRadius = 8
-        self.lnurlQRBackground.layer.cornerRadius = 13
+        self.lnurlQRBackground.layer.cornerRadius = 8
         self.lnurlAddressBackground.layer.cornerRadius = 8
         self.btcView.layer.cornerRadius = 8
         
@@ -70,7 +69,6 @@ extension ReceiveViewController {
         self.labelUrl.text = Language.getWord(withID: "url")
         self.bothAmountTextField.placeholder = Language.getWord(withID: "insatoshis")
         self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")
-        self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }
     

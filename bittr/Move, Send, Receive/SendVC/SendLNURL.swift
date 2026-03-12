@@ -110,10 +110,8 @@ extension UIViewController {
     func handleLNURL(code:String) {
         
         let sendVC = self as? SendViewController
-        let receiveVC = self as? ReceiveViewController
         
         sendVC?.startLNURLSpinner()
-        receiveVC?.startLNURLSpinner()
         
         let url:String
         if code.isValidEmail() {
@@ -132,7 +130,6 @@ extension UIViewController {
                     }
                     SentrySDK.metrics.count(key: "lnurl.api.failure.2")
                     sendVC?.stopLNURLSpinner()
-                    receiveVC?.stopLNURLSpinner()
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 return
@@ -145,7 +142,6 @@ extension UIViewController {
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     sendVC?.stopLNURLSpinner()
-                    receiveVC?.stopLNURLSpinner()
                     
                     switch result {
                     case .success(let actualDataDict):
@@ -240,10 +236,8 @@ extension UIViewController {
     func sendPayRequest(callbackURL:String, amount:Int, receivedDescription:String?) {
         
         let sendVC = self as? SendViewController
-        let receiveVC = self as? ReceiveViewController
         
         sendVC?.startLNURLSpinner()
-        receiveVC?.startLNURLSpinner()
         
         let actualUrl = "\(callbackURL)?amount=\(amount)"
         
@@ -251,7 +245,6 @@ extension UIViewController {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
-                    receiveVC?.stopLNURLSpinner()
                     
                     switch result {
                     case .success(let actualDataDict):
@@ -267,7 +260,7 @@ extension UIViewController {
                         SentrySDK.metrics.count(key: "lnurl.pay.success")
                         
                         // Pay invoice.
-                        (sendVC ?? receiveVC)?.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
+                        sendVC?.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
                         
                     case .failure(let error):
                         SentrySDK.metrics.count(key: "lnurl.pay.failure.1")
@@ -285,10 +278,8 @@ extension UIViewController {
     func sendWithdrawRequest(callbackURL:String, amount:Int, k1:String) {
         
         let sendVC = self as? SendViewController
-        let receiveVC = self as? ReceiveViewController
         
         sendVC?.startLNURLSpinner()
-        receiveVC?.startLNURLSpinner()
         
         Task {
             guard let invoice = await BitcoinManager.shared.getInvoice(
@@ -298,7 +289,6 @@ extension UIViewController {
             else {
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
-                    receiveVC?.stopLNURLSpinner()
                     SentrySDK.metrics.count(key: "lnurl.withdraw.failure.4")
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
@@ -317,7 +307,6 @@ extension UIViewController {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
-                    receiveVC?.stopLNURLSpinner()
                     
                     switch result {
                     case .success(let actualDataDict):
@@ -360,23 +349,6 @@ extension UIViewController {
 }
 
 extension SendViewController {
-    
-    func startLNURLSpinner() {
-        DispatchQueue.main.async {
-            self.spinnerView.alpha = 1
-            self.lnurlSpinner.startAnimating()
-        }
-    }
-    
-    func stopLNURLSpinner() {
-        DispatchQueue.main.async {
-            self.spinnerView.alpha = 0
-            self.lnurlSpinner.stopAnimating()
-        }
-    }
-}
-
-extension ReceiveViewController {
     
     func startLNURLSpinner() {
         DispatchQueue.main.async {
