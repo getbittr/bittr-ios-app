@@ -70,6 +70,7 @@
 		057B42ED2F5ABCA200BA5C44 /* SendableAmount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */; };
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
+		057F63722F62716200CE1B3E /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F63712F62716000CE1B3E /* Event.swift */; };
 		057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */; };
 		0589280B2C00933F00DDB850 /* LDKNode in Frameworks */ = {isa = PBXBuildFile; productRef = 0589280A2C00933F00DDB850 /* LDKNode */; };
 		058B2FBD2EE7DE5E0010693D /* SignupSetArticle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */; };
@@ -268,6 +269,7 @@
 		057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAmount.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
+		057F63712F62716000CE1B3E /* Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
 		057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapVCLanguage.swift; sourceTree = "<group>"; };
 		058B2FBC2EE7DE580010693D /* SignupSetArticle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupSetArticle.swift; sourceTree = "<group>"; };
 		058B2FD32EE9B5960010693D /* URIs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URIs.swift; sourceTree = "<group>"; };
@@ -497,6 +499,7 @@
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				057F63712F62716000CE1B3E /* Event.swift */,
 				05E305382F5189D6003DE7CF /* UIView.swift */,
 				05EB5CA12F4D846C00FF2157 /* Int.swift */,
 				05EB5C9D2F4D832D00FF2157 /* UITextField.swift */,
@@ -1212,6 +1215,7 @@
 				05A8BD772B750446002F0282 /* IntroAnimation.swift in Sources */,
 				059704A72E43515300B56690 /* BitcoinValue.swift in Sources */,
 				055CC0F72A28ABB80000200A /* Signup4ViewController.swift in Sources */,
+				057F63722F62716200CE1B3E /* Event.swift in Sources */,
 				052DC6932AA853B700CD59B0 /* Transaction.swift in Sources */,
 				053021AC2E7017A400B23226 /* CoreVCLanguage.swift in Sources */,
 				05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */,

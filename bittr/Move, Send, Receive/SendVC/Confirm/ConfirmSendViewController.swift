@@ -30,6 +30,8 @@ class ConfirmSendViewController: UIViewController {
     @IBOutlet weak var lightningFeesView: UIView!
     @IBOutlet weak var lightningFeesTitle: UILabel!
     @IBOutlet weak var lightningFeesLabel: UILabel!
+    @IBOutlet weak var questionMark: UIImageView!
+    @IBOutlet weak var questionMarkButton: UIButton!
     
     // Onchain fees
     @IBOutlet weak var onchainFeesStack: UIView!
@@ -115,7 +117,7 @@ class ConfirmSendViewController: UIViewController {
             self.lightningFeesStack.alpha = 1
             self.onchainFeesStack.alpha = 0
             
-            self.lightningFeesLabel.text = "\(self.sendVC!.confirmLightningFees)".addSpaces() + " sats"
+            self.lightningFeesLabel.text = "1 - " + "\(self.sendVC!.confirmLightningFees)".addSpaces() + " sats"
         } else {
             // Onchain
             NSLayoutConstraint.deactivate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
@@ -280,6 +282,10 @@ class ConfirmSendViewController: UIViewController {
         } else {
             self.proceedWithOnchainConfirmation()
         }
+    }
+    
+    @IBAction func lightningFeesTapped(_ sender: UIButton) {
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "alertlightningfees"), message: Language.getWord(withID: "alertlightningfees2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {

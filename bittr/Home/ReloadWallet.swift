@@ -22,6 +22,10 @@ extension HomeViewController {
                     await self.coreVC!.startWallet()
                 }
             }
+        } else if scrollView.contentOffset.y > 400 {
+            self.coreVC?.yearView.alpha = 1
+        } else {
+            self.coreVC?.yearView.alpha = 0
         }
     }
     

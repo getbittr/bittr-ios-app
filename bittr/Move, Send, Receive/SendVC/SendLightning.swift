@@ -422,6 +422,7 @@ extension UIViewController {
         sendVC?.confirmSendVC?.confirmLabel.alpha = 1
         sendVC?.confirmSendVC?.confirmSpinner.stopAnimating()
         sendVC?.resetFields()
+        sendVC?.slideFromConfirmToSend()
         
         // Cache invoice note.
         if let temporaryInvoiceNote = (sendVC?.temporaryInvoiceNote ?? receiveVC?.temporaryInvoiceNote) {

@@ -28,6 +28,10 @@ extension CoreViewController {
         self.upperYellowCurve.fillColor = Colors.getColor("transparentyellow")
         self.lowerYellowCurve.fillColor = Colors.getColor("yelloworblue3")
         
+        // Year view
+        self.yearView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.yearLabel.textColor = Colors.getColor("blackorwhite")
+        
         if CacheManager.darkModeIsOn() {
             // Dark mode is on.
             self.leftImageUnselected.image = UIImage(named: "menuwalletwhite")
@@ -67,11 +71,13 @@ extension CoreViewController {
         self.settingsView.layer.cornerRadius = 8
         self.academyView.layer.cornerRadius = 8
         self.walletView.layer.cornerRadius = 8
+        self.yearView.layer.cornerRadius = 12.5
         
         // Shadows
         self.walletView.setShadow()
         self.academyView.setShadow()
         self.settingsView.setShadow()
+        self.yearView.setShadow()
         
         // Button titles
         self.leftButton.setTitle("", for: .normal)

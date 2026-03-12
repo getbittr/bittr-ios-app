@@ -280,7 +280,7 @@ extension CoreViewController {
         
         print("Event found. \(event)")
         
-        if CacheManager.hasHandledEvent(event: "\(event)") {
+        if CacheManager.hasHandledEvent(event: "\(event)"), !event.isPaymentFailed() {
             // Event has already been handled.
             Log.info("Event was handled before.")
         } else {
@@ -441,6 +441,7 @@ extension CoreViewController {
         }
         
         DispatchQueue.main.async {
+            self.receiveVC?.dismiss(animated: true)
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
             if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
                 self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)

@@ -18,6 +18,7 @@ extension ConfirmSendViewController {
         self.buttonSlow.setTitle("", for: .normal)
         self.backButton.setTitle("", for: .normal)
         self.confirmButton.setTitle("", for: .normal)
+        self.questionMarkButton.setTitle("", for: .normal)
         
         // Corner radii
         self.yellowCard.layer.cornerRadius = 13
@@ -48,6 +49,7 @@ extension ConfirmSendViewController {
         self.amountFiatLabel.textColor = Colors.getColor("blackorwhite")
         self.lightningFeesLabel.textColor = Colors.getColor("blackorwhite")
         self.feesTopLabel.textColor = Colors.getColor("blackorwhite")
+        self.questionMark.tintColor = Colors.getColor("blackorwhite")
         
         self.addressView.backgroundColor = Colors.getColor("whiteorblue3")
         self.amountView.backgroundColor = Colors.getColor("whiteorblue3")

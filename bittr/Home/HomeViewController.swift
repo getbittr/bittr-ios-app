@@ -249,6 +249,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if let receiveVC = segue.destination as? ReceiveViewController {
                 receiveVC.homeVC = self
                 receiveVC.coreVC = self.coreVC
+                self.coreVC?.receiveVC = receiveVC
                 if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
                     receiveVC.maximumReceivableLNSats = Int((activeChannel.unspendablePunishmentReserve ?? 0)*10)
                 }

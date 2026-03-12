@@ -204,4 +204,13 @@ extension Transaction {
         
         return bittrTransaction
     }
+    
+    func year() -> String {
+        let transactionDate = Date(timeIntervalSince1970: Double(self.timestamp))
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = TimeZone.current
+        dateFormatter.dateFormat = "yyyy"
+        let yearString = dateFormatter.string(from: transactionDate)
+        return yearString
+    }
 }

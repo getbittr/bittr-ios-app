@@ -148,5 +148,32 @@ extension HomeViewController {
             return 75
         }
     }
+    
+    // MARK: Update Year label
+    func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        guard let visibleRows = tableView.indexPathsForVisibleRows, !visibleRows.isEmpty else { return }
+        // Update Year label scrolling down.
+        let topVisibleRow = visibleRows.map(\.row).min() ?? 0
+        if indexPath.row < topVisibleRow {
+            // Scrolling down vertically.
+            if (indexPath.row + 3) <= (self.visibleTransactions.count - 1) {
+                let topTransaction = self.visibleTransactions[indexPath.row + 3]
+                self.coreVC?.yearLabel.text = topTransaction.year()
+            }
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        guard let visibleRows = tableView.indexPathsForVisibleRows, !visibleRows.isEmpty else { return }
+        // Update Year label scrolling up.
+        let topVisibleRow = visibleRows.map(\.row).min() ?? 0
+        if indexPath.row <= topVisibleRow {
+            // Scrolling up vertically.
+            if (indexPath.row + 2) <= (self.visibleTransactions.count - 1) {
+                let topTransaction = self.visibleTransactions[indexPath.row + 2]
+                self.coreVC?.yearLabel.text = topTransaction.year()
+            }
+        }
+    }
 
 }

@@ -41,6 +41,7 @@ class CoreViewController: UIViewController {
     var signupVC:SignupViewController?
     var buyVC:BuyViewController?
     var swapVC:SwapViewController?
+    var receiveVC:ReceiveViewController?
     
     // Articles and Academy
     var allArticles:[String:Article]?
@@ -75,6 +76,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var bittrTextDarkMode: UIImageView!
     @IBOutlet weak var upperYellowCurve: BottomCurveView!
     @IBOutlet weak var lowerYellowCurve: BottomCurveView!
+    
+    // Year view
+    @IBOutlet weak var yearView: UIView!
+    @IBOutlet weak var yearLabel: UILabel!
     
     // Container view and constraints for HomeVC
     @IBOutlet weak var homeContainerView: UIView!

@@ -506,7 +506,9 @@ class Language: NSObject {
             "1day": "1 day",
             "slow": "Slow",
             "scanner": "Scanner",
-            "estimatedfees": "Estimated fees"
+            "estimatedfees": "Estimated fees",
+            "alertlightningfees": "Lightning fees",
+            "alertlightningfees2": "The fees for this instant payment depend on the length of the route between your and the recipient's lightning connections - and the fees charged by intermediaries on that route."
             
         ]
         

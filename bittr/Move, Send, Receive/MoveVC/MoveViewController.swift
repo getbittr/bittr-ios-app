@@ -100,6 +100,7 @@ class MoveViewController: UIViewController {
                 receiveVC.maximumReceivableLNSats = self.maximumReceivableLNSats
                 receiveVC.homeVC = self.homeVC
                 receiveVC.coreVC = self.coreVC
+                self.coreVC?.receiveVC = receiveVC
             }
         } else if segue.identifier == "MoveToSwap" {
             if let swapVC = segue.destination as? SwapViewController {
