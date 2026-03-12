@@ -7,12 +7,13 @@
 
 import UIKit
 import CoreImage.CIFilterBuiltins
-import CodeScanner
 import LDKNode
 import Sentry
-import AVFoundation
 
-class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMetadataOutputObjectsDelegate {
+class ReceiveViewController: UIViewController, UITextFieldDelegate {
+    
+    // Generic
+    @IBOutlet weak var yellowCard: UIView!
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -20,7 +21,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var scrollViewBottom: NSLayoutConstraint!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
-    @IBOutlet weak var centerViewBoth: UIView!
+    @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Main - Switch stack
@@ -44,8 +45,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
-    @IBOutlet weak var centerViewRegularTrailing: NSLayoutConstraint!
-    @IBOutlet weak var subtitleRegular: UILabel!
     @IBOutlet weak var qrView: UIView!
     @IBOutlet weak var qrCodeImage: UIImageView!
     @IBOutlet weak var qrCodeLogoView: UIView!
@@ -58,17 +57,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var refreshButton: UIButton!
     @IBOutlet weak var refreshIcon: UIImageView!
     
-    // Main - Instant view
-    @IBOutlet weak var centerViewInstant: UIView!
-    @IBOutlet weak var createView: UIView!
-    @IBOutlet weak var createInvoiceLabel: UILabel!
-    @IBOutlet weak var invoiceButton: UIButton!
-    @IBOutlet weak var lnurlQrView: UIView!
-    @IBOutlet weak var scanQrButton: UIButton!
-    @IBOutlet weak var scanQrImage: UIImageView!
-    
     // Main - Both view
-    @IBOutlet weak var subtitleBoth: UILabel!
+    @IBOutlet weak var centerViewBoth: UIView!
+    @IBOutlet weak var centerViewBothCenterX: NSLayoutConstraint!
     @IBOutlet weak var bothQrView: UIView!
     @IBOutlet weak var bothAddressView: UIView!
     @IBOutlet weak var bothQrCodeImage: UIImageView!
@@ -79,6 +70,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var bothAddressCopy: UIImageView!
     
     // Main - LNURL view
+    @IBOutlet weak var centerViewLnurl: UIView!
     @IBOutlet weak var lnurlQRBackground: UIView!
     @IBOutlet weak var lnurlQRCode: UIImageView!
     @IBOutlet weak var lnurlAddressBackground: UIView!
@@ -104,18 +96,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     @IBOutlet weak var bothDescriptionTextField: UITextField!
     @IBOutlet weak var bothDescriptionButton: UIButton!
     
-    // QR Scanner
-    @IBOutlet weak var qrScannerView: UIView!
-    @IBOutlet weak var scannerView: UIView!
-    @IBOutlet weak var qrScannerBackgroundButton: UIButton!
-    @IBOutlet weak var qrScannerLabel: UILabel!
-    @IBOutlet weak var qrScannerCloseView: UIView!
-    @IBOutlet weak var qrScannerCloseLabel: UILabel!
-    var captureSession: AVCaptureSession!
-    var previewLayer: AVCaptureVideoPreviewLayer!
-    var scannerWorks = false
-    
-    // Confirm invoice view
+    // Main - Instant view
+    @IBOutlet weak var centerViewInstant: UIView!
     @IBOutlet weak var lnConfirmationQRView: UIView!
     @IBOutlet weak var lnQRImage: UIImageView!
     @IBOutlet weak var lnQRCodeLogoView: UIView!
@@ -203,12 +185,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
             self.labelInstant.alpha = 0.3
             self.iconLightning.alpha = 0.3
             
-            // Fix constraints
-            self.centerViewRegularTrailing.constant = self.view.bounds.width
-            
             self.viewRegular.backgroundColor = Colors.getColor("whiteorblue3")
             self.viewRegular.layer.shadowOpacity = 0.1
-            self.viewBoth.backgroundColor = Colors.getColor("white0.7orblue2")
+            self.viewBoth.backgroundColor = Colors.getColor("white0.7orblue1")
             self.viewBoth.layer.shadowOpacity = 0
         } else if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
             
@@ -228,18 +207,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     func checkContentViewHeight() {
-        let centerViewHeight = centerViewBoth.bounds.height
-        if centerViewBoth.bounds.height + 60 > contentView.bounds.height {
+        let centerViewHeight = centerView.bounds.height
+        if centerView.bounds.height + 60 > contentView.bounds.height {
             NSLayoutConstraint.deactivate([self.contentViewHeight])
             self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
             NSLayoutConstraint.activate([self.contentViewHeight])
             self.view.layoutIfNeeded()
-        }
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        if (captureSession?.isRunning == true) {
-            captureSession.stopRunning()
         }
     }
     
@@ -321,19 +294,27 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         self.viewLnurl.layer.shadowOpacity = shadowOpacities[sender.tag][3]
         
         // Colors
-        let viewColors:[[UIColor]] = [[Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2")], [Colors.getColor("white0.7orblue2"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2")], [Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue2")], [Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("white0.7orblue2"), Colors.getColor("whiteorblue3")]]
+        let viewColors:[[UIColor]] = [[Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1")], [Colors.getColor("white0.7orblue1"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1")], [Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue1")], [Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("whiteorblue3")]]
         self.viewRegular.backgroundColor = viewColors[sender.tag][0]
         self.viewBoth.backgroundColor = viewColors[sender.tag][1]
         self.viewInstant.backgroundColor = viewColors[sender.tag][2]
         self.viewLnurl.backgroundColor = viewColors[sender.tag][3]
         
         // Center QR view
-        let viewWidths:[CGFloat] = [1, 0, -1, -2]
+        let centerViewAlphas:[[Int]] = [[1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]]
+        let viewWidths:[CGFloat] = [330, 0, -330, -660]
         let amountStackHeight:[CGFloat] = [156, 156, 156, 0]
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            self.centerViewRegularTrailing.constant = self.view.safeAreaLayoutGuide.layoutFrame.size.width * viewWidths[sender.tag]
+            self.centerViewBothCenterX.constant = viewWidths[sender.tag]
             self.amountAndDescriptionStackHeight.constant = amountStackHeight[sender.tag]
             self.amountAndDescriptionStack.alpha = [1, 1, 1, 0][sender.tag]
+            
+            // Alphas
+            self.centerViewRegular.alpha = CGFloat(centerViewAlphas[sender.tag][0])
+            self.centerViewBoth.alpha = CGFloat(centerViewAlphas[sender.tag][1])
+            self.centerViewInstant.alpha = CGFloat(centerViewAlphas[sender.tag][2])
+            self.centerViewLnurl.alpha = CGFloat(centerViewAlphas[sender.tag][3])
+            
             self.view.layoutIfNeeded()
         }
     }
@@ -403,12 +384,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
-        self.qrScannerView.alpha = 0
-        
-        if let actualCaptureSession = captureSession {
-            actualCaptureSession.stopRunning()
-        }
-        
         self.view.endEditing(true)
     }
     
@@ -416,16 +391,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, AVCaptureMet
         
         UIPasteboard.general.string = self.lnInvoiceLabel.text ?? ""
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.lnInvoiceLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
-    }
-    
-    @IBAction func receivableButtonTapped(_ sender: UIButton) {
-        
-        self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "theresalimit"), type: "lightningreceivable")
-    }
-    
-    @IBAction func scanQrButtonTapped(_ sender: UIButton) {
-        self.qrScannerView.alpha = 1
-        self.showScannerView()
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

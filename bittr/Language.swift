@@ -336,7 +336,6 @@ class Language: NSObject {
             "swapstatusinvoicexpired": "Swap failed (invoice expired)",
             "swapstatusfailed": "Swap failed",
             "both": "Both",
-            "subtitleboth": "Share a single QR.",
             "bothamountlabel": "Amount and description (optional)",
             "add": "Add",
             "insatoshis": "In satoshis",
