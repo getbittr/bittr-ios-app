@@ -311,11 +311,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         // Center QR view
         let centerViewAlphas:[[Int]] = [[1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]]
         let viewWidths:[CGFloat] = [1, 0, -1, -2]
-        let amountStackHeight:[CGFloat] = [156, 156, 156, 0]
+        let amountStackHeight:[CGFloat] = [0, 156, 156, 0]
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             self.centerViewBothCenterX.constant = self.yellowCard.frame.width * viewWidths[sender.tag]
             self.amountAndDescriptionStackHeight.constant = amountStackHeight[sender.tag]
-            self.amountAndDescriptionStack.alpha = [1, 1, 1, 0][sender.tag]
+            self.amountAndDescriptionStack.alpha = [0, 1, 1, 0][sender.tag]
             
             // Alphas
             self.centerViewRegular.alpha = CGFloat(centerViewAlphas[sender.tag][0])

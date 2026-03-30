@@ -90,9 +90,13 @@ extension ReceiveViewController {
         self.iconLightning.tintColor = Colors.getColor("blackorwhite")
         self.iconLnurl.tintColor = Colors.getColor("blackorwhite")
         
-        // Regular
-        self.addressView.backgroundColor = Colors.getColor("white0.7orblue1")
-        self.bothAddressView.backgroundColor = Colors.getColor("white0.7orblue1")
+        // Address views
+        self.addressView.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.bothAddressView.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.lnurlAddressBackground.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.lnConfirmationAddressView.backgroundColor = Colors.getColor("white0.7orblue3")
+        
+        // Labels
         self.addressLabel.textColor = Colors.getColor("blackorwhite")
         self.bothAddressLabel.textColor = Colors.getColor("blackorwhite")
         self.addressSpinner.color = Colors.getColor("blackorwhite")
@@ -103,7 +107,6 @@ extension ReceiveViewController {
         self.btcLabel.textColor = Colors.getColor("blackorwhite")
         
         // LNURL
-        self.lnurlAddressBackground.backgroundColor = Colors.getColor("white0.7orblue1")
         self.lnurlAddressLabel.textColor = Colors.getColor("blackorwhite")
         self.lnurlCopyIcon.tintColor = Colors.getColor("blackorwhite")
         
@@ -122,7 +125,6 @@ extension ReceiveViewController {
         self.bothAmountTextField.textColor = Colors.getColor("blackorwhite")
         
         // Instant confirmation
-        self.lnConfirmationAddressView.backgroundColor = Colors.getColor("white0.7orblue1")
         self.lnInvoiceLabel.textColor = Colors.getColor("blackorwhite")
         self.lnInvoiceCopy.tintColor = Colors.getColor("blackorwhite")
     }
