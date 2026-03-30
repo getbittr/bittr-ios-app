@@ -42,6 +42,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var labelUrl: UILabel!
     @IBOutlet weak var iconLnurl: UIImageView!
     @IBOutlet weak var lnurlButton: UIButton!
+    @IBOutlet weak var switchQuestionMark: UIImageView!
+    @IBOutlet weak var switchQuestionButton: UIButton!
     
     // Main - Regular view
     @IBOutlet weak var centerViewRegular: UIView!
@@ -399,6 +401,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         UIPasteboard.general.string = self.lnInvoiceLabel.text ?? ""
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.lnInvoiceLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+    
+    @IBAction func switchQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

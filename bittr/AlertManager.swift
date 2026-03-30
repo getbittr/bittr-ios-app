@@ -129,10 +129,7 @@ extension UIViewController {
             let messageLabel = UILabel()
             messageLabel.translatesAutoresizingMaskIntoConstraints = false
             messageLabel.numberOfLines = 0
-            messageLabel.font = UIFont(name: "Gilroy-Regular", size: 16)
-            messageLabel.text = message
-            messageLabel.textColor = Colors.getColor("blackorwhite")
-            messageLabel.textAlignment = .center
+            messageLabel.attributedText = message.attributed()
             yellowCard.addSubview(messageLabel)
             let messageLabelTop = NSLayoutConstraint(item: messageLabel, attribute: .top, relatedBy: .equal, toItem: alertIcon, attribute: .bottom, multiplier: 1, constant: 25)
             let messageLabelLeft = NSLayoutConstraint(item: messageLabel, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 40)
@@ -151,7 +148,7 @@ extension UIViewController {
             let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 15)
             let buttonsStackRight = NSLayoutConstraint(item: buttonsStack, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -15)
             let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: -5)
-            let buttonsStackTop = NSLayoutConstraint(item: buttonsStack, attribute: .top, relatedBy: .equal, toItem: messageLabel, attribute: .bottom, multiplier: 1, constant: 35)
+            let buttonsStackTop = NSLayoutConstraint(item: buttonsStack, attribute: .top, relatedBy: .equal, toItem: messageLabel, attribute: .bottom, multiplier: 1, constant: 25)
             yellowCard.addConstraints([buttonsStackLeft, buttonsStackRight, buttonsStackBottom, buttonsStackTop])
             buttonsStack.addConstraint(buttonsStackHeight)
             

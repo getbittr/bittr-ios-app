@@ -112,4 +112,25 @@ extension String {
         let end = index(start, offsetBy: range.upperBound - range.lowerBound)
         return String(self[start ..< end])
     }
+    
+    func attributed() -> NSAttributedString {
+        
+        let thisColor:String = {
+            if CacheManager.darkModeIsOn() {
+                return "255, 255, 255"
+            } else {
+                return "0, 0, 0"
+            }
+        }()
+        
+        let thisText:String = self.replacingOccurrences(of: "\n", with: "<br>").replacingOccurrences(of: "<b>", with: "</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16px; color: rgb(\(thisColor)); line-height: 1.28\">").replacingOccurrences(of: "</b>", with: "</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16px; color: rgb(\(thisColor)); line-height: 1.28\">")
+        
+        let htmlString:String = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16px; color: rgb(\(thisColor)); line-height: 1.28;\">\(thisText)</span></center>"
+        
+        guard let htmlData = htmlString.data(using: .unicode) else { return NSAttributedString() }
+        
+        let attributedText = try! NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+        
+        return attributedText
+    }
 }

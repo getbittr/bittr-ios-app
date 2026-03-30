@@ -507,7 +507,9 @@ class Language: NSObject {
             "scanner": "Scanner",
             "estimatedfees": "Estimated fees",
             "alertlightningfees": "Lightning fees",
-            "alertlightningfees2": "The fees for this instant payment depend on the length of the route between your and the recipient's lightning connections - and the fees charged by intermediaries on that route."
+            "alertlightningfees2": "The fees for this instant payment depend on the length of the route between your and the recipient's lightning connections - and the fees charged by intermediaries on that route.",
+            "transactiontype": "Transaction type",
+            "transactiontype2": "<b>Regular</b>\nGet an address, to receive regular on-chain transactions.\n\n<b>Instant</b>\nCreate a lightning invoice, to receive instant payments into your connection.\n\n<b>Both</b>\nCreate a Bitcoin QR, which contains an on-chain address as well as a lightning invoice.\n\n<b>URL</b>\nIf available, receive lightning payments through your Lightning URL."
             
         ]
         

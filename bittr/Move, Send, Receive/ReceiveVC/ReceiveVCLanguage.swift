@@ -23,6 +23,7 @@ extension ReceiveViewController {
         self.lnurlButton.setTitle("", for: .normal)
         self.lnurlCopyButton.setTitle("", for: .normal)
         self.btcButton.setTitle("", for: .normal)
+        self.switchQuestionButton.setTitle("", for: .normal)
         
         // Corner radii
         self.yellowCard.layer.cornerRadius = 13
@@ -89,6 +90,7 @@ extension ReceiveViewController {
         self.labelUrl.textColor = Colors.getColor("blackorwhite")
         self.iconLightning.tintColor = Colors.getColor("blackorwhite")
         self.iconLnurl.tintColor = Colors.getColor("blackorwhite")
+        self.switchQuestionMark.tintColor = Colors.getColor("blackorwhite")
         
         // Address views
         self.addressView.backgroundColor = Colors.getColor("white0.7orblue3")
