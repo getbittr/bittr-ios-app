@@ -12,7 +12,8 @@ import Sentry
 
 class SendViewController: UIViewController, UITextFieldDelegate {
     
-    // Main scroll view
+    // Generic
+    @IBOutlet weak var yellowCard: UIView!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
     @IBOutlet weak var scrollViewBottom: NSLayoutConstraint!
@@ -23,23 +24,19 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var centerBackgroundButton: UIButton!
     
-    // Main scroll - Switch view
-    @IBOutlet weak var switchView: UIView!
-    @IBOutlet weak var switchSelectionView: UIView!
+    // Switch view
+    @IBOutlet weak var viewRegular: UIView!
+    @IBOutlet weak var viewInstant: UIView!
     @IBOutlet weak var regularButton: UIButton!
     @IBOutlet weak var instantButton: UIButton!
     @IBOutlet weak var labelRegular: UILabel!
     @IBOutlet weak var labelInstant: UILabel!
     @IBOutlet weak var iconLightning: UIImageView!
-    @IBOutlet weak var labelRegularLeading: NSLayoutConstraint!
-    @IBOutlet weak var labelInstantTrailing: NSLayoutConstraint!
-    @IBOutlet weak var selectionLeading: NSLayoutConstraint!
-    @IBOutlet weak var selectionTrailing: NSLayoutConstraint!
+    @IBOutlet weak var switchQuestionMark: UIImageView!
+    @IBOutlet weak var switchQuestionButton: UIButton!
     
-    // Main scroll - Items
+    // To view
     @IBOutlet weak var toLabel: UILabel! // Address or Invoice
-    
-    // Main scroll - To view
     @IBOutlet weak var addressStack: UIView!
     @IBOutlet weak var toView: UIView! // Background
     @IBOutlet weak var toTextField: UITextField! // Text field
@@ -53,7 +50,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var stackImageQR: UIImageView!
     @IBOutlet weak var stackImagePaste: UIImageView!
     
-    // Main scroll - Amount view
+    // Amount view
     @IBOutlet weak var amountStack: UIView!
     @IBOutlet weak var btcView: UIView!
     @IBOutlet weak var btcLabel: UILabel!
@@ -62,11 +59,9 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var amountTextField: UITextField!
     @IBOutlet weak var amountButton: UIButton!
     @IBOutlet weak var availableAmount: UILabel!
-    @IBOutlet weak var availableAmountCenterX: NSLayoutConstraint! // 0 or -10
-    @IBOutlet weak var availableAmountTop: NSLayoutConstraint! // 10 or -75
     @IBOutlet weak var questionCircle: UIImageView!
     @IBOutlet weak var availableButton: UIButton!
-    @IBOutlet weak var availableButtonTop: NSLayoutConstraint! // 0 or -85
+    @IBOutlet weak var availableQuestionButton: UIButton!
     @IBOutlet weak var bdkSpinner: UIActivityIndicatorView!
     
     // Main scroll - Next button
@@ -319,7 +314,10 @@ class SendViewController: UIViewController, UITextFieldDelegate {
             self.selectedCurrency = .satoshis
         } else {
             // Instant
-            self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
+            let sendableInSatoshis:Int = Int((self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
+            self.amountTextField.text = "\(sendableInSatoshis)"
+            self.btcLabel.text = "Sats"
+            self.selectedCurrency = .satoshis
         }
     }
     
@@ -480,6 +478,21 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         actionSheet.addAction(currencyOption)
         actionSheet.addAction(cancelAction)
         present(actionSheet, animated: true, completion: nil)
+    }
+    
+    @IBAction func availableQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        if self.onchainOrLightning == .lightning {
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
+        } else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "maximumonchain"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    @IBAction func switchQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
 }

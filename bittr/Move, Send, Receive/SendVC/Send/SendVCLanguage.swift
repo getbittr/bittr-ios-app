@@ -27,12 +27,14 @@ extension SendViewController {
     func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
         
-        self.switchView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.switchSelectionView.backgroundColor = Colors.getColor("whiteorblue3")
         self.labelRegular.textColor = Colors.getColor("blackorwhite")
         self.labelInstant.textColor = Colors.getColor("blackorwhite")
+        self.viewRegular.backgroundColor = Colors.getColor("white0.7orblue1")
+        self.viewInstant.backgroundColor = Colors.getColor("whiteorblue3")
         self.iconLightning.tintColor = Colors.getColor("blackorwhite")
+        self.switchQuestionMark.tintColor = Colors.getColor("blackorwhite")
         
         self.toLabel.textColor = Colors.getColor("blackoryellow")
         self.backgroundQR.backgroundColor = Colors.getColor("whiteorblue3")
@@ -41,7 +43,7 @@ extension SendViewController {
         self.stackLabelPaste.textColor = Colors.getColor("blackorwhite")
         self.stackImageQR.tintColor = Colors.getColor("blackorwhite")
         self.stackImagePaste.tintColor = Colors.getColor("blackorwhite")
-        self.toView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.toView.backgroundColor = Colors.getColor("white0.7orblue1")
         self.toTextField.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enteraddress"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
@@ -53,7 +55,7 @@ extension SendViewController {
         self.questionCircle.tintColor = Colors.getColor("blackorwhite")
         self.btcView.backgroundColor = Colors.getColor("whiteorblue3")
         self.btcLabel.textColor = Colors.getColor("blackorwhite")
-        self.amountView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.amountView.backgroundColor = Colors.getColor("white0.7orblue1")
         self.amountTextField.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enteramount"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
@@ -75,22 +77,31 @@ extension SendViewController {
         self.qrButton.setTitle("", for: .normal)
         self.toButton.setTitle("", for: .normal)
         self.btcButton.setTitle("", for: .normal)
+        self.availableQuestionButton.setTitle("", for: .normal)
+        self.switchQuestionButton.setTitle("", for: .normal)
         
         // Corner radii
+        self.yellowCard.layer.cornerRadius = 13
         self.toView.layer.cornerRadius = 8
         self.amountView.layer.cornerRadius = 8
         self.nextView.layer.cornerRadius = 8
-        self.switchView.layer.cornerRadius = 13
-        self.switchSelectionView.layer.cornerRadius = 8
         self.backgroundQR.layer.cornerRadius = 8
         self.backgroundPaste.layer.cornerRadius = 8
         self.spinnerBox.layer.cornerRadius = 13
         self.btcView.layer.cornerRadius = 8
+        self.viewRegular.layer.cornerRadius = 8
+        self.viewInstant.layer.cornerRadius = 8
         
         // Shadows
         self.backgroundQR.setShadow()
         self.backgroundPaste.setShadow()
         self.btcView.setShadow()
-        self.switchSelectionView.setShadow()
+        self.yellowCard.setShadow()
+        
+        // Selection view
+        self.viewRegular.setShadow()
+        self.viewRegular.layer.shadowOpacity = 0
+        self.viewInstant.setShadow()
+        self.viewInstant.layer.shadowOpacity = 0.1
     }
 }
