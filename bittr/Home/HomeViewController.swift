@@ -299,7 +299,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Add new transaction.
         self.visibleTransactions += [thisTransaction]
-        self.visibleTransactions = self.visibleTransactions.performSwapMatching(coreVC: self.coreVC!)
+        self.visibleTransactions = self.visibleTransactions.performSwapMatching()
         
         // Sort transactions array.
         self.visibleTransactions.sort { transaction1, transaction2 in
