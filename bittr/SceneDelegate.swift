@@ -72,15 +72,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         DispatchQueue.global(qos: .background).async {
             if BitcoinManager.shared.status()?.isRunning == true {
-                Log.info("Will sync LDK node upon entering foreground.")
-                try? BitcoinManager.shared.syncWallets()
-                
-                // Check peer connection.
+                Log.info("Check peer connection upon entering foreground.")
                 if !isConnectedToPeer() {
                     Task {
                         _ = await BitcoinManager.shared.connectToLightningPeer()
                     }
                 }
+            } else {
+                Log.info("Node not running upon entering foreground.")
             }
         }
     }

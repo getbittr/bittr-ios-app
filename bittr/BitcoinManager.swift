@@ -29,6 +29,9 @@ class BitcoinManager {
     var xpub = ""
     var coreVC:CoreViewController?
     
+    // Event listener
+    private var eventListener: Task<Void, Never>?
+    
     // Shared
     class var shared: BitcoinManager {
         struct Singleton {
@@ -39,6 +42,10 @@ class BitcoinManager {
     
     init(network: LDKNode.Network) {
         self.network = network
+    }
+    
+    deinit {
+        self.cancelEventListener()
     }
     
     func startLDK(completion: @escaping (Bool) -> Void) {
@@ -308,6 +315,7 @@ class BitcoinManager {
     }
     
     func stop() throws {
+        self.cancelEventListener()
         if let actualLdkNode = ldkNode {
             try actualLdkNode.stop()
         }
@@ -386,13 +394,6 @@ class BitcoinManager {
             
             // Light sync BDK.
             _ = self.lightSyncBdkWallet()
-            
-            // Sync LDKNode.
-            do {
-                _ = try self.syncWallets()
-            } catch {
-                self.handleError(error: error, row: 660)
-            }
             
             // Check if any changes have been found.
             if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
@@ -545,6 +546,7 @@ class BitcoinManager {
         
         // Clear node reference
         self.ldkNode = nil
+        self.cancelEventListener()
         
         // Clear wallet reference
         self.bdkWallet = nil
@@ -562,23 +564,26 @@ class BitcoinManager {
     }
     
     func listenForEvents() {
-        
-        DispatchQueue.global(qos: .background).async {
-            let event = self.ldkNode!.waitNextEvent()
-            self.coreVC?.ldkEventReceived(event: event)
+    
+        self.eventListener?.cancel()
+        self.eventListener = Task { [weak self] in
+            guard let self else { return }
             
-            do {
-                try self.ldkNode!.eventHandled()
-            } catch {
-                Log.info("Error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 564", key: "context")
-                    }
+            while !Task.isCancelled {
+                let event = await self.ldkNode!.nextEventAsync()
+                if Task.isCancelled { break }
+                await MainActor.run {
+                    self.coreVC?.ldkEventReceived(event: event)
                 }
+                
+                try? self.ldkNode!.eventHandled()
             }
-            self.listenForEvents()
         }
+    }
+    
+    func cancelEventListener() {
+        self.eventListener?.cancel()
+        self.eventListener = nil
     }
     
     func closeChannel(userChannelId: ChannelId, counterPartyNodeId:PublicKey) throws {

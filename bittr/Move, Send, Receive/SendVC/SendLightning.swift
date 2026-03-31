@@ -330,6 +330,9 @@ extension UIViewController {
                 }
             } catch {
                 Log.info("LDKnode is running: \(BitcoinManager.shared.status()?.isRunning ?? false)")
+                Log.info("Peer is connected: \(isConnectedToPeer())")
+                Log.info("Channel isUsable: \(BitcoinManager.shared.listChannels().getActiveChannel()?.isUsable ?? false)")
+                Log.info("Channel isChannelReady: \(BitcoinManager.shared.listChannels().getActiveChannel()?.isChannelReady ?? false)")
                 let errorMessage:String = {
                     if let nodeError = error as? NodeError {
                         return "\(handleNodeError(nodeError).detail)"
