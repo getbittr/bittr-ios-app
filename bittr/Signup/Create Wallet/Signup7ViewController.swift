@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class Signup7ViewController: UIViewController {
 
@@ -73,6 +74,11 @@ class Signup7ViewController: UIViewController {
     
     @IBAction func skipButtonTapped(_ sender: UIButton) {
         
+        if self.coreVC!.buyVC == nil {
+            // Count initial signup skip.
+            SentrySDK.metrics.count(key: "app.launch.newwallet.signup.skip")
+        }
+        
         // Close sign up and proceed into wallet.
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
@@ -83,6 +89,11 @@ class Signup7ViewController: UIViewController {
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
+        
+        if self.coreVC!.buyVC == nil {
+            // Count initial signup start.
+            SentrySDK.metrics.count(key: "app.launch.newwallet.signup.start")
+        }
         
         // Proceed to bittr signup.
         self.signupVC?.moveToPage(10)

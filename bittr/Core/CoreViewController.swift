@@ -7,6 +7,7 @@
 
 import UIKit
 import LDKNode
+import Sentry
 
 class CoreViewController: UIViewController {
     
@@ -124,6 +125,9 @@ class CoreViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Count app opening.
+        SentrySDK.metrics.count(key: "app.launch.open")
         
         // Load Bittr wallet details.
         if let deviceDict = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "device")) as? NSDictionary {

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Sentry
 
 class Transfer3ViewController: UIViewController {
 
@@ -47,6 +48,9 @@ class Transfer3ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Count successful Bittr signup.
+        SentrySDK.metrics.count(key: "bittrsignup.success")
 
         // Corner radii.
         self.checkView.layer.cornerRadius = 25
