@@ -39,68 +39,81 @@ class AnimationViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        
         // Start startup animation sequence.
+        self.coinSlidesIntoSlot()
+    }
+    
+    func coinSlidesIntoSlot() {
         // Coin slides into coin slot.
         UIView.animate(withDuration: 0.6, delay: 0.3, options: .curveEaseInOut) {
             self.firstCoinCenterX.constant = -40
             self.firstCoinCenterY.constant = 40
             self.view.layoutIfNeeded()
         } completion: { finished in
-            // Logo widens to unveil bittr text.
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.logoViewWidth.constant = 111
+            self.widenLogoView()
+        }
+    }
+    
+    func widenLogoView() {
+        // Logo widens to unveil bittr text.
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            self.logoViewWidth.constant = 111
+            self.view.layoutIfNeeded()
+        } completion: { finished in
+            // Logo finishes widening with a bounce.
+            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                self.logoViewWidth.constant = 106
                 self.view.layoutIfNeeded()
             } completion: { finished in
-                // Logo finishes widening with a bounce.
-                UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                    self.logoViewWidth.constant = 106
-                    self.view.layoutIfNeeded()
-                } completion: { finished in
-                    // Logo slides from center to top.
-                    UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseInOut) {
-                        NSLayoutConstraint.deactivate([self.logoViewCenterY])
-                        self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
-                        NSLayoutConstraint.activate([self.logoViewTop])
-                        self.coreVC?.topBar.backgroundColor = Colors.getColor("transparentyellow")
-                        self.view.backgroundColor = .clear
-                        self.coin1.alpha = 0
-                        self.coin3.alpha = 0
-                        self.secondCoin.alpha = 0
-                        self.blackCoin.alpha = 0
-                        self.firstCoin.alpha = 0
-                        self.coverView.alpha = 0
-                        self.finalLogo.alpha = 1
-                        self.coreVC?.topBar.alpha = 1
-                        self.coreVC?.upperYellowCurve.fillColor = Colors.getColor("transparentyellow")
-                        self.coreVC?.lowerYellowCurve.fillColor = Colors.getColor("yelloworblue3")
-                        if CacheManager.darkModeIsOn() {
-                            self.finalLogoDarkMode.alpha = 1
-                            self.bittrTextDarkMode.alpha = 1
-                        }
-                        self.view.layoutIfNeeded()
-                        self.coreVC?.showPinOrSignup()
-                    } completion: { finished in
-                        // Logo finishes sliding with a bounce.
-                        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                            NSLayoutConstraint.deactivate([self.logoViewTop])
-                            self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 10)
-                            NSLayoutConstraint.activate([self.logoViewTop])
-                            self.view.layoutIfNeeded()
-                        } completion: { finished in
-                            // Any final adjustments after animation.
-                            self.coreVC?.homeContainerView.alpha = 1
-                            self.coreVC?.menuBarContainer.alpha = 1
-                            self.coreVC?.blackSignupBackground.alpha = 1
-                            self.coreVC?.changeColors()
-                            self.coreVC?.upperYellowCurve.alpha = 1
-                            self.coreVC?.lowerYellowCurve.alpha = 1
-                            self.coreVC?.logoView.alpha = 1
-                            self.coreVC?.animationContainer.alpha = 0
-                            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
-                        }
-                    }
-                }
+                self.logoSlidesToTop()
+            }
+        }
+    }
+    
+    func logoSlidesToTop() {
+        // Logo slides from center to top.
+        UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.logoViewCenterY])
+            self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.logoViewTop])
+            
+            // Hide logo elements.
+            self.view.backgroundColor = .clear
+            self.coin1.alpha = 0
+            self.coin3.alpha = 0
+            self.secondCoin.alpha = 0
+            self.blackCoin.alpha = 0
+            self.firstCoin.alpha = 0
+            self.coverView.alpha = 0
+            
+            // Show final logo.
+            self.finalLogo.alpha = 1
+            if CacheManager.darkModeIsOn() {
+                self.finalLogoDarkMode.alpha = 1
+                self.bittrTextDarkMode.alpha = 1
+            }
+            self.view.layoutIfNeeded()
+            
+            // Show PinVC or SignupVC.
+            self.coreVC?.showPinOrSignup()
+        } completion: { finished in
+            // Logo finishes sliding with a bounce.
+            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.logoViewTop])
+                self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 10)
+                NSLayoutConstraint.activate([self.logoViewTop])
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                
+                // Final adjustments after animation.
+                self.coreVC?.topBar.alpha = 1
+                self.coreVC?.lowerTopBar.alpha = 1
+                self.coreVC?.homeContainerView.alpha = 1
+                self.coreVC?.menuBarContainer.alpha = 1
+                self.coreVC?.blackSignupBackground.alpha = 1
+                self.coreVC?.changeColors()
+                self.coreVC?.animationContainer.alpha = 0
+                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
             }
         }
     }

@@ -85,9 +85,5 @@ extension CoreViewController {
         self.rightButton.setTitle("", for: .normal)
         self.syncCloseButton.setTitle("", for: .normal)
         
-        // Set curve color to yellow for app launch.
-        self.upperYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 0.85)
-        self.lowerYellowCurve.fillColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
-        
     }
 }

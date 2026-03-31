@@ -55,7 +55,6 @@ class CoreViewController: UIViewController {
     
     // Top bar
     @IBOutlet weak var animationContainer: UIView!
-    @IBOutlet weak var logoView: UIView!
     @IBOutlet weak var finalLogoDarkMode: UIImageView!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var lowerTopBar: UIView!
