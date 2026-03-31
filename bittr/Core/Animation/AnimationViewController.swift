@@ -1,17 +1,41 @@
 //
-//  IntroAnimation.swift
+//  AnimationViewController.swift
 //  bittr
 //
-//  Created by Tom Melters on 08/02/2024.
+//  Created by Tom Melters on 3/31/26.
 //
 
 import UIKit
 
-extension CoreViewController {
-
+class AnimationViewController: UIViewController {
+    
+    // Startup animation elements
+    @IBOutlet weak var logoView: UIView!
+    @IBOutlet weak var bittrTextDarkMode: UIImageView!
+    @IBOutlet weak var coverView: UIView!
+    @IBOutlet weak var coin1: UIImageView!
+    @IBOutlet weak var coin3: UIImageView!
+    @IBOutlet weak var firstCoin: UIView!
+    @IBOutlet weak var secondCoin: UIView!
+    @IBOutlet weak var firstCoinCenterY: NSLayoutConstraint!
+    @IBOutlet weak var firstCoinCenterX: NSLayoutConstraint!
+    @IBOutlet weak var blackCoin: UIImageView!
+    @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
+    @IBOutlet weak var logoViewCenterY: NSLayoutConstraint!
+    @IBOutlet weak var finalLogo: UIImageView!
+    @IBOutlet weak var finalLogoDarkMode: UIImageView!
+    var logoViewTop = NSLayoutConstraint()
+    
+    // Variables
+    var coreVC:CoreViewController?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+    }
+    
     override func viewDidLayoutSubviews() {
-        firstCoin.layer.cornerRadius = firstCoin.bounds.height / 2
-        secondCoin.layer.cornerRadius = firstCoin.bounds.height / 2
+        self.firstCoin.layer.cornerRadius = self.firstCoin.bounds.height / 2
+        self.secondCoin.layer.cornerRadius = self.firstCoin.bounds.height / 2
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -38,7 +62,8 @@ extension CoreViewController {
                         NSLayoutConstraint.deactivate([self.logoViewCenterY])
                         self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
                         NSLayoutConstraint.activate([self.logoViewTop])
-                        self.topBar.backgroundColor = Colors.getColor("transparentyellow")
+                        self.coreVC?.topBar.backgroundColor = Colors.getColor("transparentyellow")
+                        self.view.backgroundColor = .clear
                         self.coin1.alpha = 0
                         self.coin3.alpha = 0
                         self.secondCoin.alpha = 0
@@ -46,15 +71,15 @@ extension CoreViewController {
                         self.firstCoin.alpha = 0
                         self.coverView.alpha = 0
                         self.finalLogo.alpha = 1
-                        self.topBar.alpha = 1
-                        self.upperYellowCurve.fillColor = Colors.getColor("transparentyellow")
-                        self.lowerYellowCurve.fillColor = Colors.getColor("yelloworblue3")
+                        self.coreVC?.topBar.alpha = 1
+                        self.coreVC?.upperYellowCurve.fillColor = Colors.getColor("transparentyellow")
+                        self.coreVC?.lowerYellowCurve.fillColor = Colors.getColor("yelloworblue3")
                         if CacheManager.darkModeIsOn() {
                             self.finalLogoDarkMode.alpha = 1
                             self.bittrTextDarkMode.alpha = 1
                         }
                         self.view.layoutIfNeeded()
-                        self.showPinOrSignup()
+                        self.coreVC?.showPinOrSignup()
                     } completion: { finished in
                         // Logo finishes sliding with a bounce.
                         UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
@@ -64,12 +89,14 @@ extension CoreViewController {
                             self.view.layoutIfNeeded()
                         } completion: { finished in
                             // Any final adjustments after animation.
-                            self.homeContainerView.alpha = 1
-                            self.menuBarContainer.alpha = 1
-                            self.blackSignupBackground.alpha = 1
-                            self.changeColors()
-                            self.upperYellowCurve.alpha = 1
-                            self.lowerYellowCurve.alpha = 1
+                            self.coreVC?.homeContainerView.alpha = 1
+                            self.coreVC?.menuBarContainer.alpha = 1
+                            self.coreVC?.blackSignupBackground.alpha = 1
+                            self.coreVC?.changeColors()
+                            self.coreVC?.upperYellowCurve.alpha = 1
+                            self.coreVC?.lowerYellowCurve.alpha = 1
+                            self.coreVC?.logoView.alpha = 1
+                            self.coreVC?.animationContainer.alpha = 0
                             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
                         }
                     }
@@ -77,5 +104,5 @@ extension CoreViewController {
             }
         }
     }
-
+    
 }

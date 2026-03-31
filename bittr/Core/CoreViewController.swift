@@ -53,26 +53,12 @@ class CoreViewController: UIViewController {
     var tappedAnswer = ""
     var tappedType:String?
     
-    // Startup animation elements
-    @IBOutlet weak var coin1: UIImageView!
-    @IBOutlet weak var coin3: UIImageView!
-    @IBOutlet weak var firstCoin: UIView!
-    @IBOutlet weak var secondCoin: UIView!
-    @IBOutlet weak var firstCoinCenterY: NSLayoutConstraint!
-    @IBOutlet weak var firstCoinCenterX: NSLayoutConstraint!
-    @IBOutlet weak var blackCoin: UIImageView!
-    @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
-    @IBOutlet weak var logoViewCenterY: NSLayoutConstraint!
+    // Top bar
+    @IBOutlet weak var animationContainer: UIView!
     @IBOutlet weak var logoView: UIView!
-    var logoViewTop = NSLayoutConstraint()
-    
-    // Top screen views
-    @IBOutlet weak var finalLogo: UIImageView!
     @IBOutlet weak var finalLogoDarkMode: UIImageView!
-    @IBOutlet weak var coverView: UIView!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var lowerTopBar: UIView!
-    @IBOutlet weak var bittrText: UIImageView!
     @IBOutlet weak var bittrTextDarkMode: UIImageView!
     @IBOutlet weak var upperYellowCurve: BottomCurveView!
     @IBOutlet weak var lowerYellowCurve: BottomCurveView!
