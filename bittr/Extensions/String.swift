@@ -133,4 +133,17 @@ extension String {
         
         return attributedText
     }
+    
+    func toQRCode() -> UIImage {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        let data = Data(self.utf8)
+        filter.setValue(data, forKey: "inputMessage")
+        
+        guard let outputImage = filter.outputImage, let cgimg = context.createCGImage(outputImage, from: outputImage.extent) else {
+            return UIImage(systemName: "xmark.circle") ?? UIImage()
+        }
+        
+        return UIImage(cgImage: cgimg)
+    }
 }

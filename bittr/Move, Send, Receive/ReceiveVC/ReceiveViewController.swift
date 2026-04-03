@@ -14,6 +14,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     // Generic
     @IBOutlet weak var yellowCard: UIView!
+    @IBOutlet weak var qrWhiteView: UIView!
+    @IBOutlet weak var qrImageView: UIImageView!
+    @IBOutlet weak var addressView: UIView!
+    @IBOutlet weak var boltStack: UIView!
+    @IBOutlet weak var boltStackWidth: NSLayoutConstraint! // 0 or 19
+    @IBOutlet weak var addressTitle: UILabel!
+    @IBOutlet weak var addressLabel: UILabel!
     
     // Main scroll view
     @IBOutlet weak var scrollView: UIScrollView!
@@ -23,62 +30,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var contentViewHeight: NSLayoutConstraint!
     @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var contentBackgroundButton: UIButton!
-    
-    // Main - Switch stack
-    @IBOutlet weak var switchStack: UIView!
-    @IBOutlet weak var viewRegular: UIView!
-    @IBOutlet weak var labelRegular: UILabel!
-    @IBOutlet weak var regularButton: UIButton!
-    @IBOutlet weak var viewBoth: UIView!
-    @IBOutlet weak var labelBoth: UILabel!
-    @IBOutlet weak var bothButton: UIButton!
-    @IBOutlet weak var viewInstant: UIView!
-    @IBOutlet weak var labelInstant: UILabel!
-    @IBOutlet weak var iconLightning: UIImageView!
-    @IBOutlet weak var instantButton: UIButton!
-    @IBOutlet weak var lnurlStack: UIView!
-    @IBOutlet weak var lnurlStackWidth: NSLayoutConstraint!
-    @IBOutlet weak var viewLnurl: UIView!
-    @IBOutlet weak var labelUrl: UILabel!
-    @IBOutlet weak var iconLnurl: UIImageView!
-    @IBOutlet weak var lnurlButton: UIButton!
-    @IBOutlet weak var switchQuestionMark: UIImageView!
-    @IBOutlet weak var switchQuestionButton: UIButton!
-    
-    // Main - Regular view
-    @IBOutlet weak var centerViewRegular: UIView!
-    @IBOutlet weak var qrView: UIView!
-    @IBOutlet weak var qrCodeImage: UIImageView!
-    @IBOutlet weak var qrCodeLogoView: UIView!
-    @IBOutlet weak var qrCodeSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var addressView: UIView!
-    @IBOutlet weak var addressSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var addressLabel: UILabel!
-    @IBOutlet weak var addressCopy: UIImageView!
-    @IBOutlet weak var copyAddressButton: UIButton!
-    @IBOutlet weak var refreshButton: UIButton!
-    @IBOutlet weak var refreshIcon: UIImageView!
-    
-    // Main - Both view
-    @IBOutlet weak var centerViewBoth: UIView!
-    @IBOutlet weak var centerViewBothCenterX: NSLayoutConstraint!
-    @IBOutlet weak var bothQrView: UIView!
-    @IBOutlet weak var bothAddressView: UIView!
-    @IBOutlet weak var bothQrCodeImage: UIImageView!
-    @IBOutlet weak var bothQrCodeLogoView: UIView!
-    @IBOutlet weak var bothQrCodeSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var bothAddressLabel: UILabel!
-    @IBOutlet weak var bothCopyAddressButton: UIButton!
-    @IBOutlet weak var bothAddressCopy: UIImageView!
-    
-    // Main - LNURL view
-    @IBOutlet weak var centerViewLnurl: UIView!
-    @IBOutlet weak var lnurlQRBackground: UIView!
-    @IBOutlet weak var lnurlQRCode: UIImageView!
-    @IBOutlet weak var lnurlAddressBackground: UIView!
-    @IBOutlet weak var lnurlAddressLabel: UILabel!
-    @IBOutlet weak var lnurlCopyIcon: UIImageView!
-    @IBOutlet weak var lnurlCopyButton: UIButton!
     
     // Amount view
     @IBOutlet weak var amountAndDescriptionStack: UIView!
@@ -98,16 +49,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var bothDescriptionTextField: UITextField!
     @IBOutlet weak var bothDescriptionButton: UIButton!
     
-    // Main - Instant view
-    @IBOutlet weak var centerViewInstant: UIView!
-    @IBOutlet weak var lnConfirmationQRView: UIView!
-    @IBOutlet weak var lnQRImage: UIImageView!
-    @IBOutlet weak var lnQRCodeLogoView: UIView!
-    @IBOutlet weak var lnConfirmationAddressView: UIView!
-    @IBOutlet weak var lnInvoiceLabel: UILabel!
-    @IBOutlet weak var lnInvoiceCopy: UIImageView!
-    @IBOutlet weak var copyInvoiceButton: UIButton!
-    
     // Variables
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
@@ -126,12 +67,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
 
         // Text field delegates
+        self.bothDescriptionTextField.delegate = self
         self.bothAmountTextField.delegate = self
         self.bothAmountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
-        self.bothDescriptionTextField.delegate = self
-        
-        // Create QR code
-        self.resetQRs(resetAddress: false)
         
         // Set default currency to satoshis.
         self.selectSatsCurrency()
@@ -141,31 +79,71 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.changeColors()
         self.setBasicStyling()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "receivebitcoin"))
+        
+        // Set labels
+        self.addressLabel.text = ""
+        Task {
+            if self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() == nil {
+                // User has no lightning channels.
+                await self.setLabels(for: .onchain)
+            } else if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
+                // User has an LNURL.
+                await self.setLabels(for: .lnurl)
+            } else {
+                // User has channels, but no LNURL.
+                await self.setLabels(for: .bitcoinqr)
+            }
+        }
     }
     
-    func resetQRs(resetAddress:Bool) {
+    func setLabels(for type:TransactionType) async {
         
-        // QRs
-        self.qrCodeImage.alpha = 0
-        self.bothQrCodeImage.alpha = 0
-        self.lnQRImage.alpha = 0
-        self.qrCodeLogoView.alpha = 0
-        self.bothQrCodeLogoView.alpha = 0
-        self.lnQRCodeLogoView.alpha = 0
+        // Gather
+        let onchainAddress:String = self.getCachedOnchainAddress() ?? self.getNewOnchainAddress() ?? Language.getWord(withID: "unavailable")
+        let lightningInvoice:String = await self.getZeroInvoice(enteredDescription: "") ?? Language.getWord(withID: "unavailable")
+        let amountText:String = ""
+        let labelText:String = ""
+        let bitcoinQR:String = "bitcoin:\(onchainAddress)\(amountText)\(labelText)&lightning=\(lightningInvoice)"
+        let lnurl:String = {
+            if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
+                return firstIban.lightningAddressUsername
+            } else {
+                return Language.getWord(withID: "unavailable")
+            }
+        }()
         
-        // Address labels
-        self.addressCopy.alpha = 0
-        self.bothAddressCopy.alpha = 0
-        self.lnInvoiceCopy.alpha = 0
-        self.addressLabel.text = ""
-        self.bothAddressLabel.text = ""
-        self.lnInvoiceLabel.text = ""
-        
-        self.addressSpinner.startAnimating()
-        self.qrCodeSpinner.startAnimating()
-        self.bothQrCodeSpinner.startAnimating()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.getNewAddress(resetAddress: resetAddress)
+        DispatchQueue.main.async {
+            // Show lightning bolt.
+            switch type {
+            case .onchain:
+                self.boltStack.alpha = 0
+                self.boltStackWidth.constant = 0
+            default:
+                self.boltStack.alpha = 1
+                self.boltStackWidth.constant = 19
+            }
+            
+            // Set labels.
+            switch type {
+            case .onchain:
+                self.addressTitle.text = Language.getWord(withID: "address")
+                self.addressLabel.text = onchainAddress
+                self.qrImageView.image = "bitcoin:\(onchainAddress)".toQRCode()
+            case .lightning:
+                self.addressTitle.text = Language.getWord(withID: "invoice")
+                self.addressLabel.text = lightningInvoice
+                self.qrImageView.image = "lightning:\(lightningInvoice)".toQRCode()
+            case .bitcoinqr:
+                self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
+                self.addressLabel.text = bitcoinQR
+                self.qrImageView.image = bitcoinQR.toQRCode()
+            case .lnurl:
+                self.addressTitle.text = Language.getWord(withID: "url")
+                self.addressLabel.text = lnurl
+                self.qrImageView.image = lnurl.toQRCode()
+            }
+            self.qrImageView.layer.magnificationFilter = .nearest
+            
         }
     }
     
@@ -173,30 +151,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
         
-        if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
+        /*if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
             // User has no Lightning channels. Show Regular QR only.
             
-            // Dim labels
-            self.labelBoth.alpha = 0.3
-            self.labelInstant.alpha = 0.3
-            self.iconLightning.alpha = 0.3
-            
-            // Switch activated button colors
-            self.viewRegular.backgroundColor = Colors.getColor("whiteorblue3")
-            self.viewRegular.layer.shadowOpacity = 0.1
-            self.viewBoth.backgroundColor = Colors.getColor("white0.7orblue1")
-            self.viewBoth.layer.shadowOpacity = 0
-            
-            // Switch QR view position
-            self.centerViewBothCenterX.constant = self.yellowCard.frame.width
             self.amountAndDescriptionStackHeight.constant = 156
             self.amountAndDescriptionStack.alpha = 1
             
-            // Alphas
-            self.centerViewRegular.alpha = 1
-            self.centerViewBoth.alpha = 0
-            self.centerViewInstant.alpha = 0
-            self.centerViewLnurl.alpha = 0
             
             self.view.layoutIfNeeded()
         } else if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
@@ -209,7 +169,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.lnurlQRCode.layer.magnificationFilter = .nearest
             self.lnurlStack.alpha = 1
             
-        }
+        }*/
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -258,76 +218,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func copyAddressTapped(_ sender: UIButton) {
         
-        var copyingText = self.addressLabel.text
-        if sender.tag == 1 {
-            copyingText = self.bothAddressLabel.text
-        } else if sender.tag == 2 {
-            copyingText = self.lnurlAddressLabel.text
-        }
+        let copyingText = self.addressLabel.text
         UIPasteboard.general.string = copyingText
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
-    @IBAction func refreshButtonTapped(_ sender: UIButton) {
-        self.view.endEditing(true)
-        self.resetQRs(resetAddress: true)
-    }
-
-    
-    func generateQRCode(from string: String) -> UIImage {
-        let context = CIContext()
-        let filter = CIFilter.qrCodeGenerator()
-        let data = Data(string.utf8)
-        filter.setValue(data, forKey: "inputMessage")
-        
-        if let outputImage = filter.outputImage {
-            if let cgimg = context.createCGImage(outputImage, from: outputImage.extent) {
-                return UIImage(cgImage: cgimg)
-            }
-        }
-        return UIImage(systemName: "xmark.circle") ?? UIImage()
-    }
-    
-    @IBAction func switchTapped(_ sender: UIButton) {
-        
-        if self.coreVC!.bittrWallet.lightningChannels.count == 0, sender.accessibilityIdentifier != "regular" {
-            // User doesn't have any Lightning channels.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "instantpayments"), message: Language.getWord(withID: "questionvc13"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
-        // Set shadows
-        let shadowOpacities:[[Float]] = [[0.1, 0, 0, 0],[0, 0.1, 0, 0],[0, 0, 0.1, 0],[0, 0, 0, 0.1]]
-        self.viewRegular.layer.shadowOpacity = shadowOpacities[sender.tag][0]
-        self.viewBoth.layer.shadowOpacity = shadowOpacities[sender.tag][1]
-        self.viewInstant.layer.shadowOpacity = shadowOpacities[sender.tag][2]
-        self.viewLnurl.layer.shadowOpacity = shadowOpacities[sender.tag][3]
-        
-        // Colors
-        let viewColors:[[UIColor]] = [[Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1")], [Colors.getColor("white0.7orblue1"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1")], [Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("whiteorblue3"), Colors.getColor("white0.7orblue1")], [Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("white0.7orblue1"), Colors.getColor("whiteorblue3")]]
-        self.viewRegular.backgroundColor = viewColors[sender.tag][0]
-        self.viewBoth.backgroundColor = viewColors[sender.tag][1]
-        self.viewInstant.backgroundColor = viewColors[sender.tag][2]
-        self.viewLnurl.backgroundColor = viewColors[sender.tag][3]
-        
-        // Center QR view
-        let centerViewAlphas:[[Int]] = [[1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]]
-        let viewWidths:[CGFloat] = [1, 0, -1, -2]
-        let amountStackHeight:[CGFloat] = [0, 156, 156, 0]
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            self.centerViewBothCenterX.constant = self.yellowCard.frame.width * viewWidths[sender.tag]
-            self.amountAndDescriptionStackHeight.constant = amountStackHeight[sender.tag]
-            self.amountAndDescriptionStack.alpha = [0, 1, 1, 0][sender.tag]
-            
-            // Alphas
-            self.centerViewRegular.alpha = CGFloat(centerViewAlphas[sender.tag][0])
-            self.centerViewBoth.alpha = CGFloat(centerViewAlphas[sender.tag][1])
-            self.centerViewInstant.alpha = CGFloat(centerViewAlphas[sender.tag][2])
-            self.centerViewLnurl.alpha = CGFloat(centerViewAlphas[sender.tag][3])
-            
-            self.view.layoutIfNeeded()
-        }
-    }
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
         
@@ -373,7 +268,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
         self.bothAmountButton.alpha = 1
         self.bothDescriptionButton.alpha = 1
-        self.resetQRs(resetAddress: false)
+        //self.resetQRs(resetAddress: false)
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -397,17 +292,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
     }
     
-    @IBAction func copyInvoiceButtonTapped(_ sender: UIButton) {
-        
-        UIPasteboard.general.string = self.lnInvoiceLabel.text ?? ""
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.lnInvoiceLabel.text ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
-    }
-    
-    @IBAction func switchQuestionTapped(_ sender: UIButton) {
+    /*@IBAction func switchQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
         self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-    }
+    }*/
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
@@ -423,4 +312,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+}
+
+enum TransactionType {
+    case onchain
+    case lightning
+    case bitcoinqr
+    case lnurl
 }

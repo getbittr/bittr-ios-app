@@ -22,6 +22,15 @@ extension UIViewController {
             return nil
         }
     }
+    
+    func getNewOnchainAddress() -> String? {
+        if let newAddress = BitcoinManager.shared.getNewOnchainAddress() {
+            CacheManager.storeLastAddress(newAddress: newAddress)
+            return newAddress
+        } else {
+            return nil
+        }
+    }
 }
 
 extension ReceiveViewController {
@@ -103,8 +112,8 @@ extension ReceiveViewController {
                 
                 DispatchQueue.main.async {
                     // Address labels
-                    self.addressLabel.text = onchainAddressToDisplay!
-                    self.lnInvoiceLabel.text = invoiceToDisplay!
+                    //self.addressLabel.text = onchainAddressToDisplay!
+                    //self.lnInvoiceLabel.text = invoiceToDisplay!
                     var amountText = ""
                     var labelText = ""
                     if amountInBTC != 0 {
@@ -118,15 +127,10 @@ extension ReceiveViewController {
                     if enteredDescription != "" {
                         labelText = "&label=\(enteredDescription)"
                     }
-                    self.bothAddressLabel.text = "bitcoin:\(onchainAddressToDisplay!)\(amountText)\(labelText)&lightning=\(invoiceToDisplay!)"
-                    
-                    // Copy images
-                    self.addressCopy.alpha = 1
-                    self.bothAddressCopy.alpha = 1
-                    self.lnInvoiceCopy.alpha = 1
+                    //self.bothAddressLabel.text = "bitcoin:\(onchainAddressToDisplay!)\(amountText)\(labelText)&lightning=\(invoiceToDisplay!)"
                     
                     // QR code images
-                    self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:\(onchainAddressToDisplay!)\(amountText)")
+                    /*self.qrCodeImage.image = self.generateQRCode(from: "bitcoin:\(onchainAddressToDisplay!)\(amountText)")
                     self.qrCodeImage.layer.magnificationFilter = .nearest
                     self.qrCodeImage.alpha = 1
                     self.bothQrCodeImage.image = self.generateQRCode(from: "bitcoin:\(onchainAddressToDisplay!)\(amountText)\(labelText)&lightning=\(invoiceToDisplay!)")
@@ -134,17 +138,7 @@ extension ReceiveViewController {
                     self.bothQrCodeImage.alpha = 1
                     self.lnQRImage.image = self.generateQRCode(from: "lightning:" + invoiceToDisplay!)
                     self.lnQRImage.layer.magnificationFilter = .nearest
-                    self.lnQRImage.alpha = 1
-                    
-                    // Logo views
-                    self.qrCodeLogoView.alpha = 1
-                    self.bothQrCodeLogoView.alpha = 1
-                    self.lnQRCodeLogoView.alpha = 1
-                    
-                    // Spinners
-                    self.addressSpinner.stopAnimating()
-                    self.qrCodeSpinner.stopAnimating()
-                    self.bothQrCodeSpinner.stopAnimating()
+                    self.lnQRImage.alpha = 1*/
                 }
             }
         }
