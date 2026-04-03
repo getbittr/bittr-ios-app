@@ -18,6 +18,18 @@ extension ReceiveViewController {
         self.qrWhiteView.setShadow()
         self.addressView.layer.cornerRadius = 8
         self.addressView.setShadow()
+        
+        // Cards
+        self.copyCard.layer.cornerRadius = 8
+        self.copyCard.setShadow()
+        self.refreshCard.layer.cornerRadius = 8
+        self.refreshCard.setShadow()
+        self.editCard.layer.cornerRadius = 8
+        self.editCard.setShadow()
+        self.moreCard.layer.cornerRadius = 8
+        self.moreCard.setShadow()
+        
+        // Amount and description
         self.btcView.layer.cornerRadius = 8
         self.btcView.setShadow()
         self.bothAmountView.layer.cornerRadius = 8
@@ -26,9 +38,18 @@ extension ReceiveViewController {
         // Button titles
         self.contentBackgroundButton.setTitle("", for: .normal)
         self.btcButton.setTitle("", for: .normal)
+        self.copyButton.setTitle("", for: .normal)
+        self.refreshButton.setTitle("", for: .normal)
+        self.editButton.setTitle("", for: .normal)
+        self.moreButton.setTitle("", for: .normal)
     }
     
     func setWords() {
+        
+        self.copyLabel.text = Language.getWord(withID: "copy")
+        self.refreshLabel.text = Language.getWord(withID: "refresh")
+        self.editLabel.text = Language.getWord(withID: "edit")
+        self.moreLabel.text = Language.getWord(withID: "more")
         
         //self.addressTitle.text = Language.getWord(withID: "url")
         
@@ -50,6 +71,20 @@ extension ReceiveViewController {
         self.addressLabel.textColor = Colors.getColor("blackorwhite")
         self.btcView.backgroundColor = Colors.getColor("whiteorblue3")
         self.btcLabel.textColor = Colors.getColor("blackorwhite")
+        
+        // Cards
+        self.copyCard.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.copyLabel.textColor = Colors.getColor("blackorwhite")
+        self.copyIcon.tintColor = Colors.getColor("blackorwhite")
+        self.refreshCard.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.refreshLabel.textColor = Colors.getColor("blackorwhite")
+        self.refreshIcon.tintColor = Colors.getColor("blackorwhite")
+        self.editCard.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.editLabel.textColor = Colors.getColor("blackorwhite")
+        self.editIcon.tintColor = Colors.getColor("blackorwhite")
+        self.moreCard.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.moreLabel.textColor = Colors.getColor("blackorwhite")
+        self.moreIcon.tintColor = Colors.getColor("blackorwhite")
         
         // Instant
         self.bothAmountLabel.textColor = Colors.getColor("blackoryellow")
