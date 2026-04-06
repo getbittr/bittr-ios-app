@@ -393,33 +393,32 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBAction func moreTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        if self.currentType != .onchain {
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "getaddress"), style: .default, handler: { _ in
-                self.alertTapped(for: .onchain)
-            }))
-        }
-        if self.currentType != .lightning {
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "createinvoice"), style: .default, handler: { _ in
-                self.alertTapped(for: .lightning)
-            }))
-        }
-        if self.currentType != .bitcoinqr {
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "getbitcoinqr"), style: .default, handler: { _ in
-                self.alertTapped(for: .bitcoinqr)
-            }))
-        }
-        if self.currentType != .lnurl, self.userLNURL() != nil {
-            alert.addAction(UIAlertAction(title: Language.getWord(withID: "showlnurl"), style: .default, handler: { _ in
-                self.alertTapped(for: .lnurl)
-            }))
-        }
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel))
-        self.present(alert, animated: true)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "selecttransactiontype"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "getaddress"), Language.getWord(withID: "getbitcoinqr"), Language.getWord(withID: "createinvoice"), Language.getWord(withID: "showlnurl")], actions: [nil, #selector(self.tappedOnchain), #selector(self.tappedBitcoinqr), #selector(self.tappedLightning), #selector(self.tappedLnurl)])
+    }
+    
+    @objc func tappedOnchain() {
+        self.hideAlert()
+        self.alertTapped(for: .onchain)
+    }
+    
+    @objc func tappedLightning() {
+        self.hideAlert()
+        self.alertTapped(for: .lightning)
+    }
+    
+    @objc func tappedBitcoinqr() {
+        self.hideAlert()
+        self.alertTapped(for: .bitcoinqr)
+    }
+    
+    @objc func tappedLnurl() {
+        self.hideAlert()
+        self.alertTapped(for: .lnurl)
     }
     
     func alertTapped(for type:TransactionType, withoutAnimation:Bool = false, newAddress:Bool = false) {
         
+        self.hideAmountStack()
         self.qrImageView.alpha = 0
         self.addressLabel.alpha = 0
         self.addressTitle.alpha = 0
@@ -628,6 +627,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.amountStackHeight])
             self.amountStack.alpha = 1
             self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.checkContentViewHeight()
         }
     }
     
@@ -638,6 +639,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             NSLayoutConstraint.activate([self.amountStackHeight])
             self.amountStack.alpha = 0
             self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.checkContentViewHeight()
         }
     }
 }

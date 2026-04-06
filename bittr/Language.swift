@@ -517,7 +517,7 @@ class Language: NSObject {
             "refresh": "Refresh",
             "more": "More",
             "getaddress": "Get address",
-            "getbitcoinqr": "Get bitcoin QR",
+            "getbitcoinqr": "Create bitcoin QR",
             "showlnurl": "Show lightning URL",
             "alertlnurl": "Lightning URL",
             "receiveamount": "Add amount",
@@ -526,7 +526,8 @@ class Language: NSObject {
             "alertmessagebitcoinqr": "Share a bitcoin QR, a universal standard for sharing a regular address and lightning invoice simultaneously.\n\nOptionally, you can add an amount and description to your bitcoin QR.",
             "alertmessagelnurl": "Share your lightning URL, to receive instant payments into your lightning connection.\n\nThis URL has been created for you as part of your sign-up with bittr.\n\nYou can receive emails to your lightning URL. These will be forwarded to your own email address associated with your bittr account.",
             "receiveenteramount": "Enter amount",
-            "receiveenterdescription": "Add a note"
+            "receiveenterdescription": "Add a note",
+            "selecttransactiontype": "Share a lightning URL or invoice, a bitcoin QR or address."
             
         ]
         

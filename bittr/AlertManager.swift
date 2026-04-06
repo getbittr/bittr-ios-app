@@ -144,7 +144,13 @@ extension UIViewController {
             buttonsStack.clipsToBounds = false
             buttonsStack.backgroundColor = .clear
             yellowCard.addSubview(buttonsStack)
-            let buttonsStackHeight = NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
+            let buttonsStackHeight:NSLayoutConstraint = {
+                if buttons.count < 3 {
+                    return NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
+                } else {
+                    return NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50*CGFloat(buttons.count))
+                }
+            }()
             let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 15)
             let buttonsStackRight = NSLayoutConstraint(item: buttonsStack, attribute: .trailing, relatedBy: .equal, toItem: yellowCard, attribute: .trailing, multiplier: 1, constant: -15)
             let buttonsStackBottom = NSLayoutConstraint(item: buttonsStack, attribute: .bottom, relatedBy: .equal, toItem: yellowCard, attribute: .bottom, multiplier: 1, constant: -5)
@@ -164,20 +170,34 @@ extension UIViewController {
                 closeView.setShadow()
                 closeView.clipsToBounds = false
                 buttonsStack.addSubview(closeView)
-                let closeViewTop = NSLayoutConstraint(item: closeView, attribute: .top, relatedBy: .equal, toItem: buttonsStack, attribute: .top, multiplier: 1, constant: 0)
-                let closeViewBottom = NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: -10)
+                
                 let closeViewHeight = NSLayoutConstraint(item: closeView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
-                var leftConstraint:CGFloat = 0
-                if buttons.count == 2, index == 1 {
-                    leftConstraint = (buttonsStack.bounds.width/2) + 5
-                }
-                let closeViewLeft = NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: leftConstraint)
-                var widthConstant:CGFloat = 0
-                if buttons.count == 2 {
-                    widthConstant = -5
-                }
-                let closeViewWidth = NSLayoutConstraint(item: closeView, attribute: .width, relatedBy: .equal, toItem: buttonsStack, attribute: .width, multiplier: 1/CGFloat(buttons.count), constant: widthConstant)
-                buttonsStack.addConstraints([closeViewTop, closeViewBottom, closeViewLeft, closeViewWidth])
+                
+                let closeViewWidth:NSLayoutConstraint = {
+                    if buttons.count == 2 {
+                        return NSLayoutConstraint(item: closeView, attribute: .width, relatedBy: .equal, toItem: buttonsStack, attribute: .width, multiplier: 0.5, constant: -5)
+                    } else {
+                        return NSLayoutConstraint(item: closeView, attribute: .width, relatedBy: .equal, toItem: buttonsStack, attribute: .width, multiplier: 1, constant: 0)
+                    }
+                }()
+                
+                let closeViewLeft:NSLayoutConstraint = {
+                    if buttons.count == 2, index == 1 {
+                        return NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: (buttonsStack.bounds.width/2) + 5)
+                    } else {
+                        return NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: 0)
+                    }
+                }()
+                
+                let closeViewBottom:NSLayoutConstraint = {
+                    if buttons.count > 2, index > 0 {
+                        return NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: CGFloat(index)*(-50) - 10)
+                    } else {
+                        return NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: -10)
+                    }
+                }()
+                
+                buttonsStack.addConstraints([closeViewBottom, closeViewLeft, closeViewWidth])
                 closeView.addConstraint(closeViewHeight)
                 
                 // Button label
@@ -207,10 +227,10 @@ extension UIViewController {
                     mainButton.addTarget(self, action: actions![index]!, for: .touchUpInside)
                 }
                 buttonsStack.addSubview(mainButton)
-                let mainButtonBottom = NSLayoutConstraint(item: mainButton, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: 0)
+                let mainButtonBottom = NSLayoutConstraint(item: mainButton, attribute: .bottom, relatedBy: .equal, toItem: closeView, attribute: .bottom, multiplier: 1, constant: 0)
                 let mainButtonLeft = NSLayoutConstraint(item: mainButton, attribute: .leading, relatedBy: .equal, toItem: closeView, attribute: .leading, multiplier: 1, constant: 0)
                 let mainButtonRight = NSLayoutConstraint(item: mainButton, attribute: .trailing, relatedBy: .equal, toItem: closeView, attribute: .trailing, multiplier: 1, constant: 0)
-                let mainButtonTop = NSLayoutConstraint(item: mainButton, attribute: .top, relatedBy: .equal, toItem: buttonsStack, attribute: .top, multiplier: 1, constant: 0)
+                let mainButtonTop = NSLayoutConstraint(item: mainButton, attribute: .top, relatedBy: .equal, toItem: closeView, attribute: .top, multiplier: 1, constant: 0)
                 yellowCard.addConstraints([mainButtonTop, mainButtonLeft, mainButtonRight, mainButtonBottom])
             }
             
