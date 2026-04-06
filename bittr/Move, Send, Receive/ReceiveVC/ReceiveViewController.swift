@@ -418,7 +418,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     func alertTapped(for type:TransactionType, withoutAnimation:Bool = false, newAddress:Bool = false) {
         
-        self.hideAmountStack()
+        if type != self.currentType {
+            self.hideAmountStack()
+        }
         self.qrImageView.alpha = 0
         self.addressLabel.alpha = 0
         self.addressTitle.alpha = 0
@@ -633,6 +635,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     }
     
     func hideAmountStack() {
+        self.bothAmountTextField.text = ""
+        self.bothDescriptionTextField.text = ""
         UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.amountStackHeight])
             self.amountStackHeight = NSLayoutConstraint(item: self.amountStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
