@@ -512,13 +512,21 @@ class Language: NSObject {
             "transactiontype2": "<b>Regular</b>\nGet an address, to receive regular on-chain transactions.\n\n<b>Instant</b>\nCreate an invoice, to receive instant payments into your lightning connection.\n\n<b>Both</b>\nCreate a Bitcoin QR, which contains an on-chain address as well as a lightning invoice.\n\n<b>URL</b>\nIf available, receive instant payments through your lightning URL.",
             "transactiontype3": "<b>Regular</b>\nEnter a bitcoin address, to send regular on-chain transactions.\n\n<b>Instant</b>\nEnter an invoice or lightning URL, to make instant bitcoin lightning payments.",
             "maximumonchain": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nThe maximum amount you can send for regular payments, is your full regular balance minus the minimum required transaction fees.",
-            "bitcoinqr": "QR",
+            "bitcoinqr": "Bitcoin QR",
             "unavailable": "Unavailable",
             "refresh": "Refresh",
             "more": "More",
             "getaddress": "Get address",
             "getbitcoinqr": "Get bitcoin QR",
-            "showlnurl": "Show lightning URL"
+            "showlnurl": "Show lightning URL",
+            "alertlnurl": "Lightning URL",
+            "receiveamount": "Add amount",
+            "alertmessageonchain": "Share an address, to receive transactions into your wallet.\n\nTap Refresh to reveal additional addresses to your wallet.\n\nThe best practice is to do so only once the previous address has been used.",
+            "alertmessagelightning": "Create a lightning invoice, to receive instant payments into your lightning connection.\n\nOptionally, you can add an amount and description to your invoice.",
+            "alertmessagebitcoinqr": "Share a bitcoin QR, a universal standard for sharing a regular address and lightning invoice simultaneously.\n\nOptionally, you can add an amount and description to your bitcoin QR.",
+            "alertmessagelnurl": "Share your lightning URL, to receive instant payments into your lightning connection.\n\nThis URL has been created for you as part of your sign-up with bittr.\n\nYou can receive emails to your lightning URL. These will be forwarded to your own email address associated with your bittr account.",
+            "receiveenteramount": "Enter amount",
+            "receiveenterdescription": "Add a note"
             
         ]
         

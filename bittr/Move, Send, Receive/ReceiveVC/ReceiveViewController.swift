@@ -18,13 +18,23 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     // QR view
     @IBOutlet weak var qrWhiteView: UIView!
     @IBOutlet weak var qrImageView: UIImageView!
+    @IBOutlet weak var qrSpinner: UIActivityIndicatorView!
     
     // Address view
     @IBOutlet weak var addressView: UIView!
+    @IBOutlet weak var addressViewButton: UIButton!
     @IBOutlet weak var boltStack: UIView!
     @IBOutlet weak var boltStackWidth: NSLayoutConstraint! // 0 or 19
     @IBOutlet weak var addressTitle: UILabel!
     @IBOutlet weak var addressLabel: UILabel!
+    @IBOutlet weak var cardsStack: UIView!
+    @IBOutlet weak var iconQuestion: UIImageView!
+    @IBOutlet weak var questionButton: UIButton!
+    
+    // Lower address
+    @IBOutlet weak var lowerAddressStack: UIView!
+    @IBOutlet weak var lowerAddressStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var lowerAddressLabel: UILabel!
     
     // Copy
     @IBOutlet weak var copyIcon: UIImageView!
@@ -70,9 +80,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var contentBackgroundButton: UIButton!
     
     // Amount view
-    @IBOutlet weak var amountAndDescriptionStack: UIView!
-    @IBOutlet weak var amountAndDescriptionStackHeight: NSLayoutConstraint! // 156 or 0
-    @IBOutlet weak var bothAmountLabel: UILabel!
+    @IBOutlet weak var amountStack: UIView!
+    @IBOutlet weak var amountStackHeight: NSLayoutConstraint!
     @IBOutlet weak var bothAmountView: UIView!
     @IBOutlet weak var bothAmountTextField: UITextField!
     @IBOutlet weak var bothAmountButton: UIButton!
@@ -93,7 +102,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     // Type
     var currentType:TransactionType = .onchain
-    
+    var currentCopyableText = ""
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -124,22 +133,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "receivebitcoin"))
         
         // Set labels
-        self.addressLabel.text = ""
-        Task {
-            if !self.lightningIsAvailable() {
-                // User has no lightning channels.
-                await self.setLabels(for: .onchain)
-            } else if self.userLNURL() != nil {
-                // User has an LNURL.
-                await self.setLabels(for: .lnurl)
-            } else {
-                // User has channels, but no LNURL.
-                await self.setLabels(for: .bitcoinqr)
-            }
+        self.cardsStack.alpha = 0
+        if !self.lightningIsAvailable() {
+            // User has no lightning channels.
+            self.alertTapped(for: .onchain, withoutAnimation: true)
+        } else if self.userLNURL() != nil {
+            // User has an LNURL.
+            self.alertTapped(for: .lnurl, withoutAnimation: true)
+        } else {
+            // User has channels, but no LNURL.
+            self.alertTapped(for: .bitcoinqr, withoutAnimation: true)
         }
     }
     
-    func setLabels(for type:TransactionType) async {
+    func setLabels(for type:TransactionType, newAddress:Bool = false) async {
         DispatchQueue.main.async {
             self.updateCards(for: type)
             self.currentType = type
@@ -148,18 +155,79 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         // Gather
         let onchainAddress:String = {
             if type == .onchain || type == .bitcoinqr {
-                return self.getCachedOnchainAddress() ?? self.getNewOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                if newAddress {
+                    return self.getNewOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                } else {
+                    return self.getCachedOnchainAddress() ?? self.getNewOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                }
             } else {
                 return ""
             }
         }()
-        var lightningInvoice:String = ""
-        if type == .lightning || type == .bitcoinqr {
-            lightningInvoice = await self.getZeroInvoice(enteredDescription: "") ?? Language.getWord(withID: "unavailable")
+        
+        let enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+        
+        let amountInBTC:CGFloat? = {
+            if self.bothAmountTextField.text != nil, self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
+                // An amount has been entered. Create a regular invoice.
+                
+                // Convert selected currency to bitcoin.
+                if self.selectedCurrency == .satoshis {
+                    return (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0).inBTC()
+                } else if self.selectedCurrency == .bitcoin {
+                    return self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
+                } else if self.selectedCurrency == .currency {
+                    let fiatAmount = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
+                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                    let btcAmount = fiatAmount / bitcoinValue.currentValue
+                    
+                    // Safety check for invalid values
+                    guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
+                        Log.info("84 Invalid values.")
+                        print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                        return nil
+                    }
+                    
+                    return btcAmount
+                } else {
+                    return nil
+                }
+            } else {
+                // No amount has been entered. Create a zero invoice.
+                return nil
+            }
+        }()
+        
+        let lightningInvoice:String = await {
+            guard !(type == .onchain || type == .lnurl) else {
+                return nil
+            }
+            
+            if amountInBTC == nil {
+                return await self.getZeroInvoice(enteredDescription: enteredDescription)
+            } else {
+                let amountInMsat = amountInBTC!.inSatoshis() * 1_000
+                return await self.getRegularInvoice(amountMsat: UInt64(amountInMsat), description: enteredDescription, expirySecs: 3600)
+            }
+        }() ?? Language.getWord(withID: "unavailable")
+        
+        var amountText:String = ""
+        var labelText:String = ""
+        
+        if amountInBTC != nil {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 8
+            formatter.usesGroupingSeparator = false
+            amountText = "?amount=\(formatter.string(from: amountInBTC! as NSNumber)!)".replacingOccurrences(of: ",", with: ".")
         }
-        let amountText:String = ""
-        let labelText:String = ""
+        if enteredDescription != "" {
+            labelText = "&label=\(enteredDescription)"
+        }
+        
         let bitcoinQR:String = "bitcoin:\(onchainAddress)\(amountText)\(labelText)&lightning=\(lightningInvoice)"
+        
         let lnurl = self.userLNURL() ?? Language.getWord(withID: "unavailable")
         
         DispatchQueue.main.async {
@@ -182,22 +250,40 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
                 self.addressLabel.text = onchainAddress
+                self.lowerAddressLabel.text = ""
                 self.qrImageView.image = "bitcoin:\(onchainAddress)".toQRCode()
+                self.hideLowerAddress()
+                self.currentCopyableText = onchainAddress
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
-                self.addressLabel.text = lightningInvoice
+                self.addressLabel.text = ""
+                self.lowerAddressLabel.text = lightningInvoice
                 self.qrImageView.image = "lightning:\(lightningInvoice)".toQRCode()
+                self.showLowerAddress()
+                self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
-                self.addressLabel.text = bitcoinQR
+                self.addressLabel.text = ""
+                self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
                 self.qrImageView.image = bitcoinQR.toQRCode()
+                self.showLowerAddress()
+                self.currentCopyableText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
                 self.addressLabel.text = lnurl
+                self.lowerAddressLabel.text = ""
                 self.qrImageView.image = lnurl.toQRCode()
+                self.hideLowerAddress()
+                self.currentCopyableText = lnurl
             }
             self.qrImageView.layer.magnificationFilter = .nearest
             
+            self.qrImageView.alpha = 1
+            self.addressLabel.alpha = 1
+            self.lowerAddressLabel.alpha = 1
+            self.addressTitle.alpha = 1
+            self.iconQuestion.alpha = 1
+            self.qrSpinner.stopAnimating()
         }
     }
     
@@ -205,6 +291,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         // Cards stack width
         let cardsStackWidth = UIScreen.main.bounds.width - 60
+        let paddingDistance:CGFloat = 12
         // Number of cards
         var numberOfCards:CGFloat = 0
         var refreshIsVisible = false
@@ -240,13 +327,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             editIsVisible = false
         }
         
-        let cardWidth:CGFloat = (cardsStackWidth - (13*(numberOfCards-1))) / numberOfCards
+        let cardWidth:CGFloat = (cardsStackWidth - (paddingDistance*(numberOfCards-1))) / numberOfCards
         
-        self.copyCardWidth.constant = cardWidth
+        self.copyCardWidth.constant = editIsVisible ? (cardWidth-9) : cardWidth
         
         if refreshIsVisible {
             self.refreshStack.alpha = 1
-            self.refreshStackWidth.constant = cardWidth + 13
+            self.refreshStackWidth.constant = cardWidth + paddingDistance
             self.refreshCardWidth.constant = cardWidth
         } else {
             self.refreshStack.alpha = 0
@@ -255,8 +342,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         if editIsVisible {
             self.editStack.alpha = 1
-            self.editStackWidth.constant = cardWidth + 13
-            self.editCardWidth.constant = cardWidth
+            self.editStackWidth.constant = (cardWidth+18) + paddingDistance
+            self.editCardWidth.constant = cardWidth+18
         } else {
             self.editStack.alpha = 0
             self.editStackWidth.constant = 0
@@ -265,8 +352,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         if moreIsVisible {
             self.moreStack.alpha = 1
-            self.moreStackWidth.constant = cardWidth + 13
-            self.moreCardWidth.constant = cardWidth
+            self.moreStackWidth.constant = (editIsVisible ? (cardWidth-9) : cardWidth) + paddingDistance
+            self.moreCardWidth.constant = editIsVisible ? (cardWidth-9) : cardWidth
         } else {
             self.moreStack.alpha = 0
             self.moreStackWidth.constant = 0
@@ -274,18 +361,33 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         }
         
         self.view.layoutIfNeeded()
+        self.cardsStack.alpha = 1
     }
     
     @IBAction func copyTapped(_ sender: UIButton) {
-        let copyingText = self.addressLabel.text
+        let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @IBAction func refreshTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.confirmOnchainAddress)])
+    }
+    
+    @objc func confirmOnchainAddress() {
+        self.hideAlert()
+        self.alertTapped(for: .onchain, newAddress: true)
     }
     
     @IBAction func editTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        if self.amountStack.alpha == 1 {
+            self.hideAmountStack()
+        } else {
+            self.showAmountStack()
+        }
     }
     
     @IBAction func moreTapped(_ sender: UIButton) {
@@ -294,51 +396,48 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         if self.currentType != .onchain {
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "getaddress"), style: .default, handler: { _ in
-                Task { await self.setLabels(for: .onchain) }
+                self.alertTapped(for: .onchain)
             }))
         }
         if self.currentType != .lightning {
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "createinvoice"), style: .default, handler: { _ in
-                Task { await self.setLabels(for: .lightning) }
+                self.alertTapped(for: .lightning)
             }))
         }
         if self.currentType != .bitcoinqr {
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "getbitcoinqr"), style: .default, handler: { _ in
-                Task { await self.setLabels(for: .bitcoinqr) }
+                self.alertTapped(for: .bitcoinqr)
             }))
         }
         if self.currentType != .lnurl, self.userLNURL() != nil {
             alert.addAction(UIAlertAction(title: Language.getWord(withID: "showlnurl"), style: .default, handler: { _ in
-                Task { await self.setLabels(for: .lnurl) }
+                self.alertTapped(for: .lnurl)
             }))
         }
         alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel))
         self.present(alert, animated: true)
     }
     
+    func alertTapped(for type:TransactionType, withoutAnimation:Bool = false, newAddress:Bool = false) {
+        
+        self.qrImageView.alpha = 0
+        self.addressLabel.alpha = 0
+        self.addressTitle.alpha = 0
+        self.lowerAddressLabel.alpha = 0
+        self.boltStack.alpha = 0
+        self.iconQuestion.alpha = 0
+        self.qrSpinner.startAnimating()
+        
+        let delay:Double = withoutAnimation ? 0 : 0.7
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            Task { await self.setLabels(for: type, newAddress: newAddress) }
+        }
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-        
-        /*if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
-            // User has no Lightning channels. Show Regular QR only.
-            
-            self.amountAndDescriptionStackHeight.constant = 156
-            self.amountAndDescriptionStack.alpha = 1
-            
-            
-            self.view.layoutIfNeeded()
-        } else if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
-            
-            // Show LNURL
-            self.lnurlStackWidth.constant = self.switchStack.bounds.width * 0.23
-            self.view.layoutIfNeeded()
-            self.lnurlAddressLabel.text = firstIban.lightningAddressUsername
-            self.lnurlQRCode.image = self.generateQRCode(from: firstIban.lightningAddressUsername)
-            self.lnurlQRCode.layer.magnificationFilter = .nearest
-            self.lnurlStack.alpha = 1
-            
-        }*/
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -429,7 +528,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
         self.bothAmountButton.alpha = 1
         self.bothDescriptionButton.alpha = 1
-        //self.resetQRs(resetAddress: false)
+        self.alertTapped(for: self.currentType)
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -439,7 +538,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func bothAmountButtonTapped(_ sender: UIButton) {
-        
         self.bothAmountTextField.becomeFirstResponder()
         self.bothAmountButton.alpha = 0
     }
@@ -453,12 +551,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
     }
     
-    /*@IBAction func switchQuestionTapped(_ sender: UIButton) {
-        self.view.endEditing(true)
-        
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-    }*/
-    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         // Show new transaction in TransactionVC.
@@ -471,6 +563,30 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 }
             }
         }
+    }
+    
+    @IBAction func questionButtonTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        var title = ""
+        var message = ""
+        
+        switch self.currentType {
+        case .onchain:
+            title = Language.getWord(withID: "address")
+            message = Language.getWord(withID: "alertmessageonchain")
+        case .lightning:
+            title = Language.getWord(withID: "invoice")
+            message = Language.getWord(withID: "alertmessagelightning")
+        case .bitcoinqr:
+            title = Language.getWord(withID: "bitcoinqr")
+            message = Language.getWord(withID: "alertmessagebitcoinqr")
+        case .lnurl:
+            title = Language.getWord(withID: "alertlnurl")
+            message = Language.getWord(withID: "alertmessagelnurl")
+        }
+        
+        self.showAlert(presentingController: self, title: title, message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func lightningIsAvailable() -> Bool {
@@ -489,6 +605,41 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+    func showLowerAddress() {
+        NSLayoutConstraint.deactivate([self.lowerAddressStackHeight])
+        self.lowerAddressStackHeight = NSLayoutConstraint(item: self.lowerAddressStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.lowerAddressStackHeight])
+        self.lowerAddressStack.alpha = 1
+        self.view.layoutIfNeeded()
+    }
+    
+    func hideLowerAddress() {
+        NSLayoutConstraint.deactivate([self.lowerAddressStackHeight])
+        self.lowerAddressStackHeight = NSLayoutConstraint(item: self.lowerAddressStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.lowerAddressStackHeight])
+        self.lowerAddressStack.alpha = 0
+        self.view.layoutIfNeeded()
+    }
+    
+    func showAmountStack() {
+        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.amountStackHeight])
+            self.amountStackHeight = NSLayoutConstraint(item: self.amountStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.amountStackHeight])
+            self.amountStack.alpha = 1
+            self.view.layoutIfNeeded()
+        }
+    }
+    
+    func hideAmountStack() {
+        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.amountStackHeight])
+            self.amountStackHeight = NSLayoutConstraint(item: self.amountStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.amountStackHeight])
+            self.amountStack.alpha = 0
+            self.view.layoutIfNeeded()
+        }
+    }
 }
 
 enum TransactionType {

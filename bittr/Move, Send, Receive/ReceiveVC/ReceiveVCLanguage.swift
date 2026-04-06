@@ -42,23 +42,16 @@ extension ReceiveViewController {
         self.refreshButton.setTitle("", for: .normal)
         self.editButton.setTitle("", for: .normal)
         self.moreButton.setTitle("", for: .normal)
+        self.addressViewButton.setTitle("", for: .normal)
+        self.questionButton.setTitle("", for: .normal)
     }
     
     func setWords() {
         
         self.copyLabel.text = Language.getWord(withID: "copy")
         self.refreshLabel.text = Language.getWord(withID: "refresh")
-        self.editLabel.text = Language.getWord(withID: "edit")
+        self.editLabel.text = Language.getWord(withID: "receiveamount")
         self.moreLabel.text = Language.getWord(withID: "more")
-        
-        //self.addressTitle.text = Language.getWord(withID: "url")
-        
-        /*self.labelRegular.text = Language.getWord(withID: "regular")
-        self.labelBoth.text = Language.getWord(withID: "both")
-        self.labelInstant.text = Language.getWord(withID: "instant")
-        self.labelUrl.text = Language.getWord(withID: "url")
-        self.bothAmountTextField.placeholder = Language.getWord(withID: "insatoshis")
-        self.bothAmountLabel.text = Language.getWord(withID: "bothamountlabel")*/
         
     }
     
@@ -69,6 +62,7 @@ extension ReceiveViewController {
         self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
         self.addressView.backgroundColor = Colors.getColor("whiteorblue3")
         self.addressLabel.textColor = Colors.getColor("blackorwhite")
+        self.lowerAddressLabel.textColor = Colors.getColor("blackorwhite")
         self.btcView.backgroundColor = Colors.getColor("whiteorblue3")
         self.btcLabel.textColor = Colors.getColor("blackorwhite")
         
@@ -87,15 +81,14 @@ extension ReceiveViewController {
         self.moreIcon.tintColor = Colors.getColor("blackorwhite")
         
         // Instant
-        self.bothAmountLabel.textColor = Colors.getColor("blackoryellow")
         self.bothAmountView.backgroundColor = Colors.getColor("white0.7orblue1")
         self.bothDescriptionView.backgroundColor = Colors.getColor("white0.7orblue1")
         self.bothAmountTextField.attributedPlaceholder = NSAttributedString(
-            string: Language.getWord(withID: "amountinsatoshis"),
+            string: Language.getWord(withID: "receiveenteramount"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
         self.bothDescriptionTextField.attributedPlaceholder = NSAttributedString(
-            string: Language.getWord(withID: "description"),
+            string: Language.getWord(withID: "receiveenterdescription"),
             attributes: [NSAttributedString.Key.foregroundColor: Colors.getColor("grey2orwhite0.7")]
         )
         self.bothAmountTextField.textColor = Colors.getColor("blackorwhite")
