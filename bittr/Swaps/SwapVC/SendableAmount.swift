@@ -91,25 +91,12 @@ extension SwapViewController {
                     self.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
                     
                     // Get own onchain address.
-                    let actualAddress:String? = self.getCachedOnchainAddress() ?? BitcoinManager.shared.getNewOnchainAddress()
-                    
-                    if actualAddress == nil {
-                        Log.info("Could not fetch address.")
-                        DispatchQueue.main.async {
-                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                        }
-                        return
-                    }
-                    
-                    // Cache address in case no onchain address is currently cached.
-                    if self.getCachedOnchainAddress() == nil {
-                        CacheManager.storeLastAddress(newAddress: actualAddress!)
-                    }
+                    let actualAddress:String = BitcoinManager.shared.getAddress(atIndex: 0)
                     
                     var sizeinVbytes:UInt64
                     do {
                         // Calculate transaction size.
-                        sizeinVbytes = try BitcoinManager.shared.getSize(address: actualAddress!, amountSats: maximumSendableOnchainSats)
+                        sizeinVbytes = try BitcoinManager.shared.getSize(address: actualAddress, amountSats: maximumSendableOnchainSats)
                     } catch {
                         Log.info("Error: \(error.localizedDescription)")
                         SentrySDK.capture(error: error) { scope in

@@ -156,9 +156,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         let onchainAddress:String = {
             if type == .onchain || type == .bitcoinqr {
                 if newAddress {
-                    return self.getNewOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                    let nextUnusedAddress = self.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress()
+                    if nextUnusedAddress == nil {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
+                    return nextUnusedAddress ?? self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
                 } else {
-                    return self.getCachedOnchainAddress() ?? self.getNewOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                    return self.getCachedOnchainAddress() ?? self.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? Language.getWord(withID: "unavailable")
                 }
             } else {
                 return ""

@@ -21,6 +21,7 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lastaddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
         self.resetFailedPinAttempts()
     }
     
@@ -1168,6 +1169,27 @@ class CacheManager: NSObject {
         } else {
             return [String]()
         }
+    }
+    
+    // MARK: - Onchain addresses
+    
+    static func getOnchainAddresses() -> [OnchainAddress] {
+        
+        if let cachedOnchainAddresses = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses")) as? [NSDictionary] {
+            
+            var addresses = cachedOnchainAddresses.toAddresses()
+            addresses.sort { address1, address2 in
+                address1.addressIndex < address2.addressIndex
+            }
+            return addresses
+        } else {
+            return [OnchainAddress]()
+        }
+    }
+    
+    static func storeOnchainAddresses(_ theseAddresses:[OnchainAddress]) {
+        
+        UserDefaults.standard.set(theseAddresses.toDict(), forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
     }
     
 }

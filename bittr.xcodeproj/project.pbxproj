@@ -69,6 +69,7 @@
 		0579B2732A0531470007891F /* ReceiveViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0579B2722A0531470007891F /* ReceiveViewController.swift */; };
 		057B42E92F5AA20E00BA5C44 /* SwapStatusViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057B42E82F5AA20E00BA5C44 /* SwapStatusViewController.swift */; };
 		057B42ED2F5ABCA200BA5C44 /* SendableAmount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */; };
+		057C46ED2F84BA400045C906 /* OnchainAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057C46EC2F84BA3C0045C906 /* OnchainAddress.swift */; };
 		057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */; };
 		057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057E6E8A2A14DDBC00B37026 /* Article.swift */; };
 		057F63722F62716200CE1B3E /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F63712F62716000CE1B3E /* Event.swift */; };
@@ -267,6 +268,7 @@
 		0579B2722A0531470007891F /* ReceiveViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveViewController.swift; sourceTree = "<group>"; };
 		057B42E82F5AA20E00BA5C44 /* SwapStatusViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapStatusViewController.swift; sourceTree = "<group>"; };
 		057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableAmount.swift; sourceTree = "<group>"; };
+		057C46EC2F84BA3C0045C906 /* OnchainAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainAddress.swift; sourceTree = "<group>"; };
 		057E6E882A14DBAC00B37026 /* OneArticleTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneArticleTableViewCell.swift; sourceTree = "<group>"; };
 		057E6E8A2A14DDBC00B37026 /* Article.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Article.swift; sourceTree = "<group>"; };
 		057F63712F62716000CE1B3E /* Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
@@ -724,6 +726,7 @@
 				05906E9F2C43C4B20053F7DB /* ReceiveOnchain.swift */,
 				05906EA12C43C54A0053F7DB /* ReceiveLightning.swift */,
 				0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */,
+				057C46EC2F84BA3C0045C906 /* OnchainAddress.swift */,
 			);
 			path = ReceiveVC;
 			sourceTree = "<group>";
@@ -1125,6 +1128,7 @@
 				05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */,
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
 				05E7434F2A357AB6007755A2 /* Transfer4ViewController.swift in Sources */,
+				057C46ED2F84BA400045C906 /* OnchainAddress.swift in Sources */,
 				053190E829FEE4EC0072CE76 /* BuyViewController.swift in Sources */,
 				3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */,
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,

@@ -248,11 +248,7 @@ class BoltzRefund {
             
         if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
                 
-            let destinationAddress = BitcoinManager.shared.getNewOnchainAddress()
-            if destinationAddress == nil {
-                Log.info("No address available.")
-                return ClaimResult(success: false, transactionId: nil)
-            }
+            let destinationAddress = swapVC.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
             
             // Calculate refund transaction fee
             let refundFee = try await calculateClaimOrRefundTransactionFee()
@@ -260,7 +256,7 @@ class BoltzRefund {
             let refundTx = constructSingleRefundTransaction(
                 swapOutput: swapOutput,        // Same output from detectSwap
                 txHash: txHash,                // Hash of lockup transaction
-                destinationAddress: destinationAddress!,     // Where to send refunded funds
+                destinationAddress: destinationAddress,     // Where to send refunded funds
                 timeoutBlockHeight: 0,         // Block height when refund becomes valid
                 fee: refundFee,                // Transaction fee in satoshis
                 network: network

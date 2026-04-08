@@ -361,7 +361,7 @@ class SwapManager: NSObject {
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
-            destinationAddress = BitcoinManager.shared.getNewOnchainAddress()
+            destinationAddress = swapVC.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")

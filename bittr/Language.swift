@@ -527,7 +527,8 @@ class Language: NSObject {
             "alertmessagelnurl": "Share your lightning URL, to receive instant payments into your lightning connection.\n\nThis URL has been created for you as part of your sign-up with bittr.\n\nYou can receive emails to your lightning URL. These will be forwarded to your own email address associated with your bittr account.",
             "receiveenteramount": "Enter amount",
             "receiveenterdescription": "Add a note",
-            "selecttransactiontype": "Share a lightning URL or invoice, a bitcoin QR or address."
+            "selecttransactiontype": "Share a lightning URL or invoice, a bitcoin QR or address.",
+            "noaddressavailable": "No new address is available at this time.\n\nFor proper performance, we reveal a maximum of ten unused addresses.\n\nMake sure to use an address before revealing a new one."
             
         ]
         
