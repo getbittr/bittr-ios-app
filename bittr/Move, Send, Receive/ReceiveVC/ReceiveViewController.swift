@@ -19,6 +19,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var qrWhiteView: UIView!
     @IBOutlet weak var qrImageView: UIImageView!
     @IBOutlet weak var qrSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var qrLogo: UIView!
+    @IBOutlet weak var qrLogoWidth: NSLayoutConstraint!
+    @IBOutlet weak var qrLogoHeight: NSLayoutConstraint!
     
     // Address view
     @IBOutlet weak var addressView: UIView!
@@ -250,38 +253,55 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             }
             
             // Set labels.
+            let qrCode:(image: UIImage, width: Int)?
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
                 self.addressLabel.text = onchainAddress
                 self.lowerAddressLabel.text = ""
-                self.qrImageView.image = "bitcoin:\(onchainAddress)".toQRCode()
+                qrCode = "bitcoin:\(onchainAddress)".uppercased().toQRCode()
                 self.hideLowerAddress()
                 self.currentCopyableText = onchainAddress
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
                 self.lowerAddressLabel.text = lightningInvoice
-                self.qrImageView.image = "lightning:\(lightningInvoice)".toQRCode()
+                qrCode = "lightning:\(lightningInvoice)".uppercased().toQRCode()
                 self.showLowerAddress()
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
                 self.addressLabel.text = ""
                 self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
-                self.qrImageView.image = bitcoinQR.toQRCode()
+                qrCode = bitcoinQR.toQRCode()
                 self.showLowerAddress()
                 self.currentCopyableText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
                 self.addressLabel.text = lnurl
                 self.lowerAddressLabel.text = ""
-                self.qrImageView.image = lnurl.toQRCode()
+                qrCode = lnurl.toQRCode()
                 self.hideLowerAddress()
                 self.currentCopyableText = lnurl
             }
+            
+            self.qrImageView.image = qrCode?.image
             self.qrImageView.layer.magnificationFilter = .nearest
             
+            if let qrModules = qrCode?.width {
+                
+                let qrWidth = self.qrImageView.bounds.width
+                let moduleSize = qrWidth / CGFloat(qrModules)
+                let minimumTargetWidth = qrWidth * 0.15
+                let logoModuleCount = Int(ceil(minimumTargetWidth / moduleSize))
+                let logoWidth = CGFloat(logoModuleCount) * moduleSize
+                
+                self.qrLogoWidth.constant = logoWidth
+                self.qrLogoHeight.constant = logoWidth
+                self.view.layoutIfNeeded()
+            }
+            
+            self.qrLogo.alpha = 1
             self.qrImageView.alpha = 1
             self.addressLabel.alpha = 1
             self.lowerAddressLabel.alpha = 1
@@ -425,6 +445,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         if type != self.currentType {
             self.hideAmountStack()
         }
+        self.qrLogo.alpha = 0
         self.qrImageView.alpha = 0
         self.addressLabel.alpha = 0
         self.addressTitle.alpha = 0

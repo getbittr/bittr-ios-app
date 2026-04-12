@@ -4135,7 +4135,7 @@
                                                                 <nil key="highlightedColor"/>
                                                             </label>
                                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="questionmark.circle" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="KOs-4g-DFg">
-                                                                <rect key="frame" x="292" y="15.666666666666666" width="16" height="14.66666666666667"/>
+                                                                <rect key="frame" x="292" y="15.666666666666664" width="16" height="14.666666666666671"/>
                                                                 <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
                                                                     <constraint firstAttribute="width" constant="16" id="Pn8-yh-hap"/>
@@ -4615,6 +4615,24 @@
                                                                         <rect key="frame" x="15" y="15" width="303" height="303"/>
                                                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                     </imageView>
+                                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="77i-9s-a4g">
+                                                                        <rect key="frame" x="141.66666666666666" y="141.33333333333331" width="50" height="50"/>
+                                                                        <subviews>
+                                                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="logoorange32" translatesAutoresizingMaskIntoConstraints="NO" id="mJC-vv-z2c">
+                                                                                <rect key="frame" x="12" y="12" width="26" height="26"/>
+                                                                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                            </imageView>
+                                                                        </subviews>
+                                                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                        <constraints>
+                                                                            <constraint firstAttribute="height" constant="50" id="79k-Gm-86y"/>
+                                                                            <constraint firstAttribute="bottom" secondItem="mJC-vv-z2c" secondAttribute="bottom" constant="12" id="A51-D1-WXM"/>
+                                                                            <constraint firstItem="mJC-vv-z2c" firstAttribute="leading" secondItem="77i-9s-a4g" secondAttribute="leading" constant="12" id="Lup-Bs-XxA"/>
+                                                                            <constraint firstItem="mJC-vv-z2c" firstAttribute="top" secondItem="77i-9s-a4g" secondAttribute="top" constant="12" id="UD2-mk-bE1"/>
+                                                                            <constraint firstAttribute="width" constant="50" id="VBg-iA-sa4"/>
+                                                                            <constraint firstAttribute="trailing" secondItem="mJC-vv-z2c" secondAttribute="trailing" constant="12" id="qjL-kq-Cie"/>
+                                                                        </constraints>
+                                                                    </view>
                                                                     <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="7Zd-3o-YcT">
                                                                         <rect key="frame" x="156.66666666666666" y="156.33333333333331" width="20" height="20"/>
                                                                         <color key="color" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -4626,7 +4644,9 @@
                                                                     <constraint firstItem="35t-De-hop" firstAttribute="top" secondItem="Kvw-Hc-JG5" secondAttribute="top" constant="15" id="70R-Tu-SIE"/>
                                                                     <constraint firstItem="7Zd-3o-YcT" firstAttribute="centerY" secondItem="Kvw-Hc-JG5" secondAttribute="centerY" id="LCY-Ng-APx"/>
                                                                     <constraint firstAttribute="trailing" secondItem="35t-De-hop" secondAttribute="trailing" constant="15" id="OOo-sS-yun"/>
+                                                                    <constraint firstItem="77i-9s-a4g" firstAttribute="centerX" secondItem="35t-De-hop" secondAttribute="centerX" id="S8w-ZJ-dOQ"/>
                                                                     <constraint firstAttribute="bottom" secondItem="35t-De-hop" secondAttribute="bottom" constant="15" id="TFv-pD-a0T"/>
+                                                                    <constraint firstItem="77i-9s-a4g" firstAttribute="centerY" secondItem="35t-De-hop" secondAttribute="centerY" id="aGr-mI-1Ln"/>
                                                                     <constraint firstItem="7Zd-3o-YcT" firstAttribute="centerX" secondItem="Kvw-Hc-JG5" secondAttribute="centerX" id="eqW-CF-juQ"/>
                                                                 </constraints>
                                                             </view>
@@ -5042,7 +5062,7 @@
                                                             <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kG5-Qs-5Fr">
                                                                 <rect key="frame" x="15" y="456.99999999999994" width="333" height="0.0"/>
                                                                 <subviews>
-                                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="m68-r3-Pfp" userLabel="Amount Stack">
+                                                                    <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="m68-r3-Pfp" userLabel="Amount Stack">
                                                                         <rect key="frame" x="0.0" y="14" width="333" height="45"/>
                                                                         <subviews>
                                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="y8U-vs-ZEU" userLabel="Amount Stack">
@@ -5135,7 +5155,7 @@
                                                                             <constraint firstAttribute="bottom" secondItem="y8U-vs-ZEU" secondAttribute="bottom" id="ySW-dr-nOy"/>
                                                                         </constraints>
                                                                     </view>
-                                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="FfM-w7-k3O" userLabel="Description Stack">
+                                                                    <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FfM-w7-k3O" userLabel="Description Stack">
                                                                         <rect key="frame" x="0.0" y="69" width="333" height="45"/>
                                                                         <subviews>
                                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="zLc-nS-Jef" userLabel="Description View">
@@ -5305,6 +5325,9 @@
                         <outlet property="moreStack" destination="6tP-7y-5Pg" id="D5h-5E-gJY"/>
                         <outlet property="moreStackWidth" destination="AJD-k6-7Do" id="wxo-24-2YG"/>
                         <outlet property="qrImageView" destination="35t-De-hop" id="3j0-XL-iIE"/>
+                        <outlet property="qrLogo" destination="77i-9s-a4g" id="hW7-52-6cZ"/>
+                        <outlet property="qrLogoHeight" destination="79k-Gm-86y" id="IPl-DI-yvX"/>
+                        <outlet property="qrLogoWidth" destination="VBg-iA-sa4" id="mLM-e1-8SA"/>
                         <outlet property="qrSpinner" destination="7Zd-3o-YcT" id="2IP-mg-nGs"/>
                         <outlet property="qrWhiteView" destination="Kvw-Hc-JG5" id="XxF-ZA-PEo"/>
                         <outlet property="questionButton" destination="DWO-9b-u48" id="nNW-mf-BMz"/>
@@ -6314,7 +6337,7 @@
                                                                 <rect key="frame" x="0.0" y="155" width="363" height="0.0"/>
                                                                 <subviews>
                                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Zdf-NG-6QO">
-                                                                        <rect key="frame" x="10" y="10" width="343" height="45"/>
+                                                                        <rect key="frame" x="10" y="10" width="343" height="14"/>
                                                                         <subviews>
                                                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="Description" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ou8-ne-Kdk">
                                                                                 <rect key="frame" x="15" y="16" width="84.666666666666671" height="16"/>
@@ -6336,7 +6359,7 @@
                                                                                 <nil key="highlightedColor"/>
                                                                             </label>
                                                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JmT-eu-OKC">
-                                                                                <rect key="frame" x="0.0" y="0.0" width="343" height="45"/>
+                                                                                <rect key="frame" x="0.0" y="0.0" width="343" height="14"/>
                                                                                 <state key="normal" title="Button"/>
                                                                                 <buttonConfiguration key="configuration" style="plain"/>
                                                                                 <connections>
@@ -13179,10 +13202,10 @@
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
         <systemColor name="systemGreenColor">
-            <color red="0.20392156862745098" green="0.7803921568627451" blue="0.34901960784313724" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.20392156859999999" green="0.78039215689999997" blue="0.34901960780000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemRedColor">
-            <color red="1" green="0.2196078431372549" blue="0.23529411764705882" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="1" green="0.23137254900000001" blue="0.18823529410000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
