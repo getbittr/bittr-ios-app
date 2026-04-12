@@ -122,7 +122,9 @@ extension CoreViewController {
                 
                 if checkResult == nil {
                     Log.info("Did not receive valid API result for onchain address.")
-                    return
+                    // Treat address as unused.
+                    CacheManager.storeLastAddress(newAddress: thisAddress.onchainAddress)
+                    checkIndex -= 1
                 } else if checkResult! == true {
                     // Did find used address.
                     // Update cache.
@@ -184,19 +186,35 @@ extension OnchainAddress {
         
         let receivedDict:NSDictionary
         do {
-            receivedDict = try await withCheckedThrowingContinuation { continuation in
-                Task {
-                    await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success(let json):
-                                continuation.resume(returning: json)
-                            case .failure(let error):
-                                continuation.resume(throwing: error)
+            receivedDict = try await withThrowingTaskGroup(of: NSDictionary.self) { group in
+                
+                group.addTask {
+                    try await withCheckedThrowingContinuation { continuation in
+                        Task {
+                            await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
+                                switch result {
+                                case .success(let json):
+                                    continuation.resume(returning: json)
+                                case .failure(let error):
+                                    continuation.resume(throwing: error)
+                                }
                             }
                         }
                     }
                 }
+                
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 10 * NSEC_PER_SEC)
+                    throw NSError(
+                        domain: "Timeout",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "Request timed out"]
+                    )
+                }
+                
+                let firstResult = try await group.next()!
+                group.cancelAll()
+                return firstResult
             }
         } catch {
             DispatchQueue.main.async {
