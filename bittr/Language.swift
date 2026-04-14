@@ -514,7 +514,7 @@ class Language: NSObject {
             "maximumonchain": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nThe maximum amount you can send for regular payments, is your full regular balance minus the minimum required transaction fees.",
             "bitcoinqr": "Bitcoin QR",
             "unavailable": "Unavailable",
-            "refresh": "Refresh",
+            "refresh": "Renew",
             "more": "More",
             "getaddress": "Address",
             "getbitcoinqr": "Bitcoin QR",

@@ -41,6 +41,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     // Copy
     @IBOutlet weak var copyIcon: UIImageView!
+    @IBOutlet weak var copyLabelContainer: UIView!
+    @IBOutlet weak var copyLabelContainerWidth: NSLayoutConstraint! // 0 or 40
     @IBOutlet weak var copyLabel: UILabel!
     @IBOutlet weak var copyCard: UIView!
     @IBOutlet weak var copyCardWidth: NSLayoutConstraint!
@@ -98,6 +100,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var bothDescriptionView: UIView!
     @IBOutlet weak var bothDescriptionTextField: UITextField!
     @IBOutlet weak var bothDescriptionButton: UIButton!
+    @IBOutlet weak var descriptionStack: UIView!
+    @IBOutlet weak var descriptionStackHeight: NSLayoutConstraint! // 0 or 55
     
     // Variables
     var coreVC:CoreViewController?
@@ -257,11 +261,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.addressLabel.text = onchainAddress
+                self.addressLabel.text = onchainAddress + amountText
                 self.lowerAddressLabel.text = ""
-                qrCode = "bitcoin:\(onchainAddress)".uppercased().toQRCode()
+                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toQRCode()
                 self.hideLowerAddress()
-                self.currentCopyableText = onchainAddress
+                self.currentCopyableText = "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
@@ -321,44 +325,74 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         var refreshIsVisible = false
         var editIsVisible = false
         var moreIsVisible = false
+        var copyLabelIsVisible = true
         
         switch type {
         case .onchain:
             refreshIsVisible = true
-            editIsVisible = false
+            editIsVisible = true
+            copyLabelIsVisible = false
             if self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() == nil {
                 // User has no lightning channels.
-                numberOfCards = 2
+                numberOfCards = 3
                 moreIsVisible = false
             } else {
-                numberOfCards = 3
+                numberOfCards = 4
                 moreIsVisible = true
             }
         case .lightning:
             numberOfCards = 3
             refreshIsVisible = false
+            copyLabelIsVisible = true
             moreIsVisible = true
             editIsVisible = true
         case .bitcoinqr:
             numberOfCards = 3
             refreshIsVisible = false
+            copyLabelIsVisible = true
             moreIsVisible = true
             editIsVisible = true
         case .lnurl:
             numberOfCards = 2
             refreshIsVisible = false
+            copyLabelIsVisible = true
             moreIsVisible = true
             editIsVisible = false
         }
         
-        let cardWidth:CGFloat = (cardsStackWidth - (paddingDistance*(numberOfCards-1))) / numberOfCards
+        if copyLabelIsVisible {
+            self.copyLabelContainer.alpha = 1
+            self.copyLabelContainerWidth.constant = 40
+        } else {
+            self.copyLabelContainer.alpha = 0
+            self.copyLabelContainerWidth.constant = 0
+        }
         
-        self.copyCardWidth.constant = editIsVisible ? (cardWidth-9) : cardWidth
+        let cardWidth:CGFloat = {
+            if copyLabelIsVisible {
+                return (cardsStackWidth - (paddingDistance*(numberOfCards-1))) / numberOfCards
+            } else {
+                return ((cardsStackWidth - 35) - (paddingDistance*(numberOfCards-1))) / (numberOfCards - 1)
+            }
+        }()
+        
+        self.copyCardWidth.constant = {
+            if copyLabelIsVisible {
+                return editIsVisible ? (cardWidth-10) : cardWidth
+            } else {
+                return 35
+            }
+        }()
         
         if refreshIsVisible {
             self.refreshStack.alpha = 1
-            self.refreshStackWidth.constant = cardWidth + paddingDistance
-            self.refreshCardWidth.constant = cardWidth
+            if moreIsVisible {
+                self.refreshStackWidth.constant = (cardWidth - 10) + paddingDistance
+                self.refreshCardWidth.constant = (cardWidth - 10)
+            } else {
+                self.refreshStackWidth.constant = (cardWidth - 22) + paddingDistance
+                self.refreshCardWidth.constant = (cardWidth - 22)
+            }
         } else {
             self.refreshStack.alpha = 0
             self.refreshStackWidth.constant = 0
@@ -366,8 +400,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         if editIsVisible {
             self.editStack.alpha = 1
-            self.editStackWidth.constant = (cardWidth+18) + paddingDistance
-            self.editCardWidth.constant = cardWidth+18
+            self.editStackWidth.constant = (cardWidth+22) + paddingDistance
+            self.editCardWidth.constant = cardWidth+22
         } else {
             self.editStack.alpha = 0
             self.editStackWidth.constant = 0
@@ -376,8 +410,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         
         if moreIsVisible {
             self.moreStack.alpha = 1
-            self.moreStackWidth.constant = (editIsVisible ? (cardWidth-9) : cardWidth) + paddingDistance
-            self.moreCardWidth.constant = editIsVisible ? (cardWidth-9) : cardWidth
+            self.moreStackWidth.constant = (editIsVisible ? (cardWidth-12) : cardWidth) + paddingDistance
+            self.moreCardWidth.constant = editIsVisible ? (cardWidth-12) : cardWidth
         } else {
             self.moreStack.alpha = 0
             self.moreStackWidth.constant = 0
@@ -649,6 +683,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     
     func showAmountStack() {
         UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
+            if self.currentType == .onchain {
+                self.descriptionStack.alpha = 0
+                self.descriptionStackHeight.constant = 0
+            } else {
+                self.descriptionStack.alpha = 1
+                self.descriptionStackHeight.constant = 55
+            }
             NSLayoutConstraint.deactivate([self.amountStackHeight])
             self.amountStackHeight = NSLayoutConstraint(item: self.amountStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.amountStackHeight])
