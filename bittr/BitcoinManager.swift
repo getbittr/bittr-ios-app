@@ -489,14 +489,25 @@ class BitcoinManager {
         return invoice
     }
     
-    func sendPayment(invoice: Bolt11Invoice) async throws -> PaymentHash {
+    func sendPayment(invoice: Bolt11Invoice) throws -> PaymentHash {
         let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, routeParameters: nil)
         return paymentHash
     }
     
-    func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) async throws -> PaymentHash {
+    func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) throws -> PaymentHash {
         let paymentHash = try self.ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), routeParameters: nil)
         return paymentHash
+    }
+    
+    func sendBolt12Payment(offer:LDKNode.Offer, amount:Int) throws -> PaymentId? {
+        let maxFeeMsat = ((amount*1000)/100) + 50_000 // 1% of amount, plus 50 satoshis.
+        let routeConfig = RouteParametersConfig(
+            maxTotalRoutingFeeMsat: UInt64(maxFeeMsat),
+            maxTotalCltvExpiryDelta: 1008,
+            maxPathCount: 10,
+            maxChannelSaturationPowerOfHalf: 2)
+        let paymentId = try self.ldkNode!.bolt12Payment().sendUsingAmount(offer: offer, amountMsat: UInt64(amount*1000), quantity: nil, payerNote: nil, routeParameters: routeConfig)
+        return paymentId
     }
     
     func getNewOnchainAddress() -> String? {
