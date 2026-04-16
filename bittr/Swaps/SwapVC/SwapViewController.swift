@@ -275,8 +275,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Send payment.
         if self.thisSwap!.swapDirection == .onchainToLightning {
+            SentrySDK.metrics.count(key: "swap.onchaintolightning.initiated")
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
+            SentrySDK.metrics.count(key: "swap.lightningtoonchain.initiated")
             self.performLightningPayment()
         }
     }

@@ -349,7 +349,7 @@ extension UIViewController {
                 if let bolt12Offer = invoiceText.bolt12Offer() {
                     Log.info("Perform BOLT12 payment.")
                     let _ = try BitcoinManager.shared.sendBolt12Payment(offer: bolt12Offer, amount: invoiceAmount)
-                    SentrySDK.metrics.count(key: "lightning.payment.success")
+                    SentrySDK.metrics.count(key: "lightning.bolt12payment.success")
                 } else {
                     Log.info("Perform BOLT11 payment.")
                     if isZeroAmountInvoice {
@@ -384,11 +384,19 @@ extension UIViewController {
                     sendVC?.nextSpinner.stopAnimating()
                     confirmSendVC?.confirmLabel.alpha = 1
                     confirmSendVC?.confirmSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: sendVC ?? self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    sendVC?.slideFromConfirmToSend()
+                    if swapVC != nil {
+                        SentrySDK.metrics.count(key: "swap.lightningtoonchain.failed")
+                    }
+                    if invoiceText.bolt12Offer() != nil {
+                        SentrySDK.metrics.count(key: "lightning.bolt12payment.failure")
+                    } else {
+                        SentrySDK.metrics.count(key: "lightning.payment.failure.1")
+                    }
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "SendLightning row 233", key: "context")
                     }
-                    SentrySDK.metrics.count(key: "lightning.payment.failure.1")
                 }
             }
         }

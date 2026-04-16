@@ -383,6 +383,7 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     let sendVC = (self.homeVC!.presentedViewController as? SendViewController ?? self.homeVC!.moveVC?.presentedViewController as? SendViewController)
                     let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
+                    let swapVC = self.swapVC
                     
                     // Update views.
                     sendVC?.nextLabel.alpha = 1
@@ -415,7 +416,7 @@ extension CoreViewController {
                     
                     // Show alert.
                     let reasonText = failureReason.isEmpty ? "" : " \(failureReason)."
-                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? swapVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
                 
             case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):

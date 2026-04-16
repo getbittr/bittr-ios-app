@@ -193,6 +193,7 @@ class SwapStatusViewController: UIViewController {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
                         self.confirmStatusSpinner.stopAnimating()
                         self.webSocketManager?.disconnect()
+                        SentrySDK.metrics.count(key: "swap.lightningtoonchain.success")
                         
                         // Add the onchain transaction to the UI
                         if let transactionId = claimResult.transactionId {
@@ -206,6 +207,7 @@ class SwapStatusViewController: UIViewController {
                 Log.info("Error claiming transaction: \(error)")
                 DispatchQueue.main.async {
                     self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
+                    SentrySDK.metrics.count(key: "swap.lightningtoonchain.failed")
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "SwapViewController row 839", key: "context")
                     }

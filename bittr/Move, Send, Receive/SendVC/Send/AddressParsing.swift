@@ -144,7 +144,11 @@ extension String {
             if bolt11Invoice.isOk(), bolt11Invoice.getValue() != nil {
                 return true
             } else {
-                return false
+                if let _ = self.bolt12Offer() {
+                    return true
+                } else {
+                    return false
+                }
             }
         } else {
             return false

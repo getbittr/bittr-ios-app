@@ -278,6 +278,7 @@ class SwapManager: NSObject {
                     buttons: [Language.getWord(withID: "okay")],
                     actions: nil
                 )
+                SentrySDK.metrics.count(key: "swap.onchaintolightning.failed")
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SwapManager row 308", key: "context")
                 }

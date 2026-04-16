@@ -274,6 +274,9 @@ extension UIViewController {
                     }
                 }
             }
+        } else {
+            thisVC = self
+            self.hideAlert()
         }
     }
 }
