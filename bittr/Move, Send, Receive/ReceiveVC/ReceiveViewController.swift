@@ -10,7 +10,7 @@ import CoreImage.CIFilterBuiltins
 import LDKNode
 import Sentry
 
-class ReceiveViewController: UIViewController, UITextFieldDelegate {
+class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMenuInteractionDelegate {
     
     // Generic
     @IBOutlet weak var yellowCard: UIView!
@@ -110,6 +110,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
     // Type
     var currentType:TransactionType = .onchain
     var currentCopyableText = ""
+    var currentQRCodeText = ""
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -129,6 +130,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
         self.bothDescriptionTextField.delegate = self
         self.bothAmountTextField.delegate = self
         self.bothAmountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        
+        // QR code
+        self.qrImageView.addInteraction(UIContextMenuInteraction(delegate: self))
         
         // Set default currency to satoshis.
         self.selectSatsCurrency()
@@ -266,6 +270,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toQRCode()
                 self.hideLowerAddress()
                 self.currentCopyableText = "bitcoin:\(onchainAddress)\(amountText)"
+                self.currentQRCodeText = "bitcoin:\(onchainAddress)\(amountText)".uppercased()
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
@@ -273,6 +278,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toQRCode()
                 self.showLowerAddress()
                 self.currentCopyableText = lightningInvoice
+                self.currentQRCodeText = "lightning:\(lightningInvoice)".uppercased()
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
                 self.addressLabel.text = ""
@@ -280,6 +286,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 qrCode = bitcoinQR.toQRCode()
                 self.showLowerAddress()
                 self.currentCopyableText = bitcoinQR
+                self.currentQRCodeText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
                 self.addressLabel.text = lnurl
@@ -287,6 +294,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
                 qrCode = lnurl.toQRCode()
                 self.hideLowerAddress()
                 self.currentCopyableText = lnurl
+                self.currentQRCodeText = lnurl
             }
             
             self.qrImageView.image = qrCode?.image
@@ -711,6 +719,24 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate {
             self.view.layoutIfNeeded()
         } completion: { _ in
             self.checkContentViewHeight()
+        }
+    }
+    
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
+                
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+            
+            let copyAction = UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { _ in
+                self.copyTapped(self.copyButton)
+            }
+            
+            let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { _ in
+                let items: [Any] = [self.currentCopyableText, self.currentQRCodeText.toBigQRCode() ?? (self.qrImageView.image as Any)].compactMap { $0 }
+                let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+                self.present(vc, animated: true)
+            }
+            
+            return UIMenu(title: "", children: [copyAction, shareAction])
         }
     }
 }

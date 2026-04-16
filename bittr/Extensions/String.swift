@@ -150,6 +150,47 @@ extension String {
         return (image: UIImage(cgImage: cgimg), width: moduleWidth)
     }
     
+    func toBigQRCode() -> UIImage? {
+            
+        let data = self.data(using: .utf8)
+        
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+        
+        guard let outputImage = filter.outputImage else { return nil }
+        
+        let extent = outputImage.extent.integral
+        let scale = min(1080 / extent.width, 1080 / extent.height)
+        
+        let width = extent.width * scale
+        let height = extent.height * scale
+        
+        let cs = CGColorSpaceCreateDeviceGray()
+        
+        guard let bitmap = CGContext(
+            data: nil,
+            width: Int(width),
+            height: Int(height),
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: cs,
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else { return nil }
+        
+        let context = CIContext()
+        
+        guard let cgImage = context.createCGImage(outputImage, from: extent) else { return nil }
+        
+        bitmap.interpolationQuality = .none
+        bitmap.scaleBy(x: scale, y: scale)
+        bitmap.draw(cgImage, in: extent)
+        
+        guard let scaledImage = bitmap.makeImage() else { return nil }
+        
+        return UIImage(cgImage: scaledImage)
+    }
+    
     func bolt12Offer() -> LDKNode.Offer? {
         if self.lowercased().hasPrefix("lno") {
             do {
