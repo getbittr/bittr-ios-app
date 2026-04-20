@@ -11,6 +11,7 @@
 		050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB02A1BBB9600563F29 /* SignupViewController.swift */; };
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
+		051015442F96142100D3F631 /* SwapDirection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015432F96141C00D3F631 /* SwapDirection.swift */; };
 		05117AB52E979E3D00A5E4E6 /* BDKErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AB42E979E3300A5E4E6 /* BDKErrors.swift */; };
 		05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */; };
 		05117AD82EA7328500A5E4E6 /* Component.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD72EA7325B00A5E4E6 /* Component.swift */; };
@@ -210,6 +211,7 @@
 		050B4BB02A1BBB9600563F29 /* SignupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupViewController.swift; sourceTree = "<group>"; };
 		050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup1ViewController.swift; sourceTree = "<group>"; };
 		050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup2ViewController.swift; sourceTree = "<group>"; };
+		051015432F96141C00D3F631 /* SwapDirection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapDirection.swift; sourceTree = "<group>"; };
 		05117AB42E979E3300A5E4E6 /* BDKErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKErrors.swift; sourceTree = "<group>"; };
 		05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcademyViewController.swift; sourceTree = "<group>"; };
 		05117AD72EA7325B00A5E4E6 /* Component.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Component.swift; sourceTree = "<group>"; };
@@ -579,6 +581,7 @@
 		057B42EB2F5ABABC00BA5C44 /* SwapVC */ = {
 			isa = PBXGroup;
 			children = (
+				051015432F96141C00D3F631 /* SwapDirection.swift */,
 				05AF89752D437073009D629C /* SwapViewController.swift */,
 				057F746D2E696DCE00E5CCB3 /* SwapVCLanguage.swift */,
 				057B42EC2F5ABC9B00BA5C44 /* SendableAmount.swift */,
@@ -1161,6 +1164,7 @@
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
 				051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer3ViewController.swift in Sources */,
+				051015442F96142100D3F631 /* SwapDirection.swift in Sources */,
 				058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */,
 				052171282CB416EA006C5663 /* HomeVCLanguage.swift in Sources */,
 				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,

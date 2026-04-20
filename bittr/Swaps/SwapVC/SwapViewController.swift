@@ -101,25 +101,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     @IBAction func fromButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let onchainToLightning = UIAlertAction(title: Language.getWord(withID: "onchaintolightning"), style: .default) { (action) in
-            
-            self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
-            self.swapDirection = .onchainToLightning
-            self.calculateSendableAmount()
-        }
-        let lightningToOnchain = UIAlertAction(title: Language.getWord(withID: "lightningtoonchain"), style: .default) { (action) in
-            
-            self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
-            self.swapDirection = .lightningToOnchain
-            self.calculateSendableAmount()
-        }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(onchainToLightning)
-        actionSheet.addAction(lightningToOnchain)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
+        self.switchDirection()
     }
     
     @IBAction func availableAmountTapped(_ sender: UIButton) {
@@ -240,12 +222,19 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         let convertedAmount = "\(Int((self.thisSwap!.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
         
-        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)").replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
+        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)".addSpaces()).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
+        let doYouWishToProceed = Language.getWord(withID: "wishtoproceed")
+        let cautionMessage:String
+        if self.swapDirection == .onchainToLightning {
+            cautionMessage = Language.getWord(withID: "onchaintolightningexplanation")
+        } else {
+            cautionMessage = ""
+        }
         
         self.showAlert(
             presentingController: self,
             title: Language.getWord(withID: "swapfunds2"),
-            message: message,
+            message: message + cautionMessage + " " + doYouWishToProceed,
             buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "proceed")],
             actions: [#selector(self.cancelSwapFromFeesAlert), #selector(self.proceedWithSwap)]
         )
