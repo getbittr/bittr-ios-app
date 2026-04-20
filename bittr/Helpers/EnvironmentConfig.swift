@@ -162,7 +162,7 @@ extension EnvironmentConfig {
     
     /// RGS Server URLs for different networks
     struct RGSServerURLs {
-        static let bitcoin = "https://rapidsync.lightningdevkit.org/snapshot/"
+        static let bitcoin = "https://rapidsync.lightningdevkit.org/snapshot/v2"
         static let testnet = "https://rapidsync.lightningdevkit.org/testnet/snapshot/"
     }
 }
