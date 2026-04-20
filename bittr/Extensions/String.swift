@@ -151,17 +151,18 @@ extension String {
     }
     
     func toBigQRCode() -> UIImage? {
-            
+        
+        let targetSize:CGFloat = 1080
         let data = self.data(using: .utf8)
         
         guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
         filter.setValue(data, forKey: "inputMessage")
-        filter.setValue("M", forKey: "inputCorrectionLevel")
+        filter.setValue("H", forKey: "inputCorrectionLevel")
         
         guard let outputImage = filter.outputImage else { return nil }
         
         let extent = outputImage.extent.integral
-        let scale = min(1080 / extent.width, 1080 / extent.height)
+        let scale = min(targetSize / extent.width, targetSize / extent.height)
         
         let width = extent.width * scale
         let height = extent.height * scale
@@ -188,7 +189,39 @@ extension String {
         
         guard let scaledImage = bitmap.makeImage() else { return nil }
         
-        return UIImage(cgImage: scaledImage)
+        let qrImage = UIImage(cgImage: scaledImage)
+        
+        guard let logo = UIImage(named: "logoorange32") else { return qrImage }
+        
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: targetSize, height: targetSize))
+        
+        let finalImage = renderer.image { _ in
+            
+            qrImage.draw(in: CGRect(x: 0, y: 0, width: targetSize, height: targetSize))
+            
+            let moduleSize = targetSize / extent.width
+            let minimumTargetWidth = targetSize * 0.13
+            let logoModuleCount = Int(ceil(minimumTargetWidth / moduleSize))
+            let boxSize = CGFloat(logoModuleCount) * moduleSize
+            
+            let padding:CGFloat = 30
+            let logoSize:CGFloat = boxSize - (2*padding)
+            
+            let boxX = (targetSize - boxSize) / 2
+            let boxY = (targetSize - boxSize) / 2
+            
+            let boxRect = CGRect(x: boxX, y: boxY, width: boxSize, height: boxSize)
+            
+            let boxPath = UIBezierPath(roundedRect: boxRect, cornerRadius: 0)
+            UIColor.white.setFill()
+            boxPath.fill()
+            
+            let logoRect = CGRect(x: boxX + padding, y: boxY + padding, width: logoSize, height: logoSize)
+            
+            logo.draw(in: logoRect)
+        }
+        
+        return finalImage
     }
     
     func bolt12Offer() -> LDKNode.Offer? {

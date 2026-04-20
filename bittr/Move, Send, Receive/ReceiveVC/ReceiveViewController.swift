@@ -19,9 +19,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBOutlet weak var qrWhiteView: UIView!
     @IBOutlet weak var qrImageView: UIImageView!
     @IBOutlet weak var qrSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var qrLogo: UIView!
-    @IBOutlet weak var qrLogoWidth: NSLayoutConstraint!
-    @IBOutlet weak var qrLogoHeight: NSLayoutConstraint!
     
     // Address view
     @IBOutlet weak var addressView: UIView!
@@ -110,7 +107,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     // Type
     var currentType:TransactionType = .onchain
     var currentCopyableText = ""
-    var currentQRCodeText = ""
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -261,59 +257,40 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             }
             
             // Set labels.
-            let qrCode:(image: UIImage, width: Int)?
+            let qrCode:UIImage
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
                 self.addressLabel.text = onchainAddress + amountText
                 self.lowerAddressLabel.text = ""
-                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toQRCode()
+                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.hideLowerAddress()
                 self.currentCopyableText = "bitcoin:\(onchainAddress)\(amountText)"
-                self.currentQRCodeText = "bitcoin:\(onchainAddress)\(amountText)".uppercased()
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
                 self.lowerAddressLabel.text = lightningInvoice
-                qrCode = "lightning:\(lightningInvoice)".uppercased().toQRCode()
+                qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
                 self.showLowerAddress()
                 self.currentCopyableText = lightningInvoice
-                self.currentQRCodeText = "lightning:\(lightningInvoice)".uppercased()
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
                 self.addressLabel.text = ""
                 self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
-                qrCode = bitcoinQR.toQRCode()
+                qrCode = bitcoinQR.toBigQRCode()!
                 self.showLowerAddress()
                 self.currentCopyableText = bitcoinQR
-                self.currentQRCodeText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
                 self.addressLabel.text = lnurl
                 self.lowerAddressLabel.text = ""
-                qrCode = lnurl.toQRCode()
+                qrCode = lnurl.toBigQRCode()!
                 self.hideLowerAddress()
                 self.currentCopyableText = lnurl
-                self.currentQRCodeText = lnurl
             }
             
-            self.qrImageView.image = qrCode?.image
-            self.qrImageView.layer.magnificationFilter = .nearest
+            self.qrImageView.image = qrCode
             
-            if let qrModules = qrCode?.width {
-                
-                let qrWidth = self.qrImageView.bounds.width
-                let moduleSize = qrWidth / CGFloat(qrModules)
-                let minimumTargetWidth = qrWidth * 0.15
-                let logoModuleCount = Int(ceil(minimumTargetWidth / moduleSize))
-                let logoWidth = CGFloat(logoModuleCount) * moduleSize
-                
-                self.qrLogoWidth.constant = logoWidth
-                self.qrLogoHeight.constant = logoWidth
-                self.view.layoutIfNeeded()
-            }
-            
-            self.qrLogo.alpha = 1
             self.qrImageView.alpha = 1
             self.addressLabel.alpha = 1
             self.lowerAddressLabel.alpha = 1
@@ -487,7 +464,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         if type != self.currentType {
             self.hideAmountStack()
         }
-        self.qrLogo.alpha = 0
         self.qrImageView.alpha = 0
         self.addressLabel.alpha = 0
         self.addressTitle.alpha = 0
@@ -731,7 +707,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             }
             
             let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { _ in
-                let items: [Any] = [self.currentCopyableText, self.currentQRCodeText.toBigQRCode() ?? (self.qrImageView.image as Any)].compactMap { $0 }
+                let items: [Any] = [self.currentCopyableText, (self.qrImageView.image as Any)].compactMap { $0 }
                 let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
                 self.present(vc, animated: true)
             }
