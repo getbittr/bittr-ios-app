@@ -46,6 +46,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var headerDetailsImage: UIImageView!
     @IBOutlet weak var headerCurrencyImage: UIImageView!
     @IBOutlet weak var currencyButton: UIButton!
+    @IBOutlet weak var headerMapImage: UIImageView!
+    @IBOutlet weak var mapButton: UIButton!
     
     // Header: Lower buttons
     @IBOutlet weak var sendButtonView: UIView!
@@ -355,6 +357,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @objc func openValueVC() {
         self.performSegue(withIdentifier: "HomeToValue", sender: self)
+    }
+    
+    @IBAction func mapTapped(_ sender: UIButton) {
+        self.performSegue(withIdentifier: "HomeToMap", sender: self)
     }
     
 }

@@ -12,6 +12,9 @@
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
 		050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */; };
 		051015442F96142100D3F631 /* SwapDirection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015432F96141C00D3F631 /* SwapDirection.swift */; };
+		051015522F973F9E00D3F631 /* MapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015512F973F9E00D3F631 /* MapViewController.swift */; };
+		051015542F97449600D3F631 /* MapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015532F97449100D3F631 /* MapVCLanguage.swift */; };
+		051015562F97676900D3F631 /* BitcoinPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015552F97676500D3F631 /* BitcoinPlace.swift */; };
 		05117AB52E979E3D00A5E4E6 /* BDKErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AB42E979E3300A5E4E6 /* BDKErrors.swift */; };
 		05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */; };
 		05117AD82EA7328500A5E4E6 /* Component.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD72EA7325B00A5E4E6 /* Component.swift */; };
@@ -212,6 +215,9 @@
 		050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup1ViewController.swift; sourceTree = "<group>"; };
 		050B4BB42A1BC96300563F29 /* Signup2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup2ViewController.swift; sourceTree = "<group>"; };
 		051015432F96141C00D3F631 /* SwapDirection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapDirection.swift; sourceTree = "<group>"; };
+		051015512F973F9E00D3F631 /* MapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewController.swift; sourceTree = "<group>"; };
+		051015532F97449100D3F631 /* MapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapVCLanguage.swift; sourceTree = "<group>"; };
+		051015552F97676500D3F631 /* BitcoinPlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinPlace.swift; sourceTree = "<group>"; };
 		05117AB42E979E3300A5E4E6 /* BDKErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKErrors.swift; sourceTree = "<group>"; };
 		05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcademyViewController.swift; sourceTree = "<group>"; };
 		05117AD72EA7325B00A5E4E6 /* Component.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Component.swift; sourceTree = "<group>"; };
@@ -431,6 +437,16 @@
 				3791605C2E1D99D300024560 /* MnemonicTextField.swift */,
 			);
 			path = Signup;
+			sourceTree = "<group>";
+		};
+		051015502F973F8D00D3F631 /* Map */ = {
+			isa = PBXGroup;
+			children = (
+				051015552F97676500D3F631 /* BitcoinPlace.swift */,
+				051015512F973F9E00D3F631 /* MapViewController.swift */,
+				051015532F97449100D3F631 /* MapVCLanguage.swift */,
+			);
+			path = Map;
 			sourceTree = "<group>";
 		};
 		05117AD42EA381A400A5E4E6 /* Academy */ = {
@@ -783,6 +799,7 @@
 				057B42E72F5A9FD400BA5C44 /* Notifications */,
 				052E98C02F1638F2000035A8 /* Extensions */,
 				05C3C0B429CCBFDD00C1E695 /* Helpers */,
+				051015502F973F8D00D3F631 /* Map */,
 				05D5D0E62A66825000A1E771 /* BitcoinManager.swift */,
 				05546D282F35B86700512129 /* BDKManager.swift */,
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
@@ -1136,6 +1153,7 @@
 				3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */,
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
+				051015562F97676900D3F631 /* BitcoinPlace.swift in Sources */,
 				0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
 				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
@@ -1177,9 +1195,11 @@
 				055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */,
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
+				051015522F973F9E00D3F631 /* MapViewController.swift in Sources */,
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
 				053022002E7803BC00B23226 /* SendVCTextFields.swift in Sources */,
 				05117ADA2EA732FC00A5E4E6 /* Page.swift in Sources */,
+				051015542F97449600D3F631 /* MapVCLanguage.swift in Sources */,
 				05E305392F5189D7003DE7CF /* UIView.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */,

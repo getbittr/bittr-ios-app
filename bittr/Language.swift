@@ -531,7 +531,9 @@ class Language: NSObject {
             "receiveenteramount": "Enter amount",
             "receiveenterdescription": "Add a note",
             "selecttransactiontype": "Share a lightning URL or invoice, a bitcoin QR or address.",
-            "noaddressavailable": "No new address is available at this time.\n\nFor proper performance, we reveal a maximum of ten unused addresses.\n\nMake sure to use an address before revealing a new one."
+            "noaddressavailable": "No new address is available at this time.\n\nFor proper performance, we reveal a maximum of ten unused addresses.\n\nMake sure to use an address before revealing a new one.",
+            "paywithbitcoin": "Pay with bitcoin",
+            "locationunavailable": "Your location details are unavailable to us.\n\nOn your device, go to <b>Settings > Apps > Bittr</b>, to check your location permissions."
             
         ]
         

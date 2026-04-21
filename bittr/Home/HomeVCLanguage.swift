@@ -55,12 +55,14 @@ extension HomeViewController {
             self.headerPiggyImage.image = UIImage(named: "iconpiggyyellow")
             self.headerDetailsImage.image = UIImage(named: "icondetailsyellow")
             self.headerCurrencyImage.image = UIImage(named: "iconexchangeyellow")
+            self.headerMapImage.image = UIImage(named: "iconmapyellow")
             self.conversionLabel.textColor = UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1)
         } else {
             self.bitcoinSign.image = UIImage(named: "gilroybitcoin")
             self.headerPiggyImage.image = UIImage(named: "iconpiggywhite")
             self.headerDetailsImage.image = UIImage(named: "icondetailswhite")
             self.headerCurrencyImage.image = UIImage(named: "iconexchange")
+            self.headerMapImage.image = UIImage(named: "iconmapwhite")
             self.conversionLabel.textColor = UIColor(red: 201/255, green: 154/255, blue: 0/255, alpha: 1)
         }
         
@@ -98,6 +100,7 @@ extension HomeViewController {
         self.balanceCardButton.setTitle("", for: .normal)
         self.headerViewButton.setTitle("", for: .normal)
         self.currencyButton.setTitle("", for: .normal)
+        self.mapButton.setTitle("", for: .normal)
         
         // Balance card shadow
         self.balanceCard.setShadow()

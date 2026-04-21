@@ -210,6 +210,7 @@ extension CoreViewController {
                     Log.info("Payout successful.")
                     print("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
+                        CacheManager.didHandleNotification(notificationId)
                         self.hidePendingView()
                     }
                 } catch {
