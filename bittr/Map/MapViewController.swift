@@ -9,7 +9,7 @@ import UIKit
 import MapKit
 import CoreLocation
 
-class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
+class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UITableViewDelegate, UITableViewDataSource {
     
     // UI elements
     @IBOutlet weak var mapBackground: UIView!
@@ -18,12 +18,15 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     @IBOutlet weak var userLocationView: UIView!
     @IBOutlet weak var iconUserLocation: UIImageView!
     @IBOutlet weak var userLocationButton: UIButton!
+    @IBOutlet weak var placesTableView: UITableView!
+    @IBOutlet weak var noPlacesLabel: UILabel!
     
     // Variables
     let locationManager = CLLocationManager()
     var hasCenteredOnUser = false
     var shouldCenterOnUserAfterAuthorization = false
     var reloadTimer: Timer?
+    var currentPlaces = [BitcoinPlace]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,7 +43,12 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         
         // Colors
         self.changeColors()
+        self.setWords()
         self.addHeader(iconLight: "iconmapwhite", iconDark: "iconmapyellow", title: Language.getWord(withID: "paywithbitcoin"))
+        
+        // Table view
+        self.placesTableView.delegate = self
+        self.placesTableView.dataSource = self
         
         // Map
         self.mapView.delegate = self
@@ -54,6 +62,13 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     
     override func viewDidAppear(_ animated: Bool) {
         self.checkLocationAuthorization()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let bottomSafeArea = self.view.safeAreaInsets.bottom
+        self.placesTableView.contentInset = UIEdgeInsets(top: 30, left: 0, bottom: bottomSafeArea, right: 0
+        )
     }
     
     func checkLocationAuthorization() {
@@ -92,7 +107,8 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
             self.mapView.setRegion(region, animated: true)
         }
         
-        self.downloadData(lat: location.coordinate.latitude, long: location.coordinate.longitude, radius: region.span.latitudeDelta * 111 / 2)
+        let center = self.mapView.centerCoordinate
+        self.downloadData(lat: center.latitude, long: center.longitude, radius: mapView.region.span.latitudeDelta*111)
     }
     
     func centerMap(on coordinate: CLLocationCoordinate2D) {
@@ -108,7 +124,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.reloadTimer?.invalidate()
         self.reloadTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { _ in
             let center = mapView.centerCoordinate
-            self.downloadData(lat: center.latitude, long: center.longitude, radius: mapView.region.span.latitudeDelta*111/2)
+            self.downloadData(lat: center.latitude, long: center.longitude, radius: mapView.region.span.latitudeDelta*111)
         }
     }
     
@@ -135,20 +151,17 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.mapView.removeAnnotations(self.mapView.annotations.filter { !($0 is MKUserLocation) })
         
         for place in places {
+            guard place.name != nil else {break}
+            
             let annotation = MKPointAnnotation()
             annotation.coordinate = place.coordinate
-            annotation.title = place.name ?? "Bitcoin place"
-            
-            if let address = place.address, !address.isEmpty {
-                annotation.subtitle = address
-            } else if let description = place.description, !description.isEmpty {
-                annotation.subtitle = description
-            } else if let phone = place.phone, !phone.isEmpty {
-                annotation.subtitle = phone
-            }
+            annotation.title = place.name!
             
             self.mapView.addAnnotation(annotation)
         }
+        
+        self.currentPlaces = places.sortByProximity(toLocation: self.mapView.centerCoordinate)
+        self.placesTableView.reloadData()
     }
     
     func showDefaultSwitzerlandRegion() {
@@ -193,4 +206,105 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         }
     }
     
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if self.currentPlaces.count == 0 {
+            self.noPlacesLabel.alpha = 1
+        } else {
+            self.noPlacesLabel.alpha = 0
+        }
+        return self.currentPlaces.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "PlaceCell", for: indexPath) as? PlaceTableViewCell else {
+            return UITableViewCell()
+        }
+        
+        cell.layer.zPosition = CGFloat(indexPath.row)
+        
+        let thisPlace = self.currentPlaces[indexPath.row]
+        cell.cellIcon.image = UIImage(systemName: thisPlace.icon.iconName())
+        cell.placeName.text = thisPlace.name ?? "Bitcoin place"
+        
+        if thisPlace.address != nil {
+            cell.addressStackHeight.constant = 21
+            cell.addressStack.alpha = 1
+            cell.placeAddress.text = thisPlace.address!
+        } else {
+            cell.addressStackHeight.constant = 0
+            cell.addressStack.alpha = 0
+            cell.placeAddress.text = ""
+        }
+        
+        return cell
+    }
+    
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        if annotation is MKUserLocation {
+            return nil
+        }
+        
+        let identifier = "BTCPlaceMarker"
+        
+        var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+        
+        if view == nil {
+            view = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            view?.canShowCallout = true
+        } else {
+            view?.annotation = annotation
+        }
+        
+        view?.clusteringIdentifier = nil
+        view?.displayPriority = .required
+        
+        return view
+    }
+    
+}
+
+extension String? {
+    
+    func iconName() -> String {
+        
+        switch self {
+        case "local_cafe":
+            return "cup.and.saucer.fill"
+        case "restaurant", "local_dining":
+            return "fork.knife"
+        case "hotel":
+            return "bed.double.fill"
+        case "local_atm":
+            return "bitcoinsign.circle.fill"
+        case "shopping_cart", "store", "supermarket":
+            return "cart.fill"
+        case "business":
+            return "building.2.fill"
+        case "bar", "local_bar":
+            return "wineglass.fill"
+        default:
+            return "mappin.circle.fill"
+        }
+    }
+}
+
+extension [BitcoinPlace] {
+    
+    func sortByProximity(toLocation:CLLocationCoordinate2D) -> [BitcoinPlace] {
+        
+        let centerLocation = CLLocation(
+            latitude: toLocation.latitude,
+            longitude: toLocation.longitude
+        )
+        
+        return self.sorted { a, b in
+            let locationA = CLLocation(latitude: a.lat, longitude: a.lon)
+            let locationB = CLLocation(latitude: b.lat, longitude: b.lon)
+
+            let distanceA = locationA.distance(from: centerLocation)
+            let distanceB = locationB.distance(from: centerLocation)
+
+            return distanceA < distanceB
+        }
+    }
 }

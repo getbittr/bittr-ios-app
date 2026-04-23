@@ -15,6 +15,7 @@
 		051015522F973F9E00D3F631 /* MapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015512F973F9E00D3F631 /* MapViewController.swift */; };
 		051015542F97449600D3F631 /* MapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015532F97449100D3F631 /* MapVCLanguage.swift */; };
 		051015562F97676900D3F631 /* BitcoinPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015552F97676500D3F631 /* BitcoinPlace.swift */; };
+		051015582F99ED6E00D3F631 /* PlaceTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015572F99ED6E00D3F631 /* PlaceTableViewCell.swift */; };
 		05117AB52E979E3D00A5E4E6 /* BDKErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AB42E979E3300A5E4E6 /* BDKErrors.swift */; };
 		05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */; };
 		05117AD82EA7328500A5E4E6 /* Component.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD72EA7325B00A5E4E6 /* Component.swift */; };
@@ -218,6 +219,7 @@
 		051015512F973F9E00D3F631 /* MapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewController.swift; sourceTree = "<group>"; };
 		051015532F97449100D3F631 /* MapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapVCLanguage.swift; sourceTree = "<group>"; };
 		051015552F97676500D3F631 /* BitcoinPlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinPlace.swift; sourceTree = "<group>"; };
+		051015572F99ED6E00D3F631 /* PlaceTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceTableViewCell.swift; sourceTree = "<group>"; };
 		05117AB42E979E3300A5E4E6 /* BDKErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKErrors.swift; sourceTree = "<group>"; };
 		05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcademyViewController.swift; sourceTree = "<group>"; };
 		05117AD72EA7325B00A5E4E6 /* Component.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Component.swift; sourceTree = "<group>"; };
@@ -445,6 +447,7 @@
 				051015552F97676500D3F631 /* BitcoinPlace.swift */,
 				051015512F973F9E00D3F631 /* MapViewController.swift */,
 				051015532F97449100D3F631 /* MapVCLanguage.swift */,
+				051015572F99ED6E00D3F631 /* PlaceTableViewCell.swift */,
 			);
 			path = Map;
 			sourceTree = "<group>";
@@ -1181,6 +1184,7 @@
 				056911112BC3E16800BD047B /* SyncingStatus.swift in Sources */,
 				050B4BB52A1BC96300563F29 /* Signup2ViewController.swift in Sources */,
 				051D77912A9DF8E3002107C0 /* Restore2ViewController.swift in Sources */,
+				051015582F99ED6E00D3F631 /* PlaceTableViewCell.swift in Sources */,
 				05C5A0EF2A334E30004CC671 /* Transfer3ViewController.swift in Sources */,
 				051015442F96142100D3F631 /* SwapDirection.swift in Sources */,
 				058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */,
