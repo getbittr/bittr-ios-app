@@ -25,9 +25,11 @@ extension MapViewController {
         
         UIView.animate(withDuration: 0.6, delay: 0.2, usingSpringWithDamping: 0.7, initialSpringVelocity: 0, options: .curveEaseInOut) {
             
-            let contentHeight:CGFloat = 300
+            let contentHeight:CGFloat = (newChild as? OnePlaceViewController)?.contentStack.bounds.height ?? 0
+            
+            self.onePlaceHeight.constant = contentHeight + self.view.safeAreaInsets.bottom + 20
             self.onePlaceStack.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            self.onePlaceContainerTop.constant = -contentHeight
+            self.onePlaceContainerTop.constant = -contentHeight - self.view.safeAreaInsets.bottom
             self.view.layoutIfNeeded()
         }
     }

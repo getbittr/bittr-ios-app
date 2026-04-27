@@ -26,6 +26,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     @IBOutlet weak var onePlaceBackgroundButton: UIButton!
     @IBOutlet weak var onePlaceContainer: UIView!
     @IBOutlet weak var onePlaceContainerTop: NSLayoutConstraint!
+    @IBOutlet weak var onePlaceHeight: NSLayoutConstraint!
     
     // Variables
     let locationManager = CLLocationManager()
@@ -82,29 +83,4 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.reloadTimer?.invalidate()
     }
     
-}
-
-extension String? {
-    
-    func iconName() -> String {
-        
-        switch self {
-        case "local_cafe":
-            return "cup.and.saucer.fill"
-        case "restaurant", "local_dining":
-            return "fork.knife"
-        case "hotel":
-            return "bed.double.fill"
-        case "local_atm":
-            return "bitcoinsign.circle.fill"
-        case "shopping_cart", "store", "supermarket":
-            return "cart.fill"
-        case "business":
-            return "building.2.fill"
-        case "bar", "local_bar":
-            return "wineglass.fill"
-        default:
-            return "mappin.circle.fill"
-        }
-    }
 }
