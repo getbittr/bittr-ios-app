@@ -149,3 +149,44 @@ final class BitcoinPlacesCache {
         }
     }
 }
+
+extension [BitcoinPlace] {
+    
+    func nearbyBTCPlaces(latitude: Double, longitude: Double, radiusKM: Double) -> [BitcoinPlace] {
+        
+        let center = CLLocation(latitude: latitude, longitude: longitude)
+        let radiusMeters = radiusKM * 1000
+        
+        return self.filter { place in
+            guard let coordinate = place.coordinate else { return false }
+            
+            let placeLocation = CLLocation(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+            
+            return center.distance(from: placeLocation) <= radiusMeters
+        }
+    }
+    
+    func sortByProximity(toLocation:CLLocationCoordinate2D) -> [BitcoinPlace] {
+        
+        let centerLocation = CLLocation(
+            latitude: toLocation.latitude,
+            longitude: toLocation.longitude
+        )
+        
+        return self.sorted { a, b in
+            guard let coordinateA = a.coordinate else { return false }
+            guard let coordinateB = b.coordinate else { return true }
+            
+            let locationA = CLLocation(latitude: coordinateA.latitude, longitude: coordinateA.longitude)
+            let locationB = CLLocation(latitude: coordinateB.latitude, longitude: coordinateB.longitude)
+            
+            let distanceA = locationA.distance(from: centerLocation)
+            let distanceB = locationB.distance(from: centerLocation)
+            
+            return distanceA < distanceB
+        }
+    }
+}

@@ -16,6 +16,10 @@
 		051015542F97449600D3F631 /* MapVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015532F97449100D3F631 /* MapVCLanguage.swift */; };
 		051015562F97676900D3F631 /* BitcoinPlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015552F97676500D3F631 /* BitcoinPlace.swift */; };
 		051015582F99ED6E00D3F631 /* PlaceTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015572F99ED6E00D3F631 /* PlaceTableViewCell.swift */; };
+		051015E32F9F378B00D3F631 /* OnePlaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015E22F9F378B00D3F631 /* OnePlaceViewController.swift */; };
+		051015E52F9F383200D3F631 /* MapVCLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015E42F9F383000D3F631 /* MapVCLocations.swift */; };
+		051015E92F9F393200D3F631 /* MapVCTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015E82F9F392F00D3F631 /* MapVCTable.swift */; };
+		051015EB2F9F3A0600D3F631 /* MapVCOnePlace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051015EA2F9F3A0300D3F631 /* MapVCOnePlace.swift */; };
 		05117AB52E979E3D00A5E4E6 /* BDKErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AB42E979E3300A5E4E6 /* BDKErrors.swift */; };
 		05117AD62EA381B900A5E4E6 /* AcademyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */; };
 		05117AD82EA7328500A5E4E6 /* Component.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AD72EA7325B00A5E4E6 /* Component.swift */; };
@@ -220,6 +224,10 @@
 		051015532F97449100D3F631 /* MapVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapVCLanguage.swift; sourceTree = "<group>"; };
 		051015552F97676500D3F631 /* BitcoinPlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinPlace.swift; sourceTree = "<group>"; };
 		051015572F99ED6E00D3F631 /* PlaceTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceTableViewCell.swift; sourceTree = "<group>"; };
+		051015E22F9F378B00D3F631 /* OnePlaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnePlaceViewController.swift; sourceTree = "<group>"; };
+		051015E42F9F383000D3F631 /* MapVCLocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapVCLocations.swift; sourceTree = "<group>"; };
+		051015E82F9F392F00D3F631 /* MapVCTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapVCTable.swift; sourceTree = "<group>"; };
+		051015EA2F9F3A0300D3F631 /* MapVCOnePlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapVCOnePlace.swift; sourceTree = "<group>"; };
 		05117AB42E979E3300A5E4E6 /* BDKErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BDKErrors.swift; sourceTree = "<group>"; };
 		05117AD52EA381AD00A5E4E6 /* AcademyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcademyViewController.swift; sourceTree = "<group>"; };
 		05117AD72EA7325B00A5E4E6 /* Component.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Component.swift; sourceTree = "<group>"; };
@@ -444,10 +452,14 @@
 		051015502F973F8D00D3F631 /* Map */ = {
 			isa = PBXGroup;
 			children = (
-				051015552F97676500D3F631 /* BitcoinPlace.swift */,
 				051015512F973F9E00D3F631 /* MapViewController.swift */,
+				051015E42F9F383000D3F631 /* MapVCLocations.swift */,
+				051015E82F9F392F00D3F631 /* MapVCTable.swift */,
+				051015EA2F9F3A0300D3F631 /* MapVCOnePlace.swift */,
 				051015532F97449100D3F631 /* MapVCLanguage.swift */,
+				051015552F97676500D3F631 /* BitcoinPlace.swift */,
 				051015572F99ED6E00D3F631 /* PlaceTableViewCell.swift */,
+				051015E22F9F378B00D3F631 /* OnePlaceViewController.swift */,
 			);
 			path = Map;
 			sourceTree = "<group>";
@@ -1151,10 +1163,12 @@
 				05C3C08529CCB55600C1E695 /* AppDelegate.swift in Sources */,
 				05F8DC5729EEBFA1008052B5 /* HistoryTableViewCell.swift in Sources */,
 				05E7434F2A357AB6007755A2 /* Transfer4ViewController.swift in Sources */,
+				051015E32F9F378B00D3F631 /* OnePlaceViewController.swift in Sources */,
 				057C46ED2F84BA400045C906 /* OnchainAddress.swift in Sources */,
 				053190E829FEE4EC0072CE76 /* BuyViewController.swift in Sources */,
 				3767E2AC2E157FCA0017BB67 /* BoltzSwiftSDK.swift in Sources */,
 				05F8DC5D29F2B46A008052B5 /* SettingsViewController.swift in Sources */,
+				051015E92F9F393200D3F631 /* MapVCTable.swift in Sources */,
 				053190E629FEE4DE0072CE76 /* ProfitViewController.swift in Sources */,
 				051015562F97676900D3F631 /* BitcoinPlace.swift in Sources */,
 				0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */,
@@ -1211,6 +1225,7 @@
 				05906EA02C43C4B20053F7DB /* ReceiveOnchain.swift in Sources */,
 				058B2FBD2EE7DE5E0010693D /* SignupSetArticle.swift in Sources */,
 				05EB5C9C2F4D814300FF2157 /* String.swift in Sources */,
+				051015E52F9F383200D3F631 /* MapVCLocations.swift in Sources */,
 				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
 				057B42E92F5AA20E00BA5C44 /* SwapStatusViewController.swift in Sources */,
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
@@ -1270,6 +1285,7 @@
 				058B2FE02EEA9ED30010693D /* BottomCurveView.swift in Sources */,
 				052E98D02F1DFB3E000035A8 /* DeviceTableViewCell.swift in Sources */,
 				05EB5CA02F4D834600FF2157 /* SendURI.swift in Sources */,
+				051015EB2F9F3A0600D3F631 /* MapVCOnePlace.swift in Sources */,
 				0579B2712A0530F80007891F /* SendViewController.swift in Sources */,
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,

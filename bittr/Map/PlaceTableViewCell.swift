@@ -17,6 +17,7 @@ class PlaceTableViewCell: UITableViewCell {
     @IBOutlet weak var addressStack: UIView!
     @IBOutlet weak var addressStackHeight: NSLayoutConstraint!
     @IBOutlet weak var placeAddress: UILabel!
+    @IBOutlet weak var cellButton: UIButton!
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -24,6 +25,7 @@ class PlaceTableViewCell: UITableViewCell {
         self.cellCard.layer.cornerRadius = 13
         self.cellCard.setShadow()
         self.imageContainer.layer.cornerRadius = 7
+        self.cellButton.setTitle("", for: .normal)
         
         self.changeColors()
     }
