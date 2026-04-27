@@ -534,7 +534,8 @@ class Language: NSObject {
             "noaddressavailable": "No new address is available at this time.\n\nFor proper performance, we reveal a maximum of ten unused addresses.\n\nMake sure to use an address before revealing a new one.",
             "paywithbitcoin": "Pay with bitcoin",
             "locationunavailable": "Your location details are unavailable to us.\n\nOn your device, go to <b>Settings > Apps > Bittr</b>, to check your location permissions.",
-            "noplaces": "There seem to be no businesses in this area that accept bitcoin payments."
+            "noplaces": "There seem to be no businesses in this area that accept bitcoin payments.",
+            "placeserror": "We could not download map data at this time. Please try again later."
             
         ]
         

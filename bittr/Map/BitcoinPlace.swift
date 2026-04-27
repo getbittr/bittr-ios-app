@@ -77,6 +77,10 @@ extension MapViewController {
                 self.mapSpinner.stopAnimating()
                 if self.currentPlaces.count == 0 {
                     self.noPlacesLabel.alpha = 1
+                    
+                    if BitcoinPlacesCache.shared.loadPlaces().count == 0 {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "placeserror"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
                 }
             }
         }
