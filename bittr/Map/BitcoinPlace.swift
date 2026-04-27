@@ -32,7 +32,6 @@ struct BitcoinPlace: Codable {
         guard let lat, let lon else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
-    
 }
 
 func getBitcoinMapURL(updatedSince: String?, includeDeleted: Bool) -> URL? {
@@ -56,28 +55,6 @@ func getBitcoinMapURL(updatedSince: String?, includeDeleted: Bool) -> URL? {
 }
 
 extension MapViewController {
-    
-    func nearbyBTCPlaces(
-        from allPlaces: [BitcoinPlace],
-        latitude: Double,
-        longitude: Double,
-        radiusKM: Double
-    ) -> [BitcoinPlace] {
-        
-        let center = CLLocation(latitude: latitude, longitude: longitude)
-        let radiusMeters = radiusKM * 1000
-        
-        return allPlaces.filter { place in
-            guard let coordinate = place.coordinate else { return false }
-            
-            let placeLocation = CLLocation(
-                latitude: coordinate.latitude,
-                longitude: coordinate.longitude
-            )
-            
-            return center.distance(from: placeLocation) <= radiusMeters
-        }
-    }
     
     func resyncBTCPlaces() async {
         do {

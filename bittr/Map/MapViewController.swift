@@ -28,6 +28,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     var reloadTimer: Timer?
     var currentPlaces = [BitcoinPlace]()
     var allCachedPlaces = [BitcoinPlace]()
+    var visiblePlacesTask: Task<Void, Never>?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -60,8 +61,13 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.showDefaultSwitzerlandRegion()
         
         // Download
-        self.allCachedPlaces = BitcoinPlacesCache.shared.loadPlaces()
-        self.updateVisiblePlacesFromCache()
+        Task.detached(priority: .utility) { [weak self] in
+            let cachedPlaces = BitcoinPlacesCache.shared.loadPlaces()
+            await MainActor.run {
+                self?.allCachedPlaces = cachedPlaces
+                self?.updateVisiblePlacesFromCache()
+            }
+        }
         
         Task {
             await self.resyncBTCPlaces()
@@ -137,15 +143,25 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     func updateVisiblePlacesFromCache() {
         let center = self.mapView.centerCoordinate
         let radiusKM = self.mapView.region.span.latitudeDelta * 111
+        let allPlaces = self.allCachedPlaces
         
-        let nearbyPlaces = self.nearbyBTCPlaces(
-            from: self.allCachedPlaces,
-            latitude: center.latitude,
-            longitude: center.longitude,
-            radiusKM: radiusKM
-        )
+        self.visiblePlacesTask?.cancel()
         
-        self.showPlacesOnMap(nearbyPlaces)
+        self.visiblePlacesTask = Task.detached(priority: .userInitiated) { [weak self] in
+            let nearbyPlaces = allPlaces.nearbyBTCPlaces(
+                latitude: center.latitude,
+                longitude: center.longitude,
+                radiusKM: radiusKM
+            )
+            
+            let sortedPlaces = nearbyPlaces.sortByProximity(toLocation: center)
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                self?.showPlacesOnMap(nearbyPlaces)
+            }
+        }
     }
     
     func showPlacesOnMap(_ places: [BitcoinPlace]) {
@@ -262,6 +278,11 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         return view
     }
     
+    deinit {
+        self.visiblePlacesTask?.cancel()
+        self.reloadTimer?.invalidate()
+    }
+    
 }
 
 extension String? {
@@ -290,6 +311,23 @@ extension String? {
 }
 
 extension [BitcoinPlace] {
+    
+    func nearbyBTCPlaces(latitude: Double, longitude: Double, radiusKM: Double) -> [BitcoinPlace] {
+        
+        let center = CLLocation(latitude: latitude, longitude: longitude)
+        let radiusMeters = radiusKM * 1000
+        
+        return self.filter { place in
+            guard let coordinate = place.coordinate else { return false }
+            
+            let placeLocation = CLLocation(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+            
+            return center.distance(from: placeLocation) <= radiusMeters
+        }
+    }
     
     func sortByProximity(toLocation:CLLocationCoordinate2D) -> [BitcoinPlace] {
         
