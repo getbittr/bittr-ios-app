@@ -27,6 +27,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     var shouldCenterOnUserAfterAuthorization = false
     var reloadTimer: Timer?
     var currentPlaces = [BitcoinPlace]()
+    var allCachedPlaces = [BitcoinPlace]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -58,6 +59,13 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         self.showDefaultSwitzerlandRegion()
         
+        // Download
+        self.allCachedPlaces = BitcoinPlacesCache.shared.loadPlaces()
+        self.updateVisiblePlacesFromCache()
+        
+        Task {
+            await self.resyncBTCPlaces()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -107,8 +115,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
             self.mapView.setRegion(region, animated: true)
         }
         
-        let center = self.mapView.centerCoordinate
-        self.downloadData(lat: center.latitude, long: center.longitude, radius: mapView.region.span.latitudeDelta*111)
+        self.updateVisiblePlacesFromCache()
     }
     
     func centerMap(on coordinate: CLLocationCoordinate2D) {
@@ -123,39 +130,33 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
         self.reloadTimer?.invalidate()
         self.reloadTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { _ in
-            let center = mapView.centerCoordinate
-            self.downloadData(lat: center.latitude, long: center.longitude, radius: mapView.region.span.latitudeDelta*111)
+            self.updateVisiblePlacesFromCache()
         }
     }
     
-    func downloadData(lat:CGFloat, long:CGFloat, radius:CGFloat) {
-        print("Will download map places.")
-        Task {
-            do {
-                let places = try await self.fetchBTCPlaces(
-                    latitude: lat,
-                    longitude: long,
-                    radiusKM: radius
-                )
-
-                await MainActor.run {
-                    self.showPlacesOnMap(places)
-                }
-            } catch {
-                print("Failed to fetch BTC places: \(error)")
-            }
-        }
+    func updateVisiblePlacesFromCache() {
+        let center = self.mapView.centerCoordinate
+        let radiusKM = self.mapView.region.span.latitudeDelta * 111
+        
+        let nearbyPlaces = self.nearbyBTCPlaces(
+            from: self.allCachedPlaces,
+            latitude: center.latitude,
+            longitude: center.longitude,
+            radiusKM: radiusKM
+        )
+        
+        self.showPlacesOnMap(nearbyPlaces)
     }
     
     func showPlacesOnMap(_ places: [BitcoinPlace]) {
         self.mapView.removeAnnotations(self.mapView.annotations.filter { !($0 is MKUserLocation) })
         
         for place in places {
-            guard place.name != nil else {break}
+            guard let coordinate = place.coordinate, let name = place.name else { continue }
             
             let annotation = MKPointAnnotation()
-            annotation.coordinate = place.coordinate
-            annotation.title = place.name!
+            annotation.coordinate = coordinate
+            annotation.title = name
             
             self.mapView.addAnnotation(annotation)
         }
@@ -298,12 +299,15 @@ extension [BitcoinPlace] {
         )
         
         return self.sorted { a, b in
-            let locationA = CLLocation(latitude: a.lat, longitude: a.lon)
-            let locationB = CLLocation(latitude: b.lat, longitude: b.lon)
-
+            guard let coordinateA = a.coordinate else { return false }
+            guard let coordinateB = b.coordinate else { return true }
+            
+            let locationA = CLLocation(latitude: coordinateA.latitude, longitude: coordinateA.longitude)
+            let locationB = CLLocation(latitude: coordinateB.latitude, longitude: coordinateB.longitude)
+            
             let distanceA = locationA.distance(from: centerLocation)
             let distanceB = locationB.distance(from: centerLocation)
-
+            
             return distanceA < distanceB
         }
     }
