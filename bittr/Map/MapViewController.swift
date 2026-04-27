@@ -20,6 +20,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     @IBOutlet weak var userLocationButton: UIButton!
     @IBOutlet weak var placesTableView: UITableView!
     @IBOutlet weak var noPlacesLabel: UILabel!
+    @IBOutlet weak var mapSpinner: UIActivityIndicatorView!
     
     // One place
     @IBOutlet weak var onePlaceStack: UIView!

@@ -66,12 +66,19 @@ extension MapViewController {
             let allCachedPlaces = BitcoinPlacesCache.shared.loadPlaces()
             
             await MainActor.run {
+                self.mapSpinner.stopAnimating()
                 self.allCachedPlaces = allCachedPlaces
                 self.updateVisiblePlacesFromCache()
                 Log.info("BTC places cache now contains: \(allCachedPlaces.count)")
             }
         } catch {
             Log.info("Failed to sync BTC places: \(error)")
+            await MainActor.run {
+                self.mapSpinner.stopAnimating()
+                if self.currentPlaces.count == 0 {
+                    self.noPlacesLabel.alpha = 1
+                }
+            }
         }
     }
     

@@ -35,6 +35,7 @@ extension MapViewController {
         self.userLocationView.backgroundColor = Colors.getColor("whiteorblue3")
         self.noPlacesLabel.textColor = Colors.getColor("blackorwhite")
         self.onePlaceContainer.backgroundColor = Colors.getColor("yelloworblue1")
+        self.mapSpinner.color = Colors.getColor("blackorwhite")
         
         self.iconUserLocation.image = CacheManager.darkModeIsOn() ? UIImage(named: "iconmylocationwhite") : UIImage(named: "iconmylocationyellow")
         

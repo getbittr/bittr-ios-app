@@ -12,6 +12,8 @@ import CoreLocation
 extension MapViewController {
     
     func setPlaces() {
+        self.mapSpinner.startAnimating()
+        self.noPlacesLabel.alpha = 0
         
         Task.detached(priority: .utility) { [weak self] in
             let cachedPlaces = BitcoinPlacesCache.shared.loadPlaces()

@@ -17,7 +17,7 @@ extension MapViewController {
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if self.currentPlaces.count == 0 {
+        if self.currentPlaces.count == 0, !self.mapSpinner.isAnimating {
             self.noPlacesLabel.alpha = 1
         } else {
             self.noPlacesLabel.alpha = 0
