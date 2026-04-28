@@ -14,6 +14,7 @@ extension SwapViewController {
         self.moveLabel.text = Language.getWord(withID: "move")
         self.nextLabel.text = Language.getWord(withID: "next")
         self.fromLabel.text = Language.getWord(withID: "lightningtoonchain")
+        self.poweredByLabel.text = Language.getWord(withID: "poweredbyboltz")
     }
     
     @objc func changeColors() {
@@ -27,6 +28,8 @@ extension SwapViewController {
         self.amountTextField.backgroundColor = Colors.getColor("white0.7orblue3")
         self.fromView.backgroundColor = Colors.getColor("whiteorblue3")
         self.fromLabel.textColor = Colors.getColor("blackorwhite")
+        self.poweredByLabel.textColor = Colors.getColor("blackorwhite")
+        self.boltzLogo.image = UIImage(named: (CacheManager.darkModeIsOn() ? "boltzwhite" : "boltzblack"))
         
         self.amountTextField.attributedPlaceholder = NSAttributedString(
             string: Language.getWord(withID: "enteramountofsatoshis"),
@@ -43,6 +46,7 @@ extension SwapViewController {
         self.nextButton.setTitle("", for: .normal)
         self.availableButton.setTitle("", for: .normal)
         self.fromButton.setTitle("", for: .normal)
+        self.boltzButton.setTitle("", for: .normal)
         
         // Corner radii
         self.centerCard.layer.cornerRadius = 13

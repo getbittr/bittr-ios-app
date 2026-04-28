@@ -535,7 +535,11 @@ class Language: NSObject {
             "paywithbitcoin": "Pay with bitcoin",
             "locationunavailable": "Your location details are unavailable to us.\n\nOn your device, go to <b>Settings > Apps > Bittr</b>, to check your location permissions.",
             "noplaces": "There seem to be no businesses in this area that accept bitcoin payments.",
-            "placeserror": "We could not download map data at this time. Please try again later."
+            "placeserror": "We could not download map data at this time. Please try again later.",
+            "poweredbyboltz": "Powered by",
+            "boltzexplanation": "<b>Boltz.exchange</b> is a non-custodial bitcoin bridge. It enables you to swap funds between bitcoin layers, while staying in full control of your money.",
+            "boltzexplanation2": "Go to Boltz",
+            "boltzexplanation3": "Powered by Boltz"
             
         ]
         

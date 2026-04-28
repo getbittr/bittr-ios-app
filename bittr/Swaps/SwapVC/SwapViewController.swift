@@ -48,6 +48,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBOutlet weak var statusContainer: UIView!
     @IBOutlet weak var scrollViewTrailing: NSLayoutConstraint!
     
+    // Boltz
+    @IBOutlet weak var poweredByLabel: UILabel!
+    @IBOutlet weak var boltzLogo: UIImageView!
+    @IBOutlet weak var boltzButton: UIButton!
+    
     // VCs
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
@@ -284,6 +289,24 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     @IBAction func backgroundTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+    }
+    
+    @IBAction func boltzTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [Language.getWord(withID: "boltzexplanation2"), Language.getWord(withID: "close")], actions: [#selector(self.goToBoltz), nil])
+    }
+    
+    @objc func goToBoltz() {
+        self.hideAlert()
+        self.performSegue(withIdentifier: "SwapToWebsite", sender: self)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "SwapToWebsite" {
+            if let websiteVC = segue.destination as? WebsiteViewController {
+                websiteVC.tappedUrl = "https://boltz.exchange/"
+            }
+        }
     }
     
     func handleSwapNotification(_ notification: BittrNotification) {
