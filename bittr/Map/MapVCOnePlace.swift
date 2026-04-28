@@ -9,7 +9,23 @@ import UIKit
 
 extension MapViewController {
     
-    func showOnePlace(_ thisPlace:BitcoinPlace) {
+    func showOnePlace(index:Int) {
+        if let annotation = self.mapView.annotations.first(where: {
+            guard let btcAnnotation = $0 as? BitcoinPlaceAnnotation else { return false }
+            return btcAnnotation.index == index
+        }) {
+            self.isProgrammaticallyMovingMap = true
+            self.isProgrammaticallyCallingOutPin = true
+            self.mapView.setCenter(annotation.coordinate, animated: true)
+            self.mapView.selectAnnotation(annotation, animated: true)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self.isProgrammaticallyCallingOutPin = false
+                self.updateVisiblePlacesFromCache()
+            }
+        }
+        
+        let thisPlace = self.currentPlaces[index]
         
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
         let newChild = storyboard.instantiateViewController(withIdentifier: "OnePlace")
@@ -35,6 +51,9 @@ extension MapViewController {
     }
     
     func hideOnePlace() {
+        if let selectedAnnotation = self.mapView.selectedAnnotations.first {
+            self.mapView.deselectAnnotation(selectedAnnotation, animated: true)
+        }
         
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             

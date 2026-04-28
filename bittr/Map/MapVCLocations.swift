@@ -77,6 +77,11 @@ extension MapViewController {
     }
     
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+        if self.isProgrammaticallyMovingMap {
+            self.isProgrammaticallyMovingMap = false
+            return
+        }
+        
         self.reloadTimer?.invalidate()
         self.reloadTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { _ in
             self.updateVisiblePlacesFromCache()
@@ -97,8 +102,6 @@ extension MapViewController {
                 radiusKM: radiusKM
             )
             
-            let sortedPlaces = nearbyPlaces.sortByProximity(toLocation: center)
-            
             guard !Task.isCancelled else { return }
             
             await MainActor.run {
@@ -108,22 +111,40 @@ extension MapViewController {
     }
     
     func showPlacesOnMap(_ places: [BitcoinPlace]) {
-        self.mapView.removeAnnotations(self.mapView.annotations.filter { !($0 is MKUserLocation) })
-        
         self.currentPlaces = places.sortByProximity(toLocation: self.mapView.centerCoordinate)
+        
+        let existingAnnotations = self.mapView.annotations.compactMap {
+            $0 as? BitcoinPlaceAnnotation
+        }
+        
+        for annotation in existingAnnotations {
+            let stillExists = self.currentPlaces.contains { $0.id == annotation.placeID }
+            
+            if !stillExists {
+                self.mapView.removeAnnotation(annotation)
+            }
+        }
         
         for (index, place) in self.currentPlaces.enumerated() {
             guard let coordinate = place.coordinate, let name = place.name else { continue }
             
-            let annotation = BitcoinPlaceAnnotation()
-            annotation.coordinate = coordinate
-            annotation.title = name
-            annotation.index = index
-            
-            self.mapView.addAnnotation(annotation)
+            if let existingAnnotation = existingAnnotations.first(where: { $0.placeID == place.id }) {
+                
+                existingAnnotation.index = index
+            } else {
+                let annotation = BitcoinPlaceAnnotation()
+                annotation.coordinate = coordinate
+                annotation.title = name
+                annotation.index = index
+                annotation.placeID = place.id
+                
+                self.mapView.addAnnotation(annotation)
+            }
         }
         
         self.placesTableView.reloadData()
+        self.placesTableView.layoutIfNeeded()
+        DispatchQueue.main.async { self.placesTableView.setContentOffset(CGPoint(x: 0, y: -30), animated: true) }
     }
     
     func showDefaultSwitzerlandRegion() {
@@ -184,6 +205,9 @@ extension MapViewController {
             view?.annotation = annotation
         }
         
+        view?.markerTintColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
+        view?.glyphText = "₿"
+        view?.glyphTintColor = .black
         view?.clusteringIdentifier = nil
         view?.displayPriority = .required
         
@@ -191,13 +215,18 @@ extension MapViewController {
     }
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        if self.isProgrammaticallyCallingOutPin {
+            self.isProgrammaticallyCallingOutPin = false
+            return
+        }
         guard let annotation = view.annotation as? BitcoinPlaceAnnotation else { return }
         mapView.deselectAnnotation(annotation, animated: false)
         
-        self.showOnePlace(self.currentPlaces[annotation.index])
+        self.showOnePlace(index: annotation.index)
     }
 }
 
 class BitcoinPlaceAnnotation: MKPointAnnotation {
     var index: Int = 0
+    var placeID: Int = 0
 }

@@ -37,6 +37,8 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     var currentPlaces = [BitcoinPlace]()
     var allCachedPlaces = [BitcoinPlace]()
     var visiblePlacesTask: Task<Void, Never>?
+    var isProgrammaticallyMovingMap = false
+    var isProgrammaticallyCallingOutPin = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -76,7 +78,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     }
     
     @IBAction func placeCellTapped(_ sender: UIButton) {
-        self.showOnePlace(self.currentPlaces[sender.tag])
+        self.showOnePlace(index: sender.tag)
     }
     
     deinit {
