@@ -54,6 +54,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func processPendingNotifications() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             if let lastNotification = CacheManager.getLastNotification(), !lastNotification.hasBeenHandled {
+                Log.info("sceneDelegate did find unhandled cached notification. Will handle.")
                 lastNotification.handle()
             }
         }

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import MapKit
 
 class OnePlaceViewController: UIViewController {
     
@@ -34,6 +35,11 @@ class OnePlaceViewController: UIViewController {
     @IBOutlet weak var hoursStackHeight: NSLayoutConstraint!
     @IBOutlet weak var hoursView: UIView!
     @IBOutlet weak var hoursLabel: UILabel!
+    
+    // Go to Maps
+    @IBOutlet weak var goToMapsView: UIView!
+    @IBOutlet weak var goToMapsLabel: UILabel!
+    @IBOutlet weak var goToMapsButton: UIButton!
     
     // Variables
     var mapVC:MapViewController?
@@ -105,6 +111,7 @@ class OnePlaceViewController: UIViewController {
         self.addressLabel.textColor = Colors.getColor("blackorwhite")
         self.websiteLabel.textColor = Colors.getColor("blackorwhite")
         self.hoursLabel.textColor = Colors.getColor("blackorwhite")
+        self.goToMapsView.backgroundColor = Colors.getColor("white0.7orblue3")
     }
     
     func setStyling() {
@@ -112,11 +119,17 @@ class OnePlaceViewController: UIViewController {
         // Buttons
         self.closeButton.setTitle("", for: .normal)
         self.websiteButton.setTitle("", for: .normal)
+        self.goToMapsButton.setTitle("", for: .normal)
         
         // Corner radii
         self.addressView.layer.cornerRadius = 8
         self.websiteView.layer.cornerRadius = 8
         self.hoursView.layer.cornerRadius = 8
+        self.goToMapsView.layer.cornerRadius = 8
+        self.goToMapsView.setShadow()
+        
+        // Words
+        self.goToMapsLabel.text = Language.getWord(withID: "openinmaps")
     }
     
     @IBAction func websiteTapped(_ sender: UIButton) {
@@ -128,6 +141,30 @@ class OnePlaceViewController: UIViewController {
             if let websiteVC = segue.destination as? WebsiteViewController {
                 websiteVC.tappedUrl = self.thisPlace!.website!
             }
+        }
+    }
+    
+    @IBAction func goToMapsTapped(_ sender: UIButton) {
+        
+        if UIApplication.shared.canOpenURL(URL(string: "comgooglemaps://")!) {
+            self.showAlert(presentingController: self.mapVC ?? self, title: Language.getWord(withID: "openinmaps"), message: Language.getWord(withID: "openinmaps2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "openinmaps4"), Language.getWord(withID: "openinmaps3")], actions: [nil, #selector(self.openInAppleMaps), #selector(self.openInGoogleMaps)])
+        } else {
+            self.openInAppleMaps()
+        }
+    }
+    
+    @objc func openInAppleMaps() {
+        let coordinate = CLLocationCoordinate2D(latitude: self.thisPlace!.lat!, longitude: self.thisPlace!.lon!)
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = self.thisPlace!.name!
+        mapItem.openInMaps(launchOptions: nil)
+    }
+    
+    @objc func openInGoogleMaps() {
+        let urlString = "comgooglemaps://?q=\(self.thisPlace!.lat!),\(self.thisPlace!.lon!)"
+        if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
         }
     }
     

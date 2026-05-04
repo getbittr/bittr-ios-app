@@ -539,7 +539,11 @@ class Language: NSObject {
             "poweredbyboltz": "Powered by",
             "boltzexplanation": "<b>Boltz.exchange</b> is a non-custodial bitcoin bridge. It enables you to swap funds between bitcoin layers, while staying in full control of your money.",
             "boltzexplanation2": "Go to Boltz",
-            "boltzexplanation3": "Powered by Boltz"
+            "boltzexplanation3": "Powered by Boltz",
+            "openinmaps": "Open in Maps",
+            "openinmaps2": "Select which app you prefer to open.",
+            "openinmaps3": "Google Maps",
+            "openinmaps4": "Maps"
             
         ]
         

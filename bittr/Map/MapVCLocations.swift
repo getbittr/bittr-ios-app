@@ -208,8 +208,8 @@ extension MapViewController {
         view?.markerTintColor = UIColor(displayP3Red: 246/255, green: 199/255, blue: 68/255, alpha: 1)
         view?.glyphText = "₿"
         view?.glyphTintColor = .black
-        view?.clusteringIdentifier = nil
-        view?.displayPriority = .required
+        //view?.clusteringIdentifier = nil
+        //view?.displayPriority = .required
         
         return view
     }

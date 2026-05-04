@@ -293,7 +293,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     @IBAction func boltzTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [Language.getWord(withID: "boltzexplanation2"), Language.getWord(withID: "close")], actions: [#selector(self.goToBoltz), nil])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     @objc func goToBoltz() {

@@ -145,6 +145,8 @@ extension CacheManager {
     }
     
     static func didHandleNotification(_ id:String) {
+        print("Last notification ID: \(self.getLastNotification()?.id ?? "")")
+        print("Current notification ID: \(id)")
         if let lastNotification = self.getLastNotification(), lastNotification.id == id {
             lastNotification.hasBeenHandled = true
             self.cacheLastNotification(lastNotification)
