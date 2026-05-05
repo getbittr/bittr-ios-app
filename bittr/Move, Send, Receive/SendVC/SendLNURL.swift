@@ -139,6 +139,20 @@ extension UIViewController {
         }
         print("Decoded url: \(url)")
         
+        if let urlComponents = URLComponents(string: url), let queryItems = urlComponents.queryItems, let tag = queryItems.first(where: { $0.name == "tag" })?.value, tag == "login", let k1 = queryItems.first(where: { $0.name == "k1" })?.value, let k1Data = Data(hexString: k1), k1Data.count == 32, let callbackURL = URL(string: url) {
+            
+            let action = queryItems.first(where: { $0.name == "action" })?.value
+            
+            let request = LNURLAuthRequest(
+                callbackURL: callbackURL,
+                k1: k1Data,
+                action: action
+            )
+            
+            self.showLNURLAuthConfirmation(request)
+            return
+        }
+        
         Task {
             await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
                 
@@ -371,7 +385,7 @@ extension UIViewController {
         guard let sendVC = self as? SendViewController else { return }
         
         let domain = request.callbackURL.host ?? "Unknown website"
-        let actionText = request.action?.capitalized ?? "Authenticate"
+        let actionText = request.action.friendlyActionText()
         sendVC.pendingLnurlAuth = request
         
         sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText).replacingOccurrences(of: "<domain>", with: domain), buttons: [Language.getWord(withID: "cancel"), actionText], actions: [#selector(self.cancelLnurlAuth), #selector(self.performLnurlAuth)])
@@ -389,51 +403,106 @@ extension UIViewController {
         sendVC.pendingLnurlAuth = nil
         sendVC.startLNURLSpinner()
         
-        Task {
-            do {
-                guard request.callbackURL.scheme == "https" else { throw LNURLAuthError.insecureURL }
-                guard request.k1.count == 32 else { throw LNURLAuthError.invalidK1 }
-                guard let domain = request.callbackURL.host?.lowercased() else { throw LNURLAuthError.invalidCallbackURL }
-                
-                // Derive domain-specific auth private key
-                guard let walletAuthSeed = getLNURLAuthSeed() else { throw LNURLAuthError.signingFailed }
-                let authPrivateKey = try deriveLNURLAuthKey(forDomain: domain, walletAuthSeed: walletAuthSeed)
-                
-                let publicKeyHex = authPrivateKey.publicKey.dataRepresentation.hexString
-                let signature = try authPrivateKey.signature(for: request.k1)
-                let signatureDERHex = try signature.derRepresentation.hexString
-                
-                let callbackURL = try buildLNURLAuthCallbackURL(
-                    baseURL: request.callbackURL,
-                    k1Hex: request.k1.hexString,
-                    sigHex: signatureDERHex,
-                    keyHex: publicKeyHex
+        guard request.callbackURL.scheme == "https" else {
+            Log.info("Insecure URL.")
+            self.failedLnUrlAuth()
+            return
+        }
+        guard request.k1.count == 32 else {
+            Log.info("Invalid K1.")
+            self.failedLnUrlAuth()
+            return
+        }
+        guard let domain = request.callbackURL.host?.lowercased() else {
+            Log.info("Invalid callback URL.")
+            self.failedLnUrlAuth()
+            return
+        }
+        
+        // Derive domain-specific auth private key
+        guard let walletAuthSeed = getLNURLAuthSeed() else {
+            Log.info("Could not get wallet auth seed.")
+            self.failedLnUrlAuth()
+            return
+        }
+        let authPrivateKey:P256K.Signing.PrivateKey
+        do {
+            authPrivateKey = try deriveLNURLAuthKey(forDomain: domain, walletAuthSeed: walletAuthSeed)
+        } catch {
+            Log.info("Could not get authPrivateKey.")
+            self.failedLnUrlAuth()
+            return
+        }
+        
+        let publicKeyHex = authPrivateKey.publicKey.dataRepresentation.hexString
+        let signature:P256K.Signing.ECDSASignature
+        do {
+            signature = try authPrivateKey.signature(for: request.k1)
+        } catch {
+            Log.info("Could not get signature.")
+            self.failedLnUrlAuth()
+            return
+        }
+        
+        let signatureDERHex:String
+        do {
+            signatureDERHex = try signature.derRepresentation.hexString
+        } catch {
+            Log.info("Could not get signatureDERHex.")
+            self.failedLnUrlAuth()
+            return
+        }
+        
+        let callbackURL:URL
+        do {
+            callbackURL = try buildLNURLAuthCallbackURL(
+                baseURL: request.callbackURL,
+                k1Hex: request.k1.hexString,
+                sigHex: signatureDERHex,
+                keyHex: publicKeyHex
                 )
-                
-                let (data, _) = try await URLSession.shared.data(from: callbackURL)
-                
-                let response = try JSONDecoder().decode(LNURLAuthResponse.self, from: data)
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    sendVC.stopLNURLSpinner()
-                    if response.status == "OK" {
-                        Log.info("Successful signin.")
-                        sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    } else {
-                        Log.info("LNURL Auth failed: \(response.reason ?? "Unknown reason")")
-                        sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    }
-                }
+        } catch {
+            Log.info("Could not get callbackURL.")
+            self.failedLnUrlAuth()
+            return
+        }
+        
+        Task {
+            let (data, _):(Data, URLResponse)
+            do {
+                (data, _) = try await URLSession.shared.data(from: callbackURL)
             } catch {
-                Log.info("Error in LNURL Auth signin.")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    sendVC.stopLNURLSpinner()
+                Log.info("Could not get data.")
+                self.failedLnUrlAuth()
+                return
+            }
+            
+            let response:LNURLAuthResponse
+            do {
+                response = try JSONDecoder().decode(LNURLAuthResponse.self, from: data)
+            } catch {
+                Log.info("Could not get response.")
+                self.failedLnUrlAuth()
+                return
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                sendVC.stopLNURLSpinner()
+                if response.status == "OK" {
+                    Log.info("Successful signin.")
+                    sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                } else {
+                    Log.info("LNURL Auth failed: \(response.reason ?? "Unknown reason")")
                     sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SendLNURL row 433", key: "context")
-                    }
                 }
             }
+        }
+    }
+    
+    func failedLnUrlAuth() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            (self as! SendViewController).stopLNURLSpinner()
+            (self as! SendViewController).showAlert(presentingController: (self as! SendViewController), title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -543,4 +612,22 @@ func getLNURLAuthSeed() -> Data? {
     )
     
     return Data(authSeed)
+}
+
+extension String? {
+    
+    func friendlyActionText() -> String {
+        switch self?.lowercased() {
+        case "login":
+            return "log in"
+        case "register":
+            return "register"
+        case "link":
+            return "link account"
+        case "auth":
+            return "authenticate"
+        default:
+            return "authenticate"
+        }
+    }
 }
