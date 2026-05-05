@@ -13,6 +13,7 @@ import LDKNode
 import Sentry
 import P256K
 import CryptoKit
+import libsecp256k1
 
 extension SendViewController {
     
@@ -115,15 +116,15 @@ extension UIViewController {
         
         sendVC?.startLNURLSpinner()
         
-        let url:String
+        let decodedOrConstructedURL:String
         if code.isValidEmail() {
             // This is an LNURL email.
             let urlDomain = String(code.split(separator: "@")[1])
             let urlUsername = String(code.split(separator: "@")[0])
-            url = "https://\(urlDomain)/.well-known/lnurlp/\(urlUsername)"
+            decodedOrConstructedURL = "https://\(urlDomain)/.well-known/lnurlp/\(urlUsername)"
         } else {
             do {
-                url = try LNURLDecoder.decode(lnurl: code)
+                decodedOrConstructedURL = try LNURLDecoder.decode(lnurl: code)
             } catch {
                 Log.info("Couldn't decode LNURL. Message: \(error.localizedDescription)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -137,6 +138,8 @@ extension UIViewController {
                 return
             }
         }
+        
+        let url = sanitizeLNURLString(decodedOrConstructedURL)
         print("Decoded url: \(url)")
         
         if let urlComponents = URLComponents(string: url), let queryItems = urlComponents.queryItems, let tag = queryItems.first(where: { $0.name == "tag" })?.value, tag == "login", let k1 = queryItems.first(where: { $0.name == "k1" })?.value, let k1Data = Data(hexString: k1), k1Data.count == 32, let callbackURL = URL(string: url) {
@@ -434,22 +437,20 @@ extension UIViewController {
             return
         }
         
-        let publicKeyHex = authPrivateKey.publicKey.dataRepresentation.hexString
-        let signature:P256K.Signing.ECDSASignature
+        let publicKeyHex:String
         do {
-            signature = try authPrivateKey.signature(for: request.k1)
+            publicKeyHex = try compressedPublicKeyHex(from: authPrivateKey.publicKey.dataRepresentation)
         } catch {
-            Log.info("Could not get signature.")
-            self.failedLnUrlAuth()
+            Log.info("Could not get compressed public key.")
+            self.failedLnUrlAuth(reason: "Invalid auth public key format.")
             return
         }
-        
         let signatureDERHex:String
         do {
-            signatureDERHex = try signature.derRepresentation.hexString
+            signatureDERHex = try signLNURLAuthK1DERHex(k1: request.k1, privateKeyData: authPrivateKey.dataRepresentation)
         } catch {
             Log.info("Could not get signatureDERHex.")
-            self.failedLnUrlAuth()
+            self.failedLnUrlAuth(reason: "Could not encode LNURL-auth signature.")
             return
         }
         
@@ -463,46 +464,58 @@ extension UIViewController {
                 )
         } catch {
             Log.info("Could not get callbackURL.")
-            self.failedLnUrlAuth()
+            self.failedLnUrlAuth(reason: "Could not build LNURL-auth callback URL.")
             return
         }
         
         Task {
-            let (data, _):(Data, URLResponse)
+            let (data, urlResponse):(Data, URLResponse)
             do {
-                (data, _) = try await URLSession.shared.data(from: callbackURL)
+                (data, urlResponse) = try await URLSession.shared.data(from: callbackURL)
             } catch {
                 Log.info("Could not get data.")
-                self.failedLnUrlAuth()
+                self.failedLnUrlAuth(reason: "Network request failed.")
                 return
             }
             
-            let response:LNURLAuthResponse
+            guard let httpResponse = urlResponse as? HTTPURLResponse else {
+                self.failedLnUrlAuth(reason: "Invalid auth server response.")
+                return
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                self.failedLnUrlAuth(reason: "Auth server returned HTTP \(httpResponse.statusCode).")
+                return
+            }
+            
+            let authResponse:LNURLAuthResponse
             do {
-                response = try JSONDecoder().decode(LNURLAuthResponse.self, from: data)
+                authResponse = try JSONDecoder().decode(LNURLAuthResponse.self, from: data)
             } catch {
                 Log.info("Could not get response.")
-                self.failedLnUrlAuth()
+                self.failedLnUrlAuth(reason: "Invalid JSON from auth server.")
                 return
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 sendVC.stopLNURLSpinner()
-                if response.status == "OK" {
+                if authResponse.status == "OK" {
                     Log.info("Successful signin.")
                     sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 } else {
-                    Log.info("LNURL Auth failed: \(response.reason ?? "Unknown reason")")
-                    sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    Log.info("LNURL Auth failed: \(authResponse.reason ?? "Unknown reason")")
+                    let reason = authResponse.reason ?? Language.getWord(withID: "lnauth3")
+                    sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: reason, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }
     }
     
-    func failedLnUrlAuth() {
+    func failedLnUrlAuth(reason: String? = nil) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             (self as! SendViewController).stopLNURLSpinner()
-            (self as! SendViewController).showAlert(presentingController: (self as! SendViewController), title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            let message = reason ?? Language.getWord(withID: "lnauth3")
+            (self as! SendViewController).showAlert(presentingController: (self as! SendViewController), title: Language.getWord(withID: "lnurl"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -516,6 +529,60 @@ extension UIViewController {
         
         return try P256K.Signing.PrivateKey(dataRepresentation: Data(keyMaterial))
     }
+}
+
+func sanitizeLNURLString(_ url: String) -> String {
+    url
+        .replacingOccurrences(of: "\0", with: "")
+        .trimmingCharacters(in: .controlCharacters)
+}
+
+func signLNURLAuthK1DERHex(k1: Data, privateKeyData: Data) throws -> String {
+    guard k1.count == 32, privateKeyData.count == 32 else {
+        throw LNURLAuthError.signingFailed
+    }
+    
+    guard let context = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_SIGN)) else {
+        throw LNURLAuthError.signingFailed
+    }
+    defer { secp256k1_context_destroy(context) }
+    
+    var signature = secp256k1_ecdsa_signature()
+    
+    let signResult:Int32 = k1.withUnsafeBytes { k1Bytes in
+        privateKeyData.withUnsafeBytes { privateKeyBytes in
+            secp256k1_ecdsa_sign(
+                context,
+                &signature,
+                k1Bytes.bindMemory(to: UInt8.self).baseAddress!,
+                privateKeyBytes.bindMemory(to: UInt8.self).baseAddress!,
+                nil,
+                nil
+            )
+        }
+    }
+    
+    guard signResult == 1 else {
+        throw LNURLAuthError.signingFailed
+    }
+    
+    var derData = Data(count: 72)
+    var derLength = derData.count
+    let serializeResult:Int32 = derData.withUnsafeMutableBytes { derBytes in
+        secp256k1_ecdsa_signature_serialize_der(
+            context,
+            derBytes.bindMemory(to: UInt8.self).baseAddress!,
+            &derLength,
+            &signature
+        )
+    }
+    
+    guard serializeResult == 1 else {
+        throw LNURLAuthError.signingFailed
+    }
+    
+    derData = derData.prefix(derLength)
+    return derData.hexString
 }
 
 extension SendViewController {
@@ -583,10 +650,10 @@ func buildLNURLAuthCallbackURL(
 ) throws -> URL {
     var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
     var queryItems = components?.queryItems ?? []
-
-    queryItems.append(URLQueryItem(name: "k1", value: k1Hex))
-    queryItems.append(URLQueryItem(name: "sig", value: sigHex))
-    queryItems.append(URLQueryItem(name: "key", value: keyHex))
+    
+    upsertQueryItem(name: "k1", value: k1Hex, in: &queryItems)
+    upsertQueryItem(name: "sig", value: sigHex, in: &queryItems)
+    upsertQueryItem(name: "key", value: keyHex, in: &queryItems)
 
     components?.queryItems = queryItems
 
@@ -595,6 +662,35 @@ func buildLNURLAuthCallbackURL(
     }
 
     return url
+}
+
+func upsertQueryItem(name: String, value: String, in queryItems: inout [URLQueryItem]) {
+    queryItems.removeAll(where: { $0.name == name })
+    queryItems.append(URLQueryItem(name: name, value: value))
+}
+
+func compressedPublicKeyHex(from keyData: Data) throws -> String {
+    switch keyData.count {
+    case 33:
+        guard let prefix = keyData.first, prefix == 0x02 || prefix == 0x03 else {
+            throw LNURLAuthError.invalidKey
+        }
+        return keyData.hexString
+    case 65:
+        guard keyData.first == 0x04 else {
+            throw LNURLAuthError.invalidKey
+        }
+        
+        let x = keyData[1...32]
+        let yLastByte = keyData[64]
+        let compressedPrefix: UInt8 = (yLastByte & 1) == 0 ? 0x02 : 0x03
+        
+        var compressedData = Data([compressedPrefix])
+        compressedData.append(contentsOf: x)
+        return compressedData.hexString
+    default:
+        throw LNURLAuthError.invalidKey
+    }
 }
 
 func getLNURLAuthSeed() -> Data? {
