@@ -11,6 +11,8 @@ import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
 import Sentry
+import P256K
+import CryptoKit
 
 extension SendViewController {
     
@@ -215,11 +217,27 @@ extension UIViewController {
                             }))
                             alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
                             self.present(alert, animated: true)
+                        } else if receivedTag == "login",
+                            let receivedCallback = actualDataDict["callback"] as? String,
+                            let receivedK1 = actualDataDict["k1"] as? String {
+                            let receivedAction = actualDataDict["action"] as? String
+                            
+                            guard let callbackURL = URL(string: receivedCallback), let k1Data = Data(hexString: receivedK1) else { return }
+
+                            let request = LNURLAuthRequest(
+                                callbackURL: callbackURL,
+                                k1: k1Data,
+                                action: receivedAction
+                            )
+
+                            self.showLNURLAuthConfirmation(request)
                         } else {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                         }
                     case .failure(let error):
-                        SentrySDK.capture(error: error)
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SendLNURL row 239", key: "context")
+                        }
                         SentrySDK.metrics.count(key: "lnurl.api.failure.1")
                         Log.info("Error 111: \(error.localizedDescription)")
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -320,7 +338,9 @@ extension UIViewController {
                         SentrySDK.metrics.count(key: "lnurl.withdraw.success")
                     case .failure(let error):
                         Log.info("Error: \(error.localizedDescription)")
-                        SentrySDK.capture(error: error)
+                        SentrySDK.capture(error: error)  { scope in
+                            scope.setExtra(value: "SendLNURL row 342", key: "context")
+                        }
                         SentrySDK.metrics.count(key: "lnurl.withdraw.failure.3")
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
@@ -346,6 +366,87 @@ extension UIViewController {
         sendVC.pendingWithdrawMinAmount = nil
         sendVC.pendingWithdrawMaxAmount = nil
     }
+    
+    func showLNURLAuthConfirmation(_ request: LNURLAuthRequest) {
+        guard let sendVC = self as? SendViewController else { return }
+        
+        let domain = request.callbackURL.host ?? "Unknown website"
+        let actionText = request.action?.capitalized ?? "Authenticate"
+        sendVC.pendingLnurlAuth = request
+        
+        sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText).replacingOccurrences(of: "<domain>", with: domain), buttons: [Language.getWord(withID: "cancel"), actionText], actions: [#selector(self.cancelLnurlAuth), #selector(self.performLnurlAuth)])
+    }
+    
+    @objc func cancelLnurlAuth() {
+        self.hideAlert()
+        let sendVC = self as? SendViewController
+        sendVC?.pendingLnurlAuth = nil
+    }
+    
+    @objc func performLnurlAuth() {
+        self.hideAlert()
+        guard let sendVC = self as? SendViewController, let request = sendVC.pendingLnurlAuth else { return }
+        sendVC.pendingLnurlAuth = nil
+        sendVC.startLNURLSpinner()
+        
+        Task {
+            do {
+                guard request.callbackURL.scheme == "https" else { throw LNURLAuthError.insecureURL }
+                guard request.k1.count == 32 else { throw LNURLAuthError.invalidK1 }
+                guard let domain = request.callbackURL.host?.lowercased() else { throw LNURLAuthError.invalidCallbackURL }
+                
+                // Derive domain-specific auth private key
+                guard let walletAuthSeed = getLNURLAuthSeed() else { throw LNURLAuthError.signingFailed }
+                let authPrivateKey = try deriveLNURLAuthKey(forDomain: domain, walletAuthSeed: walletAuthSeed)
+                
+                let publicKeyHex = authPrivateKey.publicKey.dataRepresentation.hexString
+                let signature = try authPrivateKey.signature(for: request.k1)
+                let signatureDERHex = try signature.derRepresentation.hexString
+                
+                let callbackURL = try buildLNURLAuthCallbackURL(
+                    baseURL: request.callbackURL,
+                    k1Hex: request.k1.hexString,
+                    sigHex: signatureDERHex,
+                    keyHex: publicKeyHex
+                )
+                
+                let (data, _) = try await URLSession.shared.data(from: callbackURL)
+                
+                let response = try JSONDecoder().decode(LNURLAuthResponse.self, from: data)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    sendVC.stopLNURLSpinner()
+                    if response.status == "OK" {
+                        Log.info("Successful signin.")
+                        sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    } else {
+                        Log.info("LNURL Auth failed: \(response.reason ?? "Unknown reason")")
+                        sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
+                }
+            } catch {
+                Log.info("Error in LNURL Auth signin.")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    sendVC.stopLNURLSpinner()
+                    sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "SendLNURL row 433", key: "context")
+                    }
+                }
+            }
+        }
+    }
+    
+    func deriveLNURLAuthKey(forDomain domain: String, walletAuthSeed: Data) throws -> P256K.Signing.PrivateKey {
+        let normalizedDomain = domain.lowercased()
+        
+        let keyMaterial = HMAC<CryptoKit.SHA256>.authenticationCode(
+            for: Data(normalizedDomain.utf8),
+            using: SymmetricKey(data: walletAuthSeed)
+        )
+        
+        return try P256K.Signing.PrivateKey(dataRepresentation: Data(keyMaterial))
+    }
 }
 
 extension SendViewController {
@@ -363,4 +464,83 @@ extension SendViewController {
             self.lnurlSpinner.stopAnimating()
         }
     }
+}
+
+struct LNURLAuthRequest {
+    let callbackURL: URL
+    let k1: Data
+    let action: String?
+}
+
+struct LNURLAuthResponse: Codable {
+    let status: String
+    let reason: String?
+}
+
+enum LNURLAuthError: LocalizedError {
+    case invalidCallbackURL
+    case insecureURL
+    case invalidK1
+    case invalidKey
+    case signingFailed
+    case invalidResponse
+    case serverError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidCallbackURL:
+            return "The LNURL-auth callback URL is invalid."
+        case .insecureURL:
+            return "LNURL-auth requires a secure HTTPS callback URL."
+        case .invalidK1:
+            return "The LNURL-auth challenge is invalid."
+        case .invalidKey:
+            return "Could not create a valid LNURL-auth key."
+        case .signingFailed:
+            return "Could not sign the LNURL-auth challenge."
+        case .invalidResponse:
+            return "The LNURL-auth server returned an invalid response."
+        case .serverError(let reason):
+            return reason
+        }
+    }
+}
+
+func buildLNURLAuthCallbackURL(
+    baseURL: URL,
+    k1Hex: String,
+    sigHex: String,
+    keyHex: String
+) throws -> URL {
+    var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+    var queryItems = components?.queryItems ?? []
+
+    queryItems.append(URLQueryItem(name: "k1", value: k1Hex))
+    queryItems.append(URLQueryItem(name: "sig", value: sigHex))
+    queryItems.append(URLQueryItem(name: "key", value: keyHex))
+
+    components?.queryItems = queryItems
+
+    guard let url = components?.url else {
+        throw LNURLAuthError.invalidCallbackURL
+    }
+
+    return url
+}
+
+func getLNURLAuthSeed() -> Data? {
+    guard let mnemonic = CacheManager.getMnemonic() else { return nil }
+    
+    let normalizedMnemonic = mnemonic
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+    
+    let master = SymmetricKey(data: Data(normalizedMnemonic.utf8))
+    
+    let authSeed = HMAC<CryptoKit.SHA256>.authenticationCode(
+        for: Data("bittr-lnurl-auth-seed-v1".utf8), // Don't change this String without using version control.
+        using: master
+    )
+    
+    return Data(authSeed)
 }

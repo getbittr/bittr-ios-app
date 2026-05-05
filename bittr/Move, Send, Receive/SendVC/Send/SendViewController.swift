@@ -107,6 +107,9 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     var pendingWithdrawMinAmount: Int?
     var pendingWithdrawMaxAmount: Int?
     
+    // LNURL Auth
+    var pendingLnurlAuth: LNURLAuthRequest?
+    
     // User selected variables
     var selectedCurrency:SelectedCurrency = .satoshis
     var onchainOrLightning:OnchainOrLightning = .lightning
