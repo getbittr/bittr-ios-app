@@ -187,7 +187,8 @@ class BitcoinManager {
         do {
             receivedDictionary = try await withCheckedThrowingContinuation { continuation in
                 Task {
-                    await CallsManager.makeApiCall(url: "https://mempool.space/api/blocks/tip/height", parameters: nil, getOrPost: .get) { result in
+                    let blockHeightURL = "\(EnvironmentConfig.explorerURL)/api/blocks/tip/height"
+                    await CallsManager.makeApiCall(url: blockHeightURL, parameters: nil, getOrPost: .get) { result in
                         switch result {
                         case .success(let receivedDictionary):
                             continuation.resume(returning: receivedDictionary)

@@ -82,17 +82,17 @@ struct EnvironmentConfig {
     
     /// Base URL for Boltz API based on environment
     static var boltzBaseURL: String {
-        isDevelopment ? "https://api.regtest.getbittr.com/v2" : "https://api.boltz.exchange/v2"
+        isDevelopment ? "https://boltz.bittr.io/api/v2" : "https://api.boltz.exchange/v2"
     }
     
     /// Bittr API base URL based on environment
     static var bittrAPIBaseURL: String {
-        isDevelopment ? "https://bittr.ngrok.io" : "https://getbittr.com/api"
+        isDevelopment ? "https://staging.getbittr.com/api" : "https://getbittr.com/api"
     }
     
     /// WebSocket URL based on environment
     static var webSocketURL: String {
-        isDevelopment ? "wss://api.regtest.getbittr.com/v2/ws" : "wss://api.boltz.exchange/v2/ws"
+        isDevelopment ? "wss://boltz.bittr.io/api/v2/ws" : "wss://api.boltz.exchange/v2/ws"
     }
     
     /// Electrum URL based on environment
@@ -102,12 +102,12 @@ struct EnvironmentConfig {
     
     /// Esplora URL based on environment
     static var esploraURL: String {
-        isDevelopment ? "https://mempool.space/signet/api" : "https://blockstream.info/api"
+        isDevelopment ? "https://esplora.bittr.io/api" : "https://blockstream.info/api"
     }
 
     /// Block explorer URL based on environment
     static var explorerURL: String {
-        isDevelopment ? "https://mempool.space/signet" : "https://mempool.space"
+        isDevelopment ? "https://esplora.bittr.io" : "https://mempool.space"
     }
     
     /// RGS Server URL based on environment
@@ -119,18 +119,18 @@ struct EnvironmentConfig {
     
     /// Lightning node IDs based on environment
     static var lightningNodeId: String {
-        isDevelopment ? "03c94d19734a7808a333bba797a6ffe30a745609d7cd049cf4f5e4685e85ca6f36" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
+        isDevelopment ? "0252fcaa7d532a288200a165b896219e83ededcd38bdf2f5fae909e8d6b09c99b7" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
     }
     
     /// Lightning node addresses based on environment
     static var lightningNodeAddress: String {
-        isDevelopment ? "109.205.181.232:29735" : "86.104.228.24:9735"
+        isDevelopment ? "109.205.181.232:9735" : "86.104.228.24:9735"
     }
     
     // MARK: - Cache Configuration
     
     /// Get environment-specific cache key prefix
-    static var cacheKeyPrefix: String {
+    static var cacheKeyPrefix: String { 
         isDevelopment ? "" : "prod"
     }
     

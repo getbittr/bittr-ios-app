@@ -382,7 +382,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		05A256682D1155B8009EDC7A /* Exceptions for "BittrWidget" folder in "BittrWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -392,7 +392,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
+		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* Exceptions for "BittrWidget" folder in "BittrWidgetExtension" target */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1386,7 +1386,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtest.bittrWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -1419,7 +1419,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr.BittrWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtest.bittrWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1563,10 +1563,11 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittr;
+				INFOPLIST_KEY_CFBundleDisplayName = "bittr regtest";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to show nearby places where you can pay with bitcoin.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow bittr to add this screenshot to your Photo Library.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -1580,7 +1581,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtest";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1605,10 +1606,11 @@
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bittr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = bittr;
+				INFOPLIST_KEY_CFBundleDisplayName = "bittr regtest";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to show nearby places where you can pay with bitcoin.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow bittr to add this screenshot to your Photo Library.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -1622,7 +1624,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittr;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-regtest";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1636,7 +1638,6 @@
 		05C3C0AF29CCB55800C1E695 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1656,7 +1657,6 @@
 		05C3C0B029CCB55800C1E695 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1676,7 +1676,6 @@
 		05C3C0B229CCB55800C1E695 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
@@ -1695,7 +1694,6 @@
 		05C3C0B329CCB55800C1E695 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;

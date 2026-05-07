@@ -6,7 +6,11 @@
       "Bash(swift:*)",
       "Bash(grep:*)",
       "Bash(rm:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(git mv *)",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"---returncode: $?\")",
+      "Bash(plutil *)"
     ],
     "deny": []
   }
