@@ -21,6 +21,7 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
     var tappedUrl:String?
     var webView = WKWebView()
     var pendingLnurlAuth:LNURLAuthRequest?
+    var isHandlingLnurlAuth = false
     
     override func loadView() {
         super.loadView()
@@ -120,6 +121,7 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
         
         let absolute = url.absoluteString.lowercased()
         if absolute.hasPrefix("lightning:") || absolute.hasPrefix("lnurl") || absolute.contains("tag=login") {
+            self.isHandlingLnurlAuth = true
             self.handleLNURL(code: absolute.replacingOccurrences(of: "lightning:", with: ""))
             decisionHandler(.cancel)
             return
@@ -130,8 +132,9 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         
-        if message.name == "lnurl", let url = message.body as? String {
+        if !self.isHandlingLnurlAuth, message.name == "lnurl", let url = message.body as? String {
             print("Did find URL: \(url)")
+            self.isHandlingLnurlAuth = true
             self.handleLNURL(code: url.replacingOccurrences(of: "lightning:", with: ""))
         }
     }

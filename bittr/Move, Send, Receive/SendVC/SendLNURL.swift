@@ -405,6 +405,7 @@ extension UIViewController {
         sendVC?.pendingLnurlAuth = nil
         sendVC?.stopLNURLSpinner()
         websiteVC?.pendingLnurlAuth = nil
+        websiteVC?.isHandlingLnurlAuth = false
     }
     
     @objc func performLnurlAuth() {
@@ -509,6 +510,7 @@ extension UIViewController {
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 sendVC?.stopLNURLSpinner()
+                websiteVC?.isHandlingLnurlAuth = false
                 if authResponse.status == "OK" {
                     Log.info("Successful signin.")
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -524,6 +526,7 @@ extension UIViewController {
     func failedLnUrlAuth(reason: String? = nil) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             (self as? SendViewController)?.stopLNURLSpinner()
+            (self as? WebsiteViewController)?.isHandlingLnurlAuth = false
             let message = reason ?? Language.getWord(withID: "lnauth3")
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
