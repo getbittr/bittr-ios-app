@@ -122,6 +122,8 @@ extension UIViewController {
             let urlDomain = String(code.split(separator: "@")[1])
             let urlUsername = String(code.split(separator: "@")[0])
             decodedOrConstructedURL = "https://\(urlDomain)/.well-known/lnurlp/\(urlUsername)"
+        } else if code.contains("tag=login&k1") {
+            decodedOrConstructedURL = code
         } else {
             do {
                 decodedOrConstructedURL = try LNURLDecoder.decode(lnurl: code)
@@ -385,26 +387,34 @@ extension UIViewController {
     }
     
     func showLNURLAuthConfirmation(_ request: LNURLAuthRequest) {
-        guard let sendVC = self as? SendViewController else { return }
+        let sendVC = self as? SendViewController
+        let websiteVC = self as? WebsiteViewController
         
         let domain = request.callbackURL.host ?? "Unknown website"
         let actionText = request.action.friendlyActionText()
-        sendVC.pendingLnurlAuth = request
+        sendVC?.pendingLnurlAuth = request
+        websiteVC?.pendingLnurlAuth = request
         
-        sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText).replacingOccurrences(of: "<domain>", with: domain), buttons: [Language.getWord(withID: "cancel"), actionText], actions: [#selector(self.cancelLnurlAuth), #selector(self.performLnurlAuth)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText.lowercased()).replacingOccurrences(of: "<domain>", with: domain), buttons: [Language.getWord(withID: "cancel"), actionText], actions: [#selector(self.cancelLnurlAuth), #selector(self.performLnurlAuth)])
     }
     
     @objc func cancelLnurlAuth() {
         self.hideAlert()
         let sendVC = self as? SendViewController
+        let websiteVC = self as? WebsiteViewController
         sendVC?.pendingLnurlAuth = nil
+        sendVC?.stopLNURLSpinner()
+        websiteVC?.pendingLnurlAuth = nil
     }
     
     @objc func performLnurlAuth() {
         self.hideAlert()
-        guard let sendVC = self as? SendViewController, let request = sendVC.pendingLnurlAuth else { return }
-        sendVC.pendingLnurlAuth = nil
-        sendVC.startLNURLSpinner()
+        let sendVC = self as? SendViewController
+        let websiteVC = self as? WebsiteViewController
+        guard let request = (sendVC?.pendingLnurlAuth ?? websiteVC?.pendingLnurlAuth) else { return }
+        sendVC?.pendingLnurlAuth = nil
+        sendVC?.startLNURLSpinner()
+        websiteVC?.pendingLnurlAuth = nil
         
         guard request.callbackURL.scheme == "https" else {
             Log.info("Insecure URL.")
@@ -498,14 +508,14 @@ extension UIViewController {
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                sendVC.stopLNURLSpinner()
+                sendVC?.stopLNURLSpinner()
                 if authResponse.status == "OK" {
                     Log.info("Successful signin.")
-                    sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 } else {
                     Log.info("LNURL Auth failed: \(authResponse.reason ?? "Unknown reason")")
                     let reason = authResponse.reason ?? Language.getWord(withID: "lnauth3")
-                    sendVC.showAlert(presentingController: sendVC, title: Language.getWord(withID: "lnurl"), message: reason, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: reason, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         }
@@ -513,9 +523,9 @@ extension UIViewController {
     
     func failedLnUrlAuth(reason: String? = nil) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            (self as! SendViewController).stopLNURLSpinner()
+            (self as? SendViewController)?.stopLNURLSpinner()
             let message = reason ?? Language.getWord(withID: "lnauth3")
-            (self as! SendViewController).showAlert(presentingController: (self as! SendViewController), title: Language.getWord(withID: "lnurl"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -715,15 +725,15 @@ extension String? {
     func friendlyActionText() -> String {
         switch self?.lowercased() {
         case "login":
-            return "log in"
+            return "Log in"
         case "register":
-            return "register"
+            return "Register"
         case "link":
-            return "link account"
+            return "Link account"
         case "auth":
-            return "authenticate"
+            return "Authenticate"
         default:
-            return "authenticate"
+            return "Authenticate"
         }
     }
 }
