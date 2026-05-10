@@ -12,14 +12,20 @@ class CacheManager: NSObject {
     
     
     static func deleteClientInfo() {
-        
+
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "device"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "cache"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "pin"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lastaddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
+
+        KeychainManager.delete(forKey: EnvironmentConfig.cacheKey(for: "pin"))
+        KeychainManager.delete(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
+
+        // Clear any leftover UserDefaults entries from before migration
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "pin"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
+
         self.resetFailedPinAttempts()
     }
     
@@ -795,51 +801,39 @@ class CacheManager: NSObject {
     }
     
     // MARK: - Mnemonic
-    
-    static func storeMnemonic(mnemonic:String) {
-        
+
+    @discardableResult
+    static func storeMnemonic(mnemonic:String) -> Bool {
         let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(mnemonic, forKey: envKey)
+        let success = KeychainManager.save(mnemonic, forKey: envKey)
+        if !success {
+            print("ERROR: Failed to save mnemonic to Keychain")
+            UserDefaults.standard.set(mnemonic, forKey: envKey)
+        }
+        return success
     }
-    
+
     static func getMnemonic() -> String? {
-        
         let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        
-        let defaults = UserDefaults.standard
-        let cachedMnemonic = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedMnemonic = cachedMnemonic {
-            return actualCachedMnemonic
-        } else {
-            return nil
-        }
+        return KeychainManager.load(forKey: envKey) ?? UserDefaults.standard.value(forKey: envKey) as? String
     }
-    
+
     // MARK: - Pin
-    
-    static func storePin(pin:String) {
-        
+
+    @discardableResult
+    static func storePin(pin:String) -> Bool {
         let envKey = EnvironmentConfig.cacheKey(for: "pin")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(pin, forKey: envKey)
-    }
-    
-    static func getPin() -> String? {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "pin")
-        
-        let defaults = UserDefaults.standard
-        let cachedPin = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedPin = cachedPin {
-            return actualCachedPin
-        } else {
-            return nil
+        let success = KeychainManager.save(pin, forKey: envKey)
+        if !success {
+            print("ERROR: Failed to save PIN to Keychain")
+            UserDefaults.standard.set(pin, forKey: envKey)
         }
+        return success
+    }
+
+    static func getPin() -> String? {
+        let envKey = EnvironmentConfig.cacheKey(for: "pin")
+        return KeychainManager.load(forKey: envKey) ?? UserDefaults.standard.value(forKey: envKey) as? String
     }
     
     // MARK: - Txo ID
@@ -1057,9 +1051,6 @@ class CacheManager: NSObject {
         if thisSwap.createdInvoice != nil {
             swapDictionary.setValue(thisSwap.createdInvoice!, forKey: "createdInvoice")
         }
-        if thisSwap.privateKey != nil {
-            swapDictionary.setValue(thisSwap.privateKey!, forKey: "privateKey")
-        }
         if thisSwap.boltzID != nil {
             swapDictionary.setValue(thisSwap.boltzID!, forKey: "boltzID")
         }
@@ -1116,14 +1107,24 @@ class CacheManager: NSObject {
     }
     
     static func saveLatestSwap(_ latestSwap:Swap?) {
-        
-        if latestSwap != nil {
-            let swapDictionary = CacheManager.swapToDictionary(latestSwap!)
+
+        if let swap = latestSwap {
+            let swapDictionary = CacheManager.swapToDictionary(swap).mutableCopy() as! NSMutableDictionary
+
+            if let privateKey = swap.privateKey, let boltzID = swap.boltzID {
+                if !KeychainManager.save(privateKey, forKey: "swapkey_\(boltzID)") {
+                    print("ERROR: Failed to save swap key to Keychain, keeping in UserDefaults")
+                    swapDictionary.setValue(privateKey, forKey: "privateKey")
+                }
+            }
+
             UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
         } else {
-            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
-                UserDefaults.standard.removeObject(forKey: "ongoingswap")
+            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary,
+               let boltzID = storedSwap["boltzID"] as? String {
+                KeychainManager.delete(forKey: "swapkey_\(boltzID)")
             }
+            UserDefaults.standard.removeObject(forKey: "ongoingswap")
         }
     }
     
@@ -1145,11 +1146,9 @@ class CacheManager: NSObject {
         if let createdInvoice = dictionary["createdInvoice"] as? String {
             thisSwap.createdInvoice = createdInvoice
         }
-        if let privateKey = dictionary["privateKey"] as? String {
-            thisSwap.privateKey = privateKey
-        }
         if let boltzID = dictionary["boltzID"] as? String {
             thisSwap.boltzID = boltzID
+            thisSwap.privateKey = KeychainManager.load(forKey: "swapkey_\(boltzID)") ?? dictionary["privateKey"] as? String
         }
         if let boltzOnchainAddress = dictionary["boltzOnchainAddress"] as? String {
             thisSwap.boltzOnchainAddress = boltzOnchainAddress

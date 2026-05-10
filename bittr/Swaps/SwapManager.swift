@@ -510,16 +510,23 @@ class SwapManager: NSObject {
     
     static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
         do {
-            // Convert NSDictionary to JSON Data
-            let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
-            
-            // Get the documents directory
+            let sanitised = swapDictionary.mutableCopy() as! NSMutableDictionary
+
+            if let privateKey = sanitised["privateKey"] as? String {
+                if KeychainManager.save(privateKey, forKey: "swapkey_\(swapID)") {
+                    sanitised.removeObject(forKey: "privateKey")
+                } else {
+                    print("ERROR: Failed to save swap key to Keychain, keeping in file")
+                }
+            }
+
+            let jsonData = try JSONSerialization.data(withJSONObject: sanitised, options: .prettyPrinted)
+
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
-            
-            // Write the JSON data to file
+
             try jsonData.write(to: fileURL)
-            
+
             print("Swap details saved to: \(fileURL.path)")
         } catch {
             print("Error saving swap details to file: \(error)")
@@ -540,8 +547,10 @@ class SwapManager: NSObject {
             // Read the JSON data from file
             let jsonData = try Data(contentsOf: fileURL)
             
-            // Convert JSON Data to NSDictionary
-            if let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary {
+            if let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: .mutableContainers) as? NSMutableDictionary {
+                if let privateKey = KeychainManager.load(forKey: "swapkey_\(swapID)") {
+                    dictionary.setValue(privateKey, forKey: "privateKey")
+                }
                 return dictionary
             }
         } catch {

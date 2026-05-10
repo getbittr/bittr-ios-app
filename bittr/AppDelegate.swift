@@ -141,8 +141,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             }
         }
 
+        KeychainManager.migrateFromUserDefaults()
+
         UNUserNotificationCenter.current().delegate = self
-        
+
         return true
     }
 
