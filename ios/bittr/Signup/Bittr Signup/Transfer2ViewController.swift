@@ -71,6 +71,12 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "receivedToken"), object: nil)
         
+        self.topLabel.accessibilityIdentifier = TestID.Signup.Bittr.Otp.topLabel
+        self.codeTextField.accessibilityIdentifier = TestID.Signup.Bittr.Otp.codeTextField
+        self.codeButton.accessibilityIdentifier = TestID.Signup.Bittr.Otp.codeButton
+        self.resendButton.accessibilityIdentifier = TestID.Signup.Bittr.Otp.resendButton
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Bittr.Otp.nextButton
+
         // Set language and colors.
         self.changeColors()
         self.setWords()
@@ -222,7 +228,8 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         
         // Generate message and signature.
         let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(ibanEntity.emailToken.prefix(32)). IBAN: \(ibanEntity.yourIbanNumber)"
-        let signature = try! BitcoinManager.shared.signMessageForPath(path: "m/84'/0'/0'/0/0", message: message)
+        let signingPath = BitcoinManager.shared.defaultBip84SigningPath()
+        let signature = try! BitcoinManager.shared.signMessageForPath(path: signingPath, message: message)
         
         Task {
             let lightningSignature:String

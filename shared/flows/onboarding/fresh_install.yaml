@@ -1,0 +1,11 @@
+# Top-level: wipes app data + keychain and runs the full onboarding from
+# scratch. Use this when you want a guaranteed-clean wallet state.
+#
+# Run: maestro test shared/flows/onboarding/fresh_install.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: happy_path.yaml

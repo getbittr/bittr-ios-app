@@ -8,7 +8,7 @@ Decisions captured here so the plan survives across conversations.
 - **Feature parity at launch** — no MVP-by-subsetting.
 - **Native, not cross-compiled** — Kotlin + Jetpack Compose + Material 3.
 - **Two native apps in one repo** — so AI assistants can see both sides.
-- **Solo dev** — Ruben porting himself; the plan must be sustainable for one person.
+- **Solo dev** — One dev porting himself; the plan must be sustainable for one person.
 - **Same backend** (`BittrService` at `EnvironmentConfig.bittrAPIBaseURL`) — no API changes.
 - **No KMP** — explicitly chose two native codebases over a shared Kotlin core.
 - **Maestro is the parity mechanism** going forward.
@@ -59,6 +59,24 @@ Caveats baked into Phase 0:
   material for the designer, not a substitute for a redesign.
 
 ## Phases
+
+### Phase 0 status (in progress)
+
+What's landed:
+
+- Repo restructured into `ios/` + `android/` + `shared/` (this branch).
+- Test-ID pipeline live: `shared/test-ids/test-ids.json` → `shared/test-ids/build.py` → `ios/bittr/Helpers/TestIDs.swift`. Maestro flows reference IDs via the hierarchical dot path.
+- `UIView+AppTag.swift` extension added — receiving side for the `accessibilityIdentifier`-as-data migration. **Mechanical migration of the call sites in `shared/test-ids/README.md` is not yet done.**
+- Maestro flows: `onboarding/{smoke,fresh_install,happy_path}.yaml`, `features/{buy_incoming,buy_more,receive,swap}.yaml`, `helpers/unlock.yaml`, plus four `runScript` helpers. Screenshot catalog lands in `shared/docs/screenshots/<flow>/<step>.png`.
+- Regtest environment is **fully hosted** rather than the greenfield local stack originally planned (bittr backend at `staging.getbittr.com`, Esplora at `esplora.bittr.io`, Boltz at `boltz-api.bittr.io`, Electrum at `staging.getbittr.com:19001`, RGS via lightningdevkit). No local infrastructure required beyond the iOS simulator and the Node helper for push notifications. See `shared/docs/regtest.md`.
+- `shared/docs/screens.md` and `shared/docs/parity.md` populated with the screens and features covered so far.
+
+What's outstanding for Phase 0:
+
+- Migrate the data-bearing `accessibilityIdentifier` usages to `appTag` (file list in `shared/test-ids/README.md`).
+- Translation migration: `*Language.swift` → canonical JSON in `shared/strings/`. Not started.
+- Flows for the rest of the screen inventory (Send, Restore, Settings, Map, Academy, Profits, Value chart, LNURL-Auth, Widget).
+- Document administration of the hosted regtest infrastructure (`staging.getbittr.com`, `esplora.bittr.io`, the LN peer, `boltz-api.bittr.io`) so it's clear who owns what when it goes down.
 
 ### Phase 0 — Maestro flows + screenshot catalog (3–4 weeks)
 
@@ -239,6 +257,10 @@ Why JSON over YAML/ARB:
 Generator script in `shared/strings/build.{js,py,sh}` runs in CI before each platform build. Source of truth is the JSON; generated files are gitignored or committed (committed is simpler — diff visibility).
 
 Existing iOS `*Language.swift` files get migrated into the canonical JSON in Phase 0 alongside Maestro flow writing — natural opportunity since you're walking every screen anyway.
+
+## Pending technical debt
+
+- **Migrate `accessibilityIdentifier`-as-data usages to `appTag`** (~15 files). The iOS app currently uses `accessibilityIdentifier` as string-tag userInfo for buttons and views (article slugs, settings row IDs, fee levels, tx IDs, IBAN values, swap statuses, value chart spans, view-tag markers). Maestro test IDs need that field reserved. A `UIView.appTag` extension is in place to receive the migrated data. Full file list and rationale in `shared/test-ids/README.md` under "Migrating existing accessibilityIdentifier data usages". Mechanical change, but touches live tap handlers — do per-feature with smoke verification, not bulk find-replace. Until migrated, those screens cannot have full test ID coverage on their data-bearing controls.
 
 ## Decisions appendix (all questions resolved)
 

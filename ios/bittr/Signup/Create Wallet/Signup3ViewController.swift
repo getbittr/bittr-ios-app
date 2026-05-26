@@ -62,6 +62,10 @@ class Signup3ViewController: UIViewController {
         self.articleView.setShadow()
         self.mnemonicView.setShadow()
         
+        self.topLabelOne.accessibilityIdentifier = TestID.Signup.Create.Mnemonic.topLabelOne
+        self.mnemonicStack.accessibilityIdentifier = TestID.Signup.Create.Mnemonic.mnemonicStack
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Create.Mnemonic.nextButton
+
         // Words and colors
         self.changeColors()
         self.setWords()
@@ -115,6 +119,7 @@ class Signup3ViewController: UIViewController {
                 wordLabel.textColor = Colors.getColor("blackorwhite")
                 wordLabel.translatesAutoresizingMaskIntoConstraints = false
                 wordLabel.text = eachWord
+                wordLabel.accessibilityIdentifier = "\(TestID.Signup.Create.Mnemonic.word)\(index + 1)"
                 whiteCard.addSubview(wordLabel)
                 
                 let wordCenterX = NSLayoutConstraint(item: wordLabel, attribute: .centerX, relatedBy: .equal, toItem: whiteCard, attribute: .centerX, multiplier: 1, constant: 0)

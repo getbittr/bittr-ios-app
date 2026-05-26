@@ -174,6 +174,8 @@
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
 		37DC0C4A2E1971B7004E1BE8 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 37DC0C492E1971B7004E1BE8 /* P256K */; };
+		37FC16D02FAD1AF2002578B2 /* TestIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FC16CF2FAD1AF2002578B2 /* TestIDs.swift */; };
+		37FC16D22FAD1B05002578B2 /* UIView+AppTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FC16D12FAD1B05002578B2 /* UIView+AppTag.swift */; };
 		3E2A896E26814ABB9D396AE3 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6A5FD226974C7A8EB518F5 /* Sentry */; };
 /* End PBXBuildFile section */
 
@@ -379,10 +381,12 @@
 		37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentConfig.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
+		37FC16CF2FAD1AF2002578B2 /* TestIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestIDs.swift; sourceTree = "<group>"; };
+		37FC16D12FAD1B05002578B2 /* UIView+AppTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+AppTag.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		05A256682D1155B8009EDC7A /* Exceptions for "BittrWidget" folder in "BittrWidgetExtension" target */ = {
+		05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -392,7 +396,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* Exceptions for "BittrWidget" folder in "BittrWidgetExtension" target */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
+		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -535,6 +539,7 @@
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				37FC16D12FAD1B05002578B2 /* UIView+AppTag.swift */,
 				057F63712F62716000CE1B3E /* Event.swift */,
 				05E305382F5189D6003DE7CF /* UIView.swift */,
 				05EB5CA12F4D846C00FF2157 /* Int.swift */,
@@ -856,6 +861,7 @@
 		05C3C0B429CCBFDD00C1E695 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				37FC16CF2FAD1AF2002578B2 /* TestIDs.swift */,
 				379160592E1D7C6600024560 /* Bip39Words.swift */,
 				379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */,
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
@@ -1192,6 +1198,7 @@
 				05FD58C52A2A0B0E00CDFEF9 /* Signup7ViewController.swift in Sources */,
 				37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */,
 				05117AD82EA7328500A5E4E6 /* Component.swift in Sources */,
+				37FC16D22FAD1B05002578B2 /* UIView+AppTag.swift in Sources */,
 				05A8BD8E2B7514DE002F0282 /* HistoryTable.swift in Sources */,
 				05FD58C12A28C6CC00CDFEF9 /* Signup5ViewController.swift in Sources */,
 				0564B2442B5FEF0E001ECCF0 /* DeviceViewController.swift in Sources */,
@@ -1223,6 +1230,7 @@
 				05117ADA2EA732FC00A5E4E6 /* Page.swift in Sources */,
 				051015542F97449600D3F631 /* MapVCLanguage.swift in Sources */,
 				05E305392F5189D7003DE7CF /* UIView.swift in Sources */,
+				37FC16D02FAD1AF2002578B2 /* TestIDs.swift in Sources */,
 				05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */,
 				05117AE22EA7447B00A5E4E6 /* LessonCollectionViewCell.swift in Sources */,
 				05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */,

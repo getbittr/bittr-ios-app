@@ -62,6 +62,10 @@ class Signup1ViewController: UIViewController {
         // Card styling
         self.cardView.setShadow()
         
+        self.headerLabel.accessibilityIdentifier = TestID.Signup.Create.Start.headerLabel
+        self.createWalletButton.accessibilityIdentifier = TestID.Signup.Create.Start.createWalletButton
+        self.restoreButton.accessibilityIdentifier = TestID.Signup.Create.Start.restoreButton
+
         // Set colors, words, article.
         self.setWords()
         Task {

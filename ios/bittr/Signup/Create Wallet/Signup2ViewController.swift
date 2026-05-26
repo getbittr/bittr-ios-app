@@ -67,6 +67,12 @@ class Signup2ViewController: UIViewController {
         self.cardView.layer.shadowRadius = 10
         self.cardView.layer.shadowOpacity = 0.1
         
+        self.topLabel.accessibilityIdentifier = TestID.Signup.Create.Confirm.topLabel
+        self.switchOne.accessibilityIdentifier = TestID.Signup.Create.Confirm.switchOne
+        self.switchTwo.accessibilityIdentifier = TestID.Signup.Create.Confirm.switchTwo
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Create.Confirm.nextButton
+        self.cancelButton.accessibilityIdentifier = TestID.Signup.Create.Confirm.cancelButton
+
         // Set colors, language, article.
         self.changeColors()
         self.setWords()

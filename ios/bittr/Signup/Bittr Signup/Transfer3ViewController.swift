@@ -69,6 +69,12 @@ class Transfer3ViewController: UIViewController {
         self.nameButton.setTitle("", for: .normal)
         self.codeButton.setTitle("", for: .normal)
         
+        self.topLabelOne.accessibilityIdentifier = TestID.Signup.Bittr.Success.topLabelOne
+        self.topLabelTwo.accessibilityIdentifier = TestID.Signup.Bittr.Success.topLabelTwo
+        self.ourIbanLabel.accessibilityIdentifier = TestID.Signup.Bittr.Success.ourIbanLabel
+        self.yourCodeLabel.accessibilityIdentifier = TestID.Signup.Bittr.Success.yourCodeLabel
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Bittr.Success.nextButton
+
         // Set colors, language, data.
         self.changeColors()
         self.setWords()

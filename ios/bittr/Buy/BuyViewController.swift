@@ -52,6 +52,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.ibanCollectionView.dataSource = self
         self.ibanCollectionView.contentInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
         
+        self.headerLabel.accessibilityIdentifier = TestID.Buy.headerLabel
+        self.downButton.accessibilityIdentifier = TestID.Buy.downButton
+
         // Set colors and language.
         self.changeColors()
         self.setWords()

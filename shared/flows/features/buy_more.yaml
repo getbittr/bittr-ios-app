@@ -1,0 +1,87 @@
+# Feature test: top up an existing wallet with another bank transaction.
+#
+# Prerequisite: buy_incoming.yaml has been run at least once on this app
+# install — the lightning channel must already be open. This flow does NOT
+# clearState, so the channel survives across runs.
+#
+# Flow:
+#   1. Launch (preserve state). Unlock if locked.
+#   2. Tap Buy on Home → BuyVC.
+#   3. Copy the deposit code.
+#   4. Trigger e2e bank-transaction (backend default is €100).
+#   5. Wait for the transaction screen.
+#
+# No block mining — this is a lightning payment, settles instantly.
+#
+# Run: maestro test shared/flows/features/buy_more.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Sanity: must be on Home with the channel already open. If on Signup, the
+# user hasn't run buy_incoming yet — fail loudly.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/buy_more/01_home
+
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.yourCode"
+- takeScreenshot: shared/docs/screenshots/buy_more/02_buy_screen
+
+- copyTextFrom:
+    id: "buy.yourCode"
+- evalScript: ${output.depositCode = maestro.copiedText}
+
+# Dismiss BuyVC. The incoming-payment alert is added as a subview of
+# CoreVC.view (in AlertManager.showAlert), so it'd be hidden behind the
+# BuyVC modal if we left it open — Maestro would never find it.
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+
+# Trigger the bank transaction. Backend defaults to €100 when no amount
+# is passed. The script captures notification_id and bitcoin_amount from
+# the response into output.
+- runScript: ../scripts/trigger_bank_transaction.js
+
+# Real APNS push doesn't reach iOS Simulator. Fake it: build a
+# bittr_specific_data payload (lightning payout type) using the captured
+# fields, then xcrun simctl push.
+- evalScript: |
+    ${output.notificationPayload = JSON.stringify({
+      aps: { alert: { title: "Bitcoin received", body: "+ sats from bittr" }, sound: "default" },
+      bittr_specific_data: {
+        notification_id: output.notificationId,
+        bitcoin_amount: output.bitcoinAmount
+      }
+    })}
+- runScript: ../scripts/push_notification.js
+
+# bittr's HandlePaymentNotification shows an in-app "bittr payout" alert
+# with a single OK button. Tap it to start the HTLC processing.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/buy_more/03_payout_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Lightning payment — settles instantly via the existing channel, no
+# block mining required.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.labelAmount"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/buy_more/04_transaction

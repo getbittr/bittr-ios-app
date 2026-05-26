@@ -65,24 +65,24 @@ struct EnvironmentConfig {
     
     /// Network selection based on environment
     static var network: BitcoinNetwork {
-        isDevelopment ? .signet : .bitcoin
+        isDevelopment ? .regtest : .bitcoin
     }
     
     /// LDK Network selection based on environment
     static var ldkNetwork: LDKNode.Network {
-        isDevelopment ? .signet : .bitcoin
+        isDevelopment ? .regtest : .bitcoin
     }
     
     /// BitcoinDevKit Network selection based on environment
     static var bitcoinDevKitNetwork: BitcoinDevKit.Network {
-        isDevelopment ? .signet : .bitcoin
+        isDevelopment ? .regtest : .bitcoin
     }
     
     // MARK: - API Endpoints
     
     /// Base URL for Boltz API based on environment
     static var boltzBaseURL: String {
-        isDevelopment ? "https://boltz.bittr.io/api/v2" : "https://api.boltz.exchange/v2"
+        isDevelopment ? "https://boltz-api.bittr.io/v2" : "https://api.boltz.exchange/v2"
     }
     
     /// Bittr API base URL based on environment
@@ -92,12 +92,12 @@ struct EnvironmentConfig {
     
     /// WebSocket URL based on environment
     static var webSocketURL: String {
-        isDevelopment ? "wss://boltz.bittr.io/api/v2/ws" : "wss://api.boltz.exchange/v2/ws"
+        isDevelopment ? "wss://boltz-api.bittr.io/v2/ws" : "wss://api.boltz.exchange/v2/ws"
     }
     
     /// Electrum URL based on environment
     static var electrumURL: String {
-        isDevelopment ? "ssl://mempool.space:60602" : "ssl://electrum.blockstream.info:50002"
+        isDevelopment ? "tcp://staging.getbittr.com:19001" : "ssl://electrum.blockstream.info:50002"
     }
     
     /// Esplora URL based on environment
@@ -155,7 +155,7 @@ extension EnvironmentConfig {
     struct EsploraURLs {
         static let bitcoinBlockstream = "https://blockstream.info/api"
         static let bitcoinMempoolspace = "https://mempool.space/api"
-        static let regtest = "https://esplora.regtest.getbittr.com/api"
+        static let regtest = "https://esplora.bittr.io/api"
         static let signet = "https://mempool.space/signet/api"
         static let testnet = "https://mempool.space/testnet4/api"
     }

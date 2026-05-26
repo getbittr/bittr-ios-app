@@ -10,7 +10,8 @@
       "Bash(git mv *)",
       "Bash(git check-ignore *)",
       "Bash(echo \"---returncode: $?\")",
-      "Bash(plutil *)"
+      "Bash(plutil *)",
+      "Bash(git *)"
     ],
     "deny": []
   }

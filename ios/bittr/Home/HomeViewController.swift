@@ -99,6 +99,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.headerLabel.accessibilityIdentifier = TestID.Home.headerLabel
+        self.sendButton.accessibilityIdentifier = TestID.Home.sendButton
+        self.sendButton.accessibilityLabel = Language.getWord(withID: "send")
+        self.receiveButton.accessibilityIdentifier = TestID.Home.receiveButton
+        self.receiveButton.accessibilityLabel = Language.getWord(withID: "receive")
+        self.buyButton.accessibilityIdentifier = TestID.Home.buyButton
+        self.buyButton.accessibilityLabel = Language.getWord(withID: "buy")
+        self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton
+        self.balanceCardButton.accessibilityLabel = "Balance details"
+
         // Table view
         self.homeTableView.delegate = self
         self.homeTableView.dataSource = self

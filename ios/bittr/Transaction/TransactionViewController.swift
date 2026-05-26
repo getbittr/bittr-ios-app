@@ -156,7 +156,11 @@ class TransactionViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+        self.yellowCard.accessibilityIdentifier = TestID.Transaction.yellowCard
+        self.labelDate.accessibilityIdentifier = TestID.Transaction.labelDate
+        self.labelAmount.accessibilityIdentifier = TestID.Transaction.labelAmount
+
         // Button titles
         self.buttonSwapStatus.setTitle("", for: .normal)
         self.buttonDescription.setTitle("", for: .normal)

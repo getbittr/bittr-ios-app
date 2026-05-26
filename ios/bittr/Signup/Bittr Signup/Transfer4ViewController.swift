@@ -56,6 +56,17 @@ class Transfer4ViewController: UIViewController {
         self.nextButton.setTitle("", for: .normal)
         self.backButton.setTitle("", for: .normal)
         
+        self.amountTitle.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.amountTitle
+        self.amountLabel.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.amountLabel
+        self.lightningTitle.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.lightningTitle
+        self.lightningLabel.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.lightningLabel
+        self.connectionTitle.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.connectionTitle
+        self.connectionLabel.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.connectionLabel
+        self.dcaTitle.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.dcaTitle
+        self.dcaLabel.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.dcaLabel
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.nextButton
+        self.backButton.accessibilityIdentifier = TestID.Signup.Bittr.TransferInfo.backButton
+
         // Set language and colors
         self.changeColors()
         self.setWords()

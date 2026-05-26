@@ -70,7 +70,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+        self.subtitleLabel.accessibilityIdentifier = TestID.Swap.subtitleLabel
+        self.amountTextField.accessibilityIdentifier = TestID.Swap.amountTextField
+        self.amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
+        self.nextButton.accessibilityIdentifier = TestID.Swap.nextButton
+        self.nextButton.accessibilityLabel = Language.getWord(withID: "next")
+        self.fromLabel.accessibilityIdentifier = TestID.Swap.fromLabel
+        self.fromButton.accessibilityIdentifier = TestID.Swap.fromButton
+        self.fromButton.accessibilityLabel = "Swap direction"
+
         // Basics
         self.setBasicStyling()
         self.changeColors()
@@ -288,6 +297,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     }
     
     @IBAction func backgroundTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+    }
+
+    @objc func doneButtonTapped() {
         self.view.endEditing(true)
     }
     

@@ -37,6 +37,9 @@ class QuestionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.yellowCard.accessibilityIdentifier = TestID.Question.yellowCard
+        self.answerLabel.accessibilityIdentifier = TestID.Question.answerLabel
+
         // Corner radii and button titles
         self.yellowCard.layer.cornerRadius = 13
         self.channelView.layer.cornerRadius = 8

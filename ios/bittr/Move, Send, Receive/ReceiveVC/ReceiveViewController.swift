@@ -133,6 +133,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         // Set default currency to satoshis.
         self.selectSatsCurrency()
         
+        self.addressTitle.accessibilityIdentifier = TestID.Receive.addressTitle
+        self.addressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
+        self.qrImageView.accessibilityIdentifier = TestID.Receive.qrImageView
+        self.copyButton.accessibilityIdentifier = TestID.Receive.copyButton
+        self.refreshButton.accessibilityIdentifier = TestID.Receive.refreshButton
+        self.editButton.accessibilityIdentifier = TestID.Receive.editButton
+        self.moreButton.accessibilityIdentifier = TestID.Receive.moreButton
+
         // Set colors and language.
         self.setWords()
         self.changeColors()

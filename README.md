@@ -15,4 +15,59 @@ shared/     Cross-platform sources of truth.
   docs/       Plan, screen inventory, parity tracker, regtest setup.
 ```
 
-See [`ANDROID_PORT_PLAN.md`](./ANDROID_PORT_PLAN.md) for the Android port strategy.
+See `[ANDROID_PORT_PLAN.md](./ANDROID_PORT_PLAN.md)` for the Android port strategy.
+
+## Running Maestro tests against the iOS simulator
+
+End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run against the regtest build of the app, talking to the hosted regtest backend (see `shared/docs/regtest.md`).
+
+### One-time setup
+
+1. **Xcode + iOS Simulator** — install from the App Store. Open `ios/bittr.xcodeproj` and pick an iPhone 15 simulator.
+2. **Maestro**:
+  ```sh
+   curl -fsSL "https://get.maestro.mobile.dev" | bash
+  ```
+   Add `~/.maestro/bin` to your `PATH` if the installer doesn't do it. Verify with `maestro --version`.
+3. **Node** (for the push-notification helper):
+  ```sh
+   brew install node
+  ```
+   Verify with `node --version`.
+4. **Install the regtest app on the simulator** — make sure you're on a branch other than `develop` / `upgrade` (the build script flips to regtest automatically), then in Xcode pick the `bittr` scheme and Cmd-R to build & run. The app lands on the simulator as `bittrRegtest`. After the first install you can quit it — Maestro will relaunch it.
+
+### Each test run
+
+The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more` flow needs it). Leave it running in its own terminal:
+
+```sh
+# Terminal A — keep this running for the whole session
+node shared/flows/scripts/push_server.js
+```
+
+In another terminal, from the repo root, run a flow:
+
+```sh
+# Terminal B — from the repo root
+# Full reset + onboarding from scratch:
+maestro test shared/flows/onboarding/fresh_install.yaml
+
+# Then a feature test on the resulting wallet — opens the lightning channel:
+maestro test shared/flows/features/buy_incoming.yaml
+
+# Subsequent feature tests reuse that channel:
+maestro test shared/flows/features/buy_more.yaml
+maestro test shared/flows/features/receive.yaml
+maestro test shared/flows/features/swap.yaml
+```
+
+Screenshots land in `shared/docs/screenshots/<flow_name>/<step>.png`.
+
+Some flows expect specific prior state (e.g. `swap.yaml` assumes the lightning channel from `buy_incoming.yaml` is already open). The flow-level comments at the top of each YAML spell out the prerequisites.
+
+### Troubleshooting
+
+- `**push_notification.js: helper returned ...**` — the Node helper isn't running. Start it in Terminal A.
+- **Flow fails on the first screen** — the simulator may not have the regtest app installed, or it's installed but not booted. Open it via Xcode once.
+- **Backend errors (`/e2e/...` 502/504)** — the hosted regtest backend at `staging.getbittr.com` is down or unreachable. See `shared/docs/regtest.md`.
+

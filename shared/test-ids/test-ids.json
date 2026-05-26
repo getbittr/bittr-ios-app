@@ -1,0 +1,150 @@
+{
+  "pin": {
+    "button0": null,
+    "button1": null,
+    "button2": null,
+    "button3": null,
+    "button4": null,
+    "button5": null,
+    "button6": null,
+    "button7": null,
+    "button8": null,
+    "button9": null,
+    "buttonBackspace": null,
+    "confirmButton": null,
+    "restoreButton": null,
+    "pinTextField": null
+  },
+  "home": {
+    "headerLabel": null,
+    "sendButton": null,
+    "receiveButton": null,
+    "buyButton": null,
+    "balanceCardButton": null
+  },
+  "move": {
+    "subtitleLabel": null,
+    "satsTotal": null,
+    "swapButton": null
+  },
+  "swap": {
+    "subtitleLabel": null,
+    "amountTextField": null,
+    "nextButton": null,
+    "fromLabel": null,
+    "fromButton": null
+  },
+  "swapStatus": {
+    "confirmCard": null,
+    "confirmStatusLabel": null
+  },
+  "unlock": {
+    "topLabel": null
+  },
+  "buy": {
+    "headerLabel": null,
+    "downButton": null,
+    "yourCode": null
+  },
+  "question": {
+    "yellowCard": null,
+    "answerLabel": null
+  },
+  "transaction": {
+    "yellowCard": null,
+    "labelDate": null,
+    "labelAmount": null
+  },
+  "receive": {
+    "addressTitle": null,
+    "addressLabel": null,
+    "qrImageView": null,
+    "copyButton": null,
+    "refreshButton": null,
+    "editButton": null,
+    "moreButton": null
+  },
+  "signup": {
+    "create": {
+      "start": {
+        "headerLabel": null,
+        "createWalletButton": null,
+        "restoreButton": null
+      },
+      "confirm": {
+        "topLabel": null,
+        "switchOne": null,
+        "switchTwo": null,
+        "nextButton": null,
+        "cancelButton": null
+      },
+      "mnemonic": {
+        "topLabelOne": null,
+        "mnemonicStack": null,
+        "nextButton": null,
+        "word": null
+      },
+      "verify": {
+        "topLabel": null,
+        "label1": null,
+        "label2": null,
+        "label3": null,
+        "field1": null,
+        "field2": null,
+        "field3": null,
+        "nextButton": null,
+        "backButton": null
+      },
+      "pinSet": {
+        "topLabel": null
+      },
+      "pinConfirm": {
+        "topLabel": null
+      },
+      "ready": {
+        "topLabelOne": null,
+        "continueButton": null,
+        "skipButton": null
+      }
+    },
+    "bittr": {
+      "start": {
+        "topLabelOne": null,
+        "topLabelTwo": null,
+        "topLabelThree": null,
+        "ibanTextField": null,
+        "ibanButton": null,
+        "emailTextField": null,
+        "emailButton": null,
+        "nextButton": null,
+        "skipButton": null
+      },
+      "otp": {
+        "topLabel": null,
+        "codeTextField": null,
+        "codeButton": null,
+        "resendButton": null,
+        "nextButton": null
+      },
+      "success": {
+        "topLabelOne": null,
+        "topLabelTwo": null,
+        "ourIbanLabel": null,
+        "yourCodeLabel": null,
+        "nextButton": null
+      },
+      "transferInfo": {
+        "amountTitle": null,
+        "amountLabel": null,
+        "lightningTitle": null,
+        "lightningLabel": null,
+        "connectionTitle": null,
+        "connectionLabel": null,
+        "dcaTitle": null,
+        "dcaLabel": null,
+        "nextButton": null,
+        "backButton": null
+      }
+    }
+  }
+}

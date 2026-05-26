@@ -84,6 +84,16 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
         )
         
+        self.topLabel.accessibilityIdentifier = TestID.Signup.Create.Verify.topLabel
+        self.label1.accessibilityIdentifier = TestID.Signup.Create.Verify.label1
+        self.label2.accessibilityIdentifier = TestID.Signup.Create.Verify.label2
+        self.label3.accessibilityIdentifier = TestID.Signup.Create.Verify.label3
+        self.mnemonicField1.accessibilityIdentifier = TestID.Signup.Create.Verify.field1
+        self.mnemonicField2.accessibilityIdentifier = TestID.Signup.Create.Verify.field2
+        self.mnemonicField3.accessibilityIdentifier = TestID.Signup.Create.Verify.field3
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Create.Verify.nextButton
+        self.backButton.accessibilityIdentifier = TestID.Signup.Create.Verify.backButton
+
         // Set colors and words
         self.changeColors()
         self.setWords()

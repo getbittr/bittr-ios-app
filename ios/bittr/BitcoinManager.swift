@@ -650,6 +650,11 @@ class BitcoinManager {
         return try BitcoinMessage.sign(message: message, privateKeyHex: privateKey, segwitType: .p2wpkh)
     }
     
+    func defaultBip84SigningPath(addressIndex: Int = 0, account: Int = 0, change: Int = 0) -> String {
+        let coinType = EnvironmentConfig.isDevelopment ? 1 : 0
+        return "m/84'/\(coinType)'/\(account)'/\(change)/\(addressIndex)"
+    }
+    
 }
 
 enum WalletError: Error {

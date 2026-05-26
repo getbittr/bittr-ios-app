@@ -91,6 +91,16 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.ibanTextField.delegate = self
         self.emailTextField.delegate = self
         
+        self.topLabelOne.accessibilityIdentifier = TestID.Signup.Bittr.Start.topLabelOne
+        self.topLabelTwo.accessibilityIdentifier = TestID.Signup.Bittr.Start.topLabelTwo
+        self.topLabelThree.accessibilityIdentifier = TestID.Signup.Bittr.Start.topLabelThree
+        self.ibanTextField.accessibilityIdentifier = TestID.Signup.Bittr.Start.ibanTextField
+        self.ibanButton.accessibilityIdentifier = TestID.Signup.Bittr.Start.ibanButton
+        self.emailTextField.accessibilityIdentifier = TestID.Signup.Bittr.Start.emailTextField
+        self.emailButton.accessibilityIdentifier = TestID.Signup.Bittr.Start.emailButton
+        self.nextButton.accessibilityIdentifier = TestID.Signup.Bittr.Start.nextButton
+        self.skipButton.accessibilityIdentifier = TestID.Signup.Bittr.Start.skipButton
+
         // Set colors, language, article.
         self.changeColors()
         self.setWords()

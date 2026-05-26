@@ -73,20 +73,38 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.button0.accessibilityIdentifier = TestID.Pin.button0
+        self.button1.accessibilityIdentifier = TestID.Pin.button1
+        self.button2.accessibilityIdentifier = TestID.Pin.button2
+        self.button3.accessibilityIdentifier = TestID.Pin.button3
+        self.button4.accessibilityIdentifier = TestID.Pin.button4
+        self.button5.accessibilityIdentifier = TestID.Pin.button5
+        self.button6.accessibilityIdentifier = TestID.Pin.button6
+        self.button7.accessibilityIdentifier = TestID.Pin.button7
+        self.button8.accessibilityIdentifier = TestID.Pin.button8
+        self.button9.accessibilityIdentifier = TestID.Pin.button9
+        self.buttonBackspace.accessibilityIdentifier = TestID.Pin.buttonBackspace
+        self.confirmPinButton.accessibilityIdentifier = TestID.Pin.confirmButton
+        self.restoreWalletButton.accessibilityIdentifier = TestID.Pin.restoreButton
+        self.pinTextField.accessibilityIdentifier = TestID.Pin.pinTextField
+
         // Set elements according to superview.
         switch self.embeddingView {
         case .core:
             self.topLabel.text = Language.getWord(withID: "enteryourpincode")
+            self.topLabel.accessibilityIdentifier = TestID.Unlock.topLabel
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
             self.restoreButtonLabel.text = Language.getWord(withID: "forgotpin")
             self.restoreButtonView.alpha = 1
         case .signup5:
             self.topLabel.text = Language.getWord(withID: "setapin")
+            self.topLabel.accessibilityIdentifier = TestID.Signup.Create.PinSet.topLabel
             self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
         case .signup6:
             self.topLabel.text = Language.getWord(withID: "confirmyourpin")
+            self.topLabel.accessibilityIdentifier = TestID.Signup.Create.PinConfirm.topLabel
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
             self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1

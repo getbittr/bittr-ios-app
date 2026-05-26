@@ -62,6 +62,10 @@ class Signup7ViewController: UIViewController {
         self.skipButton.setTitle("", for: .normal)
         self.articleButton.setTitle("", for: .normal)
         
+        self.topLabelOne.accessibilityIdentifier = TestID.Signup.Create.Ready.topLabelOne
+        self.continueButton.accessibilityIdentifier = TestID.Signup.Create.Ready.continueButton
+        self.skipButton.accessibilityIdentifier = TestID.Signup.Create.Ready.skipButton
+
         // Set language, colors, article.
         self.changeColors()
         self.setWords()

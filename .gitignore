@@ -106,7 +106,3 @@ android/captures/
 android/.idea/
 android/*.iml
 android/.cxx/
-
-# Maestro
-shared/flows/.maestro/
-shared/docs/screenshots/**/*.png

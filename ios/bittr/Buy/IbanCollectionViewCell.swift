@@ -43,7 +43,9 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var copyCode: UIImageView!
     
     override func awakeFromNib() {
-        
+
+        self.labelYourCode.accessibilityIdentifier = TestID.Buy.yourCode
+
         // Corner radii
         self.cardBackgroundView.layer.cornerRadius = 20
         self.yourIbanView.layer.cornerRadius = 13

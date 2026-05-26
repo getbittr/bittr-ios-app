@@ -6,8 +6,20 @@
 //
 
 import UIKit
+import ObjectiveC.runtime
 
 private var thisVC:UIViewController?
+
+private struct AlertManagerAssociatedKeys {
+    static var bottomConstraint: UInt8 = 0
+}
+
+private extension UIView {
+    var alertBottomConstraint: NSLayoutConstraint? {
+        get { objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.bottomConstraint) as? NSLayoutConstraint }
+        set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.bottomConstraint, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+}
 
 extension UIViewController {
     
@@ -28,7 +40,7 @@ extension UIViewController {
             let darkBackgroundLeft = NSLayoutConstraint(item: darkBackground, attribute: .leading, relatedBy: .equal, toItem: presentingController.view, attribute: .leading, multiplier: 1, constant: 0)
             let darkBackgroundRight = NSLayoutConstraint(item: darkBackground, attribute: .trailing, relatedBy: .equal, toItem: presentingController.view, attribute: .trailing, multiplier: 1, constant: 0)
             presentingController.view.addConstraints([darkBackgroundTop, darkBackgroundLeft, darkBackgroundRight, darkBackgroundBottom])
-            darkBackground.accessibilityElements = [darkBackgroundBottom]
+            darkBackground.alertBottomConstraint = darkBackgroundBottom
             
             // Card
             let yellowCard = UIView()
@@ -208,6 +220,7 @@ extension UIViewController {
                 buttonLabel.text = eachButton
                 buttonLabel.textColor = Colors.getColor("blackorwhite")
                 buttonLabel.textAlignment = .center
+                buttonLabel.isAccessibilityElement = false
                 closeView.addSubview(buttonLabel)
                 let buttonLabelCenterX = NSLayoutConstraint(item: buttonLabel, attribute: .centerX, relatedBy: .equal, toItem: closeView, attribute: .centerX, multiplier: 1, constant: 0)
                 let buttonLabelCenterY = NSLayoutConstraint(item: buttonLabel, attribute: .centerY, relatedBy: .equal, toItem: closeView, attribute: .centerY, multiplier: 1, constant: 1)
@@ -221,6 +234,8 @@ extension UIViewController {
                 mainButton.translatesAutoresizingMaskIntoConstraints = false
                 mainButton.setTitle("", for: .normal)
                 mainButton.backgroundColor = .clear
+                mainButton.accessibilityLabel = eachButton
+                mainButton.accessibilityIdentifier = "alert.button.\(index)"
                 if actions?[index] == nil {
                     mainButton.addTarget(self, action: #selector(self.hideAlert), for: .touchUpInside)
                 } else {
@@ -257,7 +272,7 @@ extension UIViewController {
         if thisVC != nil {
             for eachView in thisVC!.view.subviews {
                 if eachView.accessibilityIdentifier == "alertview" {
-                    if eachView.subviews.count == 1, let yellowCard = eachView.subviews.first, var darkBackgroundBottom = eachView.accessibilityElements?.first as? NSLayoutConstraint {
+                    if eachView.subviews.count == 1, let yellowCard = eachView.subviews.first, var darkBackgroundBottom = eachView.alertBottomConstraint {
                         
                         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
                             eachView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)

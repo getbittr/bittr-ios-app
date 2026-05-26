@@ -55,6 +55,9 @@ class SwapStatusViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.confirmCard.accessibilityIdentifier = TestID.SwapStatus.confirmCard
+        self.confirmStatusLabel.accessibilityIdentifier = TestID.SwapStatus.confirmStatusLabel
+
         // Button titles
         self.confirmStatusButton.setTitle("", for: .normal)
         self.downloadButton.setTitle("", for: .normal)

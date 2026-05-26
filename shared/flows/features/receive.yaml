@@ -1,0 +1,44 @@
+# Feature test: receive flow.
+# Assumes a wallet exists. If the test launches and finds itself on Signup1
+# (state was wiped), it auto-runs the onboarding subflow first so the test
+# can be invoked in isolation.
+#
+# Run: maestro test shared/flows/features/receive.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/receive/01_home
+
+# Open Receive screen.
+- tapOn:
+    id: "home.receiveButton"
+
+# ReceiveViewController loads async (lightning availability check, address
+# generation, QR rendering). Wait for the address title to settle.
+- assertVisible:
+    id: "receive.addressTitle"
+- assertVisible:
+    id: "receive.addressLabel"
+- assertVisible:
+    id: "receive.qrImageView"
+- takeScreenshot: shared/docs/screenshots/receive/02_receive_screen

@@ -53,7 +53,12 @@ class MoveViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+        self.subtitleLabel.accessibilityIdentifier = TestID.Move.subtitleLabel
+        self.satsTotal.accessibilityIdentifier = TestID.Move.satsTotal
+        self.swapButton.accessibilityIdentifier = TestID.Move.swapButton
+        self.swapButton.accessibilityLabel = "Swap"
+
         // Set language and colors.
         self.setBasicStyling()
         self.updateLabels()
