@@ -8,7 +8,7 @@
 import UIKit
 import WebKit
 
-class WebsiteViewController: UIViewController, WKUIDelegate {
+class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandler {
 
     // UI elements
     @IBOutlet weak var topBar: UIView!
@@ -20,14 +20,41 @@ class WebsiteViewController: UIViewController, WKUIDelegate {
     // Variables
     var tappedUrl:String?
     var webView = WKWebView()
+    var pendingLnurlAuth:LNURLAuthRequest?
+    var isHandlingLnurlAuth = false
     
     override func loadView() {
         super.loadView()
         
         let webConfiguration = WKWebViewConfiguration()
+        let contentController = WKUserContentController()
+        
+        let script = """
+            const observer = new MutationObserver(() => {
+                const links = Array.from(document.querySelectorAll('a'))
+                    .map(a => a.href)
+                    .filter(h => h.toLowerCase().includes('lnurl') || h.toLowerCase().startsWith('lightning:'));
+                
+                if (links.length > 0) {
+                    window.webkit.messageHandlers.lnurl.postMessage(links[0]);
+                }
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+            """
+        
+        let userScript = WKUserScript(
+            source: script,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(userScript)
+        contentController.add(self, name: "lnurl")
+        webConfiguration.userContentController = contentController
+        
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
         webView.uiDelegate = self
-        webView.navigationDelegate = self as? WKNavigationDelegate
+        webView.navigationDelegate = self
         
         // Set colors
         self.changeColors()
@@ -84,6 +111,32 @@ class WebsiteViewController: UIViewController, WKUIDelegate {
         self.topBar.backgroundColor = Colors.getColor("yelloworblue1")
         self.view.backgroundColor = Colors.getColor("whiteorblue2")
         self.websiteView.backgroundColor = Colors.getColor("whiteorblue2")
+    }
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        
+        let absolute = url.absoluteString.lowercased()
+        if absolute.hasPrefix("lightning:") || absolute.hasPrefix("lnurl") || absolute.contains("tag=login") {
+            self.isHandlingLnurlAuth = true
+            self.handleLNURL(code: absolute.replacingOccurrences(of: "lightning:", with: ""))
+            decisionHandler(.cancel)
+            return
+        }
+        
+        decisionHandler(.allow)
+    }
+    
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        
+        if !self.isHandlingLnurlAuth, message.name == "lnurl", let url = message.body as? String {
+            print("Did find URL: \(url)")
+            self.isHandlingLnurlAuth = true
+            self.handleLNURL(code: url.replacingOccurrences(of: "lightning:", with: ""))
+        }
     }
     
 }
