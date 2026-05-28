@@ -125,49 +125,66 @@ extension UIViewController {
     
     @objc func askForPushNotifications() {
         self.hideAlert()
-        
+
         let homeVC = self as? HomeViewController
         let swapVC = self as? SwapViewController
         let transfer15VC = self as? Transfer2ViewController
         let deviceVC = self as? DeviceViewController
-        
+
+        // UNUserNotificationCenter.getNotificationSettings fires its completion
+        // on a background queue. Calling requestAuthorization off-main on newer
+        // iOS / simulator versions silently fails to present the system prompt
+        // (so Transfer2's Next-button spinner hangs forever waiting for
+        // didRegisterForRemoteNotificationsWithDeviceToken that never fires).
+        // Hop to main for the system-UI work; nest the inner completions too
+        // since they're also delivered on a background queue.
         let current = UNUserNotificationCenter.current()
         current.getNotificationSettings { (settings) in
-            
-            if settings.authorizationStatus == .notDetermined {
-                // User hasn't set their preference yet.
-                
-                current.delegate = (homeVC ?? swapVC ?? transfer15VC ?? deviceVC)
-                current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-                    
-                    Log.info("Permission granted: \(granted)")
-                    guard granted else {
+            DispatchQueue.main.async {
+
+                switch settings.authorizationStatus {
+                case .notDetermined:
+                    // User hasn't set their preference yet — show system prompt.
+                    current.delegate = (homeVC ?? swapVC ?? transfer15VC ?? deviceVC)
+                    current.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+                        Log.info("Permission granted: \(granted)")
+
                         DispatchQueue.main.async {
-                            transfer15VC?.checkPushNotificationStatus()
+                            guard granted else {
+                                transfer15VC?.checkPushNotificationStatus()
+                                return
+                            }
+
+                            // Double check that the preference is now authorized.
+                            current.getNotificationSettings { (updatedSettings) in
+                                DispatchQueue.main.async {
+                                    Log.info("Notification settings: \(updatedSettings)")
+                                    guard updatedSettings.authorizationStatus == .authorized else {
+                                        transfer15VC?.checkPushNotificationStatus()
+                                        return
+                                    }
+                                    transfer15VC?.start2Fa = true
+                                    UIApplication.shared.registerForRemoteNotifications()
+                                }
+                            }
                         }
-                        return
                     }
-                    
-                    // Double check that the preference is now authorized.
-                    current.getNotificationSettings { (updatedSettings) in
-                        Log.info("Notification settings: \(updatedSettings)")
-                        guard updatedSettings.authorizationStatus == .authorized else {
-                            transfer15VC?.checkPushNotificationStatus()
-                            return
-                        }
-                        DispatchQueue.main.async {
-                            // Register for notifications.
-                            transfer15VC?.start2Fa = true
-                            UIApplication.shared.registerForRemoteNotifications()
-                        }
-                    }
-                }
-            } else if settings.authorizationStatus == .authorized {
-                // User has already authorized notifications.
-                DispatchQueue.main.async {
-                    // Register for notifications.
+
+                case .authorized, .provisional, .ephemeral:
+                    // Already authorized in some form — register and let
+                    // didRegisterForRemoteNotificationsWithDeviceToken trigger
+                    // resume2Fa.
                     transfer15VC?.start2Fa = true
                     UIApplication.shared.registerForRemoteNotifications()
+
+                case .denied:
+                    // User previously denied notifications. Without them the
+                    // 2FA flow can't continue, so stop the spinner instead of
+                    // hanging silently.
+                    transfer15VC?.cancelLoading()
+
+                @unknown default:
+                    transfer15VC?.cancelLoading()
                 }
             }
         }
