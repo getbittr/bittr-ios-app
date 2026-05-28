@@ -142,7 +142,9 @@ extension UIViewController {
                     
                     Log.info("Permission granted: \(granted)")
                     guard granted else {
-                        transfer15VC?.checkPushNotificationStatus()
+                        DispatchQueue.main.async {
+                            transfer15VC?.checkPushNotificationStatus()
+                        }
                         return
                     }
                     
