@@ -46,7 +46,7 @@ class DeviceTableViewCell: UITableViewCell {
     }
     
     @IBAction func cellTapped(_ sender: UIButton) {
-        switch sender.accessibilityIdentifier! {
+        switch sender.boundString ?? "" {
         case "language":
             self.deviceVC?.changeLanguage()
         case "devicetoken":
