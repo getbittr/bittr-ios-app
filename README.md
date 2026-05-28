@@ -62,6 +62,11 @@ maestro test shared/flows/features/buy_incoming.yaml
 maestro test shared/flows/features/buy_more.yaml
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/swap.yaml
+
+# Forgot-PIN recovery test — must go through the wrapper, which reads the
+# wallet's mnemonic out of the simulator's UserDefaults and passes it as
+# --env MNEMONIC=... (the flow types those words on the RestoreVC screen):
+./shared/flows/scripts/run_forgot_pin.sh
 ```
 
 Screenshots land in `shared/docs/screenshots/<flow_name>/<step>.png`.
