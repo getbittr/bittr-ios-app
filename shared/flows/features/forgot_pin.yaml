@@ -1,54 +1,75 @@
 # Feature test: the "Forgot PIN" recovery path.
 #
-# The user has an existing wallet with a PIN. On the unlock screen they tap
-# "Forgot PIN", confirm the reset alert, re-enter their 12-word mnemonic in
-# RestoreVC, set a new PIN, and confirm it. The flow lands back on Home with
-# the same wallet still attached.
+# Prerequisite: an existing wallet on the simulator. The flow preserves state
+# (no clearState / clearKeychain) — same starting style as buy_incoming.yaml
+# and swap.yaml.
 #
-# Self-contained: clears state, runs onboarding (happy_path) to create a
-# wallet + capture output.words[1..12], relaunches to surface the PIN unlock
-# screen, then exercises the forgot-PIN path using those captured words.
-# Mnemonic comparison is against CacheManager.getMnemonic() — same string the
-# happy_path wallet creation stored.
+# Mnemonic injection: this flow can't read the cached mnemonic from inside
+# the simulator (Maestro's runScript only has http access, no shell or
+# filesystem), so the 12 words must come in via a Maestro env var:
 #
-# Run: maestro test shared/flows/features/forgot_pin.yaml
+#   maestro test --env MNEMONIC="word1 word2 ... word12" \
+#     shared/flows/features/forgot_pin.yaml
+#
+# or, easier, use the helper that reads the mnemonic from the booted
+# simulator's UserDefaults and invokes maestro for you:
+#
+#   ./shared/flows/scripts/run_forgot_pin.sh
+#
+# Flow:
+#   1. Launch (preserve state). If the unlock screen is showing (expected
+#      after a non-fresh launch), tap "Forgot PIN" instead of unlocking.
+#   2. Tap Reset on the in-app confirmation alert.
+#   3. Type the 12 mnemonic words into RestoreVC and tap Reset PIN. The
+#      app verifies them against CacheManager.getMnemonic() before
+#      proceeding.
+#   4. Set new PIN 1234 (matches helpers/unlock.yaml so subsequent feature
+#      tests still unlock cleanly).
+#   5. Confirm new PIN 1234.
+#   6. Land on Home with the same wallet attached.
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp:
-    clearState: true
-    clearKeychain: true
-
-# Onboard from scratch so the mnemonic is captured into output.words[1..12].
-- runFlow: ../onboarding/happy_path.yaml
-
-- takeScreenshot: shared/docs/screenshots/forgot_pin/01_home
-
-# Cold-relaunch the app so the unlock screen (PinVC in .core embedding)
-# appears — checkWalletAvailability re-fires on launch and sees the cached
-# mnemonic + PIN.
 - launchApp
+
+# Split the env-var mnemonic into a 1-indexed object so the inputText calls
+# below match the same `output.words[N]` pattern happy_path uses.
+- evalScript: |
+    if (typeof MNEMONIC === 'undefined' || !MNEMONIC) {
+      throw new Error('MNEMONIC env var not set. Run via shared/flows/scripts/run_forgot_pin.sh, or pass --env MNEMONIC="<12 words>".');
+    }
+    var parts = MNEMONIC.trim().split(/\s+/);
+    if (parts.length !== 12) {
+      throw new Error('MNEMONIC must contain exactly 12 words, got ' + parts.length);
+    }
+    output.words = {};
+    for (var i = 0; i < 12; i++) {
+      output.words[i + 1] = parts[i];
+    }
+
+# Wallet was set up previously, so launch lands on the PIN unlock screen
+# (PinVC in .core embedding). Fail loudly otherwise — running this on a
+# fresh install would have nothing in CacheManager.getMnemonic() to match.
 - assertVisible:
     id: "unlock.topLabel"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/02_unlock
+- takeScreenshot: shared/docs/screenshots/forgot_pin/01_unlock
 
-# Tap "Forgot PIN" (PinVC's restoreButton in .core embedding).
+# Tap "Forgot PIN".
 - tapOn:
     id: "pin.restoreButton"
 
-# In-app alert appears: [Cancel, Reset]. Tap Reset (index 1).
+# In-app alert: [Cancel, Reset]. Tap Reset (index 1).
 - assertVisible:
     id: "alert.button.1"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/03_reset_alert
+- takeScreenshot: shared/docs/screenshots/forgot_pin/02_reset_alert
 - tapOn:
     id: "alert.button.1"
 
 # RestoreViewController opens — 12 mnemonic fields + Reset PIN button.
 - assertVisible:
     id: "signup.restore.topLabel"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/04_restore_initial
+- takeScreenshot: shared/docs/screenshots/forgot_pin/03_restore_initial
 
-# Enter the 12-word mnemonic captured by happy_path.
 - tapOn:
     id: "signup.restore.field1"
 - inputText: ${output.words[1]}
@@ -91,17 +112,18 @@ appId: com.bittr.bittr-regtest
 # to RestoreVC.backgroundButtonTapped which calls endEditing(true).
 - tapOn:
     id: "signup.restore.topLabel"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/05_restore_filled
+- takeScreenshot: shared/docs/screenshots/forgot_pin/04_restore_filled
 
-# Tap Reset PIN to verify the entered mnemonic against the cached one.
+# Tap Reset PIN — RestoreVC checks the typed words against
+# CacheManager.getMnemonic() and advances on match.
 - tapOn:
     id: "signup.restore.nextButton"
 
-# Set new PIN (Restore2: PinVC in .restore2 embedding). Use 1234 to match
-# the rest of the test suite (helpers/unlock.yaml).
+# Set new PIN (Restore2: PinVC in .restore2 embedding). 1234 matches the
+# helpers/unlock.yaml convention so subsequent feature tests still unlock.
 - assertVisible:
     id: "signup.restore.pinSet.topLabel"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/06_pin_set_initial
+- takeScreenshot: shared/docs/screenshots/forgot_pin/05_pin_set_initial
 - tapOn:
     id: "pin.button1"
 - tapOn:
@@ -110,14 +132,14 @@ appId: com.bittr.bittr-regtest
     id: "pin.button3"
 - tapOn:
     id: "pin.button4"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/07_pin_set_entered
+- takeScreenshot: shared/docs/screenshots/forgot_pin/06_pin_set_entered
 - tapOn:
     id: "pin.confirmButton"
 
 # Confirm new PIN (Restore3: PinVC in .restore3 embedding).
 - assertVisible:
     id: "signup.restore.pinConfirm.topLabel"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/08_pin_confirm_initial
+- takeScreenshot: shared/docs/screenshots/forgot_pin/07_pin_confirm_initial
 - tapOn:
     id: "pin.button1"
 - tapOn:
@@ -126,12 +148,12 @@ appId: com.bittr.bittr-regtest
     id: "pin.button3"
 - tapOn:
     id: "pin.button4"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/09_pin_confirm_entered
+- takeScreenshot: shared/docs/screenshots/forgot_pin/08_pin_confirm_entered
 - tapOn:
     id: "pin.confirmButton"
 
-# Restore3's nextButtonTapped sets userHasSignedIn / resettingPin = false and
+# Restore3.nextButtonTapped sets userHasSignedIn / resettingPin = false and
 # hides the signup container. Home reappears with the same wallet.
 - assertVisible:
     id: "home.headerLabel"
-- takeScreenshot: shared/docs/screenshots/forgot_pin/10_home
+- takeScreenshot: shared/docs/screenshots/forgot_pin/09_home
