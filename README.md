@@ -23,7 +23,10 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
 
 ### One-time setup
 
-1. **Xcode + iOS Simulator** — install from the App Store. Open `ios/bittr.xcodeproj` and pick an iPhone 15 simulator.
+1. **Xcode + iOS Simulator** — install from the App Store. Open `ios/bittr.xcodeproj` and pick an iPhone 15 simulator. Then point the active developer dir at Xcode (not the Command Line Tools) so Maestro can find `simctl`:
+   ```sh
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   ```
 2. **Maestro**:
   ```sh
    curl -fsSL "https://get.maestro.mobile.dev" | bash
@@ -67,6 +70,7 @@ Some flows expect specific prior state (e.g. `swap.yaml` assumes the lightning c
 
 ### Troubleshooting
 
+- **`Not enough devices connected (0) to run the requested number of shards (1)`** — `xcode-select -p` is pointing at `/Library/Developer/CommandLineTools` instead of Xcode, so Maestro can't find `simctl`. Re-run the `sudo xcode-select -s ...` command from setup step 1.
 - `**push_notification.js: helper returned ...**` — the Node helper isn't running. Start it in Terminal A.
 - **Flow fails on the first screen** — the simulator may not have the regtest app installed, or it's installed but not booted. Open it via Xcode once.
 - **Backend errors (`/e2e/...` 502/504)** — the hosted regtest backend at `staging.getbittr.com` is down or unreachable. See `shared/docs/regtest.md`.
