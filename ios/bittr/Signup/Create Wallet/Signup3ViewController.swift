@@ -152,7 +152,7 @@ class Signup3ViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        if let slug = sender.articleSlug {
+        if let slug = sender.boundString {
             self.coreVC!.launchArticle(articleTag: slug)
         }
     }

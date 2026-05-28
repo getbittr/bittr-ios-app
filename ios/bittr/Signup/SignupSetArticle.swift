@@ -7,16 +7,6 @@
 
 import UIKit
 
-private var articleSlugKey: UInt8 = 0
-
-extension UIButton {
-    // Associated-object storage so accessibilityIdentifier stays free for Maestro test IDs.
-    var articleSlug: String? {
-        get { objc_getAssociatedObject(self, &articleSlugKey) as? String }
-        set { objc_setAssociatedObject(self, &articleSlugKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-}
-
 extension UIViewController {
 
     func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView, completion: @escaping (Article?) -> Void) async {
@@ -25,7 +15,7 @@ extension UIViewController {
 
             switch result {
             case .success(let receivedArticle):
-                articleButton.articleSlug = articleSlug
+                articleButton.boundString = articleSlug
                 articleTitle.text = receivedArticle.title
                 articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
                 completion(receivedArticle)
