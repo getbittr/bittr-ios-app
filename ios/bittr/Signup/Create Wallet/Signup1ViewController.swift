@@ -109,8 +109,8 @@ class Signup1ViewController: UIViewController {
     }
     
     @IBAction func articleButtonTapped(_ sender: UIButton) {
-        if sender.accessibilityIdentifier != nil {
-            self.coreVC!.launchArticle(articleTag: "\(sender.accessibilityIdentifier!)")
+        if let slug = sender.articleSlug {
+            self.coreVC!.launchArticle(articleTag: slug)
         }
     }
     
