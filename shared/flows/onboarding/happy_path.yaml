@@ -104,7 +104,14 @@ appId: com.bittr.bittr-regtest
 # Dismiss the keyboard — it covers the Next button so a direct tap can't
 # reach it. Signup4's textFieldDidEndEditing auto-triggers nextButtonTapped
 # once field3 loses focus and all 3 words match.
-- hideKeyboard
+#
+# We tap the topLabel (a UILabel — non-interactive, isUserInteractionEnabled
+# = false by default) instead of using `- hideKeyboard`; that tap falls
+# through to the VC's backgroundButtonTapped which calls endEditing(true).
+# Maestro's hideKeyboard is unreliable across simulator keyboard-mode
+# changes (e.g. after toggling the software keyboard via Cmd+K).
+- tapOn:
+    id: "signup.create.verify.topLabel"
 - takeScreenshot: shared/docs/screenshots/onboarding/07_verify_filled
 
 # Set new PIN (Signup5). 4 digits is the minimum.
