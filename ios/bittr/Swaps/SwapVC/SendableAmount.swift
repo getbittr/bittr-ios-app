@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import BitcoinDevKit
 import LDKNode
 import Sentry
 
@@ -99,11 +100,37 @@ extension SwapViewController {
                         sizeinVbytes = try BitcoinManager.shared.getSize(address: actualAddress, amountSats: maximumSendableOnchainSats)
                     } catch {
                         Log.info("Error: \(error.localizedDescription)")
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SwapVC row 308", key: "context")
+
+                        // bdkWalletHasBeenScanned is sticky — set once on first
+                        // sync and never cleared — so the guard at the top of
+                        // this function doesn't catch the case where BDK has
+                        // scanned in the past but is now stale (e.g. a swap
+                        // claim just landed onchain, so LDK Node sees the new
+                        // UTXO but BDK hasn't rescanned). Detect that here:
+                        // if BDK rejects with insufficient funds while LDK
+                        // Node reports a non-zero balance, force a rescan and
+                        // recompute once it finishes.
+                        var bdkLooksStale = false
+                        if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                            switch bdkError {
+                            case .CoinSelection, .InsufficientFunds:
+                                bdkLooksStale = self.coreVC!.bittrWallet.satoshisOnchain > 0
+                            default:
+                                break
+                            }
                         }
+
                         DispatchQueue.main.async {
-                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                            if bdkLooksStale && !self.didRescanForStaleBdk {
+                                Log.info("BDK looks stale (LDK Node onchain balance: \(self.coreVC!.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
+                                self.didRescanForStaleBdk = true
+                                self.bdkWalletUnavailable()
+                            } else {
+                                SentrySDK.capture(error: error) { scope in
+                                    scope.setExtra(value: "SwapVC row 308", key: "context")
+                                }
+                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                            }
                         }
                         return
                     }
