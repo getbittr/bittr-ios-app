@@ -91,9 +91,9 @@ class Transfer3ViewController: UIViewController {
                 self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
                 self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
                 
-                self.ibanButton.accessibilityIdentifier = eachIbanEntity.ourIbanNumber
-                self.nameButton.accessibilityIdentifier = eachIbanEntity.ourName
-                self.codeButton.accessibilityIdentifier = eachIbanEntity.yourUniqueCode
+                self.ibanButton.boundString = eachIbanEntity.ourIbanNumber
+                self.nameButton.boundString = eachIbanEntity.ourName
+                self.codeButton.boundString = eachIbanEntity.yourUniqueCode
             }
         }
     }
@@ -135,10 +135,11 @@ class Transfer3ViewController: UIViewController {
     }
     
     @IBAction func copyItem(_ sender: UIButton) {
-        
+
         // Copy details to clipboard.
-        UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+        let value = sender.boundString ?? ""
+        UIPasteboard.general.string = value
+        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "copied"), message: value, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func changeColors() {

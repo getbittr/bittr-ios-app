@@ -104,9 +104,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             cell.labelOurName.text = self.allIbanEntities[indexPath.row].ourName
             cell.labelYourCode.text = self.allIbanEntities[indexPath.row].yourUniqueCode
             
-            cell.ibanButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourIbanNumber
-            cell.nameButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].ourName
-            cell.codeButton.accessibilityIdentifier = self.allIbanEntities[indexPath.row].yourUniqueCode
+            cell.ibanButton.boundString = self.allIbanEntities[indexPath.row].ourIbanNumber
+            cell.nameButton.boundString = self.allIbanEntities[indexPath.row].ourName
+            cell.codeButton.boundString = self.allIbanEntities[indexPath.row].yourUniqueCode
             
             return cell
         } else {
@@ -161,9 +161,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
 
     @IBAction func copyItem(_ sender: UIButton) {
-        
-        UIPasteboard.general.string = sender.accessibilityIdentifier
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: sender.accessibilityIdentifier ?? "", buttons: [Language.getWord(withID: "okay")], actions: nil)
+
+        let value = sender.boundString ?? ""
+        UIPasteboard.general.string = value
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: value, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func getDepositCodeData() {

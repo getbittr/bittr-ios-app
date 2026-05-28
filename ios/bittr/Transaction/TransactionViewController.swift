@@ -376,42 +376,42 @@ class TransactionViewController: UIViewController {
                 // Top ID
                 self.titleTopId.text = Language.getWord(withID: "onchainid")
                 self.labelTopId.text = self.tappedTransaction.onchainID
-                self.copyButtonTopId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                self.copyButtonTopId.boundString = self.tappedTransaction.onchainID
                 // Top URL
                 self.urlStackTopId.alpha = 1
                 self.urlStackTopIdWidth.constant = 22
-                self.urlButtonTopId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                self.urlButtonTopId.boundString = self.tappedTransaction.onchainID
                 // Bottom ID and URL
                 switch self.tappedTransaction.swapStatus {
                 case .succeeded:
                     self.titleBottomId.text = Language.getWord(withID: "lightningid")
                     self.labelBottomId.text = self.tappedTransaction.lightningID
-                    self.copyButtonBottomId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                    self.copyButtonBottomId.boundString = self.tappedTransaction.lightningID
                 case .pending:
                     self.titleBottomId.text = Language.getWord(withID: "lightningid")
                     self.labelBottomId.text = Language.getWord(withID: "expecting")
                 case .failed:
                     self.titleBottomId.text = Language.getWord(withID: "refundid")
                     self.labelBottomId.text = self.tappedTransaction.lightningID
-                    self.copyButtonBottomId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                    self.copyButtonBottomId.boundString = self.tappedTransaction.lightningID
                     self.urlStackBottomId.alpha = 1
                     self.urlStackBottomIdWidth.constant = 22
-                    self.urlButtonBottomId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                    self.urlButtonBottomId.boundString = self.tappedTransaction.lightningID
                 }
             } else if self.tappedTransaction.swapDirection == .lightningToOnchain {
                 // Top ID
                 self.titleTopId.text = Language.getWord(withID: "lightningid")
                 self.labelTopId.text = self.tappedTransaction.lightningID
-                self.copyButtonTopId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                self.copyButtonTopId.boundString = self.tappedTransaction.lightningID
                 // Bottom ID and URL
                 switch self.tappedTransaction.swapStatus {
                 case .succeeded:
                     self.titleBottomId.text = Language.getWord(withID: "onchainid")
                     self.labelBottomId.text = self.tappedTransaction.onchainID
-                    self.copyButtonBottomId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                    self.copyButtonBottomId.boundString = self.tappedTransaction.onchainID
                     self.urlStackBottomId.alpha = 1
                     self.urlStackBottomIdWidth.constant = 22
-                    self.urlButtonBottomId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                    self.urlButtonBottomId.boundString = self.tappedTransaction.onchainID
                 case .pending:
                     self.titleBottomId.text = Language.getWord(withID: "onchainid")
                     self.labelBottomId.text = Language.getWord(withID: "expecting")
@@ -424,11 +424,11 @@ class TransactionViewController: UIViewController {
             // Onchain or Lightning transaction.
             self.titleTopId.text = Language.getWord(withID: "id")
             self.labelTopId.text = self.tappedTransaction.id
-            self.copyButtonTopId.accessibilityIdentifier = self.tappedTransaction.id
+            self.copyButtonTopId.boundString = self.tappedTransaction.id
             if !self.tappedTransaction.isLightning {
                 self.urlStackTopId.alpha = 1
                 self.urlStackTopIdWidth.constant = 22
-                self.urlButtonTopId.accessibilityIdentifier = self.tappedTransaction.id
+                self.urlButtonTopId.boundString = self.tappedTransaction.id
             }
         }
         
@@ -573,8 +573,8 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func idButtonTapped(_ sender: UIButton) {
-        
-        if let thisId = sender.accessibilityIdentifier {
+
+        if let thisId = sender.boundString {
             UIPasteboard.general.string = thisId
             self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: thisId, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
@@ -600,7 +600,7 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func openUrlButtonTapped(_ sender: UIButton) {
-        if let thisUrl = sender.accessibilityIdentifier {
+        if let thisUrl = sender.boundString {
             self.tappedUrl = "\(EnvironmentConfig.explorerURL)/tx/\(thisUrl)?mode=details"
             self.performSegue(withIdentifier: "TransactionToWebsite", sender: self)
         }
