@@ -6,15 +6,11 @@
 //
 //   maestro test --env MNEMONIC="word1 word2 ... word12" \
 //     shared/flows/features/forgot_pin.yaml
-//
-// or, easier, via shared/flows/scripts/run_forgot_pin.sh which reads the
-// mnemonic from the booted simulator's UserDefaults.
 
 if (typeof MNEMONIC === 'undefined' || !MNEMONIC) {
     throw new Error(
-        'parse_mnemonic.js: MNEMONIC env var is not set. ' +
-        'Run via shared/flows/scripts/run_forgot_pin.sh, or pass ' +
-        '`maestro test --env MNEMONIC="<12 words>" ...` manually.'
+        'parse_mnemonic.js: MNEMONIC env var is not set. Pass ' +
+        '`maestro test --env MNEMONIC="<12 words>" ...`.'
     );
 }
 

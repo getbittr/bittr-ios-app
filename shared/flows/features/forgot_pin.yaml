@@ -6,15 +6,10 @@
 #
 # Mnemonic injection: this flow can't read the cached mnemonic from inside
 # the simulator (Maestro's runScript only has http access, no shell or
-# filesystem), so the 12 words must come in via a Maestro env var:
+# filesystem), so the 12 words must come in via the MNEMONIC env var:
 #
 #   maestro test --env MNEMONIC="word1 word2 ... word12" \
 #     shared/flows/features/forgot_pin.yaml
-#
-# or, easier, use the helper that reads the mnemonic from the booted
-# simulator's UserDefaults and invokes maestro for you:
-#
-#   ./shared/flows/scripts/run_forgot_pin.sh
 #
 # Flow:
 #   1. Launch (preserve state). If the unlock screen is showing (expected

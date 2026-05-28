@@ -64,13 +64,8 @@ maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/swap.yaml
 
 # Forgot-PIN recovery test — needs the wallet's 12-word mnemonic so the
-# flow can type it on the RestoreVC screen. Pass it directly:
+# flow can type it on the RestoreVC screen. Pass it via --env:
 maestro test --env MNEMONIC="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12" shared/flows/features/forgot_pin.yaml
-
-# (There's also a wrapper at shared/flows/scripts/run_forgot_pin.sh that
-# tries to read the mnemonic out of the simulator's UserDefaults
-# automatically. It works when `simctl spawn defaults read` can reach the
-# app's prefs; fall back to the manual --env command above when it can't.)
 ```
 
 Screenshots land in `shared/docs/screenshots/<flow_name>/<step>.png`.
