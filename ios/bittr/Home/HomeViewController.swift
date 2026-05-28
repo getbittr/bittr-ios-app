@@ -324,7 +324,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !didFindDuplicateTransaction {
             // Update balance and transactions.
-            self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+            // Skip the += for funding transactions: .channelReady triggers
+            // syncLDKnode → loadWalletData, which resets satoshisLightning to
+            // 0 and recomputes from listChannels(). Adding received here on
+            // top of that double-counts the balance.
+            if !thisTransaction.isFundingTransaction {
+                self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+            }
             self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
             
             if paymentDetails != nil {
