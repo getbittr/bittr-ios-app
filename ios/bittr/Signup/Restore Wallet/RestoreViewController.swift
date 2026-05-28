@@ -70,6 +70,22 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Test IDs
+        self.topLabel.accessibilityIdentifier = TestID.Signup.Restore.topLabel
+        self.restoreButton.accessibilityIdentifier = TestID.Signup.Restore.nextButton
+        self.mnemonic1.accessibilityIdentifier = TestID.Signup.Restore.field1
+        self.mnemonic2.accessibilityIdentifier = TestID.Signup.Restore.field2
+        self.mnemonic3.accessibilityIdentifier = TestID.Signup.Restore.field3
+        self.mnemonic4.accessibilityIdentifier = TestID.Signup.Restore.field4
+        self.mnemonic5.accessibilityIdentifier = TestID.Signup.Restore.field5
+        self.mnemonic6.accessibilityIdentifier = TestID.Signup.Restore.field6
+        self.mnemonic7.accessibilityIdentifier = TestID.Signup.Restore.field7
+        self.mnemonic8.accessibilityIdentifier = TestID.Signup.Restore.field8
+        self.mnemonic9.accessibilityIdentifier = TestID.Signup.Restore.field9
+        self.mnemonic10.accessibilityIdentifier = TestID.Signup.Restore.field10
+        self.mnemonic11.accessibilityIdentifier = TestID.Signup.Restore.field11
+        self.mnemonic12.accessibilityIdentifier = TestID.Signup.Restore.field12
+
         // Corner radii
         self.mnemonicView.layer.cornerRadius = 13
         self.restoreView.layer.cornerRadius = 13

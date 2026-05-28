@@ -111,6 +111,28 @@
         "skipButton": null
       }
     },
+    "restore": {
+      "topLabel": null,
+      "field1": null,
+      "field2": null,
+      "field3": null,
+      "field4": null,
+      "field5": null,
+      "field6": null,
+      "field7": null,
+      "field8": null,
+      "field9": null,
+      "field10": null,
+      "field11": null,
+      "field12": null,
+      "nextButton": null,
+      "pinSet": {
+        "topLabel": null
+      },
+      "pinConfirm": {
+        "topLabel": null
+      }
+    },
     "bittr": {
       "start": {
         "topLabelOne": null,

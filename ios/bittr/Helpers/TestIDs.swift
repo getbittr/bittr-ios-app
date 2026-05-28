@@ -135,6 +135,28 @@ enum TestID {
                 static let topLabel = "signup.create.verify.topLabel"
             }
         }
+        enum Restore {
+            static let field1 = "signup.restore.field1"
+            static let field10 = "signup.restore.field10"
+            static let field11 = "signup.restore.field11"
+            static let field12 = "signup.restore.field12"
+            static let field2 = "signup.restore.field2"
+            static let field3 = "signup.restore.field3"
+            static let field4 = "signup.restore.field4"
+            static let field5 = "signup.restore.field5"
+            static let field6 = "signup.restore.field6"
+            static let field7 = "signup.restore.field7"
+            static let field8 = "signup.restore.field8"
+            static let field9 = "signup.restore.field9"
+            static let nextButton = "signup.restore.nextButton"
+            enum PinConfirm {
+                static let topLabel = "signup.restore.pinConfirm.topLabel"
+            }
+            enum PinSet {
+                static let topLabel = "signup.restore.pinSet.topLabel"
+            }
+            static let topLabel = "signup.restore.topLabel"
+        }
     }
     enum Swap {
         static let amountTextField = "swap.amountTextField"

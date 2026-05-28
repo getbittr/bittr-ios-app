@@ -110,11 +110,13 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             self.restoreButtonView.alpha = 1
         case .restore2:
             self.topLabel.text = Language.getWord(withID: "setapin")
+            self.topLabel.accessibilityIdentifier = TestID.Signup.Restore.PinSet.topLabel
             self.nextButtonLabel.text = Language.getWord(withID: "next")
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
         case .restore3:
             self.topLabel.text = Language.getWord(withID: "confirmyourpin")
+            self.topLabel.accessibilityIdentifier = TestID.Signup.Restore.PinConfirm.topLabel
             self.nextButtonLabel.text = Language.getWord(withID: "confirm")
             self.restoreButtonLabel.text = Language.getWord(withID: "back")
             self.restoreButtonView.alpha = 1
