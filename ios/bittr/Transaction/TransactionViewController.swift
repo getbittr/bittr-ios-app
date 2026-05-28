@@ -312,8 +312,12 @@ class TransactionViewController: UIViewController {
             self.feesStackHeight.constant = 55
             self.feesStack.alpha = 1
             if self.tappedTransaction.swapStatus != .pending {
-                // Completed or failed swap.
-                self.labelFees.text = "\(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+                // Completed or failed swap. Total cost = implicit Boltz spread
+                // (sent - received) + user-paid network fee (e.g. the onchain
+                // fee on an onchain→lightning swap, summed into .fee by
+                // performSwapMatching).
+                let totalFees = self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee
+                self.labelFees.text = "\(String(totalFees).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             } else {
                 // Pending swap.
                 if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
@@ -436,7 +440,7 @@ class TransactionViewController: UIViewController {
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         let transactionValue:CGFloat = {
             if self.tappedTransaction.isSwap {
-                return (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
+                return (self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee).inBTC()
             } else {
                 return (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee).inBTC()
             }
