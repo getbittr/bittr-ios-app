@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0509EFBA2FC7FC1F003488D4 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0509EFB92FC7FC1F003488D4 /* UIButton.swift */; };
 		050B4BAE2A16579D00563F29 /* SettingsTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BAD2A16579D00563F29 /* SettingsTableViewCell.swift */; };
 		050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB02A1BBB9600563F29 /* SignupViewController.swift */; };
 		050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */; };
@@ -218,6 +219,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0509EFB92FC7FC1F003488D4 /* UIButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIButton.swift; sourceTree = "<group>"; };
 		050B4BAD2A16579D00563F29 /* SettingsTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTableViewCell.swift; sourceTree = "<group>"; };
 		050B4BB02A1BBB9600563F29 /* SignupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupViewController.swift; sourceTree = "<group>"; };
 		050B4BB22A1BBD5F00563F29 /* Signup1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup1ViewController.swift; sourceTree = "<group>"; };
@@ -548,6 +550,7 @@
 				05EB5C992F4D807A00FF2157 /* CGFloat.swift */,
 				052E98C12F1638FC000035A8 /* UIViewController.swift */,
 				05D5D0EB2A66843B00A1E771 /* FileManager.swift */,
+				0509EFB92FC7FC1F003488D4 /* UIButton.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -1292,6 +1295,7 @@
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */,
+				0509EFBA2FC7FC1F003488D4 /* UIButton.swift in Sources */,
 				058B2FD42EE9B5A70010693D /* URIs.swift in Sources */,
 				05117AF32EAA2B2E00A5E4E6 /* Label.swift in Sources */,
 				058B2FE02EEA9ED30010693D /* BottomCurveView.swift in Sources */,
