@@ -658,7 +658,12 @@ class TransactionViewController: UIViewController {
                 let tappedSwap = Swap()
                 tappedSwap.boltzID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription)!
                 tappedSwap.satoshisAmount = self.tappedTransaction.received
-                tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
+                // Total user cost = Boltz spread (sent - received) + user-paid
+                // network fee (Transaction.fee, e.g. the onchain fee on an
+                // onchain→lightning swap). SwapStatusVC sums onchainFees +
+                // lightningFees + claimTransactionFee, so stash the whole
+                // amount in onchainFees and leave the other two at 0.
+                tappedSwap.onchainFees = (self.tappedTransaction.sent - self.tappedTransaction.received) + self.tappedTransaction.fee
                 tappedSwap.lightningFees = 0
                 tappedSwap.swapDirection = self.tappedTransaction.swapDirection
                 swapVC.thisSwap = tappedSwap
