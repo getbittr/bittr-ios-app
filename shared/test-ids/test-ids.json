@@ -22,6 +22,10 @@
     "buyButton": null,
     "balanceCardButton": null
   },
+  "history": {
+    "swapPending": null,
+    "swapComplete": null
+  },
   "move": {
     "subtitleLabel": null,
     "satsTotal": null,

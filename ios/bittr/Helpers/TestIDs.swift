@@ -8,6 +8,10 @@ enum TestID {
         static let headerLabel = "buy.headerLabel"
         static let yourCode = "buy.yourCode"
     }
+    enum History {
+        static let swapComplete = "history.swapComplete"
+        static let swapPending = "history.swapPending"
+    }
     enum Home {
         static let balanceCardButton = "home.balanceCardButton"
         static let buyButton = "home.buyButton"

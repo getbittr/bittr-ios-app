@@ -105,6 +105,17 @@ appId: com.bittr.bittr-regtest
     duration: 800
 - takeScreenshot: shared/docs/screenshots/swap/08_home_final
 
+# Wait for the first swap to settle from pending to complete before starting
+# the reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled,
+# but the onchain claim still needs a block confirmation + wallet sync before
+# the funds show up on the onchain side. Without this wait the reverse
+# onchain→lightning swap fires before the funds land and fails with
+# insufficient onchain balance.
+- extendedWaitUntil:
+    notVisible:
+      id: "history.swapPending"
+    timeout: 60000
+
 # Reverse swap: onchain → lightning, 50000 sats. Re-enter the swap UI from
 # Home, flip the direction via fromButton, type the amount, proceed.
 - tapOn:
