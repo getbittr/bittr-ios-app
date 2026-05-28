@@ -32,20 +32,10 @@ appId: com.bittr.bittr-regtest
 ---
 - launchApp
 
-# Split the env-var mnemonic into a 1-indexed object so the inputText calls
-# below match the same `output.words[N]` pattern happy_path uses.
-- evalScript: |
-    if (typeof MNEMONIC === 'undefined' || !MNEMONIC) {
-      throw new Error('MNEMONIC env var not set. Run via shared/flows/scripts/run_forgot_pin.sh, or pass --env MNEMONIC="<12 words>".');
-    }
-    var parts = MNEMONIC.trim().split(/\s+/);
-    if (parts.length !== 12) {
-      throw new Error('MNEMONIC must contain exactly 12 words, got ' + parts.length);
-    }
-    output.words = {};
-    for (var i = 0; i < 12; i++) {
-      output.words[i + 1] = parts[i];
-    }
+# Split the env-var mnemonic into a 1-indexed object on output.words[1..12],
+# matching the pattern happy_path uses when it captures words from the
+# mnemonic display screen.
+- runScript: ../scripts/parse_mnemonic.js
 
 # Wallet was set up previously, so launch lands on the PIN unlock screen
 # (PinVC in .core embedding). Fail loudly otherwise — running this on a
