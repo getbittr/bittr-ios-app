@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import BitcoinDevKit
 import LDKNode
 import Sentry
 import P256K
@@ -220,6 +221,9 @@ class SwapManager: NSObject {
                 if feeEstimates == nil {
                     Log.info("Could not fetch fee estimates.")
                     DispatchQueue.main.async {
+                        swapVC.nextLabel.alpha = 1
+                        swapVC.arrowIcon.alpha = 1
+                        swapVC.nextSpinner.stopAnimating()
                         swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                     return
@@ -235,10 +239,51 @@ class SwapManager: NSObject {
                 size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!)
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
+
+                // Insufficient onchain funds is the common case — show a friendly
+                // message instead of leaking the raw BDK error text to the user.
+                var isInsufficientFunds = false
+                if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                    switch bdkError {
+                    case .CoinSelection, .InsufficientFunds:
+                        isInsufficientFunds = true
+                    default:
+                        break
+                    }
+                }
+
                 DispatchQueue.main.async {
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapManager row 249", key: "context")
+                    // Reset the spinner UI so the user can try a different amount.
+                    swapVC.nextLabel.alpha = 1
+                    swapVC.arrowIcon.alpha = 1
+                    swapVC.nextSpinner.stopAnimating()
+
+                    if isInsufficientFunds {
+                        let balance = swapVC.coreVC?.bittrWallet.satoshisOnchain ?? 0
+                        let message = Language.getWord(withID: "onchaininsufficientfunds")
+                            .replacingOccurrences(of: "<amount>", with: "\(balance)")
+                        swapVC.showAlert(
+                            presentingController: swapVC,
+                            title: Language.getWord(withID: "insufficientfunds"),
+                            message: message,
+                            buttons: [Language.getWord(withID: "okay")],
+                            actions: nil
+                        )
+                    } else {
+                        var errorMessage = error.localizedDescription
+                        if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                            errorMessage = bdkError.getErrorMessage()
+                        }
+                        swapVC.showAlert(
+                            presentingController: swapVC,
+                            title: Language.getWord(withID: "oops"),
+                            message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage).",
+                            buttons: [Language.getWord(withID: "okay")],
+                            actions: nil
+                        )
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "SwapManager row 249", key: "context")
+                        }
                     }
                 }
                 return
