@@ -33,7 +33,7 @@ extension UIViewController {
             let darkBackground = UIView()
             darkBackground.translatesAutoresizingMaskIntoConstraints = false
             darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
-            darkBackground.accessibilityIdentifier = "alertview"
+            darkBackground.boundString = "alertview"
             presentingController.view.addSubview(darkBackground)
             let darkBackgroundTop = NSLayoutConstraint(item: darkBackground, attribute: .top, relatedBy: .equal, toItem: presentingController.view, attribute: .top, multiplier: 1, constant: 0)
             let darkBackgroundBottom = NSLayoutConstraint(item: darkBackground, attribute: .bottom, relatedBy: .equal, toItem: presentingController.view, attribute: .bottom, multiplier: 1, constant: 0)
@@ -271,7 +271,7 @@ extension UIViewController {
     @objc func hideAlert() {
         if thisVC != nil {
             for eachView in thisVC!.view.subviews {
-                if eachView.accessibilityIdentifier == "alertview" {
+                if eachView.boundString == "alertview" {
                     if eachView.subviews.count == 1, let yellowCard = eachView.subviews.first, var darkBackgroundBottom = eachView.alertBottomConstraint {
                         
                         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
