@@ -101,9 +101,11 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.create.verify.field3"
 - inputText: ${output.words[output.idx3]}
+# Dismiss the keyboard — it covers the Next button so a direct tap can't
+# reach it. Signup4's textFieldDidEndEditing auto-triggers nextButtonTapped
+# once field3 loses focus and all 3 words match.
+- hideKeyboard
 - takeScreenshot: shared/docs/screenshots/onboarding/07_verify_filled
-- tapOn:
-    id: "signup.create.verify.nextButton"
 
 # Set new PIN (Signup5). 4 digits is the minimum.
 - assertVisible:
