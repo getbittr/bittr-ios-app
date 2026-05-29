@@ -105,25 +105,40 @@ extension BitcoinManager {
                     return
                 }
             }
-            
+
+            // Bind references locally so the rest of the closure works on
+            // a consistent snapshot. resetNodeState (from performWalletReset)
+            // can clear bdkWallet / electrumClient / connection while this
+            // closure is parked on the background queue mid-fullScan; the
+            // earlier `self.bdkWallet!` force-unwraps would then trap with
+            // a Swift _assertionFailure when the closure resumed.
+            guard let bdkWallet = self.bdkWallet,
+                  let electrumClient = self.electrumClient,
+                  let connection = self.connection else {
+                self.bdkWalletIsScanning = false
+                completion(false)
+                return
+            }
+
             // Perform a full scan.
             Log.info("Will perform a full scan.")
-            
+
             // Build request.
             let syncRequest:FullScanRequest
             do {
-                syncRequest = try self.bdkWallet!.startFullScan().build()
+                syncRequest = try bdkWallet.startFullScan().build()
             } catch {
                 self.handleError(error: error, row: 212)
                 self.bdkWalletIsScanning = false
                 completion(false)
                 return
             }
-            
-            // Run full scan.
+
+            // Run full scan. This is the long pole — seconds to minutes —
+            // and the most likely window for resetNodeState to run.
             let update:Update
             do {
-                update = try self.electrumClient!.fullScan(
+                update = try electrumClient.fullScan(
                     request: syncRequest,
                     stopGap: UInt64(25),
                     batchSize: UInt64(25),
@@ -135,24 +150,35 @@ extension BitcoinManager {
                 completion(false)
                 return
             }
-            
+
+            // If resetNodeState ran during fullScan above, our local
+            // bdkWallet now points at a torn-down wallet whose on-disk
+            // SQLite files were removed by deleteDocuments. Applying and
+            // persisting the update against it would either fail or
+            // corrupt the next install's state — bail cleanly instead.
+            guard self.bdkWallet === bdkWallet else {
+                self.bdkWalletIsScanning = false
+                completion(false)
+                return
+            }
+
             // Apply update to BDK wallet.
             do {
-                try self.bdkWallet!.applyUpdate(update: update)
+                try bdkWallet.applyUpdate(update: update)
             } catch {
                 self.handleError(error: error, row: 243)
                 self.bdkWalletIsScanning = false
                 completion(false)
                 return
             }
-            
+
             // Persist wallet changes.
             do {
-                let _ = try self.bdkWallet!.persist(connection: self.connection!)
+                let _ = try bdkWallet.persist(connection: connection)
             } catch {
                 self.handleError(error: error, row: 250)
             }
-            
+
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
             self.bdkWalletIsScanning = false
