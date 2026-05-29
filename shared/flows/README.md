@@ -20,6 +20,9 @@ shared/flows/
     forgot_pin.yaml       Forgot-PIN recovery from the unlock screen — types
                           the cached mnemonic and resets the PIN. Requires
                           the MNEMONIC env var (see Running below).
+    buy_signup.yaml       Bittr signup from inside the Buy page — assumes a
+                          wallet without a bittr account (run
+                          onboarding/restore_wallet.yaml first).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).

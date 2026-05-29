@@ -54,6 +54,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         self.headerLabel.accessibilityIdentifier = TestID.Buy.headerLabel
         self.downButton.accessibilityIdentifier = TestID.Buy.downButton
+        self.continueButton.accessibilityIdentifier = TestID.Buy.continueButton
 
         // Set colors and language.
         self.changeColors()

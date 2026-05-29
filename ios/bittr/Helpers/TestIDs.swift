@@ -4,9 +4,12 @@
 
 enum TestID {
     enum Buy {
+        static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"
         static let headerLabel = "buy.headerLabel"
         static let yourCode = "buy.yourCode"
+        static let yourEmail = "buy.yourEmail"
+        static let yourIban = "buy.yourIban"
     }
     enum History {
         static let swapComplete = "history.swapComplete"

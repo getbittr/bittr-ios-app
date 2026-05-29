@@ -48,7 +48,10 @@
   "buy": {
     "headerLabel": null,
     "downButton": null,
-    "yourCode": null
+    "continueButton": null,
+    "yourCode": null,
+    "yourEmail": null,
+    "yourIban": null
   },
   "question": {
     "yellowCard": null,
