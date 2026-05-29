@@ -138,9 +138,15 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 }
             } else if CacheManager.getRegistrationToken() == nil {
                 // Notifications preference has been set but token hasn't been cached.
-                self.askForPushNotifications()
+                DispatchQueue.main.async {
+                    self.askForPushNotifications()
+                }
             } else {
-                self.sendCodeToBittr()
+                // getNotificationSettings' completion runs on a background queue;
+                // sendCodeToBittr reads codeTextField.text, so it must be on main.
+                DispatchQueue.main.async {
+                    self.sendCodeToBittr()
+                }
             }
         }
     }

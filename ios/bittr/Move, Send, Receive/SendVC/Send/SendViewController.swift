@@ -133,6 +133,12 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Tag the onchain/lightning switch buttons so switchTapped can route
+        // the tap. (Was set on accessibilityIdentifier in IB; moved here so
+        // that slot stays free for Maestro test IDs.)
+        self.regularButton.boundString = "onchain"
+        self.instantButton.boundString = "lightning"
+
         // Text fields
         self.toTextField.delegate = self
         self.toTextField.autocorrectionType = .no
@@ -442,22 +448,18 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     
     @IBAction func switchTapped(_ sender: UIButton) {
-        
-        if (sender.accessibilityIdentifier ?? "") == "onchain", self.bitcoinQR != "" {
+
+        if (sender.boundString ?? "") == "onchain", self.bitcoinQR != "" {
             self.toTextField.text = self.bitcoinQR
             self.bitcoinQR = ""
         } else {
             // Reset fields.
             self.resetFields()
         }
-        
+
         // Switch view.
-        if sender.accessibilityIdentifier != nil {
-            if sender.accessibilityIdentifier! == "onchain" {
-                self.onchainOrLightning = .onchain
-            } else {
-                self.onchainOrLightning = .lightning
-            }
+        if let tag = sender.boundString {
+            self.onchainOrLightning = (tag == "onchain") ? .onchain : .lightning
         }
         self.updateLabels()
     }

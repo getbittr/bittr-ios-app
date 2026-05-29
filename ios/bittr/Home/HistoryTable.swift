@@ -117,11 +117,14 @@ extension HomeViewController {
                 cell.hideLightningStack()
                 if thisTransaction.swapStatus == .succeeded {
                     cell.swapImage.image = UIImage(named: "iconswapblue")
+                    cell.swapImage.accessibilityIdentifier = TestID.History.swapComplete
                 } else {
                     cell.swapImage.image = UIImage(named: "iconswapgrey")
+                    cell.swapImage.accessibilityIdentifier = TestID.History.swapPending
                 }
             } else {
                 cell.hideSwapStack()
+                cell.swapImage.accessibilityIdentifier = nil
             }
             
             return cell

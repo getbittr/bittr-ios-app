@@ -1,0 +1,242 @@
+# Feature test: remove the wallet from the device via Settings → Restore
+# wallet. Covers both branches of ResetApp.restoreWalletTapped:
+#   • No active Lightning channel — direct confirm + reset (always the
+#     final tail of this flow).
+#   • Active Lightning channel — close the connection on-chain first,
+#     mine to confirm, dismiss the .channelClosed QuestionVC popup,
+#     verify the Lightning balance is 0, then re-trigger the reset (the
+#     no-channel branch above).
+#
+# Branch detection: we check the Move screen's Lightning balance
+# (move.satsInstant) up front and store output.hasChannel. An attempt at
+# detecting via the first alert's body text ("Please close your lightning…"
+# vs "This app only supports one wallet…") was unreliable — Maestro's
+# `runFlow: when: visible: text:` evaluated false against attributed-text
+# message labels even when the substring was clearly on-screen, and the
+# whole arc was silently skipped. The balance check is deterministic.
+#
+# Prerequisite: an existing wallet on the simulator. Like forgot_pin.yaml,
+# the flow preserves state — no clearState / clearKeychain. The simulator
+# may have an open channel (e.g. after buy_incoming.yaml) or none (after
+# restore_wallet.yaml / a fresh signup that hasn't topped up yet); the
+# conditional close-channel branch handles both.
+#
+# Run: maestro test shared/flows/features/remove_wallet.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/remove_wallet/01_home
+
+# Wait for the post-sign-in wallet sync to finish before reading the
+# balance. The header spinner (UIActivityIndicatorView,
+# hidesWhenStopped=true) animates while startWallet → syncWallets →
+# loadWalletData → finalizeSync are running; stopAnimating in
+# finalizeSync flips isHidden to true. Reading move.satsInstant before
+# this signal can pick up the pre-sync 0 and route the test down the
+# wrong branch.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
+# Peek at the Lightning balance to decide whether we'll need the
+# channel-close arc. Tap the balance label (not balanceCardButton:
+# profitButton overlays the visual center of the balance card and
+# Maestro's center-tap on balanceCardButton fires profitButtonTapped
+# instead, segueing to ProfitVC). The label has userInteractionEnabled =
+# false, so the tap falls through to balanceCardButton beneath →
+# HomeToMove. Same trick forgot_pin.yaml uses on signup.restore.topLabel
+# for keyboard dismissal.
+#
+# MoveVC.updateLabels formats Lightning sats as
+# `String(satoshisLightning).addSpaces() + " sats"` — "0 sats" iff no
+# active channel funds.
+- tapOn:
+    id: "home.balanceLabel"
+- assertVisible:
+    id: "move.satsTotal"
+- copyTextFrom:
+    id: "move.satsInstant"
+- evalScript: ${output.lightningBalance = maestro.copiedText}
+- evalScript: ${output.hasChannel = output.lightningBalance !== "0 sats"}
+- takeScreenshot: shared/docs/screenshots/remove_wallet/02_balance_check
+- tapOn:
+    id: "header.downButton"
+
+# Settings tab → Restore wallet row.
+- assertVisible:
+    id: "home.headerLabel"
+- tapOn:
+    id: "nav.settingsButton"
+- assertVisible:
+    id: "settings.row.restore"
+- takeScreenshot: shared/docs/screenshots/remove_wallet/03_settings
+- tapOn:
+    id: "settings.row.restore"
+
+# Channel-close arc — only when the up-front balance check found funds.
+- runFlow:
+    when:
+      true: ${output.hasChannel}
+    commands:
+      # Alert 1 — restorewallet4 ("Please close your lightning
+      # connection(s) before restoring a wallet…"). Tap "Close
+      # connection(s)" (alert.button.1).
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.1"
+          timeout: 10000
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/04_close_channel_warning
+      - tapOn:
+          id: "alert.button.1"
+
+      # Alert 2 — closechannel2 ("…funds will be deposited back into your
+      # wallet…"). Tap "Close connection(s)" again. This kicks off
+      # closeChannelConfirmed → BitcoinManager.closeChannel.
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.1"
+          timeout: 10000
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/05_funds_warning
+      - tapOn:
+          id: "alert.button.1"
+
+      # Race-condition handling. After the 2nd close tap, two things
+      # happen on the main queue at nearly the same time:
+      #   (a) closeChannelConfirmed's success branch shows the
+      #       closechannel5 alert ("Connection closure initiated…").
+      #   (b) LDK's event loop processes the .channelClosed event and
+      #       calls launchQuestion, which presents a QuestionVC modally
+      #       over Core.
+      # When (b) wins (common), QuestionVC sits on top of the alert and
+      # alert.button.0 is unreachable until the modal is dismissed. So
+      # wait for QuestionVC first, dismiss via the header down button,
+      # and only then tap the underlying alert.
+      - extendedWaitUntil:
+          visible:
+            id: "question.yellowCard"
+          timeout: 90000
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/06_channel_closed_popup
+      - tapOn:
+          id: "header.downButton"
+
+      # Closure-initiated alert is exposed once the modal dismisses.
+      # With the fix in ResetApp, its Okay button no longer auto-resets
+      # the wallet — it just dismisses, leaving the user on Home so they
+      # can verify the close on-chain before re-triggering the reset via
+      # Settings.
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.0"
+          timeout: 10000
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/07_closure_initiated
+      - tapOn:
+          id: "alert.button.0"
+
+      # Mine 6 blocks so the channel-close transaction confirms on-chain —
+      # same pattern as buy_incoming.yaml. By now LDK has already fired
+      # .channelClosed locally (handled above); mining just settles the
+      # close tx so listChannels() will return empty on the second
+      # restoreWalletTapped call below.
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+
+      # Wallet tab — typically already selected but tapping is harmless.
+      - tapOn:
+          id: "nav.walletButton"
+      - assertVisible:
+          id: "home.headerLabel"
+
+      # Pull-to-refresh on Home's table view triggers
+      # HomeViewController.scrollViewDidScroll → resetWallet → startWallet
+      # once contentOffset.y < -200. A bottom→top swipe (≈60% of screen
+      # height) produces enough overscroll. The startWallet call drives
+      # LDK to sync with bitcoind so its view of the chain catches up to
+      # the mined close-tx tip.
+      - swipe:
+          start: "50%, 30%"
+          end: "50%, 90%"
+          duration: 500
+
+      # Wait for the refresh-driven sync to fully complete. resetWallet
+      # zeros balanceLabel.alpha and starts headerSpinner; finalizeSync
+      # stops the spinner *after* setTotalSats has repainted the balance,
+      # so spinner-notVisible is the strictly-later (and authoritative)
+      # signal that the labels we're about to read are final.
+      - extendedWaitUntil:
+          notVisible:
+            id: "home.headerSpinner"
+          timeout: 120000
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/08_home_refreshed
+
+      # Tap the balance label → falls through to balanceCardButton →
+      # HomeToMove. (Don't tap balanceCardButton directly: profitButton
+      # overlays its visual center and Maestro's center-tap fires
+      # profitButtonTapped instead, which routes to ProfitVC.)
+      - tapOn:
+          id: "home.balanceLabel"
+      - assertVisible:
+          id: "move.satsTotal"
+      - extendedWaitUntil:
+          visible:
+            id: "move.satsInstant"
+            text: "0 sats"
+          timeout: 10000
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/09_move_lightning_zero
+
+      # Close Move via the shared header down button (added by
+      # UIViewController.addHeader).
+      - tapOn:
+          id: "header.downButton"
+
+      # Settings → Restore wallet again. With the channel now closed and
+      # confirmed, listChannels has no active channel, so the next tap
+      # falls into the no-channel tail handled below.
+      - tapOn:
+          id: "nav.settingsButton"
+      - assertVisible:
+          id: "settings.row.restore"
+      - tapOn:
+          id: "settings.row.restore"
+
+# No-channel tail (always reached — directly on first restore tap for
+# wallets without a channel, or after the close-channel arc above).
+#
+# Alert sequence:
+#   restorewallet2 / restorewallet5 ([Cancel, Restore]) →
+#   restorewallet3   ([Cancel, Restore]) →
+#   performWalletReset → 1s delay → launchSignup(onPage: 3) → Signup1.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- takeScreenshot: shared/docs/screenshots/remove_wallet/10_restore_confirm_1
+- tapOn:
+    id: "alert.button.1"
+
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- takeScreenshot: shared/docs/screenshots/remove_wallet/11_restore_confirm_2
+- tapOn:
+    id: "alert.button.1"
+
+# performWalletReset clears state, stops the node, hides Home, and after a
+# ~1s delay relaunches signup on page 3 (Signup1). Allow generous slack
+# for node teardown.
+- extendedWaitUntil:
+    visible:
+      id: "signup.create.start.createWalletButton"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/remove_wallet/12_signup1

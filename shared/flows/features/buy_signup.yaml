@@ -1,0 +1,144 @@
+# Feature test: complete the bittr signup from the Buy page on a wallet
+# that has no bittr account yet.
+#
+# Prerequisite: an existing wallet on the simulator with the bittr signup
+# *not yet completed*. The cleanest way to get there is to run
+# `shared/flows/onboarding/restore_wallet.yaml` first — restore lands on
+# Home with a wallet but no IBAN entities, so Buy opens to its empty
+# state. (fresh_install.yaml is unsuitable here because happy_path
+# completes the bittr signup as part of onboarding.) The flow preserves
+# state, same as forgot_pin.yaml.
+#
+# Flow:
+#   1. Launch (preserve state). Unlock with PIN 1234 if locked.
+#   2. Tap Buy on Home → empty Buy screen.
+#   3. Tap "Check options" → RegisterIbanViewController opens modal-style
+#      at Signup7 (wallet-ready). When Signup7 is hosted by RegisterIban,
+#      viewWillAppear hides topLabelOne, so we assert on the (still
+#      visible) Next button instead of the top label.
+#   4. Tap Next → Transfer1.
+#   5. Same IBAN/email/OTP/info-cards path as
+#      onboarding/happy_path.yaml's bittr section — same IBAN
+#      (NL27ABNA0451135725) and email (e2ebittr@getbittr.com) so cache
+#      assertions stay consistent.
+#   6. Done on the "Open your banking app" modal → modal dismisses, Buy
+#      reappears with the new IBAN entity rendered.
+#   7. Assert email / IBAN / deposit code are present on the Buy cell.
+#   8. Tap the down button → Home.
+#
+# Run: maestro test shared/flows/features/buy_signup.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home with a wallet but no bittr account.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/buy_signup/01_home
+
+# Open Buy → empty state (no IBAN entities yet).
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.headerLabel"
+- takeScreenshot: shared/docs/screenshots/buy_signup/02_buy_empty
+
+# Tap "Check options" — BuyVC.continueButtonTapped segues to
+# RegisterIbanViewController which embeds Signup7 first.
+- tapOn:
+    id: "buy.continueButton"
+
+# Signup7 (wallet-ready) — Signup7.viewWillAppear sets topLabelOne.alpha
+# = 0 when self.ibanVC != nil, so we anchor on the still-visible Next
+# button instead of the top label.
+- assertVisible:
+    id: "signup.create.ready.continueButton"
+- takeScreenshot: shared/docs/screenshots/buy_signup/03_signup7
+- tapOn:
+    id: "signup.create.ready.continueButton"
+
+# Transfer1: IBAN + email entry. IBAN field auto-focuses. Same IBAN +
+# email as onboarding/happy_path.yaml.
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- takeScreenshot: shared/docs/screenshots/buy_signup/04_bittr_start
+- inputText: "NL27ABNA0451135725"
+- tapOn:
+    id: "signup.bittr.start.emailButton"
+- inputText: "e2ebittr@getbittr.com"
+- takeScreenshot: shared/docs/screenshots/buy_signup/05_bittr_start_filled
+# Press Return — Transfer1's textFieldShouldReturn auto-triggers
+# nextButtonTapped when the email field is focused and both fields are
+# valid.
+- pressKey: Enter
+
+# Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6
+# digits.
+- assertVisible:
+    id: "signup.bittr.otp.codeTextField"
+- takeScreenshot: shared/docs/screenshots/buy_signup/06_bittr_otp_initial
+- inputText: "123456"
+- takeScreenshot: shared/docs/screenshots/buy_signup/07_bittr_otp_entered
+
+# Push notification permission alerts (in-app, then iOS system). Both
+# optional so reruns where permission is already granted skip.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+
+# Transfer3: bittr signup success. Long async chain after OTP, allow
+# generous timeout — same as happy_path.yaml.
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.success.topLabelOne"
+    timeout: 90000
+- takeScreenshot: shared/docs/screenshots/buy_signup/08_bittr_success
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+
+# Transfer4: 4 explanation cards + "Let's go" at the bottom.
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+- takeScreenshot: shared/docs/screenshots/buy_signup/09_transfer_info_top
+- scrollUntilVisible:
+    element:
+      id: "signup.bittr.transferInfo.nextButton"
+- takeScreenshot: shared/docs/screenshots/buy_signup/10_transfer_info_bottom
+- tapOn:
+    id: "signup.bittr.transferInfo.nextButton"
+
+# "Open your banking app" modal — Done dismisses both the alert and the
+# RegisterIban modal; Buy reappears underneath with the new cell.
+- tapOn:
+    id: "alert.button.0"
+
+# Verify the new IBAN cell is rendered on Buy with the entered details.
+# Allow a small grace period — Transfer4.proceedToWallet kicks off the
+# modal dismiss + parseIbanEntities, and the cell renders on the next
+# layout pass.
+- extendedWaitUntil:
+    visible:
+      id: "buy.yourCode"
+    timeout: 20000
+- assertVisible:
+    id: "buy.yourEmail"
+- assertVisible:
+    id: "buy.yourIban"
+- takeScreenshot: shared/docs/screenshots/buy_signup/11_buy_filled
+
+# Close Buy → Home.
+- tapOn:
+    id: "buy.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/buy_signup/12_home

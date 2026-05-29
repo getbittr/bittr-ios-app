@@ -52,7 +52,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for eachSubview in self.subviews {
-            if eachSubview.accessibilityIdentifier == "valuecard" {
+            if eachSubview.boundString == "valuecard" {
                 eachSubview.removeFromSuperview()
             }
         }
@@ -61,7 +61,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     func showGraphValue(x:CGFloat, recognizer:UIPanGestureRecognizer) {
         
         for eachSubview in self.subviews {
-            if eachSubview.accessibilityIdentifier == "valuecard" {
+            if eachSubview.boundString == "valuecard" {
                 eachSubview.removeFromSuperview()
             }
         }
@@ -104,7 +104,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             thisCard.layer.zPosition = 10
             thisCard.layer.cornerRadius = 8
             thisCard.alpha = 1
-            thisCard.accessibilityIdentifier = "valuecard"
+            thisCard.boundString = "valuecard"
             self.addSubview(thisCard)
             
             let thisCardHeight = NSLayoutConstraint(item: thisCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)

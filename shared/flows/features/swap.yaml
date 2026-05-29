@@ -105,6 +105,17 @@ appId: com.bittr.bittr-regtest
     duration: 800
 - takeScreenshot: shared/docs/screenshots/swap/08_home_final
 
+# Wait for the first swap to settle from pending to complete before starting
+# the reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled,
+# but the onchain claim still needs a block confirmation + wallet sync before
+# the funds show up on the onchain side. Without this wait the reverse
+# onchain→lightning swap fires before the funds land and fails with
+# insufficient onchain balance.
+- extendedWaitUntil:
+    notVisible:
+      id: "history.swapPending"
+    timeout: 60000
+
 # Reverse swap: onchain → lightning, 50000 sats. Re-enter the swap UI from
 # Home, flip the direction via fromButton, type the amount, proceed.
 - tapOn:
@@ -130,6 +141,21 @@ appId: com.bittr.bittr-regtest
 - takeScreenshot: shared/docs/screenshots/swap/11_reverse_direction_picker
 - tapOn:
     id: "alert.button.1"
+
+# If BDK is stale relative to LDK Node (the lightning→onchain claim landed
+# since the last BDK scan), SwapVC detects it via getSize rejection and
+# shows a "syncing wallet" alert while a fresh full scan runs. Dismiss the
+# alert if it appears, then wait for the available-amount label to refresh
+# from "Move up to 0 sats." to a real value before continuing. If BDK is
+# already in sync the optional tap is a no-op and the wait passes
+# immediately.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      text: "Move up to 0 sats."
+    timeout: 60000
 
 - tapOn:
     id: "swap.amountTextField"

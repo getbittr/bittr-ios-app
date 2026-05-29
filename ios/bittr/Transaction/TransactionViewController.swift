@@ -312,8 +312,12 @@ class TransactionViewController: UIViewController {
             self.feesStackHeight.constant = 55
             self.feesStack.alpha = 1
             if self.tappedTransaction.swapStatus != .pending {
-                // Completed or failed swap.
-                self.labelFees.text = "\(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+                // Completed or failed swap. Total cost = implicit Boltz spread
+                // (sent - received) + user-paid network fee (e.g. the onchain
+                // fee on an onchain→lightning swap, summed into .fee by
+                // performSwapMatching).
+                let totalFees = self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee
+                self.labelFees.text = "\(String(totalFees).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             } else {
                 // Pending swap.
                 if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
@@ -376,42 +380,42 @@ class TransactionViewController: UIViewController {
                 // Top ID
                 self.titleTopId.text = Language.getWord(withID: "onchainid")
                 self.labelTopId.text = self.tappedTransaction.onchainID
-                self.copyButtonTopId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                self.copyButtonTopId.boundString = self.tappedTransaction.onchainID
                 // Top URL
                 self.urlStackTopId.alpha = 1
                 self.urlStackTopIdWidth.constant = 22
-                self.urlButtonTopId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                self.urlButtonTopId.boundString = self.tappedTransaction.onchainID
                 // Bottom ID and URL
                 switch self.tappedTransaction.swapStatus {
                 case .succeeded:
                     self.titleBottomId.text = Language.getWord(withID: "lightningid")
                     self.labelBottomId.text = self.tappedTransaction.lightningID
-                    self.copyButtonBottomId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                    self.copyButtonBottomId.boundString = self.tappedTransaction.lightningID
                 case .pending:
                     self.titleBottomId.text = Language.getWord(withID: "lightningid")
                     self.labelBottomId.text = Language.getWord(withID: "expecting")
                 case .failed:
                     self.titleBottomId.text = Language.getWord(withID: "refundid")
                     self.labelBottomId.text = self.tappedTransaction.lightningID
-                    self.copyButtonBottomId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                    self.copyButtonBottomId.boundString = self.tappedTransaction.lightningID
                     self.urlStackBottomId.alpha = 1
                     self.urlStackBottomIdWidth.constant = 22
-                    self.urlButtonBottomId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                    self.urlButtonBottomId.boundString = self.tappedTransaction.lightningID
                 }
             } else if self.tappedTransaction.swapDirection == .lightningToOnchain {
                 // Top ID
                 self.titleTopId.text = Language.getWord(withID: "lightningid")
                 self.labelTopId.text = self.tappedTransaction.lightningID
-                self.copyButtonTopId.accessibilityIdentifier = self.tappedTransaction.lightningID
+                self.copyButtonTopId.boundString = self.tappedTransaction.lightningID
                 // Bottom ID and URL
                 switch self.tappedTransaction.swapStatus {
                 case .succeeded:
                     self.titleBottomId.text = Language.getWord(withID: "onchainid")
                     self.labelBottomId.text = self.tappedTransaction.onchainID
-                    self.copyButtonBottomId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                    self.copyButtonBottomId.boundString = self.tappedTransaction.onchainID
                     self.urlStackBottomId.alpha = 1
                     self.urlStackBottomIdWidth.constant = 22
-                    self.urlButtonBottomId.accessibilityIdentifier = self.tappedTransaction.onchainID
+                    self.urlButtonBottomId.boundString = self.tappedTransaction.onchainID
                 case .pending:
                     self.titleBottomId.text = Language.getWord(withID: "onchainid")
                     self.labelBottomId.text = Language.getWord(withID: "expecting")
@@ -424,11 +428,11 @@ class TransactionViewController: UIViewController {
             // Onchain or Lightning transaction.
             self.titleTopId.text = Language.getWord(withID: "id")
             self.labelTopId.text = self.tappedTransaction.id
-            self.copyButtonTopId.accessibilityIdentifier = self.tappedTransaction.id
+            self.copyButtonTopId.boundString = self.tappedTransaction.id
             if !self.tappedTransaction.isLightning {
                 self.urlStackTopId.alpha = 1
                 self.urlStackTopIdWidth.constant = 22
-                self.urlButtonTopId.accessibilityIdentifier = self.tappedTransaction.id
+                self.urlButtonTopId.boundString = self.tappedTransaction.id
             }
         }
         
@@ -436,7 +440,7 @@ class TransactionViewController: UIViewController {
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         let transactionValue:CGFloat = {
             if self.tappedTransaction.isSwap {
-                return (self.tappedTransaction.sent - self.tappedTransaction.received).inBTC()
+                return (self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee).inBTC()
             } else {
                 return (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee).inBTC()
             }
@@ -573,8 +577,8 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func idButtonTapped(_ sender: UIButton) {
-        
-        if let thisId = sender.accessibilityIdentifier {
+
+        if let thisId = sender.boundString {
             UIPasteboard.general.string = thisId
             self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: thisId, buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
@@ -600,7 +604,7 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func openUrlButtonTapped(_ sender: UIButton) {
-        if let thisUrl = sender.accessibilityIdentifier {
+        if let thisUrl = sender.boundString {
             self.tappedUrl = "\(EnvironmentConfig.explorerURL)/tx/\(thisUrl)?mode=details"
             self.performSegue(withIdentifier: "TransactionToWebsite", sender: self)
         }
@@ -654,7 +658,12 @@ class TransactionViewController: UIViewController {
                 let tappedSwap = Swap()
                 tappedSwap.boltzID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription)!
                 tappedSwap.satoshisAmount = self.tappedTransaction.received
-                tappedSwap.onchainFees = self.tappedTransaction.sent - self.tappedTransaction.received
+                // Total user cost = Boltz spread (sent - received) + user-paid
+                // network fee (Transaction.fee, e.g. the onchain fee on an
+                // onchain→lightning swap). SwapStatusVC sums onchainFees +
+                // lightningFees + claimTransactionFee, so stash the whole
+                // amount in onchainFees and leave the other two at 0.
+                tappedSwap.onchainFees = (self.tappedTransaction.sent - self.tappedTransaction.received) + self.tappedTransaction.fee
                 tappedSwap.lightningFees = 0
                 tappedSwap.swapDirection = self.tappedTransaction.swapDirection
                 swapVC.thisSwap = tappedSwap

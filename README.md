@@ -23,7 +23,10 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
 
 ### One-time setup
 
-1. **Xcode + iOS Simulator** — install from the App Store. Open `ios/bittr.xcodeproj` and pick an iPhone 15 simulator.
+1. **Xcode + iOS Simulator** — install from the App Store. Open `ios/bittr.xcodeproj` and pick an iPhone 15 simulator. Then point the active developer dir at Xcode (not the Command Line Tools) so Maestro can find `simctl`:
+   ```sh
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   ```
 2. **Maestro**:
   ```sh
    curl -fsSL "https://get.maestro.mobile.dev" | bash
@@ -49,8 +52,14 @@ In another terminal, from the repo root, run a flow:
 
 ```sh
 # Terminal B — from the repo root
-# Full reset + onboarding from scratch:
+
+# Option 1: Full reset + onboarding from scratch:
 maestro test shared/flows/onboarding/fresh_install.yaml
+
+# Option 2: Full reset + restore existing wallet.
+# Followed by onboarding through the Buy page.
+maestro test shared/flows/onboarding/restore_wallet.yaml
+maestro test shared/flows/features/buy_signup.yaml
 
 # Then a feature test on the resulting wallet — opens the lightning channel:
 maestro test shared/flows/features/buy_incoming.yaml
@@ -59,6 +68,11 @@ maestro test shared/flows/features/buy_incoming.yaml
 maestro test shared/flows/features/buy_more.yaml
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/swap.yaml
+maestro test shared/flows/features/remove_wallet.yaml
+
+# Forgot-PIN recovery test — needs the wallet's 12-word mnemonic so the
+# flow can type it on the RestoreVC screen. Pass it via --env:
+maestro test --env MNEMONIC="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12" shared/flows/features/forgot_pin.yaml
 ```
 
 Screenshots land in `shared/docs/screenshots/<flow_name>/<step>.png`.
@@ -67,6 +81,7 @@ Some flows expect specific prior state (e.g. `swap.yaml` assumes the lightning c
 
 ### Troubleshooting
 
+- **`Not enough devices connected (0) to run the requested number of shards (1)`** — `xcode-select -p` is pointing at `/Library/Developer/CommandLineTools` instead of Xcode, so Maestro can't find `simctl`. Re-run the `sudo xcode-select -s ...` command from setup step 1.
 - `**push_notification.js: helper returned ...**` — the Node helper isn't running. Start it in Terminal A.
 - **Flow fails on the first screen** — the simulator may not have the regtest app installed, or it's installed but not booted. Open it via Xcode once.
 - **Backend errors (`/e2e/...` 502/504)** — the hosted regtest backend at `staging.getbittr.com` is down or unreachable. See `shared/docs/regtest.md`.

@@ -67,6 +67,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var pendingOnchainAmount = 0
     var highestFeePerVbyte:Float?
     var thisSwap:Swap?
+    // Set when calculateSendableAmount triggers a BDK rescan because BDK
+    // appears stale relative to LDK Node; prevents an infinite re-sync loop
+    // if BDK still can't see the funds after the rescan.
+    var didRescanForStaleBdk = false
     
     override func viewDidLoad() {
         super.viewDidLoad()

@@ -4,21 +4,40 @@
 
 enum TestID {
     enum Buy {
+        static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"
         static let headerLabel = "buy.headerLabel"
         static let yourCode = "buy.yourCode"
+        static let yourEmail = "buy.yourEmail"
+        static let yourIban = "buy.yourIban"
+    }
+    enum Header {
+        static let downButton = "header.downButton"
+    }
+    enum History {
+        static let swapComplete = "history.swapComplete"
+        static let swapPending = "history.swapPending"
     }
     enum Home {
         static let balanceCardButton = "home.balanceCardButton"
+        static let balanceLabel = "home.balanceLabel"
         static let buyButton = "home.buyButton"
         static let headerLabel = "home.headerLabel"
+        static let headerSpinner = "home.headerSpinner"
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
     }
     enum Move {
+        static let satsInstant = "move.satsInstant"
+        static let satsRegular = "move.satsRegular"
         static let satsTotal = "move.satsTotal"
         static let subtitleLabel = "move.subtitleLabel"
         static let swapButton = "move.swapButton"
+    }
+    enum Nav {
+        static let academyButton = "nav.academyButton"
+        static let settingsButton = "nav.settingsButton"
+        static let walletButton = "nav.walletButton"
     }
     enum Pin {
         static let button0 = "pin.button0"
@@ -48,6 +67,17 @@ enum TestID {
         static let moreButton = "receive.moreButton"
         static let qrImageView = "receive.qrImageView"
         static let refreshButton = "receive.refreshButton"
+    }
+    enum Settings {
+        enum Row {
+            static let currency = "settings.row.currency"
+            static let device = "settings.row.device"
+            static let privacy = "settings.row.privacy"
+            static let restore = "settings.row.restore"
+            static let support = "settings.row.support"
+            static let terms = "settings.row.terms"
+            static let wallets = "settings.row.wallets"
+        }
     }
     enum Signup {
         enum Bittr {
@@ -130,6 +160,28 @@ enum TestID {
                 static let nextButton = "signup.create.verify.nextButton"
                 static let topLabel = "signup.create.verify.topLabel"
             }
+        }
+        enum Restore {
+            static let field1 = "signup.restore.field1"
+            static let field10 = "signup.restore.field10"
+            static let field11 = "signup.restore.field11"
+            static let field12 = "signup.restore.field12"
+            static let field2 = "signup.restore.field2"
+            static let field3 = "signup.restore.field3"
+            static let field4 = "signup.restore.field4"
+            static let field5 = "signup.restore.field5"
+            static let field6 = "signup.restore.field6"
+            static let field7 = "signup.restore.field7"
+            static let field8 = "signup.restore.field8"
+            static let field9 = "signup.restore.field9"
+            static let nextButton = "signup.restore.nextButton"
+            enum PinConfirm {
+                static let topLabel = "signup.restore.pinConfirm.topLabel"
+            }
+            enum PinSet {
+                static let topLabel = "signup.restore.pinSet.topLabel"
+            }
+            static let topLabel = "signup.restore.topLabel"
         }
     }
     enum Swap {

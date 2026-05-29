@@ -132,7 +132,7 @@ class SwapStatusViewController: UIViewController {
     func receivedStatusUpdate(status:String, fullMessage: [String: Any]) {
         guard self.thisSwap != nil else { return }
         
-        self.statusQuestionButton.accessibilityIdentifier = status
+        self.statusQuestionButton.boundString = status
         self.confirmStatusLabel.text = status.userFriendlyStatus(direction: self.thisSwap!.swapDirection)
         
         if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
@@ -245,7 +245,7 @@ class SwapStatusViewController: UIViewController {
                     }
                     Log.info("Status received: \(receivedStatus)")
                     
-                    self.statusQuestionButton.accessibilityIdentifier = receivedStatus
+                    self.statusQuestionButton.boundString = receivedStatus
                     self.confirmStatusLabel.text = receivedStatus.userFriendlyStatus(direction: self.thisSwap!.swapDirection)
                     
                     if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
@@ -378,7 +378,7 @@ class SwapStatusViewController: UIViewController {
     @IBAction func statusQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        guard let swapStatus = sender.accessibilityIdentifier else {
+        guard let swapStatus = sender.boundString else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "swapquestion"), message: Language.getWord(withID: "swapquestiongeneric"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }

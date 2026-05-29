@@ -100,6 +100,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
 
         self.headerLabel.accessibilityIdentifier = TestID.Home.headerLabel
+        self.headerSpinner.accessibilityIdentifier = TestID.Home.headerSpinner
         self.sendButton.accessibilityIdentifier = TestID.Home.sendButton
         self.sendButton.accessibilityLabel = Language.getWord(withID: "send")
         self.receiveButton.accessibilityIdentifier = TestID.Home.receiveButton
@@ -108,6 +109,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.buyButton.accessibilityLabel = Language.getWord(withID: "buy")
         self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton
         self.balanceCardButton.accessibilityLabel = "Balance details"
+        self.balanceLabel.accessibilityIdentifier = TestID.Home.balanceLabel
 
         // Table view
         self.homeTableView.delegate = self
@@ -324,7 +326,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !didFindDuplicateTransaction {
             // Update balance and transactions.
-            self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+            // Skip the += for funding transactions: .channelReady triggers
+            // syncLDKnode → loadWalletData, which resets satoshisLightning to
+            // 0 and recomputes from listChannels(). Adding received here on
+            // top of that double-counts the balance.
+            if !thisTransaction.isFundingTransaction {
+                self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+            }
             self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
             
             if paymentDetails != nil {

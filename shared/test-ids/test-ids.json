@@ -17,15 +17,42 @@
   },
   "home": {
     "headerLabel": null,
+    "headerSpinner": null,
     "sendButton": null,
     "receiveButton": null,
     "buyButton": null,
-    "balanceCardButton": null
+    "balanceCardButton": null,
+    "balanceLabel": null
+  },
+  "history": {
+    "swapPending": null,
+    "swapComplete": null
   },
   "move": {
     "subtitleLabel": null,
     "satsTotal": null,
+    "satsRegular": null,
+    "satsInstant": null,
     "swapButton": null
+  },
+  "nav": {
+    "walletButton": null,
+    "academyButton": null,
+    "settingsButton": null
+  },
+  "header": {
+    "downButton": null
+  },
+  "settings": {
+    "row": {
+      "support": null,
+      "restore": null,
+      "privacy": null,
+      "terms": null,
+      "currency": null,
+      "wallets": null,
+      "device": null
+    }
   },
   "swap": {
     "subtitleLabel": null,
@@ -44,7 +71,10 @@
   "buy": {
     "headerLabel": null,
     "downButton": null,
-    "yourCode": null
+    "continueButton": null,
+    "yourCode": null,
+    "yourEmail": null,
+    "yourIban": null
   },
   "question": {
     "yellowCard": null,
@@ -105,6 +135,28 @@
         "topLabelOne": null,
         "continueButton": null,
         "skipButton": null
+      }
+    },
+    "restore": {
+      "topLabel": null,
+      "field1": null,
+      "field2": null,
+      "field3": null,
+      "field4": null,
+      "field5": null,
+      "field6": null,
+      "field7": null,
+      "field8": null,
+      "field9": null,
+      "field10": null,
+      "field11": null,
+      "field12": null,
+      "nextButton": null,
+      "pinSet": {
+        "topLabel": null
+      },
+      "pinConfirm": {
+        "topLabel": null
       }
     },
     "bittr": {

@@ -85,7 +85,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
             cell.buttonLabel.text = self.deviceItems[indexPath.row]["button"] ?? ""
             
             let cellTag = self.deviceItems[indexPath.row]["id"]!
-            cell.cellButton.accessibilityIdentifier = cellTag
+            cell.cellButton.boundString = cellTag
             
             cell.hideDarkMode()
             switch cellTag {

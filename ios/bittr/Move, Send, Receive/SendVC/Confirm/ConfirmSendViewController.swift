@@ -83,7 +83,14 @@ class ConfirmSendViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+        // Tag the fee buttons so feeButtonTapped can route the tap.
+        // (Was set on accessibilityIdentifier in IB; moved here so that slot
+        // stays free for Maestro test IDs.)
+        self.buttonFast.boundString = "high"
+        self.buttonMedium.boundString = "medium"
+        self.buttonSlow.boundString = "low"
+
         self.setBasicStyling()
         self.changeColors()
         self.setLanguage()
@@ -179,9 +186,9 @@ class ConfirmSendViewController: UIViewController {
     }
     
     @IBAction func feeButtonTapped(_ sender: UIButton) {
-        if sender.accessibilityIdentifier! == "high" {
+        if sender.boundString == "high" {
             self.switchToFee(.high)
-        } else if sender.accessibilityIdentifier! == "medium" {
+        } else if sender.boundString == "medium" {
             self.switchToFee(.medium)
         } else {
             self.switchToFee(.low)

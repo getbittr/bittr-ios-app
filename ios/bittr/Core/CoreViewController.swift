@@ -147,7 +147,11 @@ class CoreViewController: UIViewController {
         // Set words.
         self.setWords()
         self.setBasicStyling()
-        
+
+        self.leftButton.accessibilityIdentifier = TestID.Nav.walletButton
+        self.middleButton.accessibilityIdentifier = TestID.Nav.academyButton
+        self.rightButton.accessibilityIdentifier = TestID.Nav.settingsButton
+
         // Check wallet.
         self.checkWalletAvailability()
     }

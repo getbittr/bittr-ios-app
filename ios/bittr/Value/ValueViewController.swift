@@ -60,8 +60,16 @@ class ValueViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         self.profitView.alpha = 0
+
+        // Tag the span buttons so changeSpan can route the tap.
+        // (Was set on accessibilityIdentifier in IB; moved here so that slot
+        // stays free for Maestro test IDs.)
+        self.weekButton.boundString = "week"
+        self.monthButton.boundString = "month"
+        self.yearButton.boundString = "year"
+        self.fiveYearsButton.boundString = "5years"
 
         // Button titles
         self.weekButton.setTitle("", for: .normal)
@@ -268,16 +276,17 @@ class ValueViewController: UIViewController {
     }
     
     @IBAction func changeSpan(_ sender: UIButton) {
-        
+
         if self.isFetchingData { return }
-        
-        self.selectedSpan = sender.accessibilityIdentifier!
+
+        let span = sender.boundString ?? "week"
+        self.selectedSpan = span
         self.drawGraph()
-        
+
         var shadowOpacities = [Float]()
         var backgroundColors = [UIColor]()
         var words = [String]()
-        switch sender.accessibilityIdentifier! {
+        switch span {
         case "week":
             shadowOpacities = [0.1,0,0,0]
             backgroundColors = [.white, UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7)]
