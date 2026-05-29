@@ -56,6 +56,8 @@ class MoveViewController: UIViewController {
 
         self.subtitleLabel.accessibilityIdentifier = TestID.Move.subtitleLabel
         self.satsTotal.accessibilityIdentifier = TestID.Move.satsTotal
+        self.satsRegular.accessibilityIdentifier = TestID.Move.satsRegular
+        self.satsInstant.accessibilityIdentifier = TestID.Move.satsInstant
         self.swapButton.accessibilityIdentifier = TestID.Move.swapButton
         self.swapButton.accessibilityLabel = "Swap"
 

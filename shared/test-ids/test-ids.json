@@ -20,7 +20,8 @@
     "sendButton": null,
     "receiveButton": null,
     "buyButton": null,
-    "balanceCardButton": null
+    "balanceCardButton": null,
+    "balanceLabel": null
   },
   "history": {
     "swapPending": null,
@@ -29,7 +30,28 @@
   "move": {
     "subtitleLabel": null,
     "satsTotal": null,
+    "satsRegular": null,
+    "satsInstant": null,
     "swapButton": null
+  },
+  "nav": {
+    "walletButton": null,
+    "academyButton": null,
+    "settingsButton": null
+  },
+  "header": {
+    "downButton": null
+  },
+  "settings": {
+    "row": {
+      "support": null,
+      "restore": null,
+      "privacy": null,
+      "terms": null,
+      "currency": null,
+      "wallets": null,
+      "device": null
+    }
   },
   "swap": {
     "subtitleLabel": null,

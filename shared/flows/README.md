@@ -23,6 +23,9 @@ shared/flows/
     buy_signup.yaml       Bittr signup from inside the Buy page — assumes a
                           wallet without a bittr account (run
                           onboarding/restore_wallet.yaml first).
+    remove_wallet.yaml    Settings → Restore wallet. Handles both branches
+                          (active channel → close → mine → re-trigger; no
+                          channel → direct confirm).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).

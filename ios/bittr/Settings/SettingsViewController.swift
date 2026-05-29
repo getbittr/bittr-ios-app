@@ -51,7 +51,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             cell.settingsCardImage.image = UIImage(systemName: self.settings[indexPath.row]["icon"] ?? "bitcoinsign.circle")
             cell.settingsCardImage.tintColor = UIColor(red: 248/255, green: 199/255, blue: 68/255, alpha: 1)
             cell.settingsCardLabel.text = Language.getWord(withID: self.settings[indexPath.row]["label"] ?? "Unnamed")
-            cell.settingsButton.boundString = self.settings[indexPath.row]["id"] ?? ""
+            let rowId = self.settings[indexPath.row]["id"] ?? ""
+            cell.settingsButton.boundString = rowId
+            cell.settingsButton.accessibilityIdentifier = "settings.row.\(rowId)"
             
             if self.settings[indexPath.row]["id"] == "currency" {
                 cell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency

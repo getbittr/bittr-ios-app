@@ -171,7 +171,14 @@ extension CoreViewController {
                     self.performWalletReset()
                 } else {
                     self.didCloseChannel()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.performWalletReset)])
+                    // Inform the user that closure is in progress and let them
+                    // dismiss. The wallet reset must be re-triggered manually
+                    // from Settings → Restore wallet once the on-chain close
+                    // transaction has confirmed and the Lightning balance has
+                    // returned to onchain. closechannel5's text ("you can now
+                    // proceed with wallet reset") describes this — the user
+                    // proceeds, the alert does not.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         } else {
@@ -181,7 +188,7 @@ extension CoreViewController {
             }
         }
     }
-    
+
     @objc func forceCloseChannel() {
         self.hideAlert()
         
@@ -215,7 +222,10 @@ extension CoreViewController {
                     self.performWalletReset()
                 } else {
                     self.didCloseChannel()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.performWalletReset)])
+                    // Match closeChannelConfirmed's normal-close behaviour:
+                    // inform the user, let them dismiss; reset is re-triggered
+                    // from Settings once the close confirms on-chain.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         } else {

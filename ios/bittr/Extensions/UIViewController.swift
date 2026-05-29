@@ -105,6 +105,7 @@ extension UIViewController {
         downButton.backgroundColor = .clear
         downButton.addTarget(self, action: #selector(self.dismissVC), for: .touchUpInside)
         downButton.layer.zPosition = 100
+        downButton.accessibilityIdentifier = TestID.Header.downButton
         headerView.addSubview(downButton)
         
         let downButtonHeight = NSLayoutConstraint(item: downButton, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)

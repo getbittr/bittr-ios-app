@@ -108,6 +108,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.buyButton.accessibilityLabel = Language.getWord(withID: "buy")
         self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton
         self.balanceCardButton.accessibilityLabel = "Balance details"
+        self.balanceLabel.accessibilityIdentifier = TestID.Home.balanceLabel
 
         // Table view
         self.homeTableView.delegate = self
