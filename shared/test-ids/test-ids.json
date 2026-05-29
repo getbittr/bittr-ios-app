@@ -17,6 +17,7 @@
   },
   "home": {
     "headerLabel": null,
+    "headerSpinner": null,
     "sendButton": null,
     "receiveButton": null,
     "buyButton": null,

@@ -23,6 +23,7 @@ enum TestID {
         static let balanceLabel = "home.balanceLabel"
         static let buyButton = "home.buyButton"
         static let headerLabel = "home.headerLabel"
+        static let headerSpinner = "home.headerSpinner"
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
     }

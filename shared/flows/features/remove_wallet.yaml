@@ -37,6 +37,18 @@ appId: com.bittr.bittr-regtest
     id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/remove_wallet/01_home
 
+# Wait for the post-sign-in wallet sync to finish before reading the
+# balance. The header spinner (UIActivityIndicatorView,
+# hidesWhenStopped=true) animates while startWallet → syncWallets →
+# loadWalletData → finalizeSync are running; stopAnimating in
+# finalizeSync flips isHidden to true. Reading move.satsInstant before
+# this signal can pick up the pre-sync 0 and route the test down the
+# wrong branch.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
 # Peek at the Lightning balance to decide whether we'll need the
 # channel-close arc. Tap the balance label (not balanceCardButton:
 # profitButton overlays the visual center of the balance card and
@@ -156,15 +168,15 @@ appId: com.bittr.bittr-regtest
           end: "50%, 90%"
           duration: 500
 
-      # Wait for the balance label to repaint, which is the proper "sync
-      # completed" signal: resetWallet zeros balanceLabel.alpha at
-      # refresh start, setTotalSats restores it to 1 once startWallet
-      # completes. balanceCardButton.alpha never changes (it's the
-      # underlying tap target), so it can't be used as a wait.
+      # Wait for the refresh-driven sync to fully complete. resetWallet
+      # zeros balanceLabel.alpha and starts headerSpinner; finalizeSync
+      # stops the spinner *after* setTotalSats has repainted the balance,
+      # so spinner-notVisible is the strictly-later (and authoritative)
+      # signal that the labels we're about to read are final.
       - extendedWaitUntil:
-          visible:
-            id: "home.balanceLabel"
-          timeout: 90000
+          notVisible:
+            id: "home.headerSpinner"
+          timeout: 120000
       - takeScreenshot: shared/docs/screenshots/remove_wallet/08_home_refreshed
 
       # Tap the balance label → falls through to balanceCardButton →
