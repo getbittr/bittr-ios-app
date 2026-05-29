@@ -34,7 +34,35 @@ extension CoreViewController {
             // Connect to peer.
             _ = await BitcoinManager.shared.connectToLightningPeer()
         }
-        
+
+        // Ensure LDK has chain-synced before we read balances below.
+        // ldkNode.start() returns as soon as the node is up, NOT when it
+        // has caught up to the tip — so loadWalletData's call to
+        // listBalances().totalOnchainBalanceSats returns 0 for restored
+        // wallets that actually have onchain UTXOs, until the 30-sec
+        // BackgroundSync.lightSync timer fires (or the user pulls to
+        // refresh and re-enters this function). syncWallets is a blocking
+        // throwing call, so hop to a background queue and await it.
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard BitcoinManager.shared.ldkNode != nil else {
+                    continuation.resume()
+                    return
+                }
+                do {
+                    try BitcoinManager.shared.syncWallets()
+                } catch {
+                    Log.info("startWallet syncWallets failed: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "StartLightning syncWallets", key: "context")
+                        }
+                    }
+                }
+                continuation.resume()
+            }
+        }
+
         // Get channels and payments.
         // Load wallet data.
         DispatchQueue.main.async {
