@@ -9,6 +9,8 @@ shared/flows/
   onboarding/      Wallet + bittr signup flows.
     fresh_install.yaml    Wipes state and runs happy_path. Top-level entry.
     happy_path.yaml       Reusable subflow: Signup1 → Home.
+    restore_wallet.yaml   Wipes state and runs the "Restore wallet" path
+                          from Signup1 with a fixed test mnemonic, PIN 1234.
     smoke.yaml            Bare-minimum check that the test-ID pipeline reaches Maestro.
   features/        One file per feature, run against a non-clean state.
     buy_incoming.yaml     First-time top up — opens the lightning channel.

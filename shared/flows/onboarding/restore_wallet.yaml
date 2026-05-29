@@ -1,0 +1,151 @@
+# Top-level: wipes app data + keychain, then drives the "Restore wallet"
+# onboarding path on Signup1 using a fixed test mnemonic. Sister flow to
+# onboarding/fresh_install.yaml + happy_path.yaml, which exercise the
+# "Create wallet" path.
+#
+# Why hard-coded mnemonic (vs forgot_pin.yaml's --env MNEMONIC=): restoring
+# from scratch means there's no existing wallet to match against — any
+# valid BIP-39 phrase will do, so we can bake a fixed test phrase in and
+# keep the test reproducible without env vars.
+#
+# Flow:
+#   1. Launch with clearState + clearKeychain — lands on Signup1.
+#   2. Tap "Restore wallet" instead of "Create wallet" → RestoreVC opens.
+#   3. Type the 12 mnemonic words into RestoreVC's fields.
+#   4. Tap Restore — RestoreVC validates the phrase via BDK, caches it,
+#      and advances to Restore2.
+#   5. Set PIN 1234 (matches helpers/unlock.yaml so subsequent feature
+#      tests still unlock cleanly).
+#   6. Confirm PIN 1234 → Restore3.nextButtonTapped calls hideSignup, Home
+#      appears with the restored wallet attached.
+#
+# Run: maestro test shared/flows/onboarding/restore_wallet.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+# Fixed test mnemonic — building output.words[1..12] up front mirrors the
+# 1-indexed access pattern used by forgot_pin.yaml (via parse_mnemonic.js)
+# and happy_path.yaml (captured from the mnemonic display screen).
+- evalScript: |
+    ${output.words = {
+      1: "attack",
+      2: "urge",
+      3: "across",
+      4: "cupboard",
+      5: "year",
+      6: "armor",
+      7: "list",
+      8: "vital",
+      9: "outer",
+      10: "leader",
+      11: "anxiety",
+      12: "endorse"
+    }}
+
+# Signup1: tap "Restore wallet" instead of "Create wallet".
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/01_start
+- tapOn:
+    id: "signup.create.start.restoreButton"
+
+# RestoreViewController opens — 12 mnemonic fields + Restore button.
+- assertVisible:
+    id: "signup.restore.topLabel"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/02_restore_initial
+
+- tapOn:
+    id: "signup.restore.field1"
+- inputText: ${output.words[1]}
+- tapOn:
+    id: "signup.restore.field2"
+- inputText: ${output.words[2]}
+- tapOn:
+    id: "signup.restore.field3"
+- inputText: ${output.words[3]}
+- tapOn:
+    id: "signup.restore.field4"
+- inputText: ${output.words[4]}
+- tapOn:
+    id: "signup.restore.field5"
+- inputText: ${output.words[5]}
+- tapOn:
+    id: "signup.restore.field6"
+- inputText: ${output.words[6]}
+- tapOn:
+    id: "signup.restore.field7"
+- inputText: ${output.words[7]}
+- tapOn:
+    id: "signup.restore.field8"
+- inputText: ${output.words[8]}
+- tapOn:
+    id: "signup.restore.field9"
+- inputText: ${output.words[9]}
+- tapOn:
+    id: "signup.restore.field10"
+- inputText: ${output.words[10]}
+- tapOn:
+    id: "signup.restore.field11"
+- inputText: ${output.words[11]}
+- tapOn:
+    id: "signup.restore.field12"
+- inputText: ${output.words[12]}
+
+# Dismiss the keyboard — it covers the Restore button. Tapping topLabel
+# (a UILabel with isUserInteractionEnabled = false) falls through to
+# RestoreVC.backgroundButtonTapped which calls endEditing(true). Same
+# trick happy_path.yaml + forgot_pin.yaml use; Maestro's hideKeyboard is
+# unreliable across simulator keyboard-mode changes.
+- tapOn:
+    id: "signup.restore.topLabel"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/03_restore_filled
+
+# Tap Restore — RestoreVC validates the mnemonic via
+# BitcoinManager.isValidMnemonic, caches it, and advances to Restore2.
+- tapOn:
+    id: "signup.restore.nextButton"
+
+# Set new PIN (Restore2: PinVC in .restore2 embedding). 1234 keeps
+# helpers/unlock.yaml usable for later feature tests.
+- assertVisible:
+    id: "signup.restore.pinSet.topLabel"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/04_pin_set_initial
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/05_pin_set_entered
+- tapOn:
+    id: "pin.confirmButton"
+
+# Confirm new PIN (Restore3: PinVC in .restore3 embedding). Must match.
+- assertVisible:
+    id: "signup.restore.pinConfirm.topLabel"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/06_pin_confirm_initial
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/07_pin_confirm_entered
+- tapOn:
+    id: "pin.confirmButton"
+
+# Restore3.nextButtonTapped stores the PIN, sets userHasSignedIn = true,
+# and calls coreVC.hideSignup — Home appears with the restored wallet.
+# Note: the restore path skips the bittr IBAN/email/OTP onboarding that
+# happy_path.yaml exercises after wallet creation.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/restore_wallet/08_home
