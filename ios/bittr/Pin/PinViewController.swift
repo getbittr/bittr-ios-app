@@ -196,18 +196,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         case .core:
             // Check internet connection.
             guard (self.coreVC ?? self).checkInternetConnection() else { return }
-            
-            if CacheManager.getFailedPinAttempts() > 9 {
-                Log.info("Wrong pin has been entered 10 times.")
-                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
-                
-                Log.info("Remove wallet from device.")
-                self.coreVC?.removingWalletForIncorrectPin = true
-                self.coreVC?.restoreWalletTapped()
-                
-                return
-            }
-            
+
             if self.correctPin != nil {
                 if self.correctPin! == self.pinTextField.text {
                     // Correct pin.
@@ -216,6 +205,17 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     self.coreVC?.correctPin(spinner:self.pinSpinner)
                 } else {
                     // Wrong pin.
+                    if CacheManager.getFailedPinAttempts() == 9 {
+                        Log.info("Wrong pin has been entered 10 times.")
+                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+
+                        Log.info("Remove wallet from device.")
+                        self.coreVC?.removingWalletForIncorrectPin = true
+                        self.coreVC?.restoreWalletTapped()
+
+                        return
+                    }
+
                     CacheManager.increaseFailedPinAttempts()
                     self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 }

@@ -336,9 +336,13 @@ class BitcoinManager {
             throw NSError(domain: "InvalidInput", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid input string. Couldn't convert to UTF8 data."])
         }
         
+        guard let actualLdkNode = self.ldkNode else {
+            throw NSError(domain: "NodeUnavailable", code: 0, userInfo: [NSLocalizedDescriptionKey: "Lightning node is not available."])
+        }
+
         let bytes = [UInt8](data)
-        let signedMessage = self.ldkNode!.signMessage(msg: bytes)
-        
+        let signedMessage = actualLdkNode.signMessage(msg: bytes)
+
         return signedMessage
     }
     

@@ -88,9 +88,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
 
         // Corner radii
         self.mnemonicView.layer.cornerRadius = 13
-        self.restoreView.layer.cornerRadius = 13
-        self.cardView.layer.cornerRadius = 13
-        self.imageContainer.layer.cornerRadius = 13
+        self.mnemonicView.setShadow()
+        self.restoreView.layer.cornerRadius = 8
+        self.cardView.layer.cornerRadius = 8
+        self.cardView.setShadow()
+        self.imageContainer.layer.cornerRadius = 8
         
         // Button titles
         self.restoreButton.setTitle("", for: .normal)

@@ -346,7 +346,13 @@ extension HomeViewController {
         let cachedBtcBalance = (CacheManager.getCachedData(key: "satsbalance") as? String ?? "0").toNumber().inBTC()
         let conversionLabelText = self.updateConversionLabel(btcValue: cachedBtcBalance)
         CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
-        self.conversionLabel.alpha = 1
+
+        // Only reveal the conversion once the balance is known (i.e. the sats
+        // balance label is showing). Otherwise it would display €0 while the
+        // wallet is still syncing and has no cached balance.
+        if self.balanceLabel.alpha == 1 {
+            self.conversionLabel.alpha = 1
+        }
     }
     
     
@@ -532,12 +538,16 @@ extension HomeViewController {
         
         if accumulatedInvestments != 0 {
             self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
-            self.balanceCardGainLabel.alpha = 1
-            self.balanceCardProfitView.alpha = 1
         } else {
+            self.balanceCardGainLabel.text = "0 %"
+        }
+
+        // Only reveal the profit once the balance is known (i.e. the sats
+        // balance label is showing). Otherwise it would display 0 % while the
+        // wallet is still syncing and has no cached balance.
+        if self.balanceLabel.alpha == 1 {
             self.balanceCardGainLabel.alpha = 1
             self.balanceCardProfitView.alpha = 1
-            self.balanceCardGainLabel.text = "0 %"
         }
         
         if accumulatedProfit < 0 {
@@ -598,7 +608,10 @@ extension HomeViewController {
                     userHasBittrAccount = true
                 }
             }
-            if userHasBittrAccount {
+            // Skip the payout check when a wipe / PIN reset is in progress: the
+            // node is about to be torn down, so signing a message against it
+            // would race the teardown (force-unwrap of a nil ldkNode).
+            if userHasBittrAccount, !self.coreVC!.resettingPin, !self.coreVC!.removingWalletForIncorrectPin {
                 Log.info("Check for pending payout.")
                 self.coreVC!.checkPendingPayout()
             }
