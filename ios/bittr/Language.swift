@@ -237,6 +237,8 @@ class Language: NSObject {
             "closechannel7": "The lightning connection could not be closed normally, possibly because the bittr node is offline or there's a connection issue.\n\nYou can close the connection unilaterally (force close), but this will require higher transaction fees and may take longer to complete.",
             "forceclose": "Force Close",
             "forceclose2": "Force closing the connection will require higher transaction fees but will work even if the bittr node is offline.",
+            "forceclose3": "Force close also failed. Please try again later or contact support.",
+            "forceclose4": "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.",
             "restorewallet5": "Connection closure is in progress. You can proceed with wallet reset.",
             "pinlength": "PIN Length",
             "pincanbeupto8": "PIN can be up to 8 digits",

@@ -67,27 +67,13 @@ extension CoreViewController {
                 self.genericSpinner.stopAnimating()
                 self.fullViewCover.alpha = 0
                 
-                // If channel closure was initiated within the last 2 minutes, allow reset.
-                if self.channelWasClosedRecently() {
-                    // Allow wallet reset since channel is in closing process.
-                    if self.removingWalletForIncorrectPin {
-                        self.performWalletReset()
-                    } else {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                    }
+                Log.info("Wallet cannot be restored with open channels.")
+                if self.removingWalletForIncorrectPin {
+                    self.closeChannelConfirmed()
                 } else {
-                    Log.info("Wallet cannot be restored with open channels.")
-                    if self.removingWalletForIncorrectPin {
-                        self.closeChannelConfirmed()
-                    } else {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
-                    }
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
                 }
             } else {
-                // Clear channel closing state since no channels exist
-                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                
                 if self.resettingPin || self.removingWalletForIncorrectPin {
                     Log.info("Removing wallet without signing in.")
                     self.performWalletReset()
@@ -160,10 +146,6 @@ extension CoreViewController {
                 }
                 return
             }
-                
-            // Mark that we've initiated channel closure
-            UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
             
             // Successful channel closure.
             DispatchQueue.main.async {
@@ -171,13 +153,6 @@ extension CoreViewController {
                     self.performWalletReset()
                 } else {
                     self.didCloseChannel()
-                    // Inform the user that closure is in progress and let them
-                    // dismiss. The wallet reset must be re-triggered manually
-                    // from Settings → Restore wallet once the on-chain close
-                    // transaction has confirmed and the Lightning balance has
-                    // returned to onchain. closechannel5's text ("you can now
-                    // proceed with wallet reset") describes this — the user
-                    // proceeds, the alert does not.
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
@@ -206,15 +181,11 @@ extension CoreViewController {
                         scope.setExtra(value: "ResetApp row 213", key: "context")
                     }
                     if !self.removingWalletForIncorrectPin {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "forceclose3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
                 return
             }
-                
-            // Mark that we've initiated channel closure
-            UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
             
             // Successful force close
             DispatchQueue.main.async {
@@ -225,7 +196,7 @@ extension CoreViewController {
                     // Match closeChannelConfirmed's normal-close behaviour:
                     // inform the user, let them dismiss; reset is re-triggered
                     // from Settings once the close confirms on-chain.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: Language.getWord(withID: "forceclose4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
         } else {
@@ -242,10 +213,6 @@ extension CoreViewController {
         // Reset PIN reset state
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
-        
-        // Clear channel closing state
-        UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-        UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
         
         // Clear mnemonic from cache
         CacheManager.deleteClientInfo()
@@ -356,26 +323,4 @@ extension CoreViewController {
         }
     }
 
-}
-
-extension UIViewController {
-    
-    func channelWasClosedRecently() -> Bool {
-        let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
-        let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
-        let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
-        
-        // If channel closure was initiated within the last 2 minutes, allow reset
-        if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-            return true
-        } else {
-            // Clear old channel closing state if it's been too long
-            if channelClosingInitiated && timeSinceClosure >= 120 {
-                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-            }
-            return false
-        }
-    }
-    
 }
