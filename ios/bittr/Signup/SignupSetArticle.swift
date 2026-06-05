@@ -9,24 +9,38 @@ import UIKit
 
 extension UIViewController {
 
-    func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView, completion: @escaping (Article?) -> Void) async {
+    func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView) -> Article? {
 
-        await self.getArticle(articleSlug, coreVC: coreVC) { result in
-
-            switch result {
-            case .success(let receivedArticle):
-                articleButton.boundString = articleSlug
-                articleTitle.text = receivedArticle.title
-                articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
-                completion(receivedArticle)
-            case .failure(let receivedError):
-                Log.info("Couldn't get article: \(receivedError)")
-                completion(nil)
-            }
+        guard let receivedArticle = self.getLocalArticle(articleSlug, coreVC: coreVC) else {
+            Log.info("Couldn't get article: \(articleSlug)")
+            return nil
         }
+
+        articleButton.boundString = articleSlug
+        articleTitle.text = receivedArticle.title
+        articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
+        return receivedArticle
     }
-    
-    func getArticle(_ withSlug:String, coreVC:CoreViewController!, completion: @escaping (Result<Article, String>) -> Void) async {
+
+    func getLocalArticle(_ withSlug:String, coreVC:CoreViewController!) -> Article? {
+
+        if let cachedArticle = coreVC.allArticles?[withSlug] {
+            return cachedArticle
+        }
+
+        guard let articleData = BittrArticles.json.data(using: .utf8),
+              let receivedDictionary = (try? JSONSerialization.jsonObject(with: articleData)) as? NSDictionary,
+              let actualArticles = receivedDictionary["articles"] as? NSDictionary else {
+            return nil
+        }
+
+        let everyArticle = self.parseArticles(articles: actualArticles)
+        coreVC.allArticles = everyArticle
+
+        return everyArticle[withSlug]
+    }
+
+    /*func getArticle(_ withSlug:String, coreVC:CoreViewController!, completion: @escaping (Result<Article, String>) -> Void) async {
         
         if coreVC.allArticles?[withSlug] != nil {
             return completion(.success(coreVC.allArticles![withSlug]!))
@@ -56,7 +70,7 @@ extension UIViewController {
                 }
             }
         }
-    }
+    }*/
     
     func parseArticles(articles:NSDictionary) -> [String:Article] {
         

@@ -102,7 +102,7 @@ struct EnvironmentConfig {
     
     /// Esplora URL based on environment
     static var esploraURL: String {
-        isDevelopment ? "https://esplora.bittr.io/api" : "https://blockstream.info/api"
+        isDevelopment ? "https://esplora.bittr.io/api" : "https://esplora.getbittr.com/api"
     }
 
     /// Block explorer URL based on environment

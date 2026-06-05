@@ -104,11 +104,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         // Set colors, language, article.
         self.changeColors()
         self.setWords()
-        Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
-                self.pageArticle1 = article ?? Article()
-            })
-        }
+        self.pageArticle1 = self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC?.coreVC ?? self.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1) ?? Article()
     }
     
     override func viewDidAppear(_ animated: Bool) {
