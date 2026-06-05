@@ -39,27 +39,10 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         // Button titles
         self.downButton.setTitle("", for: .normal)
         
-        // Set image
-        if let actualData = CacheManager.getImage(key: self.article?.image ?? "") {
-            self.oneArticleImage.image = UIImage(data: actualData)
-        }
-        
-        // Download image if needed
-        if self.oneArticleImage.image == nil, self.article?.image != "" {
-            
-            self.imageSpinner.startAnimating()
-            
-            Task {
-                if let imageData = await self.getImage(urlString: self.article?.image ?? "") {
-                    let image = UIImage(data: imageData)
-                    DispatchQueue.main.async {
-                        self.imageSpinner.stopAnimating()
-                        self.oneArticleImage.image = image
-                    }
-                }
-            }
-        }
-        
+        // Set image from the asset catalog, keyed by article slug.
+        self.imageSpinner.stopAnimating()
+        self.oneArticleImage.image = UIImage(named: self.article?.id ?? "")
+
         self.changeColors()
     }
     
