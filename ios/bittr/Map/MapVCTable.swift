@@ -35,7 +35,9 @@ extension MapViewController {
         let thisPlace = self.currentPlaces[indexPath.row]
         cell.cellIcon.image = UIImage(systemName: thisPlace.icon.iconName())
         cell.placeName.text = thisPlace.name ?? "Bitcoin place"
+        cell.placeName.accessibilityIdentifier = TestID.Map.placeName
         cell.cellButton.tag = indexPath.row
+        cell.cellButton.accessibilityIdentifier = TestID.Map.placeCellButton
         
         if thisPlace.address != nil {
             cell.addressStackHeight.constant = 21

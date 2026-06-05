@@ -51,7 +51,11 @@ class OnePlaceViewController: UIViewController {
         // Styling
         self.changeColors()
         self.setStyling()
-        
+
+        // Maestro test IDs.
+        self.placeNameLabel.accessibilityIdentifier = TestID.Map.OnePlace.nameLabel
+        self.closeButton.accessibilityIdentifier = TestID.Map.OnePlace.closeButton
+
         // Populate page.
         self.placeNameLabel.text = self.thisPlace!.name ?? Language.getWord(withID: "unavailable")
         self.iconImage.image = UIImage(systemName: self.thisPlace!.icon.iconName())

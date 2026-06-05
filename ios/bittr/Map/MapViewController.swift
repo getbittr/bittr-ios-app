@@ -49,6 +49,12 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.setStyling()
         self.addHeader(iconLight: "iconmapwhite", iconDark: "iconmapyellow", title: Language.getWord(withID: "paywithbitcoin"))
         
+        // Maestro test IDs.
+        self.mapView.accessibilityIdentifier = TestID.Map.mapView
+        self.mapSpinner.accessibilityIdentifier = TestID.Map.mapSpinner
+        self.placesTableView.accessibilityIdentifier = TestID.Map.placesTableView
+        self.userLocationButton.accessibilityIdentifier = TestID.Map.userLocationButton
+
         // Table view
         self.placesTableView.delegate = self
         self.placesTableView.dataSource = self
