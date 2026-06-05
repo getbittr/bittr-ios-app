@@ -49,6 +49,13 @@
       "closeButton": null
     }
   },
+  "academy": {
+    "headerLabel": null,
+    "nextLessonButton": null,
+    "nextPageButton": null,
+    "completeButton": null,
+    "lessonSpinner": null
+  },
   "history": {
     "swapPending": null,
     "swapComplete": null

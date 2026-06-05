@@ -35,6 +35,9 @@ shared/flows/
     bitcoin_map.yaml      Bitcoin map (MapViewController) — unlock, open it
                           from Home's map icon, wait for the places to sync,
                           open/close a place, move the map, recentre on user.
+    academy.yaml          Academy tab (AcademyViewController) — unlock, open
+                          the latest available lesson, page through it to
+                          Complete, then open the next freshly-unlocked lesson.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).

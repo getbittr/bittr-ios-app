@@ -145,6 +145,9 @@ extension OneLessonViewController {
         nextButton.setTitle("", for: .normal)
         nextButton.isUserInteractionEnabled = true
         nextButton.translatesAutoresizingMaskIntoConstraints = false
+        // Maestro test ID — same button advances the page ("Next") and, on the
+        // final page, completes the lesson ("Complete").
+        nextButton.accessibilityIdentifier = lastPage ? TestID.Academy.completeButton : TestID.Academy.nextPageButton
         nextButton.addTarget(self, action: #selector(self.nextPage), for: .touchUpInside)
         nextButtonView.addSubview(nextButton)
         
