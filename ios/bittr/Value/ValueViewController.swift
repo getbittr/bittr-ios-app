@@ -71,6 +71,16 @@ class ValueViewController: UIViewController {
         self.yearButton.boundString = "year"
         self.fiveYearsButton.boundString = "5years"
 
+        // Maestro test IDs.
+        self.currentValueLabel.accessibilityIdentifier = TestID.Value.currentValueLabel
+        self.valueSpinner.accessibilityIdentifier = TestID.Value.valueSpinner
+        self.profitLabel.accessibilityIdentifier = TestID.Value.profitLabel
+        self.graphView.accessibilityIdentifier = TestID.Value.graphView
+        self.weekButton.accessibilityIdentifier = TestID.Value.weekButton
+        self.monthButton.accessibilityIdentifier = TestID.Value.monthButton
+        self.yearButton.accessibilityIdentifier = TestID.Value.yearButton
+        self.fiveYearsButton.accessibilityIdentifier = TestID.Value.fiveYearsButton
+
         // Button titles
         self.weekButton.setTitle("", for: .normal)
         

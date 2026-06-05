@@ -110,6 +110,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton
         self.balanceCardButton.accessibilityLabel = "Balance details"
         self.balanceLabel.accessibilityIdentifier = TestID.Home.balanceLabel
+        self.currencyButton.accessibilityIdentifier = TestID.Home.currencyButton
 
         // Table view
         self.homeTableView.delegate = self

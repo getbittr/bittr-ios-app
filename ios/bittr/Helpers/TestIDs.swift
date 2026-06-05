@@ -22,6 +22,7 @@ enum TestID {
         static let balanceCardButton = "home.balanceCardButton"
         static let balanceLabel = "home.balanceLabel"
         static let buyButton = "home.buyButton"
+        static let currencyButton = "home.currencyButton"
         static let headerLabel = "home.headerLabel"
         static let headerSpinner = "home.headerSpinner"
         static let receiveButton = "home.receiveButton"
@@ -202,5 +203,16 @@ enum TestID {
     }
     enum Unlock {
         static let topLabel = "unlock.topLabel"
+    }
+    enum Value {
+        static let currentValueLabel = "value.currentValueLabel"
+        static let fiveYearsButton = "value.fiveYearsButton"
+        static let graphValueLabel = "value.graphValueLabel"
+        static let graphView = "value.graphView"
+        static let monthButton = "value.monthButton"
+        static let profitLabel = "value.profitLabel"
+        static let valueSpinner = "value.valueSpinner"
+        static let weekButton = "value.weekButton"
+        static let yearButton = "value.yearButton"
     }
 }
