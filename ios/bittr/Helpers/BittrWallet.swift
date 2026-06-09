@@ -23,6 +23,7 @@ class BittrWallet: NSObject {
     // Blockchain
     var currentHeight:Int?
     var onchainAddresses:[OnchainAddress]?
+    var onchainAddressesVerified:Bool = false
     
     // Currency conversion
     var valueInEUR:CGFloat?

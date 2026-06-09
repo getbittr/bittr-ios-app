@@ -177,7 +177,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                     }
                     return nextUnusedAddress ?? self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
                 } else {
-                    return self.getCachedOnchainAddress() ?? self.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? Language.getWord(withID: "unavailable")
+                    return self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
                 }
             } else {
                 return ""
@@ -480,13 +480,25 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.iconQuestion.alpha = 0
         self.qrSpinner.startAnimating()
         
-        let delay:Double = withoutAnimation ? 0 : 0.7
+        // Wait for onchain address management to finish before showing onchain address.
+        if (type == .onchain || type == .bitcoinqr) && !newAddress && self.coreVC?.bittrWallet.onchainAddressesVerified == false {
+            self.currentType = type
+            self.updateCards(for: type)
+            return
+        }
         
+        let delay:Double = withoutAnimation ? 0 : 0.7
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             Task { await self.setLabels(for: type, newAddress: newAddress) }
         }
     }
     
+    func onchainAddressesReady() {
+        // Onchain address management complete.
+        guard self.currentType == .onchain || self.currentType == .bitcoinqr else { return }
+        self.alertTapped(for: self.currentType, withoutAnimation: true)
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)

@@ -38,28 +38,28 @@ extension [OnchainAddress] {
         guard self.count != 0 else { return nil }
         
         // Check the index of the current cached address.
-        let cachedAddress = CacheManager.getLastAddress() ?? nil
+        let cachedAddress = CacheManager.getLastAddress()
         
-        var resultHasBeenFound = false
+        // Walk down from the top until we hit the current cached address or a
+        // used one, then advance to the address above it.
         var checkIndex = self.count - 1
-        
-        while !resultHasBeenFound {
+        while checkIndex >= 0 {
             if (self[checkIndex].onchainAddress == cachedAddress) || self[checkIndex].hasBeenUsedByBittr {
                 // This is the current address, or this address has been used.
                 // Return the next unused address.
                 if (checkIndex + 1) < self.count {
                     CacheManager.storeLastAddress(newAddress: self[checkIndex+1].onchainAddress)
-                    resultHasBeenFound = true
                     return self[checkIndex+1].onchainAddress
                 } else {
-                    resultHasBeenFound = true
                     return nil
                 }
-            } else {
-                // Address hasn't been used.
-                checkIndex -= 1
             }
+            // Address hasn't been used.
+            checkIndex -= 1
         }
+        
+        // No cached/used address found in the pool.
+        return nil
     }
 }
 
@@ -173,6 +173,20 @@ extension CoreViewController {
             } else {
                 // Enough addresses available.
                 Log.info("Onchain address management successful.")
+
+                // Verify the currently cached address.
+                let unusedAddresses = self.bittrWallet.onchainAddresses!.filter { !$0.hasBeenUsedByBittr }
+                let cached = CacheManager.getLastAddress()
+                let cachedIsValidUnused = cached != nil && unusedAddresses.contains { $0.onchainAddress == cached }
+                if !cachedIsValidUnused, let firstUnused = unusedAddresses.first {
+                    CacheManager.storeLastAddress(newAddress: firstUnused.onchainAddress)
+                }
+                
+                // Alert ReceiveVC that address management has completed.
+                DispatchQueue.main.async {
+                    self.bittrWallet.onchainAddressesVerified = true
+                    self.receiveVC?.onchainAddressesReady()
+                }
             }
         }
     }
