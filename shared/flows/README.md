@@ -16,6 +16,12 @@ shared/flows/
     buy_incoming.yaml     First-time top up — opens the lightning channel.
     buy_more.yaml         Subsequent top up — channel already open.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).
+    receive_onchain.yaml  Onchain receive → send round-trip: show the onchain
+                          address (waiting out the verification spinner), read
+                          its info + copy it, paste into Send and assert it
+                          lands as Regular/onchain (no amount, then with a 5000
+                          sat amount), then renew the address until the pool is
+                          exhausted. Uses helpers/show_onchain_address.yaml.
     swap.yaml             Lightning ↔ onchain, both directions.
     forgot_pin.yaml       Forgot-PIN recovery from the unlock screen — types
                           the cached mnemonic and resets the PIN. Requires
@@ -40,6 +46,9 @@ shared/flows/
                           Complete, then open the next freshly-unlocked lesson.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
+    show_onchain_address.yaml  From a freshly-opened Receive screen, waits out
+                          the QR spinner and switches the type to the onchain
+                          Address (via More → Address) when a channel is present.
   scripts/         Maestro `runScript` helpers (GraalJS).
     mine_blocks.js              POST /e2e/mine-blocks on the regtest backend.
     trigger_bank_transaction.js POST /e2e/bank-transaction (incoming SEPA).
