@@ -39,6 +39,14 @@ appId: com.bittr.bittr-regtest
 # Should be on Home now.
 - assertVisible:
     id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — the header spinner spins until the
+# sync finishes. Wait for it to stop before doing anything so the onchain
+# address pool is ready by the time we open Receive.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
 - takeScreenshot: shared/docs/screenshots/receive_onchain/01_home
 
 # Open Receive and make sure the onchain address is on screen (waits out the
