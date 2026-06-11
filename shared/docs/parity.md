@@ -11,6 +11,7 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `onboarding/happy_path.yaml` if launched on a clean install. |
 | Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address (waits out the verification spinner), copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
+| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, switches to Regular (waits out the BDK sync spinner), enters an address + 5 EUR amount, confirms address/euro amount on the Confirm screen with the fast fee, sends, mines 6 blocks, then opens the new transaction from the history table. Requires an onchain balance. |
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses existing channel + onchain balance from prior buy flow. |
 | Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
 | Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens/closes a place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
@@ -19,7 +20,7 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 
 ## Not yet covered by flows
 
-iOS-side screens that still need a flow before they're parity-tracked: Send end-to-end (broadcast/confirm — onchain paste + parsing is exercised by `features/receive_onchain.yaml`, but the Confirm → send path and lightning sends are not), Restore wallet, Settings, Profits, Widget, LNURL-Auth.
+iOS-side screens that still need a flow before they're parity-tracked: Send end-to-end (the onchain Confirm → broadcast path is covered by `features/send_onchain.yaml`; lightning sends are not yet), Restore wallet, Settings, Profits, Widget, LNURL-Auth.
 
 ## Legend
 

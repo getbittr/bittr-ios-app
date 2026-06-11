@@ -95,6 +95,11 @@ class ConfirmSendViewController: UIViewController {
         self.changeColors()
         self.setLanguage()
         self.setLabels()
+
+        self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
+        self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
+        self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
     }
     
     func setLabels() {
@@ -112,7 +117,7 @@ class ConfirmSendViewController: UIViewController {
         self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
         // Fiat amount
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        self.amountFiatLabel.text = "\(Int(self.sendVC!.confirmSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
+        self.amountFiatLabel.text = self.formattedFiatAmount()
         
         // Fees
         if self.sendVC!.onchainOrLightning == .lightning {
@@ -184,7 +189,18 @@ class ConfirmSendViewController: UIViewController {
         }
         return satsText
     }
-    
+
+    // Formats the fiat send amount with two decimals, e.g. "4.99 €".
+    func formattedFiatAmount() -> String {
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let fiatValue = CGFloat(self.sendVC!.confirmSatoshis.inBTC() * bitcoinValue.currentValue)
+        var fiatText = "\(CGFloat(Int(fiatValue * 100)) / 100)"
+        if String(fiatText.fixDecimals().split(separator: Locale.current.decimalSeparator!)[1]).count == 1 {
+            fiatText = fiatText + "0"
+        }
+        return "\(fiatText) \(bitcoinValue.chosenCurrency)"
+    }
+
     @IBAction func feeButtonTapped(_ sender: UIButton) {
         if sender.boundString == "high" {
             self.switchToFee(.high)
@@ -259,9 +275,8 @@ class ConfirmSendViewController: UIViewController {
         self.sendVC!.selectBTCCurrency()
         
         // Update confirmation labels.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
-        self.amountFiatLabel.text = "\(Int(self.sendVC!.confirmSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
+        self.amountFiatLabel.text = self.formattedFiatAmount()
         
         // Switch fee selection.
         self.switchToFee(self.selectedFee)

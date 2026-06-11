@@ -18,7 +18,11 @@ extension HomeViewController {
             
             // Button
             cell.transactionButton.accessibilityElements = [thisTransaction]
-            
+            // Row-indexed test IDs so the topmost cell is always addressable as
+            // ...0 (e.g. history.transactionButton0 / history.transactionAmount0).
+            cell.transactionButton.accessibilityIdentifier = "\(TestID.History.transactionButton)\(indexPath.row)"
+            cell.satsLabel.accessibilityIdentifier = "\(TestID.History.transactionAmount)\(indexPath.row)"
+
             // Cell zPosition
             cell.layer.zPosition = CGFloat(indexPath.row)
             

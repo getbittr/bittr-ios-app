@@ -58,7 +58,9 @@
   },
   "history": {
     "swapPending": null,
-    "swapComplete": null
+    "swapComplete": null,
+    "transactionButton": null,
+    "transactionAmount": null
   },
   "move": {
     "subtitleLabel": null,
@@ -134,7 +136,17 @@
     "toLabel": null,
     "toTextField": null,
     "amountTextField": null,
-    "pasteButton": null
+    "pasteButton": null,
+    "regularButton": null,
+    "currencyButton": null,
+    "currencyLabel": null,
+    "bdkSpinner": null,
+    "confirm": {
+      "addressLabel": null,
+      "amountFiatLabel": null,
+      "feeFastButton": null,
+      "confirmButton": null
+    }
   },
   "signup": {
     "create": {
