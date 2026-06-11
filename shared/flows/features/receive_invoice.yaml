@@ -1,0 +1,175 @@
+# Feature test: lightning invoice receive → send round-trip.
+#
+# Mirrors features/receive_onchain.yaml but exercises the lightning invoice
+# type instead of the onchain address:
+#   1. Open Receive and switch the type to a lightning invoice (More → Create
+#      invoice, waiting out the QR spinner while the invoice is generated).
+#   2. Read the invoice info (question mark) and copy it.
+#   3. Paste it into Send and verify it lands as a lightning payment with the
+#      invoice filled in and no amount (a zero-amount invoice).
+#   4. Back in Receive, attach a 2000 sat amount, copy, paste into Send and
+#      verify the invoice carries across with the 2000 sat amount.
+#
+# Creating an invoice requires an active lightning channel (the More type
+# picker is only present when lightning is available), so this assumes a
+# wallet with the channel from buy_incoming.yaml already open. Pasting the
+# 2000 sat invoice into Send also assumes enough lightning outbound capacity
+# for the amount to populate. If launched on a clean install it auto-runs the
+# onboarding subflow first. Does NOT clearState — wallet state is preserved.
+#
+# Run: maestro test shared/flows/features/receive_invoice.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — the header spinner spins until the
+# sync finishes. Wait for it to stop before opening Receive.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/receive_invoice/01_home
+
+# Open Receive and switch the type to a lightning invoice (More → Create
+# invoice, waiting out the QR spinner).
+- tapOn:
+    id: "home.receiveButton"
+- runFlow:
+    file: ../helpers/show_invoice.yaml
+- takeScreenshot: shared/docs/screenshots/receive_invoice/02_invoice
+
+# Tap the question mark to read the invoice info alert, then close it.
+- tapOn:
+    id: "receive.questionButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/03_invoice_info
+- tapOn:
+    id: "alert.button.0"
+
+# Copy the invoice (puts the raw bolt11 invoice on the clipboard), close the
+# "Copied" alert.
+- tapOn:
+    id: "receive.copyButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/04_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Close Receive via the shared header down button (added by addHeader).
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Open Send and paste the copied invoice.
+- tapOn:
+    id: "home.sendButton"
+- tapOn:
+    id: "send.pasteButton"
+
+# Pasting a lightning invoice switches the type to lightning: the "to" label
+# reads "Invoice and amount", the invoice lands in the field, and because this
+# is a zero-amount invoice no amount is set.
+# Maestro matches `text` as a full-string regex, so wrap partial matches in .*
+- assertVisible:
+    id: "send.toLabel"
+    text: "Invoice and amount"
+- assertVisible:
+    id: "send.toTextField"
+    text: ".*lnbcrt.*"
+- assertNotVisible:
+    id: "send.amountTextField"
+    text: ".*[0-9].*"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/05_send_invoice_only
+
+# Close Send.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Back into Receive, create the invoice again, then attach an amount.
+- tapOn:
+    id: "home.receiveButton"
+- runFlow:
+    file: ../helpers/show_invoice.yaml
+
+# "Add amount" (the edit button) reveals the amount field. Default currency is
+# satoshis, so 2000 = 2000 sats.
+- tapOn:
+    id: "receive.editButton"
+- tapOn:
+    id: "receive.amountTextField"
+- inputText: "2000"
+- tapOn:
+    text: "Done"
+
+# The invoice regenerates with the amount baked in. Wait for the spinner to
+# settle, then confirm a fresh invoice rendered.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+- assertVisible:
+    id: "receive.invoiceLabel"
+    text: ".*lnbcrt.*"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/06_invoice_with_amount
+
+# Copy the amount invoice, close the alert.
+- tapOn:
+    id: "receive.copyButton"
+- assertVisible:
+    id: "alert.button.0"
+- tapOn:
+    id: "alert.button.0"
+
+# Close Receive.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Open Send and paste again — this time the invoice carries the 2000 sat amount.
+- tapOn:
+    id: "home.sendButton"
+- tapOn:
+    id: "send.pasteButton"
+- assertVisible:
+    id: "send.toLabel"
+    text: "Invoice and amount"
+- assertVisible:
+    id: "send.toTextField"
+    text: ".*lnbcrt.*"
+- assertVisible:
+    id: "send.amountTextField"
+    text: "2000"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/07_send_invoice_amount
+
+# Close Send.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/08_done

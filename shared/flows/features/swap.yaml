@@ -34,6 +34,14 @@ appId: com.bittr.bittr-regtest
 # requires fresh install and we don't want to wipe state silently).
 - assertVisible:
     id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — the header spinner spins until the
+# sync finishes. Wait for it to stop before tapping the balance card so the
+# balances are settled before we enter the swap flow.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
 - takeScreenshot: shared/docs/screenshots/swap/01_home
 
 # Tap the big balance card → MoveVC.
@@ -104,6 +112,14 @@ appId: com.bittr.bittr-regtest
     direction: DOWN
     duration: 800
 - takeScreenshot: shared/docs/screenshots/swap/08_home_final
+
+# The claim triggers another wallet sync; wait for the header spinner to stop
+# first. history.swapPending can only be checked reliably once the table has
+# resynced, which is gated on the spinner disappearing.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
 
 # Wait for the first swap to settle from pending to complete before starting
 # the reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled,

@@ -1,0 +1,34 @@
+# Reusable subflow: from a freshly-opened ReceiveViewController, switch the
+# transaction type to a lightning invoice.
+#
+# Creating an invoice requires an active lightning channel — which also means
+# the More button (the type picker) is always present on this screen. So:
+# wait for the initial QR to render, open the type picker, choose "Create
+# invoice", then wait out the spinner while the invoice is generated.
+
+appId: com.bittr.bittr-regtest
+---
+# Wait for the initial QR to render before touching the type picker.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+
+# Open the type picker and choose "Create invoice".
+- tapOn:
+    id: "receive.moreButton"
+# Type-picker alert buttons: [Cancel, Address, Bitcoin QR, Create invoice,
+# Show LNURL]. "Create invoice" is index 3.
+- tapOn:
+    id: "alert.button.3"
+
+# Generating the invoice re-renders the QR; wait for the spinner to settle.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+
+# The lightning invoice is now displayed (regtest invoices start with "lnbcrt").
+- assertVisible:
+    id: "receive.invoiceLabel"
+    text: ".*lnbcrt.*"

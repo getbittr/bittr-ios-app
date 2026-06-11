@@ -135,6 +135,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         
         self.addressTitle.accessibilityIdentifier = TestID.Receive.addressTitle
         self.addressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
+        self.lowerAddressLabel.accessibilityIdentifier = TestID.Receive.invoiceLabel
         self.qrImageView.accessibilityIdentifier = TestID.Receive.qrImageView
         self.qrSpinner.accessibilityIdentifier = TestID.Receive.qrSpinner
         self.questionButton.accessibilityIdentifier = TestID.Receive.questionButton
