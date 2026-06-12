@@ -18,12 +18,14 @@ import libsecp256k1
 extension SendViewController {
     
     func handleLNURLAmountCompletion() {
+        Log.info("Will handle LNURL amount completion.")
         
         guard let callback = pendingLNURLCallback,
               let minAmount = pendingLNURLMinAmount,
               let maxAmount = pendingLNURLMaxAmount,
               let amountText = amountTextField.text,
               !amountText.isEmpty else {
+            Log.info("Information for pending LNURL incomplete.")
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
@@ -53,6 +55,7 @@ extension SendViewController {
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
+            Log.info("Entered amount is not within range of the LNURL limits.")
             let minSats = minAmount / 1000
             let maxSats = maxAmount / 1000
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -192,22 +195,31 @@ extension UIViewController {
                                 // Min and max are the same.
                                 self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
                             } else {
-                                // Min and max are different. Update UI to show range and focus amount field.
+                                // Min and max are different. Store the request so the
+                                // amount the user enters next completes the payment, then
+                                // tell them the payable range via an alert.
                                 let minSats = minSendable / 1000
                                 let maxSats = maxSendable / 1000
-                                
-                                // Update the label to show the range
-                                sendVC?.availableAmount.text = "You can send \(minSats) - \(maxSats) satoshis"
-                                
-                                // Clear and focus the amount field
-                                sendVC?.amountTextField.text = ""
-                                sendVC?.amountTextField.becomeFirstResponder()
-                                
+
                                 // Store the callback and description for when user enters amount
                                 sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
                                 sendVC?.pendingLNURLDescription = receivedDescription
                                 sendVC?.pendingLNURLMinAmount = minSendable
                                 sendVC?.pendingLNURLMaxAmount = maxSendable
+
+                                // Clear the amount field, ready for an in-range amount.
+                                sendVC?.amountTextField.text = ""
+
+                                // Show the payable range. The user taps Okay, then enters
+                                // the amount in the field.
+                                self.showAlert(
+                                    presentingController: self,
+                                    title: Language.getWord(withID: "payrequest"),
+                                    message: Language.getWord(withID: "payrequest1")
+                                        .replacingOccurrences(of: "<minsendable>", with: "\(minSats)".addSpaces())
+                                        .replacingOccurrences(of: "<maxsendable>", with: "\(maxSats)".addSpaces()),
+                                    buttons: [Language.getWord(withID: "okay")],
+                                    actions: nil)
                             }
                         } else if receivedTag == "withdrawRequest",
                             let receivedCallback = actualDataDict["callback"] as? String,
@@ -271,6 +283,7 @@ extension UIViewController {
     }
     
     func sendPayRequest(callbackURL:String, amount:Int, receivedDescription:String?) {
+        Log.info("Will send payRequest.")
         
         let sendVC = self as? SendViewController
         

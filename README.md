@@ -48,6 +48,13 @@ The push-notification helper bridges Maestro to the simulator's APNS push (the `
 node shared/flows/scripts/push_server.js
 ```
 
+The lightning send flow additionally needs the clipboard helper, which bridges Maestro to `xcrun simctl pbcopy` so the in-app Paste button has something to paste (see the `send_lightning.yaml` run line below). Start it the same way:
+
+```sh
+# Terminal A′ — only needed for send_lightning.yaml
+node shared/flows/scripts/clipboard_server.js
+```
+
 In another terminal, from the repo root, run a flow:
 
 ```sh
@@ -72,6 +79,13 @@ maestro test shared/flows/features/receive_invoice.yaml
 maestro test shared/flows/features/send_onchain.yaml
 maestro test shared/flows/features/send_onchain_all.yaml
 maestro test shared/flows/features/swap.yaml
+
+# Lightning send (normal + zero-amount invoice + Lightning Address). Manual
+# input: the three targets come from a separate live wallet you run yourself.
+# Needs "node shared/flows/scripts/clipboard_server.js" running (Terminal A, alongside push_server)
+# so the in-app Paste button has something to paste:
+maestro test --env LN_INVOICE="lnbcrt…" --env LN_ZERO_INVOICE="lnbcrt…" --env LN_ADDRESS="name@domain" shared/flows/features/send_lightning.yaml
+
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/wrong_pin.yaml
 maestro test shared/flows/features/bitcoin_value.yaml
