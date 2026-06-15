@@ -1,5 +1,6 @@
-# Feature test: remove the wallet from the device via Settings → Restore
-# wallet. Covers both branches of ResetApp.restoreWalletTapped:
+# Feature test: remove the wallet from the device via Settings → Device
+# details → Remove wallet. Covers both branches of
+# ResetApp.restoreWalletTapped:
 #   • No active Lightning channel — direct confirm + reset (always the
 #     final tail of this flow).
 #   • Active Lightning channel — close the connection on-chain first,
@@ -73,16 +74,23 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "header.downButton"
 
-# Settings tab → Restore wallet row.
+# Settings tab → Device details → Remove wallet row. The Remove wallet
+# button moved out of SettingsVC into DeviceVC, so we now drill into
+# Device details first.
 - assertVisible:
     id: "home.headerLabel"
 - tapOn:
     id: "nav.settingsButton"
 - assertVisible:
-    id: "settings.row.restore"
+    id: "settings.row.device"
 - takeScreenshot: shared/docs/screenshots/remove_wallet/03_settings
 - tapOn:
-    id: "settings.row.restore"
+    id: "settings.row.device"
+- assertVisible:
+    id: "device.row.restore"
+- takeScreenshot: shared/docs/screenshots/remove_wallet/03b_device_details
+- tapOn:
+    id: "device.row.restore"
 
 # Channel-close arc — only when the up-front balance check found funds.
 - runFlow:
@@ -199,15 +207,19 @@ appId: com.bittr.bittr-regtest
       - tapOn:
           id: "header.downButton"
 
-      # Settings → Restore wallet again. With the channel now closed and
-      # confirmed, listChannels has no active channel, so the next tap
-      # falls into the no-channel tail handled below.
+      # Settings → Device details → Remove wallet again. With the channel
+      # now closed and confirmed, listChannels has no active channel, so
+      # the next tap falls into the no-channel tail handled below.
       - tapOn:
           id: "nav.settingsButton"
       - assertVisible:
-          id: "settings.row.restore"
+          id: "settings.row.device"
       - tapOn:
-          id: "settings.row.restore"
+          id: "settings.row.device"
+      - assertVisible:
+          id: "device.row.restore"
+      - tapOn:
+          id: "device.row.restore"
 
 # No-channel tail (always reached — directly on first restore tap for
 # wallets without a channel, or after the close-channel arc above).

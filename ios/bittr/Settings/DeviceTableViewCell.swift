@@ -49,6 +49,11 @@ class DeviceTableViewCell: UITableViewCell {
         switch sender.boundString ?? "" {
         case "language":
             self.deviceVC?.changeLanguage()
+        case "currency":
+            self.deviceVC?.changeCurrency()
+        case "restore":
+            self.deviceVC?.coreVC?.restoreWalletTapped()
+            self.deviceVC?.dismiss(animated: true)
         case "devicetoken":
             self.deviceVC?.askForPushNotifications()
         case "publickey":

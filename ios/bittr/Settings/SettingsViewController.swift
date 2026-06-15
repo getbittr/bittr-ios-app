@@ -19,7 +19,12 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     // Variables
     var coreVC:CoreViewController?
     var tappedUrl:String?
-    let settings = [["label":"getsupport", "icon":"envelope", "id":"support"],["label":"restorewallet", "icon":"banknote", "id":"restore"],["label":"privacypolicy", "icon":"checkmark.shield", "id":"privacy"],["label":"termsandconditions", "icon":"book.pages", "id":"terms"],["label":"currency", "icon":"dollarsign.circle", "id":"currency"],["label":"walletandbalance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]]
+    let settings = [
+        ["label":"getsupport", "icon":"envelope", "id":"support"],
+        ["label":"privacypolicy", "icon":"checkmark.shield", "id":"privacy"],
+        ["label":"termsandconditions", "icon":"book.pages", "id":"terms"],
+        ["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]
+    ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -54,13 +59,9 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             let rowId = self.settings[indexPath.row]["id"] ?? ""
             cell.settingsButton.boundString = rowId
             cell.settingsButton.accessibilityIdentifier = "settings.row.\(rowId)"
-            
-            if self.settings[indexPath.row]["id"] == "currency" {
-                cell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
-            } else {
-                cell.currencyLabel.text = ""
-            }
-            
+
+            cell.currencyLabel.text = ""
+
             return cell
         } else {
             return UITableViewCell()
@@ -78,34 +79,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         } else if sender.boundString == "support" {
             self.tappedUrl = "https://getbittr.com/support"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
-        } else if sender.boundString == "restore" {
-            self.coreVC?.restoreWalletTapped()
-        } else if sender.boundString == "currency" {
-            let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-            let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
-                
-                UserDefaults.standard.set("€", forKey: "currency")
-                self.coreVC?.homeVC?.changeCurrency()
-                self.settingsTableView.reloadData()
-            }
-            let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
-                
-                UserDefaults.standard.set("CHF", forKey: "currency")
-                self.coreVC?.homeVC?.changeCurrency()
-                self.settingsTableView.reloadData()
-            }
-            let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-            actionSheet.addAction(eurOption)
-            actionSheet.addAction(chfOption)
-            actionSheet.addAction(cancelAction)
-            present(actionSheet, animated: true, completion: nil)
-        } else if sender.boundString == "wallets" {
-            if self.coreVC != nil, !self.coreVC!.walletHasSynced {
-                // Wallet isn't ready.
-                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
-            self.coreVC?.homeVC?.moveButtonTapped()
         } else if sender.boundString == "device" {
             self.performSegue(withIdentifier: "SettingsToDevice", sender: self)
         }

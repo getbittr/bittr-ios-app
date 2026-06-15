@@ -44,7 +44,7 @@ extension CoreViewController {
         // - The RestoreVC in case the user has lost their mnemonic and pin (before syncing).
         // - The HomeVC finalizeSync function in case the user has lost their mnemonic and pin (after syncing).
         // - The PinVC in case the user has entered the wrong pin 10 times.
-        // - The SettingsVC when the user wants to remove their wallet.
+        // - The DeviceVC when the user wants to remove their wallet.
         Log.info("Restore wallet tapped.")
         
         if !self.walletHasSynced {
