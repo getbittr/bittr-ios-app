@@ -74,9 +74,10 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "header.downButton"
 
-# Settings tab → Device details → Remove wallet row. The Remove wallet
-# button moved out of SettingsVC into DeviceVC, so we now drill into
-# Device details first.
+# Settings popup → Device details → Remove wallet row. SettingsVC now
+# presents as a pop-up over Home (CoreViewController.showSettings) rather
+# than a slide-across segue, and the Remove wallet button moved out of
+# SettingsVC into DeviceVC, so we drill into Device details first.
 - assertVisible:
     id: "home.headerLabel"
 - tapOn:
@@ -159,9 +160,15 @@ appId: com.bittr.bittr-regtest
       - evalScript: ${output.blocksToMine = 6}
       - runScript: ../scripts/mine_blocks.js
 
-      # Wallet tab — typically already selected but tapping is harmless.
+      # The Settings popup is still open over Home: DeviceVC dismissed
+      # back onto it after the restore tap, and none of the channel-close
+      # alerts closed it. Close the popup by tapping the Settings header
+      # Down button — UIViewController.dismissVC now routes a
+      # SettingsViewController to CoreViewController.hideSettings — rather
+      # than navigating away via a tab (the tab bar sits behind the
+      # popup). That returns us to Home.
       - tapOn:
-          id: "nav.walletButton"
+          id: "header.downButton"
       - assertVisible:
           id: "home.headerLabel"
 

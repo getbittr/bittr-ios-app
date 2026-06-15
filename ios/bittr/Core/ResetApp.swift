@@ -209,6 +209,7 @@ extension CoreViewController {
     
     @objc func performWalletReset() {
         self.hideAlert()
+        self.hideSettings()
         
         // Reset PIN reset state
         self.resettingPin = false
@@ -263,7 +264,6 @@ extension CoreViewController {
         
         // Hide signup view and launch create wallet flow
         // Since we've cleared the PIN, we need to manually show the create wallet flow
-        self.homeVC!.view.alpha = 0
         self.hideSignup()
         self.userHasSignedIn = false
         
@@ -275,7 +275,6 @@ extension CoreViewController {
             
             // Show HomeVC.
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.homeVC!.view.alpha = 1
                 self.genericSpinner.stopAnimating()
                 self.fullViewCover.alpha = 0
             }
