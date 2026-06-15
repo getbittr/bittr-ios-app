@@ -64,6 +64,7 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
         super.viewDidLoad()
 
         downButton.setTitle("", for: .normal)
+        downButton.accessibilityIdentifier = TestID.Website.downButton
         safariButton.setTitle("", for: .normal)
         
         webView.translatesAutoresizingMaskIntoConstraints = false
