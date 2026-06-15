@@ -116,37 +116,32 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func changeLanguage() {
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let englishOption = UIAlertAction(title: "English (US)", style: .default) { (action) in
-            CacheManager.changeLanguage("en_US")
-        }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(englishOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, #selector(self.selectEnglishLanguage)])
     }
 
     func changeCurrency() {
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, #selector(self.selectEuroCurrency), #selector(self.selectChfCurrency)])
+    }
 
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
+    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
+    // has an action, so each hides the alert before applying the change.
+    @objc func selectEnglishLanguage() {
+        self.hideAlert()
+        CacheManager.changeLanguage("en_US")
+    }
 
-            UserDefaults.standard.set("€", forKey: "currency")
-            self.coreVC?.homeVC?.changeCurrency()
-            self.deviceTableView.reloadData()
-        }
-        let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
+    @objc func selectEuroCurrency() {
+        self.hideAlert()
+        UserDefaults.standard.set("€", forKey: "currency")
+        self.coreVC?.homeVC?.changeCurrency()
+        self.deviceTableView.reloadData()
+    }
 
-            UserDefaults.standard.set("CHF", forKey: "currency")
-            self.coreVC?.homeVC?.changeCurrency()
-            self.deviceTableView.reloadData()
-        }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(eurOption)
-        actionSheet.addAction(chfOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
+    @objc func selectChfCurrency() {
+        self.hideAlert()
+        UserDefaults.standard.set("CHF", forKey: "currency")
+        self.coreVC?.homeVC?.changeCurrency()
+        self.deviceTableView.reloadData()
     }
 
     @objc func showToken(notification:NSNotification) {
