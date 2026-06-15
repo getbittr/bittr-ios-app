@@ -551,7 +551,8 @@ class Language: NSObject {
             "lnauth1": "<domain> wants to <action> with your lightning wallet. No bitcoin will be sent. Would you like to proceed?",
             "lnauth2": "You've been successfully signed in.",
             "lnauth3": "We could not sign you in. Please try again.",
-            "removewallet": "Remove wallet"
+            "removewallet": "Remove wallet",
+            "settings": "Settings"
             
         ]
         

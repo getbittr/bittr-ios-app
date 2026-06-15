@@ -12,6 +12,7 @@ import Sentry
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
     // UI elements
+    @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var settingsTableView: UITableView!
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
     @IBOutlet weak var appVersion: UILabel!
@@ -20,20 +21,21 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     var coreVC:CoreViewController?
     var tappedUrl:String?
     let settings = [
-        ["label":"getsupport", "icon":"envelope", "id":"support"],
-        ["label":"privacypolicy", "icon":"checkmark.shield", "id":"privacy"],
-        ["label":"termsandconditions", "icon":"book.pages", "id":"terms"],
+        ["label":"getsupport", "icon":"envelope.fill", "id":"support"],
+        ["label":"privacypolicy", "icon":"checkmark.shield.fill", "id":"privacy"],
+        ["label":"termsandconditions", "icon":"book.pages.fill", "id":"terms"],
         ["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]
     ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.addHeader(iconLight: "menusettingswhite", iconDark: "menusettingsblack", title: Language.getWord(withID: "settings"))
         self.setWords()
         
         // Table view
-        settingsTableView.delegate = self
-        settingsTableView.dataSource = self
+        self.settingsTableView.delegate = self
+        self.settingsTableView.dataSource = self
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
@@ -43,9 +45,13 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        settingsTableViewHeight.constant = CGFloat(settings.count * 60)
+        self.settingsTableViewHeight.constant = CGFloat(settings.count * 55)
         
         return settings.count
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 55
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -59,8 +65,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             let rowId = self.settings[indexPath.row]["id"] ?? ""
             cell.settingsButton.boundString = rowId
             cell.settingsButton.accessibilityIdentifier = "settings.row.\(rowId)"
-
-            cell.currencyLabel.text = ""
 
             return cell
         } else {

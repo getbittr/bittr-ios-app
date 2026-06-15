@@ -72,6 +72,7 @@ extension CoreViewController {
         self.academyView.layer.cornerRadius = 8
         self.walletView.layer.cornerRadius = 8
         self.yearView.layer.cornerRadius = 12.5
+        self.settingsContainer.layer.cornerRadius = 20
         
         // Shadows
         self.walletView.setShadow()
@@ -84,6 +85,7 @@ extension CoreViewController {
         self.middleButton.setTitle("", for: .normal)
         self.rightButton.setTitle("", for: .normal)
         self.syncCloseButton.setTitle("", for: .normal)
+        self.settingsBackgroundButton.setTitle("", for: .normal)
         
     }
 }

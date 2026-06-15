@@ -122,4 +122,41 @@ extension CoreViewController {
         }
     }
     
+    func showSettings() {
+        
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        let newChild = storyboard.instantiateViewController(withIdentifier: "SettingsVC")
+        (newChild as? SettingsViewController)?.coreVC = self
+        
+        self.addChild(newChild)
+        newChild.view.frame.size = self.settingsContainer.frame.size
+        self.settingsContainer.addSubview(newChild.view)
+        newChild.didMove(toParent: self)
+        
+        self.settingsBackground.alpha = 1
+        self.view.layoutIfNeeded()
+        
+        UIView.animate(withDuration: 0.6, delay: 0.2, usingSpringWithDamping: 0.7, initialSpringVelocity: 0, options: .curveEaseInOut) {
+            
+            let contentHeight:CGFloat = (newChild as? SettingsViewController)?.centerView.bounds.height ?? 0
+            
+            self.settingsBackground.backgroundColor = .black.withAlphaComponent(0.5)
+            self.settingsContainerTop.constant = -contentHeight - self.view.safeAreaInsets.bottom
+            self.view.layoutIfNeeded()
+        }
+    }
+    
+    func hideSettings() {
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            self.settingsBackground.backgroundColor = UIColor(red: 138/255, green: 111/255, blue: 81/255, alpha: 0)
+            self.settingsContainerTop.constant = 0
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.settingsBackground.alpha = 0
+            for eachSubview in self.settingsContainer.subviews {
+                eachSubview.removeFromSuperview()
+            }
+        }
+    }
+    
 }

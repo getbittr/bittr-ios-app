@@ -13,7 +13,6 @@ class SettingsTableViewCell: UITableViewCell {
     @IBOutlet weak var settingsCardImage: UIImageView!
     @IBOutlet weak var settingsCardLabel: UILabel!
     @IBOutlet weak var settingsButton: UIButton!
-    @IBOutlet weak var currencyLabel: UILabel!
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -32,22 +31,10 @@ class SettingsTableViewCell: UITableViewCell {
         self.changeColors()
     }
     
-    @objc func changeCurrency(notification:NSNotification) {
-        
-        if self.currencyLabel.text != "" {
-            if let userInfo = notification.userInfo as [AnyHashable:Any]? {
-                if let newCurrency = userInfo["currency"] as? String {
-                    self.currencyLabel.text = newCurrency
-                }
-            }
-        }
-    }
-    
     @objc func changeColors() {
         
         self.settingsCardLabel.textColor = Colors.getColor("blackorwhite")
         self.settingsCardView.backgroundColor = Colors.getColor("whiteorblue2")
-        self.currencyLabel.textColor = Colors.getColor("blackorwhite")
     }
 
 }

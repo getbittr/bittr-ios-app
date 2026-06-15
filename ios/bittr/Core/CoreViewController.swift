@@ -123,6 +123,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var fullViewCover: UIView!
     @IBOutlet weak var genericSpinner: UIActivityIndicatorView!
     
+    // Settings container
+    @IBOutlet weak var settingsBackground: UIView!
+    @IBOutlet weak var settingsBackgroundButton: UIButton!
+    @IBOutlet weak var settingsContainer: UIView!
+    @IBOutlet weak var settingsContainerTop: NSLayoutConstraint!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -193,6 +199,16 @@ class CoreViewController: UIViewController {
     
     @IBAction func closeSyncTapped(_ sender: UIButton) {
         self.hideSyncView()
+    }
+    
+    @IBAction func settingsTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        self.showSettings()
+    }
+    
+    @IBAction func settingsBackgroundTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        self.hideSettings()
     }
     
 }
