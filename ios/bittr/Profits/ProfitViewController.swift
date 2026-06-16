@@ -39,8 +39,13 @@ class ProfitViewController: UIViewController {
         self.currentValueView.layer.cornerRadius = 13
         self.profitView.layer.cornerRadius = 13
         
+        self.subtitleLabel.accessibilityIdentifier = TestID.Profits.subtitleLabel
+        self.totalInvestmentLabel.accessibilityIdentifier = TestID.Profits.totalInvestmentLabel
+        self.totalValueLabel.accessibilityIdentifier = TestID.Profits.totalValueLabel
+        self.totalProfitLabel.accessibilityIdentifier = TestID.Profits.totalProfitLabel
+
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        
+
         self.totalInvestmentLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalInvestments)"
         self.totalValueLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalValue)"
         self.totalProfitLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalProfit)"
