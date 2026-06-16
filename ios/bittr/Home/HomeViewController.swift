@@ -341,9 +341,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.coreVC!.bittrWallet.allTransactions += [paymentDetails!]
             }
             
+            if thisTransaction.isBittr {
+                self.bittrTransactions.updateValue(thisTransaction.toBittrTransaction(), forKey: thisTransaction.id)
+            }
+            
             // Update balance label.
             self.setTotalSats()
             self.moveVC?.updateLabels()
+            self.calculateProfit()
         }
     }
     
