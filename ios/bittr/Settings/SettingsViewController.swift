@@ -30,8 +30,8 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        self.addHeader(iconLight: "menusettingswhite", iconDark: "menusettingsblack", title: Language.getWord(withID: "settings"))
         self.setWords()
+        self.changeColors()
         
         // Table view
         self.settingsTableView.delegate = self
@@ -39,8 +39,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        
-        self.changeColors()
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

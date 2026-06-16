@@ -18,5 +18,6 @@ extension SettingsViewController {
     @objc func changeColors() {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.addHeader(iconLight: "menusettingswhite", iconDark: "menusettingsyellow", title: Language.getWord(withID: "settings"))
     }
 }
