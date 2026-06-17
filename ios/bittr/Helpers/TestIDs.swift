@@ -24,6 +24,8 @@ enum TestID {
     enum History {
         static let swapComplete = "history.swapComplete"
         static let swapPending = "history.swapPending"
+        static let transactionAmount = "history.transactionAmount"
+        static let transactionButton = "history.transactionButton"
     }
     enum Home {
         static let balanceCardButton = "home.balanceCardButton"
@@ -95,7 +97,17 @@ enum TestID {
     }
     enum Send {
         static let amountTextField = "send.amountTextField"
+        static let bdkSpinner = "send.bdkSpinner"
+        enum Confirm {
+            static let addressLabel = "send.confirm.addressLabel"
+            static let amountFiatLabel = "send.confirm.amountFiatLabel"
+            static let confirmButton = "send.confirm.confirmButton"
+            static let feeFastButton = "send.confirm.feeFastButton"
+        }
+        static let currencyButton = "send.currencyButton"
+        static let currencyLabel = "send.currencyLabel"
         static let pasteButton = "send.pasteButton"
+        static let regularButton = "send.regularButton"
         static let toLabel = "send.toLabel"
         static let toTextField = "send.toTextField"
     }

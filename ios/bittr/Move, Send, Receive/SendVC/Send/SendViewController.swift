@@ -152,6 +152,10 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.toTextField.accessibilityIdentifier = TestID.Send.toTextField
         self.amountTextField.accessibilityIdentifier = TestID.Send.amountTextField
         self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
+        self.regularButton.accessibilityIdentifier = TestID.Send.regularButton
+        self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
+        self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
+        self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
 
         // Set colors and language
         self.changeColors()
@@ -470,24 +474,30 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
-            self.selectBTCCurrency()
-        }
-        let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
-            self.selectSatsCurrency()
-        }
+        self.view.endEditing(true)
+
+        // Use the shared custom alert (same component as ReceiveViewController's
+        // More type picker) rather than a standard iOS action sheet.
+        // Buttons: [Cancel, Bitcoin, Satoshis, <fiat currency>].
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
-            self.selectFiatCurrency()
-        }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(btcOption)
-        actionSheet.addAction(satsOption)
-        actionSheet.addAction(currencyOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, #selector(self.tappedBitcoinCurrency), #selector(self.tappedSatsCurrency), #selector(self.tappedFiatCurrency)])
+    }
+
+    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
+    // has an action, so each hides the alert before applying the currency.
+    @objc func tappedBitcoinCurrency() {
+        self.hideAlert()
+        self.selectBTCCurrency()
+    }
+
+    @objc func tappedSatsCurrency() {
+        self.hideAlert()
+        self.selectSatsCurrency()
+    }
+
+    @objc func tappedFiatCurrency() {
+        self.hideAlert()
+        self.selectFiatCurrency()
     }
     
     @IBAction func availableQuestionTapped(_ sender: UIButton) {

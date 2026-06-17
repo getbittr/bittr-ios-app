@@ -95,6 +95,11 @@ class ConfirmSendViewController: UIViewController {
         self.changeColors()
         self.setLanguage()
         self.setLabels()
+
+        self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
+        self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
+        self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
     }
     
     func setLabels() {
@@ -112,7 +117,7 @@ class ConfirmSendViewController: UIViewController {
         self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
         // Fiat amount
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        self.amountFiatLabel.text = "\(Int(self.sendVC!.confirmSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
+        self.amountFiatLabel.text = self.formattedFiatAmount()
         
         // Fees
         if self.sendVC!.onchainOrLightning == .lightning {
@@ -178,13 +183,35 @@ class ConfirmSendViewController: UIViewController {
         }
         let satsValue = CGFloat(satsPerVbyte*transactionSize)
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        // satsText is dot-decimal here (Swift Double interpolation), so pad a
+        // single trailing decimal digit to two (e.g. "0.5" -> "0.50").
         var satsText = "\(CGFloat(Int((satsValue.inBTC()*bitcoinValue.currentValue)*100))/100)"
-        if String(satsText.fixDecimals().split(separator: Locale.current.decimalSeparator!)[1]).count == 1 {
+        if String(satsText.split(separator: ".")[1]).count == 1 {
             satsText = satsText + "0"
         }
-        return satsText
+        // Localize the decimal separator to match the rest of the app (e.g.
+        // "0,50" in comma locales) — same fix as formattedFiatAmount().
+        return satsText.fixDecimals()
     }
-    
+
+    // Formats the fiat send amount with two decimals, e.g. "4.99 €" (or "4,99 €"
+    // in comma locales — see the fixDecimals() note below).
+    func formattedFiatAmount() -> String {
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let fiatValue = CGFloat(self.sendVC!.confirmSatoshis.inBTC() * bitcoinValue.currentValue)
+        // fiatText is dot-decimal here (Swift's Double interpolation always uses
+        // "."), so pad a single trailing decimal digit to two (e.g. "4.9" -> "4.90").
+        var fiatText = "\(CGFloat(Int(fiatValue * 100)) / 100)"
+        if String(fiatText.split(separator: ".")[1]).count == 1 {
+            fiatText = fiatText + "0"
+        }
+        // Convert the "." to the device locale's decimal separator so the amount
+        // matches how the rest of the app formats numbers (e.g. "4,99" in comma
+        // locales). Previously the raw dot-decimal string was returned, so the
+        // confirm screen showed "4.99" regardless of locale.
+        return "\(fiatText.fixDecimals()) \(bitcoinValue.chosenCurrency)"
+    }
+
     @IBAction func feeButtonTapped(_ sender: UIButton) {
         if sender.boundString == "high" {
             self.switchToFee(.high)
@@ -259,9 +286,8 @@ class ConfirmSendViewController: UIViewController {
         self.sendVC!.selectBTCCurrency()
         
         // Update confirmation labels.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
         self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
-        self.amountFiatLabel.text = "\(Int(self.sendVC!.confirmSatoshis.inBTC()*bitcoinValue.currentValue)) \(bitcoinValue.chosenCurrency)"
+        self.amountFiatLabel.text = self.formattedFiatAmount()
         
         // Switch fee selection.
         self.switchToFee(self.selectedFee)

@@ -69,6 +69,7 @@ maestro test shared/flows/features/buy_more.yaml
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/receive_onchain.yaml
 maestro test shared/flows/features/receive_invoice.yaml
+maestro test shared/flows/features/send_onchain.yaml
 maestro test shared/flows/features/swap.yaml
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/wrong_pin.yaml
