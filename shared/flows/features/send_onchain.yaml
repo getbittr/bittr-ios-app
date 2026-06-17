@@ -102,8 +102,9 @@ appId: com.bittr.bittr-regtest
 
 # The view slides to the ConfirmSendViewController. Verify the address and the
 # euro amount. The fiat amount is shown with two decimals and recomputed from
-# whole satoshis, so it lands at "4.99 €" or "5.00 €" — accept either.
-# Maestro matches `text` as a full-string regex.
+# whole satoshis, so it lands at "4.99 €" or "5.00 €" — accept either. The
+# decimal separator is localized (e.g. "," in comma locales), so the regex
+# accepts either "." or ",". Maestro matches `text` as a full-string regex.
 - extendedWaitUntil:
     visible:
       id: "send.confirm.addressLabel"
@@ -113,7 +114,7 @@ appId: com.bittr.bittr-regtest
     text: "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv"
 - assertVisible:
     id: "send.confirm.amountFiatLabel"
-    text: "[45]\\.[0-9][0-9] €"
+    text: "[45][.,][0-9][0-9] €"
 - takeScreenshot: shared/docs/screenshots/send_onchain/03_confirm
 
 # Pick the fast (≈10 minute) fee. For such a small amount the fee can exceed
