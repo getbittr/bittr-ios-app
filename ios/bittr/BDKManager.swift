@@ -18,10 +18,21 @@ extension BitcoinManager {
             if self.bdkWallet == nil {
                 Log.info("Will start blockchain and wallet.")
                 
+                // Bail out if the mnemonic has been cleared from the cache. This
+                // happens during a wallet wipe: performWalletReset deletes the
+                // mnemonic (deleteClientInfo) and clears bdkWallet (resetNodeState),
+                // so a didStartBDK that runs after teardown would force-unwrap a
+                // nil mnemonic and trap with a Swift _assertionFailure.
+                guard let cachedMnemonic = CacheManager.getMnemonic() else {
+                    Log.info("No mnemonic in cache; wallet is being torn down. Aborting BDK start.")
+                    completion(false)
+                    return
+                }
+
                 // Attempt to create a mnemonic object from the provided mnemonic string.
                 let mnemonic:BitcoinDevKit.Mnemonic
                 do {
-                    mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: CacheManager.getMnemonic()!)
+                    mnemonic = try BitcoinDevKit.Mnemonic.fromString(mnemonic: cachedMnemonic)
                 } catch {
                     self.handleError(error: error, row: 178)
                     completion(false)

@@ -26,6 +26,9 @@ shared/flows/
     remove_wallet.yaml    Settings → Restore wallet. Handles both branches
                           (active channel → close → mine → re-trigger; no
                           channel → direct confirm).
+    wrong_pin.yaml        PIN lockout from the unlock screen — ten wrong
+                          PINs wipe the wallet and drop back to Signup1
+                          (run onboarding/restore_wallet.yaml first).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).
