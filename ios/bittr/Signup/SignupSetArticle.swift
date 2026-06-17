@@ -53,10 +53,7 @@ extension UIViewController {
                 thisArticle.id = actualArticleID
             }
             if let actualArticleData = articledata as? NSDictionary {
-                
-                if let actualArticleImage = actualArticleData["headerimage"] as? String {
-                    thisArticle.image = actualArticleImage
-                }
+
                 if let actualArticleText = actualArticleData["text"] as? [NSDictionary] {
                     thisArticle.text = actualArticleText
                 }

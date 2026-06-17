@@ -17,7 +17,7 @@ enum BittrArticles {
             "title": "When do I receive my bitcoin?",
             "text": [
                 {
-                    "text": "<p><strong>&lt;title&gt;How and When Do I Get My Bitcoin with Bittr? Simplifying the Bitcoin Buying Process</strong></p><p>&lt;subtitle&gt;By Ruben⠀•⠀July 3th, 2023<br><br>&nbsp;</p><p>&lt;intro&gt;Welcome, future Bitcoin saver! We're excited that you've chosen Bittr to embark on your Bitcoin journey. A question we often hear from new users is, \"When and how do I get my Bitcoin after depositing my money?\" We're here to provide a simple guide to answer just that.</p>",
+                    "text": "<p><strong>&lt;title&gt;How and When Do I Get My Bitcoin with Bittr? Simplifying the Bitcoin Buying Process</strong></p><p>&lt;subtitle&gt;By Ruben⠀•⠀July 3rd, 2023<br><br>&nbsp;</p><p>&lt;intro&gt;Welcome, future Bitcoin saver! We're excited that you've chosen Bittr to embark on your Bitcoin journey. A question we often hear from new users is, \"When and how do I get my Bitcoin after depositing my money?\" We're here to provide a simple guide to answer just that.</p>",
                     "order": 100,
                     "image": ""
                 },
@@ -43,7 +43,6 @@ enum BittrArticles {
                 }
             ],
             "order": 500,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Enthusiastic_character_delightfully_catching_golden_bit_20a83109-35d2-4160-97ba-5fcaf4b48937.png",
             "date": 202307030000,
             "category": "General"
         },
@@ -83,7 +82,6 @@ enum BittrArticles {
                 }
             ],
             "order": 100,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Daylight_brilliance_illuminating_a_fresh_rustic_pathway_96c108b4-2aa5-41ac-85b4-7ee0c461e20f.png",
             "date": 202307030000,
             "category": "News"
         },
@@ -118,7 +116,6 @@ enum BittrArticles {
                 }
             ],
             "order": 200,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Radiant_character_joyfully_interacting_with_a_secure_go_a8d70f88-e601-4336-b576-0c1da32d974c.png",
             "date": 202307030000,
             "category": "General"
         },
@@ -127,7 +124,7 @@ enum BittrArticles {
             "title": "How to recover my wallet?",
             "text": [
                 {
-                    "text": "<p><strong>&lt;title&gt;Understanding Bitcoin Wallets: Your Bittr Guide to Safe Bitcoin Storage</strong></p><p>&lt;subtitle&gt;By Ruben⠀•⠀July 3th, 2023</p><p>&nbsp;</p><p>&lt;intro&gt;First off, let's all agree on one thing: your Bitcoin is precious, and keeping it safe should be your number one priority. But what happens if you can't access your Bitcoin wallet? Don't worry, we've got you covered. Here's a simple, step-by-step guide on how to recover your Bitcoin wallet.</p>",
+                    "text": "<p><strong>&lt;title&gt;How to Recover Your Bitcoin Wallet: Your Bittr Guide to Getting Back In</strong></p><p>&lt;subtitle&gt;By Ruben⠀•⠀July 3rd, 2023</p><p>&nbsp;</p><p>&lt;intro&gt;First off, let's all agree on one thing: your Bitcoin is precious, and keeping it safe should be your number one priority. But what happens if you can't access your Bitcoin wallet? Don't worry, we've got you covered. Here's a simple, step-by-step guide on how to recover your Bitcoin wallet.</p>",
                     "order": 100,
                     "image": ""
                 },
@@ -168,7 +165,6 @@ enum BittrArticles {
                 }
             ],
             "order": 300,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Adventurous_character_deciphering_a_traditional_parchme_952af1e8-e4ad-4ca6-9a5f-78567c77f1d3.png",
             "date": 202307030000,
             "category": "General"
         },
@@ -177,7 +173,7 @@ enum BittrArticles {
             "title": "What countries are supported?",
             "text": [
                 {
-                    "text": "<p><strong>&lt;title&gt;Bittr: Your Swiss Gateway to Bitcoin Savings</strong></p><p>&lt;subtitle&gt;By Ruben⠀•⠀July 3th, 2023</p><p>&nbsp;</p><p>&lt;intro&gt;Ever wondered about how to buy Bitcoin in a simple, secure, and straightforward manner? Welcome to Bittr, your Swiss buddy that's here to help. But wait, you might be wondering, \"Can I use Bittr if I'm not in Switzerland?\" Let's delve into that.</p>",
+                    "text": "<p><strong>&lt;title&gt;Bittr: Your Swiss Gateway to Bitcoin Savings</strong></p><p>&lt;subtitle&gt;By Ruben⠀•⠀July 3rd, 2023</p><p>&nbsp;</p><p>&lt;intro&gt;Ever wondered about how to buy Bitcoin in a simple, secure, and straightforward manner? Welcome to Bittr, your Swiss buddy that's here to help. But wait, you might be wondering, \"Can I use Bittr if I'm not in Switzerland?\" Let's delve into that.</p>",
                     "order": 100,
                     "image": ""
                 },
@@ -203,7 +199,6 @@ enum BittrArticles {
                 }
             ],
             "order": 400,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Inviting_pathway_dotted_with_proud_fluttering_flags__ce_a87262d4-6c94-4f01-8a9b-b43a0246038e.png",
             "date": 202307030000,
             "category": "General"
         },
@@ -233,7 +228,6 @@ enum BittrArticles {
                 }
             ],
             "order": 700,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Bright_morning_sunlight__guiding_the_path_beside_a_firm_b21e8f42-d5eb-4962-bdb2-489fa85da302.png",
             "date": 202307030000,
             "category": "General"
         },
@@ -273,7 +267,6 @@ enum BittrArticles {
                 }
             ],
             "order": 600,
-            "headerimage": "https://bittr-ios-assets.s3.eu-central-2.amazonaws.com/bytriot_Majestic_path_meandering_through_lush_green_hills_close_aea2cbcd-2451-47ef-b6e0-985a7c357ac4.png",
             "date": 202307030000,
             "category": "General"
         }
