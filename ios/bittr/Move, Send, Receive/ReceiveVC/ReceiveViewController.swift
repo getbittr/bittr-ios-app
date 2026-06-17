@@ -483,13 +483,33 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.iconQuestion.alpha = 0
         self.qrSpinner.startAnimating()
         
-        // Wait for onchain address management to finish before showing onchain address.
+        // Wait for onchain address management to finish before showing the onchain
+        // address — manageOnchainAddresses() calls onchainAddressesReady() when it
+        // sets onchainAddressesVerified, which re-enters this method.
         if (type == .onchain || type == .bitcoinqr) && !newAddress && self.coreVC?.bittrWallet.onchainAddressesVerified == false {
             self.currentType = type
             self.updateCards(for: type)
+
+            // SAFETY NET: never wait forever. Verification can fail to complete —
+            // e.g. revealOnchainAddresses() bails when getNewOnchainAddress()
+            // returns nil, or manageOnchainAddresses() never ran because startup
+            // didn't reach it — and there's otherwise no path that clears this
+            // gate, so the QR/address would spin indefinitely. After a timeout,
+            // give up waiting and show the best-available (cached) address. Guarded
+            // on `verified == false` so it no-ops if onchainAddressesReady() already
+            // fired (the normal, fast path), and on currentType so it doesn't fire
+            // after the user switched to a different receive type.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+                guard let self = self,
+                      self.coreVC?.bittrWallet.onchainAddressesVerified == false,
+                      self.currentType == .onchain || self.currentType == .bitcoinqr else { return }
+                Log.info("Onchain address verification timed out — showing best-available address.")
+                self.coreVC?.bittrWallet.onchainAddressesVerified = true
+                self.alertTapped(for: self.currentType, withoutAnimation: true)
+            }
             return
         }
-        
+
         let delay:Double = withoutAnimation ? 0 : 0.7
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             Task { await self.setLabels(for: type, newAddress: newAddress) }

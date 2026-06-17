@@ -79,9 +79,21 @@ extension CoreViewController {
     
     func revealOnchainAddresses() {
         Log.info("Reveal onchain addresses.")
-        
-        guard let lastRevealedOnchainAddress = self.getNewOnchainAddress() else { return }
-        
+
+        guard let lastRevealedOnchainAddress = self.getNewOnchainAddress() else {
+            // Could not derive an address (e.g. the LDK node is unavailable). The
+            // normal completion path (checkOnchainAddressesWithBittr → "enough
+            // addresses" branch) is what sets onchainAddressesVerified, and we're
+            // bailing before reaching it — so without this, ReceiveVC's onchain
+            // gate would wait forever. Mark verification done and notify so the
+            // screen shows the best-available (cached) address instead of hanging.
+            DispatchQueue.main.async {
+                self.bittrWallet.onchainAddressesVerified = true
+                self.receiveVC?.onchainAddressesReady()
+            }
+            return
+        }
+
         var revealedAddresses = [OnchainAddress]()
         var revealAddressIndex:Int = 0
         while revealedAddresses.last?.onchainAddress != lastRevealedOnchainAddress {
