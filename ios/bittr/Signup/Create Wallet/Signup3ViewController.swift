@@ -70,11 +70,7 @@ class Signup3ViewController: UIViewController {
         self.changeColors()
         self.setWords()
         self.setMnemonic()
-        Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
-                self.pageArticle1 = article ?? Article()
-            })
-        }
+        self.pageArticle1 = self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1) ?? Article()
     }
     
     func setMnemonic() {

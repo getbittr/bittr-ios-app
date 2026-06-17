@@ -140,11 +140,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         self.changeColors()
         self.setWords()
-        Task {
-            await self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1, completion: { article in
-                self.pageArticle1 = article ?? Article()
-            })
-        }
+        self.pageArticle1 = self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1) ?? Article()
     }
     
     override func viewWillAppear(_ animated: Bool) {
