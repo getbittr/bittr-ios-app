@@ -147,7 +147,12 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.toTextField.smartDashesType = .no
         self.amountTextField.delegate = self
         self.amountTextField.inputAccessoryView = createAmountInputAccessoryView()
-        
+
+        self.toLabel.accessibilityIdentifier = TestID.Send.toLabel
+        self.toTextField.accessibilityIdentifier = TestID.Send.toTextField
+        self.amountTextField.accessibilityIdentifier = TestID.Send.amountTextField
+        self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
+
         // Set colors and language
         self.changeColors()
         self.setWords()

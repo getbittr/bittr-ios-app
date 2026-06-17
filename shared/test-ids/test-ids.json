@@ -121,10 +121,19 @@
     "addressTitle": null,
     "addressLabel": null,
     "qrImageView": null,
+    "qrSpinner": null,
+    "questionButton": null,
+    "amountTextField": null,
     "copyButton": null,
     "refreshButton": null,
     "editButton": null,
     "moreButton": null
+  },
+  "send": {
+    "toLabel": null,
+    "toTextField": null,
+    "amountTextField": null,
+    "pasteButton": null
   },
   "signup": {
     "create": {

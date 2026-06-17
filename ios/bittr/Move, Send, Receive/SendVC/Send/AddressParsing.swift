@@ -131,7 +131,8 @@ extension String {
             "^1[a-km-zA-HJ-NP-Z1-9]{25,34}$",  // P2PKH Mainnet
             "^[mn2][a-km-zA-HJ-NP-Z1-9]{33}$",  // P2PKH or P2SH Testnet
             "^bc1[qzp][a-z0-9]{38,}$",  // Bech32 Mainnet
-            "^tb1[qzp][a-z0-9]{38,}$",  // Bech32 Testnet
+            "^tb1[qzp][a-z0-9]{38,}$",  // Bech32 Testnet,
+            "^bcrt1[qzp][a-z0-9]{38,}$"  // Bech32 Regtest
         ]
         return patterns.contains {
             self.range(of: $0, options: [.regularExpression, .caseInsensitive]) != nil

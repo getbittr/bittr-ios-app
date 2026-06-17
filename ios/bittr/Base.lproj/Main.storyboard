@@ -4221,7 +4221,7 @@
                                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="O5E-tG-CSf" userLabel="Address View">
                                                                         <rect key="frame" x="0.0" y="0.0" width="323" height="45"/>
                                                                         <subviews>
-                                                                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter amount" textAlignment="center" minimumFontSize="7" translatesAutoresizingMaskIntoConstraints="NO" id="GlN-GS-RNY" userLabel="Address Text Field">
+                                                                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Enter amount" textAlignment="center" adjustsFontSizeToFit="NO" minimumFontSize="16" translatesAutoresizingMaskIntoConstraints="NO" id="GlN-GS-RNY" userLabel="Address Text Field">
                                                                                 <rect key="frame" x="15" y="11" width="293" height="25"/>
                                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -6670,17 +6670,17 @@
             <objects>
                 <viewController id="EgO-Th-Xdr" customClass="TransactionViewController" customModule="bittr" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="oB9-OZ-Qp1">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="707"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="697"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <scrollView multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="fvA-bZ-nyJ">
-                                <rect key="frame" x="0.0" y="60" width="393" height="617"/>
+                                <rect key="frame" x="0.0" y="60" width="393" height="607"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="UBI-fe-jO0">
-                                        <rect key="frame" x="0.0" y="0.0" width="393" height="617"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="393" height="607"/>
                                         <subviews>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="AwJ-gB-IDb">
-                                                <rect key="frame" x="0.0" y="171" width="393" height="275"/>
+                                                <rect key="frame" x="0.0" y="166" width="393" height="275"/>
                                                 <subviews>
                                                     <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="9vf-ju-2A5">
                                                         <rect key="frame" x="0.0" y="0.0" width="393" height="0.0"/>
@@ -7847,8 +7847,8 @@
                                                     <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iuD-4J-AMA">
                                                         <rect key="frame" x="0.0" y="275" width="393" height="0.0"/>
                                                         <subviews>
-                                                            <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dWW-5N-9eX">
-                                                                <rect key="frame" x="15" y="20" width="363" height="113.33333333333331"/>
+                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="dWW-5N-9eX">
+                                                                <rect key="frame" x="15" y="20" width="363" height="103"/>
                                                                 <subviews>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Reminder" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="W7o-EV-oGF">
                                                                         <rect key="frame" x="20" y="18" width="323" height="16"/>
@@ -13807,9 +13807,9 @@
     <inferredMetricsTieBreakers>
         <segue reference="Owf-uB-9LO"/>
         <segue reference="Aj9-z7-MQt"/>
-        <segue reference="4mq-9G-b1k"/>
+        <segue reference="5NJ-vU-Ume"/>
         <segue reference="7F8-Pl-5uy"/>
-        <segue reference="zKe-6z-HPJ"/>
+        <segue reference="JjT-FP-2YF"/>
         <segue reference="hX6-RE-pvS"/>
         <segue reference="A8J-Ia-44n"/>
     </inferredMetricsTieBreakers>

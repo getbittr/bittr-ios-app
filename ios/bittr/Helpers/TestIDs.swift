@@ -83,11 +83,20 @@ enum TestID {
     enum Receive {
         static let addressLabel = "receive.addressLabel"
         static let addressTitle = "receive.addressTitle"
+        static let amountTextField = "receive.amountTextField"
         static let copyButton = "receive.copyButton"
         static let editButton = "receive.editButton"
         static let moreButton = "receive.moreButton"
         static let qrImageView = "receive.qrImageView"
+        static let qrSpinner = "receive.qrSpinner"
+        static let questionButton = "receive.questionButton"
         static let refreshButton = "receive.refreshButton"
+    }
+    enum Send {
+        static let amountTextField = "send.amountTextField"
+        static let pasteButton = "send.pasteButton"
+        static let toLabel = "send.toLabel"
+        static let toTextField = "send.toTextField"
     }
     enum Settings {
         enum Row {
