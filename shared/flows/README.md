@@ -29,6 +29,11 @@ shared/flows/
     wrong_pin.yaml        PIN lockout from the unlock screen — ten wrong
                           PINs wipe the wallet and drop back to Signup1
                           (run onboarding/restore_wallet.yaml first).
+    pin_warning.yaml      The 3-wrong-attempt warning on the unlock screen,
+                          then recovery via its Forgot PIN button. Self-
+                          contained — runs restore_wallet.yaml first (runFlow)
+                          for a clean counter, so no env var or separate setup
+                          is needed.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).

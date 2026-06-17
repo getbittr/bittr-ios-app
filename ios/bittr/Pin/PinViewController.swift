@@ -217,6 +217,16 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     }
 
                     CacheManager.increaseFailedPinAttempts()
+
+                    // Warn well before the 10-attempt wipe and steer anyone who
+                    // still has their recovery phrase to the non-destructive
+                    // Forgot PIN flow — the wipe can cost them their Lightning
+                    // funds, so we want them recovering by mnemonic instead.
+                    if CacheManager.getFailedPinAttempts() == 3 {
+                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [#selector(self.clearPinField), #selector(self.startPinReset)])
+                        return
+                    }
+
                     self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 }
             } else {
