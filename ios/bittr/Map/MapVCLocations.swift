@@ -81,7 +81,7 @@ extension MapViewController {
             self.isProgrammaticallyMovingMap = false
             return
         }
-        
+
         self.reloadTimer?.invalidate()
         self.reloadTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { _ in
             self.updateVisiblePlacesFromCache()
@@ -111,8 +111,14 @@ extension MapViewController {
     }
     
     func showPlacesOnMap(_ places: [BitcoinPlace]) {
-        self.currentPlaces = places.sortByProximity(toLocation: self.mapView.centerCoordinate)
-        
+        // Cap to the nearest N places to the map centre. A zoomed-out region
+        // (e.g. the ~422 km Switzerland fallback) can match thousands of
+        // places; adding an annotation for each one plus the table reload
+        // hangs the app. The region-change debounce re-runs this as the user
+        // pans/zooms, so the visible set stays the N nearest to the centre.
+        let maxVisiblePlaces = 200
+        self.currentPlaces = Array(places.sortByProximity(toLocation: self.mapView.centerCoordinate).prefix(maxVisiblePlaces))
+
         let existingAnnotations = self.mapView.annotations.compactMap {
             $0 as? BitcoinPlaceAnnotation
         }

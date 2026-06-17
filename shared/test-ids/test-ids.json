@@ -23,7 +23,8 @@
     "buyButton": null,
     "balanceCardButton": null,
     "balanceLabel": null,
-    "currencyButton": null
+    "currencyButton": null,
+    "mapButton": null
   },
   "value": {
     "currentValueLabel": null,
@@ -35,6 +36,18 @@
     "monthButton": null,
     "yearButton": null,
     "fiveYearsButton": null
+  },
+  "map": {
+    "mapView": null,
+    "mapSpinner": null,
+    "placesTableView": null,
+    "userLocationButton": null,
+    "placeName": null,
+    "placeCellButton": null,
+    "onePlace": {
+      "nameLabel": null,
+      "closeButton": null
+    }
   },
   "history": {
     "swapPending": null,

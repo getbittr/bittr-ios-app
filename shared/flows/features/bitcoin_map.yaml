@@ -1,0 +1,99 @@
+# Feature test: the Bitcoin map screen (MapViewController + OnePlaceViewController).
+#
+# Prerequisite: an existing wallet on the simulator, so launch lands on the
+# PIN unlock screen. This flow does NOT clearState — it relies on a wallet
+# already being set up (run onboarding/restore_wallet.yaml first if needed).
+# It is non-destructive and can be run repeatedly.
+#
+# Location: the map requests "when in use" location authorization on appear.
+# We grant it up front via launchApp.permissions so no system permission
+# dialog interrupts the flow. With no simulated location the map falls back to
+# the default Switzerland region (showDefaultSwitzerlandRegion), which is
+# zoomed out far enough that the places table is populated.
+#
+# Flow:
+#   1. Launch (preserve state, grant location) and unlock with the PIN.
+#   2. On Home, tap the map icon (home.mapButton) → MapViewController.
+#   3. Wait for the BTC-places sync spinner (map.mapSpinner) to stop, then
+#      verify the table has rows (map.placeName is the per-cell name label).
+#   4. Tap the topmost place cell (map.placeCellButton, index 0) → the
+#      OnePlaceViewController slides up. Verify it (map.onePlace.nameLabel),
+#      then tap its close icon (map.onePlace.closeButton) and verify it is gone.
+#   5. Drag the map a long way (swipe across map.mapView). On region change a
+#      0.6s debounce timer refreshes the visible places, so give the table a
+#      moment to update.
+#   6. Tap the user-location button (map.userLocationButton) to recentre on the
+#      user (falls back to the default region when no location is available).
+#
+# Run: maestro test shared/flows/features/bitcoin_map.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    permissions:
+      location: inuse
+
+# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/01_unlock
+- runFlow: ../helpers/unlock.yaml
+
+# Land on Home.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/02_home
+
+# Tap the map icon → MapViewController (HomeToMap segue).
+- tapOn:
+    id: "home.mapButton"
+- assertVisible:
+    id: "map.mapView"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/03_map_loading
+
+# Wait for the BTC-places sync to finish. mapSpinner (hidesWhenStopped) is
+# stopped in resyncBTCPlaces once the btcmap.org sync completes. A first-ever
+# sync downloads the full dataset, so allow a generous timeout.
+- extendedWaitUntil:
+    notVisible:
+      id: "map.mapSpinner"
+    timeout: 120000
+
+# Verify the places table has rows — each cell exposes its name label under
+# map.placeName, so a visible one means the table is populated.
+- assertVisible:
+    id: "map.placeName"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/04_places_loaded
+
+# Tap the topmost place cell → OnePlaceViewController slides up.
+- tapOn:
+    id: "map.placeCellButton"
+    index: 0
+- assertVisible:
+    id: "map.onePlace.nameLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/05_one_place
+
+# Tap the close icon → OnePlace slides back down and is torn down.
+- tapOn:
+    id: "map.onePlace.closeButton"
+- assertNotVisible:
+    id: "map.onePlace.nameLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/06_one_place_closed
+
+# Move the map significantly by dragging across it, then give the debounced
+# (0.6s) reload a moment to refresh the visible-places table.
+- swipe:
+    from:
+      id: "map.mapView"
+    direction: LEFT
+    duration: 800
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/07_map_moved
+
+# Tap the user-location button to navigate back to the user's location.
+- tapOn:
+    id: "map.userLocationButton"
+- assertVisible:
+    id: "map.mapView"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/08_back_to_user
