@@ -60,39 +60,37 @@ extension CoreViewController {
             }
         } else {
             Log.info("Wallet is ready.")
-            if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
-                // Check if we've recently initiated channel closure.
-                
-                // Stop spinner
+
+            // HARD RULE: never wipe while a channel is open OR while closed-channel
+            // funds are still settling on-chain. The wipe deletes the LDK channel
+            // state needed to sweep those funds, which a BIP39 seed alone cannot
+            // reconstruct — catastrophic for a force-closed channel. We only ever
+            // cooperatively close, then wait for the funds to land before resetting.
+            if !BitcoinManager.shared.channelsFullyClosedAndSwept() {
+                // We're going to wait, not wipe — take the spinner down.
                 self.genericSpinner.stopAnimating()
                 self.fullViewCover.alpha = 0
-                
-                // If channel closure was initiated within the last 2 minutes, allow reset.
-                if self.channelWasClosedRecently() {
-                    // Allow wallet reset since channel is in closing process.
-                    if self.removingWalletForIncorrectPin {
-                        self.performWalletReset()
-                    } else {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet5"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
-                    }
-                } else {
-                    Log.info("Wallet cannot be restored with open channels.")
+
+                if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
+                    Log.info("Channel still open — initiating cooperative close before any reset.")
                     if self.removingWalletForIncorrectPin {
                         self.closeChannelConfirmed()
                     } else {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
                     }
+                } else {
+                    // Channel is closed but the funds haven't fully returned
+                    // on-chain yet (still being swept). Don't wipe — tell the
+                    // user to come back once it has settled.
+                    Log.info("Channel closed but funds still settling — deferring wallet reset.")
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             } else {
-                // Clear channel closing state since no channels exist
-                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-                
                 if self.resettingPin || self.removingWalletForIncorrectPin {
-                    Log.info("Removing wallet without signing in.")
+                    Log.info("No channels and nothing left to sweep — removing wallet.")
                     self.performWalletReset()
                 } else {
-                    // Retore wallet.
+                    // Restore wallet.
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "restore")], actions: [nil, #selector(self.walletRestoreAlert)])
                 }
             }
@@ -134,17 +132,26 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     if didConnectToPeer {
                         self.closeChannelConfirmed()
+                    } else if self.removingWalletForIncorrectPin {
+                        // Automated wipe path: we only ever cooperatively close,
+                        // which needs the peer online. Don't force close (it locks
+                        // funds behind a CSV delay and risks loss on the wipe) and
+                        // don't wipe — surface it and let the user retry later.
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
+                        // Manual reset: let the user explicitly choose force close.
                         self.forceCloseChannel()
                     }
                 }
             }
             return
         }
-        
+
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             do {
-                Log.info("Will attempt channel closure.")
+                Log.info("Will attempt cooperative channel closure.")
                 try BitcoinManager.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
             } catch {
                 Log.info("Unsuccessful channel closure.")
@@ -153,38 +160,32 @@ extension CoreViewController {
                         scope.setExtra(value: "ResetApp row 170", key: "context")
                     }
                     if self.removingWalletForIncorrectPin {
-                        self.forceCloseChannel()
+                        // Coop close failed during the automated wipe. Do not force
+                        // close or wipe — tell the user and let them retry later.
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
                     }
                 }
                 return
             }
-                
-            // Mark that we've initiated channel closure
-            UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
-            
-            // Successful channel closure.
+
+            // Cooperative close broadcast. The funds return on-chain shortly. We do
+            // NOT wipe here — restoreWalletTapped re-checks channelsFullyClosedAndSwept
+            // on the next trigger and only wipes once the funds have actually landed.
             DispatchQueue.main.async {
-                if self.removingWalletForIncorrectPin {
-                    self.performWalletReset()
-                } else {
-                    self.didCloseChannel()
-                    // Inform the user that closure is in progress and let them
-                    // dismiss. The wallet reset must be re-triggered manually
-                    // from Settings → Restore wallet once the on-chain close
-                    // transaction has confirmed and the Lightning balance has
-                    // returned to onchain. closechannel5's text ("you can now
-                    // proceed with wallet reset") describes this — the user
-                    // proceeds, the alert does not.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel5"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+                self.didCloseChannel()
+                self.genericSpinner.stopAnimating()
+                self.fullViewCover.alpha = 0
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
-            // No channels to close, proceed with reset
+            // No channel to close — re-evaluate the wipe gate (wipes only if the
+            // funds have fully settled, otherwise shows the "still closing" alert).
             DispatchQueue.main.async {
-                self.performWalletReset()
+                self.restoreWalletTapped()
             }
         }
     }
@@ -206,32 +207,27 @@ extension CoreViewController {
                         scope.setExtra(value: "ResetApp row 213", key: "context")
                     }
                     if !self.removingWalletForIncorrectPin {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: "Force close also failed. Please try again later or contact support.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "forceclose3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
                 return
             }
-                
-            // Mark that we've initiated channel closure
-            UserDefaults.standard.set(true, forKey: "channelClosingInitiated")
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "channelClosingTimestamp")
             
-            // Successful force close
+            // Successful force close. The to_local output is locked behind a CSV
+            // delay and only swept once it expires, so we never wipe here — inform
+            // the user and let restoreWalletTapped gate the reset on the funds
+            // actually landing on-chain (channelsFullyClosedAndSwept).
             DispatchQueue.main.async {
-                if self.removingWalletForIncorrectPin {
-                    self.performWalletReset()
-                } else {
-                    self.didCloseChannel()
-                    // Match closeChannelConfirmed's normal-close behaviour:
-                    // inform the user, let them dismiss; reset is re-triggered
-                    // from Settings once the close confirms on-chain.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: "Force close initiated successfully. This may take longer than normal closure due to higher transaction fees.", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                }
+                self.didCloseChannel()
+                self.genericSpinner.stopAnimating()
+                self.fullViewCover.alpha = 0
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: Language.getWord(withID: "forceclose4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
-            // No channels to close, proceed with reset
+            // No channel to close — re-evaluate the wipe gate rather than wiping
+            // unconditionally (there may still be pending sweeps to wait on).
             DispatchQueue.main.async {
-                self.performWalletReset()
+                self.restoreWalletTapped()
             }
         }
     }
@@ -242,10 +238,6 @@ extension CoreViewController {
         // Reset PIN reset state
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
-        
-        // Clear channel closing state
-        UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-        UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
         
         // Clear mnemonic from cache
         CacheManager.deleteClientInfo()
@@ -356,26 +348,4 @@ extension CoreViewController {
         }
     }
 
-}
-
-extension UIViewController {
-    
-    func channelWasClosedRecently() -> Bool {
-        let channelClosingInitiated = UserDefaults.standard.bool(forKey: "channelClosingInitiated")
-        let channelClosingTimestamp = UserDefaults.standard.double(forKey: "channelClosingTimestamp")
-        let timeSinceClosure = Date().timeIntervalSince1970 - channelClosingTimestamp
-        
-        // If channel closure was initiated within the last 2 minutes, allow reset
-        if channelClosingInitiated && timeSinceClosure < 120 { // 2 minutes
-            return true
-        } else {
-            // Clear old channel closing state if it's been too long
-            if channelClosingInitiated && timeSinceClosure >= 120 {
-                UserDefaults.standard.removeObject(forKey: "channelClosingInitiated")
-                UserDefaults.standard.removeObject(forKey: "channelClosingTimestamp")
-            }
-            return false
-        }
-    }
-    
 }

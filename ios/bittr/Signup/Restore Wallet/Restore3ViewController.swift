@@ -44,6 +44,10 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             
             if actualPreviousPin == enteredPin {
                 CacheManager.storePin(pin: actualPreviousPin)
+                // Ownership was just proven with the mnemonic, so clear any
+                // accumulated wrong-PIN attempts — otherwise a Forgot-PIN
+                // recovery would leave the user partway to the 10-attempt wipe.
+                CacheManager.resetFailedPinAttempts()
                 self.coreVC!.userHasSignedIn = true
                 self.signupVC?.coreVC?.resettingPin = false
                 self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
