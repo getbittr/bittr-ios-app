@@ -1,0 +1,100 @@
+# Feature test: the Academy tab (AcademyViewController + OneLessonViewController).
+#
+# Prerequisite: an existing wallet on the simulator, so launch lands on the
+# PIN unlock screen. This flow does NOT clearState — it relies on a wallet
+# already being set up (run onboarding/restore_wallet.yaml first if needed).
+#
+# Lesson availability: lessons unlock in order. Completed lessons and the
+# single next-to-do lesson are tappable; later lessons are blurred out. That
+# next-to-do lesson — the "latest available" one — is the only cell tagged
+# academy.nextLessonButton, so the same selector works for the first lesson
+# and (after it completes) the freshly-unlocked one. This assumes the latest
+# available lesson is on-screen; on a wallet that has completed many lessons
+# the table may need scrolling first.
+#
+# Flow:
+#   1. Launch (preserve state) and unlock with the PIN.
+#   2. On Home, tap the Academy tab (nav.academyButton) → AcademyViewController.
+#   3. Tap the latest available lesson (academy.nextLessonButton) →
+#      OneLessonViewController.
+#   4. Page through the lesson: keep tapping Next (academy.nextPageButton)
+#      until the final page, then tap Complete (academy.completeButton — the
+#      same UIButton, relabelled on the last page). After each tap a page may
+#      need to download an image, during which academy.lessonSpinner spins and
+#      the page's button is absent; waiting for the spinner to stop is what
+#      gates the next tap.
+#   5. The lesson dismisses back to the Academy and the next lesson unlocks.
+#      Tap it (academy.nextLessonButton again) to open the following lesson.
+#
+# Run: maestro test shared/flows/features/academy.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/academy/01_unlock
+- runFlow: ../helpers/unlock.yaml
+
+# Land on Home.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/academy/02_home
+
+# Tap the Academy tab → AcademyViewController.
+- tapOn:
+    id: "nav.academyButton"
+- assertVisible:
+    id: "academy.headerLabel"
+- takeScreenshot: shared/docs/screenshots/academy/03_academy
+
+# Tap the latest available lesson → OneLessonViewController. Wait for the
+# first page to finish loading (its Next button appears once the spinner stops;
+# every lesson has more than one page, so the Next button — not Complete —
+# shows first).
+- tapOn:
+    id: "academy.nextLessonButton"
+- extendedWaitUntil:
+    visible:
+      id: "academy.nextPageButton"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/academy/04_lesson_page1
+
+# Page through the lesson. Keep tapping Next while it is present; after each
+# tap, wait for academy.lessonSpinner to stop (covers pages that download an
+# image). When the final page is reached, Next is gone (relabelled Complete),
+# so the loop exits.
+- repeat:
+    while:
+      visible:
+        id: "academy.nextPageButton"
+    commands:
+      - tapOn:
+          id: "academy.nextPageButton"
+      - extendedWaitUntil:
+          notVisible:
+            id: "academy.lessonSpinner"
+          timeout: 30000
+
+# Final page → tap Complete (same button, relabelled). The lesson is marked
+# complete and OneLessonViewController dismisses back to the Academy.
+- assertVisible:
+    id: "academy.completeButton"
+- takeScreenshot: shared/docs/screenshots/academy/05_last_page
+- tapOn:
+    id: "academy.completeButton"
+
+# Back on the Academy, the next lesson has unlocked and is now the latest
+# available one. Tap it to open the following lesson.
+- assertVisible:
+    id: "academy.headerLabel"
+- takeScreenshot: shared/docs/screenshots/academy/06_academy_next_unlocked
+- tapOn:
+    id: "academy.nextLessonButton"
+- extendedWaitUntil:
+    visible:
+      id: "academy.nextPageButton"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/academy/07_next_lesson_open

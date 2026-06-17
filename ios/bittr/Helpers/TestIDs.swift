@@ -3,6 +3,13 @@
 // Regenerate: ./shared/test-ids/build.py
 
 enum TestID {
+    enum Academy {
+        static let completeButton = "academy.completeButton"
+        static let headerLabel = "academy.headerLabel"
+        static let lessonSpinner = "academy.lessonSpinner"
+        static let nextLessonButton = "academy.nextLessonButton"
+        static let nextPageButton = "academy.nextPageButton"
+    }
     enum Buy {
         static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"

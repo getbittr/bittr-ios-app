@@ -29,7 +29,10 @@ class OneLessonViewController: UIViewController {
         
         // Color management
         self.changeColors()
-        
+
+        // Maestro test ID.
+        self.centerSpinner.accessibilityIdentifier = TestID.Academy.lessonSpinner
+
         if self.thisLesson != nil {
             
             self.addHeader(iconLight: "iconacademy", iconDark: "iconacademyyellow", title: self.thisLesson!.title)
