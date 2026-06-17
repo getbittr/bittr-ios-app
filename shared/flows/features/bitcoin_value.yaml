@@ -52,10 +52,18 @@ appId: com.bittr.bittr-regtest
 # which starts at alpha 0 and is faded in by drawGraph once the data is
 # parsed — so its visibility is a reliable "data loaded" signal. The spinner
 # (hidesWhenStopped) disappears at the same time.
+#
+# Generous timeout: getCurrentValue makes two sequential calls to the live
+# getbittr price API (historical chart + current price — observed ~5s and
+# ~9s, and highly variable) and then parses ~120KB, building a fresh
+# ISO8601DateFormatter per data point across the week/month/year/5y arrays.
+# On a debug build + simulator this routinely exceeds 30s. extendedWaitUntil
+# returns as soon as profitLabel appears, so a high ceiling only costs time
+# on a genuine failure.
 - extendedWaitUntil:
     visible:
       id: "value.profitLabel"
-    timeout: 30000
+    timeout: 90000
 - assertNotVisible:
     id: "value.valueSpinner"
 
