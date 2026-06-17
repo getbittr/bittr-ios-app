@@ -70,6 +70,7 @@ maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/swap.yaml
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/wrong_pin.yaml
+maestro test shared/flows/features/bitcoin_value.yaml
 
 # Forgot-PIN recovery test — needs the wallet's 12-word mnemonic so the
 # flow can type it on the RestoreVC screen. Pass it via --env:

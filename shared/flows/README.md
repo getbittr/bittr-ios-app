@@ -29,6 +29,9 @@ shared/flows/
     wrong_pin.yaml        PIN lockout from the unlock screen — ten wrong
                           PINs wipe the wallet and drop back to Signup1
                           (run onboarding/restore_wallet.yaml first).
+    bitcoin_value.yaml    Bitcoin price chart (ValueViewController) — unlock,
+                          open it from Home's currency icon, wait for the
+                          price data, scrub the graph, switch span to m/y/5y.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).
