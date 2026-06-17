@@ -47,14 +47,23 @@ appId: com.bittr.bittr-regtest
 # not match, so the "incorrect PIN" alert appears. Tapping its Okay button
 # (alert.button.0) runs clearPinField: dismisses the alert and clears the
 # field ready for the next attempt.
+#
+# The digit taps use waitToSettleTimeoutMs: 0 to skip Maestro's
+# wait-for-animation-to-settle after each tap — the PIN buttons only flash a
+# background and toggle a dot, so there's nothing meaningful to wait for. This
+# is the main speed-up for the 40+ digit taps in this flow.
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.confirmButton"
 - assertVisible:
@@ -71,12 +80,16 @@ appId: com.bittr.bittr-regtest
     commands:
       - tapOn:
           id: "pin.button1"
+          waitToSettleTimeoutMs: 0
       - tapOn:
           id: "pin.button1"
+          waitToSettleTimeoutMs: 0
       - tapOn:
           id: "pin.button1"
+          waitToSettleTimeoutMs: 0
       - tapOn:
           id: "pin.button1"
+          waitToSettleTimeoutMs: 0
       - tapOn:
           id: "pin.confirmButton"
       - assertVisible:
@@ -85,24 +98,30 @@ appId: com.bittr.bittr-regtest
           id: "alert.button.0"
 
 # Wrong PIN attempt 10. The counter now reads 9, so this entry triggers the
-# lockout alert (different copy: "restore wallet" / pinlock) instead of the
-# "incorrect PIN" alert, and simultaneously kicks off the wallet wipe. Close
-# the lockout alert via its Okay button.
+# lockout instead of the "incorrect PIN" alert, and kicks off the wallet wipe.
+#
+# Note: unlike attempts 1..9, we do NOT tap an Okay button here. The lockout
+# alert (restorewallet / pinlock) is shown and then immediately dismissed by
+# the wipe itself: the handler synchronously calls restoreWalletTapped() ->
+# startWalletInBackground(), whose first line is hideAlert(). All of this runs
+# in one main-thread turn, so the lockout alert never reliably renders — we
+# can't (and don't need to) tap it. The confirm tap goes straight into the
+# wipe, and the app advances to Signup1 on its own.
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.button1"
+    waitToSettleTimeoutMs: 0
 - tapOn:
     id: "pin.confirmButton"
-- assertVisible:
-    id: "alert.button.0"
-- takeScreenshot: shared/docs/screenshots/wrong_pin/03_lockout_alert
-- tapOn:
-    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/wrong_pin/03_wipe_started
 
 # The wipe runs in the background: startWalletInBackground syncs the wallet,
 # finalizeSync re-enters restoreWalletTapped, performWalletReset clears

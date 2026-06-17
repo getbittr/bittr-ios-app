@@ -205,7 +205,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     self.coreVC?.correctPin(spinner:self.pinSpinner)
                 } else {
                     // Wrong pin.
-                    if CacheManager.getFailedPinAttempts() == 9 {
+                    if CacheManager.getFailedPinAttempts() >= 9 {
                         Log.info("Wrong pin has been entered 10 times.")
                         self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
 
