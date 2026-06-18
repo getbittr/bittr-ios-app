@@ -7,9 +7,12 @@
 #
 # Flow:
 #   1. Launch (preserve state). Unlock if locked.
-#   2. Tap Buy on Home → copy deposit code → trigger bank transaction.
-#   3. Mine blocks so the lightning channel opens and confirms.
-#   4. Wait for the transaction screen.
+#   2. Once synced, open the Profit screen and remember the starting profit.
+#   3. Tap Buy on Home → copy deposit code → trigger bank transaction.
+#   4. Mine blocks so the lightning channel opens and confirms.
+#   5. Wait for the transaction screen.
+#   6. Close the transaction + buy screens, then verify the Home profit label
+#      and the Profit screen have updated.
 #
 # Run: maestro test shared/flows/features/buy_incoming.yaml
 
@@ -28,6 +31,32 @@ appId: com.bittr.bittr-regtest
     id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/buy_incoming/01_home
 
+# Wait for the post-sign-in wallet sync to finish — the header spinner stops
+# in finalizeSync. The profit on the balance card is only meaningful (and the
+# Profit screen only reads stable values) once the wallet has synced.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
+# Open the Profit screen and remember the current profit before this buy. This
+# is the first buy on the install, so there are no transactions yet — the total
+# profit reads "<currency> 0". We compare against this value at the end to prove
+# the profit recalculated.
+- tapOn:
+    id: "home.profitButton"
+- assertVisible:
+    id: "profits.totalProfitLabel"
+- copyTextFrom:
+    id: "profits.totalProfitLabel"
+- evalScript: ${output.profitBefore = maestro.copiedText}
+- takeScreenshot: shared/docs/screenshots/buy_incoming/02_profit_before
+# Close the Profit screen (header down button) → back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
 # Open Buy.
 - tapOn:
     id: "home.buyButton"
@@ -35,7 +64,7 @@ appId: com.bittr.bittr-regtest
     id: "buy.headerLabel"
 - assertVisible:
     id: "buy.yourCode"
-- takeScreenshot: shared/docs/screenshots/buy_incoming/02_buy_screen
+- takeScreenshot: shared/docs/screenshots/buy_incoming/03_buy_screen
 
 # Copy the deposit code into a Maestro variable so the curl script can read it.
 - copyTextFrom:
@@ -57,4 +86,32 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "transaction.labelAmount"
     timeout: 60000
-- takeScreenshot: shared/docs/screenshots/buy_incoming/03_transaction
+- takeScreenshot: shared/docs/screenshots/buy_incoming/04_transaction
+
+# Close the TransactionViewController (header down button) → back on the Buy
+# screen it was presented over.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "buy.headerLabel"
+# Close the BuyViewController (its own down button) → back on Home.
+- tapOn:
+    id: "buy.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# The balance-card profit label should now be shown with the recalculated
+# percentage for the new purchase.
+- assertVisible:
+    id: "home.profitLabel"
+- takeScreenshot: shared/docs/screenshots/buy_incoming/05_home_updated
+
+# Open the Profit screen again and verify it no longer shows the pre-buy profit
+# value — i.e. calculateProfit ran and the totals updated for the new purchase.
+- tapOn:
+    id: "home.profitButton"
+- assertVisible:
+    id: "profits.totalProfitLabel"
+- assertNotVisible:
+    text: "${output.profitBefore}"
+- takeScreenshot: shared/docs/screenshots/buy_incoming/06_profit_after

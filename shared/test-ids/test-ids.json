@@ -23,6 +23,8 @@
     "buyButton": null,
     "balanceCardButton": null,
     "balanceLabel": null,
+    "profitButton": null,
+    "profitLabel": null,
     "currencyButton": null,
     "mapButton": null
   },
@@ -36,6 +38,12 @@
     "monthButton": null,
     "yearButton": null,
     "fiveYearsButton": null
+  },
+  "profits": {
+    "subtitleLabel": null,
+    "totalInvestmentLabel": null,
+    "totalValueLabel": null,
+    "totalProfitLabel": null
   },
   "map": {
     "mapView": null,
