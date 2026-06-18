@@ -1,0 +1,112 @@
+# Feature test: the Bitcoin value / price-chart screen (ValueViewController).
+#
+# Prerequisite: an existing wallet on the simulator, so launch lands on the
+# PIN unlock screen. This flow does NOT clearState — it relies on a wallet
+# already being set up (run onboarding/restore_wallet.yaml first if needed).
+# It is non-destructive and can be run repeatedly.
+#
+# Flow:
+#   1. Launch (preserve state) and unlock with the PIN (helpers/unlock.yaml).
+#   2. On Home, tap the currency icon (home.currencyButton) → ValueViewController.
+#   3. Wait for the price data to download: the spinner (value.valueSpinner)
+#      stops and the profit badge (value.profitLabel) fades in once drawGraph
+#      has run. Verify the latest conversion rate (value.currentValueLabel)
+#      and the percentage change (value.profitLabel) are shown.
+#   4. Drag a finger horizontally across the graph (left → right) to scrub it.
+#      While the finger is down GraphView.showGraphValue draws a floating
+#      "value card" with the date + price at that point (value.graphValueLabel),
+#      which updates as the finger moves. NOTE: the card is removed on
+#      touchesEnded, so it exists only for the duration of the gesture and
+#      cannot be asserted after the swipe completes — the swipe exercises the
+#      scrub path and the screenshot documents the screen.
+#   5. Switch the chart span: tap "m" (value.monthButton, 1 month), then "y"
+#      (value.yearButton, 1 year), then "5y" (value.fiveYearsButton, 5 years).
+#      changeSpan ignores taps while isFetchingData is true, which is why the
+#      data-loaded wait in step 3 has to come first.
+#
+# Run: maestro test shared/flows/features/bitcoin_value.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/01_unlock
+- runFlow: ../helpers/unlock.yaml
+
+# Land on Home.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/02_home
+
+# Tap the currency icon → ValueViewController (HomeToValue segue).
+- tapOn:
+    id: "home.currencyButton"
+- assertVisible:
+    id: "value.graphView"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/03_value_loading
+
+# Wait for the price data to download. profitLabel lives inside profitView,
+# which starts at alpha 0 and is faded in by drawGraph once the data is
+# parsed — so its visibility is a reliable "data loaded" signal. The spinner
+# (hidesWhenStopped) disappears at the same time.
+#
+# Generous timeout: getCurrentValue makes two sequential calls to the live
+# getbittr price API (historical chart + current price — observed ~5s and
+# ~9s, and highly variable) and then parses ~120KB, building a fresh
+# ISO8601DateFormatter per data point across the week/month/year/5y arrays.
+# On a debug build + simulator this routinely exceeds 30s. extendedWaitUntil
+# returns as soon as profitLabel appears, so a high ceiling only costs time
+# on a genuine failure.
+- extendedWaitUntil:
+    visible:
+      id: "value.profitLabel"
+    timeout: 90000
+- assertNotVisible:
+    id: "value.valueSpinner"
+
+# Verify the latest conversion rate and the percentage change are shown.
+- assertVisible:
+    id: "value.currentValueLabel"
+- assertVisible:
+    id: "value.profitLabel"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/04_value_loaded
+
+# Drag horizontally across the graph to scrub the chart. Anchor the swipe to
+# the graph element itself: Maestro starts the touch at the GraphView's centre
+# and drags right, so it is guaranteed to land on the graph and fire its pan
+# recognizer. (Screen-percentage coordinates were passing *below* the graph —
+# its frame sits in the upper third of the card — so the pan never fired and
+# the value card never appeared.) The floating value card (value.graphValueLabel)
+# tracks the finger and updates as it moves; it is visible live during the run
+# but is torn down on finger-lift (touchesEnded), so it cannot be asserted or
+# screenshotted after the gesture completes.
+- swipe:
+    from:
+      id: "value.graphView"
+    direction: RIGHT
+    duration: 2000
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/05_after_scrub
+
+# Switch to 1 month ("m").
+- tapOn:
+    id: "value.monthButton"
+- assertVisible:
+    id: "value.graphView"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/06_month
+
+# Switch to 1 year ("y").
+- tapOn:
+    id: "value.yearButton"
+- assertVisible:
+    id: "value.graphView"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/07_year
+
+# Switch to 5 years ("5y").
+- tapOn:
+    id: "value.fiveYearsButton"
+- assertVisible:
+    id: "value.graphView"
+- takeScreenshot: shared/docs/screenshots/bitcoin_value/08_five_years

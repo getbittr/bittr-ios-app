@@ -71,6 +71,16 @@ class ValueViewController: UIViewController {
         self.yearButton.boundString = "year"
         self.fiveYearsButton.boundString = "5years"
 
+        // Maestro test IDs.
+        self.currentValueLabel.accessibilityIdentifier = TestID.Value.currentValueLabel
+        self.valueSpinner.accessibilityIdentifier = TestID.Value.valueSpinner
+        self.profitLabel.accessibilityIdentifier = TestID.Value.profitLabel
+        self.graphView.accessibilityIdentifier = TestID.Value.graphView
+        self.weekButton.accessibilityIdentifier = TestID.Value.weekButton
+        self.monthButton.accessibilityIdentifier = TestID.Value.monthButton
+        self.yearButton.accessibilityIdentifier = TestID.Value.yearButton
+        self.fiveYearsButton.accessibilityIdentifier = TestID.Value.fiveYearsButton
+
         // Button titles
         self.weekButton.setTitle("", for: .normal)
         
@@ -155,41 +165,53 @@ class ValueViewController: UIViewController {
                     // - [1] price (92189.2)
                     // - [2] time_unix
                     
+                    // Parse each data point once with a single shared formatter
+                    // and pre-computed cutoffs. Previously every iteration built a
+                    // fresh ISO8601DateFormatter (twice) and re-derived the cutoff
+                    // date from Date() — thousands of expensive allocations across
+                    // the four spans, the bulk of this screen's parse cost.
+                    let isoFormatter = ISO8601DateFormatter()
+                    let now = Date()
+                    let weekCutoff = Calendar.current.date(byAdding: .day, value: -7, to: now)!
+                    let monthCutoff = Calendar.current.date(byAdding: .month, value: -1, to: now)!
+                    let yearCutoff = Calendar.current.date(byAdding: .year, value: -1, to: now)!
+                    let fiveYearCutoff = Calendar.current.date(byAdding: .year, value: -5, to: now)!
+
                     var last7Days = [CGFloat]()
                     for eachDataPoint in weekData {
-                        if Calendar.current.date(byAdding: .day, value: -7, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            last7Days += [(eachDataPoint["price"] as! String).toNumber()]
-                            self.allWeekData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
-                        }
+                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), weekCutoff < date else { continue }
+                        let price = (eachDataPoint["price"] as! String).toNumber()
+                        last7Days += [price]
+                        self.allWeekData += [["price": price, "date": date]]
                     }
-                    
+
                     var lastMonth = [CGFloat]()
                     for eachDataPoint in monthData {
-                        if Calendar.current.date(byAdding: .month, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            lastMonth += [(eachDataPoint["price"] as! String).toNumber()]
-                            self.allMonthData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
-                        }
+                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), monthCutoff < date else { continue }
+                        let price = (eachDataPoint["price"] as! String).toNumber()
+                        lastMonth += [price]
+                        self.allMonthData += [["price": price, "date": date]]
                     }
-                    
+
                     var lastYear = [CGFloat]()
                     for eachDataPoint in yearData {
-                        if Calendar.current.date(byAdding: .year, value: -1, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            lastYear += [(eachDataPoint["price"] as! String).toNumber()]
-                            self.allYearsData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
-                        }
+                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), yearCutoff < date else { continue }
+                        let price = (eachDataPoint["price"] as! String).toNumber()
+                        lastYear += [price]
+                        self.allYearsData += [["price": price, "date": date]]
                     }
-                    
+
                     var lastFiveYears = [CGFloat]()
                     var doAdd = true
                     for eachDataPoint in fiveYearData {
-                        if Calendar.current.date(byAdding: .year, value: -5, to: Date())! < ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))! {
-                            if doAdd {
-                                lastFiveYears += [(eachDataPoint["price"] as! String).toNumber()]
-                                self.allFiveYearsData += [["price":(eachDataPoint["price"] as! String).toNumber(),"date":ISO8601DateFormatter().date(from: (eachDataPoint["time_iso8601"] as! String))!]]
-                                doAdd = false
-                            } else {
-                                doAdd = true
-                            }
+                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), fiveYearCutoff < date else { continue }
+                        if doAdd {
+                            let price = (eachDataPoint["price"] as! String).toNumber()
+                            lastFiveYears += [price]
+                            self.allFiveYearsData += [["price": price, "date": date]]
+                            doAdd = false
+                        } else {
+                            doAdd = true
                         }
                     }
                     

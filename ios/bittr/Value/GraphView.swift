@@ -133,6 +133,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             
             let priceLabel = UILabel()
             priceLabel.translatesAutoresizingMaskIntoConstraints = false
+            priceLabel.accessibilityIdentifier = TestID.Value.graphValueLabel
             priceLabel.font = UIFont(name: "Gilroy-Bold", size: 12)
             let currency = self.valueVC!.getCorrectBitcoinValue(coreVC: self.valueVC!.homeVC!.coreVC!).chosenCurrency
             priceLabel.text = currency + " " + self.valueVC!.formatEuroValue("\(Int(thisDataPoint["price"] as! CGFloat))")

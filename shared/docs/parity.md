@@ -10,11 +10,12 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 | Buy — subsequent top up | done | not started | `features/buy_more.yaml` | Preserves wallet state; needs prior `buy_incoming` run for the channel. Requires `scripts/push_server.js` running. |
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `onboarding/happy_path.yaml` if launched on a clean install. |
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses existing channel + onchain balance from prior buy flow. |
+| Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
 | Pin unlock (subflow) | done | not started | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
 
 ## Not yet covered by flows
 
-iOS-side screens that still need a flow before they're parity-tracked: Send (onchain + lightning), Restore wallet, Settings, Map, Academy, Profits, Value chart, Widget, LNURL-Auth.
+iOS-side screens that still need a flow before they're parity-tracked: Send (onchain + lightning), Restore wallet, Settings, Map, Academy, Profits, Widget, LNURL-Auth.
 
 ## Legend
 

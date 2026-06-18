@@ -22,7 +22,19 @@
     "receiveButton": null,
     "buyButton": null,
     "balanceCardButton": null,
-    "balanceLabel": null
+    "balanceLabel": null,
+    "currencyButton": null
+  },
+  "value": {
+    "currentValueLabel": null,
+    "valueSpinner": null,
+    "profitLabel": null,
+    "graphView": null,
+    "graphValueLabel": null,
+    "weekButton": null,
+    "monthButton": null,
+    "yearButton": null,
+    "fiveYearsButton": null
   },
   "history": {
     "swapPending": null,
