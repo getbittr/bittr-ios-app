@@ -86,6 +86,7 @@ enum TestID {
         static let amountTextField = "receive.amountTextField"
         static let copyButton = "receive.copyButton"
         static let editButton = "receive.editButton"
+        static let invoiceLabel = "receive.invoiceLabel"
         static let moreButton = "receive.moreButton"
         static let qrImageView = "receive.qrImageView"
         static let qrSpinner = "receive.qrSpinner"
