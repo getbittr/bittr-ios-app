@@ -121,7 +121,11 @@ extension UIViewController {
     
     @objc func dismissVC() {
         self.view.endEditing(true)
-        self.dismiss(animated: true)
+        if let settingsVC = self as? SettingsViewController {
+            settingsVC.coreVC?.hideSettings()
+        } else {
+            self.dismiss(animated: true)
+        }
     }
     
     @objc func askForPushNotifications() {

@@ -18,6 +18,26 @@ enum TestID {
         static let yourEmail = "buy.yourEmail"
         static let yourIban = "buy.yourIban"
     }
+    enum Device {
+        enum Darkmode {
+            static let deviceButton = "device.darkmode.deviceButton"
+            static let moonButton = "device.darkmode.moonButton"
+            static let sunButton = "device.darkmode.sunButton"
+        }
+        enum Row {
+            static let bittrpeer = "device.row.bittrpeer"
+            static let currency = "device.row.currency"
+            static let darkmode = "device.row.darkmode"
+            static let devicetoken = "device.row.devicetoken"
+            static let language = "device.row.language"
+            static let lightningchannels = "device.row.lightningchannels"
+            static let notification = "device.row.notification"
+            static let pendingpayouts = "device.row.pendingpayouts"
+            static let publickey = "device.row.publickey"
+            static let purchases = "device.row.purchases"
+            static let restore = "device.row.restore"
+        }
+    }
     enum Header {
         static let downButton = "header.downButton"
     }
@@ -262,5 +282,8 @@ enum TestID {
         static let valueSpinner = "value.valueSpinner"
         static let weekButton = "value.weekButton"
         static let yearButton = "value.yearButton"
+    }
+    enum Website {
+        static let downButton = "website.downButton"
     }
 }

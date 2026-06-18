@@ -517,6 +517,8 @@ class Language: NSObject {
             "alertlightningfees2": "The fees for this instant payment depend on the length of the route between your and the recipient's lightning connections - and the fees charged by intermediaries on that route.",
             "selectcurrency": "Currency",
             "selectcurrencymessage": "Choose your preferred currency.",
+            "selectlanguage": "Language",
+            "selectlanguagemessage": "Choose your preferred language.",
             "transactiontype": "Transaction type",
             "transactiontype2": "<b>Regular</b>\nGet an address, to receive regular on-chain transactions.\n\n<b>Instant</b>\nCreate an invoice, to receive instant payments into your lightning connection.\n\n<b>Both</b>\nCreate a Bitcoin QR, which contains an on-chain address as well as a lightning invoice.\n\n<b>URL</b>\nIf available, receive instant payments through your lightning URL.",
             "transactiontype3": "<b>Regular</b>\nEnter a bitcoin address, to send regular on-chain transactions.\n\n<b>Instant</b>\nEnter an invoice or lightning URL, to make instant bitcoin lightning payments.",
@@ -552,7 +554,9 @@ class Language: NSObject {
             "openinmaps4": "Maps",
             "lnauth1": "<domain> wants to <action> with your lightning wallet. No bitcoin will be sent. Would you like to proceed?",
             "lnauth2": "You've been successfully signed in.",
-            "lnauth3": "We could not sign you in. Please try again."
+            "lnauth3": "We could not sign you in. Please try again.",
+            "removewallet": "Remove wallet",
+            "settings": "Settings"
             
         ]
         

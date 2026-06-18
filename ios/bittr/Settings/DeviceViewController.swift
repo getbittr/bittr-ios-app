@@ -19,13 +19,15 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     let deviceItems = [
         ["id":"darkmode", "label":Language.getWord(withID: "darkmode"), "button":"", "icon":"moon.fill"],
         ["id":"language", "label":Language.getWord(withID: "language"), "button":"", "icon":"globe.europe.africa.fill"],
+        ["id":"currency", "label":Language.getWord(withID: "currency"), "button":"", "icon":"dollarsign.circle.fill"],
         ["id":"devicetoken", "label":Language.getWord(withID: "devicetoken"), "button":Language.getWord(withID: "fetch"), "icon":"iphone"],
         ["id":"publickey", "label":Language.getWord(withID: "publickey"), "button":Language.getWord(withID: "fetch"), "icon":"key.horizontal.fill"],
         ["id":"bittrpeer", "label":Language.getWord(withID: "bittrpeer"), "button":Language.getWord(withID: "check"), "icon":"point.topleft.down.to.point.bottomright.curvepath.fill"],
         ["id":"purchases", "label":Language.getWord(withID: "bittrpurchases"), "button":Language.getWord(withID: "check"), "icon":"banknote.fill"],
         ["id":"notification", "label":Language.getWord(withID: "bittrnotification"), "button":Language.getWord(withID: "retry"), "icon":"envelope.fill"],
         ["id":"pendingpayouts", "label":Language.getWord(withID: "bittrpendingpayout"), "button":Language.getWord(withID: "check"), "icon":"hourglass"],
-        ["id":"lightningchannels", "label":Language.getWord(withID: "lightningchannels2"), "button":"", "icon":"bolt.fill"]
+        ["id":"lightningchannels", "label":Language.getWord(withID: "lightningchannels2"), "button":"", "icon":"bolt.fill"],
+        ["id":"restore", "label":Language.getWord(withID: "removewallet"), "button":"", "icon":"trash.fill"]
     ]
     
     // Header
@@ -86,6 +88,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
             
             let cellTag = self.deviceItems[indexPath.row]["id"]!
             cell.cellButton.boundString = cellTag
+            cell.cellButton.accessibilityIdentifier = "device.row.\(cellTag)"
             
             cell.hideDarkMode()
             switch cellTag {
@@ -93,6 +96,8 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                 if CacheManager.getLanguage() == "en_US" {
                     cell.buttonLabel.text = "English"
                 }
+            case "currency":
+                cell.buttonLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
             case "lightningchannels":
                 if self.channelsCount == nil {
                     self.syncChannels()
@@ -111,17 +116,34 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func changeLanguage() {
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let englishOption = UIAlertAction(title: "English (US)", style: .default) { (action) in
-            CacheManager.changeLanguage("en_US")
-        }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(englishOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, #selector(self.selectEnglishLanguage)])
     }
-    
+
+    func changeCurrency() {
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, #selector(self.selectEuroCurrency), #selector(self.selectChfCurrency)])
+    }
+
+    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
+    // has an action, so each hides the alert before applying the change.
+    @objc func selectEnglishLanguage() {
+        self.hideAlert()
+        CacheManager.changeLanguage("en_US")
+    }
+
+    @objc func selectEuroCurrency() {
+        self.hideAlert()
+        UserDefaults.standard.set("€", forKey: "currency")
+        self.coreVC?.homeVC?.changeCurrency()
+        self.deviceTableView.reloadData()
+    }
+
+    @objc func selectChfCurrency() {
+        self.hideAlert()
+        UserDefaults.standard.set("CHF", forKey: "currency")
+        self.coreVC?.homeVC?.changeCurrency()
+        self.deviceTableView.reloadData()
+    }
+
     @objc func showToken(notification:NSNotification) {
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {

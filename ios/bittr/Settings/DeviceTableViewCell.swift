@@ -37,7 +37,12 @@ class DeviceTableViewCell: UITableViewCell {
         self.buttonSun.setTitle("", for: .normal)
         self.buttonMoon.setTitle("", for: .normal)
         self.buttonDevice.setTitle("", for: .normal)
-        
+
+        // Test IDs for the dark-mode segmented buttons.
+        self.buttonSun.accessibilityIdentifier = TestID.Device.Darkmode.sunButton
+        self.buttonMoon.accessibilityIdentifier = TestID.Device.Darkmode.moonButton
+        self.buttonDevice.accessibilityIdentifier = TestID.Device.Darkmode.deviceButton
+
         // Corner radii.
         self.cellCard.layer.cornerRadius = 13
         
@@ -49,6 +54,11 @@ class DeviceTableViewCell: UITableViewCell {
         switch sender.boundString ?? "" {
         case "language":
             self.deviceVC?.changeLanguage()
+        case "currency":
+            self.deviceVC?.changeCurrency()
+        case "restore":
+            self.deviceVC?.coreVC?.restoreWalletTapped()
+            self.deviceVC?.dismiss(animated: true)
         case "devicetoken":
             self.deviceVC?.askForPushNotifications()
         case "publickey":
