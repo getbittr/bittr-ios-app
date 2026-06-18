@@ -19,11 +19,16 @@ extension HomeViewController {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 // Perform reset.
                 Task {
-                    // Refresh the chain tip first so transaction confirmation
-                    // counts reflect any blocks mined since the last sync —
-                    // startWallet() doesn't fetch the block height itself.
                     _ = await BitcoinManager.shared.didGetLatestBlockHeight()
                     await self.coreVC!.startWallet()
+                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                        if hasBeenSynced {
+                            DispatchQueue.main.async {
+                                self.sendVC?.setSendAllLabel()
+                                self.moveVC?.swapVC?.calculateSendableAmount()
+                            }
+                        }
+                    }
                 }
             }
         } else if scrollView.contentOffset.y > 400 {

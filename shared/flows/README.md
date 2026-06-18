@@ -33,6 +33,11 @@ shared/flows/
                           screen (address + euro amount, fast fee), send,
                           mine 6 blocks, then open the new transaction from
                           the history table.
+    send_onchain_all.yaml Onchain send of the maximum balance: tap "Send all",
+                          then exercise the tight-fee path — fast fee exceeds
+                          the balance → Update amount, and on a failed broadcast
+                          retry with the slowest fee — before mining and opening
+                          the new transaction.
     swap.yaml             Lightning ↔ onchain, both directions.
     forgot_pin.yaml       Forgot-PIN recovery from the unlock screen — types
                           the cached mnemonic and resets the PIN. Requires

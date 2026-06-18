@@ -97,12 +97,15 @@ enum TestID {
     }
     enum Send {
         static let amountTextField = "send.amountTextField"
+        static let availableButton = "send.availableButton"
         static let bdkSpinner = "send.bdkSpinner"
         enum Confirm {
             static let addressLabel = "send.confirm.addressLabel"
             static let amountFiatLabel = "send.confirm.amountFiatLabel"
+            static let amountLabel = "send.confirm.amountLabel"
             static let confirmButton = "send.confirm.confirmButton"
             static let feeFastButton = "send.confirm.feeFastButton"
+            static let feeSlowButton = "send.confirm.feeSlowButton"
         }
         static let currencyButton = "send.currencyButton"
         static let currencyLabel = "send.currencyLabel"
