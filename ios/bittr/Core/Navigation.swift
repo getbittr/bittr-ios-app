@@ -135,17 +135,57 @@ extension CoreViewController {
         
         self.settingsBackground.alpha = 1
         self.view.layoutIfNeeded()
-        
+
+        // Compute the open position once (after layout) and remember it — the
+        // swipe-to-dismiss handler clamps against and snaps back to it.
+        let contentHeight:CGFloat = (newChild as? SettingsViewController)?.centerView.bounds.height ?? 0
+        self.settingsOpenConstant = -contentHeight - self.view.safeAreaInsets.bottom
+
         UIView.animate(withDuration: 0.6, delay: 0.2, usingSpringWithDamping: 0.7, initialSpringVelocity: 0, options: .curveEaseInOut) {
-            
-            let contentHeight:CGFloat = (newChild as? SettingsViewController)?.centerView.bounds.height ?? 0
-            
             self.settingsBackground.backgroundColor = .black.withAlphaComponent(0.5)
-            self.settingsContainerTop.constant = -contentHeight - self.view.safeAreaInsets.bottom
+            self.settingsContainerTop.constant = self.settingsOpenConstant
             self.view.layoutIfNeeded()
         }
     }
-    
+
+    // Drag the open settings popup down to dismiss it (Option A: interactive).
+    // The popup is positioned by settingsContainerTop (open = settingsOpenConstant,
+    // a negative value; closed = 0), so we track the finger by adding the
+    // downward translation to the open constant, then either complete the
+    // dismissal or spring back depending on distance/velocity.
+    @objc func handleSettingsPan(_ recognizer: UIPanGestureRecognizer) {
+        // Only active while the popup is actually open.
+        guard !self.settingsContainer.subviews.isEmpty else { return }
+
+        let translationY = recognizer.translation(in: self.settingsContainer).y
+        let contentHeight = -self.settingsOpenConstant   // open constant is negative
+
+        switch recognizer.state {
+        case .changed:
+            // Only allow dragging downward (toward closed) from the open position.
+            let offset = max(0, translationY)
+            self.settingsContainerTop.constant = self.settingsOpenConstant + offset
+            // Fade the dim out as the sheet is pulled down.
+            let progress = contentHeight > 0 ? min(1, offset / contentHeight) : 0
+            self.settingsBackground.backgroundColor = .black.withAlphaComponent(0.5 * (1 - progress))
+            self.view.layoutIfNeeded()
+        case .ended, .cancelled, .failed:
+            let velocityY = recognizer.velocity(in: self.settingsContainer).y
+            if translationY > contentHeight / 3 || velocityY > 800 {
+                self.hideSettings()
+            } else {
+                // Not far/fast enough — spring back to the open position.
+                UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) {
+                    self.settingsContainerTop.constant = self.settingsOpenConstant
+                    self.settingsBackground.backgroundColor = .black.withAlphaComponent(0.5)
+                    self.view.layoutIfNeeded()
+                }
+            }
+        default:
+            break
+        }
+    }
+
     func hideSettings() {
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
             self.settingsBackground.backgroundColor = UIColor(red: 138/255, green: 111/255, blue: 81/255, alpha: 0)
@@ -158,5 +198,13 @@ extension CoreViewController {
             }
         }
     }
-    
+
+}
+
+extension CoreViewController: UIGestureRecognizerDelegate {
+    // Let the settings-popup swipe-to-dismiss pan run alongside the settings
+    // table's scroll pan, so a downward drag started on a row still dismisses.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
 }

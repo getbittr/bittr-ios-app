@@ -128,7 +128,10 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var settingsBackgroundButton: UIButton!
     @IBOutlet weak var settingsContainer: UIView!
     @IBOutlet weak var settingsContainerTop: NSLayoutConstraint!
-    
+    // Open-position constant of settingsContainerTop, set by showSettings and
+    // used by the swipe-to-dismiss handler (handleSettingsPan).
+    var settingsOpenConstant: CGFloat = 0
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -157,6 +160,15 @@ class CoreViewController: UIViewController {
         self.leftButton.accessibilityIdentifier = TestID.Nav.walletButton
         self.middleButton.accessibilityIdentifier = TestID.Nav.academyButton
         self.rightButton.accessibilityIdentifier = TestID.Nav.settingsButton
+
+        // Swipe the settings popup down to dismiss it. Added once here (the
+        // container is a persistent storyboard view); the handler no-ops while
+        // the popup is closed.
+        let settingsPan = UIPanGestureRecognizer(target: self, action: #selector(self.handleSettingsPan(_:)))
+        // Recognise alongside the settings table's scroll pan so a drag started
+        // on a row still dismisses (the table is content-height and non-scrolling).
+        settingsPan.delegate = self
+        self.settingsContainer.addGestureRecognizer(settingsPan)
 
         // Check wallet.
         self.checkWalletAvailability()
