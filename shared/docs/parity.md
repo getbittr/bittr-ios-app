@@ -1,0 +1,33 @@
+# Parity tracker
+
+Per-feature status of iOS vs Android implementation. Updated as Maestro flows go green on each platform.
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
+| Test-ID smoke | done | n/a | `onboarding/smoke.yaml` | Verifies the JSON → build.py → Swift → Maestro pipeline reaches a real ID. |
+| Onboarding (create wallet + bittr signup) | done | not started | `onboarding/happy_path.yaml` | Top-level entry: `onboarding/fresh_install.yaml` (wipes state, runs happy_path). |
+| Buy — first incoming bank transaction | done | not started | `features/buy_incoming.yaml` | Opens the lightning channel; needs `fresh_install` first. |
+| Buy — subsequent top up | done | not started | `features/buy_more.yaml` | Preserves wallet state; needs prior `buy_incoming` run for the channel. Requires `scripts/push_server.js` running. |
+| Receive | done | not started | `features/receive.yaml` | Auto-recovers via `onboarding/happy_path.yaml` if launched on a clean install. |
+| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address (waits out the verification spinner), copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
+| Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
+| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, switches to Regular (waits out the BDK sync spinner), enters an address + 5 EUR amount, confirms address/euro amount on the Confirm screen with the fast fee, sends, mines 6 blocks, then opens the new transaction from the history table. Requires an onchain balance. |
+| Send onchain (max) | done | not started | `features/send_onchain_all.yaml` | Sends the full balance via "Send all", exercising the tight-fee path: fast fee exceeds the balance → Update amount, and on a failed broadcast retry with the slowest fee (past the low-fee warning), then mine 6 blocks and open the new transaction. Requires an onchain balance. |
+| Send lightning | done | not started | `features/send_lightning.yaml` | Pays a normal (amount-bearing) invoice, a zero-amount invoice (amount entered in BTC), and a Lightning Address (LNURL-pay), each confirmed via the TransactionViewController. Manual input — the three targets come from a separate live wallet, passed via `LN_INVOICE`/`LN_ZERO_INVOICE`/`LN_ADDRESS`; the Paste steps need `scripts/clipboard_server.js`. Requires an active channel with outbound capacity. |
+| Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses existing channel + onchain balance from prior buy flow. |
+| Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
+| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens/closes a place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
+| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next→Complete, waiting on image-download spinners), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
+| Pin unlock (subflow) | done | not started | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
+
+## Not yet covered by flows
+
+iOS-side screens that still need a flow before they're parity-tracked: Restore wallet, Settings, Profits, Widget, LNURL-Auth. (Send end-to-end is now covered: onchain via `features/send_onchain.yaml`, lightning via `features/send_lightning.yaml`.)
+
+## Legend
+
+- `done` — feature is shipped and Maestro flow passes
+- `wip` — actively being ported
+- `not started` — Android implementation not begun
+- `blocked` — waiting on something (note in description)
+- `n/a` — intentionally platform-specific (e.g., iOS Widget vs Android Glance equivalent tracked separately)

@@ -1,0 +1,117 @@
+# Feature test: first incoming bank transaction (opens the lightning channel).
+#
+# Prerequisite: wallet + bittr account already exist. For a clean install run
+# `shared/flows/onboarding/fresh_install.yaml` first — the channel opens exactly
+# once per install, so re-running this flow on the same install will fail after
+# the first successful run.
+#
+# Flow:
+#   1. Launch (preserve state). Unlock if locked.
+#   2. Once synced, open the Profit screen and remember the starting profit.
+#   3. Tap Buy on Home → copy deposit code → trigger bank transaction.
+#   4. Mine blocks so the lightning channel opens and confirms.
+#   5. Wait for the transaction screen.
+#   6. Close the transaction + buy screens, then verify the Home profit label
+#      and the Profit screen have updated.
+#
+# Run: maestro test shared/flows/features/buy_incoming.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home with wallet + bittr account.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/buy_incoming/01_home
+
+# Wait for the post-sign-in wallet sync to finish — the header spinner stops
+# in finalizeSync. The profit on the balance card is only meaningful (and the
+# Profit screen only reads stable values) once the wallet has synced.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
+# Open the Profit screen and remember the current profit before this buy. This
+# is the first buy on the install, so there are no transactions yet — the total
+# profit reads "<currency> 0". We compare against this value at the end to prove
+# the profit recalculated.
+- tapOn:
+    id: "home.profitButton"
+- assertVisible:
+    id: "profits.totalProfitLabel"
+- copyTextFrom:
+    id: "profits.totalProfitLabel"
+- evalScript: ${output.profitBefore = maestro.copiedText}
+- takeScreenshot: shared/docs/screenshots/buy_incoming/02_profit_before
+# Close the Profit screen (header down button) → back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Open Buy.
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.headerLabel"
+- assertVisible:
+    id: "buy.yourCode"
+- takeScreenshot: shared/docs/screenshots/buy_incoming/03_buy_screen
+
+# Copy the deposit code into a Maestro variable so the curl script can read it.
+- copyTextFrom:
+    id: "buy.yourCode"
+- evalScript: ${output.depositCode = maestro.copiedText}
+
+# Trigger the e2e bank-transaction event server-side.
+- runScript: ../scripts/trigger_bank_transaction.js
+
+# Mine 6 blocks so the lightning channel opens and confirms.
+- evalScript: ${output.blocksToMine = 6}
+- runScript: ../scripts/mine_blocks.js
+
+# Backend processes the bank transaction → notification arrives → app eventually
+# settles on TransactionViewController showing the completed transaction details.
+# (A QuestionViewController "incoming €X" page may appear briefly along the way,
+# but the stable terminal state is the transaction screen.)
+- extendedWaitUntil:
+    visible:
+      id: "transaction.labelAmount"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/buy_incoming/04_transaction
+
+# Close the TransactionViewController (header down button) → back on the Buy
+# screen it was presented over.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "buy.headerLabel"
+# Close the BuyViewController (its own down button) → back on Home.
+- tapOn:
+    id: "buy.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# The balance-card profit label should now be shown with the recalculated
+# percentage for the new purchase.
+- assertVisible:
+    id: "home.profitLabel"
+- takeScreenshot: shared/docs/screenshots/buy_incoming/05_home_updated
+
+# Open the Profit screen again and verify it no longer shows the pre-buy profit
+# value — i.e. calculateProfit ran and the totals updated for the new purchase.
+- tapOn:
+    id: "home.profitButton"
+- assertVisible:
+    id: "profits.totalProfitLabel"
+- assertNotVisible:
+    text: "${output.profitBefore}"
+- takeScreenshot: shared/docs/screenshots/buy_incoming/06_profit_after

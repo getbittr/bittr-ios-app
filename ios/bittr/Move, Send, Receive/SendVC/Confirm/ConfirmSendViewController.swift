@@ -1,0 +1,337 @@
+//
+//  ConfirmSendViewController.swift
+//  bittr
+//
+//  Created by Tom Melters on 3/9/26.
+//
+
+import UIKit
+
+class ConfirmSendViewController: UIViewController {
+    
+    // Generic
+    @IBOutlet weak var yellowCard: UIView!
+    @IBOutlet weak var topLabel: UILabel!
+    
+    // Address
+    @IBOutlet weak var addressView: UIView!
+    @IBOutlet weak var addressTitle: UILabel!
+    @IBOutlet weak var addressLabel: UILabel!
+    
+    // Amount
+    @IBOutlet weak var amountView: UIView!
+    @IBOutlet weak var amountTitle: UILabel!
+    @IBOutlet weak var amountLabel: UILabel!
+    @IBOutlet weak var amountFiatLabel: UILabel!
+    
+    // Lightning fees
+    @IBOutlet weak var lightningFeesStack: UIView!
+    @IBOutlet weak var lightningFeesStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var lightningFeesView: UIView!
+    @IBOutlet weak var lightningFeesTitle: UILabel!
+    @IBOutlet weak var lightningFeesLabel: UILabel!
+    @IBOutlet weak var questionMark: UIImageView!
+    @IBOutlet weak var questionMarkButton: UIButton!
+    
+    // Onchain fees
+    @IBOutlet weak var onchainFeesStack: UIView!
+    @IBOutlet weak var onchainFeesStackHeight: NSLayoutConstraint!
+    @IBOutlet weak var feesTopLabel: UILabel!
+    
+    // Fee views
+    @IBOutlet weak var feesViewFast: UIView!
+    @IBOutlet weak var feesViewMedium: UIView!
+    @IBOutlet weak var feesViewSlow: UIView!
+    
+    // Fee times
+    @IBOutlet weak var timeFast: UILabel!
+    @IBOutlet weak var timeMedium: UILabel!
+    @IBOutlet weak var timeSlow: UILabel!
+    
+    // Fee sats
+    @IBOutlet weak var feesFast: UILabel!
+    @IBOutlet weak var feesMedium: UILabel!
+    @IBOutlet weak var feesSlow: UILabel!
+    
+    // Fee fiat
+    @IBOutlet weak var feesFiatFast: UILabel!
+    @IBOutlet weak var feesFiatMedium: UILabel!
+    @IBOutlet weak var feesFiatSlow: UILabel!
+    
+    // Fee buttons
+    @IBOutlet weak var buttonFast: UIButton!
+    @IBOutlet weak var buttonMedium: UIButton!
+    @IBOutlet weak var buttonSlow: UIButton!
+    
+    // Confirm buttons
+    @IBOutlet weak var backView: UIView!
+    @IBOutlet weak var confirmView: UIView!
+    @IBOutlet weak var backButton: UIButton!
+    @IBOutlet weak var confirmButton: UIButton!
+    @IBOutlet weak var confirmLabel: UILabel!
+    @IBOutlet weak var confirmSpinner: UIActivityIndicatorView!
+    
+    // Variables
+    var sendVC:SendViewController?
+    var coreVC:CoreViewController?
+    
+    // Fee variables
+    var selectedFee:SelectedFee = .medium
+    var selectedFeeInSats = 0
+    var maxAvailableFeePerVb:Float?
+    var newTxId = ""
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Tag the fee buttons so feeButtonTapped can route the tap.
+        // (Was set on accessibilityIdentifier in IB; moved here so that slot
+        // stays free for Maestro test IDs.)
+        self.buttonFast.boundString = "high"
+        self.buttonMedium.boundString = "medium"
+        self.buttonSlow.boundString = "low"
+
+        self.setBasicStyling()
+        self.changeColors()
+        self.setLanguage()
+        self.setLabels()
+
+        self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
+        self.amountLabel.accessibilityIdentifier = TestID.Send.Confirm.amountLabel
+        self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
+        self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.buttonSlow.accessibilityIdentifier = TestID.Send.Confirm.feeSlowButton
+        self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
+    }
+    
+    func setLabels() {
+        guard self.sendVC != nil else { return }
+        
+        // Address
+        if self.sendVC!.onchainOrLightning == .onchain {
+            self.addressTitle.text = Language.getWord(withID: "address")
+        } else {
+            self.addressTitle.text = Language.getWord(withID: "invoice")
+        }
+        self.addressLabel.text = self.sendVC!.confirmAddress
+        
+        // Amount
+        self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
+        // Fiat amount
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        self.amountFiatLabel.text = self.formattedFiatAmount()
+        
+        // Fees
+        if self.sendVC!.onchainOrLightning == .lightning {
+            // Lightning
+            NSLayoutConstraint.deactivate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
+            self.lightningFeesStackHeight = NSLayoutConstraint(item: self.lightningFeesStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            self.onchainFeesStackHeight = NSLayoutConstraint(item: self.onchainFeesStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
+            self.lightningFeesStack.alpha = 1
+            self.onchainFeesStack.alpha = 0
+            
+            self.lightningFeesLabel.text = "1 - " + "\(self.sendVC!.confirmLightningFees)".addSpaces() + " sats"
+        } else {
+            // Onchain
+            NSLayoutConstraint.deactivate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
+            self.lightningFeesStackHeight = NSLayoutConstraint(item: self.lightningFeesStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            self.onchainFeesStackHeight = NSLayoutConstraint(item: self.onchainFeesStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
+            self.lightningFeesStack.alpha = 0
+            self.onchainFeesStack.alpha = 1
+            
+            // Check fee availability
+            let lowestSats:Float = self.sendVC!.feePerVbLow*self.sendVC!.confirmTxSize
+            let availableSatsForFee:Float = Float(self.coreVC!.bittrWallet.satoshisOnchain - self.sendVC!.confirmSatoshis)
+            if lowestSats > availableSatsForFee {
+                // There aren't enough sats available to pay for the cheapest fee.
+                let availableSatsPerVb:Float = availableSatsForFee / self.sendVC!.confirmTxSize
+                self.maxAvailableFeePerVb = Float(Int(availableSatsPerVb * 10))/10
+                
+                self.timeSlow.text = Language.getWord(withID: "slow")
+                self.highlightFee(.low)
+                self.selectedFee = .low
+            }
+            
+            // Fees
+            self.feesFast.text = "\(Int(self.sendVC!.feePerVbHigh * self.sendVC!.confirmTxSize)) sats"
+            self.feesMedium.text = "\(Int(self.sendVC!.feePerVbMedium * self.sendVC!.confirmTxSize)) sats"
+            self.feesSlow.text = "\(Int(self.sendVC!.feePerVbLow * self.sendVC!.confirmTxSize)) sats"
+            
+            // Set converted fees
+            self.feesFiatFast.text = self.convertFees(.high) + " " + bitcoinValue.chosenCurrency
+            self.feesFiatMedium.text = self.convertFees(.medium) + " " + bitcoinValue.chosenCurrency
+            self.feesFiatSlow.text = self.convertFees(.low) + " " + bitcoinValue.chosenCurrency
+            
+            // Custom fee
+            if self.maxAvailableFeePerVb != nil {
+                self.feesSlow.text = "\(Int(self.maxAvailableFeePerVb! * self.sendVC!.confirmTxSize)) sats"
+                self.feesFiatSlow.text = self.convertFees(.custom, customFees: self.maxAvailableFeePerVb!)  + " " + bitcoinValue.chosenCurrency
+            }
+        }
+        
+    }
+    
+    func convertFees(_ selectedFee: SelectedFee, customFees:Float? = nil) -> String {
+        guard self.sendVC != nil else { return "error" }
+        let transactionSize = self.sendVC!.confirmTxSize
+        let satsPerVbyte:Float
+        switch selectedFee {
+        case .high: satsPerVbyte = self.sendVC!.feePerVbHigh
+        case .medium: satsPerVbyte = self.sendVC!.feePerVbMedium
+        case .low: satsPerVbyte = self.sendVC!.feePerVbLow
+        case .custom: satsPerVbyte = customFees ?? 0
+        }
+        let satsValue = CGFloat(satsPerVbyte*transactionSize)
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        // satsText is dot-decimal here (Swift Double interpolation), so pad a
+        // single trailing decimal digit to two (e.g. "0.5" -> "0.50").
+        var satsText = "\(CGFloat(Int((satsValue.inBTC()*bitcoinValue.currentValue)*100))/100)"
+        if String(satsText.split(separator: ".")[1]).count == 1 {
+            satsText = satsText + "0"
+        }
+        // Localize the decimal separator to match the rest of the app (e.g.
+        // "0,50" in comma locales) — same fix as formattedFiatAmount().
+        return satsText.fixDecimals()
+    }
+
+    // Formats the fiat send amount with two decimals, e.g. "4.99 €" (or "4,99 €"
+    // in comma locales — see the fixDecimals() note below).
+    func formattedFiatAmount() -> String {
+        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let fiatValue = CGFloat(self.sendVC!.confirmSatoshis.inBTC() * bitcoinValue.currentValue)
+        // fiatText is dot-decimal here (Swift's Double interpolation always uses
+        // "."), so pad a single trailing decimal digit to two (e.g. "4.9" -> "4.90").
+        var fiatText = "\(CGFloat(Int(fiatValue * 100)) / 100)"
+        if String(fiatText.split(separator: ".")[1]).count == 1 {
+            fiatText = fiatText + "0"
+        }
+        // Convert the "." to the device locale's decimal separator so the amount
+        // matches how the rest of the app formats numbers (e.g. "4,99" in comma
+        // locales). Previously the raw dot-decimal string was returned, so the
+        // confirm screen showed "4.99" regardless of locale.
+        return "\(fiatText.fixDecimals()) \(bitcoinValue.chosenCurrency)"
+    }
+
+    @IBAction func feeButtonTapped(_ sender: UIButton) {
+        if sender.boundString == "high" {
+            self.switchToFee(.high)
+        } else if sender.boundString == "medium" {
+            self.switchToFee(.medium)
+        } else {
+            self.switchToFee(.low)
+        }
+    }
+    
+    func switchToFee(_ tappedFee:SelectedFee) {
+        // Switch selected fee rate.
+        
+        switch tappedFee {
+        case .high:
+            self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * self.sendVC!.feePerVbHigh)
+        case .medium:
+            self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * self.sendVC!.feePerVbMedium)
+        default:
+            self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * (self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow))
+        }
+        
+        self.selectedFee = tappedFee
+        self.highlightFee(tappedFee)
+        guard self.canAffordFees() else { return }
+        self.checkHighFeeRate()
+    }
+    
+    func highlightFee(_ selectedFee:SelectedFee) {
+        self.selectedFee = selectedFee
+        switch selectedFee {
+        case .medium:
+            self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewMedium.backgroundColor = Colors.getColor("whiteorblue3")
+            self.feesViewSlow.backgroundColor = Colors.getColor("white0.7orblue1")
+        case .high:
+            self.feesViewFast.backgroundColor = Colors.getColor("whiteorblue3")
+            self.feesViewMedium.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewSlow.backgroundColor = Colors.getColor("white0.7orblue1")
+        default:
+            self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewMedium.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewSlow.backgroundColor = Colors.getColor("whiteorblue3")
+        }
+    }
+    
+    func canAffordFees() -> Bool {
+        
+        if (self.selectedFeeInSats + self.sendVC!.confirmSatoshis) > self.coreVC!.bittrWallet.satoshisOnchain {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(self.coreVC!.bittrWallet.satoshisOnchain) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
+            return false
+        } else {
+            return true
+        }
+    }
+    
+    func checkHighFeeRate() {
+        // Check if selected fee rate is too high.
+        if (CGFloat(self.selectedFeeInSats) / CGFloat(self.sendVC!.confirmSatoshis)) > 0.1 {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+    }
+    
+    @objc func handleAmountChange() {
+        self.hideAlert()
+        
+        // New amount.
+        self.sendVC!.confirmSatoshis = self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats
+        
+        // Update SendVC amount text field.
+        self.sendVC!.amountTextField.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin()
+        self.sendVC!.selectBTCCurrency()
+        
+        // Update confirmation labels.
+        self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
+        self.amountFiatLabel.text = self.formattedFiatAmount()
+        
+        // Switch fee selection.
+        self.switchToFee(self.selectedFee)
+    }
+    
+    @IBAction func confirmButtonTapped(_ sender: UIButton) {
+        guard self.checkInternetConnection() else { return }
+        
+        if self.sendVC!.onchainOrLightning == .onchain {
+            // Send onchain transaction.
+            self.confirmSendOnchain()
+        } else {
+            // Send lightning payment.
+            self.performLightningPayment()
+        }
+    }
+    
+    func confirmSendOnchain() {
+        Log.info("Confirm onchain transaction.")
+        // Check whether selected fee is appropriate.
+        
+        if self.maxAvailableFeePerVb != nil && self.selectedFee == .low {
+            // Selected fee is very low.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [Language.getWord(withID: "changefee"), Language.getWord(withID: "continue")], actions: [nil, #selector(self.proceedWithOnchainConfirmation)])
+        } else {
+            self.proceedWithOnchainConfirmation()
+        }
+    }
+    
+    @IBAction func lightningFeesTapped(_ sender: UIButton) {
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "alertlightningfees"), message: Language.getWord(withID: "alertlightningfees2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+    
+    @IBAction func backButtonTapped(_ sender: UIButton) {
+        // Slide back to leftmost scroll view.
+        self.sendVC?.slideFromConfirmToSend()
+    }
+}
+
+enum SelectedFee {
+    case custom
+    case low
+    case medium
+    case high
+}

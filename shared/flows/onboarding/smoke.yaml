@@ -1,0 +1,23 @@
+# First Maestro flow — verifies that test IDs set in Signup1ViewController
+# are actually reachable by Maestro. If this passes, the test ID pipeline works
+# end to end (JSON → generator → Swift → accessibilityIdentifier → Maestro).
+#
+# Prerequisite: the app must be on the Signup1 screen (the create-or-restore
+# entry point new users see). Easiest path: wipe app data on the simulator
+# (`xcrun simctl uninstall booted com.bittr.bittrRegtest && build & run from
+# Xcode`), or reset wallet via Settings → Reset.
+#
+# appId is the regtest variant — see ios/set-environment.sh.
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "signup.create.start.headerLabel"
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+- assertVisible:
+    id: "signup.create.start.restoreButton"
+- takeScreenshot: shared/docs/screenshots/signup_create_smoke/01_initial

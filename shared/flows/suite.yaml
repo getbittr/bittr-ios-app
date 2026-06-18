@@ -1,0 +1,61 @@
+# Full Maestro suite — runs every flow back-to-back in dependency order.
+#
+# Why a hand-ordered orchestrator instead of `maestro test shared/flows/features/`:
+# the feature flows deliberately SHARE wallet state, and several are destructive
+# (send_onchain_all drains the onchain balance; wrong_pin and remove_wallet wipe
+# the wallet). A plain folder run executes flows alphabetically with no
+# dependency awareness, so channel-dependent flows would run before buy_incoming
+# opens the channel, and the wipes would run mid-suite. This file sequences them
+# so dependencies hold and the destructive flows run last.
+#
+# Prerequisites (the Node helper servers can't be started from Maestro — use
+# shared/flows/test_suite.sh, which starts them and runs this with the env):
+#   node shared/flows/scripts/push_server.js        # buy_incoming / buy_more
+#   node shared/flows/scripts/clipboard_server.js    # send_lightning
+#   maestro test \
+#     --env MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety endorse" \
+#     shared/flows/suite.yaml
+#   (the MNEMONIC is restore_wallet.yaml's fixed test phrase, needed by forgot_pin.)
+#
+# A failure aborts the suite at that flow — later flows depend on earlier state,
+# so there's no point continuing. Run the individual flow to debug.
+#
+# NOTE: this is a best-effort ordering; the exact sequence may need tuning on the
+# first real run (e.g. buy_signup assumes the test wallet has no bittr account
+# yet). Tune the order here as flows are added.
+
+appId: com.bittr.bittr-regtest
+---
+# --- Setup: clean wallet → bittr account → funded channel ---------------------
+- runFlow: onboarding/restore_wallet.yaml      # clearState + restore (fixed mnemonic), PIN 1234
+- runFlow: features/buy_signup.yaml            # create the bittr account
+- runFlow: features/buy_incoming.yaml          # first top-up: opens the channel + funds (needs push_server)
+
+# --- Funded-state features (reuse the open channel + funds) -------------------
+- runFlow: features/buy_more.yaml              # subsequent top-up (needs push_server)
+- runFlow: features/receive.yaml
+- runFlow: features/receive_onchain.yaml       # onchain receive → small onchain send
+- runFlow: features/receive_invoice.yaml       # lightning receive → send
+- runFlow: features/send_onchain.yaml          # onchain send (5 EUR)
+- runFlow: features/send_lightning.yaml        # lightning sends (needs clipboard_server)
+- runFlow: features/swap.yaml                  # lightning <-> onchain, both directions
+
+# --- Read-only screens (no wallet-state change) -------------------------------
+- runFlow: features/bitcoin_value.yaml
+- runFlow: features/bitcoin_map.yaml
+- runFlow: features/academy.yaml
+- runFlow: features/settings.yaml
+
+# --- Drains the entire onchain balance — must run after the onchain flows above
+- runFlow: features/send_onchain_all.yaml
+
+# --- PIN recovery (non-destructive). forgot_pin needs the MNEMONIC env; ---------
+#     pin_warning is self-contained (it re-runs restore_wallet → a fresh wallet
+#     with NO channel), so it has to come after every channel-dependent flow.
+- runFlow: features/forgot_pin.yaml
+- runFlow: features/pin_warning.yaml
+
+# --- Destructive wipes, dead last ---------------------------------------------
+- runFlow: features/wrong_pin.yaml             # 10 wrong PINs → wipes the wallet → Signup1
+- runFlow: onboarding/restore_wallet.yaml      # re-setup a wallet for remove_wallet
+- runFlow: features/remove_wallet.yaml         # Settings → Device details → Remove wallet

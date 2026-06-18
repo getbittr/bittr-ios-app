@@ -1,0 +1,216 @@
+# Feature test: lightning → onchain swap.
+#
+# Prerequisite: buy_incoming.yaml has been run at least once on this app
+# install — that's what creates and confirms the lightning channel that the
+# swap pulls from. This flow does NOT clearState, so the wallet + channel
+# survive across runs of this test.
+#
+# Flow:
+#   1. Launch (preserve state). Unlock with PIN if locked.
+#   2. Tap the big balance card → MoveVC.
+#   3. Tap the swap (exchange) button → SwapVC.
+#   4. Type 50000 sats, tap Next → fees alert appears.
+#   5. Tap Proceed (alert button index 1).
+#   6. Wait for "Swap complete" status.
+#   7. Mine 1 block.
+#   8. Swipe down twice (SwapVC, then MoveVC) to land back on Home.
+#   9. Verify Home with the new swap row in the transaction list.
+#
+# Run: maestro test shared/flows/features/swap.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# If app launched into the PIN unlock screen, enter it.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Sanity: must be on Home with funds. If on Signup, the user hasn't run
+# buy_incoming yet — fail loudly rather than auto-running it (channel-open
+# requires fresh install and we don't want to wipe state silently).
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — the header spinner spins until the
+# sync finishes. Wait for it to stop before tapping the balance card so the
+# balances are settled before we enter the swap flow.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/swap/01_home
+
+# Tap the big balance card → MoveVC.
+# Note: profitButton overlays the lower half of the balance card. Tapping
+# balanceCardButton's center routes the tap to profitButton (HomeToProfit).
+# Point offset 50%,20% lands in the upper half (the big balance numbers).
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- takeScreenshot: shared/docs/screenshots/swap/02_move
+
+# Tap the exchange icon between regular and instant balances → SwapVC.
+- tapOn:
+    id: "move.swapButton"
+- assertVisible:
+    id: "swap.amountTextField"
+- takeScreenshot: shared/docs/screenshots/swap/03_swap_initial
+
+# Type 75000 satoshis (initial swap amount — leaves enough onchain to swap
+# 50000 back the other direction in the second leg). Tap Done on the
+# keyboard's accessory toolbar (added in SwapViewController.viewDidLoad);
+# Maestro's hideKeyboard doesn't work against iOS numeric keyboards reliably.
+- tapOn:
+    id: "swap.amountTextField"
+- inputText: "75000"
+- tapOn:
+    text: "Done"
+- takeScreenshot: shared/docs/screenshots/swap/04_swap_amount_entered
+- tapOn:
+    id: "swap.nextButton"
+
+# Fees alert: [Cancel, Proceed]. Proceed is index 1.
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/swap/05_fees_alert
+- tapOn:
+    id: "alert.button.1"
+
+# SwapStatusVC embeds inside SwapVC. Wait for "Swap complete" text — covers
+# all the intermediate Boltz status updates.
+- extendedWaitUntil:
+    visible:
+      text: "Swap complete"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/swap/06_swap_complete
+
+# Confirm the claim onchain.
+- evalScript: ${output.blocksToMine = 1}
+- runScript: ../scripts/mine_blocks.js
+
+# Swipe down to dismiss SwapVC, then again to dismiss MoveVC, landing on Home.
+- swipe:
+    direction: DOWN
+    duration: 800
+- swipe:
+    direction: DOWN
+    duration: 800
+
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/swap/07_home_with_swap
+
+# One more pull-down on Home to refresh the transaction list and surface the
+# settled swap.
+- swipe:
+    direction: DOWN
+    duration: 800
+- takeScreenshot: shared/docs/screenshots/swap/08_home_final
+
+# The claim triggers another wallet sync; wait for the header spinner to stop
+# first. history.swapPending can only be checked reliably once the table has
+# resynced, which is gated on the spinner disappearing.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Wait for the first swap to settle from pending to complete before starting
+# the reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled,
+# but the onchain claim still needs a block confirmation + wallet sync before
+# the funds show up on the onchain side. Without this wait the reverse
+# onchain→lightning swap fires before the funds land and fails with
+# insufficient onchain balance.
+- extendedWaitUntil:
+    notVisible:
+      id: "history.swapPending"
+    timeout: 60000
+
+# Reverse swap: onchain → lightning, 50000 sats. Re-enter the swap UI from
+# Home, flip the direction via fromButton, type the amount, proceed.
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- takeScreenshot: shared/docs/screenshots/swap/09_reverse_move
+
+- tapOn:
+    id: "move.swapButton"
+- assertVisible:
+    id: "swap.amountTextField"
+- takeScreenshot: shared/docs/screenshots/swap/10_reverse_swap_initial
+
+# Default direction is lightning → onchain. Tap fromButton to open the
+# direction picker alert ([Cancel, Onchain→Lightning, Lightning→Onchain]);
+# pick "Onchain to Lightning" (index 1).
+- tapOn:
+    id: "swap.fromButton"
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/swap/11_reverse_direction_picker
+- tapOn:
+    id: "alert.button.1"
+
+# If BDK is stale relative to LDK Node (the lightning→onchain claim landed
+# since the last BDK scan), SwapVC detects it via getSize rejection and
+# shows a "syncing wallet" alert while a fresh full scan runs. Dismiss the
+# alert if it appears, then wait for the available-amount label to refresh
+# from "Move up to 0 sats." to a real value before continuing. If BDK is
+# already in sync the optional tap is a no-op and the wait passes
+# immediately.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      text: "Move up to 0 sats."
+    timeout: 60000
+
+- tapOn:
+    id: "swap.amountTextField"
+- inputText: "50000"
+- tapOn:
+    text: "Done"
+- takeScreenshot: shared/docs/screenshots/swap/12_reverse_amount_entered
+- tapOn:
+    id: "swap.nextButton"
+
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/swap/13_reverse_fees_alert
+- tapOn:
+    id: "alert.button.1"
+
+# Onchain → lightning needs the onchain funding tx to confirm before Boltz
+# pays the lightning invoice, so mine BEFORE waiting for completion.
+- evalScript: ${output.blocksToMine = 1}
+- runScript: ../scripts/mine_blocks.js
+
+- extendedWaitUntil:
+    visible:
+      text: "Swap complete"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/swap/14_reverse_swap_complete
+
+- swipe:
+    direction: DOWN
+    duration: 800
+- swipe:
+    direction: DOWN
+    duration: 800
+
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/swap/15_home_after_reverse
+
+- swipe:
+    direction: DOWN
+    duration: 800
+- takeScreenshot: shared/docs/screenshots/swap/16_home_final

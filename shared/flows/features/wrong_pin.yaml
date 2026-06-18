@@ -1,0 +1,134 @@
+# Feature test: the PIN lockout path. Entering the wrong PIN ten times on
+# the unlock screen wipes the wallet from the device and drops the user
+# back on Signup1, so they no longer have access to the installed wallet.
+#
+# Prerequisite: an existing wallet on the simulator, freshly set up so the
+# failed-attempt counter is at 0 (CacheManager.getFailedPinAttempts() == 0)
+# and there is no open Lightning channel. The cleanest way to get there is
+# to run `shared/flows/onboarding/restore_wallet.yaml` first — same starting
+# style as buy_signup.yaml. The flow preserves state (no clearState /
+# clearKeychain) and lands on the PIN unlock screen.
+#
+# This flow is destructive: it removes the wallet. It can only be run once
+# against a freshly-restored wallet (a second run would find no wallet to
+# unlock).
+#
+# Behaviour under test (PinViewController.confirmPinButtonTapped, .core):
+#   - Wrong PIN entries 1..9 each call increaseFailedPinAttempts() and show
+#     the "incorrect PIN" alert (incorrectpin / incorrectpin2).
+#   - On entry 10, getFailedPinAttempts() == 9, so the lockout alert
+#     (restorewallet / pinlock) is shown and removingWalletForIncorrectPin
+#     is set + restoreWalletTapped() kicks off the wipe. The lockout check
+#     lives inside the wrong-pin branch, so a correct 10th entry still
+#     unlocks normally.
+#   - ResetApp drives startWallet → finalizeSync → restoreWalletTapped →
+#     performWalletReset → 1s delay → launchSignup(onPage: 3) → Signup1.
+#
+# Both alerts expose a single Okay button (alert.button.0) wired to
+# clearPinField, which dismisses the alert and clears the PIN field. The
+# alert IDs are set in AlertManager.swift (mainButton.accessibilityIdentifier
+# = "alert.button.\(index)"), not in shared/test-ids/test-ids.json — same
+# pattern forgot_pin.yaml / remove_wallet.yaml rely on.
+#
+# Run: maestro test shared/flows/features/wrong_pin.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# Wallet was set up previously, so launch lands on the PIN unlock screen
+# (PinVC in .core embedding). Fail loudly otherwise — there'd be no wallet
+# to lock out of.
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/wrong_pin/01_unlock
+
+# Wrong PIN attempt 1 of 10. Type 1111 and confirm — correctPin (1234) does
+# not match, so the "incorrect PIN" alert appears. Tapping its Okay button
+# (alert.button.0) runs clearPinField: dismisses the alert and clears the
+# field ready for the next attempt.
+#
+# The digit taps use waitToSettleTimeoutMs: 0 to skip Maestro's
+# wait-for-animation-to-settle after each tap — the PIN buttons only flash a
+# background and toggle a dot, so there's nothing meaningful to wait for. This
+# is the main speed-up for the 40+ digit taps in this flow.
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/wrong_pin/02_incorrect_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Wrong PIN attempts 2..9 (8 more "incorrect PIN" alerts). Each iteration
+# re-enters 1111, confirms, waits for the alert and closes it. After the
+# 9th attempt the failed-attempt counter sits at 9.
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.confirmButton"
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
+
+# Wrong PIN attempt 10. The counter now reads 9, so this entry triggers the
+# lockout instead of the "incorrect PIN" alert, and kicks off the wallet wipe.
+#
+# Note: unlike attempts 1..9, we do NOT tap an Okay button here. The lockout
+# alert (restorewallet / pinlock) is shown and then immediately dismissed by
+# the wipe itself: the handler synchronously calls restoreWalletTapped() ->
+# startWalletInBackground(), whose first line is hideAlert(). All of this runs
+# in one main-thread turn, so the lockout alert never reliably renders — we
+# can't (and don't need to) tap it. The confirm tap goes straight into the
+# wipe, and the app advances to Signup1 on its own.
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.confirmButton"
+- takeScreenshot: shared/docs/screenshots/wrong_pin/03_wipe_started
+
+# The wipe runs in the background: startWalletInBackground syncs the wallet,
+# finalizeSync re-enters restoreWalletTapped, performWalletReset clears
+# state and stops the node, then after a ~1s delay relaunches signup on
+# page 3 (Signup1). Allow generous slack for the sync + node teardown.
+- extendedWaitUntil:
+    visible:
+      id: "signup.create.start.createWalletButton"
+    timeout: 120000
+- takeScreenshot: shared/docs/screenshots/wrong_pin/04_signup1

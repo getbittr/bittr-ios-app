@@ -1,0 +1,293 @@
+{
+  "pin": {
+    "button0": null,
+    "button1": null,
+    "button2": null,
+    "button3": null,
+    "button4": null,
+    "button5": null,
+    "button6": null,
+    "button7": null,
+    "button8": null,
+    "button9": null,
+    "buttonBackspace": null,
+    "confirmButton": null,
+    "restoreButton": null,
+    "pinTextField": null
+  },
+  "home": {
+    "headerLabel": null,
+    "headerSpinner": null,
+    "sendButton": null,
+    "receiveButton": null,
+    "buyButton": null,
+    "balanceCardButton": null,
+    "balanceLabel": null,
+    "profitButton": null,
+    "profitLabel": null,
+    "currencyButton": null,
+    "mapButton": null
+  },
+  "value": {
+    "currentValueLabel": null,
+    "valueSpinner": null,
+    "profitLabel": null,
+    "graphView": null,
+    "graphValueLabel": null,
+    "weekButton": null,
+    "monthButton": null,
+    "yearButton": null,
+    "fiveYearsButton": null
+  },
+  "profits": {
+    "subtitleLabel": null,
+    "totalInvestmentLabel": null,
+    "totalValueLabel": null,
+    "totalProfitLabel": null
+  },
+  "map": {
+    "mapView": null,
+    "mapSpinner": null,
+    "placesTableView": null,
+    "userLocationButton": null,
+    "placeName": null,
+    "placeCellButton": null,
+    "onePlace": {
+      "nameLabel": null,
+      "closeButton": null
+    }
+  },
+  "academy": {
+    "headerLabel": null,
+    "nextLessonButton": null,
+    "nextPageButton": null,
+    "completeButton": null,
+    "lessonSpinner": null
+  },
+  "history": {
+    "swapPending": null,
+    "swapComplete": null,
+    "transactionButton": null,
+    "transactionAmount": null
+  },
+  "move": {
+    "subtitleLabel": null,
+    "satsTotal": null,
+    "satsRegular": null,
+    "satsInstant": null,
+    "swapButton": null
+  },
+  "nav": {
+    "walletButton": null,
+    "academyButton": null,
+    "settingsButton": null
+  },
+  "header": {
+    "downButton": null
+  },
+  "settings": {
+    "row": {
+      "support": null,
+      "restore": null,
+      "privacy": null,
+      "terms": null,
+      "currency": null,
+      "wallets": null,
+      "device": null
+    }
+  },
+  "device": {
+    "row": {
+      "darkmode": null,
+      "language": null,
+      "currency": null,
+      "devicetoken": null,
+      "publickey": null,
+      "bittrpeer": null,
+      "purchases": null,
+      "notification": null,
+      "pendingpayouts": null,
+      "lightningchannels": null,
+      "restore": null
+    },
+    "darkmode": {
+      "sunButton": null,
+      "moonButton": null,
+      "deviceButton": null
+    }
+  },
+  "website": {
+    "downButton": null
+  },
+  "swap": {
+    "subtitleLabel": null,
+    "amountTextField": null,
+    "nextButton": null,
+    "fromLabel": null,
+    "fromButton": null
+  },
+  "swapStatus": {
+    "confirmCard": null,
+    "confirmStatusLabel": null
+  },
+  "unlock": {
+    "topLabel": null
+  },
+  "buy": {
+    "headerLabel": null,
+    "downButton": null,
+    "continueButton": null,
+    "yourCode": null,
+    "yourEmail": null,
+    "yourIban": null
+  },
+  "question": {
+    "yellowCard": null,
+    "answerLabel": null
+  },
+  "transaction": {
+    "yellowCard": null,
+    "labelDate": null,
+    "labelAmount": null
+  },
+  "receive": {
+    "addressTitle": null,
+    "addressLabel": null,
+    "invoiceLabel": null,
+    "qrImageView": null,
+    "qrSpinner": null,
+    "questionButton": null,
+    "amountTextField": null,
+    "copyButton": null,
+    "refreshButton": null,
+    "editButton": null,
+    "moreButton": null
+  },
+  "send": {
+    "toLabel": null,
+    "toTextField": null,
+    "amountTextField": null,
+    "pasteButton": null,
+    "regularButton": null,
+    "currencyButton": null,
+    "currencyLabel": null,
+    "bdkSpinner": null,
+    "availableButton": null,
+    "availableLabel": null,
+    "nextButton": null,
+    "lnurlSpinner": null,
+    "confirm": {
+      "addressLabel": null,
+      "amountLabel": null,
+      "amountFiatLabel": null,
+      "feeFastButton": null,
+      "feeSlowButton": null,
+      "confirmButton": null
+    }
+  },
+  "signup": {
+    "create": {
+      "start": {
+        "headerLabel": null,
+        "createWalletButton": null,
+        "restoreButton": null
+      },
+      "confirm": {
+        "topLabel": null,
+        "switchOne": null,
+        "switchTwo": null,
+        "nextButton": null,
+        "cancelButton": null
+      },
+      "mnemonic": {
+        "topLabelOne": null,
+        "mnemonicStack": null,
+        "nextButton": null,
+        "word": null
+      },
+      "verify": {
+        "topLabel": null,
+        "label1": null,
+        "label2": null,
+        "label3": null,
+        "field1": null,
+        "field2": null,
+        "field3": null,
+        "nextButton": null,
+        "backButton": null
+      },
+      "pinSet": {
+        "topLabel": null
+      },
+      "pinConfirm": {
+        "topLabel": null
+      },
+      "ready": {
+        "topLabelOne": null,
+        "continueButton": null,
+        "skipButton": null
+      }
+    },
+    "restore": {
+      "topLabel": null,
+      "field1": null,
+      "field2": null,
+      "field3": null,
+      "field4": null,
+      "field5": null,
+      "field6": null,
+      "field7": null,
+      "field8": null,
+      "field9": null,
+      "field10": null,
+      "field11": null,
+      "field12": null,
+      "nextButton": null,
+      "pinSet": {
+        "topLabel": null
+      },
+      "pinConfirm": {
+        "topLabel": null
+      }
+    },
+    "bittr": {
+      "start": {
+        "topLabelOne": null,
+        "topLabelTwo": null,
+        "topLabelThree": null,
+        "ibanTextField": null,
+        "ibanButton": null,
+        "emailTextField": null,
+        "emailButton": null,
+        "nextButton": null,
+        "skipButton": null
+      },
+      "otp": {
+        "topLabel": null,
+        "codeTextField": null,
+        "codeButton": null,
+        "resendButton": null,
+        "nextButton": null
+      },
+      "success": {
+        "topLabelOne": null,
+        "topLabelTwo": null,
+        "ourIbanLabel": null,
+        "yourCodeLabel": null,
+        "nextButton": null
+      },
+      "transferInfo": {
+        "amountTitle": null,
+        "amountLabel": null,
+        "lightningTitle": null,
+        "lightningLabel": null,
+        "connectionTitle": null,
+        "connectionLabel": null,
+        "dcaTitle": null,
+        "dcaLabel": null,
+        "nextButton": null,
+        "backButton": null
+      }
+    }
+  }
+}
