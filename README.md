@@ -80,11 +80,12 @@ maestro test shared/flows/features/send_onchain.yaml
 maestro test shared/flows/features/send_onchain_all.yaml
 maestro test shared/flows/features/swap.yaml
 
-# Lightning send (normal + zero-amount invoice + Lightning Address). Manual
-# input: the three targets come from a separate live wallet you run yourself.
+# Lightning send (normal + zero-amount invoice + Lightning Address). All three
+# targets are server-side now (invoices via the e2e endpoint / request_invoice.js,
+# address = fixed e2e e2ebittr@staging.getbittr.com), so no --env is needed.
 # Needs "node shared/flows/scripts/clipboard_server.js" running (Terminal A, alongside push_server)
 # so the in-app Paste button has something to paste:
-maestro test --env LN_INVOICE="lnbcrt…" --env LN_ZERO_INVOICE="lnbcrt…" --env LN_ADDRESS="name@domain" shared/flows/features/send_lightning.yaml
+maestro test shared/flows/features/send_lightning.yaml
 
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/wrong_pin.yaml

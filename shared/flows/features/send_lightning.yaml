@@ -17,24 +17,23 @@
 #      again → confirm the payment → TransactionViewController → close it →
 #      close Send.
 #
-# MANUAL INPUT. The three payment targets come from a *separate*, live
-# counterpart wallet that the tester runs themselves (Maestro does not create
-# them). Pass them in via --env, and run the clipboard helper so the in-app
-# Paste button has something to paste (see Running below):
+# Payment targets (no --env needed — all server-side):
+#   - The two invoices (normal + zero-amount) are fetched fresh per run from the
+#     bittr e2e endpoint via scripts/request_invoice.js — no stale/expired
+#     invoices.
+#   - The Lightning Address is the fixed bittr e2e address e2ebittr@staging.getbittr.com,
+#     which resolves (LNURL-pay) to the backend's receiving node.
+#
+# Run the clipboard helper so the in-app Paste button has something to paste:
 #
 #   node shared/flows/scripts/clipboard_server.js   # keep running
-#   maestro test \
-#     --env LN_INVOICE="lnbcrt…"        # a normal invoice WITH an amount \
-#     --env LN_ZERO_INVOICE="lnbcrt…"   # a zero-amount invoice \
-#     --env LN_ADDRESS="name@domain"    # an LNURL-pay Lightning Address \
-#     shared/flows/features/send_lightning.yaml
+#   maestro test shared/flows/features/send_lightning.yaml
 #
 # Sending requires an active lightning channel with enough outbound capacity
 # (run the buy/receive flows first). If launched on a clean install it
 # auto-runs onboarding first. Does NOT clearState — wallet state is preserved.
 #
-# Run: maestro test --env LN_INVOICE=… --env LN_ZERO_INVOICE=… --env LN_ADDRESS=… \
-#        shared/flows/features/send_lightning.yaml
+# Run: maestro test shared/flows/features/send_lightning.yaml
 
 appId: com.bittr.bittr-regtest
 ---
@@ -74,12 +73,14 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.sendButton"
 
-# Put the normal invoice on the simulator clipboard (Maestro can't set the OS
-# pasteboard itself — clipboard_server.js bridges to `xcrun simctl pbcopy`),
-# then tap the in-app Paste button. Because the clipboard was written by another
-# process, iOS shows an "Allow Paste" system prompt. It renders a beat after the
-# tap, so an optional tap would race past it — wait for it explicitly, then tap.
-- evalScript: ${output.clipboardText = LN_INVOICE}
+# Request a fresh invoice WITH an amount (1000 sats) from the e2e endpoint and
+# put it on the simulator clipboard (Maestro can't set the OS pasteboard itself
+# — clipboard_server.js bridges to `xcrun simctl pbcopy`; request_invoice.js
+# sets output.clipboardText). Then tap the in-app Paste button. Because the
+# clipboard was written by another process, iOS shows an "Allow Paste" system
+# prompt; it renders a beat after the tap, so wait for it explicitly, then tap.
+- evalScript: ${output.invoiceAmountSats = 1000}
+- runScript: ../scripts/request_invoice.js
 - runScript: ../scripts/set_clipboard.js
 - tapOn:
     id: "send.pasteButton"
@@ -142,9 +143,11 @@ appId: com.bittr.bittr-regtest
 # 2. Zero-amount invoice.
 # ---------------------------------------------------------------------------
 
-# Paste the zero-amount invoice the same way. The clipboard content changed, so
-# iOS prompts to allow the paste again — wait for it, then tap.
-- evalScript: ${output.clipboardText = LN_ZERO_INVOICE}
+# Request a zero-amount invoice (amount 0) from the e2e endpoint and paste it
+# the same way. The clipboard content changed, so iOS prompts to allow the
+# paste again — wait for it, then tap.
+- evalScript: ${output.invoiceAmountSats = 0}
+- runScript: ../scripts/request_invoice.js
 - runScript: ../scripts/set_clipboard.js
 - tapOn:
     id: "send.pasteButton"
@@ -227,14 +230,14 @@ appId: com.bittr.bittr-regtest
 # 3. Lightning Address (LNURL-pay).
 # ---------------------------------------------------------------------------
 
-# Type the Lightning Address into the invoice field and press the keyboard
-# return. The return key recognises the "@" address and kicks off LNURL
+# Type the bittr e2e Lightning Address into the invoice field and press the
+# keyboard return. The return key recognises the "@" address and kicks off LNURL
 # handling, which briefly shows the "Handling LNURL" spinner. The spinner can
 # come and go faster than Maestro can catch, so rather than asserting it appears
 # we just wait for it to have cleared (it resolves once the LNURL call returns).
 - tapOn:
     id: "send.toTextField"
-- inputText: "${LN_ADDRESS}"
+- inputText: "e2ebittr@staging.getbittr.com"
 - pressKey: Enter
 
 # LNURL resolves: the spinner stops and (when the address has a payable range)
