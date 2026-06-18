@@ -25,8 +25,21 @@ enum TestID {
         static let currencyButton = "home.currencyButton"
         static let headerLabel = "home.headerLabel"
         static let headerSpinner = "home.headerSpinner"
+        static let mapButton = "home.mapButton"
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
+    }
+    enum Map {
+        static let mapSpinner = "map.mapSpinner"
+        static let mapView = "map.mapView"
+        enum OnePlace {
+            static let closeButton = "map.onePlace.closeButton"
+            static let nameLabel = "map.onePlace.nameLabel"
+        }
+        static let placeCellButton = "map.placeCellButton"
+        static let placeName = "map.placeName"
+        static let placesTableView = "map.placesTableView"
+        static let userLocationButton = "map.userLocationButton"
     }
     enum Move {
         static let satsInstant = "move.satsInstant"

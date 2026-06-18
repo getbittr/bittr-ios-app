@@ -37,6 +37,9 @@ shared/flows/
     bitcoin_value.yaml    Bitcoin price chart (ValueViewController) — unlock,
                           open it from Home's currency icon, wait for the
                           price data, scrub the graph, switch span to m/y/5y.
+    bitcoin_map.yaml      Bitcoin map (MapViewController) — unlock, open it
+                          from Home's map icon, wait for the places to sync,
+                          open/close a place, move the map, recentre on user.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
   scripts/         Maestro `runScript` helpers (GraalJS).
