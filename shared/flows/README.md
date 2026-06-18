@@ -114,15 +114,23 @@ shared/flows/
 ## Running
 
 ```sh
-# Whole suite, iOS simulator
-maestro test --device "iPhone 15" shared/flows/
-
-# Whole suite, Android emulator
-maestro test --device "Pixel_8_API_34" shared/flows/
+# Whole suite (starts the helper servers, then runs suite.yaml in order)
+shared/flows/test_suite.sh
+shared/flows/test_suite.sh --device "iPhone 15"   # extra args pass to maestro
 
 # Single flow
 maestro test shared/flows/onboarding/fresh_install.yaml
 ```
+
+Don't run `maestro test shared/flows/` to get the whole suite: a folder run
+executes flows in alphabetical order with no dependency awareness, but the
+feature flows deliberately share wallet state and several are destructive
+(`send_onchain_all` drains the onchain balance; `wrong_pin` / `remove_wallet`
+wipe the wallet). `suite.yaml` is a hand-ordered orchestrator that runs them so
+dependencies hold and the wipes come last; `test_suite.sh` wraps it, starting
+the `push`/`clipboard` helper servers (which Maestro can't start itself) and
+passing the `MNEMONIC` env that `forgot_pin` needs. A failure aborts the suite
+at that flow — run the individual flow above to debug.
 
 ### Push notifications
 
