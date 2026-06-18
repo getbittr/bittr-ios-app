@@ -67,6 +67,7 @@ maestro test shared/flows/features/buy_incoming.yaml
 # Subsequent feature tests reuse that channel:
 maestro test shared/flows/features/buy_more.yaml
 maestro test shared/flows/features/receive.yaml
+maestro test shared/flows/features/receive_onchain.yaml
 maestro test shared/flows/features/swap.yaml
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/wrong_pin.yaml

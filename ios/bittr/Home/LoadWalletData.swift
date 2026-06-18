@@ -161,7 +161,10 @@ extension HomeViewController {
             }
             
             // Add funding transaction ID.
-            if let cachedFundingTxID = CacheManager.getTxoID(), !CacheManager.getSentToBittr().contains(cachedFundingTxID) {
+            if
+                let cachedFundingTxID = CacheManager.getTxoID(),
+                !(CacheManager.getSentToBittr().contains(cachedFundingTxID) &&
+                self.visibleTransactions.contains(where: { transaction in transaction.id == cachedFundingTxID})) {
                 sendableTxIDs += [cachedFundingTxID]
             }
         }
