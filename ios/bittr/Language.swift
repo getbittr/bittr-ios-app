@@ -293,7 +293,7 @@ class Language: NSObject {
             "syncwallet": "Sync wallet",
             "finalcalculations": "Final calculations",
             "payrequest": "Pay request",
-            "payrequest1": "You can pay between <minsendable> and <maxsendable> satoshis. How many satoshis would you like to pay?",
+            "payrequest1": "You can send <b>between <minsendable> and <maxsendable> satoshis</b>. Enter the amount of satoshis you'd like to pay.",
             "withdrawrequest": "Withdraw request",
             "withdrawrequest1": "You can withdraw between <minwithdrawable> and <maxwithdrawable> satoshis. How many satoshis would you like to withdraw?",
             "withdrawrequest3": "Are you sure you'd like to withdraw <withdrawable> satoshis?",

@@ -38,6 +38,16 @@ shared/flows/
                           the balance → Update amount, and on a failed broadcast
                           retry with the slowest fee — before mining and opening
                           the new transaction.
+    send_lightning.yaml   Lightning send end-to-end across all three invoice
+                          types — a normal (amount-bearing) invoice, a
+                          zero-amount invoice (enter the amount in BTC), and a
+                          Lightning Address (LNURL-pay). All three targets are
+                          server-side now: the two invoices come from the e2e
+                          endpoint (scripts/request_invoice.js) and the address
+                          is the fixed e2e e2ebittr@staging.getbittr.com — no env vars.
+                          The Paste steps need scripts/clipboard_server.js
+                          running. Requires an active channel with outbound
+                          capacity.
     swap.yaml             Lightning ↔ onchain, both directions.
     forgot_pin.yaml       Forgot-PIN recovery from the unlock screen — types
                           the cached mnemonic and resets the PIN. Requires
@@ -78,6 +88,10 @@ shared/flows/
     trigger_bank_transaction.js POST /e2e/bank-transaction (incoming SEPA).
     push_notification.js        POSTs an APNS payload to push_server.js.
     push_server.js              Local helper bridging Maestro → `xcrun simctl push`.
+    set_clipboard.js            POSTs output.clipboardText to clipboard_server.js.
+    clipboard_server.js         Local helper bridging Maestro → `xcrun simctl
+                                pbcopy` so flows can seed the OS clipboard for
+                                the in-app Paste button (send_lightning.yaml).
     parse_mnemonic.js           Splits the MNEMONIC env var into
                                 output.words[1..12] for forgot_pin.yaml.
 ```
@@ -123,6 +137,19 @@ maestro test --env MNEMONIC="word1 word2 ... word12" shared/flows/features/forgo
 ```
 
 Use the same mnemonic the wallet was set up with (the one happy_path generated during onboarding). `parse_mnemonic.js` validates the count and splits the words into `output.words[1..12]`.
+
+### Lightning send
+
+`features/send_lightning.yaml` pays a normal invoice, a zero-amount invoice and a Lightning Address. All three targets are server-side now — the two invoices are generated per run via the e2e endpoint (`scripts/request_invoice.js`, always fresh) and the address is the fixed e2e `e2ebittr@staging.getbittr.com` — so no env vars are needed. The flow also exercises the in-app **Paste** button, and Maestro can't write the OS clipboard itself (`copyTextFrom` only fills Maestro's own variable), so a bridge — the same pattern as `push_server.js` — pipes text to `xcrun simctl pbcopy`:
+
+```sh
+# In a separate terminal, before running the flow:
+node shared/flows/scripts/clipboard_server.js
+
+maestro test shared/flows/features/send_lightning.yaml
+```
+
+The flow sets `output.clipboardText` before each paste; `set_clipboard.js` POSTs it to the helper, which `pbcopy`'s it onto the booted simulator. iOS may show a one-off "Allow Paste" prompt — the flow accepts it automatically.
 
 ## CI
 

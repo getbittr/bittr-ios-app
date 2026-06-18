@@ -251,7 +251,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         
         let bitcoinQR:String = "bitcoin:\(onchainAddress)\(amountText)\(labelText)&lightning=\(lightningInvoice)"
         
-        let lnurl = self.userLNURL() ?? Language.getWord(withID: "unavailable")
+        let userLightningURL = self.userLNURL()
+        let lnurl = userLightningURL ?? Language.getWord(withID: "unavailable")
         
         DispatchQueue.main.async {
             
@@ -268,8 +269,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.boltStackWidth.constant = 19
             }
             
-            // Set labels.
-            let qrCode:UIImage
+            // Set labels. Optional: an unavailable LNURL has no QR (see .lnurl).
+            let qrCode:UIImage?
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
@@ -296,14 +297,17 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.addressTitle.text = Language.getWord(withID: "url")
                 self.addressLabel.text = lnurl
                 self.lowerAddressLabel.text = ""
-                qrCode = lnurl.toBigQRCode()!
+                // Don't build a QR for an unavailable address — it would encode
+                // the literal word "Unavailable". Leave it empty in that case.
+                qrCode = userLightningURL != nil ? lnurl.toBigQRCode() : nil
                 self.hideLowerAddress()
                 self.currentCopyableText = lnurl
             }
-            
+
             self.qrImageView.image = qrCode
-            
-            self.qrImageView.alpha = 1
+
+            // Hide the QR view entirely when there's nothing to encode.
+            self.qrImageView.alpha = qrCode != nil ? 1 : 0
             self.addressLabel.alpha = 1
             self.lowerAddressLabel.alpha = 1
             self.addressTitle.alpha = 1
@@ -686,11 +690,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     func userLNURL() -> String? {
-        if let firstIban = self.coreVC!.bittrWallet.ibanEntities.first, !firstIban.lightningAddressUsername.isEmpty {
-            return firstIban.lightningAddressUsername
-        } else {
-            return nil
+        // Return the first iban entity that actually has a lightning address.
+        // Checking only `.first` missed it when the lightning-address iban
+        // wasn't first after parseDevice's sort (e.g. multiple deposit codes).
+        for iban in self.coreVC!.bittrWallet.ibanEntities where !iban.lightningAddressUsername.isEmpty {
+            return iban.lightningAddressUsername
         }
+        return nil
     }
     
     func showLowerAddress() {
