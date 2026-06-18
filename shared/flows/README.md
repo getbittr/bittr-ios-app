@@ -27,6 +27,12 @@ shared/flows/
                           it, paste into Send and assert it lands as lightning
                           (no amount, then with a 2000 sat amount). Needs an
                           active channel. Uses helpers/show_invoice.yaml.
+    send_onchain.yaml     Onchain send end-to-end: open Send, switch to
+                          Regular, wait out the BDK sync spinner, enter an
+                          address and a 5 EUR amount, confirm on the Confirm
+                          screen (address + euro amount, fast fee), send,
+                          mine 6 blocks, then open the new transaction from
+                          the history table.
     swap.yaml             Lightning ↔ onchain, both directions.
     forgot_pin.yaml       Forgot-PIN recovery from the unlock screen — types
                           the cached mnemonic and resets the PIN. Requires

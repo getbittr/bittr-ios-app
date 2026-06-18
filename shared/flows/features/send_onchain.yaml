@@ -1,0 +1,196 @@
+# Feature test: onchain send.
+#
+# Starts like features/receive_onchain.yaml (launch, auto-recover/unlock, wait
+# for the Home sync spinner) and then sends a small onchain payment end to end:
+#   1. Open Send and switch to Regular (onchain). Dismiss the "wallet still
+#      syncing" alert if it appears and wait for the BDK sync spinner to stop.
+#   2. Enter a regtest address, switch the amount currency from Sats to the
+#      euro (€) and confirm the currency label reads EUR.
+#   3. Enter 5 (euros) and continue to the ConfirmSendViewController.
+#   4. Verify the address + euro amount, pick the fast (≈10 min) fee, send.
+#   5. Confirm the transaction, wait for the success alert, mine 6 blocks so it
+#      confirms, then dismiss the alert.
+#   6. Back on Send the fields are cleared; close it, pull Home to resync and
+#      open the new transaction from the top of the history table.
+#
+# Assumes a wallet with an onchain balance (run the buy/receive flows first).
+# If launched on a clean install it auto-runs onboarding first. Does NOT
+# clearState — wallet state is preserved.
+#
+# Run: maestro test shared/flows/features/send_onchain.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — wait for the header spinner to stop.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_onchain/01_home
+
+# Remember the amount on the current topmost transaction (e.g. "- 9 653 sats").
+# After the send we wait for this to change so we know the new transaction has
+# landed at the top before tapping it. Row-indexed IDs make ...0 the top cell.
+- copyTextFrom:
+    id: "history.transactionAmount0"
+- evalScript: ${output.previousTopTx = maestro.copiedText}
+
+# Open Send (it opens on Instant / lightning by default).
+- tapOn:
+    id: "home.sendButton"
+
+# Switch to Regular (onchain). Recomputing the max sendable amount kicks off a
+# BDK scan if it hasn't run yet, which surfaces a "syncing wallet" alert and
+# spins the spinner next to "You can send 0 satoshis". Dismiss the alert if
+# present, then wait for the spinner to stop before entering an amount.
+- tapOn:
+    id: "send.regularButton"
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      id: "send.bdkSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_onchain/02_regular
+
+# Enter the destination address. The address keyboard stays up, but tapping the
+# currency toggle next dismisses it on its own.
+- tapOn:
+    id: "send.toTextField"
+- inputText: "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv"
+
+# Switch the amount currency from Sats to euros via the custom currency alert
+# (this also closes the address keyboard), then confirm the label updated to EUR.
+- tapOn:
+    id: "send.currencyButton"
+# Custom currency alert buttons: [Cancel, Bitcoin, Satoshis, €] — euro is index 3.
+- tapOn:
+    id: "alert.button.3"
+- assertVisible:
+    id: "send.currencyLabel"
+    text: "EUR"
+
+# Enter the amount (5 euros) and continue. "Done" on the amount keyboard moves
+# straight on to the Confirm screen.
+- tapOn:
+    id: "send.amountTextField"
+- inputText: "5"
+- tapOn:
+    text: "Done"
+
+# The view slides to the ConfirmSendViewController. Verify the address and the
+# euro amount. The fiat amount is shown with two decimals and recomputed from
+# whole satoshis, so it lands at "4.99 €" or "5.00 €" — accept either. The
+# decimal separator is localized (e.g. "," in comma locales), so the regex
+# accepts either "." or ",". Maestro matches `text` as a full-string regex.
+- extendedWaitUntil:
+    visible:
+      id: "send.confirm.addressLabel"
+    timeout: 30000
+- assertVisible:
+    id: "send.confirm.addressLabel"
+    text: "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv"
+- assertVisible:
+    id: "send.confirm.amountFiatLabel"
+    text: "[45][.,][0-9][0-9] €"
+- takeScreenshot: shared/docs/screenshots/send_onchain/03_confirm
+
+# Pick the fast (≈10 minute) fee. For such a small amount the fee can exceed
+# 10% of it, which raises a "high fee rate" warning — dismiss it if shown.
+- tapOn:
+    id: "send.confirm.feeFastButton"
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+
+# Send. A confirmation alert ([Cancel, Confirm]) appears — Confirm is index 1.
+- tapOn:
+    id: "send.confirm.confirmButton"
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/send_onchain/04_confirm_alert
+- tapOn:
+    id: "alert.button.1"
+
+# Broadcasting takes a moment, then a success alert (single Okay) appears.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/send_onchain/05_success
+
+# Mine 6 blocks so the transaction confirms, then close the success alert.
+- evalScript: ${output.blocksToMine = 6}
+- runScript: ../scripts/mine_blocks.js
+- tapOn:
+    id: "alert.button.0"
+
+# Back on the SendViewController with the fields cleared.
+- assertVisible:
+    id: "send.toLabel"
+- assertNotVisible:
+    id: "send.toTextField"
+    text: ".*bcrt1.*"
+- assertNotVisible:
+    id: "send.amountTextField"
+    text: ".*[0-9].*"
+- takeScreenshot: shared/docs/screenshots/send_onchain/06_send_cleared
+
+# Close Send.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Pull Home down to resync the wallet and surface the new transaction, then
+# wait for the header spinner to stop.
+- swipe:
+    direction: DOWN
+    duration: 800
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# The history table can take a few seconds after the spinner stops to repopulate
+# with the newly confirmed transaction. Poll the topmost cell until it no longer
+# shows the amount we remembered earlier — i.e. the new send has replaced the
+# previous transaction at the top — instead of waiting a fixed amount of time.
+- evalScript: ${output.currentTopTx = output.previousTopTx}
+- repeat:
+    while:
+      true: ${output.currentTopTx === output.previousTopTx}
+    commands:
+      - copyTextFrom:
+          id: "history.transactionAmount0"
+      - evalScript: ${output.currentTopTx = maestro.copiedText}
+
+# Tap the topmost (newest) transaction — the send we just made — to open it in
+# the TransactionViewController.
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/send_onchain/07_transaction
