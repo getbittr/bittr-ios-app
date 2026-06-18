@@ -9,53 +9,36 @@ import UIKit
 
 extension UIViewController {
 
-    func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView, completion: @escaping (Article?) -> Void) async {
+    func setSignupArticle(articleSlug:String, coreVC:CoreViewController, articleButton:UIButton, articleTitle:UILabel, articleImage:UIImageView, articleSpinner:UIActivityIndicatorView) -> Article? {
 
-        await self.getArticle(articleSlug, coreVC: coreVC) { result in
-
-            switch result {
-            case .success(let receivedArticle):
-                articleButton.boundString = articleSlug
-                articleTitle.text = receivedArticle.title
-                articleImage.setArticleImage(url: receivedArticle.image, coreVC: coreVC, imageSpinner: articleSpinner)
-                completion(receivedArticle)
-            case .failure(let receivedError):
-                Log.info("Couldn't get article: \(receivedError)")
-                completion(nil)
-            }
+        guard let receivedArticle = self.getLocalArticle(articleSlug, coreVC: coreVC) else {
+            Log.info("Couldn't get article: \(articleSlug)")
+            return nil
         }
+
+        articleButton.boundString = articleSlug
+        articleTitle.text = receivedArticle.title
+        articleImage.image = UIImage(named: articleSlug)
+        articleSpinner.stopAnimating()
+        return receivedArticle
     }
-    
-    func getArticle(_ withSlug:String, coreVC:CoreViewController!, completion: @escaping (Result<Article, String>) -> Void) async {
-        
-        if coreVC.allArticles?[withSlug] != nil {
-            return completion(.success(coreVC.allArticles![withSlug]!))
-        } else {
-            Task {
-                await CallsManager.makeApiCall(url: "https://getbittr.com/api/articles", parameters: nil, getOrPost: .get) { result in
-                    
-                    switch result {
-                    case .success(let receivedDictionary):
-                        
-                        if let actualArticles = receivedDictionary["articles"] as? NSDictionary {
-                            
-                            let everyArticle = self.parseArticles(articles: actualArticles)
-                            coreVC.allArticles = everyArticle
-                            
-                            DispatchQueue.main.async {
-                                if everyArticle[withSlug] != nil {
-                                    return completion(.success(everyArticle[withSlug]!))
-                                } else {
-                                    return completion(.failure("Article doesn't exist."))
-                                }
-                            }
-                        }
-                    case .failure(let error):
-                        return completion(.failure(error.localizedDescription))
-                    }
-                }
-            }
+
+    func getLocalArticle(_ withSlug:String, coreVC:CoreViewController!) -> Article? {
+
+        if let cachedArticle = coreVC.allArticles?[withSlug] {
+            return cachedArticle
         }
+
+        guard let articleData = BittrArticles.json.data(using: .utf8),
+              let receivedDictionary = (try? JSONSerialization.jsonObject(with: articleData)) as? NSDictionary,
+              let actualArticles = receivedDictionary["articles"] as? NSDictionary else {
+            return nil
+        }
+
+        let everyArticle = self.parseArticles(articles: actualArticles)
+        coreVC.allArticles = everyArticle
+
+        return everyArticle[withSlug]
     }
     
     func parseArticles(articles:NSDictionary) -> [String:Article] {
@@ -70,10 +53,7 @@ extension UIViewController {
                 thisArticle.id = actualArticleID
             }
             if let actualArticleData = articledata as? NSDictionary {
-                
-                if let actualArticleImage = actualArticleData["headerimage"] as? String {
-                    thisArticle.image = actualArticleImage
-                }
+
                 if let actualArticleText = actualArticleData["text"] as? [NSDictionary] {
                     thisArticle.text = actualArticleText
                 }
@@ -98,33 +78,5 @@ extension UIViewController {
         }
         
         return allArticles
-    }
-}
-
-extension UIImageView {
-    
-    func setArticleImage(url:String, coreVC:CoreViewController?, imageSpinner:UIActivityIndicatorView?) {
-        
-        if let actualData = CacheManager.getImage(key: url) {
-            // Image is available in cache.
-            self.image = UIImage(data: actualData)
-            imageSpinner?.stopAnimating()
-        } else {
-            // Image needs to be downloaded.
-            Task {
-                if let actualData = await coreVC?.getImage(urlString: url) {
-                    // Image successfully downloaded.
-                    DispatchQueue.main.async {
-                        self.image = UIImage(data: actualData)
-                        imageSpinner?.stopAnimating()
-                    }
-                } else {
-                    // Image couldn't be downloaded.
-                    DispatchQueue.main.async {
-                        imageSpinner?.stopAnimating()
-                    }
-                }
-            }
-        }
     }
 }

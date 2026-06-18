@@ -182,7 +182,7 @@ extension OnchainAddress {
     
     func checkHasBeenUsedByBittr() async -> Bool? {
         
-        let url = "https://esplora.getbittr.com/api/address/\(self.onchainAddress)"
+        let url = "\(EnvironmentConfig.esploraURL)/address/\(self.onchainAddress)"
         
         let receivedDict:NSDictionary
         do {
