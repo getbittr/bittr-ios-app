@@ -110,6 +110,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton
         self.balanceCardButton.accessibilityLabel = "Balance details"
         self.balanceLabel.accessibilityIdentifier = TestID.Home.balanceLabel
+        self.profitButton.accessibilityIdentifier = TestID.Home.profitButton
+        self.balanceCardGainLabel.accessibilityIdentifier = TestID.Home.profitLabel
         self.currencyButton.accessibilityIdentifier = TestID.Home.currencyButton
         self.mapButton.accessibilityIdentifier = TestID.Home.mapButton
 
@@ -341,9 +343,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.coreVC!.bittrWallet.allTransactions += [paymentDetails!]
             }
             
+            if thisTransaction.isBittr {
+                self.bittrTransactions.updateValue(thisTransaction.toBittrTransaction(), forKey: thisTransaction.id)
+            }
+            
             // Update balance label.
             self.setTotalSats()
             self.moveVC?.updateLabels()
+            self.calculateProfit()
         }
     }
     

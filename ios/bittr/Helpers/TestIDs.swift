@@ -55,6 +55,8 @@ enum TestID {
         static let headerLabel = "home.headerLabel"
         static let headerSpinner = "home.headerSpinner"
         static let mapButton = "home.mapButton"
+        static let profitButton = "home.profitButton"
+        static let profitLabel = "home.profitLabel"
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
     }
@@ -97,6 +99,12 @@ enum TestID {
         static let confirmButton = "pin.confirmButton"
         static let pinTextField = "pin.pinTextField"
         static let restoreButton = "pin.restoreButton"
+    }
+    enum Profits {
+        static let subtitleLabel = "profits.subtitleLabel"
+        static let totalInvestmentLabel = "profits.totalInvestmentLabel"
+        static let totalProfitLabel = "profits.totalProfitLabel"
+        static let totalValueLabel = "profits.totalValueLabel"
     }
     enum Question {
         static let answerLabel = "question.answerLabel"

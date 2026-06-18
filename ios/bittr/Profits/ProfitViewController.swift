@@ -11,10 +11,10 @@ class ProfitViewController: UIViewController {
 
     // General
     @IBOutlet weak var subtitleLabel: UILabel!
+    @IBOutlet weak var yellowCard: UIView!
     
     // Views
     @IBOutlet weak var investedView: UIView!
-    @IBOutlet weak var divestedView: UIView!
     @IBOutlet weak var currentValueView: UIView!
     @IBOutlet weak var profitView: UIView!
     @IBOutlet weak var investedLabel: UILabel!
@@ -33,14 +33,21 @@ class ProfitViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Corner radii
+        self.yellowCard.layer.cornerRadius = 13
+        self.investedView.layer.cornerRadius = 8
+        self.currentValueView.layer.cornerRadius = 8
+        self.profitView.layer.cornerRadius = 8
+        self.yellowCard.setShadow()
+        
+        self.subtitleLabel.accessibilityIdentifier = TestID.Profits.subtitleLabel
+        self.totalInvestmentLabel.accessibilityIdentifier = TestID.Profits.totalInvestmentLabel
+        self.totalValueLabel.accessibilityIdentifier = TestID.Profits.totalValueLabel
+        self.totalProfitLabel.accessibilityIdentifier = TestID.Profits.totalProfitLabel
 
-        self.investedView.layer.cornerRadius = 13
-        self.divestedView.layer.cornerRadius = 13
-        self.currentValueView.layer.cornerRadius = 13
-        self.profitView.layer.cornerRadius = 13
-        
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        
+
         self.totalInvestmentLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalInvestments)"
         self.totalValueLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalValue)"
         self.totalProfitLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalProfit)"
@@ -54,26 +61,23 @@ class ProfitViewController: UIViewController {
         
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
+        self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
         
         self.totalInvestmentLabel.textColor = Colors.getColor("blackorwhite")
         self.totalValueLabel.textColor = Colors.getColor("blackorwhite")
         self.totalProfitLabel.textColor = Colors.getColor("blackorwhite")
-        
-        self.investedLabel.textColor = Colors.getColor("blackoryellow")
-        self.currentLabel.textColor = Colors.getColor("blackoryellow")
-        self.profitLabel.textColor = Colors.getColor("blackoryellow")
     
-        self.investedView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.currentValueView.backgroundColor = Colors.getColor("white0.7orblue2")
-        self.profitView.backgroundColor = Colors.getColor("white0.7orblue2")
+        self.investedView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.currentValueView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.profitView.backgroundColor = Colors.getColor("whiteorblue3")
     }
     
     func setWords() {
         
         self.subtitleLabel.text = Language.getWord(withID: "profitsubtitle")
-        self.investedLabel.text = "⬇️  " + Language.getWord(withID: "totalinvestment")
-        self.currentLabel.text = "💰  " + Language.getWord(withID: "currentvalue")
-        self.profitLabel.text = "🌱  " + Language.getWord(withID: "totalprofit")
+        self.investedLabel.text = Language.getWord(withID: "totalinvestment")
+        self.currentLabel.text = Language.getWord(withID: "currentvalue")
+        self.profitLabel.text = Language.getWord(withID: "totalprofit")
         
     }
 

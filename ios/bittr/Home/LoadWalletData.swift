@@ -210,6 +210,8 @@ extension HomeViewController {
         var newTransactionsWereFound = false
         
         for eachTransaction in bittrApiTransactions {
+            self.bittrTransactions.updateValue(eachTransaction, forKey: eachTransaction.txId)
+            
             if let cachedFundingTxID = CacheManager.getTxoID(), eachTransaction.txId == cachedFundingTxID {
                 // This is a channel funding transaction.
                 let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
@@ -217,27 +219,23 @@ extension HomeViewController {
                 newTransactionsWereFound = true
                 self.newTransactions += [thisTransaction]
                 CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
-            } else {
-                // This is not a channel funding transaction.
-                self.bittrTransactions.updateValue(eachTransaction, forKey: eachTransaction.txId)
                 
-                if sendAll {
-                    // Check transactions that were previously not recognized.
-                    for eachExistingTransaction in self.visibleTransactions {
-                        if eachExistingTransaction.id == eachTransaction.txId {
-                            newTransactionsWereFound = true
-                            eachExistingTransaction.isBittr = true
-                            eachExistingTransaction.fiatNetAmount = eachTransaction.fiatNetAmount.toNumber()
-                            eachExistingTransaction.fiatGrossAmount = eachTransaction.fiatGrossAmount.toNumber()
-                            eachExistingTransaction.currency = eachTransaction.currency
-                            let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
-                            eachExistingTransaction.transferFee = CGFloat(transferFee)
-                            eachExistingTransaction.surcharge = eachTransaction.surcharge.toNumber()
-                            eachExistingTransaction.bittrFee = eachTransaction.bittrFee.toNumber()
-                            eachExistingTransaction.historicalExchangeRate = eachTransaction.historicalExchangeRate.toNumber()
-                            if eachExistingTransaction.isLightning {
-                                CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
-                            }
+            } else if sendAll {
+                // Check transactions that were previously not recognized.
+                for eachExistingTransaction in self.visibleTransactions {
+                    if eachExistingTransaction.id == eachTransaction.txId {
+                        newTransactionsWereFound = true
+                        eachExistingTransaction.isBittr = true
+                        eachExistingTransaction.fiatNetAmount = eachTransaction.fiatNetAmount.toNumber()
+                        eachExistingTransaction.fiatGrossAmount = eachTransaction.fiatGrossAmount.toNumber()
+                        eachExistingTransaction.currency = eachTransaction.currency
+                        let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
+                        eachExistingTransaction.transferFee = CGFloat(transferFee)
+                        eachExistingTransaction.surcharge = eachTransaction.surcharge.toNumber()
+                        eachExistingTransaction.bittrFee = eachTransaction.bittrFee.toNumber()
+                        eachExistingTransaction.historicalExchangeRate = eachTransaction.historicalExchangeRate.toNumber()
+                        if eachExistingTransaction.isLightning {
+                            CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
                         }
                     }
                 }
@@ -476,64 +474,51 @@ extension HomeViewController {
         self.balanceCardProfitView.alpha = 0
         
         // Variables.
-        let bittrTransactionsCount = self.bittrTransactions.count
-        var handledTransactions = 0
         var accumulatedProfit = 0
         var accumulatedInvestments = 0
         var accumulatedCurrentValue = 0
-        
+
         // Get preferred currency.
         let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-        
-        if self.visibleTransactions.count == 0 || bittrTransactionsCount == 0 {
-            Log.info("There are no transactions.")
-            self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
-        } else {
-            for eachTransaction in self.visibleTransactions {
-                if eachTransaction.isBittr {
-                    let transactionValue = eachTransaction.received.inBTC()
-                    var correctConversion = bitcoinValue.currentValue
-                    
-                    let transactionCurrency:String = {
-                        if eachTransaction.currency == "EUR" {
-                            return "€"
-                        } else {
-                            return "CHF"
-                        }
-                    }()
-                    if transactionCurrency != bitcoinValue.chosenCurrency {
-                        if transactionCurrency == "€" {
-                            correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
-                        } else {
-                            correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
-                        }
-                    }
-                    
-                    var transactionProfit = (transactionValue*correctConversion) - eachTransaction.fiatNetAmount
-                    var transactionInvestment = eachTransaction.fiatNetAmount
-                    
-                    if transactionCurrency != bitcoinValue.chosenCurrency {
-                        transactionProfit = (transactionProfit/correctConversion)*bitcoinValue.currentValue
-                        transactionInvestment = (eachTransaction.fiatNetAmount/correctConversion)*bitcoinValue.currentValue
-                    }
-                    
-                    accumulatedProfit += Int(transactionProfit.rounded())
-                    accumulatedInvestments += Int(transactionInvestment.rounded())
-                    accumulatedCurrentValue += Int((transactionValue*bitcoinValue.currentValue).rounded())
-                    
-                    handledTransactions += 1
-                    
-                    if bittrTransactionsCount == handledTransactions {
-                        // We're done counting.
-                        self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
-                    }
+
+        // Total profit over every Bittr purchase currently on screen. Derive the
+        // set straight from visibleTransactions instead of bittrTransactions.count:
+        // funding transactions are Bittr purchases that live in visibleTransactions
+        // but never in that dictionary (they aren't LDK payments), so a count-based
+        // terminator skipped them and the profit stuck at 0 % after the first buy.
+        for eachTransaction in self.visibleTransactions where eachTransaction.isBittr {
+            let transactionValue = eachTransaction.received.inBTC()
+            var correctConversion = bitcoinValue.currentValue
+
+            let transactionCurrency:String = {
+                if eachTransaction.currency == "EUR" {
+                    return "€"
                 } else {
-                    if bittrTransactionsCount == handledTransactions {
-                        self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
-                    }
+                    return "CHF"
+                }
+            }()
+            if transactionCurrency != bitcoinValue.chosenCurrency {
+                if transactionCurrency == "€" {
+                    correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
+                } else {
+                    correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
                 }
             }
+
+            var transactionProfit = (transactionValue*correctConversion) - eachTransaction.fiatNetAmount
+            var transactionInvestment = eachTransaction.fiatNetAmount
+
+            if transactionCurrency != bitcoinValue.chosenCurrency {
+                transactionProfit = (transactionProfit/correctConversion)*bitcoinValue.currentValue
+                transactionInvestment = (eachTransaction.fiatNetAmount/correctConversion)*bitcoinValue.currentValue
+            }
+
+            accumulatedProfit += Int(transactionProfit.rounded())
+            accumulatedInvestments += Int(transactionInvestment.rounded())
+            accumulatedCurrentValue += Int((transactionValue*bitcoinValue.currentValue).rounded())
         }
+
+        self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
     }
     
     
