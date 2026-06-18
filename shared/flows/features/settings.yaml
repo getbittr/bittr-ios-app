@@ -1,0 +1,284 @@
+# Feature test: the Settings area end to end. Exercises every Settings item
+# and every Device-details row.
+#
+# Settings is now a pop-up (CoreViewController.showSettings) layered over
+# Home rather than a slide-across screen: tapping nav.settingsButton springs
+# SettingsViewController up as a child VC, and tapping its header Down button
+# routes through UIViewController.dismissVC → CoreViewController.hideSettings
+# to close it. Device details (DeviceViewController) and the website pages
+# (WebsiteViewController) are presented modally over that pop-up.
+#
+# Prerequisite: an existing, synced wallet on the simulator, so launch lands
+# on the PIN unlock screen. This flow does NOT clearState (run
+# onboarding/restore_wallet.yaml first if needed).
+#
+# Nondeterminism handled inline:
+#   • Device token (Fetch): depending on the simulator's notification
+#     authorization state, tapping Fetch shows either the iOS system
+#     permission prompt or the in-app device-token alert — or nothing (a
+#     simulator often can't mint an APNs token). All three are tolerated via
+#     optional taps.
+#   • Bittr peer (Check): the peer may or may not already be connected. If a
+#     Connect button is present we retry, then dismiss whatever result alert
+#     comes back.
+# Assumes there is no cached pending notification (so "Retry" shows its
+# alert rather than replaying a notification and dismissing Device details).
+#
+# Colour changes from the dark-mode toggle can't be asserted in Maestro, so
+# they're captured as before/after screenshots for visual review.
+#
+# Run: maestro test shared/flows/features/settings.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/settings/01_unlock
+- runFlow: ../helpers/unlock.yaml
+
+# Land on Home and wait for the post-sign-in wallet sync to finish (the
+# header spinner stops in finalizeSync). The Device-details checks below
+# need the node running.
+- assertVisible:
+    id: "home.headerLabel"
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+- takeScreenshot: shared/docs/screenshots/settings/02_home
+
+# Open the Settings pop-up.
+- tapOn:
+    id: "nav.settingsButton"
+- assertVisible:
+    id: "settings.row.support"
+- takeScreenshot: shared/docs/screenshots/settings/03_settings
+
+# Get support → WebsiteViewController → Down button back to Settings.
+- tapOn:
+    id: "settings.row.support"
+- assertVisible:
+    id: "website.downButton"
+- takeScreenshot: shared/docs/screenshots/settings/04_support
+- tapOn:
+    id: "website.downButton"
+- assertVisible:
+    id: "settings.row.support"
+
+# Privacy policy → WebsiteViewController → Down button back to Settings.
+- tapOn:
+    id: "settings.row.privacy"
+- assertVisible:
+    id: "website.downButton"
+- takeScreenshot: shared/docs/screenshots/settings/05_privacy
+- tapOn:
+    id: "website.downButton"
+- assertVisible:
+    id: "settings.row.privacy"
+
+# Terms & conditions → WebsiteViewController → Down button back to Settings.
+- tapOn:
+    id: "settings.row.terms"
+- assertVisible:
+    id: "website.downButton"
+- takeScreenshot: shared/docs/screenshots/settings/06_terms
+- tapOn:
+    id: "website.downButton"
+- assertVisible:
+    id: "settings.row.terms"
+
+# Device details → DeviceViewController. (The dark-mode row swaps its row
+# button for the sun/moon/device segmented buttons, so assert one of those.)
+- tapOn:
+    id: "settings.row.device"
+- assertVisible:
+    id: "device.darkmode.moonButton"
+- takeScreenshot: shared/docs/screenshots/settings/07_device
+
+# Dark mode: tap the moon (dark), then the sun (light). The whole UI
+# recolours on each tap (NotificationCenter "changecolors"); verified
+# visually via the screenshots.
+- tapOn:
+    id: "device.darkmode.moonButton"
+- takeScreenshot: shared/docs/screenshots/settings/08_darkmode_dark
+- tapOn:
+    id: "device.darkmode.sunButton"
+- takeScreenshot: shared/docs/screenshots/settings/09_darkmode_light
+
+# Language: open the native action sheet (the row reads "English") and tap
+# Cancel. The currency/language pickers are native UIAlertControllers with
+# no test IDs, so they're tapped by text.
+- tapOn:
+    id: "device.row.language"
+- tapOn:
+    text: "Cancel"
+- assertVisible:
+    id: "device.row.language"
+
+# Currency: switch to CHF.
+- tapOn:
+    id: "device.row.currency"
+- tapOn:
+    text: "CHF"
+- assertVisible:
+    id: "device.row.currency"
+
+# Close Device details, then close the Settings pop-up, and verify Home is
+# now showing the CHF currency (the conversion label reads "CHF <amount>";
+# Maestro matches text as a full-string regex, so wrap it in .*).
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "settings.row.device"
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- assertVisible:
+    text: ".*CHF.*"
+- takeScreenshot: shared/docs/screenshots/settings/10_home_chf
+
+# Reopen Settings → Device details and switch the currency back to EUR.
+- tapOn:
+    id: "nav.settingsButton"
+- assertVisible:
+    id: "settings.row.device"
+- tapOn:
+    id: "settings.row.device"
+- assertVisible:
+    id: "device.row.currency"
+- tapOn:
+    id: "device.row.currency"
+- tapOn:
+    text: ".*EUR.*"
+- assertVisible:
+    id: "device.row.currency"
+
+# Device token (Fetch). Either the iOS system permission prompt appears
+# (notifications not yet determined) or the in-app device-token alert (if
+# already authorized and a token was minted) — or neither on a simulator
+# that can't register for remote notifications. Dismiss whatever shows:
+# "Don't Allow" on the system prompt, Close (alert.button.1) on the in-app
+# alert. Both optional so the absent ones are skipped.
+- tapOn:
+    id: "device.row.devicetoken"
+# (text is a regex; "Don.t Allow" tolerates the straight/curly apostrophe.)
+- tapOn:
+    text: "Don.t Allow"
+    optional: true
+- tapOn:
+    id: "alert.button.1"
+    optional: true
+- assertVisible:
+    id: "device.row.publickey"
+
+# Public key (Fetch): the node is synced, so the alert shows the key with
+# Copy / Close. Tap Close (alert.button.1).
+- tapOn:
+    id: "device.row.publickey"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- takeScreenshot: shared/docs/screenshots/settings/11_publickey
+- tapOn:
+    id: "alert.button.1"
+
+# Bittr peer (Check): if already connected the alert has a single Okay
+# button (alert.button.0); if not, it has Close / Connect — tap Connect
+# (alert.button.1) to retry, wait out the connection spinner, then a result
+# alert appears. Either way, alert.button.0 dismisses the final alert
+# (Okay when connected, Close when still not).
+- tapOn:
+    id: "device.row.bittrpeer"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 10000
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.1"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/settings/12_peer_disconnected
+      - tapOn:
+          id: "alert.button.1"
+      - extendedWaitUntil:
+          notVisible:
+            id: "alert.button.0"
+          timeout: 10000
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.0"
+          timeout: 30000
+- tapOn:
+    id: "alert.button.0"
+
+# Bittr purchases (Check): first alert offers Check / Close — tap Check
+# (alert.button.0) to fetch transactions, wait for the result alert, then
+# tap Okay (alert.button.0).
+- tapOn:
+    id: "device.row.purchases"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 10000
+- tapOn:
+    id: "alert.button.0"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/settings/13_purchases_result
+- tapOn:
+    id: "alert.button.0"
+
+# Bittr notification (Retry): with no cached notification this shows an
+# alert with a single Okay button. Tap it.
+- tapOn:
+    id: "device.row.notification"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 10000
+- tapOn:
+    id: "alert.button.0"
+
+# Pending payout (Check): signs a message and calls the notifications API
+# (async). The resulting alert is dismissed by alert.button.0 (Okay when
+# there's no payout, Cancel when there is).
+- tapOn:
+    id: "device.row.pendingpayouts"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/settings/14_pendingpayout
+- tapOn:
+    id: "alert.button.0"
+
+# Lightning connections → QuestionViewController → Down button back to
+# Device details.
+- tapOn:
+    id: "device.row.lightningchannels"
+- assertVisible:
+    id: "question.yellowCard"
+- takeScreenshot: shared/docs/screenshots/settings/15_lightning_question
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "device.row.lightningchannels"
+
+# Close Device details, then close the Settings pop-up — back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "settings.row.device"
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/settings/16_home

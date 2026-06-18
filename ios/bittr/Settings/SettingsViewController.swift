@@ -12,6 +12,7 @@ import Sentry
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
     // UI elements
+    @IBOutlet weak var centerView: UIView!
     @IBOutlet weak var settingsTableView: UITableView!
     @IBOutlet weak var settingsTableViewHeight: NSLayoutConstraint!
     @IBOutlet weak var appVersion: UILabel!
@@ -19,28 +20,36 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     // Variables
     var coreVC:CoreViewController?
     var tappedUrl:String?
-    let settings = [["label":"getsupport", "icon":"envelope", "id":"support"],["label":"restorewallet", "icon":"banknote", "id":"restore"],["label":"privacypolicy", "icon":"checkmark.shield", "id":"privacy"],["label":"termsandconditions", "icon":"book.pages", "id":"terms"],["label":"currency", "icon":"dollarsign.circle", "id":"currency"],["label":"walletandbalance", "icon":"bitcoinsign.circle", "id":"wallets"],["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]]
+    let settings = [
+        ["label":"getsupport", "icon":"envelope.fill", "id":"support"],
+        ["label":"privacypolicy", "icon":"checkmark.shield.fill", "id":"privacy"],
+        ["label":"termsandconditions", "icon":"book.pages.fill", "id":"terms"],
+        ["label":"devicedetails", "icon":"ipad.and.iphone", "id":"device"]
+    ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         self.setWords()
+        self.changeColors()
         
         // Table view
-        settingsTableView.delegate = self
-        settingsTableView.dataSource = self
+        self.settingsTableView.delegate = self
+        self.settingsTableView.dataSource = self
         
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        
-        self.changeColors()
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        settingsTableViewHeight.constant = CGFloat(settings.count * 60)
+        self.settingsTableViewHeight.constant = CGFloat(settings.count * 55)
         
         return settings.count
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 55
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -54,13 +63,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             let rowId = self.settings[indexPath.row]["id"] ?? ""
             cell.settingsButton.boundString = rowId
             cell.settingsButton.accessibilityIdentifier = "settings.row.\(rowId)"
-            
-            if self.settings[indexPath.row]["id"] == "currency" {
-                cell.currencyLabel.text = self.getCorrectBitcoinValue(coreVC: self.coreVC!).chosenCurrency
-            } else {
-                cell.currencyLabel.text = ""
-            }
-            
+
             return cell
         } else {
             return UITableViewCell()
@@ -78,34 +81,6 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         } else if sender.boundString == "support" {
             self.tappedUrl = "https://getbittr.com/support"
             self.performSegue(withIdentifier: "SettingsToWebsite", sender: self)
-        } else if sender.boundString == "restore" {
-            self.coreVC?.restoreWalletTapped()
-        } else if sender.boundString == "currency" {
-            let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-            let eurOption = UIAlertAction(title: "EUR €", style: .default) { (action) in
-                
-                UserDefaults.standard.set("€", forKey: "currency")
-                self.coreVC?.homeVC?.changeCurrency()
-                self.settingsTableView.reloadData()
-            }
-            let chfOption = UIAlertAction(title: "CHF", style: .default) { (action) in
-                
-                UserDefaults.standard.set("CHF", forKey: "currency")
-                self.coreVC?.homeVC?.changeCurrency()
-                self.settingsTableView.reloadData()
-            }
-            let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-            actionSheet.addAction(eurOption)
-            actionSheet.addAction(chfOption)
-            actionSheet.addAction(cancelAction)
-            present(actionSheet, animated: true, completion: nil)
-        } else if sender.boundString == "wallets" {
-            if self.coreVC != nil, !self.coreVC!.walletHasSynced {
-                // Wallet isn't ready.
-                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
-            self.coreVC?.homeVC?.moveButtonTapped()
         } else if sender.boundString == "device" {
             self.performSegue(withIdentifier: "SettingsToDevice", sender: self)
         }
