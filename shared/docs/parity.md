@@ -13,6 +13,7 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
 | Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, switches to Regular (waits out the BDK sync spinner), enters an address + 5 EUR amount, confirms address/euro amount on the Confirm screen with the fast fee, sends, mines 6 blocks, then opens the new transaction from the history table. Requires an onchain balance. |
 | Send onchain (max) | done | not started | `features/send_onchain_all.yaml` | Sends the full balance via "Send all", exercising the tight-fee path: fast fee exceeds the balance → Update amount, and on a failed broadcast retry with the slowest fee (past the low-fee warning), then mine 6 blocks and open the new transaction. Requires an onchain balance. |
+| Send lightning | done | not started | `features/send_lightning.yaml` | Pays a normal (amount-bearing) invoice, a zero-amount invoice (amount entered in BTC), and a Lightning Address (LNURL-pay), each confirmed via the TransactionViewController. Manual input — the three targets come from a separate live wallet, passed via `LN_INVOICE`/`LN_ZERO_INVOICE`/`LN_ADDRESS`; the Paste steps need `scripts/clipboard_server.js`. Requires an active channel with outbound capacity. |
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses existing channel + onchain balance from prior buy flow. |
 | Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
 | Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens/closes a place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
@@ -21,7 +22,7 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 
 ## Not yet covered by flows
 
-iOS-side screens that still need a flow before they're parity-tracked: Send end-to-end (the onchain Confirm → broadcast path is covered by `features/send_onchain.yaml`; lightning sends are not yet), Restore wallet, Settings, Profits, Widget, LNURL-Auth.
+iOS-side screens that still need a flow before they're parity-tracked: Restore wallet, Settings, Profits, Widget, LNURL-Auth. (Send end-to-end is now covered: onchain via `features/send_onchain.yaml`, lightning via `features/send_lightning.yaml`.)
 
 ## Legend
 

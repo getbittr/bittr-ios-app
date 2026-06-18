@@ -142,6 +142,9 @@
     "currencyLabel": null,
     "bdkSpinner": null,
     "availableButton": null,
+    "availableLabel": null,
+    "nextButton": null,
+    "lnurlSpinner": null,
     "confirm": {
       "addressLabel": null,
       "amountLabel": null,

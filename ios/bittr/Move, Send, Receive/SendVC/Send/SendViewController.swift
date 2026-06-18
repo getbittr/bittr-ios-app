@@ -157,6 +157,9 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
         self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
         self.availableButton.accessibilityIdentifier = TestID.Send.availableButton
+        self.availableAmount.accessibilityIdentifier = TestID.Send.availableLabel
+        self.nextButton.accessibilityIdentifier = TestID.Send.nextButton
+        self.lnurlSpinner.accessibilityIdentifier = TestID.Send.lnurlSpinner
 
         // Set colors and language
         self.changeColors()

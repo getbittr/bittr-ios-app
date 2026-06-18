@@ -1,0 +1,293 @@
+# Feature test: lightning send end-to-end (three invoice types).
+#
+# Starts like features/send_onchain.yaml (launch, auto-recover/unlock, wait for
+# the Home sync spinner) and then sends three lightning payments back to back,
+# exercising the normal-invoice, zero-amount-invoice and Lightning-Address
+# (LNURL) paths:
+#   1. Normal invoice (amount baked in): Send → Paste → the amount field
+#      auto-populates → Next → Confirm screen (invoice + amount) → Send →
+#      TransactionViewController with the confirmed payment → close it.
+#   2. Zero-amount invoice: Paste → invoice fills, no amount → Next raises the
+#      "Please enter the amount…" alert → Okay → switch currency Sats → Bitcoin
+#      (label reads BTC) → enter 0.00001 → Done → Confirm screen → Send →
+#      TransactionViewController → close it.
+#   3. Lightning Address (LNURL-pay): type it into the invoice field, press
+#      return → "Handling LNURL" spinner → a "Pay request" alert announces the
+#      payable range → Okay → enter 1500 sats → Done → "Handling LNURL" spinner
+#      again → confirm the payment → TransactionViewController → close it →
+#      close Send.
+#
+# Payment targets (no --env needed — all server-side):
+#   - The two invoices (normal + zero-amount) are fetched fresh per run from the
+#     bittr e2e endpoint via scripts/request_invoice.js — no stale/expired
+#     invoices.
+#   - The Lightning Address is the fixed bittr e2e address e2ebittr@staging.getbittr.com,
+#     which resolves (LNURL-pay) to the backend's receiving node.
+#
+# Run the clipboard helper so the in-app Paste button has something to paste:
+#
+#   node shared/flows/scripts/clipboard_server.js   # keep running
+#   maestro test shared/flows/features/send_lightning.yaml
+#
+# Sending requires an active lightning channel with enough outbound capacity
+# (run the buy/receive flows first). If launched on a clean install it
+# auto-runs onboarding first. Does NOT clearState — wallet state is preserved.
+#
+# Run: maestro test shared/flows/features/send_lightning.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — wait for the header spinner to stop.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_lightning/01_home
+
+# ---------------------------------------------------------------------------
+# 1. Normal invoice (amount baked in).
+# ---------------------------------------------------------------------------
+
+# Open Send (it opens on Instant / lightning by default).
+- tapOn:
+    id: "home.sendButton"
+
+# Request a fresh invoice WITH an amount (1000 sats) from the e2e endpoint and
+# put it on the simulator clipboard (Maestro can't set the OS pasteboard itself
+# — clipboard_server.js bridges to `xcrun simctl pbcopy`; request_invoice.js
+# sets output.clipboardText). Then tap the in-app Paste button. Because the
+# clipboard was written by another process, iOS shows an "Allow Paste" system
+# prompt; it renders a beat after the tap, so wait for it explicitly, then tap.
+- evalScript: ${output.invoiceAmountSats = 1000}
+- runScript: ../scripts/request_invoice.js
+- runScript: ../scripts/set_clipboard.js
+- tapOn:
+    id: "send.pasteButton"
+- extendedWaitUntil:
+    visible:
+      text: "Allow Paste"
+    timeout: 10000
+- tapOn:
+    text: "Allow Paste"
+
+# Pasting a lightning invoice switches the type to lightning: the "to" label
+# reads "Invoice and amount", the invoice lands in the field, and because this
+# invoice carries an amount the amount field auto-populates with satoshis.
+# Maestro matches `text` as a full-string regex, so wrap partial matches in .*
+- assertVisible:
+    id: "send.toLabel"
+    text: "Invoice and amount"
+- assertVisible:
+    id: "send.toTextField"
+    text: ".*lnbcrt.*"
+- assertVisible:
+    id: "send.amountTextField"
+    text: ".*[0-9].*"
+- takeScreenshot: shared/docs/screenshots/send_lightning/02_invoice_pasted
+
+# Continue to the ConfirmSendViewController. The amount is already filled (no
+# keyboard up), so tap the Next button rather than the amount keyboard's Done.
+- tapOn:
+    id: "send.nextButton"
+
+# Verify the transaction details on the Confirm screen, then Send. For lightning
+# the confirm button pays immediately (no extra fee step or confirm alert).
+- extendedWaitUntil:
+    visible:
+      id: "send.confirm.addressLabel"
+    timeout: 30000
+- assertVisible:
+    id: "send.confirm.addressLabel"
+    text: ".*lnbcrt.*"
+- assertVisible:
+    id: "send.confirm.amountLabel"
+    text: ".*[0-9].*"
+- takeScreenshot: shared/docs/screenshots/send_lightning/03_invoice_confirm
+- tapOn:
+    id: "send.confirm.confirmButton"
+
+# On success the TransactionViewController is pushed over Send with the
+# confirmed payment. Wait for it, then close it to return to Send.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.yellowCard"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_lightning/04_invoice_transaction
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "send.toLabel"
+
+# ---------------------------------------------------------------------------
+# 2. Zero-amount invoice.
+# ---------------------------------------------------------------------------
+
+# Request a zero-amount invoice (amount 0) from the e2e endpoint and paste it
+# the same way. The clipboard content changed, so iOS prompts to allow the
+# paste again — wait for it, then tap.
+- evalScript: ${output.invoiceAmountSats = 0}
+- runScript: ../scripts/request_invoice.js
+- runScript: ../scripts/set_clipboard.js
+- tapOn:
+    id: "send.pasteButton"
+- extendedWaitUntil:
+    visible:
+      text: "Allow Paste"
+    timeout: 10000
+- tapOn:
+    text: "Allow Paste"
+
+# The invoice lands in the field but, being a zero-amount invoice, no amount
+# appears.
+- assertVisible:
+    id: "send.toTextField"
+    text: ".*lnbcrt.*"
+- assertNotVisible:
+    id: "send.amountTextField"
+    text: ".*[0-9].*"
+- takeScreenshot: shared/docs/screenshots/send_lightning/05_zero_pasted
+
+# Next without an amount raises the "Please enter the amount…" alert (single
+# Okay at index 0). Verify the message, then dismiss it. Match a substring
+# (Maestro treats `text` as a full-string regex, so the `.*` wrappers absorb any
+# title prefix / surrounding text and keep the apostrophe out of the pattern).
+- tapOn:
+    id: "send.nextButton"
+- assertVisible:
+    text: ".*enter the amount of satoshis.*"
+- takeScreenshot: shared/docs/screenshots/send_lightning/06_amount_missing
+- tapOn:
+    id: "alert.button.0"
+
+# Switch the amount currency from Sats to Bitcoin via the currency alert
+# (buttons: [Cancel, Bitcoin, Satoshis, <fiat>] — Bitcoin is index 1) and
+# confirm the label now reads BTC.
+- tapOn:
+    id: "send.currencyButton"
+- tapOn:
+    id: "alert.button.1"
+- assertVisible:
+    id: "send.currencyLabel"
+    text: "BTC"
+
+# Enter 0.00001 BTC (= 1000 sats). "Done" on the amount keyboard advances to
+# the Confirm screen just like the Next button.
+- tapOn:
+    id: "send.amountTextField"
+- inputText: "0.00001"
+- tapOn:
+    text: "Done"
+
+# Verify the details on the ConfirmSendViewController, then Send.
+- extendedWaitUntil:
+    visible:
+      id: "send.confirm.addressLabel"
+    timeout: 30000
+- assertVisible:
+    id: "send.confirm.addressLabel"
+    text: ".*lnbcrt.*"
+- assertVisible:
+    id: "send.confirm.amountLabel"
+    text: ".*[0-9].*"
+- takeScreenshot: shared/docs/screenshots/send_lightning/07_zero_confirm
+- tapOn:
+    id: "send.confirm.confirmButton"
+
+# The TransactionViewController pops up again with the confirmed payment. Close
+# it to return to Send.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.yellowCard"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_lightning/08_zero_transaction
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "send.toLabel"
+
+# ---------------------------------------------------------------------------
+# 3. Lightning Address (LNURL-pay).
+# ---------------------------------------------------------------------------
+
+# Type the bittr e2e Lightning Address into the invoice field and press the
+# keyboard return. The return key recognises the "@" address and kicks off LNURL
+# handling, which briefly shows the "Handling LNURL" spinner. The spinner can
+# come and go faster than Maestro can catch, so rather than asserting it appears
+# we just wait for it to have cleared (it resolves once the LNURL call returns).
+- tapOn:
+    id: "send.toTextField"
+- inputText: "e2ebittr@staging.getbittr.com"
+- pressKey: Enter
+
+# LNURL resolves: the spinner stops and (when the address has a payable range)
+# a "Pay request" alert announces the range. Wait the spinner out, confirm the
+# alert message, then tap Okay (single button at index 0). Match a substring so
+# the exact min/max numbers and the apostrophe don't matter.
+- extendedWaitUntil:
+    notVisible:
+      id: "send.lnurlSpinner"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: ".*send between.*satoshis.*"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/send_lightning/09_lnurl_prompt
+- tapOn:
+    id: "alert.button.0"
+
+# Now enter 1500 (sats) in range and tap Done. With pending LNURL data set, Done
+# fetches the invoice from the LNURL callback — the "Handling LNURL" spinner
+# flashes again.
+- tapOn:
+    id: "send.amountTextField"
+- inputText: "1500"
+- tapOn:
+    text: "Done"
+
+# After the callback returns, a confirmation alert ([Cancel, Confirm]) appears
+# for the LNURL payment — Confirm is index 1.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/send_lightning/10_lnurl_confirm
+- tapOn:
+    id: "alert.button.1"
+
+# The TransactionViewController pops up once more with the successful payment.
+# Close it to return to Send, then close Send to land back on Home.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.yellowCard"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_lightning/11_lnurl_transaction
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "send.toLabel"
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/send_lightning/12_done
