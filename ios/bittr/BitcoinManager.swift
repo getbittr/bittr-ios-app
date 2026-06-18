@@ -369,6 +369,25 @@ class BitcoinManager {
         let channels = self.ldkNode!.listChannels()
         return channels
     }
+
+    /// Whether it is safe to wipe the wallet from the device.
+    ///
+    /// Returns true only when there are no open channels AND no closed-channel
+    /// funds are still settling on-chain. Wiping before this is true deletes
+    /// the LDK channel state (channel monitors) needed to sweep those funds —
+    /// and a BIP39 seed alone CANNOT reconstruct it. For a force-closed channel
+    /// the to_local output is locked behind a CSV delay (~1 day) and only swept
+    /// once it expires, so wiping early means permanent loss.
+    ///
+    /// If the node isn't running we can't verify the state, so we return false
+    /// (refuse the wipe) rather than risk it.
+    func channelsFullyClosedAndSwept() -> Bool {
+        guard let node = self.ldkNode else { return false }
+        let balances = node.listBalances()
+        return self.listChannels().isEmpty
+            && balances.totalLightningBalanceSats == 0
+            && balances.pendingBalancesFromChannelClosures.isEmpty
+    }
     
     func connect(nodeId: PublicKey, address: String, persist: Bool) async throws {
         try self.ldkNode!.connect(

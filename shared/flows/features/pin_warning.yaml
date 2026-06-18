@@ -1,0 +1,201 @@
+# Feature test: the wrong-PIN warning + recovering via "Forgot PIN" from it.
+#
+# After 3 wrong PIN entries the unlock screen shows a warning (instead of the
+# plain "incorrect PIN" alert) that explains the 10-attempt wipe can cost the
+# user their Lightning funds, and offers a "Forgot PIN" button that jumps
+# straight into the non-destructive, mnemonic-based PIN reset.
+#
+# Behaviour under test (PinViewController.confirmPinButtonTapped, .core):
+#   - Wrong entries 1..2 show the normal incorrect-PIN alert (single Okay
+#     button: alert.button.0).
+#   - Wrong entry 3 shows the warning alert. It has TWO buttons —
+#     Okay (alert.button.0) and Forgot PIN (alert.button.1) — which is what
+#     distinguishes it from the incorrect-PIN alert.
+#   - Tapping Forgot PIN runs startPinReset directly, so it lands on RestoreVC
+#     (mnemonic entry) WITHOUT the extra [Cancel, Reset] confirmation alert
+#     that the restore-button path (forgot_pin.yaml) shows first.
+#
+# This flow is NON-destructive: it recovers via the mnemonic and ends with the
+# PIN back at 1234 (matches helpers/unlock.yaml), so it can be run repeatedly.
+#
+# Self-contained: the flow runs onboarding/restore_wallet.yaml first (via
+# runFlow) to guarantee a clean starting state — a freshly restored wallet with
+# the failed-attempt counter at 0 — so the warning's 3-attempt trigger is
+# deterministic regardless of any prior (possibly aborted) runs. A failed run
+# leaves the counter mid-way, which would otherwise shift when the warning
+# fires. No separate prerequisite and no env var needed:
+#
+#   maestro test shared/flows/features/pin_warning.yaml
+#
+# Mnemonic: RestoreVC verifies the typed recovery words against
+# CacheManager.getMnemonic(). We bake in the same fixed test phrase
+# restore_wallet.yaml uses, so the cached mnemonic matches exactly.
+
+appId: com.bittr.bittr-regtest
+---
+# Start from a clean slate: restore a fresh wallet (clears state + keychain,
+# fixed mnemonic, PIN 1234, failed-attempt counter at 0). Ends on Home.
+- runFlow:
+    file: ../onboarding/restore_wallet.yaml
+
+# Cold relaunch the app — an existing wallet boots to the PIN unlock screen.
+- launchApp
+
+# Fixed test mnemonic — matches restore_wallet.yaml above, so RestoreVC's check
+# against the cached mnemonic passes. 1-indexed to match the access below.
+- evalScript: |
+    ${output.words = {
+      1: "attack",
+      2: "urge",
+      3: "across",
+      4: "cupboard",
+      5: "year",
+      6: "armor",
+      7: "list",
+      8: "vital",
+      9: "outer",
+      10: "leader",
+      11: "anxiety",
+      12: "endorse"
+    }}
+
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/pin_warning/01_unlock
+
+# Wrong PIN attempts 1..2. Each enters 1111, confirms, and dismisses the
+# normal "incorrect PIN" alert (single Okay button) via clearPinField. The
+# digit taps skip wait-to-settle for speed (matches wrong_pin.yaml).
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.confirmButton"
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
+
+# Wrong PIN attempt 3 — this one triggers the warning alert. The plain
+# incorrect-PIN alert has only one button (alert.button.0); the warning adds a
+# second "Forgot PIN" button, so asserting alert.button.1 distinguishes it.
+# (We don't assert the message copy: the alert's message label has no
+# accessibility id, so Maestro can't reliably query that text — but the button
+# labels are in the tree, so we also confirm the "Forgot PIN" label.)
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    id: "alert.button.1"
+- assertVisible: "Forgot PIN"
+- takeScreenshot: shared/docs/screenshots/pin_warning/02_warning
+- tapOn:
+    id: "alert.button.1"
+
+# Forgot PIN goes straight into RestoreVC (startPinReset → mnemonic entry).
+- assertVisible:
+    id: "signup.restore.topLabel"
+- takeScreenshot: shared/docs/screenshots/pin_warning/03_restore_initial
+
+- tapOn:
+    id: "signup.restore.field1"
+- inputText: ${output.words[1]}
+- tapOn:
+    id: "signup.restore.field2"
+- inputText: ${output.words[2]}
+- tapOn:
+    id: "signup.restore.field3"
+- inputText: ${output.words[3]}
+- tapOn:
+    id: "signup.restore.field4"
+- inputText: ${output.words[4]}
+- tapOn:
+    id: "signup.restore.field5"
+- inputText: ${output.words[5]}
+- tapOn:
+    id: "signup.restore.field6"
+- inputText: ${output.words[6]}
+- tapOn:
+    id: "signup.restore.field7"
+- inputText: ${output.words[7]}
+- tapOn:
+    id: "signup.restore.field8"
+- inputText: ${output.words[8]}
+- tapOn:
+    id: "signup.restore.field9"
+- inputText: ${output.words[9]}
+- tapOn:
+    id: "signup.restore.field10"
+- inputText: ${output.words[10]}
+- tapOn:
+    id: "signup.restore.field11"
+- inputText: ${output.words[11]}
+- tapOn:
+    id: "signup.restore.field12"
+- inputText: ${output.words[12]}
+
+# Dismiss the keyboard (it covers Reset PIN); tapping the topLabel falls
+# through to RestoreVC.backgroundButtonTapped → endEditing(true).
+- tapOn:
+    id: "signup.restore.topLabel"
+- takeScreenshot: shared/docs/screenshots/pin_warning/04_restore_filled
+
+# Reset PIN — RestoreVC checks the words against CacheManager.getMnemonic().
+- tapOn:
+    id: "signup.restore.nextButton"
+
+# Set new PIN 1234 (Restore2 embedding) — matches helpers/unlock.yaml.
+- assertVisible:
+    id: "signup.restore.pinSet.topLabel"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.confirmButton"
+
+# Confirm new PIN 1234 (Restore3 embedding).
+- assertVisible:
+    id: "signup.restore.pinConfirm.topLabel"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.confirmButton"
+
+# Reset complete — Home reappears with the same wallet attached.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/pin_warning/05_home
