@@ -157,19 +157,23 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
                 // Lesson is available to user.
                 cell.removeBlur()
                 cell.lessonButton.alpha = 1
-                
+
                 if CacheManager.getCompletedLessons().contains(thisLesson.id) {
                     // Lesson has been completed.
                     cell.iconCheck.alpha = 1
+                    cell.lessonButton.accessibilityIdentifier = nil
                 } else {
-                    // Lesson has not yet been completed.
+                    // Lesson has not yet been completed — this is the latest
+                    // available lesson (the single "frontier" the user can start).
                     cell.iconCheck.alpha = 0
+                    cell.lessonButton.accessibilityIdentifier = TestID.Academy.nextLessonButton
                 }
             } else {
                 // Lesson is not yet available to user.
                 cell.addBlur()
                 cell.lessonButton.alpha = 0
                 cell.iconCheck.alpha = 0
+                cell.lessonButton.accessibilityIdentifier = nil
             }
             
             return cell

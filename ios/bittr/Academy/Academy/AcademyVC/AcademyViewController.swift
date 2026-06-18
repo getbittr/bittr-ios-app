@@ -20,7 +20,10 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+        // Maestro test ID.
+        self.headerLabel.accessibilityIdentifier = TestID.Academy.headerLabel
+
         // Table view.
         self.academyTableView.delegate = self
         self.academyTableView.dataSource = self
