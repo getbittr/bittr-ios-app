@@ -97,8 +97,10 @@ class ConfirmSendViewController: UIViewController {
         self.setLabels()
 
         self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
+        self.amountLabel.accessibilityIdentifier = TestID.Send.Confirm.amountLabel
         self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
         self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.buttonSlow.accessibilityIdentifier = TestID.Send.Confirm.feeSlowButton
         self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
     }
     

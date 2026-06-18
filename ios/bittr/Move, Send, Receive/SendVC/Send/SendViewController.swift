@@ -156,6 +156,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
         self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
         self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
+        self.availableButton.accessibilityIdentifier = TestID.Send.availableButton
 
         // Set colors and language
         self.changeColors()
@@ -178,7 +179,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         if self.onchainOrLightning == .onchain {
             // Set "Send all" for onchain transactions.
             
-            if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+            if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned || BitcoinManager.shared.bdkWalletIsScanning {
                 Log.info("BDK wallet isn't available yet.")
                 self.bdkWalletUnavailable()
             } else {
@@ -371,7 +372,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         }
         
         if self.onchainOrLightning == .onchain {
-            if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+            if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned || BitcoinManager.shared.bdkWalletIsScanning {
                 Log.info("BDK wallet isn't available yet.")
                 self.bdkWalletUnavailable()
             } else {

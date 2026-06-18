@@ -141,10 +141,13 @@
     "currencyButton": null,
     "currencyLabel": null,
     "bdkSpinner": null,
+    "availableButton": null,
     "confirm": {
       "addressLabel": null,
+      "amountLabel": null,
       "amountFiatLabel": null,
       "feeFastButton": null,
+      "feeSlowButton": null,
       "confirmButton": null
     }
   },

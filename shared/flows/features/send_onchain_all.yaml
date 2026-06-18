@@ -1,0 +1,212 @@
+# Feature test: onchain send of the full (maximum) sendable balance.
+#
+# Like features/send_onchain.yaml, but instead of typing an amount the user taps
+# the "You can send <amount> satoshis" label to send the maximum. Because that
+# leaves only the minimum fee as headroom, the fee step is exercised hard:
+#   1. Open Send, switch to Regular, wait out the BDK sync spinner.
+#   2. Tap the "Send all" label and confirm the amount lands in the field.
+#   3. Enter the address, press the keyboard return (jumps to the amount field),
+#      tap Done — sliding to the ConfirmSendViewController.
+#   4. Pick the fast (≈10 min) fee. For a max-amount send that fee usually
+#      exceeds the balance → a "Balance" alert offers "Update amount"; take it
+#      and confirm the amount shrank.
+#   5. Send → Confirm. If the broadcast still fails ("Error"), retry with the
+#      slowest fee (continuing past any "Low fee" warning) and Confirm again.
+#   6. On success, mine 6 blocks, dismiss, then (like send_onchain) close Send,
+#      pull Home to resync, wait for the top transaction to change, and open it.
+#
+# Assumes a wallet with an onchain balance. If launched on a clean install it
+# auto-runs onboarding first. Does NOT clearState.
+#
+# Run: maestro test shared/flows/features/send_onchain_all.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — wait for the header spinner to stop.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/01_home
+
+# Remember the amount on the current topmost transaction so we can detect when
+# the new send replaces it at the top later. Row-indexed IDs make ...0 the top.
+- copyTextFrom:
+    id: "history.transactionAmount0"
+- evalScript: ${output.previousTopTx = maestro.copiedText}
+
+# Open Send (it opens on Instant / lightning by default).
+- tapOn:
+    id: "home.sendButton"
+
+# Switch to Regular (onchain). Dismiss the "syncing wallet" alert if present,
+# then wait for the BDK spinner to stop — once it does, the "You can send
+# <amount> satoshis" label holds the real maximum.
+- tapOn:
+    id: "send.regularButton"
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      id: "send.bdkSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/02_regular
+
+# Tap the "You can send <amount> satoshis" label to fill the amount field with
+# the maximum sendable amount, and confirm it landed.
+- tapOn:
+    id: "send.availableButton"
+- assertVisible:
+    id: "send.amountTextField"
+    text: ".*[0-9].*"
+
+# Enter the destination address, then press the keyboard return — it jumps to
+# the amount field (which still holds the Send-all amount) — and tap Done.
+- tapOn:
+    id: "send.toTextField"
+- inputText: "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv"
+- pressKey: Enter
+- tapOn:
+    text: "Done"
+
+# Slid to the ConfirmSendViewController. Remember the BTC amount (8 decimals, so
+# it changes reliably if the amount is later reduced to fit the fee).
+- extendedWaitUntil:
+    visible:
+      id: "send.confirm.addressLabel"
+    timeout: 30000
+- assertVisible:
+    id: "send.confirm.addressLabel"
+    text: "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv"
+- copyTextFrom:
+    id: "send.confirm.amountLabel"
+- evalScript: ${output.amountBeforeFee = maestro.copiedText}
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/03_confirm
+
+# Pick the fast (≈10 minute) fee. On a max-amount send the fee usually exceeds
+# the balance, raising a "Balance" alert with [Update amount, Close]. If shown,
+# tap Update amount and confirm the amount shrank to make room for the fee.
+- tapOn:
+    id: "send.confirm.feeFastButton"
+- runFlow:
+    when:
+      visible:
+        text: "balance"
+    commands:
+      - tapOn:
+          id: "alert.button.0"
+      - extendedWaitUntil:
+          notVisible:
+            id: "send.confirm.amountLabel"
+            text: "${output.amountBeforeFee}"
+          timeout: 10000
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/04_after_fee
+
+# Send. The confirmation alert ([Cancel, Confirm]) appears — Confirm is index 1.
+- tapOn:
+    id: "send.confirm.confirmButton"
+- tapOn:
+    id: "alert.button.1"
+
+# Wait for the result alert (success or error — both have an Okay at index 0).
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+
+# If the broadcast failed ("Error" — the fast fee left too little), retry with
+# the slowest fee, continuing past any "Low fee" warning, then Confirm again.
+- runFlow:
+    when:
+      visible:
+        text: "error"
+    commands:
+      - tapOn:
+          id: "alert.button.0"
+      - tapOn:
+          id: "send.confirm.feeSlowButton"
+      - tapOn:
+          id: "send.confirm.confirmButton"
+      - runFlow:
+          when:
+            visible:
+              text: "low fee"
+          commands:
+            - tapOn:
+                id: "alert.button.1"
+      - tapOn:
+          id: "alert.button.1"
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.0"
+          timeout: 30000
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/05_success
+
+# Success alert is up. Mine 6 blocks so it confirms, then dismiss.
+- evalScript: ${output.blocksToMine = 6}
+- runScript: ../scripts/mine_blocks.js
+- tapOn:
+    id: "alert.button.0"
+
+# Back on the SendViewController with the fields cleared.
+- assertVisible:
+    id: "send.toLabel"
+- assertNotVisible:
+    id: "send.toTextField"
+    text: ".*bcrt1.*"
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/06_send_cleared
+
+# Close Send.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Pull Home down to resync the wallet, then wait for the header spinner to stop.
+- swipe:
+    direction: DOWN
+    duration: 800
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Poll the topmost cell until it no longer shows the amount we remembered — i.e.
+# the new send has replaced the previous transaction at the top.
+- evalScript: ${output.currentTopTx = output.previousTopTx}
+- repeat:
+    while:
+      true: ${output.currentTopTx === output.previousTopTx}
+    commands:
+      - copyTextFrom:
+          id: "history.transactionAmount0"
+      - evalScript: ${output.currentTopTx = maestro.copiedText}
+
+# Open the new (topmost) transaction in the TransactionViewController.
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/send_onchain_all/07_transaction

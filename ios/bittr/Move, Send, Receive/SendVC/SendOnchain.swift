@@ -200,10 +200,22 @@ extension ConfirmSendViewController {
             txid = try BitcoinManager.shared.sendOnchainPayment(address: self.sendVC!.confirmAddress, amountSats: UInt64(self.sendVC!.confirmSatoshis), feeRateSatVb: UInt64(selectedVbyte))
         } catch {
             Log.info("Transaction error: \(error.localizedDescription)")
+
+            // Unwrap LDKNode errors to their human-readable detail (e.g. the
+            // plain "insufficient funds" message) via the shared handler,
+            // instead of showing the raw NodeError enum description.
+            let errorMessage:String = {
+                if let nodeError = error as? NodeError {
+                    return "\(handleNodeError(nodeError).detail)"
+                } else {
+                    return error.localizedDescription
+                }
+            }()
+
             DispatchQueue.main.async {
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: "\(Language.getWord(withID: "transactionerror")): \(error.localizedDescription).", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
                 SentrySDK.capture(error: error) { scope in
                     scope.setExtra(value: "SendOnchain row 349", key: "context")
                 }
