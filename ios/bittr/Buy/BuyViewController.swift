@@ -109,13 +109,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             cell.nameButton.boundString = self.allIbanEntities[indexPath.row].ourName
             cell.codeButton.boundString = self.allIbanEntities[indexPath.row].yourUniqueCode
 
-            // Payout-mode toggle for this deposit code.
-            let entity = self.allIbanEntities[indexPath.row]
-            cell.configurePaymentMode(entity.paymentMode)
-            cell.onPaymentModeChange = { [weak self] newMode in
-                self?.setPaymentMode(for: entity, newMode: newMode)
-            }
-
             return cell
         } else {
             return UICollectionViewCell()
@@ -151,9 +144,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
         let cellWidth = viewWidth - 30
-        // Height was 285; raised to fit the payout-mode toggle added below the
-        // deposit-code section. NOTE: verify the spacing visually in Xcode.
-        return CGSize(width: cellWidth, height: 365)
+        return CGSize(width: cellWidth, height: 285)
     }
     
     @IBAction func continueButtonTapped(_ sender: UIButton) {
