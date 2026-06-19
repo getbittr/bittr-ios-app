@@ -71,6 +71,7 @@ extension CoreViewController {
                 if !self.removingWalletForIncorrectPin {
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
+                    CacheManager.setWalletRemovalInProgress(true)
                 }
                 
                 if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
@@ -120,7 +121,20 @@ extension CoreViewController {
             await self.startWallet()
         }
     }
-    
+
+    @objc func resumeWalletRemoval() {
+        Log.info("Resume wallet removal.")
+        self.hideAlert()
+        self.resettingPin = true
+        self.startWalletInBackground()
+    }
+
+    @objc func cancelWalletRemoval() {
+        Log.info("Cancel wallet removal.")
+        self.hideAlert()
+        CacheManager.setWalletRemovalInProgress(false)
+    }
+
     @objc func walletRestoreAlert() {
         self.hideAlert()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "remove")], actions: [nil, #selector(self.performWalletReset)])
@@ -250,6 +264,9 @@ extension CoreViewController {
         // Reset PIN reset state
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
+        
+        // Removal finished — clear the resume-on-launch flag.
+        CacheManager.setWalletRemovalInProgress(false)
         
         // Clear mnemonic from cache
         CacheManager.deleteClientInfo()

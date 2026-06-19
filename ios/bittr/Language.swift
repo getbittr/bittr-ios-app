@@ -370,6 +370,7 @@ class Language: NSObject {
             "swapid": "Swap ID",
             "removewalletfromdevice": "Remove wallet",
             "removewallet1": "Are you sure you want to remove this wallet from your device?\n\nYou can restore the wallet using your recovery phrase.",
+            "removalinprogress": "It looks like you started removing this wallet from your device, but it wasn't finished — a Lightning connection may still have been closing.\n\nWould you like to try removing it again?",
             "swapquestion": "Swap status",
             "swapquestionswapcreated0": "We've initiated the swap of your funds from onchain to lightning, but no funds have been moved yet.",
             "swapquestionswapcreated1": "We've initiated the swap of your funds from lightning to onchain, but no funds have been moved yet.",
