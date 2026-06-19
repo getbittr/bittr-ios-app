@@ -99,14 +99,9 @@ appId: com.bittr.bittr-regtest
 
 # Wrong PIN attempt 10. The counter now reads 9, so this entry triggers the
 # lockout instead of the "incorrect PIN" alert, and kicks off the wallet wipe.
-#
-# Note: unlike attempts 1..9, we do NOT tap an Okay button here. The lockout
-# alert (restorewallet / pinlock) is shown and then immediately dismissed by
-# the wipe itself: the handler synchronously calls restoreWalletTapped() ->
-# startWalletInBackground(), whose first line is hideAlert(). All of this runs
-# in one main-thread turn, so the lockout alert never reliably renders — we
-# can't (and don't need to) tap it. The confirm tap goes straight into the
-# wipe, and the app advances to Signup1 on its own.
+# The lockout alert (restorewallet / pinlock — "You've entered an incorrect
+# PIN too many times. Please restore your wallet.") is shown with a single
+# Okay button, and the wipe starts syncing in the background behind it.
 - tapOn:
     id: "pin.button1"
     waitToSettleTimeoutMs: 0
@@ -123,27 +118,50 @@ appId: com.bittr.bittr-regtest
     id: "pin.confirmButton"
 - takeScreenshot: shared/docs/screenshots/wrong_pin/03_wipe_started
 
-# If there was still an open/closing Lightning channel, the wipe can't
-# complete immediately: the "still closing" alert (stillclosing) surfaces
-# with a single Okay button (alert.button.0) while the cooperative close
-# settles on-chain. It's timing-dependent, so give it a brief moment to
-# appear and dismiss it if present — then carry on to Signup1. When no
-# such alert shows, this is a no-op.
+# Acknowledge the lockout alert. It has a single Okay button (alert.button.0)
+# and always shows on the 10th wrong PIN, regardless of channel state. Tapping
+# Okay just dismisses it — the wipe is already syncing in the background.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/wrong_pin/03b_lockout_alert
+- tapOn:
+    id: "alert.button.0"
+
+# The wipe continues behind the full-screen yellow cover + spinner. If there
+# was an open Lightning channel it can't complete immediately: a cooperative
+# close is broadcast and the "still closing" alert (stillclosing) appears with
+# a single "Try again" button (alert.button.0). The cover/spinner animate for
+# the whole sync, so wait for the screen to settle into whichever state comes
+# next — that alert, or Signup1 (when there was no channel to close, in which
+# case no second alert appears and the loop below runs zero times).
 - waitForAnimationToEnd:
-    timeout: 3000
-- runFlow:
-    when:
+    timeout: 120000
+
+# While the "still closing" alert keeps reappearing, mine 6 blocks to confirm
+# the cooperative close on-chain (same count as the channel-open/close
+# confirmation elsewhere) and tap "Try again" (alert.button.0). That re-syncs
+# and re-checks whether the funds have settled enough to remove the wallet.
+# Each retry spins the cover again, so wait for it to settle before re-testing
+# the condition. Once the wipe completes the alert stops returning and we fall
+# through to Signup1.
+- repeat:
+    while:
       visible:
         id: "alert.button.0"
     commands:
-      - takeScreenshot: shared/docs/screenshots/wrong_pin/03b_still_closing
+      - takeScreenshot: shared/docs/screenshots/wrong_pin/03c_still_closing
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
       - tapOn:
           id: "alert.button.0"
+      - waitForAnimationToEnd:
+          timeout: 120000
 
-# The wipe runs in the background: startWalletInBackground syncs the wallet,
-# finalizeSync re-enters restoreWalletTapped, performWalletReset clears
-# state and stops the node, then after a ~1s delay relaunches signup on
-# page 3 (Signup1). Allow generous slack for the sync + node teardown.
+# The wipe has completed: performWalletReset cleared state, stopped the node,
+# and relaunched signup on page 3 (Signup1). Allow generous slack for the
+# final sync + node teardown.
 - extendedWaitUntil:
     visible:
       id: "signup.create.start.createWalletButton"
