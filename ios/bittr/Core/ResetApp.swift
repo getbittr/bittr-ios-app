@@ -148,6 +148,9 @@ extension CoreViewController {
     @objc func closeChannelConfirmed() {
         self.hideAlert()
         
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
+        
         guard isConnectedToPeer() else {
             Task {
                 let didConnectToPeer = await BitcoinManager.shared.connectToLightningPeer()
@@ -186,6 +189,8 @@ extension CoreViewController {
                         self.genericSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
                     }
                 }
@@ -217,7 +222,12 @@ extension CoreViewController {
 
     @objc func forceCloseChannel() {
         self.hideAlert()
-        
+
+        // Same as closeChannelConfirmed: keep the cover + spinner up during the
+        // force-close attempt until a terminal alert appears.
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
+
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             // Try force close (unilateral closure)
             Log.info("Attempting force close for channel.")
@@ -232,6 +242,8 @@ extension CoreViewController {
                         scope.setExtra(value: "ResetApp row 213", key: "context")
                     }
                     if !self.removingWalletForIncorrectPin {
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "forceclose3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
