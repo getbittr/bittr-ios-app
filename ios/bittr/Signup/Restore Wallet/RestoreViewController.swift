@@ -85,6 +85,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.mnemonic10.accessibilityIdentifier = TestID.Signup.Restore.field10
         self.mnemonic11.accessibilityIdentifier = TestID.Signup.Restore.field11
         self.mnemonic12.accessibilityIdentifier = TestID.Signup.Restore.field12
+        self.removeWalletButton.accessibilityIdentifier = TestID.Signup.Restore.removeWalletButton
 
         // Corner radii
         self.mnemonicView.layer.cornerRadius = 13

@@ -88,6 +88,7 @@ maestro test shared/flows/features/swap.yaml
 maestro test shared/flows/features/send_lightning.yaml
 
 maestro test shared/flows/features/remove_wallet.yaml
+maestro test shared/flows/features/forgot_pin_remove_wallet.yaml
 maestro test shared/flows/features/wrong_pin.yaml
 maestro test shared/flows/features/bitcoin_value.yaml
 maestro test shared/flows/features/bitcoin_map.yaml

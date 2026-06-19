@@ -258,6 +258,7 @@ enum TestID {
             enum PinSet {
                 static let topLabel = "signup.restore.pinSet.topLabel"
             }
+            static let removeWalletButton = "signup.restore.removeWalletButton"
             static let topLabel = "signup.restore.topLabel"
         }
     }

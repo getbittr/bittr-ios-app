@@ -243,6 +243,7 @@
       "field11": null,
       "field12": null,
       "nextButton": null,
+      "removeWalletButton": null,
       "pinSet": {
         "topLabel": null
       },
