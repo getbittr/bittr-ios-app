@@ -199,13 +199,13 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
 
             if self.correctPin != nil {
                 
-                if CacheManager.getFailedPinAttempts() >= 10 || self.coreVC?.removingWalletForIncorrectPin == true {
-                    Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal instead of unlocking.")
-                    self.coreVC?.removingWalletForIncorrectPin = true
-                    self.coreVC?.restoreWalletTapped()
+                if CacheManager.getFailedPinAttempts() >= 10 {
+                    Log.info("Wallet is locked out after 10 failed PIN attempts.")
+                    self.clearPinField()
+                    self.removeWallet()
                     return
                 }
-
+                
                 if self.correctPin! == self.pinTextField.text {
                     // Correct pin.
                     CacheManager.resetFailedPinAttempts()
@@ -213,27 +213,21 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     self.coreVC?.correctPin(spinner:self.pinSpinner)
                 } else {
                     // Wrong pin.
-                    if CacheManager.getFailedPinAttempts() >= 9 {
+                    CacheManager.increaseFailedPinAttempts()
+                    self.clearPinField()
+                    
+                    if CacheManager.getFailedPinAttempts() >= 10 {
                         Log.info("Wrong pin has been entered 10 times.")
-                        CacheManager.increaseFailedPinAttempts()
-                        
-                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
-
-                        Log.info("Remove wallet from device.")
-                        self.coreVC?.removingWalletForIncorrectPin = true
-                        self.coreVC?.restoreWalletTapped()
-
+                        self.removeWallet()
                         return
                     }
-
-                    CacheManager.increaseFailedPinAttempts()
-
+                    
                     // Warn well before the 10-attempt wipe and steer anyone who
                     // still has their recovery phrase to the non-destructive
                     // Forgot PIN flow — the wipe can cost them their Lightning
                     // funds, so we want them recovering by mnemonic instead.
                     if CacheManager.getFailedPinAttempts() == 3 {
-                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [#selector(self.clearPinField), #selector(self.startPinReset)])
+                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [nil, #selector(self.startPinReset)])
                         return
                     }
 
@@ -254,9 +248,18 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
     }
     
+    func removeWallet() {
+        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        
+        Log.info("Remove wallet from device.")
+        self.coreVC?.removingWalletForIncorrectPin = true
+        self.coreVC?.restoreWalletTapped()
+    }
+    
     @objc func clearPinField() {
         self.hideAlert()
         self.pinTextField.text = ""
+        self.pinCollectionView.reloadData()
     }
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
