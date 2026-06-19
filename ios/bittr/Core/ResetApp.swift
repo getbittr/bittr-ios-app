@@ -67,10 +67,12 @@ extension CoreViewController {
             // reconstruct — catastrophic for a force-closed channel. We only ever
             // cooperatively close, then wait for the funds to land before resetting.
             if !BitcoinManager.shared.channelsFullyClosedAndSwept() {
-                // We're going to wait, not wipe — take the spinner down.
-                self.genericSpinner.stopAnimating()
-                self.fullViewCover.alpha = 0
-
+                
+                if !self.removingWalletForIncorrectPin {
+                    self.genericSpinner.stopAnimating()
+                    self.fullViewCover.alpha = 0
+                }
+                
                 if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
                     Log.info("Channel still open — initiating cooperative close before any reset.")
                     if self.removingWalletForIncorrectPin {
@@ -138,7 +140,6 @@ extension CoreViewController {
                         // funds behind a CSV delay and risks loss on the wipe) and
                         // don't wipe — surface it and let the user retry later.
                         self.genericSpinner.stopAnimating()
-                        self.fullViewCover.alpha = 0
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
                         // Manual reset: let the user explicitly choose force close.
@@ -163,7 +164,6 @@ extension CoreViewController {
                         // Coop close failed during the automated wipe. Do not force
                         // close or wipe — tell the user and let them retry later.
                         self.genericSpinner.stopAnimating()
-                        self.fullViewCover.alpha = 0
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     } else {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
@@ -178,7 +178,9 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 self.didCloseChannel()
                 self.genericSpinner.stopAnimating()
-                self.fullViewCover.alpha = 0
+                if !self.removingWalletForIncorrectPin {
+                    self.fullViewCover.alpha = 0
+                }
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
