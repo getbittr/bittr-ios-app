@@ -123,6 +123,23 @@ appId: com.bittr.bittr-regtest
     id: "pin.confirmButton"
 - takeScreenshot: shared/docs/screenshots/wrong_pin/03_wipe_started
 
+# If there was still an open/closing Lightning channel, the wipe can't
+# complete immediately: the "still closing" alert (stillclosing) surfaces
+# with a single Okay button (alert.button.0) while the cooperative close
+# settles on-chain. It's timing-dependent, so give it a brief moment to
+# appear and dismiss it if present — then carry on to Signup1. When no
+# such alert shows, this is a no-op.
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/wrong_pin/03b_still_closing
+      - tapOn:
+          id: "alert.button.0"
+
 # The wipe runs in the background: startWalletInBackground syncs the wallet,
 # finalizeSync re-enters restoreWalletTapped, performWalletReset clears
 # state and stops the node, then after a ~1s delay relaunches signup on
