@@ -198,6 +198,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             guard (self.coreVC ?? self).checkInternetConnection() else { return }
 
             if self.correctPin != nil {
+                
+                if CacheManager.getFailedPinAttempts() >= 10 || self.coreVC?.removingWalletForIncorrectPin == true {
+                    Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal instead of unlocking.")
+                    self.coreVC?.removingWalletForIncorrectPin = true
+                    self.coreVC?.restoreWalletTapped()
+                    return
+                }
+
                 if self.correctPin! == self.pinTextField.text {
                     // Correct pin.
                     CacheManager.resetFailedPinAttempts()
@@ -207,6 +215,8 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     // Wrong pin.
                     if CacheManager.getFailedPinAttempts() >= 9 {
                         Log.info("Wrong pin has been entered 10 times.")
+                        CacheManager.increaseFailedPinAttempts()
+                        
                         self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
 
                         Log.info("Remove wallet from device.")
