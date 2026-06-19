@@ -85,7 +85,13 @@ extension CoreViewController {
                     // on-chain yet (still being swept). Don't wipe — tell the
                     // user to come back once it has settled.
                     Log.info("Channel closed but funds still settling — deferring wallet reset.")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    
+                    if self.removingWalletForIncorrectPin {
+                        // User is locked out. Show "Try again" button, as only available user action.
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
+                    } else {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    }
                 }
             } else {
                 if self.resettingPin || self.removingWalletForIncorrectPin {
@@ -178,10 +184,13 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 self.didCloseChannel()
                 self.genericSpinner.stopAnimating()
-                if !self.removingWalletForIncorrectPin {
+                if self.removingWalletForIncorrectPin {
+                    // User is locked out. Show "Try again" button as only available user action.
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
+                } else {
                     self.fullViewCover.alpha = 0
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
         } else {
             // No channel to close — re-evaluate the wipe gate (wipes only if the

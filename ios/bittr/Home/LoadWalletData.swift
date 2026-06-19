@@ -122,6 +122,9 @@ extension HomeViewController {
         if !self.coreVC!.walletHasSynced {
             // Finalize sync.
             self.finalizeSync()
+        } else if (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
+            // User is locked out and is retrying removing their wallet.
+            self.coreVC!.restoreWalletTapped()
         }
     }
     
