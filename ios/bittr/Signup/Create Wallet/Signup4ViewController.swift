@@ -103,8 +103,14 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     override func viewWillAppear(_ animated: Bool) {
         
         // Set notification observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+        // Use a single keyboardWillChangeFrame observer instead of the
+        // willShow/willHide pair: when focus moves between the word fields iOS
+        // posts a hide immediately followed by a show, and reacting to both
+        // bounced the content down then back up — the keyboard appeared to
+        // dismiss and re-open on every field change. Remove first so repeated
+        // viewWillAppear calls don't stack duplicate observers.
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChangeFrame), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
     }
     
     func setMnemonic() {
@@ -129,25 +135,25 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    @objc func keyboardWillDisappear() {
-        
+    @objc func keyboardWillChangeFrame(_ notification: Notification) {
+
+        guard let userInfo = notification.userInfo,
+              let endFrame = (userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
+
+        // How much of the view the keyboard now covers (0 once it's fully gone).
+        let endFrameInView = self.view.convert(endFrame, from: nil)
+        let overlap = max(0, self.view.bounds.maxY - endFrameInView.minY)
+
+        // Moving between fields fires this with an unchanged frame — skip it so
+        // the layout doesn't churn, which is what produced the flicker.
+        if self.contentViewBottom.constant == -overlap { return }
+
         NSLayoutConstraint.deactivate([self.contentViewBottom])
-        self.contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: 0)
+        self.contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -overlap)
         NSLayoutConstraint.activate([self.contentViewBottom])
-        
-        self.view.layoutIfNeeded()
-    }
-    
-    @objc func keyboardWillAppear(_ notification:Notification) {
-        
-        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
-            
-            let keyboardHeight = keyboardSize.height
-            
-            NSLayoutConstraint.deactivate([self.contentViewBottom])
-            self.contentViewBottom = NSLayoutConstraint(item: contentView!, attribute: .bottom, relatedBy: .equal, toItem: scrollView, attribute: .bottom, multiplier: 1, constant: -keyboardHeight)
-            NSLayoutConstraint.activate([self.contentViewBottom])
-            
+
+        let duration = (userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
+        UIView.animate(withDuration: duration) {
             self.view.layoutIfNeeded()
         }
     }
