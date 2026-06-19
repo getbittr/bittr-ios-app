@@ -41,7 +41,20 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var copyIban: UIImageView!
     @IBOutlet weak var copyName: UIImageView!
     @IBOutlet weak var copyCode: UIImageView!
-    
+
+    // MARK: - Payment-mode toggle (built programmatically; the card is storyboard-based)
+
+    let paymentModeView = UIView()
+    let payoutTitleLabel = UILabel()
+    let lightningPill = UIButton(type: .system)
+    let onchainPill = UIButton(type: .system)
+
+    /// Current payout mode shown by the toggle ("lightning" / "onchain" / "" when unknown).
+    private(set) var currentPaymentMode = ""
+    /// Called when the user taps a different pill. The owning VC performs the PATCH and
+    /// re-configures the cell from the resulting (server-confirmed) state.
+    var onPaymentModeChange: ((String) -> Void)?
+
     override func awakeFromNib() {
 
         self.labelYourCode.accessibilityIdentifier = TestID.Buy.yourCode
@@ -63,10 +76,87 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.ibanButton.setTitle("", for: .normal)
         self.nameButton.setTitle("", for: .normal)
         self.codeButton.setTitle("", for: .normal)
-        
+
+        // Payment-mode toggle (must exist before changeColors/setWords style it)
+        self.setupPaymentModeToggle()
+
         // Colors and language
         self.changeColors()
         self.setWords()
+    }
+
+    // MARK: - Payment-mode toggle
+
+    private func setupPaymentModeToggle() {
+
+        paymentModeView.translatesAutoresizingMaskIntoConstraints = false
+        paymentModeView.layer.cornerRadius = 13
+        cardBackgroundView.addSubview(paymentModeView)
+
+        payoutTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        payoutTitleLabel.font = self.titleYourCode.font
+        paymentModeView.addSubview(payoutTitleLabel)
+
+        let pillStack = UIStackView(arrangedSubviews: [lightningPill, onchainPill])
+        pillStack.translatesAutoresizingMaskIntoConstraints = false
+        pillStack.axis = .horizontal
+        pillStack.distribution = .fillEqually
+        pillStack.spacing = 8
+        paymentModeView.addSubview(pillStack)
+
+        for (tag, pill) in [lightningPill, onchainPill].enumerated() {
+            pill.tag = tag // 0 = lightning, 1 = onchain
+            pill.titleLabel?.font = self.labelYourCode.font
+            pill.layer.cornerRadius = 10
+            pill.addTarget(self, action: #selector(paymentPillTapped(_:)), for: .touchUpInside)
+        }
+
+        // Anchor the toggle below the deposit-code section. No bottom pin to the card
+        // (kept .defaultLow-free) so it can't conflict with the storyboard constraints;
+        // the cell height is enlarged in BuyViewController.sizeForItemAt to make room.
+        NSLayoutConstraint.activate([
+            paymentModeView.topAnchor.constraint(equalTo: codeView.bottomAnchor, constant: 12),
+            paymentModeView.leadingAnchor.constraint(equalTo: codeView.leadingAnchor),
+            paymentModeView.trailingAnchor.constraint(equalTo: codeView.trailingAnchor),
+            paymentModeView.heightAnchor.constraint(equalToConstant: 68),
+
+            payoutTitleLabel.topAnchor.constraint(equalTo: paymentModeView.topAnchor, constant: 8),
+            payoutTitleLabel.leadingAnchor.constraint(equalTo: paymentModeView.leadingAnchor, constant: 12),
+            payoutTitleLabel.trailingAnchor.constraint(equalTo: paymentModeView.trailingAnchor, constant: -12),
+
+            pillStack.leadingAnchor.constraint(equalTo: paymentModeView.leadingAnchor, constant: 12),
+            pillStack.trailingAnchor.constraint(equalTo: paymentModeView.trailingAnchor, constant: -12),
+            pillStack.bottomAnchor.constraint(equalTo: paymentModeView.bottomAnchor, constant: -8),
+            pillStack.topAnchor.constraint(equalTo: payoutTitleLabel.bottomAnchor, constant: 6)
+        ])
+    }
+
+    /// Set the toggle to reflect a server-confirmed mode ("lightning" / "onchain" / "").
+    func configurePaymentMode(_ mode: String) {
+        self.currentPaymentMode = mode
+        self.stylePills()
+    }
+
+    private func stylePills() {
+        let yellow = Colors.getColor("yellow")
+        let blackOrWhite = Colors.getColor("blackorwhite")
+
+        let lightningSelected = (currentPaymentMode == "lightning")
+        let onchainSelected = (currentPaymentMode == "onchain")
+
+        lightningPill.backgroundColor = lightningSelected ? yellow : .clear
+        onchainPill.backgroundColor = onchainSelected ? yellow : .clear
+        lightningPill.setTitleColor(blackOrWhite, for: .normal)
+        onchainPill.setTitleColor(blackOrWhite, for: .normal)
+    }
+
+    @objc private func paymentPillTapped(_ sender: UIButton) {
+        let newMode = sender.tag == 0 ? "lightning" : "onchain"
+        if newMode == currentPaymentMode { return }
+        // Optimistically reflect the tap; the VC re-configures us from the server result
+        // (and reverts on failure) once the PATCH completes.
+        configurePaymentMode(newMode)
+        onPaymentModeChange?(newMode)
     }
     
     func changeColors() {
@@ -87,14 +177,24 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.copyIban.tintColor = Colors.getColor("blackorwhite")
         self.copyName.tintColor = Colors.getColor("blackorwhite")
         self.copyCode.tintColor = Colors.getColor("blackorwhite")
+
+        self.paymentModeView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.payoutTitleLabel.textColor = Colors.getColor("blackorwhite")
+        self.stylePills()
     }
-    
+
     func setWords() {
-        
+
         self.titleYourEmail.text = Language.getWord(withID: "youremail")
         self.titleYourIBAN.text = Language.getWord(withID: "youriban")
         self.titleOurIBAN.text = Language.getWord(withID: "ouriban")
         self.titleOurName.text = Language.getWord(withID: "ourname")
         self.titleYourCode.text = Language.getWord(withID: "yourcode")
+
+        // TODO: localize these via Language.getWord once the keys are added to Language.swift
+        // (kept as literals here to avoid a blind multi-language edit in this PR).
+        self.payoutTitleLabel.text = "Payout to"
+        self.lightningPill.setTitle("⚡ Lightning", for: .normal)
+        self.onchainPill.setTitle("⛓ On-chain", for: .normal)
     }
 }
