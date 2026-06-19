@@ -177,10 +177,18 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             if eachIbanEntity.id == currentIbanID {
                 
                 // Send email and verification code to bittr API.
-                let parameters: [String: Any] = [
+                // Include the lightning node pubkey so the backend can recognise a
+                // returning customer (recovery): the restore fields (deposit_code +
+                // original signed message) are only returned when BOTH the email and
+                // the pubkey match an existing record. If the node isn't up yet we omit
+                // it and the backend treats this as a new registration.
+                var parameters: [String: Any] = [
                     "email_address": eachIbanEntity.yourEmail,
                     "token_2fa": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
                 ]
+                if let lightningPubKey = BitcoinManager.shared.nodeId() {
+                    parameters["lightning_pubkey"] = lightningPubKey
+                }
                 
                 let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email/check2fa"
                 
@@ -204,9 +212,16 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                                     
                                     // Update the in-memory IBAN entity with the new email token
                                     self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
-                                    
+
+                                    // Recovery: a returning customer (email + pubkey matched) gets back
+                                    // their existing deposit code and the original signed message. When
+                                    // both are present we reuse the deposit code and sign that message
+                                    // verbatim instead of rebuilding it.
+                                    let restoreDepositCode = receivedDictionary["deposit_code"] as? String
+                                    let restoreMessage = receivedDictionary["message"] as? String
+
                                     // Get wallet address.
-                                    self.gatherParameters(ibanEntity: eachIbanEntity)
+                                    self.gatherParameters(ibanEntity: eachIbanEntity, restoreDepositCode: restoreDepositCode, restoreMessage: restoreMessage)
                                 } else if let actualErrorMessage = errorMessage as? String {
                                     if actualErrorMessage == "Invalid 2FA verification token provided" {
                                         self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -230,10 +245,14 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     }
     
     
-    func gatherParameters(ibanEntity:IbanEntity) {
-        
+    func gatherParameters(ibanEntity:IbanEntity, restoreDepositCode: String? = nil, restoreMessage: String? = nil) {
+
         // Generate message and signature.
-        let message = "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(ibanEntity.emailToken.prefix(32)). IBAN: \(ibanEntity.yourIbanNumber)"
+        // On recovery, sign the backend's stored registration message verbatim — do NOT
+        // rebuild it. The IBAN embedded in that message may differ from the IBAN being
+        // submitted now (the backend verifies the signature against the stored message
+        // but persists the new IBAN), so rebuilding would break signature verification.
+        let message = restoreMessage ?? "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(ibanEntity.emailToken.prefix(32)). IBAN: \(ibanEntity.yourIbanNumber)"
         let signingPath = BitcoinManager.shared.defaultBip84SigningPath()
         let signature = try! BitcoinManager.shared.signMessageForPath(path: signingPath, message: message)
         
@@ -278,7 +297,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             let xpub = BitcoinManager.shared.xpub
             
             // Gather parameters.
-            let parameters: [String: Any] = [
+            var parameters: [String: Any] = [
                 "email": ibanEntity.yourEmail,
                 "email_token": ibanEntity.emailToken,
                 "bitcoin_address": firstAddress,
@@ -295,7 +314,13 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 "skip_xpub_usage_check": "true",
                 "ios_device_token": CacheManager.getRegistrationToken() ?? ""
             ]
-            
+            // Recovery: reuse the existing deposit code so the backend updates the
+            // existing customer instead of creating a new order. lightning_pubkey
+            // (above) must match the one sent in check2fa and stored on the customer.
+            if let restoreDepositCode = restoreDepositCode {
+                parameters["deposit_code"] = restoreDepositCode
+            }
+
             // Send details to Bittr.
             self.createBittrAccount(ibanEntity: ibanEntity, parameters: parameters)
         }
