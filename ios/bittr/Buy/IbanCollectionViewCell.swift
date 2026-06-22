@@ -56,6 +56,8 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.labelYourCode.accessibilityIdentifier = TestID.Buy.yourCode
         self.labelYourEmail.accessibilityIdentifier = TestID.Buy.yourEmail
         self.labelYourIban.accessibilityIdentifier = TestID.Buy.yourIban
+        self.paymentModeSwitch.accessibilityIdentifier = TestID.Buy.paymentModeSwitch
+        self.paymentModeButton.accessibilityIdentifier = TestID.Buy.paymentModeButton
 
         // Corner radii
         self.cardBackgroundView.layer.cornerRadius = 20
@@ -85,7 +87,12 @@ class IbanCollectionViewCell: UICollectionViewCell {
         
         let newMode = sender.isOn ? "lightning" : "onchain"
         Log.info("Will switch payment mode to \(newMode).")
-        
+
+        // Disable the switch + show the spinner while the PATCH is in flight so a
+        // second flip can't fire a concurrent, racing request. cellForItemAt
+        // re-enables it (and stops the spinner) when the cell is reloaded with the
+        // server-confirmed value, on both success and failure.
+        sender.isEnabled = false
         self.paymentModeSpinner.startAnimating()
         self.buyVC!.setPaymentMode(for: self.ibanEntity!, newMode: newMode)
     }

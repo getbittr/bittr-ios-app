@@ -1,0 +1,116 @@
+# Feature test: the lightning/onchain payout-mode toggle on the Buy card.
+# Switches the deposit code's payout mode via PATCH /customer/payment-mode and
+# verifies the switch reflects the server-confirmed value.
+#
+# Self-provisioning (runs standalone): restores a wallet if there isn't one, and
+# creates a bittr order (buy_signup) if the Buy card has no deposit code. Orders
+# are created as lightning orders, so the switch starts ON. The test then toggles
+# to onchain, asserts, and toggles back to lightning.
+#
+# Switching to lightning needs a connected lightning node on file — buy_signup
+# registers the node (lightning_pubkey), so no open channel is required, just an
+# order.
+#
+# NOTE: the on/off assertions use Maestro's `checked` selector against the
+# UISwitch (buy.paymentModeSwitch). If `checked` doesn't read the switch state
+# on iOS in your Maestro version, drop the `checked:` lines and rely on the
+# screenshots instead.
+#
+# Run: maestro test shared/flows/features/payment_mode.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# 1) Ensure a wallet and reach Home (restore if none exists, else unlock).
+- runFlow:
+    when:
+      notVisible:
+        id: "unlock.topLabel"
+    file: ../onboarding/restore_wallet.yaml
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+- assertVisible:
+    id: "home.headerLabel"
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
+# 2) Open Buy and let getDepositCodeData (updateDataSpinner) settle so an
+#    existing order's card has rendered before we test for it.
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.headerLabel"
+- waitForAnimationToEnd:
+    timeout: 30000
+
+# 3) Ensure an order exists. No deposit code on the card => no bittr account yet
+#    => sign up (buy_signup ends on Home), then reopen Buy.
+- runFlow:
+    when:
+      notVisible:
+        id: "buy.yourCode"
+    file: buy_signup.yaml
+- runFlow:
+    when:
+      visible:
+        id: "home.buyButton"
+    commands:
+      - tapOn:
+          id: "home.buyButton"
+      - assertVisible:
+          id: "buy.headerLabel"
+      - waitForAnimationToEnd:
+          timeout: 30000
+
+# 4) The card + toggle are present. Orders are created as lightning, so the
+#    switch starts ON.
+- assertVisible:
+    id: "buy.yourCode"
+- assertVisible:
+    id: "buy.paymentModeSwitch"
+- takeScreenshot: shared/docs/screenshots/payment_mode/01_card
+
+# 4b) Tap the "?" help button next to the toggle and verify the Lightning
+#     explanation alert appears (buyvclightningexplanation), then dismiss it.
+- tapOn:
+    id: "buy.paymentModeButton"
+- assertVisible:
+    text: "very low fees"
+- takeScreenshot: shared/docs/screenshots/payment_mode/01b_explanation
+- tapOn:
+    id: "alert.button.0"
+
+# 5) Toggle to onchain. Tapping fires the PATCH; the switch is disabled + a
+#    spinner shows until the server-confirmed value reloads. Wait until the
+#    switch settles to off (a failed PATCH would revert it to on -> timeout).
+- tapOn:
+    id: "buy.paymentModeSwitch"
+- extendedWaitUntil:
+    visible:
+      id: "buy.paymentModeSwitch"
+      checked: false
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/payment_mode/02_onchain
+
+# 6) Toggle back to lightning.
+- tapOn:
+    id: "buy.paymentModeSwitch"
+- extendedWaitUntil:
+    visible:
+      id: "buy.paymentModeSwitch"
+      checked: true
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/payment_mode/03_lightning
+
+# 7) Close Buy -> Home.
+- tapOn:
+    id: "buy.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/payment_mode/04_home

@@ -139,7 +139,9 @@
     "continueButton": null,
     "yourCode": null,
     "yourEmail": null,
-    "yourIban": null
+    "yourIban": null,
+    "paymentModeSwitch": null,
+    "paymentModeButton": null
   },
   "question": {
     "yellowCard": null,

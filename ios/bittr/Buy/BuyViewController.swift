@@ -113,7 +113,11 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             cell.nameButton.boundString = thisIbanEntity.ourName
             cell.codeButton.boundString = thisIbanEntity.yourUniqueCode
             
+            // Reset the toggle to a settled, server-confirmed state. Re-enabling
+            // here is what clears the in-flight lock set in didChangePaymentModeSwitch
+            // (so a reload after success/failure makes the switch interactive again).
             cell.paymentModeSpinner.stopAnimating()
+            cell.paymentModeSwitch.isEnabled = true
             if thisIbanEntity.paymentMode != "onchain" {
                 cell.paymentModeSwitch.isOn = true
             } else {
@@ -240,6 +244,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             // Entities received in expected format.
             var someDetailsHaveChanged = false
             var paymentModeChanged = false
+            var changedPaymentModeIndexPaths = [IndexPath]()
 
             guard
                 let depositCode = receivedEntity["deposit_code"] as? String,
@@ -279,6 +284,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     // Payout mode is tracked independently of the IBAN/SWIFT details above.
                     if let paymentMode = paymentMode, paymentMode != eachExistingEntity.paymentMode {
                         paymentModeChanged = true
+                        changedPaymentModeIndexPaths.append(IndexPath(item: index, section: 0))
                         self.allIbanEntities[index].paymentMode = paymentMode
                         for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
                             if eachWalletEntity.yourUniqueCode == depositCode {
@@ -296,8 +302,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             } else if paymentModeChanged {
                 // Only the payout mode changed (e.g. toggled on another device) — refresh
-                // the toggle silently, no "details updated" alert.
-                self.ibanCollectionView.reloadData()
+                // just the affected card(s) silently, no "details updated" alert.
+                self.ibanCollectionView.reloadItems(at: changedPaymentModeIndexPaths)
             }
         } else {
             // Data received in wrong format.
@@ -315,7 +321,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // The lightning node must be running to sign the request.
         guard BitcoinManager.shared.ldkNode != nil, let pubkey = BitcoinManager.shared.nodeId() else {
             Log.info("Lightning not ready for payment mode update.")
-            self.ibanCollectionView.reloadData() // revert the optimistic toggle
+            self.reloadCard(for: entity) // revert the optimistic toggle
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
@@ -324,16 +330,16 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         let timestamp = Int(Date().timeIntervalSince1970)
         let message = "payment_mode:\(pubkey):\(depositCode):\(newMode):\(timestamp)"
 
-        self.updateDataSpinner.startAnimating()
-
+        // The per-card spinner next to the switch (started in the cell's
+        // didChangePaymentModeSwitch) is the only progress indicator; it's
+        // cleared when the card reloads with the server-confirmed value.
         Task {
             let signature: String
             do {
                 signature = try await BitcoinManager.shared.signMessage(message: message)
             } catch {
                 DispatchQueue.main.async {
-                    self.updateDataSpinner.stopAnimating()
-                    self.handlePaymentModeError(error.localizedDescription)
+                    self.handlePaymentModeError(error.localizedDescription, for: entity)
                 }
                 return
             }
@@ -350,7 +356,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             Log.info("Will make payment mode update API call.")
             await CallsManager.makeApiCall(url: url, parameters: parameters, getOrPost: .patch) { result in
                 DispatchQueue.main.async {
-                    self.updateDataSpinner.stopAnimating()
 
                     switch result {
                     case .success(let receivedDictionary):
@@ -377,10 +382,10 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                                 self.setPaymentMode(for: entity, newMode: newMode, isRetry: true)
                                 return
                             }
-                            self.handlePaymentModeError(serverError)
+                            self.handlePaymentModeError(serverError, for: entity)
                         }
                     case .failure(let error):
-                        self.handlePaymentModeError(error.localizedDescription)
+                        self.handlePaymentModeError(error.localizedDescription, for: entity)
                     }
                 }
             }
@@ -399,14 +404,24 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             }
         }
         CacheManager.setPaymentMode(ibanID: entity.id, paymentMode: mode)
-        self.ibanCollectionView.reloadData()
+        self.reloadCard(for: entity)
     }
 
-    private func handlePaymentModeError(_ message: String) {
+    private func handlePaymentModeError(_ message: String, for entity: IbanEntity) {
         Log.info("Will handle payment mode error.")
         // Revert the optimistic toggle to the last server-confirmed value.
-        self.ibanCollectionView.reloadData()
+        self.reloadCard(for: entity)
         self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentmodeupdateerror"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+
+    /// Reload just the card for this deposit code (keeps the other cards + the
+    /// horizontal scroll position; falls back to a full reload if not found).
+    private func reloadCard(for entity: IbanEntity) {
+        if let index = self.allIbanEntities.firstIndex(where: { $0.yourUniqueCode == entity.yourUniqueCode }) {
+            self.ibanCollectionView.reloadItems(at: [IndexPath(item: index, section: 0)])
+        } else {
+            self.ibanCollectionView.reloadData()
+        }
     }
     
     @IBAction func paymentModeQuestionTapped(_ sender: UIButton) {

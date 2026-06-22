@@ -558,7 +558,7 @@ class Language: NSObject {
             "removewallet": "Remove wallet",
             "settings": "Settings",
             "buyvclightning": "Lightning",
-            "buyvclightningexplanation": "Bittr purchases between 20 and 100 € go into your lightning connection. With lightning, you can send and receive instant payments against low fees.\n\nSwitch this off to receive all bittr purchases into the regular (on-chain) part of your wallet.",
+            "buyvclightningexplanation": "Purchases up to 100 EUR/CHF go into your Lightning connection. Spend and receive instantly, with very low fees.\n\nTurn this off to receive your bittr purchases on-chain instead, in the regular part of your wallet.",
             "lightningnotready": "Lightning not ready",
             "paymentmodeupdateerror": "Couldn't update payout mode"
             
