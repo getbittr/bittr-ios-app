@@ -71,7 +71,6 @@ extension CoreViewController {
                 if !self.removingWalletForIncorrectPin {
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
-                    CacheManager.setWalletRemovalInProgress(true)
                 }
                 
                 if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
@@ -91,6 +90,10 @@ extension CoreViewController {
                         // User is locked out. Show "Try again" button, as only available user action.
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
+                        // Manual removal is deferred until the close settles — remember it
+                        // so the next launch can offer to resume (covers a channel closed
+                        // out from under us as well as our own coop close).
+                        CacheManager.setWalletRemovalInProgress(true)
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
@@ -147,10 +150,17 @@ extension CoreViewController {
     
     @objc func closeChannelConfirmed() {
         self.hideAlert()
-        
+
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
-        
+
+        // The user has confirmed the close, so the manual removal is now committed.
+        // Mark it in progress so it resumes on the next launch if it doesn't finish
+        // this session. (The incorrect-PIN lockout has its own resume path.)
+        if !self.removingWalletForIncorrectPin {
+            CacheManager.setWalletRemovalInProgress(true)
+        }
+
         guard isConnectedToPeer() else {
             Task {
                 let didConnectToPeer = await BitcoinManager.shared.connectToLightningPeer()
@@ -227,6 +237,10 @@ extension CoreViewController {
         // force-close attempt until a terminal alert appears.
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
+
+        // Force close is a manual-only path; the removal is committed, so mark it
+        // in progress to resume on the next launch if it doesn't finish.
+        CacheManager.setWalletRemovalInProgress(true)
 
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             // Try force close (unilateral closure)
