@@ -49,6 +49,11 @@ shared/flows/
                           running. Requires an active channel with outbound
                           capacity.
     swap.yaml             Lightning ↔ onchain, both directions.
+    payment_mode.yaml     The lightning/onchain payout-mode toggle on the Buy
+                          card (PATCH /customer/payment-mode). Self-provisions:
+                          restores a wallet if none and creates an order
+                          (buy_signup) if there's no deposit code, then toggles
+                          the switch and asserts the server-confirmed state.
     forgot_pin.yaml       Forgot-PIN recovery from the unlock screen — types
                           the cached mnemonic and resets the PIN. Requires
                           the MNEMONIC env var (see Running below).

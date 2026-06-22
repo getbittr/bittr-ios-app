@@ -80,6 +80,10 @@ maestro test shared/flows/features/send_onchain.yaml
 maestro test shared/flows/features/send_onchain_all.yaml
 maestro test shared/flows/features/swap.yaml
 
+# Payout-mode toggle (lightning <-> onchain) on the Buy card. Self-provisioning
+# (restores a wallet + creates an order if needed), so it can run on its own:
+maestro test shared/flows/features/payment_mode.yaml
+
 # Lightning send (normal + zero-amount invoice + Lightning Address). All three
 # targets are server-side now (invoices via the e2e endpoint / request_invoice.js,
 # address = fixed e2e e2ebittr@staging.getbittr.com), so no --env is needed.

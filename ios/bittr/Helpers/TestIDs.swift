@@ -17,6 +17,8 @@ enum TestID {
         static let yourCode = "buy.yourCode"
         static let yourEmail = "buy.yourEmail"
         static let yourIban = "buy.yourIban"
+        static let paymentModeSwitch = "buy.paymentModeSwitch"
+        static let paymentModeButton = "buy.paymentModeButton"
     }
     enum Device {
         enum Darkmode {
