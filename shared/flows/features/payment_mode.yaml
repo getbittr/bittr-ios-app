@@ -22,11 +22,17 @@ appId: com.bittr.bittr-regtest
 ---
 - launchApp
 
-# 1) Ensure a wallet and reach Home (restore if none exists, else unlock).
+# 1) Ensure a wallet and reach Home, WITHOUT wiping an existing wallet:
+#    - Restore only if there's genuinely no wallet, i.e. the app launched to the
+#      create-wallet signup screen. (Gating on "unlock screen not visible" was
+#      wrong: when a wallet exists but the app opens straight to Home, that also
+#      has no unlock screen, so it wrongly restored and wiped the wallet each run.)
+#    - Otherwise, if it launched to the locked PIN screen, unlock.
+#    - Otherwise it's already on Home (a still-unlocked session) — proceed.
 - runFlow:
     when:
-      notVisible:
-        id: "unlock.topLabel"
+      visible:
+        id: "signup.create.start.createWalletButton"
     file: ../onboarding/restore_wallet.yaml
 - runFlow:
     when:
