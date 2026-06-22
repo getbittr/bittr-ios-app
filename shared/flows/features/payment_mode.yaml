@@ -78,10 +78,12 @@ appId: com.bittr.bittr-regtest
 
 # 4b) Tap the "?" help button next to the toggle and verify the Lightning
 #     explanation alert appears (buyvclightningexplanation), then dismiss it.
+#     Maestro's `text` is a regex matched against the element's WHOLE text, so
+#     the substring needs .* wildcards to match within the long message label.
 - tapOn:
     id: "buy.paymentModeButton"
 - assertVisible:
-    text: "very low fees"
+    text: ".*very low fees.*"
 - takeScreenshot: shared/docs/screenshots/payment_mode/01b_explanation
 - tapOn:
     id: "alert.button.0"
