@@ -1,0 +1,127 @@
+# Feature test: the PIN lockout path WITH an open Lightning channel. Entering
+# the wrong PIN ten times wipes the wallet — but because a channel is open, the
+# wipe must first cooperatively close it and wait for the funds to settle
+# on-chain before it can complete. This exercises the "still closing" + Try
+# again retry loop, then drops the user back on Signup1.
+#
+# Self-provisioning: the flow ensures the required state itself. It restores a
+# wallet if none exists, then checks for an open channel (via the Receive
+# screen's More button) and, if there is none, builds a bittr account (if
+# missing) and opens a channel via buy_signup + buy_incoming. If an open channel
+# already exists it is reused. The fail counter is at 0 after the unlock/setup.
+# See helpers/ensure_bittr_channel.yaml. (Detection is best-effort — see the
+# UNVERIFIED notes below and in that helper.)
+#
+# This flow is destructive: it removes the wallet. Run once against a wallet
+# in the required state.
+#
+# For the simpler no-channel case (immediate wipe), see wrong_pin.yaml. The ten
+# wrong-PIN attempts are shared via helpers/wrong_pin_until_lockout.yaml.
+#
+# Behaviour under test (PinViewController + ResetApp):
+#   - Entries 1..9 show the "incorrect PIN" alert; entry 10 runs removeWallet()
+#     -> removingWalletForIncorrectPin set -> background wipe.
+#   - restoreWalletTapped finds an open channel and (because this is the
+#     automated lockout wipe) cooperatively closes it via closeChannelConfirmed,
+#     then shows the "still closing" alert with a single "Try again" button
+#     wired to startWalletInBackground. We mine blocks + tap Try again until the
+#     funds have settled and channelsFullyClosedAndSwept() is true, at which
+#     point performWalletReset runs and relaunches Signup1.
+#
+# Run: maestro test shared/flows/features/wrong_pin_with_channel.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# --- Self-provision: ensure a wallet with an OPEN channel --------------------
+# 1) Ensure a wallet and reach Home. On launch an existing wallet shows the PIN
+#    unlock screen; if it's absent, restore one (restore_wallet ends on Home).
+#    If it's present, unlock to reach Home.
+- runFlow:
+    when:
+      notVisible:
+        id: "unlock.topLabel"
+    file: ../onboarding/restore_wallet.yaml
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+- assertVisible:
+    id: "home.headerLabel"
+# Let the post-unlock wallet sync finish so channel state is accurate.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
+# 2) Detect a channel via the Receive screen. ReceiveViewController only shows
+#    the "More" button when getActiveChannel() != nil (3 cards / no More without
+#    a channel; 4 cards / More with one), so receive.moreButton is the channel
+#    signal. Wait for the QR spinner to settle so the cards have rendered first.
+#    UNVERIFIED: confirm receive.moreButton is reliably present/absent on the
+#    default Receive view for the with/without-channel cases.
+- tapOn:
+    id: "home.receiveButton"
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/wrong_pin_with_channel/00_channel_check
+
+# 3) No "More" button => no channel => build a bittr account (if needed) and
+#    open a channel. Gated on the single check above, evaluated here while we're
+#    on the Receive screen (so the condition is meaningful).
+- runFlow:
+    when:
+      notVisible:
+        id: "receive.moreButton"
+    file: ../helpers/ensure_bittr_channel.yaml
+
+# 4) Relaunch to return to the locked unlock screen. We may be on Receive (a
+#    channel already existed) or on Home (we just built one) — either way the
+#    relaunch lands on the unlock screen with the fail counter at 0.
+- launchApp
+- takeScreenshot: shared/docs/screenshots/wrong_pin_with_channel/01_unlock
+
+# Enter the wrong PIN ten times -> lockout + background wipe begins.
+- runFlow:
+    file: ../helpers/wrong_pin_until_lockout.yaml
+- takeScreenshot: shared/docs/screenshots/wrong_pin_with_channel/02_wipe_started
+
+# A channel is open, so the wipe can't finish immediately: after the background
+# sync, a cooperative close is broadcast and the "still closing" alert
+# (stillclosing) appears with a single "Try again" button (alert.button.0).
+# The cover/spinner animate during the sync, so wait for the screen to settle
+# into that alert (or, if there turned out to be nothing to close, into Signup1
+# — in which case the loop below runs zero times).
+- waitForAnimationToEnd:
+    timeout: 120000
+
+# While the "still closing" alert keeps reappearing, mine 6 blocks to confirm
+# the cooperative close on-chain (same count used for channel-open/close
+# confirmation elsewhere) and tap "Try again" (alert.button.0). That re-syncs
+# and re-checks whether the funds have settled enough to remove the wallet.
+# Each retry spins the cover again, so wait for it to settle before re-testing
+# the condition. Once the wipe completes the alert stops returning.
+- repeat:
+    while:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/wrong_pin_with_channel/03_still_closing
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - tapOn:
+          id: "alert.button.0"
+      - waitForAnimationToEnd:
+          timeout: 120000
+
+# The wipe has completed: performWalletReset cleared state, stopped the node,
+# and relaunched signup on page 3 (Signup1).
+- extendedWaitUntil:
+    visible:
+      id: "signup.create.start.createWalletButton"
+    timeout: 120000
+- takeScreenshot: shared/docs/screenshots/wrong_pin_with_channel/04_signup1

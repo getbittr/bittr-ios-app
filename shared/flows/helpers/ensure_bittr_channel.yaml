@@ -1,0 +1,51 @@
+# Reusable subflow: ensures the wallet has an OPEN Lightning channel, building
+# whatever is missing. Invoked by wrong_pin_with_channel.yaml ONLY when no
+# channel was detected. Assumes a wallet already exists.
+#
+# Steps:
+#   1. Unlock (if locked) and open Buy.
+#   2. If the Buy card shows no deposit code, there's no bittr account yet, so
+#      run buy_signup to create one.
+#   3. Run buy_incoming to open + confirm the channel.
+# buy_signup and buy_incoming each relaunch + unlock themselves, so this flow
+# doesn't manage navigation between them. Ends on Home with an open channel.
+#
+# UNVERIFIED: this flow has not been executed against Maestro. Two assumptions
+# to confirm on a first real run:
+#   - The "no deposit code => run buy_signup" gate waits for the Buy update
+#     spinner to settle first (waitForAnimationToEnd) so an existing card has
+#     rendered before we test buy.yourCode; tune the wait if it races.
+#   - buy_incoming is one-shot (fails if a channel already exists); it only runs
+#     here because the caller already confirmed there is no channel.
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: unlock.yaml
+- assertVisible:
+    id: "home.headerLabel"
+
+# Open Buy and let getDepositCodeData (updateDataSpinner) settle so an existing
+# bittr account's card has rendered before we test for it.
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.headerLabel"
+- waitForAnimationToEnd:
+    timeout: 30000
+
+# No deposit code on the Buy card => no bittr account yet => sign up first.
+- runFlow:
+    when:
+      notVisible:
+        id: "buy.yourCode"
+    file: ../features/buy_signup.yaml
+
+# Open the incoming channel (buy_incoming relaunches + unlocks itself, triggers
+# the bank transaction and mines blocks until the channel confirms).
+- runFlow:
+    file: ../features/buy_incoming.yaml
