@@ -33,6 +33,7 @@ appId: com.bittr.bittr-regtest
 
 # --- Funded-state features (reuse the open channel + funds) -------------------
 - runFlow: features/buy_more.yaml              # subsequent top-up (needs push_server)
+- runFlow: features/payment_mode.yaml          # toggle payout mode lightning <-> onchain (PATCH); non-destructive
 - runFlow: features/receive.yaml
 - runFlow: features/receive_onchain.yaml       # onchain receive → small onchain send
 - runFlow: features/receive_invoice.yaml       # lightning receive → send
@@ -49,13 +50,21 @@ appId: com.bittr.bittr-regtest
 # --- Drains the entire onchain balance — must run after the onchain flows above
 - runFlow: features/send_onchain_all.yaml
 
-# --- PIN recovery (non-destructive). forgot_pin needs the MNEMONIC env; ---------
-#     pin_warning is self-contained (it re-runs restore_wallet → a fresh wallet
-#     with NO channel), so it has to come after every channel-dependent flow.
+# --- PIN recovery (non-destructive), run while the main wallet + channel are
+#     still alive. forgot_pin needs the MNEMONIC env, keeps the wallet + channel,
+#     and resets the PIN back to 1234.
 - runFlow: features/forgot_pin.yaml
-- runFlow: features/pin_warning.yaml
 
 # --- Destructive wipes, dead last ---------------------------------------------
-- runFlow: features/wrong_pin.yaml             # 10 wrong PINs → wipes the wallet → Signup1
+# Channel-dependent lockout first — it reuses the main channel that's still open
+# here (nothing above closes it; send_onchain_all only drains onchain).
+- runFlow: features/wrong_pin_with_channel.yaml # lockout → cooperative close → wipe → Signup1
+# No wallet now; this one self-provisions its own wallet + channel, then removes
+# it via the Forgot-PIN path (the one unavoidable channel rebuild).
+- runFlow: features/forgot_pin_remove_wallet.yaml
+# pin_warning does a clean restore (fresh wallet, NO channel) and recovers
+# non-destructively — leaving exactly the no-channel wallet wrong_pin wants next.
+- runFlow: features/pin_warning.yaml
+- runFlow: features/wrong_pin.yaml             # 10 wrong PINs (no channel) → wipe → Signup1
 - runFlow: onboarding/restore_wallet.yaml      # re-setup a wallet for remove_wallet
 - runFlow: features/remove_wallet.yaml         # Settings → Device details → Remove wallet
