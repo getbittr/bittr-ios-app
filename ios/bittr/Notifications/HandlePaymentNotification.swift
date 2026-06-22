@@ -341,7 +341,9 @@ extension CoreViewController {
                         }
                     }
                     answer = answer.replacingOccurrences(of: "<reason>", with: "")
-                    self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: answer, type: nil)
+                    if !self.removingWalletForIncorrectPin {
+                        self.launchQuestion(question: Language.getWord(withID: "closedlightningchannel"), answer: answer, type: nil)
+                    }
                     self.syncLDKnode()
                 }
             case .channelPending(channelId: _, userChannelId: _, formerTemporaryChannelId: _, counterpartyNodeId: _, fundingTxo: let fundingTxo):

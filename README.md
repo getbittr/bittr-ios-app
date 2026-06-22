@@ -88,7 +88,11 @@ maestro test shared/flows/features/swap.yaml
 maestro test shared/flows/features/send_lightning.yaml
 
 maestro test shared/flows/features/remove_wallet.yaml
+# PIN lockout, no open channel (immediate wipe):
 maestro test shared/flows/features/wrong_pin.yaml
+# PIN lockout with an open channel (close + Try again retry loop) — set up a
+# channel first (e.g. run buy_incoming.yaml):
+maestro test shared/flows/features/wrong_pin_with_channel.yaml
 maestro test shared/flows/features/bitcoin_value.yaml
 maestro test shared/flows/features/bitcoin_map.yaml
 maestro test shared/flows/features/academy.yaml

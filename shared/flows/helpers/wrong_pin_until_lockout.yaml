@@ -1,0 +1,90 @@
+# Reusable subflow: enters the wrong PIN ten times on the unlock screen to
+# trigger the lockout and start the wallet wipe. Assumes the unlock screen is
+# visible (PinViewController in its .core embedding) with the failed-attempt
+# counter at 0. Wrong PIN is 1111 (the correct PIN is 1234, set by the
+# onboarding flows).
+#
+# Attempts 1..9 each show the "incorrect PIN" alert (incorrectpin /
+# incorrectpin2) with a single Okay button (alert.button.0), which this flow
+# taps to clear the field. The 10th confirm triggers removeWallet():
+# removingWalletForIncorrectPin is set and the background wipe begins.
+#
+# This subflow STOPS at the 10th confirm. It deliberately does NOT tap the
+# lockout alert: removeWallet() shows it and then synchronously calls
+# restoreWalletTapped() -> startWalletInBackground(), whose first line is
+# hideAlert(), so the lockout alert is hidden in the same main-thread turn and
+# never reliably renders. What happens next depends on whether a Lightning
+# channel has to be cooperatively closed first, so the caller handles it:
+#   - wrong_pin.yaml              — no channel, the wipe lands on Signup1.
+#   - wrong_pin_with_channel.yaml — channel close + "Try again" retry loop.
+#
+# The digit taps use waitToSettleTimeoutMs: 0 to skip Maestro's per-tap settle
+# wait (the PIN buttons only flash a background and toggle a dot), the main
+# speed-up across the 40+ taps in this flow.
+
+appId: com.bittr.bittr-regtest
+---
+- assertVisible:
+    id: "unlock.topLabel"
+
+# Wrong PIN attempt 1 of 10.
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    id: "alert.button.0"
+- tapOn:
+    id: "alert.button.0"
+
+# Wrong PIN attempts 2..9 (8 more "incorrect PIN" alerts). After the 9th the
+# failed-attempt counter sits at 9.
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.button1"
+          waitToSettleTimeoutMs: 0
+      - tapOn:
+          id: "pin.confirmButton"
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
+
+# Wrong PIN attempt 10. The counter increments to 10, so this triggers the
+# lockout + background wipe instead of the "incorrect PIN" alert. No Okay tap
+# here (see the header — the lockout alert never reliably renders).
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.button1"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "pin.confirmButton"

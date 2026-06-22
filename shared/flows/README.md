@@ -58,9 +58,18 @@ shared/flows/
     remove_wallet.yaml    Settings → Device details → Remove wallet. Handles
                           both branches (active channel → close → mine →
                           re-trigger; no channel → direct confirm).
-    wrong_pin.yaml        PIN lockout from the unlock screen — ten wrong
-                          PINs wipe the wallet and drop back to Signup1
-                          (run onboarding/restore_wallet.yaml first).
+    wrong_pin.yaml        PIN lockout with NO open channel — ten wrong PINs
+                          wipe the wallet (immediately, nothing to close) and
+                          drop back to Signup1. Self-provisions: restores a
+                          wallet first if none exists. Shares the 10 attempts via
+                          helpers/wrong_pin_until_lockout.yaml.
+    wrong_pin_with_channel.yaml  PIN lockout WITH an open channel — the wipe
+                          cooperatively closes the channel and runs the "still
+                          closing" → mine → Try again retry loop before landing
+                          on Signup1. Self-provisions: restores a wallet if
+                          needed and builds a channel (via
+                          helpers/ensure_bittr_channel.yaml) if none is detected.
+                          Same shared lockout helper.
     pin_warning.yaml      The 3-wrong-attempt warning on the unlock screen,
                           then recovery via its Forgot PIN button. Self-
                           contained — runs restore_wallet.yaml first (runFlow)
@@ -84,6 +93,15 @@ shared/flows/
                           (QuestionViewController).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
+    wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
+                          screen to trigger the lockout + background wipe; stops
+                          at the 10th confirm so the caller can handle the
+                          channel/no-channel divergence. Used by wrong_pin.yaml
+                          and wrong_pin_with_channel.yaml.
+    ensure_bittr_channel.yaml  Ensures the wallet has an open Lightning channel:
+                          runs buy_signup (if no bittr account) + buy_incoming.
+                          Invoked by wrong_pin_with_channel.yaml only when no
+                          channel is detected. (Best-effort / unverified.)
     show_onchain_address.yaml  From a freshly-opened Receive screen, waits out
                           the QR spinner and switches the type to the onchain
                           Address (via More → Address) when a channel is present.

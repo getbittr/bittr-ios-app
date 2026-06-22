@@ -196,6 +196,23 @@ class CoreViewController: UIViewController {
         if self.walletIsAvailable {
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
+
+            // Check whether the user has been locked out of their wallet.
+            // Guard against re-entry: once the removal is in progress, don't stack
+            // another lockout alert + a second concurrent startWallet() task if
+            // showPinOrSignup runs again.
+            if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
+                Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
+                self.removingWalletForIncorrectPin = true
+                self.fullViewCover.alpha = 0.8
+                self.genericSpinner.startAnimating()
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                
+                // Start wallet in background.
+                Task {
+                    await self.startWallet()
+                }
+            }
         } else {
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
