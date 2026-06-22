@@ -17,7 +17,8 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var nameView: UIView!
     @IBOutlet weak var codeView: UIView!
     @IBOutlet weak var emailView: UIView!
-
+    @IBOutlet weak var paymentModeView: UIView!
+    
     // Dynamic labels
     @IBOutlet weak var labelYourEmail: UILabel!
     @IBOutlet weak var labelYourIban: UILabel!
@@ -31,16 +32,24 @@ class IbanCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var titleOurIBAN: UILabel!
     @IBOutlet weak var titleOurName: UILabel!
     @IBOutlet weak var titleYourCode: UILabel!
-
+    @IBOutlet weak var titlePaymentMode: UILabel!
+    
     // Buttons
     @IBOutlet weak var ibanButton: UIButton!
     @IBOutlet weak var nameButton: UIButton!
     @IBOutlet weak var codeButton: UIButton!
-
+    @IBOutlet weak var paymentModeButton: UIButton!
+    @IBOutlet weak var paymentModeSwitch: UISwitch!
+    @IBOutlet weak var paymentModeSpinner: UIActivityIndicatorView!
+    
     // Images
     @IBOutlet weak var copyIban: UIImageView!
     @IBOutlet weak var copyName: UIImageView!
     @IBOutlet weak var copyCode: UIImageView!
+    
+    // Variables
+    var ibanEntity:IbanEntity?
+    var buyVC:BuyViewController?
 
     override func awakeFromNib() {
 
@@ -55,6 +64,7 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.nameView.layer.cornerRadius = 13
         self.codeView.layer.cornerRadius = 13
         self.emailView.layer.cornerRadius = 13
+        self.paymentModeView.layer.cornerRadius = 13
 
         // Background card styling
         self.cardBackgroundView.setShadow()
@@ -63,12 +73,23 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.ibanButton.setTitle("", for: .normal)
         self.nameButton.setTitle("", for: .normal)
         self.codeButton.setTitle("", for: .normal)
+        self.paymentModeButton.setTitle("", for: .normal)
 
         // Colors and language
         self.changeColors()
         self.setWords()
     }
-
+    
+    @IBAction func didChangePaymentModeSwitch(_ sender: UISwitch) {
+        guard self.buyVC != nil, self.ibanEntity != nil else { return }
+        
+        let newMode = sender.isOn ? "lightning" : "onchain"
+        Log.info("Will switch payment mode to \(newMode).")
+        
+        self.paymentModeSpinner.startAnimating()
+        self.buyVC!.setPaymentMode(for: self.ibanEntity!, newMode: newMode)
+    }
+    
     func changeColors() {
 
         self.labelYourEmail.textColor = Colors.getColor("blackorwhite")
@@ -83,6 +104,8 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.nameView.backgroundColor = Colors.getColor("whiteorblue3")
         self.codeView.backgroundColor = Colors.getColor("whiteorblue3")
         self.emailView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.paymentModeView.backgroundColor = Colors.getColor("whiteorblue3")
+        self.paymentModeSpinner.color = Colors.getColor("blackorwhite")
 
         self.copyIban.tintColor = Colors.getColor("blackorwhite")
         self.copyName.tintColor = Colors.getColor("blackorwhite")
@@ -96,5 +119,6 @@ class IbanCollectionViewCell: UICollectionViewCell {
         self.titleOurIBAN.text = Language.getWord(withID: "ouriban")
         self.titleOurName.text = Language.getWord(withID: "ourname")
         self.titleYourCode.text = Language.getWord(withID: "yourcode")
+        self.titlePaymentMode.text = Language.getWord(withID: "buyvclightning")
     }
 }

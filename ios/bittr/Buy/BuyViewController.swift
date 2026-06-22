@@ -99,15 +99,26 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             
             cell.cardBackgroundViewWidth.constant = self.view.bounds.width - 30
             
-            cell.labelYourEmail.text = self.allIbanEntities[indexPath.row].yourEmail
-            cell.labelYourIban.text = self.allIbanEntities[indexPath.row].yourIbanNumber
-            cell.labelOurIban.text = self.allIbanEntities[indexPath.row].ourIbanNumber
-            cell.labelOurName.text = self.allIbanEntities[indexPath.row].ourName
-            cell.labelYourCode.text = self.allIbanEntities[indexPath.row].yourUniqueCode
+            let thisIbanEntity = self.allIbanEntities[indexPath.row]
+            cell.ibanEntity = thisIbanEntity
+            cell.buyVC = self
             
-            cell.ibanButton.boundString = self.allIbanEntities[indexPath.row].ourIbanNumber
-            cell.nameButton.boundString = self.allIbanEntities[indexPath.row].ourName
-            cell.codeButton.boundString = self.allIbanEntities[indexPath.row].yourUniqueCode
+            cell.labelYourEmail.text = thisIbanEntity.yourEmail
+            cell.labelYourIban.text = thisIbanEntity.yourIbanNumber
+            cell.labelOurIban.text = thisIbanEntity.ourIbanNumber
+            cell.labelOurName.text = thisIbanEntity.ourName
+            cell.labelYourCode.text = thisIbanEntity.yourUniqueCode
+            
+            cell.ibanButton.boundString = thisIbanEntity.ourIbanNumber
+            cell.nameButton.boundString = thisIbanEntity.ourName
+            cell.codeButton.boundString = thisIbanEntity.yourUniqueCode
+            
+            cell.paymentModeSpinner.stopAnimating()
+            if thisIbanEntity.paymentMode != "onchain" {
+                cell.paymentModeSwitch.isOn = true
+            } else {
+                cell.paymentModeSwitch.isOn = false
+            }
 
             return cell
         } else {
@@ -144,7 +155,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
         let cellWidth = viewWidth - 30
-        return CGSize(width: cellWidth, height: 285)
+        return CGSize(width: cellWidth, height: 340)
     }
     
     @IBAction func continueButtonTapped(_ sender: UIButton) {
@@ -303,9 +314,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
 
         // The lightning node must be running to sign the request.
         guard BitcoinManager.shared.ldkNode != nil, let pubkey = BitcoinManager.shared.nodeId() else {
+            Log.info("Lightning not ready for payment mode update.")
             self.ibanCollectionView.reloadData() // revert the optimistic toggle
-            // TODO: localize the title once the key is added to Language.swift.
-            self.showAlert(presentingController: self, title: "Lightning not ready", message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
 
@@ -336,6 +347,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 "timestamp": timestamp
             ]
 
+            Log.info("Will make payment mode update API call.")
             await CallsManager.makeApiCall(url: url, parameters: parameters, getOrPost: .patch) { result in
                 DispatchQueue.main.async {
                     self.updateDataSpinner.stopAnimating()
@@ -345,11 +357,21 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                         // Success shape mirrors GET /deposit_code: { data: { payment_mode: ... } }
                         if let data = receivedDictionary["data"] as? NSDictionary,
                            let confirmedMode = data["payment_mode"] as? String {
+                            Log.info("Payment mode successfully updated.")
                             self.applyPaymentMode(confirmedMode, to: entity)
                         } else {
+                            Log.info("Did receive payment mode API server error.")
+                            
                             // Error envelope is { success: false, error: "..." }; some
                             // signed endpoints use "message" instead, so check both.
                             let serverError = (receivedDictionary["error"] as? String) ?? (receivedDictionary["message"] as? String) ?? "Unknown error"
+                            
+                            // Send to Sentry.
+                            SentrySDK.capture(message: "Error updating payment mode: \(serverError)") { scope in
+                                scope.setExtra(value: "BuyViewController row 367", key: "context")
+                            }
+                            
+                            // Retry.
                             if serverError.lowercased().contains("expired timestamp"), !isRetry {
                                 // Stale timestamp — rebuild with a fresh one and retry once.
                                 self.setPaymentMode(for: entity, newMode: newMode, isRetry: true)
@@ -381,12 +403,18 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
 
     private func handlePaymentModeError(_ message: String) {
+        Log.info("Will handle payment mode error.")
         // Revert the optimistic toggle to the last server-confirmed value.
         self.ibanCollectionView.reloadData()
-        // TODO: localize the title once the key is added to Language.swift.
-        self.showAlert(presentingController: self, title: "Couldn't update payout mode", message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentmodeupdateerror"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
-
+    
+    @IBAction func paymentModeQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvclightning"), message: Language.getWord(withID: "buyvclightningexplanation"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+    
     func changeColors() {
 
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
