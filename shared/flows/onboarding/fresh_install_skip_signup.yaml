@@ -1,0 +1,29 @@
+# Top-level: wipes app data + keychain and runs wallet creation from
+# scratch, then skips the bittr signup. Sister flow to fresh_install.yaml,
+# which instead completes the bittr signup (happy_path_signup.yaml).
+#
+# Exercises the "Skip" path on Signup7 (wallet-ready): instead of
+# continuing into the IBAN/email/OTP signup, the user taps Skip, which
+# calls Signup7VC.skipButtonTapped → coreVC.hideSignup() to lower the
+# signup stack and land directly on Home with the freshly created wallet.
+#
+# Run: maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: happy_path_wallet.yaml
+
+# Signup7 (wallet-ready): skip the bittr signup instead of continuing.
+- assertVisible:
+    id: "signup.create.ready.skipButton"
+- takeScreenshot: shared/docs/screenshots/fresh_install_skip_signup/01_wallet_ready
+- tapOn:
+    id: "signup.create.ready.skipButton"
+
+# hideSignup lowers Signup7 and Home appears with the new wallet.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/fresh_install_skip_signup/02_home

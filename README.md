@@ -63,6 +63,10 @@ In another terminal, from the repo root, run a flow:
 # Option 1: Full reset + onboarding from scratch:
 maestro test shared/flows/onboarding/fresh_install.yaml
 
+# Option 1b: Full reset + wallet creation, skipping the bittr signup
+# (taps "Skip" on Signup7 and lands on Home):
+maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
+
 # Option 2: Full reset + restore existing wallet.
 # Followed by onboarding through the Buy page.
 maestro test shared/flows/onboarding/restore_wallet.yaml

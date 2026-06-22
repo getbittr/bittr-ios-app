@@ -7,8 +7,15 @@ Single source of truth for end-to-end UI tests. The same YAML drives iOS and And
 ```
 shared/flows/
   onboarding/      Wallet + bittr signup flows.
-    fresh_install.yaml    Wipes state and runs happy_path. Top-level entry.
-    happy_path.yaml       Reusable subflow: Signup1 → Home.
+    fresh_install.yaml    Wipes state, then runs happy_path_wallet +
+                          happy_path_signup (Signup1 → Home). Top-level entry.
+    fresh_install_skip_signup.yaml
+                          Wipes state, runs happy_path_wallet, then taps
+                          "Skip" on Signup7 to land on Home without the
+                          bittr signup. Top-level entry.
+    happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
+                          the wallet-ready screen (Signup7).
+    happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
     restore_wallet.yaml   Wipes state and runs the "Restore wallet" path
                           from Signup1 with a fixed test mnemonic, PIN 1234.
     smoke.yaml            Bare-minimum check that the test-ID pipeline reaches Maestro.
@@ -179,7 +186,7 @@ The flow then POSTs the payload to `http://localhost:8888/push`, which `xcrun si
 maestro test --env MNEMONIC="word1 word2 ... word12" shared/flows/features/forgot_pin.yaml
 ```
 
-Use the same mnemonic the wallet was set up with (the one happy_path generated during onboarding). `parse_mnemonic.js` validates the count and splits the words into `output.words[1..12]`.
+Use the same mnemonic the wallet was set up with (the one happy_path_wallet generated during onboarding). `parse_mnemonic.js` validates the count and splits the words into `output.words[1..12]`.
 
 ### Lightning send
 
