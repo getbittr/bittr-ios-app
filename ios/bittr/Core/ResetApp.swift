@@ -90,6 +90,10 @@ extension CoreViewController {
                         // User is locked out. Show "Try again" button, as only available user action.
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
+                        // Manual removal is deferred until the close settles — remember it
+                        // so the next launch can offer to resume (covers a channel closed
+                        // out from under us as well as our own coop close).
+                        CacheManager.setWalletRemovalInProgress(true)
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
@@ -120,7 +124,20 @@ extension CoreViewController {
             await self.startWallet()
         }
     }
-    
+
+    @objc func resumeWalletRemoval() {
+        Log.info("Resume wallet removal.")
+        self.hideAlert()
+        self.resettingPin = true
+        self.startWalletInBackground()
+    }
+
+    @objc func cancelWalletRemoval() {
+        Log.info("Cancel wallet removal.")
+        self.hideAlert()
+        CacheManager.setWalletRemovalInProgress(false)
+    }
+
     @objc func walletRestoreAlert() {
         self.hideAlert()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "remove")], actions: [nil, #selector(self.performWalletReset)])
@@ -133,7 +150,17 @@ extension CoreViewController {
     
     @objc func closeChannelConfirmed() {
         self.hideAlert()
-        
+
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
+
+        // The user has confirmed the close, so the manual removal is now committed.
+        // Mark it in progress so it resumes on the next launch if it doesn't finish
+        // this session. (The incorrect-PIN lockout has its own resume path.)
+        if !self.removingWalletForIncorrectPin {
+            CacheManager.setWalletRemovalInProgress(true)
+        }
+
         guard isConnectedToPeer() else {
             Task {
                 let didConnectToPeer = await BitcoinManager.shared.connectToLightningPeer()
@@ -178,6 +205,8 @@ extension CoreViewController {
                         self.genericSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
                     }
                 }
@@ -209,7 +238,16 @@ extension CoreViewController {
 
     @objc func forceCloseChannel() {
         self.hideAlert()
-        
+
+        // Same as closeChannelConfirmed: keep the cover + spinner up during the
+        // force-close attempt until a terminal alert appears.
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
+
+        // Force close is a manual-only path; the removal is committed, so mark it
+        // in progress to resume on the next launch if it doesn't finish.
+        CacheManager.setWalletRemovalInProgress(true)
+
         if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
             // Try force close (unilateral closure)
             Log.info("Attempting force close for channel.")
@@ -224,6 +262,8 @@ extension CoreViewController {
                         scope.setExtra(value: "ResetApp row 213", key: "context")
                     }
                     if !self.removingWalletForIncorrectPin {
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "forceclose3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
                 }
@@ -256,6 +296,9 @@ extension CoreViewController {
         // Reset PIN reset state
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
+        
+        // Removal finished — clear the resume-on-launch flag.
+        CacheManager.setWalletRemovalInProgress(false)
         
         // Clear mnemonic from cache
         CacheManager.deleteClientInfo()

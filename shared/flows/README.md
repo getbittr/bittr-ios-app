@@ -58,6 +58,11 @@ shared/flows/
     remove_wallet.yaml    Settings → Device details → Remove wallet. Handles
                           both branches (active channel → close → mine →
                           re-trigger; no channel → direct confirm).
+    forgot_pin_remove_wallet.yaml
+                          Forgot PIN → Reset → RestoreVC → Remove wallet. The
+                          resettingPin removal, same two branches as
+                          remove_wallet.yaml. Destructive (drops to Signup1);
+                          no MNEMONIC env var needed.
     wrong_pin.yaml        PIN lockout with NO open channel — ten wrong PINs
                           wipe the wallet (immediately, nothing to close) and
                           drop back to Signup1. Self-provisions: restores a
@@ -144,7 +149,7 @@ Don't run `maestro test shared/flows/` to get the whole suite: a folder run
 executes flows in alphabetical order with no dependency awareness, but the
 feature flows deliberately share wallet state and several are destructive
 (`send_onchain_all` drains the onchain balance; `wrong_pin` / `remove_wallet`
-wipe the wallet). `suite.yaml` is a hand-ordered orchestrator that runs them so
+/ `forgot_pin_remove_wallet` wipe the wallet). `suite.yaml` is a hand-ordered orchestrator that runs them so
 dependencies hold and the wipes come last; `test_suite.sh` wraps it, starting
 the `push`/`clipboard` helper servers (which Maestro can't start itself) and
 passing the `MNEMONIC` env that `forgot_pin` needs. A failure aborts the suite

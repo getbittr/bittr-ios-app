@@ -1,0 +1,182 @@
+# Feature test: removing the wallet via the Forgot-PIN path.
+#
+#   Unlock screen → Forgot PIN → Reset → RestoreVC (Restore1) → Remove wallet
+#   → confirm Remove wallet → wallet wipes → Signup1.
+#
+# This is the resettingPin removal (RestoreVC.removeWalletButtonTapped →
+# ResetApp.restoreWalletTapped), as opposed to remove_wallet.yaml which drives
+# the same reset from Settings → Device details while signed in. Covers both
+# branches of restoreWalletTapped:
+#   • No active Lightning channel — confirm + reset straight to Signup1
+#     (always the tail of this flow).
+#   • Active Lightning channel — close the connection on-chain first, mine to
+#     confirm, dismiss the .channelClosed QuestionVC, acknowledge the
+#     "still closing" alert, then fully close and reopen the app. The deferred
+#     removal persisted CacheManager.walletRemovalInProgress, so the relaunch
+#     surfaces the "try removing again?" prompt (showPinOrSignup); tapping
+#     Remove wallet resumes it and lands on Signup1.
+#
+# Branch detection: after confirming Remove wallet the wipe syncs behind the
+# full-screen genericSpinner, then lands on either the restorewallet4
+# "close your connection(s)" alert (channel) or Signup1 (no channel). We let
+# the spinner settle (waitForAnimationToEnd) and branch on whether a two-button
+# alert (alert.button.1) is showing — the same structural test remove_wallet.yaml
+# relies on, since Maestro reads the attributed-text alert body unreliably.
+#
+# Self-provisioning: if the device has no wallet (the app launches to the
+# create-wallet signup screen), the flow creates one WITH an open Lightning
+# channel — via helpers/create_wallet_with_channel.yaml (happy_path onboarding +
+# buy_incoming) — so the removal exercises the channel-close + resume arc. If a
+# wallet already exists it's used as-is (it may or may not have a channel; the
+# conditional close-channel arc handles both). The flow otherwise preserves
+# state (no clearState / clearKeychain). Unlike forgot_pin.yaml this needs no
+# MNEMONIC env var — it removes the wallet rather than verifying the phrase.
+#
+# This flow is destructive: it removes the wallet and drops back to Signup1.
+#
+# Run: maestro test shared/flows/features/forgot_pin_remove_wallet.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+
+# Self-provision a wallet WITH a Lightning channel if there's none — i.e. the
+# app launched to the create-wallet signup screen. Skipped if a wallet exists.
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../helpers/create_wallet_with_channel.yaml
+
+# Land on the locked PIN unlock screen (relaunch — a freshly-provisioned or an
+# existing wallet both lock on launch). Fail loudly otherwise: no wallet to remove.
+- launchApp
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/01_unlock
+
+# Tap "Forgot PIN".
+- tapOn:
+    id: "pin.restoreButton"
+
+# In-app alert: [Cancel, Reset]. Tap Reset (index 1) → startPinReset sets
+# resettingPin and opens RestoreVC on the recovery-phrase page.
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/02_reset_alert
+- tapOn:
+    id: "alert.button.1"
+
+# RestoreVC (Restore1). In resettingPin mode it shows the "Remove wallet"
+# button beneath the mnemonic fields. We remove the wallet instead of typing
+# the phrase.
+- assertVisible:
+    id: "signup.restore.topLabel"
+- takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/03_restore
+- tapOn:
+    id: "signup.restore.removeWalletButton"
+
+# Confirmation alert (removewallet1): [Cancel, Remove wallet]. Tap Remove
+# wallet (index 1) → startWalletInBackground syncs the wallet behind the
+# genericSpinner, then restoreWalletTapped decides the branch.
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/04_remove_confirm
+- tapOn:
+    id: "alert.button.1"
+
+# The wipe runs behind the full-screen yellow cover + genericSpinner. The
+# spinner animates for the whole sync, so wait for the screen to settle into
+# whichever state comes next — the channel-close alert, or Signup1.
+- waitForAnimationToEnd:
+    timeout: 120000
+
+# Channel-close arc — only when an active Lightning channel made the wipe
+# defer (a two-button alert is showing). When there's no channel this whole
+# block is skipped and we fall through to the Signup1 wait below.
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.1"
+    commands:
+      # Alert 1 — restorewallet4 ("Please close your lightning connection(s)
+      # before restoring a wallet…"). Tap "Close connection(s)" (alert.button.1).
+      - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/05_close_channel_warning
+      - tapOn:
+          id: "alert.button.1"
+
+      # Alert 2 — closechannel2 ("…funds will be deposited back into your
+      # wallet…"). Tap "Close connection(s)" again. This kicks off
+      # closeChannelConfirmed → BitcoinManager.closeChannel.
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.1"
+          timeout: 10000
+      - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/06_funds_warning
+      - tapOn:
+          id: "alert.button.1"
+
+      # LDK processes the .channelClosed event and presents a QuestionVC over
+      # Core (launchQuestion fires for the manual reset — it's only suppressed
+      # for the incorrect-PIN wipe). Wait for it, then dismiss via the shared
+      # header down button.
+      - extendedWaitUntil:
+          visible:
+            id: "question.yellowCard"
+          timeout: 90000
+      # Let the QuestionVC finish sliding in so its text is fully rendered
+      # before the screenshot (the visibility check fires as soon as the card
+      # is detectable, mid-animation).
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/07_channel_closed_popup
+      - tapOn:
+          id: "header.downButton"
+
+      # Underneath the QuestionVC is the "still closing" alert (stillclosing,
+      # single Okay button) shown by closeChannelConfirmed after broadcasting
+      # the cooperative close. Acknowledge it; this leaves us back on RestoreVC.
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.0"
+          timeout: 10000
+      - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/08_still_closing
+      - tapOn:
+          id: "alert.button.0"
+
+      # Mine 6 blocks so the channel-close transaction confirms on-chain —
+      # same count as the channel-open/close confirmation elsewhere.
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+
+      # Fully close and reopen the app instead of re-tapping in-session. The
+      # deferred removal persisted CacheManager.walletRemovalInProgress, so on
+      # relaunch showPinOrSignup proactively asks whether to resume. Relaunch
+      # also forces a fresh full sync, so the node sees the just-mined close
+      # confirmation.
+      - stopApp
+      - launchApp
+
+      # Resume prompt (removalinprogress): [Cancel, Remove wallet]. Tap Remove
+      # wallet (index 1) → resumeWalletRemoval re-syncs and, with the close now
+      # confirmed and funds settled, performWalletReset finishes the wipe.
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.1"
+          timeout: 30000
+      # Let the resume alert finish sliding in so its text is fully rendered
+      # before the screenshot.
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/09_resume_prompt
+      - tapOn:
+          id: "alert.button.1"
+
+# performWalletReset clears state, stops the node, and after a ~1s delay
+# relaunches signup on page 3 (Signup1). Allow generous slack for the sync +
+# node teardown.
+- extendedWaitUntil:
+    visible:
+      id: "signup.create.start.createWalletButton"
+    timeout: 120000
+- takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/10_signup1

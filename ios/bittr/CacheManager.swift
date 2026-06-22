@@ -977,7 +977,25 @@ class CacheManager: NSObject {
         let defaults = UserDefaults.standard
         defaults.set(0, forKey: envKey)
     }
-    
+
+    // MARK: - Wallet removal in progress
+
+    static func setWalletRemovalInProgress(_ inProgress: Bool) {
+
+        let envKey = EnvironmentConfig.cacheKey(for: "walletremovalinprogress")
+
+        let defaults = UserDefaults.standard
+        defaults.set(inProgress, forKey: envKey)
+    }
+
+    static func walletRemovalIsInProgress() -> Bool {
+
+        let envKey = EnvironmentConfig.cacheKey(for: "walletremovalinprogress")
+
+        let defaults = UserDefaults.standard
+        return defaults.bool(forKey: envKey)
+    }
+
     // MARK: - Event handling
     
     static func didHandleEvent(event:String) {

@@ -212,6 +212,9 @@ class CoreViewController: UIViewController {
                 Task {
                     await self.startWallet()
                 }
+            } else if CacheManager.walletRemovalIsInProgress() {
+                Log.info("A wallet removal was left in progress — offering to resume it on launch.")
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
             }
         } else {
             self.signupContainerView.alpha = 1
