@@ -198,7 +198,10 @@ class CoreViewController: UIViewController {
             self.pinContainerView.alpha = 1
 
             // Check whether the user has been locked out of their wallet.
-            if CacheManager.getFailedPinAttempts() >= 10 {
+            // Guard against re-entry: once the removal is in progress, don't stack
+            // another lockout alert + a second concurrent startWallet() task if
+            // showPinOrSignup runs again.
+            if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
                 Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
                 self.removingWalletForIncorrectPin = true
                 self.fullViewCover.alpha = 0.8
