@@ -26,6 +26,7 @@ class CallsManager: NSObject {
             switch getOrPost {
             case .get: return "GET"
             case .post: return "POST"
+            case .patch: return "PATCH"
             }
         }()
         
@@ -98,4 +99,5 @@ class CallsManager: NSObject {
 enum CallType {
     case get
     case post
+    case patch
 }

@@ -99,16 +99,31 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             
             cell.cardBackgroundViewWidth.constant = self.view.bounds.width - 30
             
-            cell.labelYourEmail.text = self.allIbanEntities[indexPath.row].yourEmail
-            cell.labelYourIban.text = self.allIbanEntities[indexPath.row].yourIbanNumber
-            cell.labelOurIban.text = self.allIbanEntities[indexPath.row].ourIbanNumber
-            cell.labelOurName.text = self.allIbanEntities[indexPath.row].ourName
-            cell.labelYourCode.text = self.allIbanEntities[indexPath.row].yourUniqueCode
+            let thisIbanEntity = self.allIbanEntities[indexPath.row]
+            cell.ibanEntity = thisIbanEntity
+            cell.buyVC = self
             
-            cell.ibanButton.boundString = self.allIbanEntities[indexPath.row].ourIbanNumber
-            cell.nameButton.boundString = self.allIbanEntities[indexPath.row].ourName
-            cell.codeButton.boundString = self.allIbanEntities[indexPath.row].yourUniqueCode
+            cell.labelYourEmail.text = thisIbanEntity.yourEmail
+            cell.labelYourIban.text = thisIbanEntity.yourIbanNumber
+            cell.labelOurIban.text = thisIbanEntity.ourIbanNumber
+            cell.labelOurName.text = thisIbanEntity.ourName
+            cell.labelYourCode.text = thisIbanEntity.yourUniqueCode
             
+            cell.ibanButton.boundString = thisIbanEntity.ourIbanNumber
+            cell.nameButton.boundString = thisIbanEntity.ourName
+            cell.codeButton.boundString = thisIbanEntity.yourUniqueCode
+            
+            // Reset the toggle to a settled, server-confirmed state. Re-enabling
+            // here is what clears the in-flight lock set in didChangePaymentModeSwitch
+            // (so a reload after success/failure makes the switch interactive again).
+            cell.paymentModeSpinner.stopAnimating()
+            cell.paymentModeSwitch.isEnabled = true
+            if thisIbanEntity.paymentMode != "onchain" {
+                cell.paymentModeSwitch.isOn = true
+            } else {
+                cell.paymentModeSwitch.isOn = false
+            }
+
             return cell
         } else {
             return UICollectionViewCell()
@@ -144,7 +159,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         let viewWidth = self.view.safeAreaLayoutGuide.layoutFrame.size.width
         let cellWidth = viewWidth - 30
-        return CGSize(width: cellWidth, height: 285)
+        return CGSize(width: cellWidth, height: 340)
     }
     
     @IBAction func continueButtonTapped(_ sender: UIButton) {
@@ -228,7 +243,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if let receivedEntity = receivedDictionary["data"] as? NSDictionary {
             // Entities received in expected format.
             var someDetailsHaveChanged = false
-            
+            var paymentModeChanged = false
+            var changedPaymentModeIndexPaths = [IndexPath]()
+
             guard
                 let depositCode = receivedEntity["deposit_code"] as? String,
                 let partnerIban = receivedEntity["iban"] as? String,
@@ -236,8 +253,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             else {
                 return
             }
-            
+
             let lightningAddressUsername = receivedEntity["lightning_address_username"] as? String
+            let paymentMode = receivedEntity["payment_mode"] as? String
                 
             for (index, eachExistingEntity) in self.allIbanEntities.enumerated() {
                 if eachExistingEntity.yourUniqueCode == depositCode {
@@ -262,13 +280,30 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                         // Update details in cache.
                         CacheManager.addBittrIban(ibanID: eachExistingEntity.id, ourIban: partnerIban, ourSwift: partnerSwift, yourCode: depositCode, lightningAddressUsername: lightningAddressUsername)
                     }
+
+                    // Payout mode is tracked independently of the IBAN/SWIFT details above.
+                    if let paymentMode = paymentMode, paymentMode != eachExistingEntity.paymentMode {
+                        paymentModeChanged = true
+                        changedPaymentModeIndexPaths.append(IndexPath(item: index, section: 0))
+                        self.allIbanEntities[index].paymentMode = paymentMode
+                        for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                            if eachWalletEntity.yourUniqueCode == depositCode {
+                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].paymentMode = paymentMode
+                            }
+                        }
+                        CacheManager.setPaymentMode(ibanID: eachExistingEntity.id, paymentMode: paymentMode)
+                    }
                 }
             }
-            
+
             if someDetailsHaveChanged {
                 // Data has been updated.
                 self.parseIbanEntities(uponPageLaunch: false)
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            } else if paymentModeChanged {
+                // Only the payout mode changed (e.g. toggled on another device) — refresh
+                // just the affected card(s) silently, no "details updated" alert.
+                self.ibanCollectionView.reloadItems(at: changedPaymentModeIndexPaths)
             }
         } else {
             // Data received in wrong format.
@@ -279,8 +314,124 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
     }
     
-    func changeColors() {
+    // MARK: - Payout mode (PATCH /customer/payment-mode)
+
+    func setPaymentMode(for entity: IbanEntity, newMode: String, isRetry: Bool = false) {
+
+        // The lightning node must be running to sign the request.
+        guard BitcoinManager.shared.ldkNode != nil, let pubkey = BitcoinManager.shared.nodeId() else {
+            Log.info("Lightning not ready for payment mode update.")
+            self.reloadCard(for: entity) // revert the optimistic toggle
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+
+        let depositCode = entity.yourUniqueCode
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let message = "payment_mode:\(pubkey):\(depositCode):\(newMode):\(timestamp)"
+
+        // The per-card spinner next to the switch (started in the cell's
+        // didChangePaymentModeSwitch) is the only progress indicator; it's
+        // cleared when the card reloads with the server-confirmed value.
+        Task {
+            let signature: String
+            do {
+                signature = try await BitcoinManager.shared.signMessage(message: message)
+            } catch {
+                DispatchQueue.main.async {
+                    self.handlePaymentModeError(error.localizedDescription, for: entity)
+                }
+                return
+            }
+
+            let url = "\(EnvironmentConfig.bittrAPIBaseURL)/customer/payment-mode"
+            let parameters: [String: Any] = [
+                "deposit_code": depositCode,
+                "payment_mode": newMode,
+                "pubkey": pubkey,
+                "signature": signature,
+                "timestamp": timestamp
+            ]
+
+            Log.info("Will make payment mode update API call.")
+            await CallsManager.makeApiCall(url: url, parameters: parameters, getOrPost: .patch) { result in
+                DispatchQueue.main.async {
+
+                    switch result {
+                    case .success(let receivedDictionary):
+                        // Success shape mirrors GET /deposit_code: { data: { payment_mode: ... } }
+                        if let data = receivedDictionary["data"] as? NSDictionary,
+                           let confirmedMode = data["payment_mode"] as? String {
+                            Log.info("Payment mode successfully updated.")
+                            self.applyPaymentMode(confirmedMode, to: entity)
+                        } else {
+                            Log.info("Did receive payment mode API server error.")
+                            
+                            // Error envelope is { success: false, error: "..." }; some
+                            // signed endpoints use "message" instead, so check both.
+                            let serverError = (receivedDictionary["error"] as? String) ?? (receivedDictionary["message"] as? String) ?? "Unknown error"
+                            
+                            // Send to Sentry.
+                            SentrySDK.capture(message: "Error updating payment mode: \(serverError)") { scope in
+                                scope.setExtra(value: "BuyViewController row 367", key: "context")
+                            }
+                            
+                            // Retry.
+                            if serverError.lowercased().contains("expired timestamp"), !isRetry {
+                                // Stale timestamp — rebuild with a fresh one and retry once.
+                                self.setPaymentMode(for: entity, newMode: newMode, isRetry: true)
+                                return
+                            }
+                            self.handlePaymentModeError(serverError, for: entity)
+                        }
+                    case .failure(let error):
+                        self.handlePaymentModeError(error.localizedDescription, for: entity)
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyPaymentMode(_ mode: String, to entity: IbanEntity) {
+
+        entity.paymentMode = mode
+        for (index, eachEntity) in self.allIbanEntities.enumerated() where eachEntity.yourUniqueCode == entity.yourUniqueCode {
+            self.allIbanEntities[index].paymentMode = mode
+        }
+        if let coreVC = self.coreVC {
+            for (index, eachEntity) in coreVC.bittrWallet.ibanEntities.enumerated() where eachEntity.yourUniqueCode == entity.yourUniqueCode {
+                coreVC.bittrWallet.ibanEntities[index].paymentMode = mode
+            }
+        }
+        CacheManager.setPaymentMode(ibanID: entity.id, paymentMode: mode)
+        self.reloadCard(for: entity)
+    }
+
+    private func handlePaymentModeError(_ message: String, for entity: IbanEntity) {
+        Log.info("Will handle payment mode error.")
+        // Revert the optimistic toggle to the last server-confirmed value.
+        self.reloadCard(for: entity)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentmodeupdateerror"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+
+    /// Reload just the card for this deposit code (keeps the other cards + the
+    /// horizontal scroll position; falls back to a full reload if not found).
+    private func reloadCard(for entity: IbanEntity) {
+        if let index = self.allIbanEntities.firstIndex(where: { $0.yourUniqueCode == entity.yourUniqueCode }) {
+            self.ibanCollectionView.reloadItems(at: [IndexPath(item: index, section: 0)])
+        } else {
+            self.ibanCollectionView.reloadData()
+        }
+    }
+    
+    @IBAction func paymentModeQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
         
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvclightning"), message: Language.getWord(withID: "buyvclightningexplanation"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+    }
+    
+    func changeColors() {
+
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.emptyLabel.textColor = Colors.getColor("blackorwhite")

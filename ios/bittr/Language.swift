@@ -556,7 +556,11 @@ class Language: NSObject {
             "lnauth2": "You've been successfully signed in.",
             "lnauth3": "We could not sign you in. Please try again.",
             "removewallet": "Remove wallet",
-            "settings": "Settings"
+            "settings": "Settings",
+            "buyvclightning": "Lightning",
+            "buyvclightningexplanation": "Purchases up to 100 EUR/CHF go into your Lightning connection. Spend and receive instantly, with very low fees.\n\nTurn this off to receive your bittr purchases on-chain instead, in the regular part of your wallet.",
+            "lightningnotready": "Lightning not ready",
+            "paymentmodeupdateerror": "Couldn't update payout mode"
             
         ]
         
