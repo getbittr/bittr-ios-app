@@ -23,12 +23,14 @@
 # alert (alert.button.1) is showing — the same structural test remove_wallet.yaml
 # relies on, since Maestro reads the attributed-text alert body unreliably.
 #
-# Prerequisite: an existing wallet on the simulator. The flow preserves state
-# (no clearState / clearKeychain) — same starting style as remove_wallet.yaml /
-# forgot_pin.yaml. The simulator may have an open channel (e.g. after
-# buy_incoming.yaml) or none (after restore_wallet.yaml); the conditional
-# close-channel arc handles both. Unlike forgot_pin.yaml this needs no MNEMONIC
-# env var — it removes the wallet rather than verifying the recovery phrase.
+# Self-provisioning: if the device has no wallet (the app launches to the
+# create-wallet signup screen), the flow creates one WITH an open Lightning
+# channel — via helpers/create_wallet_with_channel.yaml (happy_path onboarding +
+# buy_incoming) — so the removal exercises the channel-close + resume arc. If a
+# wallet already exists it's used as-is (it may or may not have a channel; the
+# conditional close-channel arc handles both). The flow otherwise preserves
+# state (no clearState / clearKeychain). Unlike forgot_pin.yaml this needs no
+# MNEMONIC env var — it removes the wallet rather than verifying the phrase.
 #
 # This flow is destructive: it removes the wallet and drops back to Signup1.
 #
@@ -38,9 +40,17 @@ appId: com.bittr.bittr-regtest
 ---
 - launchApp
 
-# Wallet was set up previously, so launch lands on the PIN unlock screen
-# (PinVC in .core embedding). Fail loudly otherwise — there'd be no wallet
-# to remove.
+# Self-provision a wallet WITH a Lightning channel if there's none — i.e. the
+# app launched to the create-wallet signup screen. Skipped if a wallet exists.
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../helpers/create_wallet_with_channel.yaml
+
+# Land on the locked PIN unlock screen (relaunch — a freshly-provisioned or an
+# existing wallet both lock on launch). Fail loudly otherwise: no wallet to remove.
+- launchApp
 - assertVisible:
     id: "unlock.topLabel"
 - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/01_unlock

@@ -1,0 +1,15 @@
+# Reusable subflow: provisions a fresh wallet WITH an open Lightning channel,
+# by running the create-wallet onboarding (happy_path, which also completes the
+# bittr signup) and then opening a channel (buy_incoming). Assumes the app is
+# already launched and on Signup1 (no wallet present) — the caller gates this on
+# the create-wallet button being visible. Ends on Home.
+#
+# Used by forgot_pin_remove_wallet.yaml to self-provision the channel arc when
+# the device has no wallet.
+
+appId: com.bittr.bittr-regtest
+---
+- runFlow:
+    file: ../onboarding/happy_path.yaml
+- runFlow:
+    file: ../features/buy_incoming.yaml
