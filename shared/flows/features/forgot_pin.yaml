@@ -28,7 +28,7 @@ appId: com.bittr.bittr-regtest
 - launchApp
 
 # Split the env-var mnemonic into a 1-indexed object on output.words[1..12],
-# matching the pattern happy_path uses when it captures words from the
+# matching the pattern happy_path_wallet uses when it captures words from the
 # mnemonic display screen.
 - runScript: ../scripts/parse_mnemonic.js
 

@@ -5,10 +5,10 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
 | Test-ID smoke | done | n/a | `onboarding/smoke.yaml` | Verifies the JSON → build.py → Swift → Maestro pipeline reaches a real ID. |
-| Onboarding (create wallet + bittr signup) | done | not started | `onboarding/happy_path.yaml` | Top-level entry: `onboarding/fresh_install.yaml` (wipes state, runs happy_path). |
+| Onboarding (create wallet + bittr signup) | done | not started | `onboarding/happy_path_wallet.yaml` + `happy_path_signup.yaml` | Top-level entry: `onboarding/fresh_install.yaml` (wipes state, runs happy_path_wallet then happy_path_signup). |
 | Buy — first incoming bank transaction | done | not started | `features/buy_incoming.yaml` | Opens the lightning channel; needs `fresh_install` first. |
 | Buy — subsequent top up | done | not started | `features/buy_more.yaml` | Preserves wallet state; needs prior `buy_incoming` run for the channel. Requires `scripts/push_server.js` running. |
-| Receive | done | not started | `features/receive.yaml` | Auto-recovers via `onboarding/happy_path.yaml` if launched on a clean install. |
+| Receive | done | not started | `features/receive.yaml` | Auto-recovers via `onboarding/happy_path_wallet.yaml` + `happy_path_signup.yaml` if launched on a clean install. |
 | Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address (waits out the verification spinner), copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
 | Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, switches to Regular (waits out the BDK sync spinner), enters an address + 5 EUR amount, confirms address/euro amount on the Confirm screen with the fast fee, sends, mines 6 blocks, then opens the new transaction from the history table. Requires an onchain balance. |

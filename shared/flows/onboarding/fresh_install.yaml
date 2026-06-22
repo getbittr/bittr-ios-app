@@ -8,4 +8,5 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     clearState: true
     clearKeychain: true
-- runFlow: happy_path.yaml
+- runFlow: happy_path_wallet.yaml
+- runFlow: happy_path_signup.yaml

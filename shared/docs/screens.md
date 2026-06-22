@@ -23,7 +23,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup1ViewController.swift`
 - **Purpose**: entry point — create new wallet or restore existing.
 - **States**: initial.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`, `shared/flows/onboarding/smoke.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `shared/flows/onboarding/smoke.yaml`
 - **Screenshots**: `onboarding/01_start.png`
 
 ### Signup2 — Confirm
@@ -31,7 +31,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup2ViewController.swift`
 - **Purpose**: two acknowledgement switches before wallet generation.
 - **States**: initial (both off) / both on.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
 - **Screenshots**: `onboarding/02_confirm_initial.png`, `onboarding/03_confirm_both_on.png`
 
 ### Signup3 — Mnemonic
@@ -39,7 +39,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup3ViewController.swift`
 - **Purpose**: shows the 12-word mnemonic. User must scroll.
 - **States**: top / bottom (scrolled).
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
 - **Screenshots**: `onboarding/04_mnemonic_top.png`, `onboarding/05_mnemonic_bottom.png`
 
 ### Signup4 — Verify
@@ -47,7 +47,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup4ViewController.swift`
 - **Purpose**: verify 3 random mnemonic words by index.
 - **States**: empty / filled.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
 - **Screenshots**: `onboarding/06_verify_initial.png`, `onboarding/07_verify_filled.png`
 
 ### Signup5 — Set PIN
@@ -55,7 +55,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup5ViewController.swift` (embeds `PinViewController`)
 - **Purpose**: new PIN entry (min 4 digits).
 - **States**: empty / entered.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
 - **Screenshots**: `onboarding/08_pin_set_initial.png`, `onboarding/09_pin_set_entered.png`
 
 ### Signup6 — Confirm PIN
@@ -63,7 +63,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup6ViewController.swift` (embeds `PinViewController`)
 - **Purpose**: confirm PIN — must match Signup5.
 - **States**: empty / entered.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
 - **Screenshots**: `onboarding/10_pin_confirm_initial.png`, `onboarding/11_pin_confirm_entered.png`
 
 ### Signup7 — Wallet ready
@@ -71,7 +71,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup7ViewController.swift`
 - **Purpose**: BDK + LDK init landing page; "Continue" advances to bittr signup.
 - **States**: ready.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
 - **Screenshots**: `onboarding/12_wallet_ready.png`
 
 ## Signup (bittr account)
@@ -81,7 +81,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer1ViewController.swift`
 - **Purpose**: collect IBAN + email for the bittr deposit account.
 - **States**: empty / filled.
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`
 - **Screenshots**: `onboarding/13_bittr_start.png`, `onboarding/14_bittr_start_filled.png`
 
 ### Transfer2 — OTP
@@ -89,7 +89,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer2ViewController.swift`
 - **Purpose**: 6-digit OTP for email verification (test-mode fixed code 123456).
 - **States**: empty / entered (auto-submits at 6 digits).
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`
 - **Screenshots**: `onboarding/15_bittr_otp_initial.png`, `onboarding/16_bittr_otp_entered.png`
 
 ### Transfer3 — Success
@@ -97,7 +97,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer3ViewController.swift`
 - **Purpose**: bittr signup landed; shows IBAN + deposit code.
 - **States**: success (data-bearing labels copy to clipboard).
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`
 - **Screenshots**: `onboarding/17_bittr_success.png`
 
 ### Transfer4 — Transfer info
@@ -105,7 +105,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer4ViewController.swift`
 - **Purpose**: four explanation cards + "Let's go".
 - **States**: top / bottom (scrolled).
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`
 - **Screenshots**: `onboarding/18_transfer_info_top.png`, `onboarding/19_transfer_info_bottom.png`
 
 ## Core
@@ -123,7 +123,7 @@ Coverage below reflects what's been walked so far; more screens land here as flo
 - **VC**: `ios/bittr/Home/HomeViewController.swift`
 - **Purpose**: main wallet screen — balance card, send/receive/buy actions, transaction list.
 - **States**: synced (with and without transactions).
-- **Flow**: `shared/flows/onboarding/happy_path.yaml`, `features/{buy_incoming,buy_more,receive,swap}.yaml`
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_incoming,buy_more,receive,swap}.yaml`
 - **Screenshots**: `onboarding/20_home.png`, `buy_incoming/01_home.png`, `buy_more/01_home.png`, `receive/01_home.png`, `swap/01_home.png`, `swap/07_home_with_swap.png`, `swap/08_home_final.png`, `swap/15_home_after_reverse.png`, `swap/16_home_final.png`
 
 ## Move / Send / Receive
