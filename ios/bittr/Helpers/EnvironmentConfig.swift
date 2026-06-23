@@ -25,24 +25,16 @@ struct EnvironmentConfig {
     
     // MARK: - Environment Detection
     
-    /// Current environment based on build settings
+    /// Current environment, selected by the build configuration.
+    ///
+    /// Debug builds (feature work / regtest) define the DEBUG compilation
+    /// condition; Release builds (production) do not. This replaces the old
+    /// set-environment.sh build phase + bundled environment.txt, which mutated
+    /// files at build time off the git branch name (unreliable, and broke in
+    /// CI's detached-HEAD checkout). Pick prod vs regtest by building
+    /// Release vs Debug — no script, no branch sniffing.
     static var currentEnvironment: Environment {
-        // Method 1: Read from environment file created by build script
-        if let bundlePath = Bundle.main.path(forResource: "environment", ofType: "txt"),
-           let content = try? String(contentsOf: URL(fileURLWithPath: bundlePath)).trimmingCharacters(in: .whitespacesAndNewlines) {
-            if let env = Environment(rawValue: content) {
-                return env
-            }
-        }
-        
-        // Method 2: Check Info.plist (fallback)
-        if let envString = Bundle.main.infoDictionary?["ENVIRONMENT"] as? String,
-           let env = Environment(rawValue: envString) {
-            return env
-        }
-        
-        // Method 3: Fallback based on compilation conditions
-        #if DEVELOPMENT
+        #if DEBUG
         return .development
         #else
         return .production
@@ -144,6 +136,36 @@ struct EnvironmentConfig {
     /// Get environment-specific cache key for device-related data
     static var deviceCacheKey: String {
         cacheKey(for: "device")
+    }
+}
+
+// MARK: - App Version
+
+/// Human-readable build identity for display (e.g. the Settings screen),
+/// derived from the bundle instead of being hard-coded in the storyboard.
+enum AppVersion {
+
+    /// Marketing version + build number, e.g. "0.1.179"
+    /// (`CFBundleShortVersionString` + `CFBundleVersion`, which come from the
+    /// `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` build settings).
+    static var version: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "\(short).\(build)"
+    }
+
+    /// Short git commit the build was produced from. Written into the built
+    /// Info.plist by the "Set git hash" build phase; empty when unavailable
+    /// (e.g. a build made without that phase), so callers can omit it cleanly.
+    static var gitHash: String {
+        (Bundle.main.object(forInfoDictionaryKey: "GitCommitHash") as? String ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Version with the git hash in brackets when present, e.g.
+    /// "0.1.179 (a1b2c3d)" — falls back to just the version otherwise.
+    static var displayString: String {
+        gitHash.isEmpty ? version : "\(version) (\(gitHash))"
     }
 }
 
