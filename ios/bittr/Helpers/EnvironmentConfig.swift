@@ -139,6 +139,36 @@ struct EnvironmentConfig {
     }
 }
 
+// MARK: - App Version
+
+/// Human-readable build identity for display (e.g. the Settings screen),
+/// derived from the bundle instead of being hard-coded in the storyboard.
+enum AppVersion {
+
+    /// Marketing version + build number, e.g. "0.1.179"
+    /// (`CFBundleShortVersionString` + `CFBundleVersion`, which come from the
+    /// `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` build settings).
+    static var version: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "\(short).\(build)"
+    }
+
+    /// Short git commit the build was produced from. Written into the built
+    /// Info.plist by the "Set git hash" build phase; empty when unavailable
+    /// (e.g. a build made without that phase), so callers can omit it cleanly.
+    static var gitHash: String {
+        (Bundle.main.object(forInfoDictionaryKey: "GitCommitHash") as? String ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Version with the git hash in brackets when present, e.g.
+    /// "0.1.179 (a1b2c3d)" — falls back to just the version otherwise.
+    static var displayString: String {
+        gitHash.isEmpty ? version : "\(version) (\(gitHash))"
+    }
+}
+
 // MARK: - URL Constants
 
 extension EnvironmentConfig {
