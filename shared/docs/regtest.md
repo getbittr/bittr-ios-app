@@ -46,6 +46,7 @@ The backend exposes a couple of fixture endpoints that Maestro flows POST to (re
 
 - `POST /e2e/bank-transaction` — simulates a SEPA deposit. Body: `{ deposit_code, amount? }`. Returns `notification_id` and `bitcoin_amount`. See `shared/flows/scripts/trigger_bank_transaction.js`.
 - `POST /e2e/mine-blocks` — mines N regtest blocks. Body: `{ blocks }`. See `shared/flows/scripts/mine_blocks.js`.
+- `POST /e2e/submit-invoice` — pays a lightning invoice from the backend node, so a flow can verify the app's incoming-payment handling. Body: `{ invoice }` (a bolt11 the app generated). See `shared/flows/scripts/submit_invoice.js`.
 
 ## Fake APNS push
 

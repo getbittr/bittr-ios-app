@@ -1,4 +1,4 @@
-# Feature test: lightning invoice receive → send round-trip.
+# Feature test: lightning invoice receive — parse round-trip + real payment.
 #
 # Mirrors features/receive_onchain.yaml but exercises the lightning invoice
 # type instead of the onchain address:
@@ -9,13 +9,21 @@
 #      invoice filled in and no amount (a zero-amount invoice).
 #   4. Back in Receive, attach a 2000 sat amount, copy, paste into Send and
 #      verify the invoice carries across with the 2000 sat amount.
+#   5. Finally, create a fresh amount invoice and — staying on the Receive
+#      screen — have the regtest backend pay it via the e2e /submit-invoice
+#      endpoint (scripts/submit_invoice.js). When the payment lands the app
+#      dismisses Receive and opens TransactionVC. This is the fix in PR #27
+#      ("Open TransactionVC for non-Bittr incoming lightning payments"):
+#      previously the segue raced the Receive dismissal and TransactionVC
+#      never appeared.
 #
 # Creating an invoice requires an active lightning channel (the More type
 # picker is only present when lightning is available), so this assumes a
 # wallet with the channel from buy_incoming.yaml already open. Pasting the
 # 2000 sat invoice into Send also assumes enough lightning outbound capacity
-# for the amount to populate. If launched on a clean install it auto-runs the
-# onboarding subflow first. Does NOT clearState — wallet state is preserved.
+# for the amount to populate; step 5 additionally needs enough INBOUND capacity
+# to receive its (small) invoice. If launched on a clean install it auto-runs
+# the onboarding subflow first. Does NOT clearState — wallet state is preserved.
 #
 # Run: maestro test shared/flows/features/receive_invoice.yaml
 
@@ -177,4 +185,49 @@ appId: com.bittr.bittr-regtest
     id: "header.downButton"
 - assertVisible:
     id: "home.headerLabel"
-- takeScreenshot: shared/docs/screenshots/receive_invoice/08_done
+- takeScreenshot: shared/docs/screenshots/receive_invoice/08_send_closed
+
+# Finally, actually RECEIVE a payment to verify TransactionVC opens (PR #27).
+# Create a fresh amount invoice and, staying on the Receive screen, have the
+# regtest backend pay it via the e2e endpoint. When the payment lands the app
+# dismisses Receive and opens TransactionVC for the received (non-Bittr)
+# payment — previously the segue raced the dismissal and it never appeared.
+- tapOn:
+    id: "home.receiveButton"
+- runFlow:
+    file: ../helpers/show_invoice.yaml
+- tapOn:
+    id: "receive.editButton"
+- tapOn:
+    id: "receive.amountTextField"
+- inputText: "1000"
+- tapOn:
+    text: "Done"
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+- assertVisible:
+    id: "receive.invoiceLabel"
+    text: ".*lnbcrt.*"
+
+# Capture the bolt11 and have the backend pay it. (If this comes back truncated
+# the submit fails loudly rather than silently — capture from a fuller source then.)
+- copyTextFrom:
+    id: "receive.invoiceLabel"
+- evalScript: ${output.invoice = maestro.copiedText}
+- runScript: ../scripts/submit_invoice.js
+
+# Payment arrives → Receive dismisses and TransactionVC opens.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.yellowCard"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/receive_invoice/09_payment_received
+
+# Close TransactionVC back to Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/receive_invoice/10_done
