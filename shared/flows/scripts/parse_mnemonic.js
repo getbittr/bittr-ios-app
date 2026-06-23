@@ -1,5 +1,5 @@
 // Reads the MNEMONIC env var, splits it into 12 words, and stores them on
-// output.words[1..12] (1-indexed, matching the pattern happy_path.yaml uses
+// output.words[1..12] (1-indexed, matching the pattern happy_path_wallet.yaml uses
 // when it captures the words from the mnemonic display screen).
 //
 // MNEMONIC is passed by the caller, e.g.:

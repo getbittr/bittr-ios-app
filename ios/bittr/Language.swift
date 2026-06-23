@@ -131,7 +131,6 @@ class Language: NSObject {
             "transactionsuccess": "Your transaction has been sent and will show up in your wallet shortly.",
             "transactionerror": "We're unable to complete your transaction. We're receiving the following error message",
             "transactionerror2": "We're unable to complete your transaction. Please close and reopen our app and try again.",
-            "lightningconfirmation": "Are you sure you want to pay <amount> satoshis (<currency> <convertedamount>)?\n\nThis payment may incur fees of up to <fees> satoshis.",
             "paymentsuccessful": "Payment successful",
             "paymentfailed": "Payment failed",
             "paymentfailed2": "Your Lightning payment didn't go through.<reason>\n\nLightning payments can fail when the receiver is offline or doesn't have the app open, when their wallet doesn't have enough receiving capacity, when there's no affordable route through the network, or when the invoice has expired. Try again later or ask the receiver to open their app.",

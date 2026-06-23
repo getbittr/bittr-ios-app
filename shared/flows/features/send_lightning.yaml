@@ -14,8 +14,9 @@
 #   3. Lightning Address (LNURL-pay): type it into the invoice field, press
 #      return → "Handling LNURL" spinner → a "Pay request" alert announces the
 #      payable range → Okay → enter 1500 sats → Done → "Handling LNURL" spinner
-#      again → confirm the payment → TransactionViewController → close it →
-#      close Send.
+#      again → Confirm screen (resolved invoice + amount), the same
+#      ConfirmSendViewController flow as the invoice paths → Send →
+#      TransactionViewController → close it → close Send.
 #
 # Payment targets (no --env needed — all server-side):
 #   - The two invoices (normal + zero-amount) are fetched fresh per run from the
@@ -270,15 +271,25 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     text: "Done"
 
-# After the callback returns, a confirmation alert ([Cancel, Confirm]) appears
-# for the LNURL payment — Confirm is index 1.
+# After the callback returns, LNURL now follows the same
+# ConfirmSendViewController flow as the invoice paths (no more [Cancel, Confirm]
+# alert). The "Handling LNURL" spinner clears into the Confirm screen — wait it
+# out, then verify the details. For LNURL the address label shows the Lightning
+# Address itself (the resolved bolt11 invoice is irrelevant to the user), so
+# match the e2e address rather than .*lnbcrt.*.
 - extendedWaitUntil:
     visible:
-      id: "alert.button.1"
+      id: "send.confirm.addressLabel"
     timeout: 30000
+- assertVisible:
+    id: "send.confirm.addressLabel"
+    text: ".*e2ebittr@staging.getbittr.com.*"
+- assertVisible:
+    id: "send.confirm.amountLabel"
+    text: ".*[0-9].*"
 - takeScreenshot: shared/docs/screenshots/send_lightning/10_lnurl_confirm
 - tapOn:
-    id: "alert.button.1"
+    id: "send.confirm.confirmButton"
 
 # The TransactionViewController pops up once more with the successful payment.
 # Close it to return to Send, then close Send to land back on Home.

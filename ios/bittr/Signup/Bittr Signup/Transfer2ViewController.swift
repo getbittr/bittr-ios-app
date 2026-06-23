@@ -174,11 +174,16 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         
         // Get current IBAN ID.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
-        print("Current IBAN ID: \(currentIbanID)")
         for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
             if eachIbanEntity.id == currentIbanID {
                 Log.info("Did fetch correct IBAN entity.")
-                
+
+                // Send email and verification code to bittr API.
+                // Include the lightning node pubkey so the backend can recognise a
+                // returning customer (recovery): the restore fields (deposit_code +
+                // original signed message) are only returned when BOTH the email and
+                // the pubkey match an existing record. If the node isn't up yet we omit
+                // it and the backend treats this as a new registration.
                 var parameters: [String: Any] = [
                     "email_address": eachIbanEntity.yourEmail,
                     "token_2fa": self.codeTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
