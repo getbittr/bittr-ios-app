@@ -37,7 +37,7 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
    brew install node
   ```
    Verify with `node --version`.
-4. **Install the regtest app on the simulator** — in Xcode pick the `bittr` scheme and Cmd-R to build & run with the **Debug** configuration (the default for Run). Debug builds target the regtest backend (via the `DEBUG` compilation condition in `EnvironmentConfig`); Release targets production. Set the build's bundle identifier to `com.bittr.bittr-regtest` so it matches the `appId` the Maestro flows use. After the first install you can quit it — Maestro will relaunch it.
+4. **Install the regtest app on the simulator** — in Xcode pick the `bittr` scheme and Cmd-R to build & run with the **Debug** configuration (the default for Run). Debug builds target the regtest backend (via the `DEBUG` compilation condition in `EnvironmentConfig`) and are automatically named "bittr regtest" with bundle id `com.bittr.bittr-regtest` — matching the `appId` the Maestro flows use; Release targets production as `com.bittr.bittr`. No manual bundle-id change is needed. After the first install you can quit it — Maestro will relaunch it.
 
 ### Each test run
 

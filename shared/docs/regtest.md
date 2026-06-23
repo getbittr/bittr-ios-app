@@ -8,22 +8,23 @@ The **build configuration** selects the environment — there's no build script:
 
 - **Debug** → regtest. The `DEBUG` compilation condition makes
   `ios/bittr/Helpers/EnvironmentConfig.swift` return `.development`, which picks
-  the regtest endpoints below, and the app's display name is **bittr regtest**
-  (`INFOPLIST_KEY_CFBundleDisplayName`, set per build configuration).
-- **Release** → production, display name **bittr**.
+  the regtest endpoints below. The Debug configuration also sets the bundle id
+  to `com.bittr.bittr-regtest` and the display name to **bittr regtest**
+  (`PRODUCT_BUNDLE_IDENTIFIER` / `INFOPLIST_KEY_CFBundleDisplayName`, both per
+  build configuration); the widget extension follows suit
+  (`com.bittr.bittr-regtest.BittrWidget`).
+- **Release** → production, bundle id `com.bittr.bittr`, display name **bittr**.
 
-So building/running the **Debug** configuration from Xcode produces a regtest
-build (named "bittr regtest" on the home screen) against the hosted regtest
-backend; Release is the production "bittr" build for TestFlight.
+So building/running the **Debug** configuration from Xcode produces a complete
+regtest build — bundle id `com.bittr.bittr-regtest`, named "bittr regtest" on the
+home screen, talking to the hosted regtest backend. Release is the production
+"bittr" build for TestFlight. Nothing has to be changed by hand to switch
+between the two.
 
-> The Maestro flows target `appId: com.bittr.bittr-regtest`, so the regtest
-> build's bundle identifier must be `com.bittr.bittr-regtest`. The display name
-> is now config-driven (above), but the **bundle id is still set by hand** on the
-> Debug build — a per-configuration `PRODUCT_BUNDLE_IDENTIFIER` (Debug →
-> `com.bittr.bittr-regtest`, Release → `com.bittr.bittr`) is the remaining
-> follow-up so it's automatic too. (A previous `ios/set-environment.sh` build
-> phase tried to do all of this from the git branch name; it didn't actually work
-> and has been removed.)
+> The Maestro flows target `appId: com.bittr.bittr-regtest`, which the Debug
+> build now produces automatically — no manual bundle-id edit before a test run.
+> (A previous `ios/set-environment.sh` build phase tried to do all of this from
+> the git branch name; it didn't actually work and has been removed.)
 
 ## Endpoints (regtest)
 
