@@ -445,12 +445,22 @@ extension CoreViewController {
         }
         
         DispatchQueue.main.async {
-            self.receiveVC?.dismiss(animated: true)
+            // Add and cache transaction.
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-            if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
-                self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
-            }
             CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+            
+            // Launch TransactionVC after ReceiveVC has dismissed.
+            let presentTransactionVC = { [weak self] in
+                guard let self else { return }
+                if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
+                    self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                }
+            }
+            if let receiveVC = self.receiveVC {
+                receiveVC.dismiss(animated: true, completion: presentTransactionVC)
+            } else {
+                presentTransactionVC()
+            }
         }
     }
     
