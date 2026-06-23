@@ -7,7 +7,7 @@
 # (`xcrun simctl uninstall booted com.bittr.bittrRegtest && build & run from
 # Xcode`), or reset wallet via Settings → Reset.
 #
-# appId is the regtest variant — see ios/set-environment.sh.
+# appId is the regtest variant (com.bittr.bittr-regtest), produced by a Debug build.
 
 appId: com.bittr.bittr-regtest
 ---

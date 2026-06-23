@@ -4,13 +4,23 @@ Deterministic environment that drives Maestro flows on both platforms. Every com
 
 ## How a regtest build is produced
 
-`ios/set-environment.sh` runs as a build phase. Any branch other than `develop` or `upgrade` gets:
+The **build configuration** selects the environment — there's no build script:
 
-- Bundle ID `com.bittr.bittrRegtest`
-- App name `bittrRegtest`
-- `ENVIRONMENT=development` written into `Info.plist`
+- **Debug** → regtest. The `DEBUG` compilation condition makes
+  `ios/bittr/Helpers/EnvironmentConfig.swift` return `.development`, which picks
+  the regtest endpoints below.
+- **Release** → production.
 
-At runtime, `ios/bittr/Helpers/EnvironmentConfig.swift` reads `ENVIRONMENT` and picks the regtest endpoints below.
+So building/running the **Debug** configuration from Xcode produces a regtest
+build against the hosted regtest backend.
+
+> The Maestro flows target `appId: com.bittr.bittr-regtest`, so the regtest
+> build's bundle identifier must be `com.bittr.bittr-regtest`. That's currently
+> set by hand on the Debug build; a per-configuration `PRODUCT_BUNDLE_IDENTIFIER`
+> (Debug → `com.bittr.bittr-regtest`, Release → `com.bittr.bittr`) is the
+> recommended follow-up so it's automatic. (A previous `ios/set-environment.sh`
+> build phase tried to do this from the git branch name; it didn't actually work
+> and has been removed.)
 
 ## Endpoints (regtest)
 

@@ -25,24 +25,16 @@ struct EnvironmentConfig {
     
     // MARK: - Environment Detection
     
-    /// Current environment based on build settings
+    /// Current environment, selected by the build configuration.
+    ///
+    /// Debug builds (feature work / regtest) define the DEBUG compilation
+    /// condition; Release builds (production) do not. This replaces the old
+    /// set-environment.sh build phase + bundled environment.txt, which mutated
+    /// files at build time off the git branch name (unreliable, and broke in
+    /// CI's detached-HEAD checkout). Pick prod vs regtest by building
+    /// Release vs Debug — no script, no branch sniffing.
     static var currentEnvironment: Environment {
-        // Method 1: Read from environment file created by build script
-        if let bundlePath = Bundle.main.path(forResource: "environment", ofType: "txt"),
-           let content = try? String(contentsOf: URL(fileURLWithPath: bundlePath)).trimmingCharacters(in: .whitespacesAndNewlines) {
-            if let env = Environment(rawValue: content) {
-                return env
-            }
-        }
-        
-        // Method 2: Check Info.plist (fallback)
-        if let envString = Bundle.main.infoDictionary?["ENVIRONMENT"] as? String,
-           let env = Environment(rawValue: envString) {
-            return env
-        }
-        
-        // Method 3: Fallback based on compilation conditions
-        #if DEVELOPMENT
+        #if DEBUG
         return .development
         #else
         return .production
