@@ -111,10 +111,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
     var completedTransaction:Transaction?
-    var temporaryInvoiceText = ""
-    var temporaryInvoiceAmount = 0
-    var temporaryInvoiceNote:String?
-    var temporaryIsZeroAmountInvoice = false
     var pendingLightningInvoice = ""
     var didDoublecheckLastUsedAddress = false
     var selectedCurrency:SelectedCurrency = .satoshis

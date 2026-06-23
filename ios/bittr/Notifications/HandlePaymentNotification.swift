@@ -624,13 +624,6 @@ extension CoreViewController {
         )
     }
     
-    @objc override func cancelSwapOffer() {
-        self.hideAlert()
-        // Clear pending data
-        self.pendingNotificationId = nil
-        self.pendingSuggestedSwapAmount = 0
-    }
-    
     @objc func receiveOnchainForNotification() {
         self.hideAlert()
         

@@ -146,9 +146,8 @@ extension SendViewController {
         }
     }
     
-    @objc override func cancelSwapOffer() {
+    @objc func cancelSwapOffer() {
         self.hideAlert()
-        Log.info("DEBUG - cancelSwapOffer called, clearing pending data")
         // Clear the pending data when user cancels the swap offer
         self.pendingOnchainAddress = ""
         // Also clear the amount field to make it obvious this is cancelled
