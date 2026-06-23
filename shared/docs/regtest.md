@@ -8,18 +8,21 @@ The **build configuration** selects the environment — there's no build script:
 
 - **Debug** → regtest. The `DEBUG` compilation condition makes
   `ios/bittr/Helpers/EnvironmentConfig.swift` return `.development`, which picks
-  the regtest endpoints below.
-- **Release** → production.
+  the regtest endpoints below, and the app's display name is **bittr regtest**
+  (`INFOPLIST_KEY_CFBundleDisplayName`, set per build configuration).
+- **Release** → production, display name **bittr**.
 
 So building/running the **Debug** configuration from Xcode produces a regtest
-build against the hosted regtest backend.
+build (named "bittr regtest" on the home screen) against the hosted regtest
+backend; Release is the production "bittr" build for TestFlight.
 
 > The Maestro flows target `appId: com.bittr.bittr-regtest`, so the regtest
-> build's bundle identifier must be `com.bittr.bittr-regtest`. That's currently
-> set by hand on the Debug build; a per-configuration `PRODUCT_BUNDLE_IDENTIFIER`
-> (Debug → `com.bittr.bittr-regtest`, Release → `com.bittr.bittr`) is the
-> recommended follow-up so it's automatic. (A previous `ios/set-environment.sh`
-> build phase tried to do this from the git branch name; it didn't actually work
+> build's bundle identifier must be `com.bittr.bittr-regtest`. The display name
+> is now config-driven (above), but the **bundle id is still set by hand** on the
+> Debug build — a per-configuration `PRODUCT_BUNDLE_IDENTIFIER` (Debug →
+> `com.bittr.bittr-regtest`, Release → `com.bittr.bittr`) is the remaining
+> follow-up so it's automatic too. (A previous `ios/set-environment.sh` build
+> phase tried to do all of this from the git branch name; it didn't actually work
 > and has been removed.)
 
 ## Endpoints (regtest)
