@@ -174,7 +174,7 @@ extension UIViewController {
                                 }
                             }
                         }
-                    }
+                    }   
 
                 case .authorized, .provisional, .ephemeral:
                     // Already authorized in some form — register and let
