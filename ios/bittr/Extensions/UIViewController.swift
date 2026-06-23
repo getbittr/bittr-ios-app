@@ -146,6 +146,7 @@ extension UIViewController {
         let current = UNUserNotificationCenter.current()
         current.getNotificationSettings { (settings) in
             DispatchQueue.main.async {
+                Log.info("Notification status: \(settings.authorizationStatus)")
 
                 switch settings.authorizationStatus {
                 case .notDetermined:
@@ -173,7 +174,7 @@ extension UIViewController {
                                 }
                             }
                         }
-                    }
+                    }   
 
                 case .authorized, .provisional, .ephemeral:
                     // Already authorized in some form — register and let

@@ -67,6 +67,19 @@ shared/flows/
     buy_signup.yaml       Bittr signup from inside the Buy page — assumes a
                           wallet without a bittr account (run
                           onboarding/restore_wallet.yaml first).
+    buy_signup_no_notifications.yaml
+                          The unhappy-path counterpart to buy_signup: walks
+                          the "I don't have an IBAN" alert, the invalid-IBAN
+                          and invalid-email validation alerts, and the OTP
+                          notification gate (Receive-notifications prompt →
+                          iOS system dialog, which Maestro auto-denies via
+                          launchApp permissions notifications:deny → the
+                          authorize-in-Settings gate). Requires an existing
+                          wallet without a bittr account (run
+                          onboarding/fresh_install_skip_signup.yaml first) —
+                          it only unlocks, since auto-creating a wallet would
+                          wipe the permissions config. Ends at the
+                          notification gate (see the flow header).
     remove_wallet.yaml    Settings → Device details → Remove wallet. Handles
                           both branches (active channel → close → mine →
                           re-trigger; no channel → direct confirm).
