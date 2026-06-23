@@ -63,10 +63,21 @@ In another terminal, from the repo root, run a flow:
 # Option 1: Full reset + onboarding from scratch:
 maestro test shared/flows/onboarding/fresh_install.yaml
 
+# Option 1b: Full reset + wallet creation, skipping the bittr signup
+# (taps "Skip" on Signup7 and lands on Home):
+maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
+
 # Option 2: Full reset + restore existing wallet.
 # Followed by onboarding through the Buy page.
 maestro test shared/flows/onboarding/restore_wallet.yaml
 maestro test shared/flows/features/buy_signup.yaml
+
+# Buy-signup validation + notification-gate test (unhappy path). Requires an
+# existing wallet without a bittr account (run fresh_install_skip_signup.yaml
+# first) — it only unlocks, no auto-create. launchApp's permissions config
+# makes Maestro auto-deny the iOS notification dialog so the OTP step drives
+# the denied-notification UX through to the "authorize in Settings" gate:
+maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
 # Then a feature test on the resulting wallet — opens the lightning channel:
 maestro test shared/flows/features/buy_incoming.yaml

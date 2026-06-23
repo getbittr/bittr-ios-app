@@ -1,0 +1,211 @@
+# Feature test: the bittr signup from the Buy page, exercising the IBAN /
+# email validation alerts and the notification-permission gate on the OTP
+# screen. A companion to buy_signup.yaml that walks the *unhappy* branches
+# rather than the clean path.
+#
+# Prerequisite: a wallet must ALREADY exist on the device, WITHOUT a
+# completed bittr signup (e.g. run onboarding/fresh_install_skip_signup.yaml
+# first). This test only unlocks — it does NOT auto-create a wallet, because
+# wallet creation runs a clearState re-install that would wipe the launchApp
+# permissions config below (the notification dialog auto-deny), breaking the
+# notification gate. That config makes Maestro auto-deny the iOS notification
+# system dialog ("Don't Allow"), so the OTP step drives the real
+# denied-notification UX deterministically (see step 7).
+#
+# Flow:
+#   1. Launch (Maestro set to auto-deny the notification dialog) and unlock
+#      the existing wallet.
+#   2. Wait for Home's header spinner (wallet load) to stop.
+#   3. Buy → Check options → Next → "I don't have an IBAN" → the
+#      only-IBAN-holders alert → "Go to wallet" returns to Buy.
+#   4. Buy → Check options → Next again. Enter the happy-path IBAN minus
+#      its last digit + the correct email → Verify → invalid-IBAN alert.
+#   5. Fix the IBAN, then drop ".com" from the email → Verify → the
+#      "enter your IBAN and email" alert (invalid email).
+#   6. Fix the email → Verify → advance to the OTP screen.
+#   7. Enter a code (123456 — never actually submitted/checked, since the
+#      gate blocks it). Notification permission is undetermined, so: the
+#      in-app "Receive notifications" prompt (Alert A) → Okay → the iOS
+#      system dialog, which Maestro auto-denies → the "authorize
+#      notifications in Settings" gate (Alert B) → Okay.
+#   8. END at the notification gate. We don't continue to the
+#      enter-correct-code path — that would need notifications enabled.
+#
+# Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Auto-deny the iOS notification system dialog. This permissions config does
+# NOT pre-set the OS permission — the app's notification state stays
+# undetermined and the live "Allow / Don't Allow" dialog still appears — it
+# tells Maestro's dialog handler which button to tap. With "deny" it taps
+# "Don't Allow" (the default is Allow, which is why the dialog kept getting
+# granted before). That makes the full denied-notifications UX deterministic
+# without us having to tap the un-selectable system dialog ourselves.
+- launchApp:
+    permissions:
+      notifications: deny
+
+# This test REQUIRES an existing wallet (see the header) and only unlocks —
+# it deliberately does NOT auto-create one. Wallet creation runs a clearState
+# re-install, which wipes the launchApp permissions config above (the
+# notification auto-deny), so the notification gate would misbehave.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Home: the header spinner animates while LoadWalletData runs and hides
+# (hidesWhenStopped) when it finishes — wait that out before interacting.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/01_home
+
+# Open Buy → empty state (no IBAN entities yet).
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.headerLabel"
+- tapOn:
+    id: "buy.continueButton"
+
+# Signup7 (wallet-ready) hosted by RegisterIban — viewWillAppear hides
+# topLabelOne when ibanVC != nil, so anchor on the still-visible Next.
+- assertVisible:
+    id: "signup.create.ready.continueButton"
+- tapOn:
+    id: "signup.create.ready.continueButton"
+
+# Transfer1: "I don't have an IBAN". The IBAN field auto-focuses, so the
+# skip button at the bottom of the card sits under the keyboard. Dismiss it
+# first by tapping the top label — a non-interactive UILabel whose tap falls
+# through to the background button's backgroundButtonTapped (endEditing).
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.skipButton"
+
+# Alert: "We're sorry!" / only-IBAN-holders, buttons [Go to wallet, Cancel].
+# "Go to wallet" (index 0) dismisses the signup stack back to Buy.
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/02_no_iban_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Back on Buy — restart the signup.
+- assertVisible:
+    id: "buy.headerLabel"
+- tapOn:
+    id: "buy.continueButton"
+- assertVisible:
+    id: "signup.create.ready.continueButton"
+- tapOn:
+    id: "signup.create.ready.continueButton"
+
+# Transfer1 again. Enter the happy_path_signup.yaml IBAN MISSING its final
+# digit (NL27ABNA0451135725 → ...572) plus the correct email. IBAN field
+# auto-focuses, so type straight into it.
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- inputText: "NL27ABNA045113572"
+- tapOn:
+    id: "signup.bittr.start.emailButton"
+- inputText: "e2ebittr@getbittr.com"
+
+# Verify: both fields are non-empty + the email is valid, so the malformed
+# IBAN goes to the backend. Dismiss the keyboard via the top label, then tap
+# Verify.
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+
+# Async IBAN check → "Oops" invalid-IBAN alert.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/03_invalid_iban
+- tapOn:
+    id: "alert.button.0"
+
+# Fix the IBAN: re-focus the field (tap the visible text field — the IBAN
+# button is alpha 0 after first focus), clear it, type the correct value.
+- tapOn:
+    id: "signup.bittr.start.ibanTextField"
+- eraseText: 30
+- inputText: "NL27ABNA0451135725"
+
+# Break the email by dropping ".com", then Verify. updateButtonColor only
+# enables the button when the email is valid, so an invalid email leaves
+# the button disabled and Verify shows the "enter your IBAN and email"
+# alert instead of submitting.
+- tapOn:
+    id: "signup.bittr.start.emailTextField"
+- eraseText: 30
+- inputText: "e2ebittr@getbittr"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04_missing_email
+- tapOn:
+    id: "alert.button.0"
+
+# Fix the email and Verify — both valid now, so the backend accepts and we
+# advance to the OTP screen.
+- tapOn:
+    id: "signup.bittr.start.emailTextField"
+- eraseText: 30
+- inputText: "e2ebittr@getbittr.com"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+
+# Transfer2 (OTP). The code field auto-focuses and auto-submits once 6
+# digits are entered. The submit path checks notification permission first;
+# it's undetermined, so the app shows its "Receive notifications" prompt,
+# then the iOS system dialog — which Maestro auto-denies (the launchApp
+# permissions: notifications: deny config taps "Don't Allow" for us).
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.otp.codeTextField"
+    timeout: 30000
+- inputText: "123456"
+
+# Alert A: the in-app "Receive notifications" prompt. Okay fires the iOS
+# system permission dialog, which Maestro auto-denies.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
+- tapOn:
+    id: "alert.button.0"
+
+# Alert B: after the system dialog is denied, the app shows the "...go to
+# Settings > Notifications > bittr to authorize..." gate. Tap Okay to dismiss
+# it (the app just stops the spinner).
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/06_authorize_notifications
+- tapOn:
+    id: "alert.button.0"
+
+# Both gates dismissed → back on the OTP screen. End of test.
+- assertVisible:
+    id: "signup.bittr.otp.codeTextField"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_end

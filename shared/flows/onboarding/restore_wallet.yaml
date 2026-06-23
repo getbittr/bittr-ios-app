@@ -1,7 +1,7 @@
 # Top-level: wipes app data + keychain, then drives the "Restore wallet"
 # onboarding path on Signup1 using a fixed test mnemonic. Sister flow to
-# onboarding/fresh_install.yaml + happy_path.yaml, which exercise the
-# "Create wallet" path.
+# onboarding/fresh_install.yaml + happy_path_wallet.yaml, which exercise
+# the "Create wallet" path.
 #
 # Why hard-coded mnemonic (vs forgot_pin.yaml's --env MNEMONIC=): restoring
 # from scratch means there's no existing wallet to match against — any
@@ -29,7 +29,7 @@ appId: com.bittr.bittr-regtest
 
 # Fixed test mnemonic — building output.words[1..12] up front mirrors the
 # 1-indexed access pattern used by forgot_pin.yaml (via parse_mnemonic.js)
-# and happy_path.yaml (captured from the mnemonic display screen).
+# and happy_path_wallet.yaml (captured from the mnemonic display screen).
 - evalScript: |
     ${output.words = {
       1: "attack",
@@ -98,7 +98,7 @@ appId: com.bittr.bittr-regtest
 # Dismiss the keyboard — it covers the Restore button. Tapping topLabel
 # (a UILabel with isUserInteractionEnabled = false) falls through to
 # RestoreVC.backgroundButtonTapped which calls endEditing(true). Same
-# trick happy_path.yaml + forgot_pin.yaml use; Maestro's hideKeyboard is
+# trick happy_path_wallet.yaml + forgot_pin.yaml use; Maestro's hideKeyboard is
 # unreliable across simulator keyboard-mode changes.
 - tapOn:
     id: "signup.restore.topLabel"
@@ -145,7 +145,7 @@ appId: com.bittr.bittr-regtest
 # Restore3.nextButtonTapped stores the PIN, sets userHasSignedIn = true,
 # and calls coreVC.hideSignup — Home appears with the restored wallet.
 # Note: the restore path skips the bittr IBAN/email/OTP onboarding that
-# happy_path.yaml exercises after wallet creation.
+# happy_path_signup.yaml exercises after wallet creation.
 - assertVisible:
     id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/restore_wallet/08_home

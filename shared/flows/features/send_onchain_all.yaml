@@ -30,7 +30,12 @@ appId: com.bittr.bittr-regtest
     when:
       visible:
         id: "signup.create.start.createWalletButton"
-    file: ../onboarding/happy_path.yaml
+    file: ../onboarding/happy_path_wallet.yaml
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.ready.topLabelOne"
+    file: ../onboarding/happy_path_signup.yaml
 
 # If the app launched into the PIN unlock screen (existing wallet), enter PIN.
 - runFlow:

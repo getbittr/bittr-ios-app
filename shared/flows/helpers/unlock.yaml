@@ -1,6 +1,6 @@
 # Reusable subflow: unlocks the app by entering the PIN. Assumes the unlock
 # screen is visible (PinViewController in its .core embedding). Uses PIN 1234
-# matching what onboarding/happy_path.yaml sets.
+# matching what onboarding/happy_path_wallet.yaml sets.
 
 appId: com.bittr.bittr-regtest
 ---

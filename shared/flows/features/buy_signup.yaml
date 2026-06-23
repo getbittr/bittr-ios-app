@@ -5,7 +5,7 @@
 # *not yet completed*. The cleanest way to get there is to run
 # `shared/flows/onboarding/restore_wallet.yaml` first — restore lands on
 # Home with a wallet but no IBAN entities, so Buy opens to its empty
-# state. (fresh_install.yaml is unsuitable here because happy_path
+# state. (fresh_install.yaml is unsuitable here because happy_path_signup
 # completes the bittr signup as part of onboarding.) The flow preserves
 # state, same as forgot_pin.yaml.
 #
@@ -18,7 +18,7 @@
 #      visible) Next button instead of the top label.
 #   4. Tap Next → Transfer1.
 #   5. Same IBAN/email/OTP/info-cards path as
-#      onboarding/happy_path.yaml's bittr section — same IBAN
+#      onboarding/happy_path_signup.yaml — same IBAN
 #      (NL27ABNA0451135725) and email (e2ebittr@getbittr.com) so cache
 #      assertions stay consistent.
 #   6. Done on the "Open your banking app" modal → modal dismisses, Buy
@@ -65,7 +65,7 @@ appId: com.bittr.bittr-regtest
     id: "signup.create.ready.continueButton"
 
 # Transfer1: IBAN + email entry. IBAN field auto-focuses. Same IBAN +
-# email as onboarding/happy_path.yaml.
+# email as onboarding/happy_path_signup.yaml.
 - assertVisible:
     id: "signup.bittr.start.ibanTextField"
 - takeScreenshot: shared/docs/screenshots/buy_signup/04_bittr_start
@@ -97,7 +97,7 @@ appId: com.bittr.bittr-regtest
     optional: true
 
 # Transfer3: bittr signup success. Long async chain after OTP, allow
-# generous timeout — same as happy_path.yaml.
+# generous timeout — same as happy_path_signup.yaml.
 - extendedWaitUntil:
     visible:
       id: "signup.bittr.success.topLabelOne"
