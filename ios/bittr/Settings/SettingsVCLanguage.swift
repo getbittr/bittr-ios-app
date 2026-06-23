@@ -12,7 +12,9 @@ extension SettingsViewController {
     @objc func setWords() {
         
         self.settingsTableView.reloadData()
-        self.appVersion.text = self.appVersion.text?.replacingOccurrences(of: "App version", with: Language.getWord(withID: "appversion"))
+        // Version + build number (and git hash, when the build phase set it) are
+        // read from the bundle at runtime — no hard-coded number in the storyboard.
+        self.appVersion.text = "\(Language.getWord(withID: "appversion")) \(AppVersion.displayString)"
     }
     
     @objc func changeColors() {
