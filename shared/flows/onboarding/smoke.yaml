@@ -4,7 +4,7 @@
 #
 # Prerequisite: the app must be on the Signup1 screen (the create-or-restore
 # entry point new users see). Easiest path: wipe app data on the simulator
-# (`xcrun simctl uninstall booted com.bittr.bittrRegtest && build & run from
+# (`xcrun simctl uninstall booted com.bittr.bittr-regtest && build & run from
 # Xcode`), or reset wallet via Settings → Reset.
 #
 # appId is the regtest variant (com.bittr.bittr-regtest), produced by a Debug build.
