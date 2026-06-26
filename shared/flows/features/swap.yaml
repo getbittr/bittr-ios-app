@@ -193,6 +193,21 @@ appId: com.bittr.bittr-regtest
 - evalScript: ${output.blocksToMine = 1}
 - runScript: ../scripts/mine_blocks.js
 
+# Recovery: if the funding tx stays unconfirmed and the status stalls on
+# "Waiting to be mined" instead of progressing to "Swap complete" on its own,
+# mine 6 more blocks and tap the status refresh button to pull a fresh status
+# from Boltz. Skipped when the swap has already moved on (the status label
+# shows one status at a time, so "Waiting to be mined" is no longer visible).
+- runFlow:
+    when:
+      visible:
+        text: "Waiting to be mined"
+    commands:
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - tapOn:
+          id: "swapStatus.refreshButton"
+
 - extendedWaitUntil:
     visible:
       text: "Swap complete"

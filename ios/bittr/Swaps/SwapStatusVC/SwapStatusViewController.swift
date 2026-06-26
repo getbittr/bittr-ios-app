@@ -57,6 +57,7 @@ class SwapStatusViewController: UIViewController {
 
         self.confirmCard.accessibilityIdentifier = TestID.SwapStatus.confirmCard
         self.confirmStatusLabel.accessibilityIdentifier = TestID.SwapStatus.confirmStatusLabel
+        self.confirmStatusButton.accessibilityIdentifier = TestID.SwapStatus.refreshButton
 
         // Button titles
         self.confirmStatusButton.setTitle("", for: .normal)

@@ -126,7 +126,8 @@
   },
   "swapStatus": {
     "confirmCard": null,
-    "confirmStatusLabel": null
+    "confirmStatusLabel": null,
+    "refreshButton": null
   },
   "unlock": {
     "topLabel": null

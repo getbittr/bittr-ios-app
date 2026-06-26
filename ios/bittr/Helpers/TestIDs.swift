@@ -272,6 +272,7 @@ enum TestID {
     enum SwapStatus {
         static let confirmCard = "swapStatus.confirmCard"
         static let confirmStatusLabel = "swapStatus.confirmStatusLabel"
+        static let refreshButton = "swapStatus.refreshButton"
     }
     enum Transaction {
         static let labelAmount = "transaction.labelAmount"
