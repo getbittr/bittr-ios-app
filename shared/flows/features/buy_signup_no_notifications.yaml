@@ -25,11 +25,13 @@
 #   5. Fix the IBAN, then drop ".com" from the email → Verify → the
 #      "enter your IBAN and email" alert (invalid email).
 #   6. Fix the email → Verify → advance to the OTP screen.
-#   7. Enter a WRONG code first (111111). Notification permission is
-#      undetermined, so: the in-app "Receive notifications" prompt (Alert A)
-#      → Okay → the iOS system dialog, which Maestro auto-denies → the
-#      denied-notifications gate (Alert B, [Cancel, Continue]). Tap Continue;
-#      the code is submitted and check2fa rejects it → incorrect-code alert.
+#   7. Enter a WRONG code first (111111). At the first notification gate the
+#      app shows EITHER the in-app prompt (Alert A) → Okay → iOS system dialog
+#      (auto-denied) → the denied gate (Alert B) when permission was still
+#      undetermined, OR jumps straight to the denied gate (Alert B) if
+#      notifications were already denied. The test handles both. Either way,
+#      tap Continue on Alert B → the WRONG code is submitted and check2fa
+#      rejects it → incorrect-code alert.
 #   8. Re-enter the correct code (123456). Erasing re-arms the auto-submit, so
 #      the 6th keystroke auto-triggers again. Permission is now .denied (no
 #      in-app prompt / system dialog this round) → straight to the denied gate
@@ -37,8 +39,12 @@
 #   9. Signup proceeds, registering the customer for on-chain payouts. Reuse
 #      buy_signup.yaml's clean-path tail — Transfer3 success → Transfer4 info
 #      cards → "Open your banking app" modal → back on Buy with the new cell.
-#  10. END on the Buy page: assert the new cell rendered AND that the
+#  10. Back on the Buy page: assert the new cell rendered AND that the
 #      payout-mode switch is OFF (on-chain), reflecting the denied path.
+#  11. Try to flip the payout-mode switch to lightning. Lightning needs push
+#      notifications (denied), so the switch is blocked: it reverts and shows
+#      the "lightningneedsnotifications" alert → tap Okay → switch back OFF.
+#      END.
 #
 # Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
@@ -185,28 +191,43 @@ appId: com.bittr.bittr-regtest
 # Transfer2 (OTP). The code field auto-focuses and auto-submits once 6
 # digits are entered. We enter a WRONG code first (111111) to exercise the
 # invalid-code path. The submit path checks notification permission BEFORE
-# validating the code: it's undetermined, so the app shows its "Receive
-# notifications" prompt, then the iOS system dialog — which Maestro auto-denies
-# (the launchApp permissions: notifications: deny config taps "Don't Allow").
+# validating the code, so the next step handles whichever notification gate
+# appears (see below) — depending on whether permission is still undetermined
+# or was already denied.
 - extendedWaitUntil:
     visible:
       id: "signup.bittr.otp.codeTextField"
     timeout: 30000
 - inputText: "111111"
 
-# Alert A: the in-app "Receive notifications" prompt. Okay fires the iOS
-# system permission dialog, which Maestro auto-denies.
+# First notification gate. What shows depends on the OS permission state:
+#   - .notDetermined: the in-app "Receive notifications" prompt (Alert A,
+#     single Okay button) appears first → Okay fires the iOS system dialog
+#     (Maestro auto-denies) → then the denied gate (Alert B).
+#   - already .denied (e.g. a previous run denied them): NO Alert A and NO
+#     system dialog — the app jumps straight to the denied gate (Alert B).
+# Wait for whichever alert appears first (both have an Okay/Cancel button.0).
 - extendedWaitUntil:
     visible:
       id: "alert.button.0"
     timeout: 20000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
-- tapOn:
-    id: "alert.button.0"
 
-# Alert B: after the system dialog is denied, the app shows the
-# denied-notifications gate. It offers two buttons — [Cancel (button.0),
-# Continue (button.1)]. Tap Continue (button.1) to proceed without
+# Distinguish the two cases by the presence of a "Continue" button (Alert B
+# has one; Alert A doesn't). If it's Alert A (no Continue), tap Okay to fire
+# the system dialog (auto-denied). When notifications were already denied this
+# block is skipped, because Alert B is shown directly.
+- runFlow:
+    when:
+      notVisible:
+        text: "Continue"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
+      - tapOn:
+          id: "alert.button.0"
+
+# Alert B: the denied-notifications gate, [Cancel (button.0), Continue
+# (button.1)] — reached either after the system dialog (undetermined case) or
+# directly (already-denied case). Tap Continue (button.1) to proceed without
 # notifications: the signup submits the entered code (still the WRONG 111111)
 # and registers the customer for on-chain payouts rather than being blocked.
 - extendedWaitUntil:
@@ -296,3 +317,24 @@ appId: com.bittr.bittr-regtest
     id: "buy.paymentModeSwitch"
     checked: false
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_buy_onchain
+
+# Now try to switch the payout mode to lightning. Lightning payouts are
+# delivered via push notifications, which the user denied, so setPaymentMode
+# blocks the switch: it reverts the toggle and shows the
+# "lightningneedsnotifications" alert (single Okay button) rather than sending
+# the PATCH.
+- tapOn:
+    id: "buy.paymentModeSwitch"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_lightning_blocked
+- tapOn:
+    id: "alert.button.0"
+
+# The blocked switch reverts to OFF (on-chain). End of test.
+- assertVisible:
+    id: "buy.paymentModeSwitch"
+    checked: false
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/13_end
