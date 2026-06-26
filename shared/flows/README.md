@@ -74,12 +74,15 @@ shared/flows/
                           notification gate (Receive-notifications prompt →
                           iOS system dialog, which Maestro auto-denies via
                           launchApp permissions notifications:deny → the
-                          authorize-in-Settings gate). Requires an existing
-                          wallet without a bittr account (run
+                          denied-notifications gate). At that gate it taps
+                          "Continue" to finish signup via the on-chain
+                          fallback (payment_mode=onchain), reusing
+                          buy_signup's tail, and ends on the Buy page with the
+                          new cell and the payout-mode switch OFF. Requires an
+                          existing wallet without a bittr account (run
                           onboarding/fresh_install_skip_signup.yaml first) —
                           it only unlocks, since auto-creating a wallet would
-                          wipe the permissions config. Ends at the
-                          notification gate (see the flow header).
+                          wipe the permissions config.
     remove_wallet.yaml    Settings → Device details → Remove wallet. Handles
                           both branches (active channel → close → mine →
                           re-trigger; no channel → direct confirm).

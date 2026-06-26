@@ -1,7 +1,9 @@
 # Feature test: the bittr signup from the Buy page, exercising the IBAN /
 # email validation alerts and the notification-permission gate on the OTP
-# screen. A companion to buy_signup.yaml that walks the *unhappy* branches
-# rather than the clean path.
+# screen, then proceeding WITHOUT notifications. A companion to buy_signup.yaml
+# that walks the *unhappy* branches and then completes signup via the on-chain
+# fallback: declining notifications no longer blocks the user — it registers
+# them for on-chain payouts (payment_mode=onchain) and lets them finish.
 #
 # Prerequisite: a wallet must ALREADY exist on the device, WITHOUT a
 # completed bittr signup (e.g. run onboarding/fresh_install_skip_signup.yaml
@@ -23,13 +25,16 @@
 #   5. Fix the IBAN, then drop ".com" from the email → Verify → the
 #      "enter your IBAN and email" alert (invalid email).
 #   6. Fix the email → Verify → advance to the OTP screen.
-#   7. Enter a code (123456 — never actually submitted/checked, since the
-#      gate blocks it). Notification permission is undetermined, so: the
-#      in-app "Receive notifications" prompt (Alert A) → Okay → the iOS
-#      system dialog, which Maestro auto-denies → the "authorize
-#      notifications in Settings" gate (Alert B) → Okay.
-#   8. END at the notification gate. We don't continue to the
-#      enter-correct-code path — that would need notifications enabled.
+#   7. Enter the code (123456). Notification permission is undetermined, so:
+#      the in-app "Receive notifications" prompt (Alert A) → Okay → the iOS
+#      system dialog, which Maestro auto-denies → the denied-notifications
+#      gate (Alert B), which now offers [Continue, Okay].
+#   8. Tap Continue: the signup proceeds, registering the customer for
+#      on-chain payouts. Reuse buy_signup.yaml's clean-path tail from here —
+#      Transfer3 success → Transfer4 info cards → "Open your banking app"
+#      modal → back on Buy with the new IBAN cell.
+#   9. END on the Buy page: assert the new cell rendered AND that the
+#      payout-mode switch is OFF (on-chain), reflecting the denied path.
 #
 # Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
@@ -194,18 +199,65 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.0"
 
-# Alert B: after the system dialog is denied, the app shows the "...go to
-# Settings > Notifications > bittr to authorize..." gate. Tap Okay to dismiss
-# it (the app just stops the spinner).
+# Alert B: after the system dialog is denied, the app shows the
+# denied-notifications gate. It offers two buttons — [Continue (button.0),
+# Okay (button.1)]. Tap Continue to proceed without notifications: the signup
+# carries on but registers the customer for on-chain payouts
+# (payment_mode=onchain) instead of being blocked.
 - extendedWaitUntil:
     visible:
       id: "alert.button.0"
     timeout: 20000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/06_authorize_notifications
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/06_notification_gate
 - tapOn:
     id: "alert.button.0"
 
-# Both gates dismissed → back on the OTP screen. End of test.
+# Proceeding re-submits the still-entered 123456 code (check2fa accepts it in
+# test mode), then createBittrAccount runs the long async chain. From here the
+# flow mirrors buy_signup.yaml's clean-path tail — the only difference is the
+# on-chain payout mode asserted at the end.
+
+# Transfer3: bittr signup success. Generous timeout for the async chain.
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.success.topLabelOne"
+    timeout: 90000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_bittr_success
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+
+# Transfer4: 4 explanation cards + "Let's go" at the bottom.
 - assertVisible:
-    id: "signup.bittr.otp.codeTextField"
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_end
+    id: "signup.bittr.transferInfo.amountTitle"
+- scrollUntilVisible:
+    element:
+      id: "signup.bittr.transferInfo.nextButton"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/08_transfer_info
+- tapOn:
+    id: "signup.bittr.transferInfo.nextButton"
+
+# "Open your banking app" modal — Done dismisses both the alert and the
+# RegisterIban modal; Buy reappears underneath with the new cell.
+- tapOn:
+    id: "alert.button.0"
+
+# Back on Buy — the new IBAN cell renders on the next layout pass after
+# parseIbanEntities, so allow a small grace period.
+- extendedWaitUntil:
+    visible:
+      id: "buy.yourCode"
+    timeout: 20000
+- assertVisible:
+    id: "buy.yourEmail"
+- assertVisible:
+    id: "buy.yourIban"
+
+# Because the user proceeded without notifications, the account was registered
+# on-chain, so the payout-mode switch renders OFF (paymentMode == "onchain").
+# NOTE: same `checked` caveat as payment_mode.yaml — if your Maestro version
+# doesn't read UISwitch state on iOS, drop the `checked:` line and rely on the
+# screenshot.
+- assertVisible:
+    id: "buy.paymentModeSwitch"
+    checked: false
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/09_buy_onchain
