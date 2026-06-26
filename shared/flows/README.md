@@ -70,12 +70,13 @@ shared/flows/
     buy_signup_no_notifications.yaml
                           The unhappy-path counterpart to buy_signup: walks
                           the "I don't have an IBAN" alert, the invalid-IBAN
-                          and invalid-email validation alerts, and the OTP
-                          notification gate (Receive-notifications prompt →
-                          iOS system dialog, which Maestro auto-denies via
-                          launchApp permissions notifications:deny → the
-                          denied-notifications gate). At that gate it taps
-                          "Continue" to finish signup via the on-chain
+                          and invalid-email validation alerts, a wrong OTP
+                          (incorrect-code alert), and the OTP notification gate
+                          (Receive-notifications prompt → iOS system dialog,
+                          which Maestro auto-denies via launchApp permissions
+                          notifications:deny → the denied-notifications gate).
+                          It then re-enters the correct OTP and, at each gate,
+                          taps "Continue" to finish signup via the on-chain
                           fallback (payment_mode=onchain), reusing
                           buy_signup's tail, and ends on the Buy page with the
                           new cell and the payout-mode switch OFF. Requires an

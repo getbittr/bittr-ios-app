@@ -25,15 +25,19 @@
 #   5. Fix the IBAN, then drop ".com" from the email → Verify → the
 #      "enter your IBAN and email" alert (invalid email).
 #   6. Fix the email → Verify → advance to the OTP screen.
-#   7. Enter the code (123456). Notification permission is undetermined, so:
-#      the in-app "Receive notifications" prompt (Alert A) → Okay → the iOS
-#      system dialog, which Maestro auto-denies → the denied-notifications
-#      gate (Alert B), which now offers [Continue, Okay].
-#   8. Tap Continue: the signup proceeds, registering the customer for
-#      on-chain payouts. Reuse buy_signup.yaml's clean-path tail from here —
-#      Transfer3 success → Transfer4 info cards → "Open your banking app"
-#      modal → back on Buy with the new IBAN cell.
-#   9. END on the Buy page: assert the new cell rendered AND that the
+#   7. Enter a WRONG code first (111111). Notification permission is
+#      undetermined, so: the in-app "Receive notifications" prompt (Alert A)
+#      → Okay → the iOS system dialog, which Maestro auto-denies → the
+#      denied-notifications gate (Alert B, [Cancel, Continue]). Tap Continue;
+#      the code is submitted and check2fa rejects it → incorrect-code alert.
+#   8. Re-enter the correct code (123456). Erasing re-arms the auto-submit, so
+#      the 6th keystroke auto-triggers again. Permission is now .denied (no
+#      in-app prompt / system dialog this round) → straight to the denied gate
+#      (Alert B) again → Continue. check2fa accepts 123456.
+#   9. Signup proceeds, registering the customer for on-chain payouts. Reuse
+#      buy_signup.yaml's clean-path tail — Transfer3 success → Transfer4 info
+#      cards → "Open your banking app" modal → back on Buy with the new cell.
+#  10. END on the Buy page: assert the new cell rendered AND that the
 #      payout-mode switch is OFF (on-chain), reflecting the denied path.
 #
 # Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
@@ -179,15 +183,16 @@ appId: com.bittr.bittr-regtest
     id: "signup.bittr.start.nextButton"
 
 # Transfer2 (OTP). The code field auto-focuses and auto-submits once 6
-# digits are entered. The submit path checks notification permission first;
-# it's undetermined, so the app shows its "Receive notifications" prompt,
-# then the iOS system dialog — which Maestro auto-denies (the launchApp
-# permissions: notifications: deny config taps "Don't Allow" for us).
+# digits are entered. We enter a WRONG code first (111111) to exercise the
+# invalid-code path. The submit path checks notification permission BEFORE
+# validating the code: it's undetermined, so the app shows its "Receive
+# notifications" prompt, then the iOS system dialog — which Maestro auto-denies
+# (the launchApp permissions: notifications: deny config taps "Don't Allow").
 - extendedWaitUntil:
     visible:
       id: "signup.bittr.otp.codeTextField"
     timeout: 30000
-- inputText: "123456"
+- inputText: "111111"
 
 # Alert A: the in-app "Receive notifications" prompt. Okay fires the iOS
 # system permission dialog, which Maestro auto-denies.
@@ -200,29 +205,59 @@ appId: com.bittr.bittr-regtest
     id: "alert.button.0"
 
 # Alert B: after the system dialog is denied, the app shows the
-# denied-notifications gate. It offers two buttons — [Continue (button.0),
-# Okay (button.1)]. Tap Continue to proceed without notifications: the signup
-# carries on but registers the customer for on-chain payouts
-# (payment_mode=onchain) instead of being blocked.
+# denied-notifications gate. It offers two buttons — [Cancel (button.0),
+# Continue (button.1)]. Tap Continue (button.1) to proceed without
+# notifications: the signup submits the entered code (still the WRONG 111111)
+# and registers the customer for on-chain payouts rather than being blocked.
 - extendedWaitUntil:
     visible:
-      id: "alert.button.0"
+      id: "alert.button.1"
     timeout: 20000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/06_notification_gate
 - tapOn:
+    id: "alert.button.1"
+
+# check2fa rejects 111111 → the "Oops" incorrect-code alert (verificationfail,
+# single Okay button). Dismiss it and try again with the correct code.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_wrong_code
+- tapOn:
     id: "alert.button.0"
 
-# Proceeding re-submits the still-entered 123456 code (check2fa accepts it in
-# test mode), then createBittrAccount runs the long async chain. From here the
-# flow mirrors buy_signup.yaml's clean-path tail — the only difference is the
-# on-chain payout mode asserted at the end.
+# Re-enter the code with the correct value. Erasing drops the field below 6
+# digits, which re-arms the auto-submit, so typing 123456 auto-triggers again
+# on the 6th keystroke — same as the first attempt, no manual Confirm needed.
+- tapOn:
+    id: "signup.bittr.otp.codeTextField"
+- eraseText: 6
+- inputText: "123456"
+
+# The submit path re-checks notification permission every time. It's now
+# .denied (not .notDetermined), so there's NO in-app prompt and NO system
+# dialog this round — it goes straight to the denied-notifications gate again.
+# Tap Continue (button.1) once more to proceed; this time check2fa accepts
+# 123456.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 20000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/08_notification_gate_retry
+- tapOn:
+    id: "alert.button.1"
+
+# Proceeding submits 123456 (accepted in test mode), then createBittrAccount
+# runs the long async chain. From here the flow mirrors buy_signup.yaml's
+# clean-path tail — the only difference is the on-chain payout mode at the end.
 
 # Transfer3: bittr signup success. Generous timeout for the async chain.
 - extendedWaitUntil:
     visible:
       id: "signup.bittr.success.topLabelOne"
     timeout: 90000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_bittr_success
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/09_bittr_success
 - tapOn:
     id: "signup.bittr.success.nextButton"
 
@@ -232,7 +267,7 @@ appId: com.bittr.bittr-regtest
 - scrollUntilVisible:
     element:
       id: "signup.bittr.transferInfo.nextButton"
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/08_transfer_info
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_transfer_info
 - tapOn:
     id: "signup.bittr.transferInfo.nextButton"
 
@@ -260,4 +295,4 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "buy.paymentModeSwitch"
     checked: false
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/09_buy_onchain
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_buy_onchain

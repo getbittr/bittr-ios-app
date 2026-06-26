@@ -136,7 +136,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 // Notifications have been rejected. The user can still continue —
                 // their purchases just get paid out on-chain instead of via lightning.
                 DispatchQueue.main.async {
-                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [Language.getWord(withID: "continue"), Language.getWord(withID: "okay")], actions: [#selector(self.proceedWithoutNotifications), #selector(self.cancelLoading)])
+                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "continue")], actions: [#selector(self.cancelLoading), #selector(self.proceedWithoutNotifications)])
                 }
             } else if CacheManager.getRegistrationToken() == nil {
                 Log.info("Notifications preference has been set but token hasn't been cached.")
@@ -536,12 +536,17 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         // Check if we should auto-trigger after text changes
         if textField == self.codeTextField {
             let trimmedText = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            
+
             if trimmedText.count >= 6 && self.nextView.backgroundColor == UIColor.black && !self.hasAutoTriggered {
                 self.hasAutoTriggered = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.nextButtonTapped(UIButton())
                 }
+            } else if trimmedText.count < 6 {
+                // Re-arm auto-submit once the code drops below 6 digits, so a
+                // corrected code (e.g. after a wrong-code error) auto-triggers
+                // again on its 6th keystroke.
+                self.hasAutoTriggered = false
             }
         }
     }

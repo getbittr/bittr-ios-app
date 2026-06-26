@@ -76,8 +76,9 @@ maestro test shared/flows/features/buy_signup.yaml
 # fallback). Requires an existing wallet without a bittr account (run
 # fresh_install_skip_signup.yaml first) — it only unlocks, no auto-create.
 # launchApp's permissions config makes Maestro auto-deny the iOS notification
-# dialog; at the denied-notifications gate the test taps "Continue" to finish
-# signup on-chain, ending on Buy with the payout-mode switch OFF:
+# dialog. It enters a wrong OTP first (incorrect-code alert), then the correct
+# one; at each denied-notifications gate it taps "Continue" to finish signup
+# on-chain, ending on Buy with the payout-mode switch OFF:
 maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
 # Then a feature test on the resulting wallet — opens the lightning channel:
