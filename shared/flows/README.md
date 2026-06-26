@@ -122,9 +122,8 @@ shared/flows/
                           Privacy / Terms (WebsiteViewController), then every
                           Device-details row: dark-mode toggle, language,
                           currency (EUR↔CHF, verified on Home), device token,
-                          public key, Bittr peer / purchases / notification /
-                          pending payout, and Lightning connections
-                          (QuestionViewController).
+                          public key, Bittr peer / pending payout, and
+                          Lightning connections (QuestionViewController).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
