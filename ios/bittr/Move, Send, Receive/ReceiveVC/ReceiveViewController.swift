@@ -274,7 +274,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.lowerAddressLabel.text = ""
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.hideLowerAddress()
-                self.currentCopyableText = "bitcoin:\(onchainAddress)\(amountText)"
+                self.currentCopyableText = amountText.isEmpty
+                    ? onchainAddress
+                    : "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
