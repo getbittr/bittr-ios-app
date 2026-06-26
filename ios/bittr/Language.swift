@@ -276,6 +276,7 @@ class Language: NSObject {
             "receivenotifications": "Receive notifications",
             "receivenotifications2": "To receive instant bitcoin payments, you must allow notifications.\n\nWithout notifications, you cannot receive payments to your wallet.",
             "receivenotifications3": "To receive instant bitcoin payments, you must allow notifications.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications.\n\nYou're free to continue without notifications, but then all your purchases will be paid into the regular (on-chain) part of your wallet.",
+            "lightningneedsnotifications": "Lightning payouts are delivered via push notifications, so you must allow notifications to switch to lightning.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications, then try again.",
             "verificationfail": "Please enter the correct verification code.",
             "bittrsignupfail": "Something went wrong creating your account. Please try again.",
             "bittrsignupfail2": "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.",

@@ -7,6 +7,7 @@
 
 import UIKit
 import Sentry
+import UserNotifications
 
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -316,8 +317,31 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     // MARK: - Payout mode (PATCH /customer/payment-mode)
 
-    func setPaymentMode(for entity: IbanEntity, newMode: String, isRetry: Bool = false) {
-
+    func setPaymentMode(for entity: IbanEntity, newMode: String) {
+        if newMode == "lightning" {
+            self.hasAcceptedPushNotifications { hasAccepted in
+                if hasAccepted {
+                    self.proceedWithApiCall(for: entity, newMode: newMode)
+                } else {
+                    Log.info("Notifications not authorized; blocking switch to lightning.")
+                    self.reloadCard(for: entity)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "lightningneedsnotifications"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
+        } else {
+            self.proceedWithApiCall(for: entity, newMode: newMode)
+        }
+    }
+    
+    func hasAcceptedPushNotifications(completion: @escaping (Bool) -> Void) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                completion(settings.authorizationStatus == .authorized)
+            }
+        }
+    }
+    
+    func proceedWithApiCall(for entity: IbanEntity, newMode: String, isRetry: Bool = false) {
         // The lightning node must be running to sign the request.
         guard BitcoinManager.shared.ldkNode != nil, let pubkey = BitcoinManager.shared.nodeId() else {
             Log.info("Lightning not ready for payment mode update.")
@@ -325,7 +349,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
-
+        
         let depositCode = entity.yourUniqueCode
         let timestamp = Int(Date().timeIntervalSince1970)
         let message = "payment_mode:\(pubkey):\(depositCode):\(newMode):\(timestamp)"
@@ -379,7 +403,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                             // Retry.
                             if serverError.lowercased().contains("expired timestamp"), !isRetry {
                                 // Stale timestamp — rebuild with a fresh one and retry once.
-                                self.setPaymentMode(for: entity, newMode: newMode, isRetry: true)
+                                self.proceedWithApiCall(for: entity, newMode: newMode, isRetry: true)
                                 return
                             }
                             self.handlePaymentModeError(serverError, for: entity)
