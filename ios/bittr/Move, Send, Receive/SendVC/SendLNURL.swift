@@ -38,7 +38,7 @@ extension SendViewController {
             enteredAmount = amountText.toNumber().inSatoshis() * 1000 // Convert to millisatoshis
         } else { // .currency (fiat)
             let fiatAmount = amountText.toNumber()
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
             let btcAmount = fiatAmount / bitcoinValue.currentValue
             
             // Safety check for invalid values

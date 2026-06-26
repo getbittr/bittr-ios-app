@@ -29,7 +29,7 @@ extension SendViewController {
             return btcAmount.inSatoshis()
         case .currency:
             let fiatAmount = enteredAmount.toNumber()
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
             let btcAmount = fiatAmount / bitcoinValue.currentValue
             
             guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {

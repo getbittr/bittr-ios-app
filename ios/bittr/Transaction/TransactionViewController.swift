@@ -437,7 +437,7 @@ class TransactionViewController: UIViewController {
         }
         
         // Value
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         let transactionValue:CGFloat = {
             if self.tappedTransaction.isSwap {
                 return (self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee).inBTC()

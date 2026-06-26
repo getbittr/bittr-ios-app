@@ -371,7 +371,7 @@ extension HomeViewController {
         if self.coreVC == nil { return "" }
         
         // Use preferred currency.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         
         // Converted balance string.
         let balanceValue = String(Int((btcValue*bitcoinValue.currentValue).rounded())).addSpaces()
@@ -439,7 +439,7 @@ extension HomeViewController {
         var accumulatedCurrentValue = 0
 
         // Get preferred currency.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
 
         // Total profit over every Bittr purchase currently on screen. Derive the
         // set straight from visibleTransactions instead of bittrTransactions.count:

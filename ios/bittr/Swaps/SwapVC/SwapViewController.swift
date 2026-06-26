@@ -227,17 +227,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         guard self.thisSwap != nil else { return }
         
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         
         // Calculate total fees including claim transaction fee for lightning-to-onchain swaps
         // For lightning-to-onchain swaps, the claim transaction fee is included in the on-chain amount
         // so the user receives exactly what they input
         let totalFees = self.thisSwap!.onchainFees! + self.thisSwap!.lightningFees! + (self.thisSwap!.claimTransactionFee ?? 0)
         
-        var convertedFees = "\(CGFloat(Int(totalFees.inBTC()*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
-        if convertedFees.split(separator: ",")[1].count == 1 {
-            convertedFees = convertedFees + "0"
-        }
+        // Fiat fee, rounded to two decimals and formatted with the device's
+        // decimal separator (e.g. "0,50" in comma locales).
+        let convertedFees = (totalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
         let convertedAmount = "\(Int((self.thisSwap!.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
         
         let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)".addSpaces()).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
