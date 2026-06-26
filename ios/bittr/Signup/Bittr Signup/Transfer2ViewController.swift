@@ -382,13 +382,22 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                             let lightningAddressUsername = actualDataItems["lightning_address_username"] as? String ?? ""
                             
                             CacheManager.addBittrIban(ibanID: ibanEntity.id, ourIban: dataOurIban, ourSwift: dataSwift, yourCode: dataCode, lightningAddressUsername: lightningAddressUsername)
+
+                            // If the user proceeded without notifications, the account was
+                            // registered on-chain, so persist that locally too.
+                            if self.notificationsDenied {
+                                CacheManager.setPaymentMode(ibanID: ibanEntity.id, paymentMode: "onchain")
+                            }
                             for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
                                 if eachIbanEntity.id == ibanEntity.id {
                                     self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = dataOurIban
                                     self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = dataSwift
                                     self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = dataCode
                                     self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
-                                    
+                                    if self.notificationsDenied {
+                                        self.coreVC!.bittrWallet.ibanEntities[index].paymentMode = "onchain"
+                                    }
+
                                     self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
                                 }
                             }
