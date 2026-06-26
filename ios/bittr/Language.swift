@@ -275,7 +275,7 @@ class Language: NSObject {
             "screenshot3": "We couldn't save your screenshot. Try taking a screenshot manually.",
             "receivenotifications": "Receive notifications",
             "receivenotifications2": "To receive instant bitcoin payments, you must allow notifications.\n\nWithout notifications, you cannot receive payments to your wallet.",
-            "receivenotifications3": "To receive instant bitcoin payments, you must allow notifications.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications.",
+            "receivenotifications3": "To receive instant bitcoin payments, you must allow notifications.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications.\n\nYou're free to continue without notifications, but then all your purchases will be paid into the regular (on-chain) part of your wallet.",
             "verificationfail": "Please enter the correct verification code.",
             "bittrsignupfail": "Something went wrong creating your account. Please try again.",
             "bittrsignupfail2": "The IBAN you've entered appears to be invalid. Please enter a valid IBAN.",
