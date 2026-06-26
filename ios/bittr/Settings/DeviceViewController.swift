@@ -23,8 +23,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         ["id":"devicetoken", "label":Language.getWord(withID: "devicetoken"), "button":Language.getWord(withID: "fetch"), "icon":"iphone"],
         ["id":"publickey", "label":Language.getWord(withID: "publickey"), "button":Language.getWord(withID: "fetch"), "icon":"key.horizontal.fill"],
         ["id":"bittrpeer", "label":Language.getWord(withID: "bittrpeer"), "button":Language.getWord(withID: "check"), "icon":"point.topleft.down.to.point.bottomright.curvepath.fill"],
-        ["id":"purchases", "label":Language.getWord(withID: "bittrpurchases"), "button":Language.getWord(withID: "check"), "icon":"banknote.fill"],
-        ["id":"notification", "label":Language.getWord(withID: "bittrnotification"), "button":Language.getWord(withID: "retry"), "icon":"envelope.fill"],
         ["id":"pendingpayouts", "label":Language.getWord(withID: "bittrpendingpayout"), "button":Language.getWord(withID: "check"), "icon":"hourglass"],
         ["id":"lightningchannels", "label":Language.getWord(withID: "lightningchannels2"), "button":"", "icon":"bolt.fill"],
         ["id":"restore", "label":Language.getWord(withID: "removewallet"), "button":"", "icon":"trash.fill"]
@@ -203,42 +201,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
             self.checkPeerConnection()
         }
-    }
-    
-    func checkPurchases() {
-        
-        if self.homeVC != nil {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: "bittrtransactions2"), buttons: [Language.getWord(withID: "check"), Language.getWord(withID: "close")], actions: [#selector(self.checkBittrTransactions), nil])
-        }
-    }
-    
-    @objc func checkBittrTransactions() {
-        self.hideAlert()
-        
-        self.tappedCell?.animateCell()
-        
-        Task {
-            let didReceiveNewInformation = await self.homeVC!.getBittrTransactionDetails(sendAll: true)
-            DispatchQueue.main.async {
-                self.tappedCell?.stopAnimating()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrtransactions"), message: Language.getWord(withID: didReceiveNewInformation ? "bittrtransactions3" : "bittrtransactions4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            }
-        }
-    }
-    
-    func checkNotification() {
-        if self.homeVC?.coreVC != nil, CacheManager.getLastNotification() != nil {
-            Log.info("Notification found for retrying.")
-            self.homeVC!.coreVC!.newNotification()
-            self.dismiss(animated: true)
-        } else {
-            Log.info("No notification available for retrying.")
-            self.showNotificationAlert()
-        }
-    }
-    
-    func showNotificationAlert() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrnotification"), message: Language.getWord(withID: "bittrnotification2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
     func checkChannels() {
