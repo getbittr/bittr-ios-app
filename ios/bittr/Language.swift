@@ -223,6 +223,8 @@ class Language: NSObject {
             "bittrnotificationfail": "Something went wrong processing the notification we sent to you. Please contact support@getbittr.com if you have any questions.",
             "pinlock": "You've entered an incorrect PIN too many times. Please restore your wallet.",
             "incorrectpin2": "Please enter your correct PIN. If you've forgotten it, please restore your wallet.",
+            "pinattemptsleft": "You have <attempts> attempts left.",
+            "pinattemptleft": "You have 1 attempt left.",
             "restorewallet2": "Are you sure you'd like to remove this wallet from your device?\n\nOnly remove your wallet if you're sure you've properly backed up your wallet.",
             "restore": "Restore",
             "restorewallet3": "Are you sure you want to remove your wallet from this device?",
