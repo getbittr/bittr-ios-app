@@ -18,6 +18,20 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "signup.create.start.createWalletButton"
 - takeScreenshot: shared/docs/screenshots/onboarding/01_start
+
+# Before creating the wallet, open the "What is bittr?" article card at the
+# bottom of Signup1 → ArticleViewController. Close it via its down button →
+# back on Signup1.
+- tapOn:
+    id: "signup.create.start.articleButton"
+- assertVisible:
+    id: "article.downButton"
+- takeScreenshot: shared/docs/screenshots/onboarding/01b_article
+- tapOn:
+    id: "article.downButton"
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+
 - tapOn:
     id: "signup.create.start.createWalletButton"
 

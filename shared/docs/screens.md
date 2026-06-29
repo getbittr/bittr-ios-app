@@ -22,7 +22,6 @@ This inventory lists user-facing screens only. Non-visual container/transient VC
 
 Screens with no Maestro coverage yet:
 
-- **Article reader** (`ArticleViewController`) — opened from signup article cards; no flow taps through.
 - **QR scanner** (`ScannerViewController`) — camera-based, not driveable in the simulator.
 
 ## Core
@@ -96,10 +95,10 @@ Screens with no Maestro coverage yet:
 ### Article reader
 
 - **VC**: `ios/bittr/Academy/Article/ArticleViewController.swift`
-- **Purpose**: educational article reader opened from the signup article cards (`CoreToArticle`).
+- **Purpose**: educational article reader opened from the signup article cards (`CoreToArticle`) — e.g. the "What is bittr?" card on Signup1.
 - **States**: loaded.
-- **Flow**: _none yet._
-- **Screenshots**: _not captured._
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
+- **Screenshots**: `onboarding/01b_article.png`
 
 ## Signup (restore wallet)
 

@@ -64,6 +64,10 @@
     "completeButton": null,
     "lessonSpinner": null
   },
+  "article": {
+    "tableView": null,
+    "downButton": null
+  },
   "history": {
     "swapPending": null,
     "swapComplete": null,
@@ -200,7 +204,8 @@
       "start": {
         "headerLabel": null,
         "createWalletButton": null,
-        "restoreButton": null
+        "restoreButton": null,
+        "articleButton": null
       },
       "confirm": {
         "topLabel": null,

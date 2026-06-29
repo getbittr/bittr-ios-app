@@ -10,6 +10,10 @@ enum TestID {
         static let nextLessonButton = "academy.nextLessonButton"
         static let nextPageButton = "academy.nextPageButton"
     }
+    enum Article {
+        static let downButton = "article.downButton"
+        static let tableView = "article.tableView"
+    }
     enum Buy {
         static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"
@@ -222,6 +226,7 @@ enum TestID {
                 static let topLabelOne = "signup.create.ready.topLabelOne"
             }
             enum Start {
+                static let articleButton = "signup.create.start.articleButton"
                 static let createWalletButton = "signup.create.start.createWalletButton"
                 static let headerLabel = "signup.create.start.headerLabel"
                 static let restoreButton = "signup.create.start.restoreButton"

@@ -38,6 +38,9 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         
         // Button titles
         self.downButton.setTitle("", for: .normal)
+
+        self.oneArticleTableView.accessibilityIdentifier = TestID.Article.tableView
+        self.downButton.accessibilityIdentifier = TestID.Article.downButton
         
         // Set image from the asset catalog, keyed by article slug.
         self.imageSpinner.stopAnimating()
