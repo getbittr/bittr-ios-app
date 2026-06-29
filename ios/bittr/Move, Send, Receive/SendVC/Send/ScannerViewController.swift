@@ -29,6 +29,9 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         
         // Button titles
         self.closeButton.setTitle("", for: .normal)
+
+        self.scannerView.accessibilityIdentifier = TestID.Scanner.scannerView
+        self.closeButton.accessibilityIdentifier = TestID.Scanner.closeButton
         
         // Corner radii
         self.closeView.layer.cornerRadius = 8

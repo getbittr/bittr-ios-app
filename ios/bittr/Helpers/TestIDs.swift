@@ -127,6 +127,10 @@ enum TestID {
         static let questionButton = "receive.questionButton"
         static let refreshButton = "receive.refreshButton"
     }
+    enum Scanner {
+        static let closeButton = "scanner.closeButton"
+        static let scannerView = "scanner.scannerView"
+    }
     enum Send {
         static let amountTextField = "send.amountTextField"
         static let availableButton = "send.availableButton"
@@ -146,6 +150,7 @@ enum TestID {
         static let nextButton = "send.nextButton"
         static let pasteButton = "send.pasteButton"
         static let regularButton = "send.regularButton"
+        static let scanButton = "send.scanButton"
         static let toLabel = "send.toLabel"
         static let toTextField = "send.toTextField"
     }

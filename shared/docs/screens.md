@@ -20,9 +20,7 @@ This inventory lists user-facing screens only. Non-visual container/transient VC
 
 ## Coverage gaps
 
-Screens with no Maestro coverage yet:
-
-- **QR scanner** (`ScannerViewController`) — camera-based, not driveable in the simulator.
+None — every user-facing screen now has at least one Maestro flow. The QR scanner can't use the camera in the simulator, so its flow exercises `ScannerViewController` via the "scanning not supported" path rather than a live scan.
 
 ## Core
 
@@ -215,10 +213,10 @@ Screens with no Maestro coverage yet:
 ### QR scanner
 
 - **VC**: `ios/bittr/Move, Send, Receive/SendVC/Send/ScannerViewController.swift`
-- **Purpose**: camera QR scanner opened from Send (`SendToScanner`).
-- **States**: scanning.
-- **Flow**: _none yet_ (camera not driveable in the simulator).
-- **Screenshots**: _not captured._
+- **Purpose**: camera QR scanner opened from Send (`SendToScanner`); in the simulator (no camera) it shows a "scanning not supported" alert whose Okay closes it.
+- **States**: scanning / not-supported alert (simulator).
+- **Flow**: `shared/flows/features/send_onchain.yaml`
+- **Screenshots**: `send_onchain/01b_scanner_alert.png`
 
 ### Receive
 

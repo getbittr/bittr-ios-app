@@ -133,6 +133,10 @@
     "confirmStatusLabel": null,
     "refreshButton": null
   },
+  "scanner": {
+    "scannerView": null,
+    "closeButton": null
+  },
   "unlock": {
     "topLabel": null
   },
@@ -182,6 +186,7 @@
     "toTextField": null,
     "amountTextField": null,
     "pasteButton": null,
+    "scanButton": null,
     "regularButton": null,
     "currencyButton": null,
     "currencyLabel": null,
