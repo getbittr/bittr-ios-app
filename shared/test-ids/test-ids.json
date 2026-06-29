@@ -149,7 +149,12 @@
   "transaction": {
     "yellowCard": null,
     "labelDate": null,
-    "labelAmount": null
+    "labelAmount": null,
+    "copyIdButton": null,
+    "bittrFeeButton": null,
+    "transferFeeButton": null,
+    "addNoteButton": null,
+    "labelNote": null
   },
   "receive": {
     "addressTitle": null,
