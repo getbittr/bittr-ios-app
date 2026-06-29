@@ -150,6 +150,7 @@
     "yellowCard": null,
     "labelDate": null,
     "labelAmount": null,
+    "descriptionButton": null,
     "copyIdButton": null,
     "bittrFeeButton": null,
     "transferFeeButton": null,

@@ -160,6 +160,7 @@ class TransactionViewController: UIViewController {
         self.yellowCard.accessibilityIdentifier = TestID.Transaction.yellowCard
         self.labelDate.accessibilityIdentifier = TestID.Transaction.labelDate
         self.labelAmount.accessibilityIdentifier = TestID.Transaction.labelAmount
+        self.buttonDescription.accessibilityIdentifier = TestID.Transaction.descriptionButton
         self.copyButtonTopId.accessibilityIdentifier = TestID.Transaction.copyIdButton
         self.buttonBittrFee.accessibilityIdentifier = TestID.Transaction.bittrFeeButton
         self.buttonTransferFee.accessibilityIdentifier = TestID.Transaction.transferFeeButton

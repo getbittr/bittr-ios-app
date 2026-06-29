@@ -278,6 +278,7 @@ enum TestID {
         static let addNoteButton = "transaction.addNoteButton"
         static let bittrFeeButton = "transaction.bittrFeeButton"
         static let copyIdButton = "transaction.copyIdButton"
+        static let descriptionButton = "transaction.descriptionButton"
         static let labelAmount = "transaction.labelAmount"
         static let labelDate = "transaction.labelDate"
         static let labelNote = "transaction.labelNote"

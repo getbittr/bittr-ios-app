@@ -135,3 +135,69 @@ appId: com.bittr.bittr-regtest
 - assertNotVisible:
     text: "${output.profitBefore}"
 - takeScreenshot: shared/docs/screenshots/buy_more/07_profit_after
+
+# Close the Profit screen (header down button) → back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Open the topmost (newest) transaction in the history table — the buy that
+# just came in — in the TransactionViewController.
+- assertVisible:
+    id: "history.transactionButton0"
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/buy_more/08_transaction
+
+# Tap the description to copy it → "Copied" alert (single Okay button) → close it.
+- tapOn:
+    id: "transaction.descriptionButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/buy_more/09_description_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the ID to copy it → "Copied" alert (single Okay button) → close it.
+- tapOn:
+    id: "transaction.copyIdButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/buy_more/10_id_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the question mark next to "Bittr fee" → info alert → close it.
+- tapOn:
+    id: "transaction.bittrFeeButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/buy_more/11_bittr_fee_info
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the question mark next to "Transfer fee" → info alert → close it.
+- tapOn:
+    id: "transaction.transferFeeButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/buy_more/12_transfer_fee_info
+- tapOn:
+    id: "alert.button.0"
+
+# Add a note. The note alert is a native UIAlertController with a text field;
+# type the note and tap Save.
+- tapOn:
+    id: "transaction.addNoteButton"
+- inputText: "buy_more test"
+- tapOn:
+    text: "Save"
+
+# The note now shows in the transaction's note stack.
+- assertVisible:
+    id: "transaction.labelNote"
+    text: "buy_more test"
+- takeScreenshot: shared/docs/screenshots/buy_more/13_note_saved
