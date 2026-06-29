@@ -119,12 +119,15 @@ extension HomeViewController {
             if thisTransaction.isSwap {
                 cell.showSwapStack()
                 cell.hideLightningStack()
+                // Row-indexed test IDs so the topmost swap is addressable as
+                // ...0 (e.g. history.swapComplete0 / history.swapPending0),
+                // matching history.transactionButton0 above.
                 if thisTransaction.swapStatus == .succeeded {
                     cell.swapImage.image = UIImage(named: "iconswapblue")
-                    cell.swapImage.accessibilityIdentifier = TestID.History.swapComplete
+                    cell.swapImage.accessibilityIdentifier = "\(TestID.History.swapComplete)\(indexPath.row)"
                 } else {
                     cell.swapImage.image = UIImage(named: "iconswapgrey")
-                    cell.swapImage.accessibilityIdentifier = TestID.History.swapPending
+                    cell.swapImage.accessibilityIdentifier = "\(TestID.History.swapPending)\(indexPath.row)"
                 }
             } else {
                 cell.hideSwapStack()
