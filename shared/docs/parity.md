@@ -30,7 +30,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `happy_path_wallet` + `happy_path_signup` if launched on a clean install. |
-| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address, copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
+| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Taps the header spinner right after unlock: while syncing this opens the sync status view (waits for it to auto-dismiss), or — if the sync already finished — the balance/Move screen, which it closes. Shows the onchain address, copies it via the QR long-press context menu (exercises Share + Copy), pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
 
 ## Send
@@ -96,7 +96,6 @@ Previously listed here and now covered: Restore wallet (`onboarding/restore_wall
 | LNURL-withdraw | `SendVC/SendLNURL.swift` (`handleWithdrawAmountCompletion`, `sendWithdrawRequest`, k1) | In active production scope. Only LNURL-pay is covered today; the withdraw path has no flow. |
 | Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
 | External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
-| Receive QR share / context menu | `ReceiveViewController.swift:751` (long-press → Copy/Share) | No flow does a long-press or invokes the share sheet. |
 | Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
 
 ### Push notifications — in scope for parity, flows to come later
@@ -120,7 +119,6 @@ Within otherwise-covered screens:
 - **Move**: its own Receive/Send buttons (flows launch these from Home instead); the swap-with-no-channel "instant payments" alert.
 - **Value**: the **Week** chart span (month / year / 5y + scrub are tested; week is only ever the default).
 - **Transaction**: the lightning-channel-fee "?"; the **Surcharge** fee explanation button (transfer + bittr fee are tested).
-- **Home**: tapping the syncing status.
 - **Map / One Place**: dismiss-place-by-background; the place **Website** button; **Open in Maps** (Apple/Google).
 - **Academy**: page-**back** within a lesson (only forward paging tested).
 - **Buy**: the IBAN-card copy buttons (iban / name / code — flows read the labels but never tap copy).

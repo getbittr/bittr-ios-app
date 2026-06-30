@@ -23,7 +23,6 @@ This inventory lists user-facing screens only. Non-visual container/transient VC
 Every user-facing screen (view controller) is now reached by at least one Maestro flow. The remaining gaps are **screen modes and features within those screens**, not whole screens:
 
 - **Receive "LNURL" type** — the user's own Lightning-address receive mode (More picker → Show LNURL) is never opened; the onchain / invoice / Bitcoin QR types are covered. **In production scope.**
-- **Receive QR share / context menu** — the long-press Copy/Share sheet on the QR is never exercised.
 - **Widget** — `BittrWidget/*` is a WidgetKit extension, not a screen, and can't be driven by Maestro (home-screen widget). Listed for completeness only.
 
 The QR scanner can't use the camera in the simulator, so its flow exercises `ScannerViewController` via the "scanning not supported" path rather than a live scan.
@@ -39,6 +38,14 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **States**: visible / wrong-PIN alert / lockout warning.
 - **Flow**: `shared/flows/helpers/unlock.yaml` (subflow), `features/{wrong_pin,wrong_pin_with_channel,pin_warning,forgot_pin,forgot_pin_remove_wallet}.yaml`
 - **Screenshots**: `wrong_pin/01_unlock.png`, `pin_warning/01_unlock.png`, `pin_warning/02_warning.png`, `forgot_pin/01_unlock.png`
+
+### Syncing status
+
+- **VC**: overlay in `ios/bittr/Core/CoreViewController.swift` (`SyncingStatus.swift`), opened from Home by tapping the header while the wallet is still syncing (`syncingStatusTapped` → `showSyncView`).
+- **Purpose**: per-step wallet-sync progress (conversion / LDK / final). Dismisses itself when the sync finishes; also has a manual close button.
+- **States**: shown (syncing) / auto-dismissed on sync complete.
+- **Flow**: `shared/flows/features/receive_onchain.yaml` (opened right after unlock while syncing, then left to auto-dismiss when the sync finishes). If the tap lands after the sync finished, the same button opens the balance/Move screen instead, which the flow closes.
+- **Screenshots**: `receive_onchain/00_sync_status.png`
 
 ## Signup (create wallet)
 
@@ -231,10 +238,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Move, Send, Receive/ReceiveVC/ReceiveViewController.swift`
 - **Purpose**: address/invoice generation + QR, with copy, refresh, edit-amount, and onchain/lightning toggle.
-- **States**: loaded (address + QR) / invoice / Bitcoin QR / address-info alert / copied alert / no-new-address alert.
+- **States**: loaded (address + QR) / invoice / Bitcoin QR / address-info alert / copied alert / no-new-address alert / QR long-press context menu (Copy/Share) / share sheet.
 - **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice}.yaml`
-- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`
-- **Not covered**: the **LNURL** type (user's own Lightning address, More → Show LNURL) is never opened; the QR long-press Copy/Share menu, the description/memo field, and the Bitcoin/Sats currency options are untested. See `parity.md`.
+- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`
+- **Not covered**: the **LNURL** type (user's own Lightning address, More → Show LNURL) is never opened; the description/memo field and the Bitcoin/Sats currency options are untested. See `parity.md`.
 
 ## Swap
 

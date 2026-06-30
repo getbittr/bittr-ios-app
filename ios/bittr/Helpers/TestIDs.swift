@@ -44,6 +44,7 @@ enum TestID {
     }
     enum Header {
         static let downButton = "header.downButton"
+        static let titleLabel = "header.titleLabel"
     }
     enum History {
         static let swapComplete = "history.swapComplete"
@@ -63,6 +64,7 @@ enum TestID {
         static let profitLabel = "home.profitLabel"
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
+        static let syncStatusButton = "home.syncStatusButton"
     }
     enum Map {
         static let mapSpinner = "map.mapSpinner"
@@ -289,6 +291,10 @@ enum TestID {
         static let confirmCard = "swapStatus.confirmCard"
         static let confirmStatusLabel = "swapStatus.confirmStatusLabel"
         static let refreshButton = "swapStatus.refreshButton"
+    }
+    enum Sync {
+        static let closeButton = "sync.closeButton"
+        static let statusView = "sync.statusView"
     }
     enum Transaction {
         static let addNoteButton = "transaction.addNoteButton"

@@ -123,7 +123,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.bothAmountTextField.delegate = self
         self.bothAmountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
-        // QR code
+        // QR code. UIImageView defaults to isUserInteractionEnabled = false, so
+        // the long-press context menu (Copy / Share) below never received touches
+        // without this — enable it so the interaction actually fires.
+        self.qrImageView.isUserInteractionEnabled = true
         self.qrImageView.addInteraction(UIContextMenuInteraction(delegate: self))
         
         // Set default currency to satoshis.
