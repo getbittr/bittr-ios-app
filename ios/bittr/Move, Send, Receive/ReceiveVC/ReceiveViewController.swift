@@ -197,7 +197,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                     return self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
                 } else if self.selectedCurrency == .currency {
                     let fiatAmount = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
-                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                    let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
                     let btcAmount = fiatAmount / bitcoinValue.currentValue
                     
                     // Safety check for invalid values
@@ -274,7 +274,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.lowerAddressLabel.text = ""
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.hideLowerAddress()
-                self.currentCopyableText = "bitcoin:\(onchainAddress)\(amountText)"
+                self.currentCopyableText = amountText.isEmpty
+                    ? onchainAddress
+                    : "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
@@ -581,7 +583,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
             self.selectSatsCurrency()
         }
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
             self.selectFiatCurrency()
         }

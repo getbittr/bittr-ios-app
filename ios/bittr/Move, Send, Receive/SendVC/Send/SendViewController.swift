@@ -483,7 +483,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         // Use the shared custom alert (same component as ReceiveViewController's
         // More type picker) rather than a standard iOS action sheet.
         // Buttons: [Cancel, Bitcoin, Satoshis, <fiat currency>].
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, #selector(self.tappedBitcoinCurrency), #selector(self.tappedSatsCurrency), #selector(self.tappedFiatCurrency)])
     }
 

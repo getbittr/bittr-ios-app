@@ -174,7 +174,7 @@ extension UIViewController {
                                 }
                             }
                         }
-                    }   
+                    }
 
                 case .authorized, .provisional, .ephemeral:
                     // Already authorized in some form — register and let
@@ -195,13 +195,16 @@ extension UIViewController {
             }
         }
     }
+}
+
+extension CoreViewController {
     
-    func getCorrectBitcoinValue(coreVC:CoreViewController) -> BitcoinValue {
+    func getCorrectBitcoinValue() -> BitcoinValue {
         
         let bitcoinValue = BitcoinValue()
-        bitcoinValue.currentValue = coreVC.bittrWallet.valueInEUR ?? 0.0
+        bitcoinValue.currentValue = self.bittrWallet.valueInEUR ?? 0.0
         if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            bitcoinValue.currentValue = coreVC.bittrWallet.valueInCHF ?? 0.0
+            bitcoinValue.currentValue = self.bittrWallet.valueInCHF ?? 0.0
             bitcoinValue.chosenCurrency = "CHF"
             bitcoinValue.apiUrl = "https://getbittr.com/api/price/btc/historical/chf"
         }

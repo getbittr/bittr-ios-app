@@ -74,7 +74,7 @@ class MoveViewController: UIViewController {
         // Calculate balance values.
         let correctBtcBalance:CGFloat = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
         let correctBtclnBalance:CGFloat = self.coreVC!.bittrWallet.satoshisLightning.inBTC()
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()

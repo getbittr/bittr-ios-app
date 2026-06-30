@@ -104,8 +104,6 @@
       "devicetoken": null,
       "publickey": null,
       "bittrpeer": null,
-      "purchases": null,
-      "notification": null,
       "pendingpayouts": null,
       "lightningchannels": null,
       "restore": null
@@ -128,7 +126,8 @@
   },
   "swapStatus": {
     "confirmCard": null,
-    "confirmStatusLabel": null
+    "confirmStatusLabel": null,
+    "refreshButton": null
   },
   "unlock": {
     "topLabel": null

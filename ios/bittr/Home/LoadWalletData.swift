@@ -43,7 +43,7 @@ extension HomeViewController {
         
         Task {
             // Check whether transactions were Bittr purchases.
-            _ = await self.getBittrTransactionDetails(sendAll: false)
+            _ = await self.getBittrTransactionDetails()
             
             DispatchQueue.main.async {
                 self.updateTransactionHistory()
@@ -129,8 +129,7 @@ extension HomeViewController {
     }
     
     
-    func getBittrTransactionDetails(sendAll:Bool) async -> Bool {
-        
+    func getBittrTransactionDetails() async -> Bool {
         // Check if transactions were Bittr purchases with the Bittr API.
         
         // Get this user's unique Bittr codes.
@@ -146,30 +145,22 @@ extension HomeViewController {
         }
         
         // Create array of transaction IDs to send to Bittr.
+        // Only send new transaction IDs to Bittr.
         var sendableTxIDs = [String]()
-        if sendAll {
-            // Send all transaction IDs to Bittr again.
-            for eachTransaction in self.visibleTransactions {
-                sendableTxIDs += [eachTransaction.id]
-            }
-        } else {
-            // Only send new transaction IDs to Bittr.
             
-            // Add all lightning payment IDs.
-            for eachPayment in self.coreVC!.bittrWallet.allTransactions {
-                let txID = eachPayment.kind.transactionID ?? eachPayment.id
-                if eachPayment.status == .succeeded, eachPayment.direction == .inbound, !CacheManager.getSentToBittr().contains(txID) {
-                    sendableTxIDs += [txID]
-                }
+        // Add all lightning payment IDs.
+        for eachPayment in self.coreVC!.bittrWallet.allTransactions {
+            let txID = eachPayment.kind.transactionID ?? eachPayment.id
+            if eachPayment.status == .succeeded, eachPayment.direction == .inbound, !CacheManager.getSentToBittr().contains(txID) {
+                sendableTxIDs += [txID]
             }
-            
-            // Add funding transaction ID.
-            if
-                let cachedFundingTxID = CacheManager.getTxoID(),
-                !(CacheManager.getSentToBittr().contains(cachedFundingTxID) &&
-                self.visibleTransactions.contains(where: { transaction in transaction.id == cachedFundingTxID})) {
-                sendableTxIDs += [cachedFundingTxID]
-            }
+        }
+        
+        // Add funding transaction ID.
+        if let cachedFundingTxID = CacheManager.getTxoID(),
+            !(CacheManager.getSentToBittr().contains(cachedFundingTxID) &&
+            self.visibleTransactions.contains(where: { transaction in transaction.id == cachedFundingTxID})) {
+            sendableTxIDs += [cachedFundingTxID]
         }
         
         // Add previously cached transactions to Bittr transactions array.
@@ -208,52 +199,18 @@ extension HomeViewController {
             return false
         }
         
-        // There are Bittr transactions.
-        // Check if any information is new.
-        var newTransactionsWereFound = false
-        
         for eachTransaction in bittrApiTransactions {
             self.bittrTransactions.updateValue(eachTransaction, forKey: eachTransaction.txId)
             
             if let cachedFundingTxID = CacheManager.getTxoID(), eachTransaction.txId == cachedFundingTxID {
                 // This is a channel funding transaction.
                 let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
-                
-                newTransactionsWereFound = true
                 self.newTransactions += [thisTransaction]
                 CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
-                
-            } else if sendAll {
-                // Check transactions that were previously not recognized.
-                for eachExistingTransaction in self.visibleTransactions {
-                    if eachExistingTransaction.id == eachTransaction.txId {
-                        newTransactionsWereFound = true
-                        eachExistingTransaction.isBittr = true
-                        eachExistingTransaction.fiatNetAmount = eachTransaction.fiatNetAmount.toNumber()
-                        eachExistingTransaction.fiatGrossAmount = eachTransaction.fiatGrossAmount.toNumber()
-                        eachExistingTransaction.currency = eachTransaction.currency
-                        let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
-                        eachExistingTransaction.transferFee = CGFloat(transferFee)
-                        eachExistingTransaction.surcharge = eachTransaction.surcharge.toNumber()
-                        eachExistingTransaction.bittrFee = eachTransaction.bittrFee.toNumber()
-                        eachExistingTransaction.historicalExchangeRate = eachTransaction.historicalExchangeRate.toNumber()
-                        if eachExistingTransaction.isLightning {
-                            CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
-                        }
-                    }
-                }
             }
         }
         
-        if sendAll {
-            if newTransactionsWereFound {
-                CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
-                self.homeTableView.reloadData()
-            }
-            return newTransactionsWereFound
-        } else {
-            return true
-        }
+        return true
     }
     
     
@@ -414,7 +371,7 @@ extension HomeViewController {
         if self.coreVC == nil { return "" }
         
         // Use preferred currency.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
         
         // Converted balance string.
         let balanceValue = String(Int((btcValue*bitcoinValue.currentValue).rounded())).addSpaces()
@@ -482,7 +439,7 @@ extension HomeViewController {
         var accumulatedCurrentValue = 0
 
         // Get preferred currency.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
 
         // Total profit over every Bittr purchase currently on screen. Derive the
         // set straight from visibleTransactions instead of bittrTransactions.count:

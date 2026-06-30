@@ -70,16 +70,20 @@ shared/flows/
     buy_signup_no_notifications.yaml
                           The unhappy-path counterpart to buy_signup: walks
                           the "I don't have an IBAN" alert, the invalid-IBAN
-                          and invalid-email validation alerts, and the OTP
-                          notification gate (Receive-notifications prompt →
-                          iOS system dialog, which Maestro auto-denies via
-                          launchApp permissions notifications:deny → the
-                          authorize-in-Settings gate). Requires an existing
-                          wallet without a bittr account (run
+                          and invalid-email validation alerts, a wrong OTP
+                          (incorrect-code alert), and the OTP notification gate
+                          (Receive-notifications prompt → iOS system dialog,
+                          which Maestro auto-denies via launchApp permissions
+                          notifications:deny → the denied-notifications gate).
+                          It then re-enters the correct OTP and, at each gate,
+                          taps "Continue" to finish signup via the on-chain
+                          fallback (payment_mode=onchain), reusing
+                          buy_signup's tail, and ends on the Buy page with the
+                          new cell and the payout-mode switch OFF. Requires an
+                          existing wallet without a bittr account (run
                           onboarding/fresh_install_skip_signup.yaml first) —
                           it only unlocks, since auto-creating a wallet would
-                          wipe the permissions config. Ends at the
-                          notification gate (see the flow header).
+                          wipe the permissions config.
     remove_wallet.yaml    Settings → Device details → Remove wallet. Handles
                           both branches (active channel → close → mine →
                           re-trigger; no channel → direct confirm).
@@ -118,9 +122,8 @@ shared/flows/
                           Privacy / Terms (WebsiteViewController), then every
                           Device-details row: dark-mode toggle, language,
                           currency (EUR↔CHF, verified on Home), device token,
-                          public key, Bittr peer / purchases / notification /
-                          pending payout, and Lightning connections
-                          (QuestionViewController).
+                          public key, Bittr peer / pending payout, and
+                          Lightning connections (QuestionViewController).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock

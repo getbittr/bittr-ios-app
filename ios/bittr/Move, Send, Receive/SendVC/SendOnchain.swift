@@ -43,7 +43,7 @@ extension SendViewController {
         switch self.selectedCurrency {
         case .bitcoin: divideBy = 1
         case .satoshis: divideBy = 100000000
-        case .currency: divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
+        case .currency: divideBy = self.coreVC!.getCorrectBitcoinValue().currentValue
         }
         self.onchainAmountInSatoshis = (enteredAmount/divideBy).inSatoshis()
         

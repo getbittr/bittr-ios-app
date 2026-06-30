@@ -14,11 +14,11 @@ enum TestID {
         static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"
         static let headerLabel = "buy.headerLabel"
+        static let paymentModeButton = "buy.paymentModeButton"
+        static let paymentModeSwitch = "buy.paymentModeSwitch"
         static let yourCode = "buy.yourCode"
         static let yourEmail = "buy.yourEmail"
         static let yourIban = "buy.yourIban"
-        static let paymentModeSwitch = "buy.paymentModeSwitch"
-        static let paymentModeButton = "buy.paymentModeButton"
     }
     enum Device {
         enum Darkmode {
@@ -33,10 +33,8 @@ enum TestID {
             static let devicetoken = "device.row.devicetoken"
             static let language = "device.row.language"
             static let lightningchannels = "device.row.lightningchannels"
-            static let notification = "device.row.notification"
             static let pendingpayouts = "device.row.pendingpayouts"
             static let publickey = "device.row.publickey"
-            static let purchases = "device.row.purchases"
             static let restore = "device.row.restore"
         }
     }
@@ -274,6 +272,7 @@ enum TestID {
     enum SwapStatus {
         static let confirmCard = "swapStatus.confirmCard"
         static let confirmStatusLabel = "swapStatus.confirmStatusLabel"
+        static let refreshButton = "swapStatus.refreshButton"
     }
     enum Transaction {
         static let labelAmount = "transaction.labelAmount"

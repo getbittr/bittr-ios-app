@@ -221,17 +221,24 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                         self.removeWallet()
                         return
                     }
-                    
+
+                    // Tell the user how many tries remain before the 10-attempt
+                    // wipe (singular wording for the final attempt).
+                    let attemptsLeft = 10 - CacheManager.getFailedPinAttempts()
+                    let attemptsMessage = attemptsLeft == 1
+                        ? Language.getWord(withID: "pinattemptleft")
+                        : Language.getWord(withID: "pinattemptsleft").replacingOccurrences(of: "<attempts>", with: "\(attemptsLeft)")
+
                     // Warn well before the 10-attempt wipe and steer anyone who
                     // still has their recovery phrase to the non-destructive
                     // Forgot PIN flow — the wipe can cost them their Lightning
                     // funds, so we want them recovering by mnemonic instead.
                     if CacheManager.getFailedPinAttempts() == 3 {
-                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [nil, #selector(self.startPinReset)])
+                        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2") + "\n\n" + attemptsMessage, buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [nil, #selector(self.startPinReset)])
                         return
                     }
 
-                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2") + "\n\n" + attemptsMessage, buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
                 }
             } else {
                 // No pin found in storage.

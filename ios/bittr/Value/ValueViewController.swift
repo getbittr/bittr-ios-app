@@ -123,17 +123,18 @@ class ValueViewController: UIViewController {
         // Get latest value
         Task {
             do {
-                let eurUrl = URL(string: self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).apiUrl)!
+                let bitcoinValue = self.homeVC!.coreVC!.getCorrectBitcoinValue()
+                let eurUrl = URL(string: bitcoinValue.apiUrl)!
                 var eurData = Data()
-                if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
+                if bitcoinValue.chosenCurrency == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
                     
                     eurData = self.homeVC!.chfData!
-                } else if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency != "CHF", self.homeVC?.eurData != nil, (self.homeVC?.eurDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
+                } else if bitcoinValue.chosenCurrency != "CHF", self.homeVC?.eurData != nil, (self.homeVC?.eurDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
                     
                     eurData = self.homeVC!.eurData!
                 } else {
                     (eurData, _) = try await URLSession.shared.data(from: eurUrl)
-                    if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF" {
+                    if bitcoinValue.chosenCurrency == "CHF" {
                         self.homeVC?.chfData = eurData
                         self.homeVC?.chfDataFetched = Date()
                     } else {
@@ -238,7 +239,7 @@ class ValueViewController: UIViewController {
                             self.currentValue = actualEurValue.toNumber()
                             var preferredCurrency = "€"
                             var valueToDisplay = formattedEurValue
-                            if self.getCorrectBitcoinValue(coreVC: self.homeVC!.coreVC!).chosenCurrency == "CHF" {
+                            if bitcoinValue.chosenCurrency == "CHF" {
                                 preferredCurrency = "CHF"
                                 valueToDisplay = formattedChfValue
                                 self.currentValue = actualChfValue.toNumber()

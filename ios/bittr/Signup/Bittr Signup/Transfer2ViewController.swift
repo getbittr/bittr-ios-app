@@ -42,6 +42,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     // Variables
     var start2Fa = false
     var hasAutoTriggered = false
+    var notificationsDenied = false
     var coreVC:CoreViewController?
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
@@ -132,9 +133,10 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                     self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
                 }
             } else if settings.authorizationStatus != .authorized {
-                // Notifications have been rejected..
+                // Notifications have been rejected. The user can still continue —
+                // their purchases just get paid out on-chain instead of via lightning.
                 DispatchQueue.main.async {
-                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.cancelLoading)])
+                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "continue")], actions: [#selector(self.cancelLoading), #selector(self.proceedWithoutNotifications)])
                 }
             } else if CacheManager.getRegistrationToken() == nil {
                 Log.info("Notifications preference has been set but token hasn't been cached.")
@@ -159,6 +161,16 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             self.nextButtonArrow.alpha = 1
             self.nextButtonActivityIndicator.stopAnimating()
         }
+    }
+
+
+    @objc func proceedWithoutNotifications() {
+        // User chose to continue without push notifications. Flag it so that
+        // gatherParameters registers them with on-chain payouts, then carry on
+        // with signup (the Next-button spinner keeps running).
+        self.hideAlert()
+        self.notificationsDenied = true
+        self.sendCodeToBittr()
     }
     
     
@@ -316,6 +328,12 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 "skip_xpub_usage_check": "true",
                 "ios_device_token": CacheManager.getRegistrationToken() ?? ""
             ]
+            // Without push notifications the user can't receive instant lightning
+            // payouts, so register them with on-chain payouts instead of lightning.
+            if self.notificationsDenied {
+                parameters["payment_mode"] = "onchain"
+            }
+
             // Recovery: reuse the existing deposit code so the backend updates the
             // existing customer instead of creating a new order. lightning_pubkey
             // (above) must match the one sent in check2fa and stored on the customer.
@@ -364,13 +382,22 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                             let lightningAddressUsername = actualDataItems["lightning_address_username"] as? String ?? ""
                             
                             CacheManager.addBittrIban(ibanID: ibanEntity.id, ourIban: dataOurIban, ourSwift: dataSwift, yourCode: dataCode, lightningAddressUsername: lightningAddressUsername)
+
+                            // If the user proceeded without notifications, the account was
+                            // registered on-chain, so persist that locally too.
+                            if self.notificationsDenied {
+                                CacheManager.setPaymentMode(ibanID: ibanEntity.id, paymentMode: "onchain")
+                            }
                             for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
                                 if eachIbanEntity.id == ibanEntity.id {
                                     self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = dataOurIban
                                     self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = dataSwift
                                     self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = dataCode
                                     self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
-                                    
+                                    if self.notificationsDenied {
+                                        self.coreVC!.bittrWallet.ibanEntities[index].paymentMode = "onchain"
+                                    }
+
                                     self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
                                 }
                             }
@@ -509,12 +536,17 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         // Check if we should auto-trigger after text changes
         if textField == self.codeTextField {
             let trimmedText = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            
+
             if trimmedText.count >= 6 && self.nextView.backgroundColor == UIColor.black && !self.hasAutoTriggered {
                 self.hasAutoTriggered = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.nextButtonTapped(UIButton())
                 }
+            } else if trimmedText.count < 6 {
+                // Re-arm auto-submit once the code drops below 6 digits, so a
+                // corrected code (e.g. after a wrong-code error) auto-triggers
+                // again on its 6th keystroke.
+                self.hasAutoTriggered = false
             }
         }
     }
