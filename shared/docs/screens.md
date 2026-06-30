@@ -20,7 +20,15 @@ This inventory lists user-facing screens only. Non-visual container/transient VC
 
 ## Coverage gaps
 
-None — every user-facing screen now has at least one Maestro flow. The QR scanner can't use the camera in the simulator, so its flow exercises `ScannerViewController` via the "scanning not supported" path rather than a live scan.
+Every user-facing screen (view controller) is now reached by at least one Maestro flow. The remaining gaps are **screen modes and features within those screens**, not whole screens:
+
+- **Receive "LNURL" type** — the user's own Lightning-address receive mode (More picker → Show LNURL) is never opened; the onchain / invoice / Bitcoin QR types are covered. **In production scope.**
+- **Receive QR share / context menu** — the long-press Copy/Share sheet on the QR is never exercised.
+- **Widget** — `BittrWidget/*` is a WidgetKit extension, not a screen, and can't be driven by Maestro (home-screen widget). Listed for completeness only.
+
+The QR scanner can't use the camera in the simulator, so its flow exercises `ScannerViewController` via the "scanning not supported" path rather than a live scan.
+
+For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, push-notification types, per-screen interactions, validation alerts, and what's out of scope), see `parity.md` → "Not yet covered by flows".
 
 ## Core
 
@@ -222,9 +230,10 @@ None — every user-facing screen now has at least one Maestro flow. The QR scan
 
 - **VC**: `ios/bittr/Move, Send, Receive/ReceiveVC/ReceiveViewController.swift`
 - **Purpose**: address/invoice generation + QR, with copy, refresh, edit-amount, and onchain/lightning toggle.
-- **States**: loaded (address + QR) / invoice / address-info alert / copied alert / no-new-address alert.
+- **States**: loaded (address + QR) / invoice / Bitcoin QR / address-info alert / copied alert / no-new-address alert.
 - **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice}.yaml`
 - **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`
+- **Not covered**: the **LNURL** type (user's own Lightning address, More → Show LNURL) is never opened; the QR long-press Copy/Share menu, the description/memo field, and the Bitcoin/Sats currency options are untested. See `parity.md`.
 
 ## Swap
 

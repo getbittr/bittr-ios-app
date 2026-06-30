@@ -85,9 +85,67 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 
 ## Not yet covered by flows
 
-iOS-side features that still need a flow before they're parity-tracked: **Widget** (no Maestro-driveable path) and **LNURL-Auth** (login via LNURL — distinct from the LNURL-pay covered by `send_lightning`).
+The gaps below come from a full iOS-code audit (every view controller, app target and notification path cross-referenced against the flow suite). Each item exists in the iOS app but has no flow exercising it. Grouped by priority for the Android parity effort.
 
-Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning (`features/send_lightning.yaml`).
+Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
+
+### Production-scope features needing a flow (high priority)
+
+| Feature | Where (iOS) | Notes |
+|---|---|---|
+| LNURL-withdraw | `SendVC/SendLNURL.swift` (`handleWithdrawAmountCompletion`, `sendWithdrawRequest`, k1) | In active production scope. Only LNURL-pay is covered today; the withdraw path has no flow. |
+| Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
+| External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
+| Receive QR share / context menu | `ReceiveViewController.swift:751` (long-press → Copy/Share) | No flow does a long-press or invokes the share sheet. |
+| Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
+
+### Push notifications — in scope for parity, flows to come later
+
+Only `.lightningPayout` is exercised (`buy_more.yaml` / `buy_incoming.yaml`). The other five `BittrNotificationType` cases have no flow and should get APNS-injection flows (same technique as `buy_more.yaml` via `scripts/push_notification.js`):
+
+| Type | Handler (iOS) |
+|---|---|
+| `.information` | `NotificationManager.swift` → `CoreViewController.newNotification()` |
+| `.swap` | `HandleSwapNotification` — swap UI is covered, but the push entry point is not |
+| `.lnUrl` (Lightning-Address payout) | `HandleLightningAddressNotification.swift` |
+| `.htlcIncoming` | `HandlePaymentNotification.swift` |
+| `.htlcExpired` | `HandlePaymentNotification.swift` |
+
+### Per-screen interactions not yet exercised (medium priority)
+
+Within otherwise-covered screens:
+
+- **Receive**: description/memo field; the Bitcoin and Sats currency options (only € is tapped).
+- **Send**: the "available/max" question mark; the instant/regular switch question mark.
+- **Confirm Send**: the **Medium** fee option (only Fast/Slow tested); the lightning-fee "?"; the back button.
+- **Move**: its own Receive/Send buttons (flows launch these from Home instead); the swap-with-no-channel "instant payments" alert.
+- **Value**: the **Week** chart span (month / year / 5y + scrub are tested; week is only ever the default).
+- **Transaction**: the lightning-channel-fee "?"; the **Surcharge** fee explanation button (transfer + bittr fee are tested).
+- **Home**: tapping the syncing status.
+- **Map / One Place**: dismiss-place-by-background; the place **Website** button; **Open in Maps** (Apple/Google).
+- **Academy**: page-**back** within a lesson (only forward paging tested).
+- **Buy**: the IBAN-card copy buttons (iban / name / code — flows read the labels but never tap copy).
+
+### Validation / error / edge-path alerts (low priority)
+
+Mostly defensive alerts on the onboarding/auth screens, with no flow:
+
+- **Signup**: "didn't agree" (Signup2); verify-screen empty / invalid-word / wrong-word alerts (Signup4); PIN-mismatch (Signup6); article cards; mnemonic screenshot warning; back buttons.
+- **Restore**: empty-field & invalid-mnemonic alerts; forgot-PIN wrong-mnemonic / no-cached-mnemonic alerts; Restore3 PIN-mismatch; back buttons.
+- **PIN**: PIN > 8 digits and < 4 digits validation alerts.
+- **Bittr signup (Transfer)**: "I don't have an IBAN" → Cancel branch; **Resend OTP** (cooldown + success); change-email/back path; Transfer3 copy + screenshot buttons; Transfer4 back.
+- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested); applying a language change (only English exists, so only Cancel is testable).
+- **Buy**: payment-mode server-error/retry and `lightningnotready` guard paths.
+
+### Not parity-tracked
+
+- **LNURL-auth (login)** — `SendLNURL.swift`, in-app-browser path in `WebsiteViewController.swift`. Not in product scope; intentionally untracked.
+- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired.
+- **QR scanner (live scan)** — camera not available in the simulator; `ScannerViewController` is exercised via the "scanning not supported" path only (`send_onchain.yaml`).
+
+### Confirmed absent in iOS (not parity gaps — do not build for parity)
+
+No biometric / Face ID unlock (PIN only), no clipboard auto-detection on foreground, no Universal Links / associated domains, no Siri / Intents / Spotlight, no App Clip, no Share/Action extension.
 
 ## Legend
 
