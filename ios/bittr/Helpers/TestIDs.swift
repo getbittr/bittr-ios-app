@@ -77,6 +77,7 @@ enum TestID {
         static let userLocationButton = "map.userLocationButton"
     }
     enum Move {
+        static let channelButton = "move.channelButton"
         static let satsInstant = "move.satsInstant"
         static let satsRegular = "move.satsRegular"
         static let satsTotal = "move.satsTotal"
@@ -112,6 +113,7 @@ enum TestID {
     }
     enum Question {
         static let answerLabel = "question.answerLabel"
+        static let channelView = "question.channelView"
         static let yellowCard = "question.yellowCard"
     }
     enum Receive {

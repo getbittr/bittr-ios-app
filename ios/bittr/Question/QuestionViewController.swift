@@ -39,6 +39,7 @@ class QuestionViewController: UIViewController {
 
         self.yellowCard.accessibilityIdentifier = TestID.Question.yellowCard
         self.answerLabel.accessibilityIdentifier = TestID.Question.answerLabel
+        self.channelView.accessibilityIdentifier = TestID.Question.channelView
 
         // Corner radii and button titles
         self.yellowCard.layer.cornerRadius = 13

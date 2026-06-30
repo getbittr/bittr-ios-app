@@ -79,6 +79,7 @@
     "satsTotal": null,
     "satsRegular": null,
     "satsInstant": null,
+    "channelButton": null,
     "swapButton": null
   },
   "nav": {
@@ -152,7 +153,8 @@
   },
   "question": {
     "yellowCard": null,
-    "answerLabel": null
+    "answerLabel": null,
+    "channelView": null
   },
   "transaction": {
     "yellowCard": null,
