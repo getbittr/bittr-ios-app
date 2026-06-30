@@ -204,13 +204,13 @@ appId: com.bittr.bittr-regtest
       - takeScreenshot: shared/docs/screenshots/settings/12_peer_disconnected
       - tapOn:
           id: "alert.button.1"
+      # The two-button connect alert is replaced by a single-button result
+      # alert ("connected" or a failure) — both have alert.button.0, so wait
+      # for the Connect button (alert.button.1) to disappear instead, then the
+      # tap below dismisses whatever result alert came back.
       - extendedWaitUntil:
           notVisible:
-            id: "alert.button.0"
-          timeout: 10000
-      - extendedWaitUntil:
-          visible:
-            id: "alert.button.0"
+            id: "alert.button.1"
           timeout: 30000
 - tapOn:
     id: "alert.button.0"

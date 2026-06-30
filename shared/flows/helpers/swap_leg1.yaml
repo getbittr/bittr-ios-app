@@ -1,0 +1,47 @@
+# Helper: from Home, set up the lightning → onchain swap leg (75000 sats) and
+# tap Next. swap.yaml calls this once normally, and again after a reprovision if
+# the first attempt hit the notifications gate.
+#
+# It STOPS right after tapping Next — it does not assert the fees alert. Tapping
+# Next is where the app checks for an APNs device token: with one it shows the
+# fees alert, without one (notifications denied) it shows the "notifications
+# required" gate instead. The caller waits for whichever appears and branches.
+
+appId: com.bittr.bittr-regtest
+---
+# Settle any wallet sync first (also covers the re-sync after a reprovision).
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Tap the big balance card → MoveVC. profitButton overlays the lower half, so
+# the 50%,20% offset lands in the upper half (the big balance numbers).
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- takeScreenshot: shared/docs/screenshots/swap/02_move
+
+# Tap the exchange icon between regular and instant balances → SwapVC.
+- tapOn:
+    id: "move.swapButton"
+- assertVisible:
+    id: "swap.amountTextField"
+- takeScreenshot: shared/docs/screenshots/swap/03_swap_initial
+
+# Type 75000 satoshis. Tap Done on the keyboard accessory toolbar (Maestro's
+# hideKeyboard is unreliable against iOS numeric keyboards).
+- tapOn:
+    id: "swap.amountTextField"
+- inputText: "75000"
+- tapOn:
+    text: "Done"
+- takeScreenshot: shared/docs/screenshots/swap/04_swap_amount_entered
+
+# Tap Next. The app now checks for an APNs token: it shows EITHER the fees alert
+# (token present) OR the "notifications required" gate (token absent). The
+# caller decides what to do next.
+- tapOn:
+    id: "swap.nextButton"
