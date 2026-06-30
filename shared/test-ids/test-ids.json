@@ -176,6 +176,8 @@
     "qrSpinner": null,
     "questionButton": null,
     "amountTextField": null,
+    "currencyButton": null,
+    "currencyLabel": null,
     "copyButton": null,
     "refreshButton": null,
     "editButton": null,

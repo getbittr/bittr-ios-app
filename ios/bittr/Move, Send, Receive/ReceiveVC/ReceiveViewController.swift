@@ -136,6 +136,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.qrSpinner.accessibilityIdentifier = TestID.Receive.qrSpinner
         self.questionButton.accessibilityIdentifier = TestID.Receive.questionButton
         self.bothAmountTextField.accessibilityIdentifier = TestID.Receive.amountTextField
+        self.btcButton.accessibilityIdentifier = TestID.Receive.currencyButton
+        self.btcLabel.accessibilityIdentifier = TestID.Receive.currencyLabel
         self.copyButton.accessibilityIdentifier = TestID.Receive.copyButton
         self.refreshButton.accessibilityIdentifier = TestID.Receive.refreshButton
         self.editButton.accessibilityIdentifier = TestID.Receive.editButton
