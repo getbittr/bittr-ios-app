@@ -2,32 +2,98 @@
 
 Per-feature status of iOS vs Android implementation. Updated as Maestro flows go green on each platform.
 
+Every flow under `shared/flows/` is listed below. iOS is the source of truth and is implemented; Android isn't scaffolded yet, so it reads `not started` across the board until the port begins.
+
+## Onboarding & wallet setup
+
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
-| Test-ID smoke | done | n/a | `onboarding/smoke.yaml` | Verifies the JSON → build.py → Swift → Maestro pipeline reaches a real ID. |
-| Onboarding (create wallet + bittr signup) | done | not started | `onboarding/happy_path_wallet.yaml` + `happy_path_signup.yaml` | Top-level entry: `onboarding/fresh_install.yaml` (wipes state, runs happy_path_wallet then happy_path_signup). |
-| Buy — first incoming bank transaction | done | not started | `features/buy_incoming.yaml` | Opens the lightning channel; needs `fresh_install` first. |
-| Buy — subsequent top up | done | not started | `features/buy_more.yaml` | Preserves wallet state; needs prior `buy_incoming` run for the channel. Requires `scripts/push_server.js` running. |
-| Receive | done | not started | `features/receive.yaml` | Auto-recovers via `onboarding/happy_path_wallet.yaml` + `happy_path_signup.yaml` if launched on a clean install. |
-| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address (waits out the verification spinner), copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
+| Test-ID smoke | done | n/a | `onboarding/smoke.yaml` | Verifies the JSON → build.py → Swift → Maestro pipeline reaches a real ID on Signup1. |
+| Create wallet (onboarding subflow) | done | not started | `onboarding/happy_path_wallet.yaml` | Drives Signup1 → Signup7 (create wallet, mnemonic, verify, set/confirm PIN). Also opens the "What is bittr?" article on Signup1 and closes it. Reusable subflow. |
+| Bittr signup (onboarding subflow) | done | not started | `onboarding/happy_path_signup.yaml` | IBAN / email / OTP / info-cards from Signup7 through to Home. Reusable subflow. |
+| Fresh install (full onboarding) | done | not started | `onboarding/fresh_install.yaml` | Top-level orchestrator: clearState + clearKeychain, then runs `happy_path_wallet` + `happy_path_signup`. |
+| Fresh install, skip bittr signup | done | not started | `onboarding/fresh_install_skip_signup.yaml` | Creates a wallet from scratch then taps Skip on Signup7 → Home with no bittr account. |
+| Restore wallet | done | not started | `onboarding/restore_wallet.yaml` | clearState + clearKeychain, restores from a fixed test mnemonic, sets PIN 1234 → Home. |
+
+## Buy & bittr account
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
+| Buy — first incoming bank transaction | done | not started | `features/buy_incoming.yaml` | Opens the lightning channel; needs `fresh_install` first. Also walks the TransactionViewController (copy ID, Bittr/Transfer fee alerts, add note). |
+| Buy — subsequent top up | done | not started | `features/buy_more.yaml` | Preserves wallet state; needs a prior `buy_incoming` run for the channel. Requires `scripts/push_server.js`. Also walks the TransactionViewController (copy description + ID, fee alerts, add note). |
+| Buy — bittr signup from Buy | done | not started | `features/buy_signup.yaml` | Completes the bittr signup from the empty Buy card via the RegisterIban modal. Needs a wallet *without* a bittr account (run `restore_wallet` first). |
+| Buy — signup validation + no notifications | done | not started | `features/buy_signup_no_notifications.yaml` | Unhappy IBAN/email validation alerts + the OTP notification-permission gate, finishing on the on-chain payout fallback. Needs `fresh_install_skip_signup` first; launchApp auto-denies the iOS notification dialog. |
+| Payout mode toggle | done | not started | `features/payment_mode.yaml` | Toggles the Buy card's payout mode lightning ↔ onchain (PATCH /customer/payment-mode). Self-provisions a wallet + order if missing. |
+
+## Receive
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
+| Receive | done | not started | `features/receive.yaml` | Auto-recovers via `happy_path_wallet` + `happy_path_signup` if launched on a clean install. |
+| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address, copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
-| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, switches to Regular (waits out the BDK sync spinner), enters an address + 5 EUR amount, confirms address/euro amount on the Confirm screen with the fast fee, sends, mines 6 blocks, then opens the new transaction from the history table. Requires an onchain balance. |
-| Send onchain (max) | done | not started | `features/send_onchain_all.yaml` | Sends the full balance via "Send all", exercising the tight-fee path: fast fee exceeds the balance → Update amount, and on a failed broadcast retry with the slowest fee (past the low-fee warning), then mine 6 blocks and open the new transaction. Requires an onchain balance. |
-| Send lightning | done | not started | `features/send_lightning.yaml` | Pays a normal (amount-bearing) invoice, a zero-amount invoice (amount entered in BTC), and a Lightning Address (LNURL-pay), each confirmed via the TransactionViewController. Manual input — the three targets come from a separate live wallet, passed via `LN_INVOICE`/`LN_ZERO_INVOICE`/`LN_ADDRESS`; the Paste steps need `scripts/clipboard_server.js`. Requires an active channel with outbound capacity. |
-| Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses existing channel + onchain balance from prior buy flow. |
+
+## Send
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
+| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, opens the QR scanner (simulator shows the "scanning not supported" alert), switches to Regular, enters an address + 5 EUR, confirms with the fast fee, sends, mines 6 blocks, then opens the new transaction. Requires an onchain balance. |
+| Send onchain (max) | done | not started | `features/send_onchain_all.yaml` | Sends the full balance via "Send all", exercising the tight-fee path (fast fee exceeds balance → Update amount; failed broadcast → retry with the slowest fee past the low-fee warning), then mines 6 blocks and opens the new transaction. Requires an onchain balance. |
+| Send lightning | done | not started | `features/send_lightning.yaml` | Pays a normal (amount-bearing) invoice, a zero-amount invoice (amount in BTC), and a Lightning Address (LNURL-pay), each confirmed via the TransactionViewController. Targets come from a separate live wallet via `LN_INVOICE`/`LN_ZERO_INVOICE`/`LN_ADDRESS`; the Paste steps need `scripts/clipboard_server.js`. Requires an active channel with outbound capacity. |
+
+## Swap & read-only screens
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
+| Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses the existing channel + onchain balance from a prior buy flow. Also walks a swap TransactionViewController (Swap status screen, onchain/lightning ID copy, explorer WebsiteViewController, add note). |
 | Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
 | Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens/closes a place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
-| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next→Complete, waiting on image-download spinners), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
+| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
+| Profit screen | done | not started | _within_ `features/buy_incoming.yaml`, `features/buy_more.yaml` | No dedicated flow; the ProfitViewController is opened and asserted before and after each buy to prove the profit recalculated. |
+
+## Settings & wallet management
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
+| Settings (all items + device details) | done | not started | `features/settings.yaml` | Exercises every Settings item and Device-details row, the website pages, dark-mode toggle and currency switch. Needs a synced wallet (unlocks with PIN). |
+| Remove wallet (from Settings) | done | not started | `features/remove_wallet.yaml` | Settings → Device details → Remove wallet; covers both the no-channel (direct reset) and active-channel (close on-chain, mine, then reset) branches. Preserves state until the wipe. Destructive. |
+
+## PIN: unlock, recovery & lockout
+
+| Feature | iOS | Android | Maestro flow | Notes |
+|---|---|---|---|---|
 | Pin unlock (subflow) | done | not started | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
+| Forgot PIN (non-destructive) | done | not started | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
+| Wrong-PIN warning → Forgot PIN | done | not started | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
+| Forgot PIN → remove wallet | done | not started | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
+| Wrong-PIN lockout (no channel) | done | not started | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
+| Wrong-PIN lockout (with channel) | done | not started | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
+
+## Helper subflows & orchestration
+
+Reusable building blocks (not standalone features) and the full-suite runner.
+
+| Flow | Purpose |
+|---|---|
+| `helpers/unlock.yaml` | Enter PIN 1234 on the unlock screen (also listed above). |
+| `helpers/show_onchain_address.yaml` | From a freshly-opened Receive screen, make sure the onchain address is the one shown. |
+| `helpers/show_invoice.yaml` | From a freshly-opened Receive screen, switch the type to a lightning invoice. |
+| `helpers/wrong_pin_until_lockout.yaml` | Enter the wrong PIN ten times to trigger the lockout/wipe; shared by `wrong_pin` and `wrong_pin_with_channel`. |
+| `helpers/create_wallet_with_channel.yaml` | Provision a fresh wallet *with* an open channel (onboarding + `buy_incoming`); used by `forgot_pin_remove_wallet`. |
+| `helpers/ensure_bittr_channel.yaml` | Ensure an open channel exists, building the bittr account/channel as needed; used by `wrong_pin_with_channel`. **Unverified** — not yet run against Maestro. |
+| `suite.yaml` | Hand-ordered orchestrator that runs every flow back-to-back in dependency order (destructive flows last). Start the helper servers via `shared/flows/test_suite.sh`; needs the `MNEMONIC` env for `forgot_pin`. |
 
 ## Not yet covered by flows
 
-iOS-side screens that still need a flow before they're parity-tracked: Restore wallet, Settings, Profits, Widget, LNURL-Auth. (Send end-to-end is now covered: onchain via `features/send_onchain.yaml`, lightning via `features/send_lightning.yaml`.)
+iOS-side features that still need a flow before they're parity-tracked: **Widget** (no Maestro-driveable path) and **LNURL-Auth** (login via LNURL — distinct from the LNURL-pay covered by `send_lightning`).
+
+Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning (`features/send_lightning.yaml`).
 
 ## Legend
 
-- `done` — feature is shipped and Maestro flow passes
+- `done` — feature is shipped and the Maestro flow passes
 - `wip` — actively being ported
 - `not started` — Android implementation not begun
 - `blocked` — waiting on something (note in description)
 - `n/a` — intentionally platform-specific (e.g., iOS Widget vs Android Glance equivalent tracked separately)
+</content>

@@ -65,6 +65,21 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.sendButton"
 
+# Open the QR scanner → ScannerViewController. The simulator has no camera, so
+# the scanner immediately shows a "scanning not supported" alert (single Okay
+# button) whose Okay action also closes the scanner → back on Send.
+- tapOn:
+    id: "send.scanButton"
+- assertVisible:
+    id: "scanner.scannerView"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/send_onchain/01b_scanner_alert
+- tapOn:
+    id: "alert.button.0"
+- assertVisible:
+    id: "send.regularButton"
+
 # Switch to Regular (onchain). Recomputing the max sendable amount kicks off a
 # BDK scan if it hasn't run yet, which surfaces a "syncing wallet" alert and
 # spins the spinner next to "You can send 0 satoshis". Dismiss the alert if

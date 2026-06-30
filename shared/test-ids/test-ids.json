@@ -64,6 +64,10 @@
     "completeButton": null,
     "lessonSpinner": null
   },
+  "article": {
+    "tableView": null,
+    "downButton": null
+  },
   "history": {
     "swapPending": null,
     "swapComplete": null,
@@ -129,6 +133,10 @@
     "confirmStatusLabel": null,
     "refreshButton": null
   },
+  "scanner": {
+    "scannerView": null,
+    "closeButton": null
+  },
   "unlock": {
     "topLabel": null
   },
@@ -178,6 +186,7 @@
     "toTextField": null,
     "amountTextField": null,
     "pasteButton": null,
+    "scanButton": null,
     "regularButton": null,
     "currencyButton": null,
     "currencyLabel": null,
@@ -200,7 +209,8 @@
       "start": {
         "headerLabel": null,
         "createWalletButton": null,
-        "restoreButton": null
+        "restoreButton": null,
+        "articleButton": null
       },
       "confirm": {
         "topLabel": null,

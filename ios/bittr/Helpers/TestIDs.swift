@@ -10,6 +10,10 @@ enum TestID {
         static let nextLessonButton = "academy.nextLessonButton"
         static let nextPageButton = "academy.nextPageButton"
     }
+    enum Article {
+        static let downButton = "article.downButton"
+        static let tableView = "article.tableView"
+    }
     enum Buy {
         static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"
@@ -123,6 +127,10 @@ enum TestID {
         static let questionButton = "receive.questionButton"
         static let refreshButton = "receive.refreshButton"
     }
+    enum Scanner {
+        static let closeButton = "scanner.closeButton"
+        static let scannerView = "scanner.scannerView"
+    }
     enum Send {
         static let amountTextField = "send.amountTextField"
         static let availableButton = "send.availableButton"
@@ -142,6 +150,7 @@ enum TestID {
         static let nextButton = "send.nextButton"
         static let pasteButton = "send.pasteButton"
         static let regularButton = "send.regularButton"
+        static let scanButton = "send.scanButton"
         static let toLabel = "send.toLabel"
         static let toTextField = "send.toTextField"
     }
@@ -222,6 +231,7 @@ enum TestID {
                 static let topLabelOne = "signup.create.ready.topLabelOne"
             }
             enum Start {
+                static let articleButton = "signup.create.start.articleButton"
                 static let createWalletButton = "signup.create.start.createWalletButton"
                 static let headerLabel = "signup.create.start.headerLabel"
                 static let restoreButton = "signup.create.start.restoreButton"

@@ -152,6 +152,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.toTextField.accessibilityIdentifier = TestID.Send.toTextField
         self.amountTextField.accessibilityIdentifier = TestID.Send.amountTextField
         self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
+        self.qrButton.accessibilityIdentifier = TestID.Send.scanButton
         self.regularButton.accessibilityIdentifier = TestID.Send.regularButton
         self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
         self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
