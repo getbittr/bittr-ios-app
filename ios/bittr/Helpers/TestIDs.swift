@@ -139,6 +139,7 @@ enum TestID {
         static let amountTextField = "send.amountTextField"
         static let availableButton = "send.availableButton"
         static let availableLabel = "send.availableLabel"
+        static let availableQuestionButton = "send.availableQuestionButton"
         static let bdkSpinner = "send.bdkSpinner"
         enum Confirm {
             static let addressLabel = "send.confirm.addressLabel"
@@ -155,6 +156,7 @@ enum TestID {
         static let pasteButton = "send.pasteButton"
         static let regularButton = "send.regularButton"
         static let scanButton = "send.scanButton"
+        static let switchQuestionButton = "send.switchQuestionButton"
         static let toLabel = "send.toLabel"
         static let toTextField = "send.toTextField"
     }

@@ -192,11 +192,13 @@
     "pasteButton": null,
     "scanButton": null,
     "regularButton": null,
+    "switchQuestionButton": null,
     "currencyButton": null,
     "currencyLabel": null,
     "bdkSpinner": null,
     "availableButton": null,
     "availableLabel": null,
+    "availableQuestionButton": null,
     "nextButton": null,
     "lnurlSpinner": null,
     "confirm": {

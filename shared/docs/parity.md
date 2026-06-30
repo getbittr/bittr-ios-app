@@ -37,7 +37,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
-| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, opens the QR scanner (simulator shows the "scanning not supported" alert), switches to Regular, enters an address + 5 EUR, confirms with the fast fee, sends, mines 6 blocks, then opens the new transaction. Requires an onchain balance. |
+| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, opens the QR scanner (simulator shows the "scanning not supported" alert), reads the lightning-channel info via the "You can send…" question (QuestionViewController), switches to Regular, reads the Regular/Instant explanation alert and the onchain max-sendable info alert, enters an address + 5 EUR, confirms with the fast fee, sends, mines 6 blocks, then opens the new transaction. Requires an onchain balance. |
 | Send onchain (max) | done | not started | `features/send_onchain_all.yaml` | Sends the full balance via "Send all", exercising the tight-fee path (fast fee exceeds balance → Update amount; failed broadcast → retry with the slowest fee past the low-fee warning), then mines 6 blocks and opens the new transaction. Requires an onchain balance. |
 | Send lightning | done | not started | `features/send_lightning.yaml` | Pays a normal (amount-bearing) invoice, a zero-amount invoice (amount in BTC), and a Lightning Address (LNURL-pay), each confirmed via the TransactionViewController. Targets come from a separate live wallet via `LN_INVOICE`/`LN_ZERO_INVOICE`/`LN_ADDRESS`; the Paste steps need `scripts/clipboard_server.js`. Requires an active channel with outbound capacity. |
 
@@ -116,7 +116,6 @@ Only `.lightningPayout` is exercised (`buy_more.yaml` / `buy_incoming.yaml`). Th
 Within otherwise-covered screens:
 
 - **Receive**: description/memo field; the Bitcoin and Sats currency options (only € is tapped).
-- **Send**: the "available/max" question mark; the instant/regular switch question mark.
 - **Confirm Send**: the **Medium** fee option (only Fast/Slow tested); the lightning-fee "?"; the back button.
 - **Move**: its own Receive/Send buttons (flows launch these from Home instead); the swap-with-no-channel "instant payments" alert.
 - **Value**: the **Week** chart span (month / year / 5y + scrub are tested; week is only ever the default).
