@@ -151,9 +151,13 @@ appId: com.bittr.bittr-regtest
 # the funds show up on the onchain side. Without this wait the reverse
 # onchain→lightning swap fires before the funds land and fails with
 # insufficient onchain balance.
+#
+# Scope the check to the topmost row (history.swapPending0) — only the swap we
+# just made matters. A global "history.swapPending" check would also catch any
+# older unsuccessful swaps further down the list and never clear.
 - extendedWaitUntil:
     notVisible:
-      id: "history.swapPending"
+      id: "history.swapPending0"
     timeout: 60000
 
 # Reverse swap: onchain → lightning, 50000 sats. Re-enter the swap UI from
@@ -253,3 +257,76 @@ appId: com.bittr.bittr-regtest
     direction: DOWN
     duration: 800
 - takeScreenshot: shared/docs/screenshots/swap/16_home_final
+
+# The pull-down refresh kicks off another wallet sync; wait for the header
+# spinner to stop before opening the transaction so its data is settled.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Open the topmost (newest) transaction — the reverse onchain → lightning swap —
+# in the TransactionViewController.
+- assertVisible:
+    id: "history.transactionButton0"
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/swap/17_transaction
+
+# Tap "Swap status" → SwapStatusViewController. Close it (header down button) →
+# back on the transaction screen.
+- tapOn:
+    id: "transaction.swapStatusButton"
+- assertVisible:
+    id: "swapStatus.confirmCard"
+- takeScreenshot: shared/docs/screenshots/swap/18_swap_status
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "transaction.yellowCard"
+
+# Tap the onchain ID to copy it → "Copied" alert (single Okay button) → close it.
+- tapOn:
+    id: "transaction.copyIdButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/swap/19_onchain_id_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the explorer URL button next to the onchain ID → WebsiteViewController.
+# Close it via its own down button → back on the transaction screen.
+- tapOn:
+    id: "transaction.urlIdButton"
+- assertVisible:
+    id: "website.downButton"
+- takeScreenshot: shared/docs/screenshots/swap/20_explorer
+- tapOn:
+    id: "website.downButton"
+- assertVisible:
+    id: "transaction.yellowCard"
+
+# Tap the lightning ID to copy it → "Copied" alert (single Okay button) → close it.
+- tapOn:
+    id: "transaction.copyBottomIdButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/swap/21_lightning_id_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Add a note. The note alert is a native UIAlertController with a text field;
+# type the note and tap Save.
+- tapOn:
+    id: "transaction.addNoteButton"
+- inputText: "swap.yaml test"
+- tapOn:
+    text: "Save"
+
+# The note now shows in the transaction's note stack.
+- assertVisible:
+    id: "transaction.labelNote"
+    text: "swap.yaml test"
+- takeScreenshot: shared/docs/screenshots/swap/22_note_saved

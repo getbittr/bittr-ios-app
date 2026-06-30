@@ -275,8 +275,17 @@ enum TestID {
         static let refreshButton = "swapStatus.refreshButton"
     }
     enum Transaction {
+        static let addNoteButton = "transaction.addNoteButton"
+        static let bittrFeeButton = "transaction.bittrFeeButton"
+        static let copyBottomIdButton = "transaction.copyBottomIdButton"
+        static let copyIdButton = "transaction.copyIdButton"
+        static let descriptionButton = "transaction.descriptionButton"
         static let labelAmount = "transaction.labelAmount"
         static let labelDate = "transaction.labelDate"
+        static let labelNote = "transaction.labelNote"
+        static let swapStatusButton = "transaction.swapStatusButton"
+        static let transferFeeButton = "transaction.transferFeeButton"
+        static let urlIdButton = "transaction.urlIdButton"
         static let yellowCard = "transaction.yellowCard"
     }
     enum Unlock {
