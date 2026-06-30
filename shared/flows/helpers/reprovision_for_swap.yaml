@@ -45,9 +45,12 @@ appId: com.bittr.bittr-regtest
 # the freshly-onboarded state).
 - runFlow: ../features/buy_incoming.yaml
 
-# buy_incoming ends on the Profit screen — close it back to Home so the swap
-# retry (helpers/swap_leg1.yaml) starts from the balance card.
+# End on Home so the swap retry (helpers/swap_leg1.yaml) starts from the balance
+# card. buy_incoming may leave us on the Profit screen (older flow) or already
+# on Home (once it opens the TransactionViewController itself) — close the
+# Profit screen if it's showing, otherwise the optional tap is a no-op.
 - tapOn:
     id: "header.downButton"
+    optional: true
 - assertVisible:
     id: "home.headerLabel"
