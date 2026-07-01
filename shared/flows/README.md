@@ -55,6 +55,15 @@ shared/flows/
                           The Paste steps need scripts/clipboard_server.js
                           running. Requires an active channel with outbound
                           capacity.
+    send_swap_suggestion.yaml  Pay a lightning invoice with NO channel: Send →
+                          paste an amount-bearing invoice → Next → the
+                          "insufficient funds / Swap and pay" suggestion →
+                          SwapViewController auto-runs an onchain→lightning swap
+                          that pays the recipient (reusing swap.yaml's reverse-
+                          swap mine → "Swap complete" arc), then opens the new
+                          transaction from Home. Requires a wallet with onchain
+                          funds and no usable channel; needs
+                          scripts/clipboard_server.js.
     swap.yaml             Lightning ↔ onchain, both directions.
     payment_mode.yaml     The lightning/onchain payout-mode toggle on the Buy
                           card (PATCH /customer/payment-mode). Self-provisions:

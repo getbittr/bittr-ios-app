@@ -213,8 +213,8 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Move, Send, Receive/SendVC/Send/SendViewController.swift`
 - **Purpose**: enter/paste a destination (onchain address, invoice, or LNURL) and amount; routes to onchain or lightning.
-- **States**: empty / address pasted / invoice pasted / amount-missing alert / lnurl prompt / syncing alert / Regular-vs-Instant explanation alert / onchain max-sendable ("You can send…") info alert. The lightning-side "You can send…" question opens the QuestionViewController (channel info).
-- **Flow**: `shared/flows/features/{send_onchain,send_onchain_all,send_lightning,receive_onchain,receive_invoice}.yaml`
+- **States**: empty / address pasted / invoice pasted / amount-missing alert / lnurl prompt / syncing alert / Regular-vs-Instant explanation alert / onchain max-sendable ("You can send…") info alert / "insufficient funds — Swap and pay" suggestion (lightning invoice, no channel). The lightning-side "You can send…" question opens the QuestionViewController (channel info).
+- **Flow**: `shared/flows/features/{send_onchain,send_onchain_all,send_lightning,send_swap_suggestion,receive_onchain,receive_invoice}.yaml`
 - **Screenshots**: `send_onchain/02_regular.png`, `send_onchain/01c_lightning_sendable_info.png`, `send_onchain/02a_regular_instant_info.png`, `send_onchain/02b_max_sendable_info.png`, `send_lightning/02_invoice_pasted.png`, `send_lightning/09_lnurl_prompt.png`, `receive_onchain/05_send_address_only.png`, `receive_invoice/05_send_invoice_only.png`
 - **Not covered**: LNURL-withdraw. See `parity.md`.
 
@@ -248,9 +248,9 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### Swap
 
 - **VC**: `ios/bittr/Swaps/SwapVC/SwapViewController.swift`
-- **Purpose**: Lightning ↔ onchain swap entry. Embeds SwapStatusVC after submit.
-- **States**: initial / amount entered / direction picker (alert) / fees alert / syncing alert.
-- **Flow**: `shared/flows/features/swap.yaml`
+- **Purpose**: Lightning ↔ onchain swap entry. Embeds SwapStatusVC after submit. Also opened from Send (CoreToSwap) to auto-run an onchain→lightning swap that pays a lightning invoice when there's no channel.
+- **States**: initial / amount entered / direction picker (alert) / fees alert / syncing alert / auto-run from a Send swap suggestion.
+- **Flow**: `shared/flows/features/swap.yaml`, `features/send_swap_suggestion.yaml`
 - **Screenshots**: `swap/03_swap_initial.png`, `swap/04_swap_amount_entered.png`, `swap/05_fees_alert.png`, `swap/10_reverse_swap_initial.png`, `swap/11_reverse_direction_picker.png`, `swap/13_reverse_fees_alert.png`
 
 ### Swap status
