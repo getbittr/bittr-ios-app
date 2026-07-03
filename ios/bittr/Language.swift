@@ -495,6 +495,8 @@ class Language: NSObject {
             "reminder": "Reminder",
             "reminderbody": "The funds in your lightning connection exist only on this device. Don't delete this app before closing the connection.",
             "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet.",
+            "onchainsyncfailedtitle": "Syncing issue",
+            "onchainsyncfailed": "We ran into an issue syncing the on-chain part of your wallet. Please try again later.",
             "transferfee": "Transfer fee",
             "bittrfee": "Bittr fee",
             "surcharge": "Surcharge",

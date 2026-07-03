@@ -357,10 +357,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.thisSwap!.satoshisAmount = invoiceAmount
                 self.thisSwap!.swapDirection = .onchainToLightning
                 
-                // Start the swap process
-                Task {
-                    await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
-                }
+                self.startSuggestedOnchainToLightningSwap(invoiceAmount: invoiceAmount)
             } else {
                 // Zero amount invoice - user needs to enter amount
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
