@@ -226,14 +226,28 @@ class SendViewController: UIViewController, UITextFieldDelegate {
                             self.setSendAllLabel()
                         } else {
                             Log.info("Could not scan BDK wallet.")
+                            self.presentOnchainSyncFailedAlert()
                         }
                     }
                 } else {
                     Log.info("Could not start BDK.")
+                    self.presentOnchainSyncFailedAlert()
                 }
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")
+        }
+    }
+
+    /// Stops the on-chain sync spinner and tells the user the on-chain sync
+    /// failed and to retry later. Safe to call from any thread — BDK
+    /// completions fire off the main thread.
+    func presentOnchainSyncFailedAlert() {
+        DispatchQueue.main.async {
+            self.bdkSpinner.stopAnimating()
+            // Replace the "syncing" alert (if still visible) with the failure alert.
+            self.hideAlert()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: "onchainsyncfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
