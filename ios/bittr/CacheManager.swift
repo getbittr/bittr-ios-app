@@ -715,6 +715,28 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Suggested swaps
+    
+    static func storeSuggestedSwap(dateID:String) {
+        let defaults = UserDefaults.standard
+        if let cached = defaults.value(forKey: "suggestedswaps") as? NSDictionary, let actual = cached.mutableCopy() as? NSMutableDictionary {
+            actual.setObject(true, forKey: dateID as NSCopying)
+            defaults.set(actual, forKey: "suggestedswaps")
+        } else {
+            let suggested = NSMutableDictionary()
+            suggested.setObject(true, forKey: dateID as NSCopying)
+            defaults.set(suggested, forKey: "suggestedswaps")
+        }
+    }
+    
+    static func isSuggestedSwap(dateID:String) -> Bool {
+        let defaults = UserDefaults.standard
+        if let suggested = defaults.value(forKey: "suggestedswaps") as? NSDictionary {
+            return (suggested[dateID] as? Bool) ?? false
+        }
+        return false
+    }
+    
     // MARK: - Invoice description
     
     static func storeInvoiceDescription(preimage:String, desc:String) {

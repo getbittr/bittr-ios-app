@@ -84,6 +84,7 @@ class SwapManager: NSObject {
             
             swapVC.thisSwap!.dateID = "Swap onchain to lightning \(idString)"
             swapVC.thisSwap!.createdInvoice = invoice.description
+            swapVC.thisSwap!.isSuggested = (existingInvoice != nil)
         }
         
         // Get next swap index and derive key dynamically
@@ -345,6 +346,11 @@ class SwapManager: NSObject {
             // Create transaction object.
             CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
             CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+            if swapVC.thisSwap!.isSuggested {
+                // Mark so the Home table renders this as a completed outbound
+                // transaction instead of a perpetually pending swap.
+                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+            }
             
             // Update Home table.
             BitcoinManager.shared.lightSync() { _ in }

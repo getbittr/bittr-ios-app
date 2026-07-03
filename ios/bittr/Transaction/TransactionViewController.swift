@@ -296,8 +296,10 @@ class TransactionViewController: UIViewController {
             }
         }
         
-        // Swap ID and status
-        if self.tappedTransaction.isSwap {
+        // Swap ID and status. Suggested (outgoing) swaps aren't full swaps
+        // (isSwap == false, rendered as a normal outbound transaction) but still
+        // show the Boltz swap ID + status here.
+        if self.tappedTransaction.isSwap || self.tappedTransaction.isSuggestedSwap {
             // Show swap stack
             self.swapStack.alpha = 1
             self.swapStackHeight.constant = 87
@@ -361,7 +363,7 @@ class TransactionViewController: UIViewController {
         }
         
         // Description
-        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.showConfetti {
+        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
             
             if self.tappedTransaction.isBittr {
                 self.labelDescription.numberOfLines = 1
