@@ -24,6 +24,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Buy — bittr signup from Buy | done | not started | `features/buy_signup.yaml` | Completes the bittr signup from the empty Buy card via the RegisterIban modal. Needs a wallet *without* a bittr account (run `restore_wallet` first). |
 | Buy — signup validation + no notifications | done | not started | `features/buy_signup_no_notifications.yaml` | Unhappy IBAN/email validation alerts + the OTP notification-permission gate, finishing on the on-chain payout fallback. Needs `fresh_install_skip_signup` first; launchApp auto-denies the iOS notification dialog. |
 | Payout mode toggle | done | not started | `features/payment_mode.yaml` | Toggles the Buy card's payout mode lightning ↔ onchain (PATCH /customer/payment-mode). Self-provisions a wallet + order if missing. |
+| Notification — general info push | done | not started | `features/notification_information.yaml` | Injects a `.information` APNS push (`bittr_notification` payload) and asserts the QuestionViewController opens with the pushed header/body, then closes it. Requires `scripts/push_server.js`. Independent of wallet state — auto-provisions a wallet if needed. |
 
 ## Receive
 
@@ -102,11 +103,13 @@ Previously listed here and now covered: Restore wallet (`onboarding/restore_wall
 
 ### Push notifications — in scope for parity, flows to come later
 
-Only `.lightningPayout` is exercised (`buy_more.yaml` / `buy_incoming.yaml`). The other five `BittrNotificationType` cases have no flow and should get APNS-injection flows (same technique as `buy_more.yaml` via `scripts/push_notification.js`):
+`.lightningPayout` (`buy_more.yaml` / `buy_incoming.yaml`) and `.information`
+(`notification_information.yaml`) are exercised. The other four
+`BittrNotificationType` cases have no flow and should get APNS-injection flows
+(same technique via `scripts/push_notification.js`):
 
 | Type | Handler (iOS) |
 |---|---|
-| `.information` | `NotificationManager.swift` → `CoreViewController.newNotification()` |
 | `.swap` | `HandleSwapNotification` — swap UI is covered, but the push entry point is not |
 | `.lnUrl` (Lightning-Address payout) | `HandleLightningAddressNotification.swift` |
 | `.htlcIncoming` | `HandlePaymentNotification.swift` |

@@ -1,0 +1,115 @@
+# Feature test: the ".information" push notification type.
+#
+# Bittr can push several notification types (see NotificationManager.swift). The
+# .lightningPayout type is covered by buy_incoming.yaml / buy_more.yaml; this
+# flow covers the .information type — a general message from bittr with a header
+# and body. Its APNS payload carries a top-level "bittr_notification" object
+# ({ header_text, body_text }); toNotification() maps that to a .information
+# BittrNotification, and CoreViewController.handleBittrNotification opens the
+# QuestionViewController with the header as the title and the body as the answer.
+#
+# Real APNS pushes don't reach the iOS Simulator, so — exactly like the buy
+# flows — we build the payload in-flow and deliver it via scripts/
+# push_notification.js → the local push_server.js helper → `xcrun simctl push`.
+#
+# Prerequisite: a wallet on Home (this flow auto-provisions one if the app is on
+# a clean install, and unlocks if locked). Unlike the buy flows this needs no
+# bittr account, channel or funds — a .information notification is independent of
+# wallet state. Notifications are allowed at launch so the foreground push is
+# delivered to the app. Does NOT clearState — wallet state is preserved.
+#
+# Start the push helper first (it can't be started from Maestro):
+#
+#   node shared/flows/scripts/push_server.js   # keep running
+#   maestro test shared/flows/features/notification_information.yaml
+#
+# Run: maestro test shared/flows/features/notification_information.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+# Allow notifications so the foreground push is delivered and handled.
+- launchApp:
+    permissions:
+      notifications: allow
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path_wallet.yaml
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.ready.topLabelOne"
+    file: ../onboarding/happy_path_signup.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — wait for the header spinner to stop
+# so CoreViewController is settled and observing "newNotification".
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/notification_information/01_home
+
+# Build the .information APNS payload (top-level "bittr_notification") and push
+# it. The header/body strings are what the QuestionViewController will render.
+- evalScript: |
+    ${output.notificationPayload = JSON.stringify({
+      aps: { alert: { title: "Bittr update", body: "This is a test information notification from bittr." }, sound: "default" },
+      bittr_notification: {
+        header_text: "Bittr update",
+        body_text: "This is a test information notification from bittr."
+      }
+    })}
+- runScript: ../scripts/push_notification.js
+
+# handleBittrNotification opens the QuestionViewController (~1s after the push is
+# cached, see handleNotification). Wait for its card, then verify the header
+# title (lowercased by addHeader) and the body text landed from the payload.
+- extendedWaitUntil:
+    visible:
+      id: "question.yellowCard"
+    timeout: 30000
+- assertVisible:
+    id: "header.titleLabel"
+    text: "bittr update"
+- assertVisible:
+    id: "question.answerLabel"
+    text: "This is a test information notification from bittr."
+- takeScreenshot: shared/docs/screenshots/notification_information/02_question
+
+# Close the QuestionViewController via the header down button. The foreground
+# push shows an iOS notification banner across the top of the screen
+# (willPresent returns [.banner]) right where the down button sits; until it
+# auto-dismisses it can sit on top of the button and swallow the tap. Retry the
+# tap until the card is actually gone — the first tap also dismisses the banner,
+# so a follow-up lands on the button. The loop body must not contain a failing
+# assertion (that would abort the flow instead of looping): the tap is optional
+# (the button is gone once the card dismisses) and waitForAnimationToEnd only
+# paces the retries — neither fails on timeout.
+- repeat:
+    while:
+      visible:
+        id: "question.yellowCard"
+    commands:
+      - tapOn:
+          id: "header.downButton"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 3000
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/notification_information/03_home_closed

@@ -41,7 +41,7 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
 
 ### Each test run
 
-The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more` flow needs it). Leave it running in its own terminal:
+The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more` and `notification_information` flows need it). Leave it running in its own terminal:
 
 ```sh
 # Terminal A — keep this running for the whole session
@@ -86,6 +86,11 @@ maestro test shared/flows/features/buy_incoming.yaml
 
 # Subsequent feature tests reuse that channel:
 maestro test shared/flows/features/buy_more.yaml
+
+# General ".information" push notification → opens the QuestionViewController.
+# Independent of wallet state (auto-provisions if needed); needs push_server.js:
+maestro test shared/flows/features/notification_information.yaml
+
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/receive_onchain.yaml
 maestro test shared/flows/features/receive_invoice.yaml

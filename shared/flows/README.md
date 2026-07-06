@@ -22,6 +22,13 @@ shared/flows/
   features/        One file per feature, run against a non-clean state.
     buy_incoming.yaml     First-time top up — opens the lightning channel.
     buy_more.yaml         Subsequent top up — channel already open.
+    notification_information.yaml  Injects a `.information` APNS push (the
+                          `bittr_notification` payload) via scripts/
+                          push_notification.js and asserts the
+                          QuestionViewController opens with the pushed header +
+                          body, then closes it. Independent of wallet state
+                          (auto-provisions if needed); needs
+                          scripts/push_server.js.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).
     receive_onchain.yaml  Onchain receive → send round-trip: show the onchain
                           address (waiting out the verification spinner), read
