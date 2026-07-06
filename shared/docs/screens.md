@@ -284,10 +284,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### Question
 
 - **VC**: `ios/bittr/Question/QuestionViewController.swift`
-- **Purpose**: yellow-card explanation page — the transient "incoming €X" page during incoming flows, the fee/help explanations launched from elsewhere (e.g. Transaction fees, Settings lightning question), and the header/body of a `.information` push notification.
+- **Purpose**: yellow-card explanation page — the transient "incoming €X" page during incoming flows, the fee/help explanations launched from elsewhere (e.g. Transaction fees, Settings lightning question), and the header/body of a push notification (the `.information`, `.htlcExpired` and `.unknown` types all render here).
 - **States**: incoming (passes through quickly) / answer shown.
 - **Flow**: `shared/flows/features/buy_incoming.yaml`, `features/settings.yaml`, `features/notification_information.yaml`
-- **Screenshots**: `settings/14_lightning_question.png`, `notification_information/02_question.png` (incoming variant not captured directly — terminal state is TransactionVC).
+- **Screenshots**: `settings/14_lightning_question.png`, `notification_information/02_question.png`, `notification_information/04_htlc_expired.png`, `notification_information/06_unknown.png` (incoming variant not captured directly — terminal state is TransactionVC).
 
 ### Transaction
 

@@ -22,11 +22,15 @@ shared/flows/
   features/        One file per feature, run against a non-clean state.
     buy_incoming.yaml     First-time top up — opens the lightning channel.
     buy_more.yaml         Subsequent top up — channel already open.
-    notification_information.yaml  Injects a `.information` APNS push (the
-                          `bittr_notification` payload) via scripts/
-                          push_notification.js and asserts the
-                          QuestionViewController opens with the pushed header +
-                          body, then closes it. Independent of wallet state
+    notification_information.yaml  Injects the three push types that render in
+                          the QuestionViewController — `.information`
+                          (`bittr_notification`), `.htlcExpired`
+                          (`htlc_notification` + `expired: true`) and `.unknown`
+                          (unrecognised payload → fallback "Oops!") — back-to-back
+                          via scripts/push_notification.js, asserting each opens
+                          with the expected header + body, then closing it. Each
+                          is re-pushed until it clears the app's 10s
+                          notification-dedup window. Independent of wallet state
                           (auto-provisions if needed); needs
                           scripts/push_server.js.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).

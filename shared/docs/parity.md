@@ -24,7 +24,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Buy — bittr signup from Buy | done | not started | `features/buy_signup.yaml` | Completes the bittr signup from the empty Buy card via the RegisterIban modal. Needs a wallet *without* a bittr account (run `restore_wallet` first). |
 | Buy — signup validation + no notifications | done | not started | `features/buy_signup_no_notifications.yaml` | Unhappy IBAN/email validation alerts + the OTP notification-permission gate, finishing on the on-chain payout fallback. Needs `fresh_install_skip_signup` first; launchApp auto-denies the iOS notification dialog. |
 | Payout mode toggle | done | not started | `features/payment_mode.yaml` | Toggles the Buy card's payout mode lightning ↔ onchain (PATCH /customer/payment-mode). Self-provisions a wallet + order if missing. |
-| Notification — general info push | done | not started | `features/notification_information.yaml` | Injects a `.information` APNS push (`bittr_notification` payload) and asserts the QuestionViewController opens with the pushed header/body, then closes it. Requires `scripts/push_server.js`. Independent of wallet state — auto-provisions a wallet if needed. |
+| Notification — QuestionVC push types | done | not started | `features/notification_information.yaml` | Injects the three QuestionViewController-backed push types back-to-back — `.information` (`bittr_notification`), `.htlcExpired` (`htlc_notification` with `expired: true`) and `.unknown` (unrecognised payload → fallback "Oops!") — and asserts each opens with the expected header/body, then closes it. Re-pushes each until it clears the 10s notification dedup window. Requires `scripts/push_server.js`. Independent of wallet state — auto-provisions a wallet if needed. |
 
 ## Receive
 
@@ -103,17 +103,17 @@ Previously listed here and now covered: Restore wallet (`onboarding/restore_wall
 
 ### Push notifications — in scope for parity, flows to come later
 
-`.lightningPayout` (`buy_more.yaml` / `buy_incoming.yaml`) and `.information`
-(`notification_information.yaml`) are exercised. The other four
-`BittrNotificationType` cases have no flow and should get APNS-injection flows
-(same technique via `scripts/push_notification.js`):
+`.lightningPayout` (`buy_more.yaml` / `buy_incoming.yaml`) and the three
+QuestionViewController-backed types — `.information`, `.htlcExpired` and
+`.unknown` (all in `notification_information.yaml`) — are exercised. The other
+three `BittrNotificationType` cases have no flow and should get APNS-injection
+flows (same technique via `scripts/push_notification.js`):
 
 | Type | Handler (iOS) |
 |---|---|
 | `.swap` | `HandleSwapNotification` — swap UI is covered, but the push entry point is not |
 | `.lnUrl` (Lightning-Address payout) | `HandleLightningAddressNotification.swift` |
 | `.htlcIncoming` | `HandlePaymentNotification.swift` |
-| `.htlcExpired` | `HandlePaymentNotification.swift` |
 
 ### Per-screen interactions not yet exercised (medium priority)
 

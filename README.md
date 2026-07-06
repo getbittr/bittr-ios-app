@@ -87,7 +87,8 @@ maestro test shared/flows/features/buy_incoming.yaml
 # Subsequent feature tests reuse that channel:
 maestro test shared/flows/features/buy_more.yaml
 
-# General ".information" push notification → opens the QuestionViewController.
+# The three QuestionViewController-backed push types (.information, .htlcExpired,
+# .unknown), injected back-to-back → each opens the QuestionViewController.
 # Independent of wallet state (auto-provisions if needed); needs push_server.js:
 maestro test shared/flows/features/notification_information.yaml
 
