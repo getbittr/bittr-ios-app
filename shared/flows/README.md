@@ -33,6 +33,15 @@ shared/flows/
                           notification-dedup window. Independent of wallet state
                           (auto-provisions if needed); needs
                           scripts/push_server.js.
+    notification_lnurl.yaml  Fires a `.lnUrl`
+                          (`lightning_address_notification`) push on the PIN
+                          screen → the "Payment Request — please sign in" alert,
+                          unlocks, and asserts the deferred processing re-runs on
+                          sign-in (generate invoice → POST) and fails gracefully
+                          ("Payment Request Failed") since no e2e endpoint accepts
+                          the invoice. Metadata is gathered from the e2e Lightning
+                          Address via scripts/resolve_lnurl.js. Auto-provisions a
+                          wallet if needed; needs scripts/push_server.js.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).
     receive_onchain.yaml  Onchain receive → send round-trip: show the onchain
                           address (waiting out the verification spinner), read
@@ -183,6 +192,10 @@ shared/flows/
                                 the in-app Paste button (send_lightning.yaml).
     parse_mnemonic.js           Splits the MNEMONIC env var into
                                 output.words[1..12] for forgot_pin.yaml.
+    resolve_lnurl.js            GETs a Lightning Address's /.well-known/lnurlp
+                                params (metadata + username) so
+                                notification_lnurl.yaml can build a realistic
+                                `.lnUrl` payload; static fallback if offline.
 ```
 
 ## Conventions

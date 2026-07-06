@@ -41,7 +41,7 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
 
 ### Each test run
 
-The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more` and `notification_information` flows need it). Leave it running in its own terminal:
+The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more`, `notification_information` and `notification_lnurl` flows need it). Leave it running in its own terminal:
 
 ```sh
 # Terminal A — keep this running for the whole session
@@ -91,6 +91,10 @@ maestro test shared/flows/features/buy_more.yaml
 # .unknown), injected back-to-back → each opens the QuestionViewController.
 # Independent of wallet state (auto-provisions if needed); needs push_server.js:
 maestro test shared/flows/features/notification_information.yaml
+
+# The .lnUrl (Lightning-Address) push, fired on the PIN screen → "please sign in"
+# alert, then deferred processing on unlock. Needs push_server.js:
+maestro test shared/flows/features/notification_lnurl.yaml
 
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/receive_onchain.yaml
