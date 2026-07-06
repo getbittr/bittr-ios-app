@@ -48,10 +48,10 @@ The push-notification helper bridges Maestro to the simulator's APNS push (the `
 node shared/flows/scripts/push_server.js
 ```
 
-The lightning send flows additionally need the clipboard helper, which bridges Maestro to `xcrun simctl pbcopy` so the in-app Paste button has something to paste (see the `send_lightning.yaml` / `send_swap_suggestion.yaml` run lines below). Start it the same way:
+The lightning send flows additionally need the clipboard helper, which bridges Maestro to `xcrun simctl pbcopy` so the in-app Paste button has something to paste (see the `send_lightning.yaml` / `send_swap_suggestion_*.yaml` run lines below). Start it the same way:
 
 ```sh
-# Terminal A′ — needed for send_lightning.yaml and send_swap_suggestion.yaml
+# Terminal A′ — needed for send_lightning.yaml and send_swap_suggestion_*.yaml
 node shared/flows/scripts/clipboard_server.js
 ```
 
@@ -107,7 +107,13 @@ maestro test shared/flows/features/send_lightning.yaml
 # Pay a lightning invoice with NO channel — the app suggests "Swap and pay",
 # which runs an onchain->lightning swap that pays the recipient. Requires a
 # wallet with onchain funds and no usable channel; also needs clipboard_server.js:
-maestro test shared/flows/features/send_swap_suggestion.yaml
+maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+
+# The mirror image — pay an onchain address with too little onchain balance but a
+# funded channel; the app suggests "Swap and pay", running a lightning->onchain
+# swap that pays the address. Requires < 60000 sats onchain and > 60000 sats of
+# Lightning outbound; also needs clipboard_server.js:
+maestro test shared/flows/features/send_swap_suggestion_onchain.yaml
 
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/forgot_pin_remove_wallet.yaml

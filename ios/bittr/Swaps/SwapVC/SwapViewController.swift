@@ -384,6 +384,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.thisSwap = Swap()
         self.thisSwap!.satoshisAmount = self.pendingOnchainAmount
         self.thisSwap!.swapDirection = .lightningToOnchain
+        self.thisSwap!.isSuggested = true
         
         // Start the swap process
         Task {

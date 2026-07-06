@@ -770,7 +770,11 @@ extension [Transaction] {
                 if CacheManager.isSuggestedSwap(dateID: thisSwapID) {
                     thisTransaction.isSuggestedSwap = true
                     thisTransaction.swapStatus = .succeeded
-                    thisTransaction.swapDirection = .onchainToLightning
+                    if thisSwapID.contains("onchain to lightning") {
+                        thisTransaction.swapDirection = .onchainToLightning
+                    } else {
+                        thisTransaction.swapDirection = .lightningToOnchain
+                    }
                     thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
                     continue
                 }

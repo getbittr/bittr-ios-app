@@ -516,7 +516,9 @@ class SwapManager: NSObject {
                             // Store transaction details in cache.
                             CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
                             CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
-                            
+                            if swapVC.thisSwap!.isSuggested {
+                                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+                            }
                             self.checkReverseSwapFees(swapVC: swapVC)
                         } else {
                             // Expected data unavailable.
@@ -648,6 +650,16 @@ class SwapManager: NSObject {
         // Store transaction details in cache.
         CacheManager.storeInvoiceDescription(preimage: transactionId, desc: ongoingSwap.dateID)
         CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+        
+        // For a suggested swap the onchain payout goes to an external recipient,
+        // so it never lands in this wallet as a matchable onchain transaction.
+        // Persist the payout txid on the swap file so the TransactionVC can show
+        // it as the Onchain ID (a normal reverse swap gets it from the matched
+        // claim transaction instead).
+        if ongoingSwap.isSuggested, let boltzID = ongoingSwap.boltzID, let existingSwapDetails = self.loadSwapDetailsFromFile(swapID: boltzID), let updatedSwapDetails = existingSwapDetails.mutableCopy() as? NSMutableDictionary {
+            updatedSwapDetails.setValue(transactionId, forKey: "sentOnchainTransactionID")
+            self.saveSwapDetailsToFile(swapID: boltzID, swapDictionary: updatedSwapDetails)
+        }
         
         // Light sync wallet to add transaction to table.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

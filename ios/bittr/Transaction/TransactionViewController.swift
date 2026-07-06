@@ -461,28 +461,47 @@ class TransactionViewController: UIViewController {
                 }
             }
         } else if self.tappedTransaction.isSuggestedSwap {
-            // Suggested (outbound) swap: not a full swap (isSwap == false), but
-            // still show both IDs like a normal onchain→lightning swap — the
-            // onchain lockup transaction on top, and the payment hash of the
-            // paid Lightning invoice below.
+            
             self.bottomIdStack.alpha = 1
             self.bottomIdStackHeight.constant = 29
-            // Top ID (onchain lockup transaction)
-            self.titleTopId.text = Language.getWord(withID: "onchainid")
-            self.labelTopId.text = self.tappedTransaction.id
-            self.copyButtonTopId.boundString = self.tappedTransaction.id
-            self.urlStackTopId.alpha = 1
-            self.urlStackTopIdWidth.constant = 22
-            self.urlButtonTopId.boundString = self.tappedTransaction.id
-            // Bottom ID (payment hash of the paid Lightning invoice)
-            self.titleBottomId.text = Language.getWord(withID: "lightningid")
+            var convertedSwap:Swap?
             if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription),
-               let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID),
-               let lightningID = swapDictionary.toSwap().createdInvoice?.getInvoiceHash() {
-                self.labelBottomId.text = lightningID
-                self.copyButtonBottomId.boundString = lightningID
+               let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                convertedSwap = swapDictionary.toSwap()
+            }
+            if self.tappedTransaction.swapDirection == .onchainToLightning {
+                // Onchain lockup transaction on top, payment hash of the paid
+                // Lightning invoice below.
+                self.titleTopId.text = Language.getWord(withID: "onchainid")
+                self.labelTopId.text = self.tappedTransaction.id
+                self.copyButtonTopId.boundString = self.tappedTransaction.id
+                self.urlStackTopId.alpha = 1
+                self.urlStackTopIdWidth.constant = 22
+                self.urlButtonTopId.boundString = self.tappedTransaction.id
+                self.titleBottomId.text = Language.getWord(withID: "lightningid")
+                if let lightningID = convertedSwap?.createdInvoice?.getInvoiceHash() {
+                    self.labelBottomId.text = lightningID
+                    self.copyButtonBottomId.boundString = lightningID
+                } else {
+                    self.labelBottomId.text = "Unavailable"
+                }
             } else {
-                self.labelBottomId.text = "Unavailable"
+                // Lightning payment on top, onchain payout transaction (paying
+                // the recipient) below, with an explorer link like a normal
+                // reverse swap's onchain leg.
+                self.titleTopId.text = Language.getWord(withID: "lightningid")
+                self.labelTopId.text = self.tappedTransaction.id
+                self.copyButtonTopId.boundString = self.tappedTransaction.id
+                self.titleBottomId.text = Language.getWord(withID: "onchainid")
+                if let onchainID = convertedSwap?.sentOnchainTransactionID {
+                    self.labelBottomId.text = onchainID
+                    self.copyButtonBottomId.boundString = onchainID
+                    self.urlStackBottomId.alpha = 1
+                    self.urlStackBottomIdWidth.constant = 22
+                    self.urlButtonBottomId.boundString = onchainID
+                } else {
+                    self.labelBottomId.text = "Unavailable"
+                }
             }
         } else {
             // Onchain or Lightning transaction.
