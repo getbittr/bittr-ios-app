@@ -96,6 +96,10 @@ maestro test shared/flows/features/notification_information.yaml
 # alert, then deferred processing on unlock. Needs push_server.js:
 maestro test shared/flows/features/notification_lnurl.yaml
 
+# The .htlcIncoming push, fired on the PIN screen (silent) → deferred processing
+# on unlock through to the terminal "Incoming payment" alert. Needs push_server.js:
+maestro test shared/flows/features/notification_htlcincoming.yaml
+
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/receive_onchain.yaml
 maestro test shared/flows/features/receive_invoice.yaml

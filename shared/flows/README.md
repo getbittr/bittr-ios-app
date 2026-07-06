@@ -42,6 +42,14 @@ shared/flows/
                           the invoice. Metadata is gathered from the e2e Lightning
                           Address via scripts/resolve_lnurl.js. Auto-provisions a
                           wallet if needed; needs scripts/push_server.js.
+    notification_htlcincoming.yaml  Fires a `.htlcIncoming` (`htlc_notification`)
+                          push on the PIN screen (silent while locked), pauses so
+                          it's handled before sign-in (scripts/sleep.js), unlocks,
+                          and follows the deferred path through the "syncing
+                          wallet" → "receiving payment" pending views to the
+                          terminal "Incoming payment" alert (the no-real-payment
+                          terminal state). Auto-provisions a wallet if needed;
+                          needs scripts/push_server.js.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).
     receive_onchain.yaml  Onchain receive → send round-trip: show the onchain
                           address (waiting out the verification spinner), read
@@ -196,6 +204,9 @@ shared/flows/
                                 params (metadata + username) so
                                 notification_lnurl.yaml can build a realistic
                                 `.lnUrl` payload; static fallback if offline.
+    sleep.js                    Busy-waits output.sleepMs ms (Maestro has no
+                                native sleep) so a flow can let the app handle a
+                                push before the next step (notification_htlcincoming).
 ```
 
 ## Conventions
