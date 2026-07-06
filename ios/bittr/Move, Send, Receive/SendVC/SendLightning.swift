@@ -168,7 +168,7 @@ extension SendViewController {
                 self.checkAvailableOnchainBalance(invoiceAmount: invoiceAmount, availableLightningBalance: availableLightningBalance, invoiceText: invoiceText)
             } else {
                 // BOLT12 offer. Insufficient funds available.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
             return
         }
@@ -197,7 +197,7 @@ extension SendViewController {
             self.showAlert(
                 presentingController: self,
                 title: Language.getWord(withID: "insufficientfunds"),
-                message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance)) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)"),
+                message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)".addSpaces()),
                 buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                 actions: [nil, #selector(self.swapAndPayLightning)]
             )
@@ -205,7 +205,7 @@ extension SendViewController {
             self.pendingLightningInvoice = invoiceText!
         } else {
             // Insufficient funds in both Lightning and onchain
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
