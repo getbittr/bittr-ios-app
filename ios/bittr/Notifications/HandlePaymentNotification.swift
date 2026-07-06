@@ -98,16 +98,39 @@ extension CoreViewController {
                     } else if response.success, response.action == "failed_timeout" {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
                     } else {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: response.error ?? Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        // Backend returned 200 with success == false: translate
+                        // the raw error code into a friendly message.
+                        Log.info("htlc_ready failed: \(response.error ?? "unknown")")
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [Language.getWord(withID: "close")], actions: nil)
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.hidePendingView()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
+                    // A non-2xx response makes htlcReady throw
+                    // BittrServiceError.serverError(<raw code>), so pull the code
+                    // out and map it too — otherwise the raw code (e.g.
+                    // "no_held_htlc") would reach the user via localizedDescription.
+                    Log.info("htlc_ready error: \(error.localizedDescription)")
+                    var code: String? = nil
+                    if let bittrError = error as? BittrServiceError, case let .serverError(message) = bittrError {
+                        code = message
+                    }
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [Language.getWord(withID: "close")], actions: nil)
                 }
             }
         }
+    }
+
+    // Maps a raw /htlc-interceptor/ready error code to a user-friendly message so
+    // the backend's codes never reach the alert. "no_held_htlc" = Bittr is no
+    // longer holding the inbound HTLC (the payment expired before the app came
+    // online); anything else falls back to the generic processing-failed message.
+    func htlcReadyFriendlyMessage(forCode code: String?) -> String {
+        if code == "no_held_htlc" {
+            return Language.getWord(withID: "htlcnoheld")
+        }
+        return Language.getWord(withID: "bittrpayoutfail2")
     }
     
     func hidePendingView() {
