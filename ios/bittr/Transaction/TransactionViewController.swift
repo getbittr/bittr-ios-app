@@ -268,6 +268,17 @@ class TransactionViewController: UIViewController {
                 // Normal swap has failed.
                 self.labelAmount.text = "0 sats"
             }
+        } else if self.tappedTransaction.isSuggestedSwap {
+            // Suggested swap: show only the paid invoice amount (from the swap
+            // file), not the full onchain outflow which also bundles the swap
+            // spread and network fee. Mirrors the SwapStatus screen.
+            if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                let convertedSwap = swapDictionary.toSwap()
+                self.labelAmount.text = "- " + "\(convertedSwap.satoshisAmount)".addSpaces() + " sats"
+            } else {
+                // Fall back to the full outflow if the swap file is unavailable.
+                self.labelAmount.text = "- \(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            }
         } else {
             var plusSymbol = "+"
             if (self.tappedTransaction.received - self.tappedTransaction.sent) < 0 {
@@ -337,6 +348,20 @@ class TransactionViewController: UIViewController {
                 } else {
                     self.labelFees.text = "0 sats"
                 }
+            }
+        } else if self.tappedTransaction.isSuggestedSwap {
+            // Suggested swap: fees are everything beyond the paid invoice
+            // amount — the swap spread (sent - received) plus the onchain
+            // network fee. Mirrors the SwapStatus screen.
+            self.feesStackHeight.constant = 55
+            self.feesStack.alpha = 1
+            if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                let convertedSwap = swapDictionary.toSwap()
+                let totalFees = self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee - convertedSwap.satoshisAmount
+                self.labelFees.text = "\(String(totalFees).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            } else {
+                // Fall back to just the onchain network fee.
+                self.labelFees.text = "\(String(self.tappedTransaction.fee).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             }
         } else if (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee) < 0 {
             // Outbound transaction.
@@ -434,6 +459,30 @@ class TransactionViewController: UIViewController {
                     self.bottomIdStack.alpha = 0
                     self.bottomIdStackHeight.constant = 0
                 }
+            }
+        } else if self.tappedTransaction.isSuggestedSwap {
+            // Suggested (outbound) swap: not a full swap (isSwap == false), but
+            // still show both IDs like a normal onchain→lightning swap — the
+            // onchain lockup transaction on top, and the payment hash of the
+            // paid Lightning invoice below.
+            self.bottomIdStack.alpha = 1
+            self.bottomIdStackHeight.constant = 29
+            // Top ID (onchain lockup transaction)
+            self.titleTopId.text = Language.getWord(withID: "onchainid")
+            self.labelTopId.text = self.tappedTransaction.id
+            self.copyButtonTopId.boundString = self.tappedTransaction.id
+            self.urlStackTopId.alpha = 1
+            self.urlStackTopIdWidth.constant = 22
+            self.urlButtonTopId.boundString = self.tappedTransaction.id
+            // Bottom ID (payment hash of the paid Lightning invoice)
+            self.titleBottomId.text = Language.getWord(withID: "lightningid")
+            if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription),
+               let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID),
+               let lightningID = swapDictionary.toSwap().createdInvoice?.getInvoiceHash() {
+                self.labelBottomId.text = lightningID
+                self.copyButtonBottomId.boundString = lightningID
+            } else {
+                self.labelBottomId.text = "Unavailable"
             }
         } else {
             // Onchain or Lightning transaction.
