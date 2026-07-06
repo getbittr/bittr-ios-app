@@ -38,8 +38,7 @@ extension CoreViewController {
             
             if self.lightningNotification != nil || self.needsToHandleURI() {
                 // A notification will be handled after syncing the wallet.
-                self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-                self.showPendingView()
+                self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
             }
         }
     }

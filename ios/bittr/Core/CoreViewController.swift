@@ -97,11 +97,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
-    // Variables for notification handling
-    @IBOutlet weak var pendingView: UIView!
-    @IBOutlet weak var pendingSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var pendingLabel: UILabel!
-    
     // Syncing status
     @IBOutlet weak var statusConversion: UILabel!
     @IBOutlet weak var statusLightning: UILabel!

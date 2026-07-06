@@ -532,7 +532,7 @@ extension HomeViewController {
         // Check if notification needs handling.
         if self.coreVC!.needsToHandleURI() {
             Log.info("Needs to handle URI.")
-            self.coreVC!.hidePendingView()
+            self.coreVC!.hideLoading()
             self.coreVC!.checkForPendingURIs()
         } else if let actualNotification = self.coreVC!.lightningNotification {
             Log.info("Needs to handle push notification.")

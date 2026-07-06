@@ -66,7 +66,6 @@ extension CoreViewController {
         
         // Corner radii
         self.selectedView.layer.cornerRadius = 8
-        self.pendingView.layer.cornerRadius = 13
         self.statusView.layer.cornerRadius = 13
         self.settingsView.layer.cornerRadius = 8
         self.academyView.layer.cornerRadius = 8

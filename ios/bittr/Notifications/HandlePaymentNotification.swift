@@ -22,8 +22,7 @@ extension CoreViewController {
             // No alert: let them unlock as quickly as possible.
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
-            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-            self.showPendingView()
+            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
             Log.info("Wallet has synced. Will process notification.")
             if !self.wasNotified {
@@ -45,8 +44,7 @@ extension CoreViewController {
             self.wasNotified = true
             // No alert: let them unlock as quickly as possible.
         } else if !self.walletHasSynced {
-            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-            self.showPendingView()
+            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
             if !self.wasNotified {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerHTLCReady)])
@@ -58,8 +56,7 @@ extension CoreViewController {
     
     @objc func triggerHTLCReady() {
         self.hideAlert()
-        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-        self.showPendingView()
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         self.lightningNotification = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.facilitateHTLCReady()
@@ -76,12 +73,12 @@ extension CoreViewController {
     
     private func facilitateHTLCReady() {
         guard let depositCode = self.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
-            self.hidePendingView()
+            self.hideLoading()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
         }
         guard let pubkey = BitcoinManager.shared.nodeId() else {
-            self.hidePendingView()
+            self.hideLoading()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
         }
@@ -92,7 +89,7 @@ extension CoreViewController {
                 let signature = try await BitcoinManager.shared.signMessage(message: message)
                 let response = try await BittrService.shared.htlcReady(depositCode: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature)
                 await MainActor.run {
-                    self.hidePendingView()
+                    self.hideLoading()
                     if response.success, response.action == "resumed" {
                         // No alert – the incoming payment screen will show automatically
                     } else if response.success, response.action == "failed_timeout" {
@@ -106,7 +103,7 @@ extension CoreViewController {
                 }
             } catch {
                 await MainActor.run {
-                    self.hidePendingView()
+                    self.hideLoading()
                     // A non-2xx response makes htlcReady throw
                     // BittrServiceError.serverError(<raw code>), so pull the code
                     // out and map it too — otherwise the raw code (e.g.
@@ -132,23 +129,10 @@ extension CoreViewController {
         }
         return Language.getWord(withID: "bittrpayoutfail2")
     }
-    
-    func hidePendingView() {
-        self.pendingSpinner.stopAnimating()
-        self.pendingView.alpha = 0
-        self.blackSignupBackground.alpha = 0
-    }
-    
-    func showPendingView() {
-        self.pendingSpinner.startAnimating()
-        self.pendingView.alpha = 1
-        self.blackSignupBackground.alpha = 0.2
-    }
-    
+
     @objc func triggerPayout() {
         self.hideAlert()
-        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-        self.showPendingView()
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.facilitateNotificationPayout()
         }
@@ -168,7 +152,7 @@ extension CoreViewController {
             SentrySDK.capture(message: "Required data unavailable while trying to handle notification payout.") { scope in
                 scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
             }
-            self.hidePendingView()
+            self.hideLoading()
             self.lightningNotification = nil
             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
@@ -193,7 +177,7 @@ extension CoreViewController {
                     expirySecs: 3600)
                 else {
                     DispatchQueue.main.async {
-                        self.hidePendingView()
+                        self.hideLoading()
                         self.lightningNotification = nil
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
                     }
@@ -219,7 +203,7 @@ extension CoreViewController {
                         SentrySDK.capture(error: error) { scope in
                             scope.setExtra(value: "HandlePaymentNotification row 163", key: "context")
                         }
-                        self.hidePendingView()
+                        self.hideLoading()
                         self.lightningNotification = nil
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
                     }
@@ -234,12 +218,12 @@ extension CoreViewController {
                     print("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
                         CacheManager.didHandleNotification(notificationId)
-                        self.hidePendingView()
+                        self.hideLoading()
                     }
                 } catch {
                     Log.info("Error occurred: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        self.hidePendingView()
+                        self.hideLoading()
                         var sendToSentry = true
                         
                         if let bittrServiceError = error as? BittrServiceError {
@@ -282,7 +266,7 @@ extension CoreViewController {
         } else {
             Log.info("Not connected to peer.")
             DispatchQueue.main.async {
-                self.hidePendingView()
+                self.hideLoading()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
             }
         }
@@ -622,8 +606,7 @@ extension CoreViewController {
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
             self.lightningNotification = notification
-            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-            self.showPendingView()
+            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
             // User is signed in, handle notification immediately
             self.handleSwapNotificationImmediately()
@@ -632,7 +615,7 @@ extension CoreViewController {
     
     func handleSwapNotificationImmediately() {
         self.lightningNotification = nil
-        self.hidePendingView()
+        self.hideLoading()
         
         // Load swap details from file
         if CacheManager.getLatestSwap() != nil {
@@ -666,15 +649,14 @@ extension CoreViewController {
         }
         
         // Show loading state
-        self.pendingLabel.text = Language.getWord(withID: "receivingpayment")
-        self.showPendingView()
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         
         // Get pubkey
         var pubkey = String()
         if let pubkeyString = BitcoinManager.shared.nodeId() {
             pubkey = pubkeyString
         } else {
-            self.hidePendingView()
+            self.hideLoading()
             self.showAlert(
                 presentingController: self,
                 title: "Error",
@@ -699,7 +681,7 @@ extension CoreViewController {
                 print("Payout response: \(response)")
                 
                 DispatchQueue.main.async {
-                    self.hidePendingView()
+                    self.hideLoading()
                     self.showAlert(
                         presentingController: self,
                         title: "Payment Scheduled",
@@ -719,7 +701,7 @@ extension CoreViewController {
                     SentrySDK.capture(error: error) { scope in
                         scope.setExtra(value: "HandlePaymentNotification row 637", key: "context")
                     }
-                    self.hidePendingView()
+                    self.hideLoading()
                     self.showAlert(
                         presentingController: self,
                         title: "Error",

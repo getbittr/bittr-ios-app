@@ -12,12 +12,19 @@ private var thisVC:UIViewController?
 
 private struct AlertManagerAssociatedKeys {
     static var bottomConstraint: UInt8 = 0
+    static var loadingBottomConstraint: UInt8 = 0
 }
 
 private extension UIView {
     var alertBottomConstraint: NSLayoutConstraint? {
         get { objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.bottomConstraint) as? NSLayoutConstraint }
         set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.bottomConstraint, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+    // Stashes the loading overlay's bottom constraint so hideLoading() can
+    // animate the card back down (same technique as the alert above).
+    var loadingBottomConstraint: NSLayoutConstraint? {
+        get { objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.loadingBottomConstraint) as? NSLayoutConstraint }
+        set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.loadingBottomConstraint, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }
 
@@ -319,6 +326,132 @@ extension UIViewController {
         } else {
             thisVC = self
             self.hideAlert()
+        }
+    }
+
+    // MARK: - Loading overlay
+
+    /// Shows a non-dismissable loading overlay over this view controller: a
+    /// full-screen transparent-black background (blocking all touches) with a
+    /// card sliding up from the bottom, containing a spinner and `message`. It
+    /// mirrors showAlert's look and motion but has no buttons and can't be
+    /// dismissed by the user — call `hideLoading()` when the work is done.
+    /// Calling it again while one is showing just updates the label in place
+    /// (e.g. "syncing wallet" → "receiving payment"). Colours follow light/dark
+    /// mode automatically (Colors + attributed()).
+    func showLoading(message: String) {
+        DispatchQueue.main.async {
+
+            // Already showing → just swap the message, don't stack a second overlay.
+            if let existing = self.view.subviews.first(where: { $0.boundString == "loadingview" }) {
+                for card in existing.subviews {
+                    for row in card.subviews {
+                        for sub in row.subviews where sub.boundString == "loadinglabel" {
+                            (sub as? UILabel)?.text = message
+                        }
+                    }
+                }
+                return
+            }
+
+            // Background — a plain view over everything absorbs all touches, so
+            // nothing behind it is tappable and there's no gesture to dismiss it.
+            let darkBackground = UIView()
+            darkBackground.translatesAutoresizingMaskIntoConstraints = false
+            darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
+            darkBackground.boundString = "loadingview"
+            self.view.addSubview(darkBackground)
+            let bgTop = NSLayoutConstraint(item: darkBackground, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            let bgLeft = NSLayoutConstraint(item: darkBackground, attribute: .leading, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
+            let bgRight = NSLayoutConstraint(item: darkBackground, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
+            let bgBottom = NSLayoutConstraint(item: darkBackground, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            self.view.addConstraints([bgTop, bgLeft, bgRight, bgBottom])
+            darkBackground.loadingBottomConstraint = bgBottom
+
+            // Card — same corner radius, shadow and side padding as the alert.
+            let card = UIView()
+            card.translatesAutoresizingMaskIntoConstraints = false
+            card.backgroundColor = Colors.getColor("whiteorblue3")
+            card.layer.cornerRadius = 13
+            card.setShadow()
+            card.clipsToBounds = false
+            darkBackground.addSubview(card)
+            let cardTop = NSLayoutConstraint(item: card, attribute: .top, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: 0)
+            var cardBottom = NSLayoutConstraint()
+            let cardLeft = NSLayoutConstraint(item: card, attribute: .leading, relatedBy: .equal, toItem: darkBackground, attribute: .leading, multiplier: 1, constant: 10)
+            let cardRight = NSLayoutConstraint(item: card, attribute: .trailing, relatedBy: .equal, toItem: darkBackground, attribute: .trailing, multiplier: 1, constant: -10)
+            let cardMaxHeight = NSLayoutConstraint(item: card, attribute: .height, relatedBy: .lessThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: self.view.bounds.height)
+            darkBackground.addConstraints([cardTop, cardLeft, cardRight])
+            card.addConstraint(cardMaxHeight)
+
+            // Spinner
+            let spinner = UIActivityIndicatorView(style: .medium)
+            spinner.color = Colors.getColor("blackorwhite")
+            spinner.startAnimating()
+
+            // Message (bold, sitting to the right of the spinner).
+            let label = UILabel()
+            label.numberOfLines = 0
+            label.textAlignment = .center
+            label.font = UIFont(name: "Gilroy-Bold", size: 16)
+            label.textColor = Colors.getColor("blackorwhite")
+            label.text = message
+            label.boundString = "loadinglabel"
+
+            // Lay the spinner and message out as a horizontal row centred in the
+            // card. The row's top/bottom padding drives the card height.
+            let row = UIStackView(arrangedSubviews: [spinner, label])
+            row.translatesAutoresizingMaskIntoConstraints = false
+            row.axis = .horizontal
+            row.alignment = .center
+            row.spacing = 11
+            card.addSubview(row)
+            let rowTop = NSLayoutConstraint(item: row, attribute: .top, relatedBy: .equal, toItem: card, attribute: .top, multiplier: 1, constant: 25)
+            let rowBottom = NSLayoutConstraint(item: row, attribute: .bottom, relatedBy: .equal, toItem: card, attribute: .bottom, multiplier: 1, constant: -25)
+            let rowCenterX = NSLayoutConstraint(item: row, attribute: .centerX, relatedBy: .equal, toItem: card, attribute: .centerX, multiplier: 1, constant: 0)
+            let rowLeading = NSLayoutConstraint(item: row, attribute: .leading, relatedBy: .greaterThanOrEqual, toItem: card, attribute: .leading, multiplier: 1, constant: 25)
+            card.addConstraints([rowTop, rowBottom, rowCenterX, rowLeading])
+
+            self.view.layoutIfNeeded()
+
+            // Slide up with a small overshoot while the background fades in —
+            // the same motion as showAlert.
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+                darkBackground.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
+                NSLayoutConstraint.deactivate([cardTop])
+                cardBottom = NSLayoutConstraint(item: card, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: -self.view.safeAreaInsets.bottom - 15)
+                NSLayoutConstraint.activate([cardBottom])
+                self.view.layoutIfNeeded()
+            }) { _ in
+                UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                    NSLayoutConstraint.deactivate([cardBottom])
+                    cardBottom = NSLayoutConstraint(item: card, attribute: .bottom, relatedBy: .equal, toItem: darkBackground, attribute: .bottom, multiplier: 1, constant: -self.view.safeAreaInsets.bottom)
+                    NSLayoutConstraint.activate([cardBottom])
+                    self.view.layoutIfNeeded()
+                }
+            }
+        }
+    }
+
+    /// Slides the loading overlay back down and removes it. Safe to call when
+    /// none is showing.
+    func hideLoading() {
+        DispatchQueue.main.async {
+            for eachView in self.view.subviews where eachView.boundString == "loadingview" {
+                if let card = eachView.subviews.first, var bgBottom = eachView.loadingBottomConstraint {
+                    UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+                        eachView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
+                        NSLayoutConstraint.deactivate([bgBottom])
+                        bgBottom = NSLayoutConstraint(item: eachView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: card.frame.height + self.view.safeAreaInsets.bottom)
+                        NSLayoutConstraint.activate([bgBottom])
+                        self.view.layoutIfNeeded()
+                    }) { _ in
+                        eachView.removeFromSuperview()
+                    }
+                } else {
+                    eachView.removeFromSuperview()
+                }
+            }
         }
     }
 }
