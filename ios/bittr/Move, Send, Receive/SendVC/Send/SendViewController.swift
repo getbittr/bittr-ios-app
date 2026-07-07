@@ -10,7 +10,7 @@ import LDKNode
 import LightningDevKit
 import Sentry
 
-class SendViewController: UIViewController, UITextFieldDelegate {
+class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFailureReporting {
     
     // Generic
     @IBOutlet weak var yellowCard: UIView!
@@ -239,18 +239,6 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         }
     }
 
-    /// Stops the on-chain sync spinner and tells the user the on-chain sync
-    /// failed and to retry later. Safe to call from any thread — BDK
-    /// completions fire off the main thread.
-    func presentOnchainSyncFailedAlert() {
-        DispatchQueue.main.async {
-            self.bdkSpinner.stopAnimating()
-            // Replace the "syncing" alert (if still visible) with the failure alert.
-            self.hideAlert()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: "onchainsyncfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-        }
-    }
-    
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)

@@ -11,7 +11,7 @@ import UserNotifications
 import LightningDevKit
 import Sentry
 
-class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
+class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate, OnchainSyncFailureReporting {
 
     // General
     @IBOutlet weak var mainScrollView: UIScrollView!
