@@ -10,7 +10,7 @@ import LDKNode
 import LightningDevKit
 import Sentry
 
-class SendViewController: UIViewController, UITextFieldDelegate {
+class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFailureReporting {
     
     // Generic
     @IBOutlet weak var yellowCard: UIView!
@@ -154,11 +154,13 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
         self.qrButton.accessibilityIdentifier = TestID.Send.scanButton
         self.regularButton.accessibilityIdentifier = TestID.Send.regularButton
+        self.switchQuestionButton.accessibilityIdentifier = TestID.Send.switchQuestionButton
         self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
         self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
         self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
         self.availableButton.accessibilityIdentifier = TestID.Send.availableButton
         self.availableAmount.accessibilityIdentifier = TestID.Send.availableLabel
+        self.availableQuestionButton.accessibilityIdentifier = TestID.Send.availableQuestionButton
         self.nextButton.accessibilityIdentifier = TestID.Send.nextButton
         self.lnurlSpinner.accessibilityIdentifier = TestID.Send.lnurlSpinner
 
@@ -224,17 +226,19 @@ class SendViewController: UIViewController, UITextFieldDelegate {
                             self.setSendAllLabel()
                         } else {
                             Log.info("Could not scan BDK wallet.")
+                            self.presentOnchainSyncFailedAlert()
                         }
                     }
                 } else {
                     Log.info("Could not start BDK.")
+                    self.presentOnchainSyncFailedAlert()
                 }
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")
         }
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)

@@ -101,6 +101,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
         self.headerLabel.accessibilityIdentifier = TestID.Home.headerLabel
         self.headerSpinner.accessibilityIdentifier = TestID.Home.headerSpinner
+        self.headerViewButton.accessibilityIdentifier = TestID.Home.syncStatusButton
         self.sendButton.accessibilityIdentifier = TestID.Home.sendButton
         self.sendButton.accessibilityLabel = Language.getWord(withID: "send")
         self.receiveButton.accessibilityIdentifier = TestID.Home.receiveButton

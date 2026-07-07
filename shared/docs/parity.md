@@ -30,16 +30,17 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `happy_path_wallet` + `happy_path_signup` if launched on a clean install. |
-| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Shows the onchain address, copies it, pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
+| Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Taps the header spinner right after unlock: while syncing this opens the sync status view (waits for it to auto-dismiss), or — if the sync already finished — the balance/Move screen, which it closes. Shows the onchain address, copies it via the QR long-press context menu (exercises Share + Copy), pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
 
 ## Send
 
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
-| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, opens the QR scanner (simulator shows the "scanning not supported" alert), switches to Regular, enters an address + 5 EUR, confirms with the fast fee, sends, mines 6 blocks, then opens the new transaction. Requires an onchain balance. |
+| Send onchain | done | not started | `features/send_onchain.yaml` | Opens Send, opens the QR scanner (simulator shows the "scanning not supported" alert), reads the lightning-channel info via the "You can send…" question (QuestionViewController), switches to Regular, reads the Regular/Instant explanation alert and the onchain max-sendable info alert, enters an address + 5 EUR, confirms with the fast fee, sends, mines 6 blocks, then opens the new transaction. Requires an onchain balance. |
 | Send onchain (max) | done | not started | `features/send_onchain_all.yaml` | Sends the full balance via "Send all", exercising the tight-fee path (fast fee exceeds balance → Update amount; failed broadcast → retry with the slowest fee past the low-fee warning), then mines 6 blocks and opens the new transaction. Requires an onchain balance. |
 | Send lightning | done | not started | `features/send_lightning.yaml` | Pays a normal (amount-bearing) invoice, a zero-amount invoice (amount in BTC), and a Lightning Address (LNURL-pay), each confirmed via the TransactionViewController. Targets come from a separate live wallet via `LN_INVOICE`/`LN_ZERO_INVOICE`/`LN_ADDRESS`; the Paste steps need `scripts/clipboard_server.js`. Requires an active channel with outbound capacity. |
+| Send → swap suggestion (no channel) | done | not started | `features/send_swap_suggestion.yaml` | Pay a lightning invoice with no usable channel → the "insufficient funds / Swap and pay" suggestion → SwapViewController auto-runs an onchain→lightning swap that pays the recipient (reuses swap.yaml's mine → "Swap complete" arc) → open the new transaction from Home. Requires a wallet with onchain funds and no channel; needs `scripts/clipboard_server.js`. |
 
 ## Swap & read-only screens
 
@@ -85,9 +86,64 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 
 ## Not yet covered by flows
 
-iOS-side features that still need a flow before they're parity-tracked: **Widget** (no Maestro-driveable path) and **LNURL-Auth** (login via LNURL — distinct from the LNURL-pay covered by `send_lightning`).
+The gaps below come from a full iOS-code audit (every view controller, app target and notification path cross-referenced against the flow suite). Each item exists in the iOS app but has no flow exercising it. Grouped by priority for the Android parity effort.
 
-Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning (`features/send_lightning.yaml`).
+Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
+
+### Production-scope features needing a flow (high priority)
+
+| Feature | Where (iOS) | Notes |
+|---|---|---|
+| LNURL-withdraw | `SendVC/SendLNURL.swift` (`handleWithdrawAmountCompletion`, `sendWithdrawRequest`, k1) | In active production scope. Only LNURL-pay is covered today; the withdraw path has no flow. |
+| Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
+| External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
+| Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
+
+### Push notifications — in scope for parity, flows to come later
+
+Only `.lightningPayout` is exercised (`buy_more.yaml` / `buy_incoming.yaml`). The other five `BittrNotificationType` cases have no flow and should get APNS-injection flows (same technique as `buy_more.yaml` via `scripts/push_notification.js`):
+
+| Type | Handler (iOS) |
+|---|---|
+| `.information` | `NotificationManager.swift` → `CoreViewController.newNotification()` |
+| `.swap` | `HandleSwapNotification` — swap UI is covered, but the push entry point is not |
+| `.lnUrl` (Lightning-Address payout) | `HandleLightningAddressNotification.swift` |
+| `.htlcIncoming` | `HandlePaymentNotification.swift` |
+| `.htlcExpired` | `HandlePaymentNotification.swift` |
+
+### Per-screen interactions not yet exercised (medium priority)
+
+Within otherwise-covered screens:
+
+- **Receive**: description/memo field; the Bitcoin and Sats currency options (only € is tapped).
+- **Confirm Send**: the **Medium** fee option (only Fast/Slow tested); the lightning-fee "?"; the back button.
+- **Move**: its own Receive/Send buttons (flows launch these from Home instead); the swap-with-no-channel "instant payments" alert.
+- **Value**: the **Week** chart span (month / year / 5y + scrub are tested; week is only ever the default).
+- **Transaction**: the lightning-channel-fee "?"; the **Surcharge** fee explanation button (transfer + bittr fee are tested).
+- **Map / One Place**: dismiss-place-by-background; the place **Website** button; **Open in Maps** (Apple/Google).
+- **Academy**: page-**back** within a lesson (only forward paging tested).
+- **Buy**: the IBAN-card copy buttons (iban / name / code — flows read the labels but never tap copy).
+
+### Validation / error / edge-path alerts (low priority)
+
+Mostly defensive alerts on the onboarding/auth screens, with no flow:
+
+- **Signup**: "didn't agree" (Signup2); verify-screen empty / invalid-word / wrong-word alerts (Signup4); PIN-mismatch (Signup6); article cards; mnemonic screenshot warning; back buttons.
+- **Restore**: empty-field & invalid-mnemonic alerts; forgot-PIN wrong-mnemonic / no-cached-mnemonic alerts; Restore3 PIN-mismatch; back buttons.
+- **PIN**: PIN > 8 digits and < 4 digits validation alerts.
+- **Bittr signup (Transfer)**: "I don't have an IBAN" → Cancel branch; **Resend OTP** (cooldown + success); change-email/back path; Transfer3 copy + screenshot buttons; Transfer4 back.
+- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested); applying a language change (only English exists, so only Cancel is testable).
+- **Buy**: payment-mode server-error/retry and `lightningnotready` guard paths.
+
+### Not parity-tracked
+
+- **LNURL-auth (login)** — `SendLNURL.swift`, in-app-browser path in `WebsiteViewController.swift`. Not in product scope; intentionally untracked.
+- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired.
+- **QR scanner (live scan)** — camera not available in the simulator; `ScannerViewController` is exercised via the "scanning not supported" path only (`send_onchain.yaml`).
+
+### Confirmed absent in iOS (not parity gaps — do not build for parity)
+
+No biometric / Face ID unlock (PIN only), no clipboard auto-detection on foreground, no Universal Links / associated domains, no Siri / Intents / Spotlight, no App Clip, no Share/Action extension.
 
 ## Legend
 

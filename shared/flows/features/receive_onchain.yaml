@@ -50,6 +50,44 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "home.headerLabel"
 
+# As soon as the PIN view has lowered and Home is up, tap the syncing-status
+# header button (it overlays the spinner) — done as early as possible to catch
+# the wallet while it is still syncing. We tap by COORDINATE rather than by id:
+# a `tapOn id` triggers a full UI-hierarchy snapshot (~1-2s on iOS) before the
+# tap lands, which is often long enough for a quick sync to finish first. A
+# point tap fires immediately, maximising the chance of hitting the spinner
+# while it is still spinning. The point sits over the header spinner (the
+# sparkle next to "your wallet", ~45% from the left, ~20% down on iPhone 15);
+# tune if your simulator differs. Two outcomes, both handled:
+#   • Still syncing → the sync status view opens. It dismisses itself when the
+#     sync finishes, so we wait for that auto-close (no manual close — that
+#     would race the auto-dismiss).
+#   • Already synced (the tap landed too late, or missed) → syncingStatusTapped
+#     opens the balance/Move screen instead; just close it.
+# Either branch ends back on Home.
+- tapOn:
+    point: "45%,20%"
+- runFlow:
+    when:
+      visible:
+        id: "sync.statusView"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/00_sync_status
+      - extendedWaitUntil:
+          notVisible:
+            id: "sync.statusView"
+          timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: "move.subtitleLabel"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/00_move_balance
+      - tapOn:
+          id: "header.downButton"
+      - assertVisible:
+          id: "home.headerLabel"
+
 # On a fresh launch the wallet syncs first — the header spinner spins until the
 # sync finishes. Wait for it to stop before doing anything so the onchain
 # address pool is ready by the time we open Receive.
@@ -76,10 +114,31 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.0"
 
-# Copy the address (puts "bitcoin:<address>" on the clipboard), close the
-# "Copied" alert.
+# Instead of the Copy button, use the QR long-press context menu. Long-press the
+# QR → the focused preview shows "Copy" and "Share".
+- longPressOn:
+    id: "receive.qrImageView"
+- assertVisible:
+    text: "Share"
+- takeScreenshot: shared/docs/screenshots/receive_onchain/03a_qr_context_menu
+
+# Tap Share → the iOS share sheet opens. Dismiss it by tapping the dimmed
+# Receive view above the bottom share sheet (~20% down — below the iOS status
+# bar, above the sheet) so the tap lands on the backdrop and closes the sheet.
 - tapOn:
-    id: "receive.copyButton"
+    text: "Share"
+- takeScreenshot: shared/docs/screenshots/receive_onchain/03b_share_sheet
+- tapOn:
+    point: "50%,20%"
+
+# Long-press the QR again and tap Copy → the same "Copied" alert the Copy button
+# shows (puts "bitcoin:<address>" on the clipboard). Close it.
+- longPressOn:
+    id: "receive.qrImageView"
+- assertVisible:
+    text: "Copy"
+- tapOn:
+    text: "Copy"
 - assertVisible:
     id: "alert.button.0"
 - takeScreenshot: shared/docs/screenshots/receive_onchain/04_copied

@@ -21,8 +21,35 @@ private extension UIView {
     }
 }
 
+/// Adopted by the send/swap screens, which both show the on-chain (BDK) sync
+/// spinner and surface the same alert when that sync can't complete. Constrained
+/// to UIViewController so the default implementation can use showAlert/hideAlert.
+protocol OnchainSyncFailureReporting: UIViewController {
+    var bdkSpinner: UIActivityIndicatorView! { get }
+}
+
+extension OnchainSyncFailureReporting {
+    /// Stops the on-chain sync spinner and tells the user the on-chain sync
+    /// failed and to retry later. Safe to call from any thread — BDK completions
+    /// fire off the main thread.
+    func presentOnchainSyncFailedAlert() {
+        DispatchQueue.main.async {
+            self.bdkSpinner.stopAnimating()
+            // Replace the "syncing" alert (if still visible) with the failure alert.
+            self.hideAlert()
+            self.showAlert(
+                presentingController: self,
+                title: Language.getWord(withID: "onchainsyncfailedtitle"),
+                message: Language.getWord(withID: "onchainsyncfailed"),
+                buttons: [Language.getWord(withID: "okay")],
+                actions: nil
+            )
+        }
+    }
+}
+
 extension UIViewController {
-    
+
     func showAlert(presentingController:UIViewController, title:String, message:String, buttons:[String], actions:[Selector?]?) {
         
         thisVC = presentingController

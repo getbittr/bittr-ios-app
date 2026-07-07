@@ -69,6 +69,7 @@ extension UIViewController {
         headerLabel.textAlignment = .left
         headerLabel.lineBreakMode = .byTruncatingTail
         headerLabel.backgroundColor = .clear
+        headerLabel.accessibilityIdentifier = TestID.Header.titleLabel
         headerView.addSubview(headerLabel)
         
         let headerLabelLeft = NSLayoutConstraint(item: headerLabel, attribute: .leading, relatedBy: .equal, toItem: headerIcon, attribute: .trailing, multiplier: 1, constant: 10)

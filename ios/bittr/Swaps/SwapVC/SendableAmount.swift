@@ -29,17 +29,19 @@ extension SwapViewController {
                             self.calculateSendableAmount()
                         } else {
                             Log.info("Could not scan BDK wallet.")
+                            self.presentOnchainSyncFailedAlert()
                         }
                     }
                 } else {
                     Log.info("Could not start BDK.")
+                    self.presentOnchainSyncFailedAlert()
                 }
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")
         }
     }
-    
+
     func calculateSendableAmount() {
         self.bdkSpinner.stopAnimating()
         
@@ -153,6 +155,87 @@ extension SwapViewController {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Suggested swap
+
+    func startSuggestedOnchainToLightningSwap(invoiceAmount: Int) {
+        if BitcoinManager.shared.bdkWallet != nil && BitcoinManager.shared.bdkWalletHasBeenScanned {
+            // BDK is ready: refresh the label for the new direction and swap.
+            self.calculateSendableAmount()
+            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+            return
+        }
+        
+        Log.info("BDK wallet isn't available yet; syncing before starting the suggested swap.")
+        
+        // Reflect the syncing state on the sendable-amount label while we wait.
+        self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+        self.bdkSpinner.startAnimating()
+
+        self.awaitBdkScan { [weak self] didScan in
+            guard let self = self else { return }
+            guard didScan else {
+                Log.info("BDK wallet could not be scanned; aborting the suggested swap so the user can retry.")
+                // Reset the loading state so the user can retry via Next, which
+                // runs its own BDK-availability guard.
+                self.nextLabel.alpha = 1
+                self.arrowIcon.alpha = 1
+                self.nextSpinner.stopAnimating()
+                // Let the user know the on-chain sync failed and to retry later
+                // (also stops the bdkSpinner).
+                self.presentOnchainSyncFailedAlert()
+                return
+            }
+            // BDK is ready now: refresh the label and start the swap.
+            self.calculateSendableAmount()
+            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+        }
+    }
+    
+    private func awaitBdkScan(completion: @escaping (Bool) -> Void) {
+        // Bound the whole wait so a hung scan can't poll forever; give up after
+        // the timeout and let the caller show the sync-failed alert.
+        self.awaitBdkScan(deadline: Date().addingTimeInterval(180), completion: completion)
+    }
+
+    private func awaitBdkScan(deadline: Date, completion: @escaping (Bool) -> Void) {
+        if BitcoinManager.shared.bdkWalletHasBeenScanned {
+            DispatchQueue.main.async { completion(true) }
+            return
+        }
+
+        if BitcoinManager.shared.bdkWalletIsScanning {
+            // A scan is already running — poll for it to finish, but stop once we
+            // pass the deadline so a stuck scan doesn't loop indefinitely.
+            guard Date() < deadline else {
+                Log.info("BDK scan didn't finish within the timeout; aborting the suggested swap.")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                self.awaitBdkScan(deadline: deadline, completion: completion)
+            }
+            return
+        }
+
+        BitcoinManager.shared.didStartBDK { success in
+            guard success else {
+                Log.info("Could not start BDK for suggested swap.")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                DispatchQueue.main.async { completion(hasBeenSynced) }
+            }
+        }
+    }
+    
+    private func beginSuggestedSwap(invoiceAmount: Int) {
+        Task {
+            await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
         }
     }
 }

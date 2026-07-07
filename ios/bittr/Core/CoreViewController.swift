@@ -161,6 +161,9 @@ class CoreViewController: UIViewController {
         self.middleButton.accessibilityIdentifier = TestID.Nav.academyButton
         self.rightButton.accessibilityIdentifier = TestID.Nav.settingsButton
 
+        self.statusView.accessibilityIdentifier = TestID.Sync.statusView
+        self.syncCloseButton.accessibilityIdentifier = TestID.Sync.closeButton
+
         // Swipe the settings popup down to dismiss it. Added once here (the
         // container is a persistent storyboard view); the handler no-ops while
         // the popup is closed.
