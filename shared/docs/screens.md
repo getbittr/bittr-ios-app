@@ -61,40 +61,40 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup2ViewController.swift`
 - **Purpose**: two acknowledgement switches before wallet generation.
-- **States**: initial (both off) / both on.
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
+- **States**: initial (both off) / both on / Cancel back to Signup1 + "confirm the statements" alert (unhappy).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/02_confirm_initial.png`, `onboarding/03_confirm_both_on.png`
 
 ### Signup3 — Mnemonic
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup3ViewController.swift`
 - **Purpose**: shows the 12-word mnemonic. User must scroll.
-- **States**: top / bottom (scrolled).
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
+- **States**: top / bottom (scrolled) / screenshot "be careful" warning (unhappy — fired by a real Simulator screenshot via `scripts/screenshot_server.js`, since Maestro's own capture doesn't post the iOS notification; best-effort).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/04_mnemonic_top.png`, `onboarding/05_mnemonic_bottom.png`
 
 ### Signup4 — Verify
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup4ViewController.swift`
 - **Purpose**: verify 3 random mnemonic words by index.
-- **States**: empty / filled.
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
+- **States**: empty / filled / invalid non-BIP39 word (`invalidwords`) + wrong-phrase (`incorrectphrase`) alerts → Back (unhappy).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/06_verify_initial.png`, `onboarding/07_verify_filled.png`
 
 ### Signup5 — Set PIN
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup5ViewController.swift` (embeds `PinViewController`)
 - **Purpose**: new PIN entry (min 4 digits).
-- **States**: empty / entered.
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
+- **States**: empty / entered / too-short (`pinshouldbe4to8`) + too-long (`pincanbeupto8`) alerts (unhappy).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/08_pin_set_initial.png`, `onboarding/09_pin_set_entered.png`
 
 ### Signup6 — Confirm PIN
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup6ViewController.swift` (embeds `PinViewController`)
 - **Purpose**: confirm PIN — must match Signup5.
-- **States**: empty / entered.
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`
+- **States**: empty / entered / mismatch (`repeatnumber`) alert → Back to Signup5 (unhappy).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/10_pin_confirm_initial.png`, `onboarding/11_pin_confirm_entered.png`
 
 ### Signup7 — Wallet ready

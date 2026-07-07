@@ -13,6 +13,16 @@ shared/flows/
                           Wipes state, runs happy_path_wallet, then taps
                           "Skip" on Signup7 to land on Home without the
                           bittr signup. Top-level entry.
+    fresh_install_unhappy.yaml
+                          Wipes state and walks wallet creation through every
+                          validation gate — confirm-statements alert, the seed
+                          screenshot warning (real screenshot triggered via
+                          scripts/screenshot_server.js; best-effort), an invalid
+                          non-BIP39 word then a wrong recovery phrase, and the PIN
+                          too-short / too-long / mismatch alerts — before
+                          creating the wallet and Skipping to Home. The
+                          error-branch counterpart to happy_path_wallet.
+                          Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
     happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
@@ -207,6 +217,16 @@ shared/flows/
     sleep.js                    Busy-waits output.sleepMs ms (Maestro has no
                                 native sleep) so a flow can let the app handle a
                                 push before the next step (notification_htlcincoming).
+    trigger_screenshot.js       Asks screenshot_server.js to fire a real
+                                Simulator screenshot (posts the screenshot
+                                notification, unlike Maestro's takeScreenshot);
+                                best-effort (fresh_install_unhappy).
+    screenshot_server.js        Local helper bridging Maestro → `osascript`
+                                clicking the Simulator's "Device > Trigger
+                                Screenshot". Needs Accessibility permission, and
+                                the device's Settings > General > Screen Capture >
+                                "Full-Screen Previews" turned OFF (else the
+                                preview covers the app and blocks the flow).
 ```
 
 ## Conventions

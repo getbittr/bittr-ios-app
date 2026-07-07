@@ -67,6 +67,16 @@ maestro test shared/flows/onboarding/fresh_install.yaml
 # (taps "Skip" on Signup7 and lands on Home):
 maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
 
+# Option 1c: Full reset + wallet creation through every validation gate
+# (confirm-statements / screenshot-warning / invalid-word / wrong-phrase /
+# PIN-length alerts), then Skip to Home — the onboarding error-path counterpart.
+# To exercise the seed-phrase screenshot warning (optional): run
+# "node shared/flows/scripts/screenshot_server.js" (needs Accessibility
+# permission), AND on the simulated device turn OFF Settings > General > Screen
+# Capture > Full-Screen Previews (else the screenshot preview covers the app and
+# blocks the flow). Without this setup the screenshot step is skipped.
+maestro test shared/flows/onboarding/fresh_install_unhappy.yaml
+
 # Option 2: Full reset + restore existing wallet.
 # Followed by onboarding through the Buy page.
 maestro test shared/flows/onboarding/restore_wallet.yaml

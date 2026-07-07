@@ -605,6 +605,7 @@ class BitcoinManager {
             guard let self else { return }
             
             while !Task.isCancelled {
+                guard self.ldkNode != nil else { return }
                 let event = await self.ldkNode!.nextEventAsync()
                 if Task.isCancelled { break }
                 await MainActor.run {
