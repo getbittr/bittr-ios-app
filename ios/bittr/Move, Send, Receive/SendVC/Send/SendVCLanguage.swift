@@ -20,7 +20,6 @@ extension SendViewController {
         
         self.stackLabelQR.text = Language.getWord(withID: "sendvcscan")
         self.stackLabelPaste.text = Language.getWord(withID: "sendvcpaste")
-        self.spinnerLabel.text = Language.getWord(withID: "handlinglnurl")
         
     }
     
@@ -87,7 +86,6 @@ extension SendViewController {
         self.nextView.layer.cornerRadius = 8
         self.backgroundQR.layer.cornerRadius = 8
         self.backgroundPaste.layer.cornerRadius = 8
-        self.spinnerBox.layer.cornerRadius = 13
         self.btcView.layer.cornerRadius = 8
         self.viewRegular.layer.cornerRadius = 8
         self.viewInstant.layer.cornerRadius = 8

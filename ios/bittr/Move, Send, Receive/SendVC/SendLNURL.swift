@@ -614,17 +614,11 @@ func signLNURLAuthK1DERHex(k1: Data, privateKeyData: Data) throws -> String {
 extension SendViewController {
     
     func startLNURLSpinner() {
-        DispatchQueue.main.async {
-            self.spinnerView.alpha = 1
-            self.lnurlSpinner.startAnimating()
-        }
+        self.showLoading(message: Language.getWord(withID: "handlinglnurl"))
     }
     
     func stopLNURLSpinner() {
-        DispatchQueue.main.async {
-            self.spinnerView.alpha = 0
-            self.lnurlSpinner.stopAnimating()
-        }
+        self.hideLoading()
     }
 }
 

@@ -156,7 +156,6 @@ enum TestID {
         }
         static let currencyButton = "send.currencyButton"
         static let currencyLabel = "send.currencyLabel"
-        static let lnurlSpinner = "send.lnurlSpinner"
         static let nextButton = "send.nextButton"
         static let pasteButton = "send.pasteButton"
         static let regularButton = "send.regularButton"

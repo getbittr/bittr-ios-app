@@ -209,7 +209,6 @@
     "availableLabel": null,
     "availableQuestionButton": null,
     "nextButton": null,
-    "lnurlSpinner": null,
     "confirm": {
       "addressLabel": null,
       "amountLabel": null,
