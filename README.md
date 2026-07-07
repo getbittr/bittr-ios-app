@@ -151,6 +151,9 @@ maestro test shared/flows/features/wrong_pin.yaml
 # channel first (e.g. run buy_incoming.yaml):
 maestro test shared/flows/features/wrong_pin_with_channel.yaml
 maestro test shared/flows/features/bitcoin_value.yaml
+# Bitcoin map: open a place, optionally its website (in-app browser), tap Open
+# in Maps → Apple Maps and return via a coordinate tap on the "‹ bittr regtest"
+# breadcrumb (fixed iPhone 15 geometry). Needs an existing wallet (unlocks PIN):
 maestro test shared/flows/features/bitcoin_map.yaml
 maestro test shared/flows/features/academy.yaml
 maestro test shared/flows/features/settings.yaml

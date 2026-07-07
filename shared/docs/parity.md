@@ -53,7 +53,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 |---|---|---|---|---|
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses the existing channel + onchain balance from a prior buy flow. Also walks a swap TransactionViewController (Swap status screen, onchain/lightning ID copy, explorer WebsiteViewController, add note). |
 | Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
-| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens/closes a place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
+| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens a place, optionally opens/closes its website in the in-app browser (WebsiteViewController), taps "Open in Maps" → Apple Maps and returns to Bittr via a coordinate tap on the "‹ bittr regtest" status-bar breadcrumb (fixed iPhone 15 geometry), closes the place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
 | Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
 | Profit screen | done | not started | _within_ `features/buy_incoming.yaml`, `features/buy_more.yaml` | No dedicated flow; the ProfitViewController is opened and asserted before and after each buy to prove the profit recalculated. |
 
@@ -127,7 +127,7 @@ Within otherwise-covered screens:
 - **Move**: its own Receive/Send buttons (flows launch these from Home instead); the swap-with-no-channel "instant payments" alert.
 - **Value**: the **Week** chart span (month / year / 5y + scrub are tested; week is only ever the default).
 - **Transaction**: the lightning-channel-fee "?"; the **Surcharge** fee explanation button (transfer + bittr fee are tested).
-- **Map / One Place**: dismiss-place-by-background; the place **Website** button; **Open in Maps** (Apple/Google).
+- **Map / One Place**: dismiss-place-by-background.
 - **Academy**: page-**back** within a lesson (only forward paging tested).
 - **Buy**: the IBAN-card copy buttons (iban / name / code — flows read the labels but never tap copy).
 

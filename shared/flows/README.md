@@ -180,7 +180,11 @@ shared/flows/
                           price data, scrub the graph, switch span to m/y/5y.
     bitcoin_map.yaml      Bitcoin map (MapViewController) — unlock, open it
                           from Home's map icon, wait for the places to sync,
-                          open/close a place, move the map, recentre on user.
+                          open a place, optionally open/close its website in the
+                          in-app browser, tap "Open in Maps" → Apple Maps and
+                          return via a coordinate tap on the "‹ bittr regtest"
+                          status-bar breadcrumb (fixed iPhone 15 geometry), close
+                          the place, move the map, recentre on user.
     academy.yaml          Academy tab (AcademyViewController) — unlock, open
                           the latest available lesson, page through it to
                           Complete, then open the next freshly-unlocked lesson.

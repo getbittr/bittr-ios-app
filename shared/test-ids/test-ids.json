@@ -59,7 +59,9 @@
     "placeCellButton": null,
     "onePlace": {
       "nameLabel": null,
-      "closeButton": null
+      "closeButton": null,
+      "websiteButton": null,
+      "goToMapsButton": null
     }
   },
   "academy": {

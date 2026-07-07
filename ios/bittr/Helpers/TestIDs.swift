@@ -71,7 +71,9 @@ enum TestID {
         static let mapView = "map.mapView"
         enum OnePlace {
             static let closeButton = "map.onePlace.closeButton"
+            static let goToMapsButton = "map.onePlace.goToMapsButton"
             static let nameLabel = "map.onePlace.nameLabel"
+            static let websiteButton = "map.onePlace.websiteButton"
         }
         static let placeCellButton = "map.placeCellButton"
         static let placeName = "map.placeName"

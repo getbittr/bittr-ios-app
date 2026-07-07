@@ -328,10 +328,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### One place
 
 - **VC**: `ios/bittr/Map/OnePlaceViewController.swift`
-- **Purpose**: detail card for a single map place.
-- **States**: open / closed.
+- **Purpose**: detail card for a single map place (address / website / hours / Open in Maps). Drag down to dismiss.
+- **States**: open / closed / website tapped (→ WebsiteViewController) / "Open in Maps" (→ Apple Maps, returns via the status-bar breadcrumb).
 - **Flow**: `shared/flows/features/bitcoin_map.yaml`
-- **Screenshots**: `bitcoin_map/05_one_place.png`, `bitcoin_map/06_one_place_closed.png`
+- **Screenshots**: `bitcoin_map/05_one_place.png`, `bitcoin_map/05a_website.png`, `bitcoin_map/05b_apple_maps.png`, `bitcoin_map/05c_back_in_bittr.png`, `bitcoin_map/06_one_place_closed.png`
 
 ## Settings
 
@@ -354,10 +354,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### Website (in-app web)
 
 - **VC**: `ios/bittr/Settings/WebsiteViewController.swift`
-- **Purpose**: in-app web view for support/privacy/terms pages and the block-explorer transaction link.
+- **Purpose**: in-app web view for support/privacy/terms pages, the block-explorer transaction link, and a map place's website.
 - **States**: loaded.
-- **Flow**: `shared/flows/features/settings.yaml`, `features/swap.yaml`
-- **Screenshots**: `settings/04_support.png`, `settings/05_privacy.png`, `settings/06_terms.png`, `swap/20_explorer.png`
+- **Flow**: `shared/flows/features/settings.yaml`, `features/swap.yaml`, `features/bitcoin_map.yaml`
+- **Screenshots**: `settings/04_support.png`, `settings/05_privacy.png`, `settings/06_terms.png`, `swap/20_explorer.png`, `bitcoin_map/05a_website.png`
 
 ---
 

@@ -17,8 +17,13 @@
 #   3. Wait for the BTC-places sync spinner (map.mapSpinner) to stop, then
 #      verify the table has rows (map.placeName is the per-cell name label).
 #   4. Tap the topmost place cell (map.placeCellButton, index 0) → the
-#      OnePlaceViewController slides up. Verify it (map.onePlace.nameLabel),
-#      then tap its close icon (map.onePlace.closeButton) and verify it is gone.
+#      OnePlaceViewController slides up. Verify it (map.onePlace.nameLabel). If
+#      the place lists a website, open it in the in-app browser
+#      (WebsiteViewController) and close it. Tap "Open in Maps" → Apple Maps,
+#      then return to Bittr by tapping the "‹ bittr regtest" status-bar
+#      breadcrumb (a fixed coordinate tap — the CI simulator is always iPhone
+#      15). Then tap the close icon (map.onePlace.closeButton) and verify
+#      OnePlace is gone.
 #   5. Drag the map a long way (swipe across map.mapView). On region change a
 #      0.6s debounce timer refreshes the visible places, so give the table a
 #      moment to update.
@@ -72,6 +77,48 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "map.onePlace.nameLabel"
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/05_one_place
+
+# Optionally (only if this place lists a website), open it in the in-app browser
+# (WebsiteViewController) and close it again. The website row is shown only when
+# the place has a website (showWebsite), so guard on the button's visibility.
+- runFlow:
+    when:
+      visible:
+        id: "map.onePlace.websiteButton"
+    commands:
+      - tapOn:
+          id: "map.onePlace.websiteButton"
+      - assertVisible:
+          id: "website.downButton"
+      - takeScreenshot: shared/docs/screenshots/bitcoin_map/05a_website
+      - tapOn:
+          id: "website.downButton"
+      - assertVisible:
+          id: "map.onePlace.nameLabel"
+
+# "Open in Maps" hands off to Apple Maps (openInAppleMaps — the simulator has no
+# Google Maps, so there's no chooser alert), leaving Bittr. Tap it, let Apple
+# Maps come up, then return to Bittr by tapping the status-bar "‹ bittr regtest"
+# breadcrumb. The breadcrumb is a SpringBoard element (not in the app tree), so
+# element matchers can't see it — but a raw COORDINATE tap can. The CI simulator
+# is always iPhone 15, so its position is fixed (~13% x, ~4% y).
+- assertVisible:
+    id: "map.onePlace.goToMapsButton"
+- tapOn:
+    id: "map.onePlace.goToMapsButton"
+# Let Apple Maps come to the foreground (Maestro has no native sleep).
+- evalScript: ${output.sleepMs = 3000}
+- runScript: ../scripts/sleep.js
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/05b_apple_maps
+# Tap "‹ bittr regtest" (top-left) to return to Bittr.
+- tapOn:
+    point: "13%,4%"
+# The app doesn't re-lock on foreground, so OnePlace is still open on return.
+- extendedWaitUntil:
+    visible:
+      id: "map.onePlace.nameLabel"
+    timeout: 15000
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/05c_back_in_bittr
 
 # Tap the close icon → OnePlace slides back down and is torn down.
 - tapOn:
