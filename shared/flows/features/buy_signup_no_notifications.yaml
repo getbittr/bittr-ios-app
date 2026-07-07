@@ -24,7 +24,11 @@
 #      its last digit + the correct email → Verify → invalid-IBAN alert.
 #   5. Fix the IBAN, then drop ".com" from the email → Verify → the
 #      "enter your IBAN and email" alert (invalid email).
-#   6. Fix the email → Verify → advance to the OTP screen.
+#   6. Fix the email → Verify → advance to the OTP screen. Before entering any
+#      code, exercise resend: tap "Resend code" (resends → "email resent" alert
+#      → Okay), wait 5s, tap it again (now in cooldown → "wait 30 seconds"
+#      alert), and tap "Change email" → back to Transfer1; re-enter the same
+#      IBAN + email and Verify to return to the OTP screen.
 #   7. Enter a WRONG code first (111111). At the first notification gate the
 #      app shows EITHER the in-app prompt (Alert A) → Okay → iOS system dialog
 #      (auto-denied) → the denied gate (Alert B) when permission was still
@@ -36,9 +40,12 @@
 #      the 6th keystroke auto-triggers again. Permission is now .denied (no
 #      in-app prompt / system dialog this round) → straight to the denied gate
 #      (Alert B) again → Continue. check2fa accepts 123456.
-#   9. Signup proceeds, registering the customer for on-chain payouts. Reuse
-#      buy_signup.yaml's clean-path tail — Transfer3 success → Transfer4 info
-#      cards → "Open your banking app" modal → back on Buy with the new cell.
+#   9. Signup proceeds, registering the customer for on-chain payouts. On the
+#      Transfer3 success screen, copy the IBAN / name / code (each shows a
+#      "Copied" alert) and tap Screenshot (saves to Photos → "Saved" alert),
+#      then reuse buy_signup.yaml's clean-path tail — Transfer4 info cards (tap
+#      Back → Transfer3 → Finish to return), then "Let's go" → "Open your
+#      banking app" modal → back on Buy with the new cell.
 #  10. Back on the Buy page: assert the new cell rendered AND that the
 #      payout-mode switch is OFF (on-chain), reflecting the denied path.
 #  11. Try to flip the payout-mode switch to lightning. Lightning needs push
@@ -198,6 +205,72 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "signup.bittr.otp.codeTextField"
     timeout: 30000
+
+# Before entering any code, exercise the resend-code flow. The code field
+# auto-focuses, so its keyboard covers the "Resend code" button — dismiss it
+# first by tapping the top label (a UILabel whose tap falls through to
+# endEditing). The cooldown timer starts at 0, so the first "Resend code"
+# actually resends the email (async call) and shows the "We've resent our
+# email!" alert ([Okay, Change email]), starting the 30s cooldown. Wait for it,
+# then tap Okay (index 0).
+- tapOn:
+    id: "signup.bittr.otp.topLabel"
+- tapOn:
+    id: "signup.bittr.otp.resendButton"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04a_code_resent
+- tapOn:
+    id: "alert.button.0"
+
+# Wait 5s (still inside the 30s cooldown), then tap "Resend code" again — the
+# timer is now counting, so it shows the "please wait 30 seconds" alert
+# ([Okay, Change email]) with no network call. Tap "Change email" (index 1),
+# which returns to Transfer1.
+- evalScript: ${output.sleepMs = 5000}
+- runScript: ../scripts/sleep.js
+# Dismiss the keyboard again (the code field may have re-focused after the
+# alert) before tapping "Resend code".
+- tapOn:
+    id: "signup.bittr.otp.topLabel"
+- tapOn:
+    id: "signup.bittr.otp.resendButton"
+- assertVisible:
+    text: ".*wait 30 seconds.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04b_resend_cooldown
+- tapOn:
+    id: "alert.button.1"
+
+# Back on Transfer1 (moveToPage re-instantiates it). Re-enter the same IBAN +
+# email — clearing first in case the fields come back pre-filled — and Verify to
+# return to the OTP screen. The IBAN field auto-focuses.
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- tapOn:
+    id: "signup.bittr.start.ibanTextField"
+- eraseText: 30
+- inputText: "NL27ABNA0451135725"
+- tapOn:
+    id: "signup.bittr.start.emailTextField"
+- eraseText: 30
+- inputText: "e2ebittr@getbittr.com"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+
+# Back on Transfer2 — wait for the code field again before entering the code.
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.otp.codeTextField"
+    timeout: 30000
+
 - inputText: "111111"
 
 # First notification gate. What shows depends on the OS permission state:
@@ -279,16 +352,83 @@ appId: com.bittr.bittr-regtest
       id: "signup.bittr.success.topLabelOne"
     timeout: 90000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/09_bittr_success
+
+# Tap the IBAN, name and code (one by one) to copy each to the clipboard — each
+# shows a "Copied" alert (single Okay). Screenshots are taken after the alert
+# has finished animating in.
+- tapOn:
+    id: "signup.bittr.success.ibanButton"
+- assertVisible:
+    text: ".*[Cc]opied.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_iban_copied
+- tapOn:
+    id: "alert.button.0"
+- tapOn:
+    id: "signup.bittr.success.nameButton"
+- assertVisible:
+    text: ".*[Cc]opied.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_name_copied
+- tapOn:
+    id: "alert.button.0"
+- tapOn:
+    id: "signup.bittr.success.codeButton"
+- assertVisible:
+    text: ".*[Cc]opied.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_code_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the Screenshot button — it renders the card to an image and saves it to
+# Photos, then shows a "Saved" alert (single Okay). Saving to Photos can raise
+# the iOS add-to-Photos permission prompt on first use; allow it if it appears
+# (harmless if it doesn't — if already granted/denied the app's alert follows
+# directly). If the prompt uses different button text on your iOS, adjust here.
+- tapOn:
+    id: "signup.bittr.success.screenshotButton"
+- runFlow:
+    when:
+      visible:
+        text: "Allow"
+    commands:
+      - tapOn:
+          text: "Allow"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/13_screenshot_saved
+- tapOn:
+    id: "alert.button.0"
+
 - tapOn:
     id: "signup.bittr.success.nextButton"
 
 # Transfer4: 4 explanation cards + "Let's go" at the bottom.
 - assertVisible:
     id: "signup.bittr.transferInfo.amountTitle"
+
+# Tap Back to return to Transfer3, then Finish again to come back to Transfer4.
+- tapOn:
+    id: "signup.bittr.transferInfo.backButton"
+- assertVisible:
+    id: "signup.bittr.success.topLabelOne"
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+
 - scrollUntilVisible:
     element:
       id: "signup.bittr.transferInfo.nextButton"
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_transfer_info
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/14_transfer_info
 - tapOn:
     id: "signup.bittr.transferInfo.nextButton"
 
@@ -316,7 +456,7 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "buy.paymentModeSwitch"
     checked: false
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_buy_onchain
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/15_buy_onchain
 
 # Now try to switch the payout mode to lightning. Lightning payouts are
 # delivered via push notifications, which the user denied, so setPaymentMode
@@ -329,7 +469,7 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "alert.button.0"
     timeout: 20000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_lightning_blocked
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/16_lightning_blocked
 - tapOn:
     id: "alert.button.0"
 
@@ -337,4 +477,4 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "buy.paymentModeSwitch"
     checked: false
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/13_end
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/17_end

@@ -153,25 +153,25 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer2ViewController.swift`
 - **Purpose**: 6-digit OTP for email verification (test-mode fixed code 123456).
-- **States**: empty / entered (auto-submits at 6 digits) / wrong-code alert.
+- **States**: empty / entered (auto-submits at 6 digits) / wrong-code alert / resend ("email resent" alert) / resend cooldown ("wait 30 seconds" alert → "Change email" back to Transfer1).
 - **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
-- **Screenshots**: `onboarding/15_bittr_otp_initial.png`, `onboarding/16_bittr_otp_entered.png`, `buy_signup_no_notifications/07_wrong_code.png`
+- **Screenshots**: `onboarding/15_bittr_otp_initial.png`, `onboarding/16_bittr_otp_entered.png`, `buy_signup_no_notifications/04a_code_resent.png`, `buy_signup_no_notifications/04b_resend_cooldown.png`, `buy_signup_no_notifications/07_wrong_code.png`
 
 ### Transfer3 — Success
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer3ViewController.swift`
 - **Purpose**: bittr signup landed; shows IBAN + deposit code.
-- **States**: success (data-bearing labels copy to clipboard).
+- **States**: success / IBAN·name·code "Copied" alerts / Screenshot → Photos "Saved" alert (`buy_signup_no_notifications` walks all four).
 - **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
-- **Screenshots**: `onboarding/17_bittr_success.png`, `buy_signup/08_bittr_success.png`, `buy_signup_no_notifications/09_bittr_success.png`
+- **Screenshots**: `onboarding/17_bittr_success.png`, `buy_signup/08_bittr_success.png`, `buy_signup_no_notifications/09_bittr_success.png`, `buy_signup_no_notifications/10_iban_copied.png`, `buy_signup_no_notifications/13_screenshot_saved.png`
 
 ### Transfer4 — Transfer info
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer4ViewController.swift`
 - **Purpose**: four explanation cards + "Let's go".
-- **States**: top / bottom (scrolled).
+- **States**: top / bottom (scrolled) / Back → Transfer3 (`buy_signup_no_notifications` round-trips Back then Finish).
 - **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
-- **Screenshots**: `onboarding/18_transfer_info_top.png`, `onboarding/19_transfer_info_bottom.png`, `buy_signup/09_transfer_info_top.png`, `buy_signup_no_notifications/10_transfer_info.png`
+- **Screenshots**: `onboarding/18_transfer_info_top.png`, `onboarding/19_transfer_info_bottom.png`, `buy_signup/09_transfer_info_top.png`, `buy_signup_no_notifications/14_transfer_info.png`
 
 ## Core wallet
 

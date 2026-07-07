@@ -194,8 +194,12 @@ enum TestID {
                 static let topLabelTwo = "signup.bittr.start.topLabelTwo"
             }
             enum Success {
+                static let codeButton = "signup.bittr.success.codeButton"
+                static let ibanButton = "signup.bittr.success.ibanButton"
+                static let nameButton = "signup.bittr.success.nameButton"
                 static let nextButton = "signup.bittr.success.nextButton"
                 static let ourIbanLabel = "signup.bittr.success.ourIbanLabel"
+                static let screenshotButton = "signup.bittr.success.screenshotButton"
                 static let topLabelOne = "signup.bittr.success.topLabelOne"
                 static let topLabelTwo = "signup.bittr.success.topLabelTwo"
                 static let yourCodeLabel = "signup.bittr.success.yourCodeLabel"

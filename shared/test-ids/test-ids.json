@@ -307,6 +307,10 @@
         "topLabelTwo": null,
         "ourIbanLabel": null,
         "yourCodeLabel": null,
+        "ibanButton": null,
+        "nameButton": null,
+        "codeButton": null,
+        "screenshotButton": null,
         "nextButton": null
       },
       "transferInfo": {
