@@ -119,6 +119,8 @@ enum TestID {
         static let addressTitle = "receive.addressTitle"
         static let amountTextField = "receive.amountTextField"
         static let copyButton = "receive.copyButton"
+        static let currencyButton = "receive.currencyButton"
+        static let currencyLabel = "receive.currencyLabel"
         static let editButton = "receive.editButton"
         static let invoiceLabel = "receive.invoiceLabel"
         static let moreButton = "receive.moreButton"
