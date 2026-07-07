@@ -99,9 +99,36 @@ extension BitcoinManager {
         }
     }
     
-    func didSyncBdkWallet(completion: @escaping (Bool) -> Void) {
+    func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
         Log.info("Will sync BDK wallet.")
         self.bdkWalletIsScanning = true
+
+        // Fire the caller's completion exactly once and clear the scanning flag.
+        // A hung electrum makes the blocking fullScan below wait forever (BDK's
+        // client has no timeout), which would otherwise leave every caller on a
+        // spinner indefinitely. The watchdog fails after `timeout` so callers
+        // recover. It races the scan, and the scan can't be cancelled once
+        // started, so guard against a late second callback; the guard runs on
+        // main, so it's race-free.
+        //
+        // NOTE: `timeout` must stay comfortably above a legitimately slow scan
+        // (the fullScan below is documented as "seconds to minutes"), or slow
+        // syncs get reported as failures. Tune before shipping.
+        let timeout: TimeInterval = 180
+        var didComplete = false
+        func completion(_ success: Bool) {
+            DispatchQueue.main.async {
+                guard !didComplete else { return }
+                didComplete = true
+                self.bdkWalletIsScanning = false
+                originalCompletion(success)
+            }
+        }
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + timeout) {
+            Log.info("BDK full scan timed out after \(Int(timeout))s; failing so callers don't hang.")
+            completion(false)
+        }
+
         // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
         
         DispatchQueue.global(qos: .background).async {

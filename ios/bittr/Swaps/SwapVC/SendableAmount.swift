@@ -195,16 +195,28 @@ extension SwapViewController {
     }
     
     private func awaitBdkScan(completion: @escaping (Bool) -> Void) {
+        // Bound the whole wait so a hung scan can't poll forever; give up after
+        // the timeout and let the caller show the sync-failed alert.
+        self.awaitBdkScan(deadline: Date().addingTimeInterval(180), completion: completion)
+    }
+
+    private func awaitBdkScan(deadline: Date, completion: @escaping (Bool) -> Void) {
         if BitcoinManager.shared.bdkWalletHasBeenScanned {
             DispatchQueue.main.async { completion(true) }
             return
         }
 
         if BitcoinManager.shared.bdkWalletIsScanning {
-            // A scan is already running — poll for it to finish.
+            // A scan is already running — poll for it to finish, but stop once we
+            // pass the deadline so a stuck scan doesn't loop indefinitely.
+            guard Date() < deadline else {
+                Log.info("BDK scan didn't finish within the timeout; aborting the suggested swap.")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self = self else { return }
-                self.awaitBdkScan(completion: completion)
+                self.awaitBdkScan(deadline: deadline, completion: completion)
             }
             return
         }
