@@ -68,6 +68,7 @@
     "headerLabel": null,
     "nextLessonButton": null,
     "nextPageButton": null,
+    "backPageButton": null,
     "completeButton": null,
     "lessonSpinner": null
   },

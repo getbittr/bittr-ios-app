@@ -187,7 +187,9 @@ shared/flows/
                           the place, move the map, recentre on user.
     academy.yaml          Academy tab (AcademyViewController) — unlock, open
                           the latest available lesson, page through it to
-                          Complete, then open the next freshly-unlocked lesson.
+                          Complete (on page 2 also tapping Back to page 1 and
+                          forward again), then open the next freshly-unlocked
+                          lesson.
     settings.yaml         Settings pop-up end to end — visits Get support /
                           Privacy / Terms (WebsiteViewController), then every
                           Device-details row: dark-mode toggle, language,

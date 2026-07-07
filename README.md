@@ -155,6 +155,9 @@ maestro test shared/flows/features/bitcoin_value.yaml
 # in Maps → Apple Maps and return via a coordinate tap on the "‹ bittr regtest"
 # breadcrumb (fixed iPhone 15 geometry). Needs an existing wallet (unlocks PIN):
 maestro test shared/flows/features/bitcoin_map.yaml
+# Academy: play a lesson to completion (Next → Complete), tapping Back to page 1
+# and forward again on page 2 to exercise the Back button; then open the next
+# unlocked lesson. Needs an existing wallet (unlocks with PIN):
 maestro test shared/flows/features/academy.yaml
 maestro test shared/flows/features/settings.yaml
 

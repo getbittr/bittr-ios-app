@@ -4,6 +4,7 @@
 
 enum TestID {
     enum Academy {
+        static let backPageButton = "academy.backPageButton"
         static let completeButton = "academy.completeButton"
         static let headerLabel = "academy.headerLabel"
         static let lessonSpinner = "academy.lessonSpinner"

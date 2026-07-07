@@ -310,10 +310,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### One lesson
 
 - **VC**: `ios/bittr/Academy/Academy/OneLessonVC/OneLessonViewController.swift`
-- **Purpose**: paged lesson content; completing it unlocks the next.
-- **States**: first page / last page / completed.
+- **Purpose**: paged lesson content (Next / Back paging); completing it unlocks the next.
+- **States**: first page (no Back) / page 2 (Back → page 1) / last page / completed.
 - **Flow**: `shared/flows/features/academy.yaml`
-- **Screenshots**: `academy/04_lesson_page1.png`, `academy/05_last_page.png`, `academy/07_next_lesson_open.png`
+- **Screenshots**: `academy/04_lesson_page1.png`, `academy/04a_lesson_page2.png`, `academy/04b_back_to_page1.png`, `academy/05_last_page.png`, `academy/07_next_lesson_open.png`
 
 ## Map
 

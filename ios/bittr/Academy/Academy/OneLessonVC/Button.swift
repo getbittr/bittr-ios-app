@@ -83,6 +83,7 @@ extension OneLessonViewController {
             previousButton.setTitle("", for: .normal)
             previousButton.isUserInteractionEnabled = true
             previousButton.translatesAutoresizingMaskIntoConstraints = false
+            previousButton.accessibilityIdentifier = TestID.Academy.backPageButton
             previousButton.addTarget(self, action: #selector(self.previousPage), for: .touchUpInside)
             backButtonView.addSubview(previousButton)
             
