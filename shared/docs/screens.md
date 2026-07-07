@@ -101,8 +101,8 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup7ViewController.swift`
 - **Purpose**: BDK + LDK init landing page; "Continue" advances to bittr signup.
-- **States**: ready.
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `features/buy_signup.yaml`, `onboarding/fresh_install_skip_signup.yaml`
+- **States**: ready (Continue → bittr signup, or Skip → Home).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `features/buy_signup.yaml`, `onboarding/fresh_install_skip_signup.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/12_wallet_ready.png`, `buy_signup/03_signup7.png`, `fresh_install_skip_signup/01_wallet_ready.png`
 
 ### Article reader
@@ -145,8 +145,8 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer1ViewController.swift`
 - **Purpose**: collect IBAN + email for the bittr deposit account.
-- **States**: empty / filled / validation alerts (missing/invalid IBAN, missing email).
-- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
+- **States**: empty / filled / validation alerts (missing/invalid IBAN, missing email) / "I don't have an IBAN" → "Go to wallet" exit.
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/13_bittr_start.png`, `onboarding/14_bittr_start_filled.png`, `buy_signup_no_notifications/02_no_iban_alert.png`, `buy_signup_no_notifications/03_invalid_iban.png`, `buy_signup_no_notifications/04_missing_email.png`
 
 ### Transfer2 — OTP

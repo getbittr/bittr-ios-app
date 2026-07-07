@@ -20,9 +20,10 @@ shared/flows/
                           scripts/screenshot_server.js; best-effort), an invalid
                           non-BIP39 word then a wrong recovery phrase, and the PIN
                           too-short / too-long / mismatch alerts — before
-                          creating the wallet and Skipping to Home. The
-                          error-branch counterpart to happy_path_wallet.
-                          Top-level entry.
+                          creating the wallet, then continuing into the bittr
+                          signup and exiting via "I don't have an IBAN" →
+                          "Go to wallet" to Home. The error-branch counterpart
+                          to happy_path_wallet. Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
     happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.

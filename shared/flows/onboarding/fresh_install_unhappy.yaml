@@ -1,8 +1,9 @@
 # Onboarding unhappy-path: wipes state and walks wallet creation through every
 # validation gate — the confirm-statements alert, the seed-phrase screenshot
 # warning, an invalid non-BIP39 word then a wrong recovery-phrase entry, and the
-# PIN length/mismatch alerts — before finally creating the wallet and landing on
-# Home.
+# PIN length/mismatch alerts — before creating the wallet, then continuing into
+# the bittr signup (Transfer1) and exiting via "I don't have an IBAN" →
+# "Go to wallet" to land on Home.
 #
 # The happy-path counterpart is onboarding/happy_path_wallet.yaml; this exercises
 # the error branches that flow doesn't. Starts from a clean install (clearState +
@@ -345,12 +346,33 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "pin.confirmButton"
 
-# Wallet ready → Skip the bittr signup → Home.
+# Wallet ready → Next (Continue) into the bittr signup (Transfer1) instead of Skip.
 - assertVisible:
     id: "signup.create.ready.topLabelOne"
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/13_wallet_ready
 - tapOn:
-    id: "signup.create.ready.skipButton"
+    id: "signup.create.ready.continueButton"
+
+# Transfer1 (bittr signup start). The IBAN field auto-focuses, so the "I don't
+# have an IBAN" button sits under the keyboard — dismiss it first by tapping the
+# non-interactive top label (falls through to the background's endEditing).
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/14_transfer1
+- tapOn:
+    id: "signup.bittr.start.skipButton"
+
+# "We're sorry! / only available to IBAN holders" alert ([Go to wallet, Cancel]).
+# "Go to wallet" (index 0) → alertGoToWallet → hideSignup → Home.
+- assertVisible:
+    text: ".*only available to IBAN holders.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/15_no_iban_alert
+- tapOn:
+    id: "alert.button.0"
 - assertVisible:
     id: "home.headerLabel"
-- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/14_home
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/16_home

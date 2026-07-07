@@ -13,7 +13,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Bittr signup (onboarding subflow) | done | not started | `onboarding/happy_path_signup.yaml` | IBAN / email / OTP / info-cards from Signup7 through to Home. Reusable subflow. |
 | Fresh install (full onboarding) | done | not started | `onboarding/fresh_install.yaml` | Top-level orchestrator: clearState + clearKeychain, then runs `happy_path_wallet` + `happy_path_signup`. |
 | Fresh install, skip bittr signup | done | not started | `onboarding/fresh_install_skip_signup.yaml` | Creates a wallet from scratch then taps Skip on Signup7 → Home with no bittr account. |
-| Fresh install, unhappy path | done | not started | `onboarding/fresh_install_unhappy.yaml` | Wallet creation through every validation gate: Cancel back to Signup1, the confirm-statements alert, the seed-phrase screenshot warning (fires a real Simulator screenshot via `scripts/screenshot_server.js` since Maestro's own capture doesn't post the iOS notification; best-effort), an invalid non-BIP39 word (`invalidwords`) then a valid-but-wrong recovery phrase (`incorrectphrase`), and the PIN too-short / too-long / mismatch alerts, before creating the wallet and Skipping to Home. |
+| Fresh install, unhappy path | done | not started | `onboarding/fresh_install_unhappy.yaml` | Wallet creation through every validation gate: Cancel back to Signup1, the confirm-statements alert, the seed-phrase screenshot warning (fires a real Simulator screenshot via `scripts/screenshot_server.js` since Maestro's own capture doesn't post the iOS notification; best-effort), an invalid non-BIP39 word (`invalidwords`) then a valid-but-wrong recovery phrase (`incorrectphrase`), and the PIN too-short / too-long / mismatch alerts, before creating the wallet, then continuing into the bittr signup (Transfer1) and exiting via "I don't have an IBAN" → "Go to wallet" to reach Home. |
 | Restore wallet | done | not started | `onboarding/restore_wallet.yaml` | clearState + clearKeychain, restores from a fixed test mnemonic, sets PIN 1234 → Home. |
 
 ## Buy & bittr account
@@ -135,11 +135,10 @@ Within otherwise-covered screens:
 
 Mostly defensive alerts on the onboarding/auth screens, with no flow:
 
-- **Signup**: "didn't agree" (Signup2); verify-screen empty / invalid-word / wrong-word alerts (Signup4); PIN-mismatch (Signup6); article cards; mnemonic screenshot warning; back buttons.
+- **Signup**: article cards.
 - **Restore**: empty-field & invalid-mnemonic alerts; forgot-PIN wrong-mnemonic / no-cached-mnemonic alerts; Restore3 PIN-mismatch; back buttons.
-- **PIN**: PIN > 8 digits and < 4 digits validation alerts.
-- **Bittr signup (Transfer)**: "I don't have an IBAN" → Cancel branch; **Resend OTP** (cooldown + success); change-email/back path; Transfer3 copy + screenshot buttons; Transfer4 back.
-- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested); applying a language change (only English exists, so only Cancel is testable).
+- **Resend OTP** (cooldown + success); change-email/back path; Transfer3 copy + screenshot buttons; Transfer4 back.
+- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested).
 - **Buy**: payment-mode server-error/retry and `lightningnotready` guard paths.
 
 ### Not parity-tracked
