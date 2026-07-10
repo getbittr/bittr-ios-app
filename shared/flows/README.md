@@ -105,15 +105,19 @@ shared/flows/
                           scripts/clipboard_server.js.
     send_swap_suggestion_onchain.yaml  The mirror image: pay an onchain address
                           with too little onchain balance but a funded channel.
-                          Send → paste an onchain address (switches to Regular) →
-                          enter 60000 → Next → the "insufficient funds / Swap and
-                          pay" suggestion → SwapViewController auto-runs a
+                          Reads the Move-screen balances (asserts regular < 50000
+                          and instant > 75000), sizes the payment off the lightning
+                          balance (50000 + any lightning above 75000), and copies
+                          one of its own onchain receive addresses as the target.
+                          Send → paste that address (switches to Regular) → enter
+                          the computed amount → Next → the "insufficient funds /
+                          Swap and pay" suggestion → SwapViewController auto-runs a
                           lightning→onchain swap that pays the address (same arc
                           as swap.yaml's first leg: Proceed → "Swap complete" →
                           mine), then opens the new transaction from Home.
-                          Requires a wallet with < 60000 sats onchain and > 60000
-                          sats of Lightning outbound; needs
-                          scripts/clipboard_server.js.
+                          Requires a wallet with < 50000 sats onchain and > 75000
+                          sats of Lightning outbound. No clipboard helper (it
+                          copies its own address in-app).
     swap.yaml             Lightning ↔ onchain, both directions.
     payment_mode.yaml     The lightning/onchain payout-mode toggle on the Buy
                           card (PATCH /customer/payment-mode). Self-provisions:

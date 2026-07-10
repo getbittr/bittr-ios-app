@@ -206,8 +206,8 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **VC**: `ios/bittr/Move, Send, Receive/MoveVC/MoveViewController.swift`
 - **Purpose**: between-balances view (regular ↔ instant) with swap entry point.
 - **States**: visible / lightning-at-zero (post channel-close).
-- **Flow**: `shared/flows/features/swap.yaml`, `features/remove_wallet.yaml`
-- **Screenshots**: `swap/02_move.png`, `swap/09_reverse_move.png`, `remove_wallet/09_move_lightning_zero.png`
+- **Flow**: `shared/flows/features/swap.yaml`, `features/remove_wallet.yaml`, `features/send_swap_suggestion_onchain.yaml`
+- **Screenshots**: `swap/02_move.png`, `swap/09_reverse_move.png`, `remove_wallet/09_move_lightning_zero.png`, `send_swap_suggestion_onchain/01a_move_balances.png`
 
 ### Send
 
@@ -239,8 +239,8 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **VC**: `ios/bittr/Move, Send, Receive/ReceiveVC/ReceiveViewController.swift`
 - **Purpose**: address/invoice generation + QR, with copy, refresh, edit-amount, and onchain/lightning toggle.
 - **States**: loaded (address + QR) / invoice / Bitcoin QR / address-info alert / copied alert / no-new-address alert / QR long-press context menu (Copy/Share) / share sheet.
-- **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice}.yaml`
-- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`
+- **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice,send_swap_suggestion_onchain}.yaml`
+- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`, `send_swap_suggestion_onchain/01b_address_copied.png`
 - **Not covered**: the **LNURL** type (user's own Lightning address, More → Show LNURL) is never opened; the description/memo field and the Bitcoin/Sats currency options are untested. See `parity.md`.
 
 ## Swap
