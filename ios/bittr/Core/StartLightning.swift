@@ -13,12 +13,24 @@ extension CoreViewController {
     
     func startWallet() {
         
-        // Sync LDKNode.
         if BitcoinManager.shared.ldkNode == nil || BitcoinManager.shared.status()?.isRunning == false {
             self.startSync(.ldk)
-            let didStartLDKNode = self.startLightning()
-            guard didStartLDKNode else { return }
+            DispatchQueue.global(qos: .userInitiated).async {
+                let didStartLDKNode = self.startLightning()
+                DispatchQueue.main.async {
+                    guard didStartLDKNode else {
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+                        return
+                    }
+                    self.continueStartWallet()
+                }
+            }
+        } else {
+            self.continueStartWallet()
         }
+    }
+    
+    func continueStartWallet() {
         self.completeSync(.ldk)
         
         // Start final calculations.
@@ -31,7 +43,7 @@ extension CoreViewController {
             // Connect to peer.
             Task { _ = await BitcoinManager.shared.connectToLightningPeer()}
         }
-            
+        
         DispatchQueue.global(qos: .userInitiated).async {
             guard BitcoinManager.shared.ldkNode != nil else { return }
             
@@ -55,21 +67,18 @@ extension CoreViewController {
         }
     }
 
+    // Runs off the main thread: didStartLDK() is a blocking node build + start.
+    // The failure alert is shown by the caller back on main.
     func startLightning() -> Bool {
-        
+
         // Start LDK Node.
         var didStartNode = BitcoinManager.shared.didStartLDK()
-        
+
         // Check correct didStartNode boolean.
         if !didStartNode, BitcoinManager.shared.status()?.isRunning == true {
             didStartNode = true
         }
-        
-        // Proceed to next step.
-        if !didStartNode {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
-        }
-        
+
         Log.info("Did start Node: \(didStartNode)")
         SentrySDK.metrics.count(key: didStartNode ? "sync.ldk.success" : "sync.ldk.failure")
         return didStartNode

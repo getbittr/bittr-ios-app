@@ -555,25 +555,29 @@ extension CoreViewController {
     
     func syncLDKnode() {
         if BitcoinManager.shared.status()?.isRunning == true {
-            do {
-                // Sync LDK node.
-                try BitcoinManager.shared.syncWallets()
-                Log.info("Did sync LDK node.")
-                
-                // Fetch channel details.
-                BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
-                Log.info("Did list channels.")
-                
-                // Reset balance and transactions.
-                DispatchQueue.main.async {
-                    Log.info("Will reload wallet data.")
-                    self.homeVC!.loadWalletData()
-                }
-            } catch {
-                Log.info("Could not sync LDK node. \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "HandlePaymentNotification row 484", key: "context")
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    // Sync LDK node.
+                    try BitcoinManager.shared.syncWallets()
+                    Log.info("Did sync LDK node.")
+                    
+                    // Fetch channel details.
+                    let channels = BitcoinManager.shared.listChannels()
+                    Log.info("Did list channels.")
+                    
+                    // Reset balance and transactions.
+                    DispatchQueue.main.async {
+                        BitcoinManager.shared.bittrWallet.lightningChannels = channels
+                        Log.info("Will reload wallet data.")
+                        self.homeVC!.loadWalletData()
+                    }
+                } catch {
+                    Log.info("Could not sync LDK node. \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "HandlePaymentNotification row 484", key: "context")
+                        }
                     }
                 }
             }
