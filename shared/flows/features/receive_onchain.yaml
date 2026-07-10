@@ -127,6 +127,11 @@ appId: com.bittr.bittr-regtest
 # bar, above the sheet) so the tap lands on the backdrop and closes the sheet.
 - tapOn:
     text: "Share"
+# Wait for the share sheet's slide-up animation to finish before tapping the
+# backdrop — otherwise the point tap can fire while the sheet is still
+# presenting and miss the dimmed backdrop.
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: shared/docs/screenshots/receive_onchain/03b_share_sheet
 - tapOn:
     point: "50%,20%"
