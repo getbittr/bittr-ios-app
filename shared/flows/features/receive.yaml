@@ -32,6 +32,12 @@ appId: com.bittr.bittr-regtest
 # Should be on Home now.
 - assertVisible:
     id: "home.headerLabel"
+# Wait for the post-sign-in wallet sync to finish — the header spinner stops
+# in finalizeSync — so Receive is available before we open it.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
 - takeScreenshot: shared/docs/screenshots/receive/01_home
 
 # Open Receive screen.

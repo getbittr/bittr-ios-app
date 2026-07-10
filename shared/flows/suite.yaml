@@ -37,9 +37,9 @@ appId: com.bittr.bittr-regtest
 - runFlow: features/receive.yaml
 - runFlow: features/receive_onchain.yaml       # onchain receive → small onchain send
 - runFlow: features/receive_invoice.yaml       # lightning receive → send
+- runFlow: features/swap.yaml                  # lightning <-> onchain, both directions
 - runFlow: features/send_onchain.yaml          # onchain send (5 EUR)
 - runFlow: features/send_lightning.yaml        # lightning sends (needs clipboard_server)
-- runFlow: features/swap.yaml                  # lightning <-> onchain, both directions
 
 # --- Read-only screens (no wallet-state change) -------------------------------
 - runFlow: features/bitcoin_value.yaml
