@@ -283,9 +283,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                     self.signupVC?.moveToPage(1)
                                     
                                     // Start wallet.
-                                    Task {
-                                        await self.coreVC!.startWallet()
-                                    }
+                                    self.coreVC!.startWallet()
                                 } else {
                                     // Entered mnemonic is incorrect.
                                     self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -316,9 +314,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                                 
                                 Log.info("About to start Lightning wallet...")
                                 // Start wallet.
-                                Task {
-                                    await self.coreVC!.startWallet()
-                                }
+                                self.coreVC!.startWallet()
                                 Log.info("Lightning wallet started successfully")
                                 
                             } else {

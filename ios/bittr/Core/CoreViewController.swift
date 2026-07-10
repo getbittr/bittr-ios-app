@@ -137,33 +137,10 @@ class CoreViewController: UIViewController {
         // Identify current dark mode.
         CacheManager.setCurrentDarkMode(darkModeIsOn: self.darkModeIsOn())
         
-        // Add observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(newNotification), name: NSNotification.Name(rawValue: "newNotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleLightningURI), name: NSNotification.Name(rawValue: "handleLightningURI"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        
         // Set words.
         self.setWords()
         self.setBasicStyling()
-
-        self.leftButton.accessibilityIdentifier = TestID.Nav.walletButton
-        self.middleButton.accessibilityIdentifier = TestID.Nav.academyButton
-        self.rightButton.accessibilityIdentifier = TestID.Nav.settingsButton
-
-        self.statusView.accessibilityIdentifier = TestID.Sync.statusView
-        self.syncCloseButton.accessibilityIdentifier = TestID.Sync.closeButton
-
-        // Swipe the settings popup down to dismiss it. Added once here (the
-        // container is a persistent storyboard view); the handler no-ops while
-        // the popup is closed.
-        let settingsPan = UIPanGestureRecognizer(target: self, action: #selector(self.handleSettingsPan(_:)))
-        // Recognise alongside the settings table's scroll pan so a drag started
-        // on a row still dismisses (the table is content-height and non-scrolling).
-        settingsPan.delegate = self
-        self.settingsContainer.addGestureRecognizer(settingsPan)
-
+        
         // Check wallet.
         self.checkWalletAvailability()
     }
@@ -197,9 +174,7 @@ class CoreViewController: UIViewController {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             
             // Start wallet in background.
-            Task {
-                await self.startWallet()
-            }
+            self.startWallet()
         } else if CacheManager.walletRemovalIsInProgress() {
             Log.info("A wallet removal was left in progress — offering to resume it on launch.")
             self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])

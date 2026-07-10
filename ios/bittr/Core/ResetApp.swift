@@ -120,9 +120,7 @@ extension CoreViewController {
         self.genericSpinner.startAnimating()
         
         // Sync wallet.
-        Task {
-            await self.startWallet()
-        }
+        self.startWallet()
     }
 
     @objc func resumeWalletRemoval() {

@@ -210,22 +210,22 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
             
-            BitcoinManager.shared.didStartBDK { success in
-                if success {
-                    Log.info("Did start BDK.")
-                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                        if hasBeenSynced {
-                            Log.info("Did scan BDK wallet.")
-                            self.setSendAllLabel()
-                        } else {
-                            Log.info("Could not scan BDK wallet.")
-                            self.presentOnchainSyncFailedAlert()
-                        }
+            let didStartBDK = BitcoinManager.shared.didStartBDK()
+            if didStartBDK {
+                Log.info("Did start BDK.")
+                
+                BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                    if hasBeenSynced {
+                        Log.info("Did scan BDK wallet.")
+                        self.setSendAllLabel()
+                    } else {
+                        Log.info("Could not scan BDK wallet.")
+                        self.presentOnchainSyncFailedAlert()
                     }
-                } else {
-                    Log.info("Could not start BDK.")
-                    self.presentOnchainSyncFailedAlert()
                 }
+            } else {
+                Log.info("Could not start BDK.")
+                self.presentOnchainSyncFailedAlert()
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")

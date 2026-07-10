@@ -20,10 +20,10 @@ extension HomeViewController {
                 // Perform reset.
                 Task {
                     _ = await BitcoinManager.shared.didGetLatestBlockHeight()
-                    await self.coreVC!.startWallet()
-                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                        if hasBeenSynced {
-                            DispatchQueue.main.async {
+                    DispatchQueue.main.async {
+                        self.coreVC!.startWallet()
+                        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                            if hasBeenSynced {
                                 self.sendVC?.setSendAllLabel()
                                 self.moveVC?.swapVC?.calculateSendableAmount()
                             }

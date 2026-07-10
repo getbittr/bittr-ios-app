@@ -54,9 +54,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 SentrySDK.metrics.count(key: "app.launch.newwallet.success")
                 
                 // Start wallet.
-                Task {
-                    await self.signupVC?.coreVC?.startWallet()
-                }
+                self.signupVC?.coreVC?.startWallet()
             } else {
                 // Pin is incorrect.
                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [Language.getWord(withID: "okay")], actions: nil)

@@ -8,21 +8,6 @@
 import UIKit
 
 extension CoreViewController {
-
-    func correctPin(spinner:UIActivityIndicatorView) {
-        
-        // The correct pin has been entered in the PinVC and the wallet is ready to be synced and shown.
-        self.userHasSignedIn = true
-        
-        // Lower pin view.
-        self.lowerPinView(spinner: spinner)
-        
-        // Start wallet.
-        Task {
-            await self.startWallet()
-        }
-    }
-    
     
     func lowerPinView(spinner:UIActivityIndicatorView) {
         

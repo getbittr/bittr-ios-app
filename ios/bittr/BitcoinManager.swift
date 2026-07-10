@@ -51,14 +51,10 @@ class BitcoinManager {
         self.cancelEventListener()
     }
     
-    func startLDK(completion: @escaping (Bool) -> Void) {
+    func didStartLDK() -> Bool {
         
         // Delete previous LDK Node log.
-        do {
-            try FileManager.deleteLDKNodeLogLatestFile()
-        } catch {
-            Log.info("Could not delete LDK Node log latest file.")
-        }
+        try? FileManager.deleteLDKNodeLogLatestFile()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
@@ -78,19 +74,12 @@ class BitcoinManager {
         )
         
         // Set mnemonic string.
-        let mnemonicString:String
-        if let cachedMnemonic = CacheManager.getMnemonic() {
-            mnemonicString = cachedMnemonic
-        } else {
-            // No cached mnemonic available.
+        guard let mnemonicString = CacheManager.getMnemonic() else {
             Log.info("Could not get mnemonic from cache.")
-            DispatchQueue.main.async {
-                SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
-                    scope.setExtra(value: "BitcoinManager row 71", key: "context")
-                }
-                completion(false)
+            SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
+                scope.setExtra(value: "BitcoinManager row 71", key: "context")
             }
-            return
+            return false
         }
         
         // Set LDK background syncing.
@@ -140,40 +129,33 @@ class BitcoinManager {
 //        let logPath = logDirectory + "/ruben.log"
 //        
 //        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
-
-        
-        let newLdkNode: Node
         
         // Build new node.
+        let newLdkNode: Node
         do {
             newLdkNode = try nodeBuilder.build()
         } catch {
             Log.info("Could not build newLdkNode. \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 130", key: "context")
-                }
-                completion(false)
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "BitcoinManager row 130", key: "context")
             }
-            return
+            return false
         }
         
         // Start new node.
         do {
             try newLdkNode.start()
-            self.ldkNode = newLdkNode
-            DispatchQueue.main.async {
-                completion(true)
-            }
         } catch {
             Log.info("Could not start newLdkNode. \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 147", key: "context")
-                }
-                completion(false)
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "BitcoinManager row 147", key: "context")
             }
+            return false
         }
+        
+        // Successful start.
+        self.ldkNode = newLdkNode
+        return true
     }
     
     func getNewMnemonic() -> String {
