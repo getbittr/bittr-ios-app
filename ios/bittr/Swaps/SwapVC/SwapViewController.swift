@@ -148,7 +148,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         
         // Get active channel.
-        let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+        let activeChannel:LDKNode.ChannelDetails? = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
         
         // Check budget availability.
         let maxAmount = (activeChannel?.inboundHtlcMaximumMsat ?? 0)/1000
@@ -227,7 +227,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         guard self.thisSwap != nil else { return }
         
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         
         // Calculate total fees including claim transaction fee for lightning-to-onchain swaps
         // For lightning-to-onchain swaps, the claim transaction fee is included in the on-chain amount

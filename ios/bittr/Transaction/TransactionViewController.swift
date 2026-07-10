@@ -376,7 +376,7 @@ class TransactionViewController: UIViewController {
             self.confirmationsStackHeight.constant = 55
             self.confirmationsStack.alpha = 1
             
-            let currentHeight = self.coreVC!.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+            let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
             
             if self.tappedTransaction.height == nil || (currentHeight - self.tappedTransaction.height! + 1) < 1 {
                 // Unconfirmed transaction.
@@ -516,7 +516,7 @@ class TransactionViewController: UIViewController {
         }
         
         // Value
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let transactionValue:CGFloat = {
             if self.tappedTransaction.isSwap {
                 return (self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee).inBTC()
@@ -587,9 +587,9 @@ class TransactionViewController: UIViewController {
                 var correctConversion = bitcoinValue.currentValue
                 if bitcoinValue.chosenCurrency != currencySymbol {
                     if currencySymbol == "€" {
-                        correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
+                        correctConversion = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0
                     } else {
-                        correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
+                        correctConversion = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0
                     }
                     self.labelBittrCurrentValue.text = "\((transactionValue*correctConversion).twoDecimals())".replacingOccurrences(of: "-", with: "").addSpaces() + " \(currencySymbol)"
                 }

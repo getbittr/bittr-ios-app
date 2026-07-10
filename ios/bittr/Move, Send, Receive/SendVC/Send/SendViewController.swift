@@ -186,7 +186,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 self.bdkSpinner.stopAnimating()
                 
                 if self.maximumSendableOnchainBtc == nil {
-                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                 }
                 let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
                 self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
@@ -194,7 +194,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         } else {
             // Set "Send all" for lightning payments.
             self.bdkSpinner.stopAnimating()
-            let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+            let lightningSats = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats)".addSpaces())
         }
     }
@@ -328,13 +328,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         
         if self.onchainOrLightning == .onchain {
             // Regular - use satoshis for onchain too
-            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()).inSatoshis()
+            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()).inSatoshis()
             self.amountTextField.text = "\(sendableInSatoshis)"
             self.btcLabel.text = "Sats"
             self.selectedCurrency = .satoshis
         } else {
             // Instant
-            let sendableInSatoshis:Int = Int((self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
+            let sendableInSatoshis:Int = Int((BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
             self.amountTextField.text = "\(sendableInSatoshis)"
             self.btcLabel.text = "Sats"
             self.selectedCurrency = .satoshis
@@ -477,11 +477,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-
-        // Use the shared custom alert (same component as ReceiveViewController's
-        // More type picker) rather than a standard iOS action sheet.
-        // Buttons: [Cancel, Bitcoin, Satoshis, <fiat currency>].
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, #selector(self.tappedBitcoinCurrency), #selector(self.tappedSatsCurrency), #selector(self.tappedFiatCurrency)])
     }
 

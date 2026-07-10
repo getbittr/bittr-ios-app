@@ -29,7 +29,7 @@ extension SendViewController {
             return btcAmount.inSatoshis()
         case .currency:
             let fiatAmount = enteredAmount.toNumber()
-            let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
             let btcAmount = fiatAmount / bitcoinValue.currentValue
             
             guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
@@ -160,7 +160,7 @@ extension SendViewController {
         }
         
         // Check if we have sufficient Lightning balance.
-        let availableLightningBalance = (self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+        let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
         if invoiceAmount > availableLightningBalance {
             // Insufficient Lightning balance.
             if bolt12Offer == nil {
@@ -191,7 +191,7 @@ extension SendViewController {
     
     func checkAvailableOnchainBalance(invoiceAmount:Int, availableLightningBalance:UInt64, invoiceText:String?) {
         
-        let availableOnchainBalance = self.coreVC?.bittrWallet.satoshisOnchain ?? 0
+        let availableOnchainBalance = BitcoinManager.shared.bittrWallet.satoshisOnchain ?? 0
         if availableOnchainBalance >= invoiceAmount {
             // Suggest swap to Lightning
             self.showAlert(

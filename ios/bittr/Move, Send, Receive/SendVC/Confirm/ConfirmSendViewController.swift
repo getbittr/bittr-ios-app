@@ -118,7 +118,7 @@ class ConfirmSendViewController: UIViewController {
         // Amount
         self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
         // Fiat amount
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         self.amountFiatLabel.text = self.formattedFiatAmount()
         
         // Fees
@@ -143,7 +143,7 @@ class ConfirmSendViewController: UIViewController {
             
             // Check fee availability
             let lowestSats:Float = self.sendVC!.feePerVbLow*self.sendVC!.confirmTxSize
-            let availableSatsForFee:Float = Float(self.coreVC!.bittrWallet.satoshisOnchain - self.sendVC!.confirmSatoshis)
+            let availableSatsForFee:Float = Float(BitcoinManager.shared.bittrWallet.satoshisOnchain - self.sendVC!.confirmSatoshis)
             if lowestSats > availableSatsForFee {
                 // There aren't enough sats available to pay for the cheapest fee.
                 let availableSatsPerVb:Float = availableSatsForFee / self.sendVC!.confirmTxSize
@@ -184,7 +184,7 @@ class ConfirmSendViewController: UIViewController {
         case .custom: satsPerVbyte = customFees ?? 0
         }
         let satsValue = CGFloat(satsPerVbyte*transactionSize)
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         // Fiat fee, rounded to two decimals and formatted with the device's
         // decimal separator (e.g. "0,50" in comma locales).
         let fiatValue = satsValue.inBTC() * bitcoinValue.currentValue
@@ -195,7 +195,7 @@ class ConfirmSendViewController: UIViewController {
     // in comma locales). twoDecimals() rounds to 2 places and toString() formats
     // with the device's decimal separator, padded to two decimals.
     func formattedFiatAmount() -> String {
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let fiatValue = self.sendVC!.confirmSatoshis.inBTC() * bitcoinValue.currentValue
         return "\(fiatValue.twoDecimals().toString()) \(bitcoinValue.chosenCurrency)"
     }
@@ -248,8 +248,8 @@ class ConfirmSendViewController: UIViewController {
     
     func canAffordFees() -> Bool {
         
-        if (self.selectedFeeInSats + self.sendVC!.confirmSatoshis) > self.coreVC!.bittrWallet.satoshisOnchain {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(self.coreVC!.bittrWallet.satoshisOnchain) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
+        if (self.selectedFeeInSats + self.sendVC!.confirmSatoshis) > BitcoinManager.shared.bittrWallet.satoshisOnchain {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(BitcoinManager.shared.bittrWallet.satoshisOnchain) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
             return false
         } else {
             return true
@@ -267,7 +267,7 @@ class ConfirmSendViewController: UIViewController {
         self.hideAlert()
         
         // New amount.
-        self.sendVC!.confirmSatoshis = self.coreVC!.bittrWallet.satoshisOnchain-self.selectedFeeInSats
+        self.sendVC!.confirmSatoshis = BitcoinManager.shared.bittrWallet.satoshisOnchain-self.selectedFeeInSats
         
         // Update SendVC amount text field.
         self.sendVC!.amountTextField.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin()

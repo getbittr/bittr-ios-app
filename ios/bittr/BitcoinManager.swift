@@ -28,6 +28,9 @@ class BitcoinManager {
     private let storageManager = LightningStorage()
     var xpub = ""
     var coreVC:CoreViewController?
+
+    // Bittr wallet
+    var bittrWallet = BittrWallet()
     
     // Event listener
     private var eventListener: Task<Void, Never>?
@@ -210,7 +213,7 @@ class BitcoinManager {
         
         if let blockHeight = receivedDictionary["result"] as? Int {
             Log.info("Block height: \(blockHeight)")
-            self.coreVC?.bittrWallet.currentHeight = blockHeight
+            self.bittrWallet.currentHeight = blockHeight
             CacheManager.updateCachedData(data: blockHeight, key: "height")
             return true
         } else {
@@ -369,18 +372,7 @@ class BitcoinManager {
         let channels = self.ldkNode!.listChannels()
         return channels
     }
-
-    /// Whether it is safe to wipe the wallet from the device.
-    ///
-    /// Returns true only when there are no open channels AND no closed-channel
-    /// funds are still settling on-chain. Wiping before this is true deletes
-    /// the LDK channel state (channel monitors) needed to sweep those funds —
-    /// and a BIP39 seed alone CANNOT reconstruct it. For a force-closed channel
-    /// the to_local output is locked behind a CSV delay (~1 day) and only swept
-    /// once it expires, so wiping early means permanent loss.
-    ///
-    /// If the node isn't running we can't verify the state, so we return false
-    /// (refuse the wipe) rather than risk it.
+    
     func channelsFullyClosedAndSwept() -> Bool {
         guard let node = self.ldkNode else { return false }
         let balances = node.listBalances()
@@ -420,7 +412,7 @@ class BitcoinManager {
             _ = self.lightSyncBdkWallet()
             
             // Check if any changes have been found.
-            if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {

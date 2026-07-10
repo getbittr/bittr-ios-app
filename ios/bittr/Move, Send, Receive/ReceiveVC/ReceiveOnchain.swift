@@ -72,7 +72,7 @@ extension CoreViewController {
             self.revealOnchainAddresses()
         } else {
             Log.info("Onchain addresses have been found in cache.")
-            self.bittrWallet.onchainAddresses = CacheManager.getOnchainAddresses()
+            BitcoinManager.shared.bittrWallet.onchainAddresses = CacheManager.getOnchainAddresses()
             Task { await self.checkOnchainAddressesWithBittr() }
         }
     }
@@ -88,7 +88,7 @@ extension CoreViewController {
             // gate would wait forever. Mark verification done and notify so the
             // screen shows the best-available (cached) address instead of hanging.
             DispatchQueue.main.async {
-                self.bittrWallet.onchainAddressesVerified = true
+                BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
                 self.receiveVC?.onchainAddressesReady()
             }
             return
@@ -110,7 +110,7 @@ extension CoreViewController {
         Log.info("All revealed onchain addresses have been identified.")
         
         // Update cache.
-        self.bittrWallet.onchainAddresses = revealedAddresses
+        BitcoinManager.shared.bittrWallet.onchainAddresses = revealedAddresses
         CacheManager.storeOnchainAddresses(revealedAddresses)
         
         // Check which onchain addresses Bittr has already used.
@@ -120,16 +120,15 @@ extension CoreViewController {
     func checkOnchainAddressesWithBittr() async {
         
         var hasFoundUsedAddress = false
-        var checkIndex = self.bittrWallet.onchainAddresses!.count - 1
+        var checkIndex = BitcoinManager.shared.bittrWallet.onchainAddresses!.count - 1
         var latestIndexUsedByBittr = 0
         
         while !hasFoundUsedAddress && checkIndex >= 0 {
-            let thisAddress = self.bittrWallet.onchainAddresses![checkIndex]
+            let thisAddress = BitcoinManager.shared.bittrWallet.onchainAddresses![checkIndex]
             
             if !thisAddress.hasBeenUsedByBittr {
                 // Address needs to be checked with Bittr.
                 
-                Log.info("Check onchain address with bittr API.")
                 let checkResult = await thisAddress.checkHasBeenUsedByBittr()
                 
                 if checkResult == nil {
@@ -140,8 +139,8 @@ extension CoreViewController {
                 } else if checkResult! == true {
                     // Did find used address.
                     // Update cache.
-                    self.bittrWallet.onchainAddresses![checkIndex].hasBeenUsedByBittr = true
-                    CacheManager.storeOnchainAddresses(self.bittrWallet.onchainAddresses!)
+                    BitcoinManager.shared.bittrWallet.onchainAddresses![checkIndex].hasBeenUsedByBittr = true
+                    CacheManager.storeOnchainAddresses(BitcoinManager.shared.bittrWallet.onchainAddresses!)
                     latestIndexUsedByBittr = checkIndex
                     hasFoundUsedAddress = true
                 } else {
@@ -158,27 +157,27 @@ extension CoreViewController {
         
         DispatchQueue.global(qos: .background).async {
             // Check whether any additional addresses need to be revealed.
-            var numberOfUnusedAddresses = self.bittrWallet.onchainAddresses!.count - (latestIndexUsedByBittr+1)
+            var numberOfUnusedAddresses = BitcoinManager.shared.bittrWallet.onchainAddresses!.count - (latestIndexUsedByBittr+1)
             if numberOfUnusedAddresses < 10 {
                 // Not enough addresses available.
                 Log.info("Reveal more addresses.")
                 
-                var addressIndex = self.bittrWallet.onchainAddresses!.count
+                var addressIndex = BitcoinManager.shared.bittrWallet.onchainAddresses!.count
                 while numberOfUnusedAddresses < 10 {
                     let newAddress = OnchainAddress()
                     newAddress.onchainAddress = BitcoinManager.shared.getAddress(atIndex: addressIndex)
                     newAddress.addressIndex = addressIndex
-                    self.bittrWallet.onchainAddresses! += [newAddress]
+                    BitcoinManager.shared.bittrWallet.onchainAddresses! += [newAddress]
                     // Also reveal address in LDKNode.
                     let newLDKAddress = self.getNewOnchainAddress() ?? ""
                     print("BDK and LDK match: \(newAddress.onchainAddress == newLDKAddress)")
                     addressIndex += 1
                     numberOfUnusedAddresses += 1
                 }
-                self.bittrWallet.onchainAddresses!.sort { address1, address2 in
+                BitcoinManager.shared.bittrWallet.onchainAddresses!.sort { address1, address2 in
                     address1.addressIndex < address2.addressIndex
                 }
-                CacheManager.storeOnchainAddresses(self.bittrWallet.onchainAddresses!)
+                CacheManager.storeOnchainAddresses(BitcoinManager.shared.bittrWallet.onchainAddresses!)
                 
                 // Check new addresses with Bittr.
                 Task { await self.checkOnchainAddressesWithBittr() }
@@ -187,7 +186,7 @@ extension CoreViewController {
                 Log.info("Onchain address management successful.")
 
                 // Verify the currently cached address.
-                let unusedAddresses = self.bittrWallet.onchainAddresses!.filter { !$0.hasBeenUsedByBittr }
+                let unusedAddresses = BitcoinManager.shared.bittrWallet.onchainAddresses!.filter { !$0.hasBeenUsedByBittr }
                 let cached = CacheManager.getLastAddress()
                 let cachedIsValidUnused = cached != nil && unusedAddresses.contains { $0.onchainAddress == cached }
                 if !cachedIsValidUnused, let firstUnused = unusedAddresses.first {
@@ -196,7 +195,7 @@ extension CoreViewController {
                 
                 // Alert ReceiveVC that address management has completed.
                 DispatchQueue.main.async {
-                    self.bittrWallet.onchainAddressesVerified = true
+                    BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
                     self.receiveVC?.onchainAddressesReady()
                 }
             }

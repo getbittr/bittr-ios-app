@@ -57,7 +57,7 @@ class QuestionViewController: UIViewController {
         if let actualType = self.questionType {
             
             // Get active channel.
-            let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+            let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
             
             if activeChannel != nil {
                 self.setChannelChart(forChannel: activeChannel!)

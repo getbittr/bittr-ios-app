@@ -46,7 +46,7 @@ class ProfitViewController: UIViewController {
         self.totalValueLabel.accessibilityIdentifier = TestID.Profits.totalValueLabel
         self.totalProfitLabel.accessibilityIdentifier = TestID.Profits.totalProfitLabel
 
-        let bitcoinValue = self.coreVC!.getCorrectBitcoinValue()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
 
         self.totalInvestmentLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalInvestments)"
         self.totalValueLabel.text = "\(bitcoinValue.chosenCurrency) \(self.totalValue)"

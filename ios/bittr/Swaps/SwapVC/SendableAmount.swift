@@ -45,7 +45,7 @@ extension SwapViewController {
     func calculateSendableAmount() {
         self.bdkSpinner.stopAnimating()
         
-        let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+        let activeChannel:LDKNode.ChannelDetails? = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
         
         if activeChannel == nil {
             // There is no active Lightning channel.
@@ -66,7 +66,7 @@ extension SwapViewController {
                     return
                 }
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain == 0 {
+                if BitcoinManager.shared.bittrWallet.satoshisOnchain == 0 {
                     // There are no onchain funds.
                     self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                     return
@@ -77,7 +77,7 @@ extension SwapViewController {
                 
                 // Calculate available onchain satoshis minus fast fee.
                 // Calculate maximum sendable onchain amount at lowest fee.
-                let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                 let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
                 
                 Task {
@@ -116,7 +116,7 @@ extension SwapViewController {
                         if let bdkError = error as? BitcoinDevKit.CreateTxError {
                             switch bdkError {
                             case .CoinSelection, .InsufficientFunds:
-                                bdkLooksStale = self.coreVC!.bittrWallet.satoshisOnchain > 0
+                                bdkLooksStale = BitcoinManager.shared.bittrWallet.satoshisOnchain > 0
                             default:
                                 break
                             }
@@ -124,7 +124,7 @@ extension SwapViewController {
 
                         DispatchQueue.main.async {
                             if bdkLooksStale && !self.didRescanForStaleBdk {
-                                Log.info("BDK looks stale (LDK Node onchain balance: \(self.coreVC!.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
+                                Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
                                 self.didRescanForStaleBdk = true
                                 self.bdkWalletUnavailable()
                             } else {
@@ -141,7 +141,7 @@ extension SwapViewController {
                     let satoshisFee:Int = Int(self.highestFeePerVbyte! * Float(sizeinVbytes))
                     
                     // Onchain satoshis minus highest fee.
-                    let sendableSatoshis = self.coreVC!.bittrWallet.satoshisOnchain - satoshisFee
+                    let sendableSatoshis = BitcoinManager.shared.bittrWallet.satoshisOnchain - satoshisFee
                     
                     // Set label.
                     DispatchQueue.main.async {

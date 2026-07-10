@@ -27,65 +27,71 @@ class CacheManager: NSObject {
     
     // MARK: - Bittr signup details
     
-    static func parseDevice(deviceDict:NSDictionary) -> BittrWallet {
+    static func parseDevice() -> BittrWallet {
         
+        // Create Bittr wallet.
         let bittrWallet = BittrWallet()
         
+        // Get device cache.
+        let envKey = EnvironmentConfig.deviceCacheKey
+        guard let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else {
+            return bittrWallet
+        }
+        
+        // Parse IBAN entities.
         for (_, clientdata) in deviceDict {
-            if let actualClientDict = clientdata as? NSDictionary {
-                if let actualIbansDict = actualClientDict["ibans"] as? NSDictionary {
-                    
-                    var ibansInClient = [IbanEntity]()
-                    
-                    for (ibanid, ibandata) in actualIbansDict {
-                        
-                        let iban = IbanEntity()
-                        
-                        if let ibanDataDict = ibandata as? NSDictionary {
-                            
-                            if let actualIbanID = ibanid as? String {
-                                iban.id = actualIbanID
-                            }
-                            if let actualYourIban = ibanDataDict["youriban"] as? String {
-                                iban.yourIbanNumber = actualYourIban
-                            }
-                            if let actualYourEmail = ibanDataDict["youremail"] as? String {
-                                iban.yourEmail = actualYourEmail
-                            }
-                            if let actualYourCode = ibanDataDict["yourcode"] as? String {
-                                iban.yourUniqueCode = actualYourCode
-                            }
-                            if let actualOurIban = ibanDataDict["ouriban"] as? String {
-                                iban.ourIbanNumber = actualOurIban
-                            }
-                            if let actualOurName = ibanDataDict["ourname"] as? String {
-                                iban.ourName = actualOurName
-                            }
-                            if let actualIbanOrder = ibanDataDict["order"] as? Int {
-                                iban.order = actualIbanOrder
-                            }
-                            if let actualIbanToken = ibanDataDict["token"] as? String {
-                                iban.emailToken = actualIbanToken
-                            }
-                            if let actualLightningAddressUsername = ibanDataDict["lightningaddressusername"] as? String {
-                                iban.lightningAddressUsername = actualLightningAddressUsername
-                            }
-                            if let actualOurSwift = ibanDataDict["ourswift"] as? String {
-                                iban.ourSwift = actualOurSwift
-                            }
-                            if let actualPaymentMode = ibanDataDict["paymentmode"] as? String {
-                                iban.paymentMode = actualPaymentMode
-                            }
-
-                            ibansInClient += [iban]
-                        }
-                    }
-                    
-                    bittrWallet.ibanEntities = ibansInClient
-                    bittrWallet.ibanEntities.sort { iban1, iban2 in
-                        iban1.order < iban2.order
-                    }
+            guard
+                let actualClientDict = clientdata as? NSDictionary,
+                let actualIbansDict = actualClientDict["ibans"] as? NSDictionary
+            else { continue }
+                
+            var ibansInClient = [IbanEntity]()
+            
+            for (ibanid, ibandata) in actualIbansDict {
+                guard let ibanDataDict = ibandata as? NSDictionary else { continue }
+                
+                let iban = IbanEntity()
+                
+                if let actualIbanID = ibanid as? String {
+                    iban.id = actualIbanID
                 }
+                if let actualYourIban = ibanDataDict["youriban"] as? String {
+                    iban.yourIbanNumber = actualYourIban
+                }
+                if let actualYourEmail = ibanDataDict["youremail"] as? String {
+                    iban.yourEmail = actualYourEmail
+                }
+                if let actualYourCode = ibanDataDict["yourcode"] as? String {
+                    iban.yourUniqueCode = actualYourCode
+                }
+                if let actualOurIban = ibanDataDict["ouriban"] as? String {
+                    iban.ourIbanNumber = actualOurIban
+                }
+                if let actualOurName = ibanDataDict["ourname"] as? String {
+                    iban.ourName = actualOurName
+                }
+                if let actualIbanOrder = ibanDataDict["order"] as? Int {
+                    iban.order = actualIbanOrder
+                }
+                if let actualIbanToken = ibanDataDict["token"] as? String {
+                    iban.emailToken = actualIbanToken
+                }
+                if let actualLightningAddressUsername = ibanDataDict["lightningaddressusername"] as? String {
+                    iban.lightningAddressUsername = actualLightningAddressUsername
+                }
+                if let actualOurSwift = ibanDataDict["ourswift"] as? String {
+                    iban.ourSwift = actualOurSwift
+                }
+                if let actualPaymentMode = ibanDataDict["paymentmode"] as? String {
+                    iban.paymentMode = actualPaymentMode
+                }
+                
+                ibansInClient += [iban]
+            }
+            
+            bittrWallet.ibanEntities = ibansInClient
+            bittrWallet.ibanEntities.sort { iban1, iban2 in
+                iban1.order < iban2.order
             }
         }
         
@@ -96,118 +102,104 @@ class CacheManager: NSObject {
     static func addIban(iban:IbanEntity) {
         
         let envKey = EnvironmentConfig.deviceCacheKey
-        
-        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
-            // Client already exists.
-            
-            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
-            
-            var ibanExists = false
-            for existingIban in bittrWallet.ibanEntities {
-                if existingIban.id == iban.id {
-                    ibanExists = true
-                    existingIban.yourIbanNumber = iban.yourIbanNumber
-                    existingIban.yourEmail = iban.yourEmail
-                }
-            }
-            if ibanExists == false {
-                // This is a new IBAN entity.
-                bittrWallet.ibanEntities += [iban]
-            }
-            
-            let ibansDict = NSMutableDictionary()
-            for existingIban in bittrWallet.ibanEntities {
-                ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift, "paymentmode":existingIban.paymentMode], forKey: existingIban.id as NSCopying)
-            }
-            let updatedClientsDict = NSMutableDictionary()
-            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-            UserDefaults.standard.synchronize()
-        } else {
+        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else {
             // No client exists yet.
             let clientsDict:NSDictionary = ["bittrwallet":["ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
             UserDefaults.standard.set(clientsDict, forKey: envKey)
             UserDefaults.standard.synchronize()
+            return
         }
         
+        // Client already exists.
+        let bittrWallet = self.parseDevice()
+        
+        var ibanExists = false
+        for existingIban in bittrWallet.ibanEntities where existingIban.id == iban.id {
+            ibanExists = true
+            existingIban.yourIbanNumber = iban.yourIbanNumber
+            existingIban.yourEmail = iban.yourEmail
+        }
+        if ibanExists == false {
+            // This is a new IBAN entity.
+            bittrWallet.ibanEntities += [iban]
+        }
+        
+        let ibansDict = NSMutableDictionary()
+        for existingIban in bittrWallet.ibanEntities {
+            ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift, "paymentmode":existingIban.paymentMode], forKey: existingIban.id as NSCopying)
+        }
+        let updatedClientsDict = NSMutableDictionary()
+        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
+        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
+        UserDefaults.standard.synchronize()
     }
     
     static func addEmailToken(ibanID:String, emailToken:String) {
         
         let envKey = EnvironmentConfig.deviceCacheKey
+        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else { return }
+            
+        let bittrWallet = self.parseDevice()
         
-        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
-            
-            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
-            
-            for eachIbanEntity in bittrWallet.ibanEntities {
-                if eachIbanEntity.id == ibanID {
-                    eachIbanEntity.emailToken = emailToken
-                }
-            }
-            
-            let ibansDict = NSMutableDictionary()
-            for eachIbanEntity in bittrWallet.ibanEntities {
-                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
-            }
-            let updatedClientsDict = NSMutableDictionary()
-            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-            UserDefaults.standard.synchronize()
+        for eachIbanEntity in bittrWallet.ibanEntities where eachIbanEntity.id == ibanID {
+            eachIbanEntity.emailToken = emailToken
         }
+        
+        let ibansDict = NSMutableDictionary()
+        for eachIbanEntity in bittrWallet.ibanEntities {
+            ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
+        }
+        let updatedClientsDict = NSMutableDictionary()
+        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
+        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
+        UserDefaults.standard.synchronize()
     }
     
     static func setPaymentMode(ibanID:String, paymentMode:String) {
 
         let envKey = EnvironmentConfig.deviceCacheKey
+        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else { return }
 
-        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
+        let bittrWallet = self.parseDevice()
 
-            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
-
-            for eachIbanEntity in bittrWallet.ibanEntities {
-                if eachIbanEntity.id == ibanID {
-                    eachIbanEntity.paymentMode = paymentMode
-                }
-            }
-
-            let ibansDict = NSMutableDictionary()
-            for eachIbanEntity in bittrWallet.ibanEntities {
-                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
-            }
-            let updatedClientsDict = NSMutableDictionary()
-            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-            UserDefaults.standard.synchronize()
+        for eachIbanEntity in bittrWallet.ibanEntities where eachIbanEntity.id == ibanID {
+            eachIbanEntity.paymentMode = paymentMode
         }
+        
+        let ibansDict = NSMutableDictionary()
+        for eachIbanEntity in bittrWallet.ibanEntities {
+            ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
+        }
+        let updatedClientsDict = NSMutableDictionary()
+        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
+        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
+        UserDefaults.standard.synchronize()
     }
 
     static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String?) {
         
         let envKey = EnvironmentConfig.deviceCacheKey
+        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else { return }
         
-        if let clientsDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary {
-            
-            let bittrWallet = self.parseDevice(deviceDict: clientsDict)
-            
-            for eachIbanEntity in bittrWallet.ibanEntities {
-                if eachIbanEntity.id == ibanID {
-                    eachIbanEntity.ourIbanNumber = ourIban
-                    eachIbanEntity.yourUniqueCode = yourCode
-                    eachIbanEntity.ourSwift = ourSwift
-                    eachIbanEntity.lightningAddressUsername = lightningAddressUsername ?? eachIbanEntity.lightningAddressUsername
-                }
+        let bittrWallet = self.parseDevice()
+        
+        for eachIbanEntity in bittrWallet.ibanEntities {
+            if eachIbanEntity.id == ibanID {
+                eachIbanEntity.ourIbanNumber = ourIban
+                eachIbanEntity.yourUniqueCode = yourCode
+                eachIbanEntity.ourSwift = ourSwift
+                eachIbanEntity.lightningAddressUsername = lightningAddressUsername ?? eachIbanEntity.lightningAddressUsername
             }
-            
-            let ibansDict = NSMutableDictionary()
-            for eachIbanEntity in bittrWallet.ibanEntities {
-                ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
-            }
-            let updatedClientsDict = NSMutableDictionary()
-            updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-            UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-            UserDefaults.standard.synchronize()
         }
+        
+        let ibansDict = NSMutableDictionary()
+        for eachIbanEntity in bittrWallet.ibanEntities {
+            ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
+        }
+        let updatedClientsDict = NSMutableDictionary()
+        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
+        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
+        UserDefaults.standard.synchronize()
     }
     
     // MARK: - Images cache

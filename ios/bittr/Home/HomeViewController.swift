@@ -244,7 +244,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 moveVC.homeVC = self
                 self.moveVC = moveVC
                 
-                if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
+                if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
                     moveVC.maximumReceivableLNSats = Int((activeChannel.unspendablePunishmentReserve ?? 0)*10)
                 }
             }
@@ -269,7 +269,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 receiveVC.homeVC = self
                 receiveVC.coreVC = self.coreVC
                 self.coreVC?.receiveVC = receiveVC
-                if let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() {
+                if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
                     receiveVC.maximumReceivableLNSats = Int((activeChannel.unspendablePunishmentReserve ?? 0)*10)
                 }
             }
@@ -336,12 +336,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             // 0 and recomputes from listChannels(). Adding received here on
             // top of that double-counts the balance.
             if !thisTransaction.isFundingTransaction {
-                self.coreVC!.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
+                BitcoinManager.shared.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
             }
-            self.coreVC!.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+            BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
             
             if paymentDetails != nil {
-                self.coreVC!.bittrWallet.allTransactions += [paymentDetails!]
+                BitcoinManager.shared.bittrWallet.allTransactions += [paymentDetails!]
             }
             
             if thisTransaction.isBittr {

@@ -260,7 +260,7 @@ class SwapManager: NSObject {
                     swapVC.nextSpinner.stopAnimating()
 
                     if isInsufficientFunds {
-                        let balance = swapVC.coreVC?.bittrWallet.satoshisOnchain ?? 0
+                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain ?? 0
                         let message = Language.getWord(withID: "onchaininsufficientfunds")
                             .replacingOccurrences(of: "<amount>", with: "\(balance)")
                         swapVC.showAlert(
@@ -414,7 +414,7 @@ class SwapManager: NSObject {
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
-            destinationAddress = swapVC.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
+            destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")

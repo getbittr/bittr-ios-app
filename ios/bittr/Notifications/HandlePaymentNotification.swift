@@ -72,7 +72,7 @@ extension CoreViewController {
     }
     
     private func facilitateHTLCReady() {
-        guard let depositCode = self.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
+        guard let depositCode = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
             self.hideLoading()
             self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
@@ -490,7 +490,7 @@ extension CoreViewController {
         
         // Get deposit codes.
         var depositCodes = [String]()
-        for eachIbanEntity in self.bittrWallet.ibanEntities {
+        for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities {
             if eachIbanEntity.yourUniqueCode != "" {
                 depositCodes += [eachIbanEntity.yourUniqueCode]
             }
@@ -561,7 +561,7 @@ extension CoreViewController {
                 Log.info("Did sync LDK node.")
                 
                 // Fetch channel details.
-                self.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+                BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
                 Log.info("Did list channels.")
                 
                 // Reset balance and transactions.

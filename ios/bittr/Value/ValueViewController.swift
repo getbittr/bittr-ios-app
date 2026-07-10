@@ -123,7 +123,7 @@ class ValueViewController: UIViewController {
         // Get latest value
         Task {
             do {
-                let bitcoinValue = self.homeVC!.coreVC!.getCorrectBitcoinValue()
+                let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
                 let eurUrl = URL(string: bitcoinValue.apiUrl)!
                 var eurData = Data()
                 if bitcoinValue.chosenCurrency == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {

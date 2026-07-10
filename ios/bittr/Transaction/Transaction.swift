@@ -99,7 +99,7 @@ extension PaymentDetails {
             thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: thisTransaction.id)
             
             // Set channel ID.
-            if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+            if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
                 thisTransaction.channelId = activeChannel.channelId
             }
         }
@@ -184,7 +184,7 @@ extension BittrTransaction {
         thisTransaction.historicalExchangeRate = self.historicalExchangeRate.toNumber()
         
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: self.txId)
-        if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+        if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
             thisTransaction.channelId = activeChannel.channelId
         }
         

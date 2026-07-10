@@ -95,7 +95,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                     cell.buttonLabel.text = "English"
                 }
             case "currency":
-                cell.buttonLabel.text = self.coreVC!.getCorrectBitcoinValue().chosenCurrency
+                cell.buttonLabel.text = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().chosenCurrency
             case "lightningchannels":
                 if self.channelsCount == nil {
                     self.syncChannels()
