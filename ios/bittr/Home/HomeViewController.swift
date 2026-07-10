@@ -309,11 +309,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         // Remove any duplicate transactions.
         var didFindDuplicateTransaction = false
-        for (index, eachTransaction) in self.visibleTransactions.enumerated().reversed() {
-            if eachTransaction.id == thisTransaction.id {
-                didFindDuplicateTransaction = true
-                self.visibleTransactions.remove(at: index)
-            }
+        for (index, eachTransaction) in self.visibleTransactions.enumerated().reversed() where eachTransaction.id == thisTransaction.id {
+            didFindDuplicateTransaction = true
+            self.visibleTransactions.remove(at: index)
         }
         
         // Add new transaction.
@@ -329,30 +327,30 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.reloadData()
         self.noTransactionsLabel.alpha = 0
         
-        if !didFindDuplicateTransaction {
-            // Update balance and transactions.
-            // Skip the += for funding transactions: .channelReady triggers
-            // syncLDKnode → loadWalletData, which resets satoshisLightning to
-            // 0 and recomputes from listChannels(). Adding received here on
-            // top of that double-counts the balance.
-            if !thisTransaction.isFundingTransaction {
-                BitcoinManager.shared.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
-            }
-            BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
-            
-            if paymentDetails != nil {
-                BitcoinManager.shared.bittrWallet.allTransactions += [paymentDetails!]
-            }
-            
-            if thisTransaction.isBittr {
-                self.bittrTransactions.updateValue(thisTransaction.toBittrTransaction(), forKey: thisTransaction.id)
-            }
-            
-            // Update balance label.
-            self.setTotalSats()
-            self.moveVC?.updateLabels()
-            self.calculateProfit()
+        // Update cache
+        CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
+        
+        guard !didFindDuplicateTransaction else { return }
+        
+        // Update balance and transactions.
+        // For funding transactions, .channelReady will update the balance.
+        if !thisTransaction.isFundingTransaction {
+            BitcoinManager.shared.bittrWallet.satoshisLightning += (thisTransaction.received - thisTransaction.sent)
         }
+        BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+        
+        if paymentDetails != nil {
+            BitcoinManager.shared.bittrWallet.allTransactions += [paymentDetails!]
+        }
+        
+        if thisTransaction.isBittr {
+            self.bittrTransactions.updateValue(thisTransaction.toBittrTransaction(), forKey: thisTransaction.id)
+        }
+        
+        // Update balance label.
+        self.setTotalSats()
+        self.moveVC?.updateLabels()
+        self.calculateProfit()
     }
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {

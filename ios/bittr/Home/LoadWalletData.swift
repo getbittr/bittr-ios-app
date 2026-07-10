@@ -38,7 +38,7 @@ extension HomeViewController {
         Task {
             // Check whether transactions were Bittr purchases.
             _ = await self.getBittrTransactionDetails()
-            
+
             DispatchQueue.main.async {
                 self.updateTransactionHistory()
             }
