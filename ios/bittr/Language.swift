@@ -272,7 +272,7 @@ class Language: NSObject {
             "bittrtransactions4": "No new information is available.",
             "bittrnotification2": "There is no notification available for handling.",
             "bankingapp": "Open your banking app",
-            "bankingapp2": "Create your (recurring) transfer to",
+            "bankingapp2": "Create your (recurring) transfer to<br><br><b><ouribannumber></b>\n<b><ourname></b>\n<b><youruniquecode></b>",
             "saved": "Saved",
             "screenshot2": "We've added the screenshot to your Photo Library.",
             "screenshot3": "We couldn't save your screenshot. Try taking a screenshot manually.",

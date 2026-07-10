@@ -145,16 +145,38 @@ appId: com.bittr.bittr-regtest
       id: "home.headerSpinner"
     timeout: 60000
 
-# Wait for the first swap to settle from pending to complete before starting
-# the reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled,
-# but the onchain claim still needs a block confirmation + wallet sync before
-# the funds show up on the onchain side. Without this wait the reverse
-# onchain→lightning swap fires before the funds land and fails with
-# insufficient onchain balance.
+# The first swap must settle from pending to complete before starting the
+# reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled, but the
+# onchain claim still needs a block confirmation + wallet sync before the funds
+# show up on the onchain side. If the reverse onchain→lightning swap fires
+# before the funds land it fails with insufficient onchain balance.
 #
 # Scope the check to the topmost row (history.swapPending0) — only the swap we
 # just made matters. A global "history.swapPending" check would also catch any
 # older unsuccessful swaps further down the list and never clear.
+#
+# If the swap is still pending here (the claim hasn't confirmed on-chain yet),
+# don't fail — force it: mine 6 blocks, pull Home down to resync, then re-check.
+# Mirrors the mine-6 recovery in the swap-status flow below, and is skipped
+# entirely when the swap has already settled.
+- runFlow:
+    when:
+      visible:
+        id: "history.swapPending0"
+    commands:
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - swipe:
+          direction: DOWN
+          duration: 800
+      - extendedWaitUntil:
+          notVisible:
+            id: "home.headerSpinner"
+          timeout: 60000
+      - assertVisible:
+          id: "home.headerLabel"
+# Authoritative: the swap must be settled before the reverse swap starts. If it
+# already settled (or the recovery above just settled it) this passes at once.
 - extendedWaitUntil:
     notVisible:
       id: "history.swapPending0"
@@ -317,10 +339,12 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.0"
 
-# Add a note. The note alert is a native UIAlertController with a text field;
-# type the note and tap Save.
+# Add a note. The note alert is our custom text-field alert; tap the field to
+# focus it (tapOn also waits out the alert's slide-up), type the note, tap Save.
 - tapOn:
     id: "transaction.addNoteButton"
+- tapOn:
+    id: "alert.textField"
 - inputText: "swap.yaml test"
 - tapOn:
     text: "Save"
