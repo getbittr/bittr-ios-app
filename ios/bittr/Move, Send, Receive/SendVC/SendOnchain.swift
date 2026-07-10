@@ -256,7 +256,7 @@ extension ConfirmSendViewController {
 
 extension UIViewController {
     
-    func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
+    func getMaximumSendableSats() -> Double? {
         
         do {
             let actualAddress = BitcoinManager.shared.getAddress(atIndex: 0)

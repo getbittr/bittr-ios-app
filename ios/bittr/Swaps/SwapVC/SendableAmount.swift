@@ -77,14 +77,22 @@ extension SwapViewController {
                 
                 // Calculate available onchain satoshis minus fast fee.
                 // Calculate maximum sendable onchain amount at lowest fee.
-                let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
+                let maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                 let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
                 
+                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                self.bdkSpinner.startAnimating()
+                
+                // Capture intended direction.
+                let requestedDirection = self.swapDirection
+
                 Task {
                     let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
                     if feeEstimates == nil {
                         Log.info("Could not fetch fee estimates.")
                         DispatchQueue.main.async {
+                            guard self.swapDirection == requestedDirection else { return }
+                            self.bdkSpinner.stopAnimating()
                             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                         }
                         return
@@ -123,11 +131,14 @@ extension SwapViewController {
                         }
 
                         DispatchQueue.main.async {
+                            guard self.swapDirection == requestedDirection else { return }
                             if bdkLooksStale && !self.didRescanForStaleBdk {
                                 Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
                                 self.didRescanForStaleBdk = true
+                                // bdkWalletUnavailable keeps the spinner running while it rescans.
                                 self.bdkWalletUnavailable()
                             } else {
+                                self.bdkSpinner.stopAnimating()
                                 SentrySDK.capture(error: error) { scope in
                                     scope.setExtra(value: "SwapVC row 308", key: "context")
                                 }
@@ -145,6 +156,8 @@ extension SwapViewController {
                     
                     // Set label.
                     DispatchQueue.main.async {
+                        guard self.swapDirection == requestedDirection else { return }
+                        self.bdkSpinner.stopAnimating()
                         if sendableSatoshis > availableChannelSpace {
                             // We have enough onchain satoshis to fill up the entire channel.
                             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(availableChannelSpace)".addSpaces())
