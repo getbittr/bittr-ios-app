@@ -12,7 +12,6 @@ import Sentry
 class CoreViewController: UIViewController {
     
     // App start booleans
-    var walletIsAvailable = false
     var userHasSignedIn = false
     var walletHasSynced = false
     
@@ -174,10 +173,12 @@ class CoreViewController: UIViewController {
         // Check wallet availability.
         if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
             // Wallet has been created.
-            self.walletIsAvailable = true
+            self.signupContainerView.alpha = 0
+            self.pinContainerView.alpha = 1
         } else {
             // User has not completed signup.
-            self.walletIsAvailable = false
+            self.signupContainerView.alpha = 1
+            self.pinContainerView.alpha = 0
             // Remove cached mnemonic.
             CacheManager.deleteClientInfo()
             // Show SignupVC.
@@ -185,35 +186,23 @@ class CoreViewController: UIViewController {
         }
     }
     
-    func showPinOrSignup() {
-        
-        // Show Pin or Signup view upon app launch.
-        if self.walletIsAvailable {
-            self.signupContainerView.alpha = 0
-            self.pinContainerView.alpha = 1
-
-            // Check whether the user has been locked out of their wallet.
-            // Guard against re-entry: once the removal is in progress, don't stack
-            // another lockout alert + a second concurrent startWallet() task if
-            // showPinOrSignup runs again.
-            if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
-                Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
-                self.removingWalletForIncorrectPin = true
-                self.fullViewCover.alpha = 0.8
-                self.genericSpinner.startAnimating()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                
-                // Start wallet in background.
-                Task {
-                    await self.startWallet()
-                }
-            } else if CacheManager.walletRemovalIsInProgress() {
-                Log.info("A wallet removal was left in progress — offering to resume it on launch.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
+    func checkWalletRemoval() {
+        // Upon app launch, check whether the user is locked out.
+        // Or whether the user has previously tried removing the wallet.
+        if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
+            Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
+            self.removingWalletForIncorrectPin = true
+            self.fullViewCover.alpha = 0.8
+            self.genericSpinner.startAnimating()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            
+            // Start wallet in background.
+            Task {
+                await self.startWallet()
             }
-        } else {
-            self.signupContainerView.alpha = 1
-            self.pinContainerView.alpha = 0
+        } else if CacheManager.walletRemovalIsInProgress() {
+            Log.info("A wallet removal was left in progress — offering to resume it on launch.")
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
         }
     }
     
