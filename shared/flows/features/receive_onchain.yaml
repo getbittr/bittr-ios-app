@@ -389,9 +389,21 @@ appId: com.bittr.bittr-regtest
       - takeScreenshot: shared/docs/screenshots/receive_onchain/07d_send_address_amount
 
       # Close Send → Home, then reopen Receive so the existing onchain renew
-      # path below picks up from a freshly-opened Receive screen.
+      # path below picks up from a freshly-opened Receive screen. The down-button
+      # tap here can occasionally register as a success without dismissing Send
+      # (the view is still mid-transition after the QR→regular switch), so if
+      # we're not back on Home, fall back to dragging Send down to close it —
+      # the same swipe-to-dismiss used in other flows.
       - tapOn:
           id: "header.downButton"
+      - runFlow:
+          when:
+            notVisible:
+              id: "home.headerLabel"
+          commands:
+            - swipe:
+                direction: DOWN
+                duration: 800
       - assertVisible:
           id: "home.headerLabel"
       - tapOn:
