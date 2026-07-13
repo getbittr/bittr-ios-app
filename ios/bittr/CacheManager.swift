@@ -22,6 +22,12 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
+
+        // Remove the secrets from the Keychain too — they no longer live in
+        // UserDefaults, so the UserDefaults removals above wouldn't clear them.
+        SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "pin"))
+
         self.resetFailedPinAttempts()
     }
     
@@ -873,49 +879,93 @@ class CacheManager: NSObject {
     // MARK: - Mnemonic
     
     static func storeMnemonic(_ mnemonic:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(mnemonic, forKey: envKey)
+        writeSecret(mnemonic, account: EnvironmentConfig.cacheKey(for: "mnemonic"), label: "mnemonic")
     }
     
     static func getMnemonic() -> String? {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        
-        let defaults = UserDefaults.standard
-        let cachedMnemonic = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedMnemonic = cachedMnemonic {
-            return actualCachedMnemonic
-        } else {
-            return nil
-        }
+        readSecret(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
     }
     
     // MARK: - Pin
     
+    // The PIN is stored in the Keychain as its raw value so getPin()'s existing
+    // call sites (PinViewController) keep working unchanged. It is protected at
+    // rest by the Keychain (device-locked, never backed up or synced). Follow-up
+    // hardening: store a salted hash behind a verifyPin() API, and move the
+    // failed-attempt counter into the Keychain too (it is currently a plain,
+    // resettable Int in UserDefaults).
     static func storePin(pin:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "pin")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(pin, forKey: envKey)
+        writeSecret(pin, account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin")
     }
     
     static func getPin() -> String? {
+        readSecret(account: EnvironmentConfig.cacheKey(for: "pin"))
+    }
+    
+    // MARK: - Secure storage (Keychain)
+    
+    /// Eagerly migrate any legacy UserDefaults-stored secrets (mnemonic, PIN)
+    /// into the Keychain. Safe to call on every launch; a no-op once migrated.
+    static func migrateSecretsToKeychainIfNeeded() {
+        migrateLegacySecretIfNeeded(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        migrateLegacySecretIfNeeded(account: EnvironmentConfig.cacheKey(for: "pin"))
+    }
+    
+    /// Write a secret to the Keychain, verifying the write by reading it back.
+    /// storeMnemonic/storePin stay non-throwing to preserve their call sites; a
+    /// failure is reported to Sentry rather than silently losing the value.
+    /// (Recommended follow-up: make the mnemonic write throwing so the wallet-
+    /// creation flow can abort/retry if the seed cannot be persisted.)
+    private static func writeSecret(_ value: String, account: String, label: String) {
+        do {
+            try SecureStore.setString(value, account: account)
+            if SecureStore.getString(account: account) != value {
+                SentrySDK.capture(message: "Keychain \(label) write could not be verified.")
+            }
+        } catch {
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "storing \(label) in keychain", key: "context")
+            }
+        }
+    }
+
+    /// Read a secret from the Keychain, transparently migrating a legacy
+    /// UserDefaults value on first read (older installs stored these in
+    /// UserDefaults).
+    private static func readSecret(account: String) -> String? {
+        if let value = SecureStore.getString(account: account) {
+            return value
+        }
+        return migrateLegacySecretIfNeeded(account: account)
+    }
+
+    /// Move a legacy UserDefaults value into the Keychain. The UserDefaults copy
+    /// is removed only once the Keychain copy reads back correctly, so a user is
+    /// never left without their seed. Idempotent.
+    @discardableResult
+    private static func migrateLegacySecretIfNeeded(account: String) -> String? {
+        // Already in the Keychain? Clean up any leftover UserDefaults copy.
+        if let value = SecureStore.getString(account: account) {
+            UserDefaults.standard.removeObject(forKey: account)
+            return value
+        }
         
-        let envKey = EnvironmentConfig.cacheKey(for: "pin")
-        
-        let defaults = UserDefaults.standard
-        let cachedPin = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedPin = cachedPin {
-            return actualCachedPin
-        } else {
+        guard let legacy = UserDefaults.standard.value(forKey: account) as? String else {
             return nil
         }
+        
+        do {
+            try SecureStore.setString(legacy, account: account)
+            if SecureStore.getString(account: account) == legacy {
+                UserDefaults.standard.removeObject(forKey: account)   // safe: verified in Keychain
+            }
+        } catch {
+            // Keychain write failed — keep the UserDefaults copy so access isn't lost.
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "migrating secret to keychain", key: "context")
+            }
+        }
+        return legacy
     }
     
     // MARK: - Txo ID

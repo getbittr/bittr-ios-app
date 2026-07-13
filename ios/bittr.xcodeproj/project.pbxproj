@@ -136,6 +136,7 @@
 		05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */; };
 		05C5A0EF2A334E30004CC671 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */; };
 		05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF0FE52D32557300DF2D9F /* GraphView.swift */; };
+		05CF63B93004ECB800E55351 /* SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF63B83004ECB800E55351 /* SecureStore.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
 		05D5D0E72A66825000A1E771 /* BitcoinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* BitcoinManager.swift */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
@@ -347,6 +348,7 @@
 		05C5A0EC2A33252C004CC671 /* Transfer1ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer1ViewController.swift; sourceTree = "<group>"; };
 		05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05CF0FE52D32557300DF2D9F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
+		05CF63B83004ECB800E55351 /* SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
@@ -876,6 +878,7 @@
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				059704A62E43514F00B56690 /* BitcoinValue.swift */,
 				05117B9D2EDEC6AA00A5E4E6 /* Log.swift */,
+				05CF63B83004ECB800E55351 /* SecureStore.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -1290,6 +1293,7 @@
 				05C3C0B629CCBFED00C1E695 /* CoreViewController.swift in Sources */,
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
+				05CF63B93004ECB800E55351 /* SecureStore.swift in Sources */,
 				05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */,
 				0509EFBA2FC7FC1F003488D4 /* UIButton.swift in Sources */,
 				058B2FD42EE9B5A70010693D /* URIs.swift in Sources */,
