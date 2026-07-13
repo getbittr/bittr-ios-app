@@ -223,14 +223,11 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text]
         
-        print("Restore button tapped - checking words: \(enteredWords)")
-        
         var enteredMnemonic = ""
         var handledWords = 0
         
         for eachWord in enteredWords {
             if let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String {
-                print("Processing word: '\(actualWord)'")
                 if actualWord == "" {
                     // Found an empty field - show warning
                     print("Found empty field - showing warning")
@@ -247,13 +244,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                 } else if enteredMnemonic == "" {
                     enteredMnemonic = actualWord
                     handledWords += 1
-                    print("First word added: \(enteredMnemonic), handledWords: \(handledWords)")
                 } else {
                     enteredMnemonic = "\(enteredMnemonic) \(actualWord)"
                     handledWords += 1
-                    print("Word added: \(enteredMnemonic), handledWords: \(handledWords)")
                     if handledWords == 12 {
-                        print("All 12 words collected: \(enteredMnemonic)")
                         Log.info("About to check coreVC...")
                         
                         if self.coreVC == nil {
@@ -297,7 +291,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                             // We're restoring an existing wallet.
                             
                             // Validate mnemonic before storing.
-                            print("Validating mnemonic: \(enteredMnemonic)")
                             if BitcoinManager.shared.isValidMnemonic(enteredMnemonic) {
                                 Log.info("Mnemonic validation successful")
                                 
