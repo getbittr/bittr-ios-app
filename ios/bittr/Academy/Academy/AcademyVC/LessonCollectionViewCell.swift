@@ -105,6 +105,7 @@ class BlurEffect: UIVisualEffectView {
 
         self.blurAnimator.stopAnimation(true)
         self.effect = nil
+        self.overrideUserInterfaceStyle = .light
 
         // Recreate the animator instead of re-adding animation blocks to the
         // stopped one: addAnimations on a reused animator ACCUMULATES blocks,
