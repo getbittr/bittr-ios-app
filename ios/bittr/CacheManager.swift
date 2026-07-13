@@ -904,13 +904,38 @@ class CacheManager: NSObject {
     
     // MARK: - Secure storage (Keychain)
     
+    // Check whether PIN and mnemonic are available.
+    enum WalletSecretsPresence {
+        case present
+        case absent
+        case unavailable
+    }
+    
+    static func walletSecretsPresence() -> WalletSecretsPresence {
+        // While the device is locked the WhenUnlockedThisDeviceOnly items are
+        // unreadable, so we can't decide anything.
+        guard UIApplication.shared.isProtectedDataAvailable else { return .unavailable }
+        do {
+            let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+            let pin = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin"))
+            return (mnemonic != nil && pin != nil) ? .present : .absent
+        } catch {
+            // A Keychain read failed (not a genuine absence). Report it and treat
+            // as unavailable so nothing destructive happens.
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "reading wallet secrets for presence check", key: "context")
+            }
+            return .unavailable
+        }
+    }
+
     /// Eagerly migrate any legacy UserDefaults-stored secrets (mnemonic, PIN)
     /// into the Keychain. Safe to call on every launch; a no-op once migrated.
     static func migrateSecretsToKeychainIfNeeded() {
-        migrateLegacySecretIfNeeded(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
-        migrateLegacySecretIfNeeded(account: EnvironmentConfig.cacheKey(for: "pin"))
+        migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "pin"))
     }
-    
+
     /// Write a secret to the Keychain, verifying the write by reading it back.
     /// storeMnemonic/storePin stay non-throwing to preserve their call sites; a
     /// failure is reported to Sentry rather than silently losing the value.
@@ -919,7 +944,8 @@ class CacheManager: NSObject {
     private static func writeSecret(_ value: String, account: String, label: String) {
         do {
             try SecureStore.setString(value, account: account)
-            if SecureStore.getString(account: account) != value {
+            let readBack = (try? SecureStore.getString(account: account)) ?? nil
+            if readBack != value {
                 SentrySDK.capture(message: "Keychain \(label) write could not be verified.")
             }
         } catch {
@@ -929,34 +955,43 @@ class CacheManager: NSObject {
         }
     }
 
-    /// Read a secret from the Keychain, transparently migrating a legacy
-    /// UserDefaults value on first read (older installs stored these in
-    /// UserDefaults).
+    /// Non-throwing read used by getMnemonic()/getPin(). A Keychain read failure
+    /// yields nil here (existing callers guard on nil and handle it gracefully);
+    /// it never drives a destructive decision — the launch presence check uses
+    /// walletSecretsPresence() instead, which separates failure from absence.
     private static func readSecret(account: String) -> String? {
-        if let value = SecureStore.getString(account: account) {
-            return value
+        do {
+            return try readSecretOrThrow(account: account)
+        } catch {
+            // Keychain read failed — still honour a legacy UserDefaults copy if one exists.
+            return migrateLegacyValue(account: account)
         }
-        return migrateLegacySecretIfNeeded(account: account)
     }
 
-    /// Move a legacy UserDefaults value into the Keychain. The UserDefaults copy
-    /// is removed only once the Keychain copy reads back correctly, so a user is
-    /// never left without their seed. Idempotent.
-    @discardableResult
-    private static func migrateLegacySecretIfNeeded(account: String) -> String? {
-        // Already in the Keychain? Clean up any leftover UserDefaults copy.
-        if let value = SecureStore.getString(account: account) {
-            UserDefaults.standard.removeObject(forKey: account)
+    /// Read a secret, throwing on a Keychain read failure and returning nil only
+    /// when the value is genuinely absent (checked in the Keychain and in a
+    /// legacy UserDefaults copy). Migrates a legacy value on the way.
+    private static func readSecretOrThrow(account: String) throws -> String? {
+        if let value = try SecureStore.getString(account: account) {
+            UserDefaults.standard.removeObject(forKey: account)   // clean up any legacy leftover
             return value
         }
-        
+        return migrateLegacyValue(account: account)
+    }
+
+    /// Move a legacy UserDefaults value into the Keychain (if one exists). Returns
+    /// the value so a read still works even if the Keychain write can't complete
+    /// right now; the UserDefaults copy is removed only once the Keychain copy is
+    /// confirmed readable, so access is never lost. Idempotent.
+    @discardableResult
+    private static func migrateLegacyValue(account: String) -> String? {
         guard let legacy = UserDefaults.standard.value(forKey: account) as? String else {
             return nil
         }
-        
         do {
             try SecureStore.setString(legacy, account: account)
-            if SecureStore.getString(account: account) == legacy {
+            let confirmed = (try? SecureStore.getString(account: account)) ?? nil
+            if confirmed == legacy {
                 UserDefaults.standard.removeObject(forKey: account)   // safe: verified in Keychain
             }
         } catch {

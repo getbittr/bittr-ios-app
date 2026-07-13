@@ -30,7 +30,6 @@
 
 import Foundation
 import Security
-import Sentry
 
 enum SecureStore {
 
@@ -48,8 +47,8 @@ enum SecureStore {
         try setData(Data(value.utf8), account: account)
     }
 
-    static func getString(account: String) -> String? {
-        guard let data = getData(account: account) else { return nil }
+    static func getString(account: String) throws -> String? {
+        guard let data = try getData(account: account) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
@@ -77,7 +76,7 @@ enum SecureStore {
         }
     }
 
-    static func getData(account: String) -> Data? {
+    static func getData(account: String) throws -> Data? {
         let query: [String: Any] = [
             kSecClass as String:                     kSecClassGenericPassword,
             kSecAttrService as String:               service,
@@ -96,10 +95,7 @@ enum SecureStore {
         case errSecItemNotFound:
             return nil
         default:
-            // An unexpected read failure (e.g. errSecInteractionNotAllowed if
-            // somehow read while locked). Surface it, but never crash a read.
-            SentrySDK.capture(message: "Keychain read failed for account \(account): OSStatus \(status)")
-            return nil
+            throw SecureStoreError.unexpectedStatus(status)
         }
     }
 

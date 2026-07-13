@@ -648,7 +648,10 @@ class BitcoinManager {
         let network: KeyDerivationNetwork = EnvironmentConfig.isDevelopment ? .testnet : .mainnet
         
         // Create SimpleKeyDerivation instance with the stored mnemonic
-        let keyDerivation = try SimpleKeyDerivation(mnemonic: CacheManager.getMnemonic()!, network: network)
+        guard let mnemonic = CacheManager.getMnemonic() else {
+            throw WalletError.walletNotInitiated
+        }
+        let keyDerivation = try SimpleKeyDerivation(mnemonic: mnemonic, network: network)
             
         // Derive keys for the given path
         let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(path)

@@ -14,6 +14,9 @@ class CoreViewController: UIViewController {
     // App start booleans
     var userHasSignedIn = false
     var walletHasSynced = false
+    // True while checkWalletAvailability is waiting for the Keychain to become
+    // readable (device locked / transient read error) before it decides.
+    private var isAwaitingProtectedData = false
     
     // Pin reset
     var resettingPin = false
@@ -150,25 +153,46 @@ class CoreViewController: UIViewController {
     
     func checkWalletAvailability() {
         
-        // Check wallet availability. The containers are revealed here, at
-        // viewDidLoad, and stay interactable during the launch animation:
-        // the animation cover passes taps through (its
-        // isUserInteractionEnabled is false), so the PIN/signup screen is
-        // usable while it becomes visible — and automation taps can't be
-        // swallowed by the cover.
-        if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
+        // Decide which screen to show based on whether a wallet exists. The
+        // containers are revealed here, at viewDidLoad, and stay interactable
+        // during the launch animation: the animation cover passes taps
+        // through (its isUserInteractionEnabled is false), so the PIN/signup
+        // screen is usable while it becomes visible — and automation taps
+        // can't be swallowed by the cover.
+        switch CacheManager.walletSecretsPresence() {
+        case .present:
             // Wallet has been created.
+            self.isAwaitingProtectedData = false
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
-        } else {
-            // User has not completed signup.
+            
+        case .absent:
+            // No wallet on this device.
+            self.isAwaitingProtectedData = false
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
-            // Remove cached mnemonic.
+            // Clear any stale cached client data and show the create-wallet flow.
             CacheManager.deleteClientInfo()
-            // Show SignupVC.
             self.launchSignup(onPage: 3)
+            
+        case .unavailable:
+            // The Keychain could not be read reliably.
+            Log.info("Wallet secrets unavailable — deferring wallet-availability check until the Keychain is readable.")
+            if !self.isAwaitingProtectedData {
+                self.isAwaitingProtectedData = true
+                NotificationCenter.default.addObserver(self, selector: #selector(self.recheckWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
+                guard let self = self, self.isAwaitingProtectedData else { return }
+                self.recheckWalletAvailability()
+            }
         }
+    }
+
+    @objc private func recheckWalletAvailability() {
+        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        self.isAwaitingProtectedData = false
+        self.checkWalletAvailability()
     }
     
     func checkWalletRemoval() {
