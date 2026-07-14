@@ -157,6 +157,9 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.allBackgrounds![sender.tag].alpha = 0
+        }
         
         // Check if PIN is already at max length (8 digits)
         if (pinTextField.text?.count ?? 0) >= 8 {
@@ -167,10 +170,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Update text field.
         self.pinTextField.insertText(String(sender.tag))
         self.pinCollectionView.reloadData()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.allBackgrounds![sender.tag].alpha = 0
-        }
     }
     
     @IBAction func backspaceButtonTapped(_ sender: UIButton) {
