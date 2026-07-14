@@ -393,8 +393,7 @@ extension UIViewController {
         (sendVC?.coreVC?.homeVC ?? receiveVC?.coreVC?.homeVC ?? swapVC?.homeVC)?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
 
         // Don't auto-open the TransactionVC for a swap's own lightning payment.
-        let isSwapPayment = newTransaction.isSwap || newTransaction.lnDescription.contains("Swap onchain to lightning ") || newTransaction.lnDescription.contains("Swap lightning to onchain ")
-        if !isSwapPayment {
+        if !newTransaction.isSwap, !newTransaction.isSwapPayment {
             sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
             receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
         }
