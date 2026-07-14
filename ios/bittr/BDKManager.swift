@@ -210,11 +210,16 @@ extension BitcoinManager {
     }
     
     func lightSyncBdkWallet() -> Bool {
+        guard let bdkWallet = self.bdkWallet,
+              let electrumClient = self.electrumClient,
+              let connection = self.connection else {
+            return false
+        }
         
         // Create sync request.
         let syncRequest:SyncRequest
         do {
-            syncRequest = try self.bdkWallet!.startSyncWithRevealedSpks().build()
+            syncRequest = try bdkWallet.startSyncWithRevealedSpks().build()
         } catch {
             self.handleError(error: error, row: 570)
             return false
@@ -223,7 +228,7 @@ extension BitcoinManager {
         // Create update.
         let update:Update
         do {
-            update = try self.electrumClient!.sync(
+            update = try electrumClient.sync(
                 request: syncRequest,
                 batchSize: UInt64(25),
                 fetchPrevTxouts: true
@@ -233,16 +238,21 @@ extension BitcoinManager {
             return false
         }
         
+        // Ensure bdkWallet hasn't been cleared in the meantime.
+        guard self.bdkWallet === bdkWallet else {
+            return false
+        }
+        
         // Apply update to wallet.
         do {
-            try self.bdkWallet!.applyUpdate(update: update)
+            try bdkWallet.applyUpdate(update: update)
         } catch {
             self.handleError(error: error, row: 594)
         }
         
         // Persist update to wallet.
         do {
-            _ = try self.bdkWallet!.persist(connection: self.connection!)
+            _ = try bdkWallet.persist(connection: connection)
         } catch {
             self.handleError(error: error, row: 603)
         }

@@ -340,19 +340,13 @@ class BitcoinManager {
     }
     
     func listPayments() -> [PaymentDetails] {
-        guard self.ldkNode != nil else {
-            return []
-        }
-        let payments = self.ldkNode!.listPayments()
-        return payments
+        guard let node = self.ldkNode else { return [] }
+        return node.listPayments()
     }
-    
+
     func listChannels() -> [LDKNode.ChannelDetails] {
-        guard self.ldkNode != nil else {
-            return []
-        }
-        let channels = self.ldkNode!.listChannels()
-        return channels
+        guard let node = self.ldkNode else { return [] }
+        return node.listChannels()
     }
 
     /// Whether it is safe to wipe the wallet from the device.
@@ -400,12 +394,16 @@ class BitcoinManager {
         
         DispatchQueue.global(qos: .background).async {
             Log.info("Will light sync wallet.")
+            guard let node = self.ldkNode else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
             
             // Light sync BDK.
             _ = self.lightSyncBdkWallet()
             
             // Check if any changes have been found.
-            if self.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(node.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {
@@ -462,7 +460,8 @@ class BitcoinManager {
     }
     
     func syncWallets() throws {
-        try self.ldkNode!.syncWallets()
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        try node.syncWallets()
     }
     
     func getInvoice(amountMsat: UInt64, description:String, expirySecs:UInt32) async -> Bolt11Invoice? {
@@ -497,13 +496,13 @@ class BitcoinManager {
     }
     
     func sendPayment(invoice: Bolt11Invoice) throws -> PaymentHash {
-        let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, routeParameters: nil)
-        return paymentHash
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        return try node.bolt11Payment().send(invoice: invoice, routeParameters: nil)
     }
-    
+
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) throws -> PaymentHash {
-        let paymentHash = try self.ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), routeParameters: nil)
-        return paymentHash
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        return try node.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), routeParameters: nil)
     }
     
     func sendBolt12Payment(offer:LDKNode.Offer, amount:Int) throws -> PaymentId? {
@@ -513,21 +512,18 @@ class BitcoinManager {
             maxTotalCltvExpiryDelta: 1008,
             maxPathCount: 10,
             maxChannelSaturationPowerOfHalf: 2)
-        let paymentId = try self.ldkNode!.bolt12Payment().sendUsingAmount(offer: offer, amountMsat: UInt64(amount*1000), quantity: nil, payerNote: nil, routeParameters: routeConfig)
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        let paymentId = try node.bolt12Payment().sendUsingAmount(offer: offer, amountMsat: UInt64(amount*1000), quantity: nil, payerNote: nil, routeParameters: routeConfig)
         return paymentId
     }
     
     func getNewOnchainAddress() -> String? {
-        
-        if self.ldkNode == nil {
+        guard let node = self.ldkNode else { return nil }
+        do {
+            let newAddress = try node.onchainPayment().newAddress()
+            return newAddress.description
+        } catch {
             return nil
-        } else {
-            do {
-                let newAddress = try self.ldkNode!.onchainPayment().newAddress()
-                return newAddress.description
-            } catch {
-                return nil
-            }
         }
     }
     
@@ -537,18 +533,16 @@ class BitcoinManager {
         let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: feeRateSatVb)
         
         // Broadcast transaction.
-        let onchainID = try self.ldkNode!.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        let onchainID = try node.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
         
         // Return transaction ID.
         return onchainID.description
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
-        if let invoiceDetails = self.ldkNode!.payment(paymentId: paymentHash) {
-            return invoiceDetails
-        } else {
-            return nil
-        }
+        guard let node = self.ldkNode else { return nil }
+        return node.payment(paymentId: paymentHash)
     }
     
     func getEsploraClient() -> EsploraClient? {

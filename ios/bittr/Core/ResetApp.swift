@@ -297,6 +297,10 @@ extension CoreViewController {
         self.hideAlert()
         self.hideSettings()
         
+        // Stop background sync timer.
+        self.walletSync?.stop()
+        self.walletSync = nil
+        
         // Reset PIN reset state
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
