@@ -55,25 +55,42 @@ enum SecureStore {
 
     // MARK: - Data
 
-    /// Insert or replace the item at `account`. Any existing item is removed
-    /// first so the accessibility attributes are always applied cleanly (a bare
-    /// `SecItemUpdate` would leave stale attributes in place).
+    /// Insert or replace the item at `account`. Adds the item, and if one already
+    /// exists, updates it in place. This is atomic: an existing value is only
+    /// ever replaced, never removed-then-re-added — so a failed write can't leave
+    /// nothing stored (which a delete-then-add could, if the add failed after the
+    /// delete succeeded). The accessibility attribute is (re)applied on both the
+    /// add and the update, so it never goes stale.
     static func setData(_ data: Data, account: String) throws {
-        remove(account: account)
-
-        let query: [String: Any] = [
+        // Identity of the item — also the search query when updating.
+        let identity: [String: Any] = [
             kSecClass as String:                     kSecClassGenericPassword,
             kSecAttrService as String:               service,
             kSecAttrAccount as String:               account,
-            kSecValueData as String:                 data,
-            kSecAttrAccessible as String:            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            kSecAttrSynchronizable as String:        false,
             kSecUseDataProtectionKeychain as String: true,
         ]
 
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw SecureStoreError.unexpectedStatus(status)
+        var addQuery = identity
+        addQuery[kSecValueData as String] = data
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        addQuery[kSecAttrSynchronizable as String] = false
+
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        switch addStatus {
+        case errSecSuccess:
+            return
+        case errSecDuplicateItem:
+            // An item already exists — replace its value in place (atomic).
+            let attributes: [String: Any] = [
+                kSecValueData as String:      data,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            ]
+            let updateStatus = SecItemUpdate(identity as CFDictionary, attributes as CFDictionary)
+            guard updateStatus == errSecSuccess else {
+                throw SecureStoreError.unexpectedStatus(updateStatus)
+            }
+        default:
+            throw SecureStoreError.unexpectedStatus(addStatus)
         }
     }
 
