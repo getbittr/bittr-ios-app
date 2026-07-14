@@ -85,15 +85,21 @@ appId: com.bittr.bittr-regtest
         body_text: "This is a test information notification from bittr."
       }
     })}
-- runScript: ../scripts/push_notification.js
 
 # handleBittrNotification opens the QuestionViewController (~1s after the push is
-# cached, see handleNotification). Wait for its card, then verify the header
-# title (lowercased by addHeader) and the body text landed from the payload.
-- extendedWaitUntil:
-    visible:
-      id: "question.yellowCard"
-    timeout: 30000
+# cached, see handleNotification). Re-push until the card opens — like the later
+# blocks — so a notification handled by an earlier flow in a suite run (< 10s
+# ago, still inside handleNotification's dedup window) can't swallow a single
+# push and fail the flow. Then verify the header title (lowercased by addHeader)
+# and the body text landed from the payload.
+- repeat:
+    while:
+      notVisible:
+        id: "question.yellowCard"
+    commands:
+      - runScript: ../scripts/push_notification.js
+      - waitForAnimationToEnd:
+          timeout: 3000
 - assertVisible:
     id: "header.titleLabel"
     text: "bittr update"
