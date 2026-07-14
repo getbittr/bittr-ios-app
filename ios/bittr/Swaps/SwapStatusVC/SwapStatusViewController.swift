@@ -130,9 +130,28 @@ class SwapStatusViewController: UIViewController {
         }
     }
     
+    // Keep the suggested-swap marker in sync with Boltz's status so Home and
+    // the TransactionVC only show the payment as succeeded once the recipient
+    // has actually been paid. (The lightning→onchain success case is handled
+    // at claim broadcast in SwapManager.addOnchainTransactionToUI instead —
+    // there the recipient is paid by our own claim transaction.)
+    func syncSuggestedSwapMarker(status:String) {
+        guard let ongoingSwap = self.thisSwap, ongoingSwap.isSuggested, ongoingSwap.dateID != "" else { return }
+
+        switch status {
+        case "invoice.paid", "transaction.claim.pending", "transaction.claimed", "invoice.settled":
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .succeeded)
+        case "invoice.failedToPay", "transaction.lockupFailed", "swap.expired", "invoice.expired", "transaction.failed", "transaction.refunded":
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .failed)
+        default:
+            break
+        }
+    }
+
     func receivedStatusUpdate(status:String, fullMessage: [String: Any]) {
         guard self.thisSwap != nil else { return }
-        
+
+        self.syncSuggestedSwapMarker(status: status)
         self.statusQuestionButton.boundString = status
         self.confirmStatusLabel.text = status.userFriendlyStatus(direction: self.thisSwap!.swapDirection)
         
@@ -245,7 +264,8 @@ class SwapStatusViewController: UIViewController {
                         return
                     }
                     Log.info("Status received: \(receivedStatus)")
-                    
+
+                    self.syncSuggestedSwapMarker(status: receivedStatus)
                     self.statusQuestionButton.boundString = receivedStatus
                     self.confirmStatusLabel.text = receivedStatus.userFriendlyStatus(direction: self.thisSwap!.swapDirection)
                     

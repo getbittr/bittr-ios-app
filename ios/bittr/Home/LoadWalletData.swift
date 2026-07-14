@@ -767,6 +767,18 @@ extension [Transaction] {
                 let thisTransaction = (eachSetOfTransactions as! [Transaction])[0]
                 let thisSwapID = (eachSwapID as! String)
                 
+                if let suggestedSwapStatus = CacheManager.getSuggestedSwapStatus(dateID: thisSwapID) {
+                    thisTransaction.isSuggestedSwap = true
+                    thisTransaction.swapStatus = suggestedSwapStatus
+                    if thisSwapID.contains("onchain to lightning") {
+                        thisTransaction.swapDirection = .onchainToLightning
+                    } else {
+                        thisTransaction.swapDirection = .lightningToOnchain
+                    }
+                    thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
+                    continue
+                }
+                
                 let swapTransaction = Transaction()
                 swapTransaction.isSwap = true
                 swapTransaction.swapStatus = .pending

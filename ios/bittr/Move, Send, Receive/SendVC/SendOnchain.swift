@@ -60,7 +60,7 @@ extension SendViewController {
                 self.showAlert(
                     presentingController: self,
                     title: Language.getWord(withID: "insufficientfunds"),
-                    message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(self.coreVC!.bittrWallet.satoshisOnchain)) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)"),
+                    message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(self.coreVC!.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
                     buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                     actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                 )
@@ -175,7 +175,7 @@ extension ConfirmSendViewController {
         }
         
         // Double-check transaction details.
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)").replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)").replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
     }
     
     @objc func performOnchainTransaction() {

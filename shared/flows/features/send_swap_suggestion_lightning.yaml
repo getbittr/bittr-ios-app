@@ -1,6 +1,10 @@
 # Feature test: pay a lightning invoice with no channel → the app suggests
 # paying onchain and swapping the funds into the recipient's channel.
 #
+# This is the onchain→lightning suggested swap. Its mirror image — paying an
+# onchain address out of Lightning funds — lives in
+# features/send_swap_suggestion_onchain.yaml.
+#
 # When the user tries to pay a lightning invoice but has no usable lightning
 # channel (so 0 outbound) yet enough onchain balance, SendViewController offers
 # an "insufficient funds / Swap and pay" alert. Tapping "Swap and pay" dismisses
@@ -26,9 +30,9 @@
 # Run the clipboard helper so the in-app Paste button has something to paste:
 #
 #   node shared/flows/scripts/clipboard_server.js   # keep running
-#   maestro test shared/flows/features/send_swap_suggestion.yaml
+#   maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
 #
-# Run: maestro test shared/flows/features/send_swap_suggestion.yaml
+# Run: maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
 
 appId: com.bittr.bittr-regtest
 ---
@@ -52,7 +56,7 @@ appId: com.bittr.bittr-regtest
     notVisible:
       id: "home.headerSpinner"
     timeout: 60000
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/01_home
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/01_home
 
 # Open Send (it opens on Instant / lightning by default).
 - tapOn:
@@ -88,7 +92,7 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "send.amountTextField"
     text: "50000"
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/02_invoice_pasted
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/02_invoice_pasted
 
 # Next → with no channel the lightning balance is 0 < 50000, but the onchain
 # balance covers it, so SendViewController shows the "insufficient funds / Swap
@@ -97,7 +101,7 @@ appId: com.bittr.bittr-regtest
     id: "send.nextButton"
 - assertVisible:
     id: "alert.button.1"
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/03_swap_suggested
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/03_swap_suggested
 - tapOn:
     id: "alert.button.1"
 
@@ -110,7 +114,7 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "alert.button.1"
     timeout: 30000
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/04_swap_fees
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/04_swap_fees
 - tapOn:
     id: "alert.button.1"
 
@@ -120,7 +124,7 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "swapStatus.confirmCard"
     timeout: 30000
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/05_swap_status
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/05_swap_status
 
 # Onchain → lightning needs the onchain funding tx to confirm before Boltz pays
 # the lightning invoice, so mine a block. (Same arc as swap.yaml's reverse swap.)
@@ -144,7 +148,7 @@ appId: com.bittr.bittr-regtest
     visible:
       text: "Swap complete"
     timeout: 60000
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/06_swap_complete
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/06_swap_complete
 
 # Swipe down to dismiss SwapViewController, landing back on Home.
 - swipe:
@@ -162,7 +166,7 @@ appId: com.bittr.bittr-regtest
     notVisible:
       id: "home.headerSpinner"
     timeout: 60000
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/07_home_with_swap
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/07_home_with_swap
 
 # Open the topmost (newest) transaction — the swap that just paid the invoice —
 # in the TransactionViewController, then close it.
@@ -172,7 +176,7 @@ appId: com.bittr.bittr-regtest
     id: "history.transactionButton0"
 - assertVisible:
     id: "transaction.yellowCard"
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion/08_transaction
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/08_transaction
 - tapOn:
     id: "header.downButton"
 - assertVisible:

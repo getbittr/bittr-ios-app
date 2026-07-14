@@ -372,7 +372,7 @@ extension CoreViewController {
                         } else {
                             // Handle transaction in HomeVC.
                             self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
-                            if !newTransaction.isSwap, !newTransaction.lnDescription.contains("Swap onchain to lightning "), !newTransaction.lnDescription.contains("Swap lightning to onchain ") {
+                            if !newTransaction.isSwap, !newTransaction.isSwapPayment {
                                 self.homeVC!.tappedTransaction = newTransaction
                                 self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                             }
@@ -452,7 +452,7 @@ extension CoreViewController {
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in
                 guard let self else { return }
-                if !CacheManager.getInvoiceDescription(preimage: thisTransaction.id).contains("Swap onchain to lightning ") {
+                if !thisTransaction.isSwapPayment {
                     self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                 }
             }
