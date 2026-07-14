@@ -34,7 +34,7 @@ extension CoreViewController {
         if !self.userHasSignedIn {
             Log.info("User hasn't signed in yet, store notification for later.")
             self.wasNotified = true
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000)), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
             self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
@@ -42,7 +42,7 @@ extension CoreViewController {
             self.hideLoading()
             if !self.wasNotified {
                 Log.info("Will notify user of available LNURL notification.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "handlenow")], actions: [nil, #selector(self.handleLightningAddressNotificationImmediately)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest3").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "handlenow")], actions: [nil, #selector(self.handleLightningAddressNotificationImmediately)])
             } else {
                 Log.info("Will handle LNURL notification now.")
                 self.handleLightningAddressNotificationImmediately()
