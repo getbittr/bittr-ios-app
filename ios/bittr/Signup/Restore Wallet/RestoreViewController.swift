@@ -215,125 +215,95 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     }
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
-        
         self.view.endEditing(true)
+        guard self.coreVC != nil else {
+            Log.info("coreVC is nil - stopping spinner and showing error")
+            self.restoreButtonSpinner.stopAnimating()
+            self.restoreButtonText.alpha = 1
+            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "restorewalleterror"), buttons: [Language.getWord(withID: "okay")], actions: nil
+            )
+            return
+        }
         
         self.restoreButtonText.alpha = 0
         self.restoreButtonSpinner.startAnimating()
         
         let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text]
-        
         var enteredMnemonic = ""
-        var handledWords = 0
         
         for eachWord in enteredWords {
-            if let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String {
-                if actualWord == "" {
-                    // Found an empty field - show warning
-                    print("Found empty field - showing warning")
+            guard let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String, actualWord != "" else {
+                self.restoreButtonSpinner.stopAnimating()
+                self.restoreButtonText.alpha = 1
+                self.showAlert(
+                    presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
+                    title: Language.getWord(withID: "incompletephrase"),
+                    message: Language.getWord(withID: "incompletephrase2"),
+                    buttons: [Language.getWord(withID: "okay")],
+                    actions: nil
+                )
+                return
+            }
+            
+            if enteredMnemonic == "" {
+                enteredMnemonic = actualWord
+            } else {
+                enteredMnemonic += " \(actualWord)"
+            }
+        }
+        
+        if self.coreVC!.resettingPin {
+            Log.info("PIN reset mode detected.")
+            
+            // Get current mnemonic.
+            guard let currentMnemonic = CacheManager.getMnemonic() else {
+                // No existing mnenonic is available.
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
+            
+            // Check whether entered mnemonic is correct.
+            guard currentMnemonic == enteredMnemonic else {
+                // Entered mnemonic is incorrect.
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
+            Log.info("Correct mnemonic has been entered.")
+            
+        } else {
+            Log.info("Wallet restore mode detected.")
+            
+            // Validate mnemonic before storing.
+            guard BitcoinManager.shared.isValidMnemonic(enteredMnemonic) else {
+                Log.info("Mnemonic validation failed.")
+                DispatchQueue.main.async {
                     self.restoreButtonSpinner.stopAnimating()
                     self.restoreButtonText.alpha = 1
                     self.showAlert(
                         presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
-                        title: Language.getWord(withID: "incompletephrase"),
-                        message: Language.getWord(withID: "incompletephrase2"),
+                        title: Language.getWord(withID: "invalidphrase"),
+                        message: Language.getWord(withID: "invalidphrase2"),
                         buttons: [Language.getWord(withID: "okay")],
                         actions: nil
                     )
-                    return
-                } else if enteredMnemonic == "" {
-                    enteredMnemonic = actualWord
-                    handledWords += 1
-                } else {
-                    enteredMnemonic = "\(enteredMnemonic) \(actualWord)"
-                    handledWords += 1
-                    if handledWords == 12 {
-                        Log.info("About to check coreVC...")
-                        
-                        if self.coreVC == nil {
-                            Log.info("coreVC is nil - stopping spinner and showing error")
-                            self.restoreButtonSpinner.stopAnimating()
-                            self.restoreButtonText.alpha = 1
-                            self.showAlert(
-                                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
-                                title: Language.getWord(withID: "error"),
-                                message: Language.getWord(withID: "restorewalleterror"),
-                                buttons: [Language.getWord(withID: "okay")],
-                                actions: nil
-                            )
-                            return
-                        } else if self.coreVC!.resettingPin {
-                            Log.info("PIN reset mode detected")
-                            // We're resetting the device PIN.
-                            
-                            self.restoreButtonSpinner.stopAnimating()
-                            self.restoreButtonText.alpha = 1
-                            
-                            if let currentMnemonic = CacheManager.getMnemonic() {
-                                if currentMnemonic == enteredMnemonic {
-                                    // Correct mnemonic has been entered.
-                                    
-                                    // Proceed to next page.
-                                    self.signupVC?.moveToPage(1)
-                                    
-                                    // Start wallet.
-                                    self.coreVC!.startWallet()
-                                } else {
-                                    // Entered mnemonic is incorrect.
-                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                                }
-                            } else {
-                                // No existing mnenonic is available.
-                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
-                            }
-                        } else {
-                            Log.info("Wallet restore mode detected")
-                            // We're restoring an existing wallet.
-                            
-                            // Validate mnemonic before storing.
-                            if BitcoinManager.shared.isValidMnemonic(enteredMnemonic) {
-                                Log.info("Mnemonic validation successful")
-                                
-                                // Store restorable mnemonic in cache.
-                                CacheManager.storeMnemonic(enteredMnemonic)
-                                
-                                // Proceed to next page.
-                                self.signupVC?.moveToPage(1)
-                                Log.info("Moved to next page")
-                                
-                                self.restoreButtonSpinner.stopAnimating()
-                                self.restoreButtonText.alpha = 1
-                                Log.info("Restore process completed successfully")
-                                
-                                Log.info("About to start Lightning wallet...")
-                                // Start wallet.
-                                self.coreVC!.startWallet()
-                                Log.info("Lightning wallet started successfully")
-                                
-                            } else {
-                                Log.info("Mnemonic validation failed.")
-                                DispatchQueue.main.async {
-                                    self.restoreButtonSpinner.stopAnimating()
-                                    self.restoreButtonText.alpha = 1
-                                    self.showAlert(
-                                        presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
-                                        title: Language.getWord(withID: "invalidphrase"),
-                                        message: Language.getWord(withID: "invalidphrase2"),
-                                        buttons: [Language.getWord(withID: "okay")],
-                                        actions: nil
-                                    )
-                                    return
-                                }
-                            }
-                        }
-                    }
                 }
-            } else {
-                self.restoreButtonSpinner.stopAnimating()
-                self.restoreButtonText.alpha = 1
                 return
             }
+            Log.info("Mnemonic validation successful")
+            
+            // Store restorable mnemonic in cache.
+            CacheManager.storeMnemonic(enteredMnemonic)
         }
+        
+        // Stop animation.
+        self.restoreButtonSpinner.stopAnimating()
+        self.restoreButtonText.alpha = 1
+        
+        // Proceed to next page.
+        self.signupVC?.moveToPage(1)
+        
+        // Start wallet.
+        self.coreVC!.startWallet()
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
