@@ -285,13 +285,15 @@ appId: com.bittr.bittr-regtest
 - inputText: "e2ebittr@staging.getbittr.com"
 - pressKey: Enter
 
-# LNURL resolves: the spinner stops and (when the address has a payable range)
-# a "Pay request" alert announces the range. Wait the spinner out, confirm the
-# alert message, then tap Okay (single button at index 0). Match a substring so
-# the exact min/max numbers and the apostrophe don't matter.
+# LNURL resolves: the "Handling LNURL" loading overlay clears and (when the
+# address has a payable range) a "Pay request" alert announces the range. Wait
+# the overlay out, confirm the alert message, then tap Okay (single button at
+# index 0). Match a substring so the exact min/max numbers and the apostrophe
+# don't matter. (The overlay is the shared bottom loading popup — matched by its
+# label text, since it has no test-id.)
 - extendedWaitUntil:
     notVisible:
-      id: "send.lnurlSpinner"
+      text: ".*Handling LNURL.*"
     timeout: 30000
 - extendedWaitUntil:
     visible:

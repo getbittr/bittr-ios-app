@@ -76,12 +76,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     // Confirm view
     @IBOutlet weak var confirmContainer: UIView!
     
-    // Spinner view
-    @IBOutlet weak var spinnerView: UIView!
-    @IBOutlet weak var spinnerBox: UIView!
-    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var spinnerLabel: UILabel!
-    
     // Variables
     var coreVC:CoreViewController?
     var maximumSendableOnchainBtc:Double?
@@ -162,7 +156,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.availableAmount.accessibilityIdentifier = TestID.Send.availableLabel
         self.availableQuestionButton.accessibilityIdentifier = TestID.Send.availableQuestionButton
         self.nextButton.accessibilityIdentifier = TestID.Send.nextButton
-        self.lnurlSpinner.accessibilityIdentifier = TestID.Send.lnurlSpinner
 
         // Set colors and language
         self.changeColors()

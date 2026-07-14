@@ -59,13 +59,16 @@
     "placeCellButton": null,
     "onePlace": {
       "nameLabel": null,
-      "closeButton": null
+      "closeButton": null,
+      "websiteButton": null,
+      "goToMapsButton": null
     }
   },
   "academy": {
     "headerLabel": null,
     "nextLessonButton": null,
     "nextPageButton": null,
+    "backPageButton": null,
     "completeButton": null,
     "lessonSpinner": null
   },
@@ -206,7 +209,6 @@
     "availableLabel": null,
     "availableQuestionButton": null,
     "nextButton": null,
-    "lnurlSpinner": null,
     "confirm": {
       "addressLabel": null,
       "amountLabel": null,
@@ -307,6 +309,10 @@
         "topLabelTwo": null,
         "ourIbanLabel": null,
         "yourCodeLabel": null,
+        "ibanButton": null,
+        "nameButton": null,
+        "codeButton": null,
+        "screenshotButton": null,
         "nextButton": null
       },
       "transferInfo": {

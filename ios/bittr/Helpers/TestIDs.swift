@@ -4,6 +4,7 @@
 
 enum TestID {
     enum Academy {
+        static let backPageButton = "academy.backPageButton"
         static let completeButton = "academy.completeButton"
         static let headerLabel = "academy.headerLabel"
         static let lessonSpinner = "academy.lessonSpinner"
@@ -71,7 +72,9 @@ enum TestID {
         static let mapView = "map.mapView"
         enum OnePlace {
             static let closeButton = "map.onePlace.closeButton"
+            static let goToMapsButton = "map.onePlace.goToMapsButton"
             static let nameLabel = "map.onePlace.nameLabel"
+            static let websiteButton = "map.onePlace.websiteButton"
         }
         static let placeCellButton = "map.placeCellButton"
         static let placeName = "map.placeName"
@@ -153,7 +156,6 @@ enum TestID {
         }
         static let currencyButton = "send.currencyButton"
         static let currencyLabel = "send.currencyLabel"
-        static let lnurlSpinner = "send.lnurlSpinner"
         static let nextButton = "send.nextButton"
         static let pasteButton = "send.pasteButton"
         static let regularButton = "send.regularButton"
@@ -194,8 +196,12 @@ enum TestID {
                 static let topLabelTwo = "signup.bittr.start.topLabelTwo"
             }
             enum Success {
+                static let codeButton = "signup.bittr.success.codeButton"
+                static let ibanButton = "signup.bittr.success.ibanButton"
+                static let nameButton = "signup.bittr.success.nameButton"
                 static let nextButton = "signup.bittr.success.nextButton"
                 static let ourIbanLabel = "signup.bittr.success.ourIbanLabel"
+                static let screenshotButton = "signup.bittr.success.screenshotButton"
                 static let topLabelOne = "signup.bittr.success.topLabelOne"
                 static let topLabelTwo = "signup.bittr.success.topLabelTwo"
                 static let yourCodeLabel = "signup.bittr.success.yourCodeLabel"

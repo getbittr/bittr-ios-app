@@ -86,9 +86,13 @@ maestro test shared/flows/features/buy_signup.yaml
 # fallback). Requires an existing wallet without a bittr account (run
 # fresh_install_skip_signup.yaml first) — it only unlocks, no auto-create.
 # launchApp's permissions config makes Maestro auto-deny the iOS notification
-# dialog. It enters a wrong OTP first (incorrect-code alert), then the correct
-# one; at each denied-notifications gate it taps "Continue" to finish signup
-# on-chain, ending on Buy with the payout-mode switch OFF:
+# dialog. On the OTP screen it first exercises resend (resend → email-resent
+# alert; a second tap in cooldown → wait-30s alert → Change email → re-verify).
+# It enters a wrong OTP first (incorrect-code alert), then the correct one; at
+# each denied-notifications gate it taps "Continue" to finish signup on-chain.
+# On the Transfer3 success screen it copies the IBAN/name/code (Copied alerts)
+# and taps Screenshot (Saved alert), on Transfer4 taps Back → Transfer3 → Finish,
+# then ends on Buy with the payout-mode switch OFF:
 maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
 # Then a feature test on the resulting wallet — opens the lightning channel:
@@ -147,7 +151,13 @@ maestro test shared/flows/features/wrong_pin.yaml
 # channel first (e.g. run buy_incoming.yaml):
 maestro test shared/flows/features/wrong_pin_with_channel.yaml
 maestro test shared/flows/features/bitcoin_value.yaml
+# Bitcoin map: open a place, optionally its website (in-app browser), tap Open
+# in Maps → Apple Maps and return via a coordinate tap on the "‹ bittr regtest"
+# breadcrumb (fixed iPhone 15 geometry). Needs an existing wallet (unlocks PIN):
 maestro test shared/flows/features/bitcoin_map.yaml
+# Academy: play a lesson to completion (Next → Complete), tapping Back to page 1
+# and forward again on page 2 to exercise the Back button; then open the next
+# unlocked lesson. Needs an existing wallet (unlocks with PIN):
 maestro test shared/flows/features/academy.yaml
 maestro test shared/flows/features/settings.yaml
 

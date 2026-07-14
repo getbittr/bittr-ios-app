@@ -55,6 +55,8 @@ class OnePlaceViewController: UIViewController {
         // Maestro test IDs.
         self.placeNameLabel.accessibilityIdentifier = TestID.Map.OnePlace.nameLabel
         self.closeButton.accessibilityIdentifier = TestID.Map.OnePlace.closeButton
+        self.websiteButton.accessibilityIdentifier = TestID.Map.OnePlace.websiteButton
+        self.goToMapsButton.accessibilityIdentifier = TestID.Map.OnePlace.goToMapsButton
 
         // Populate page.
         self.placeNameLabel.text = self.thisPlace!.name ?? Language.getWord(withID: "unavailable")

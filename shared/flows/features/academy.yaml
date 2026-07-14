@@ -17,12 +17,13 @@
 #   2. On Home, tap the Academy tab (nav.academyButton) → AcademyViewController.
 #   3. Tap the latest available lesson (academy.nextLessonButton) →
 #      OneLessonViewController.
-#   4. Page through the lesson: keep tapping Next (academy.nextPageButton)
-#      until the final page, then tap Complete (academy.completeButton — the
-#      same UIButton, relabelled on the last page). After each tap a page may
-#      need to download an image, during which academy.lessonSpinner spins and
-#      the page's button is absent; waiting for the spinner to stop is what
-#      gates the next tap.
+#   4. Advance to page 2, then exercise the Back button (academy.backPageButton):
+#      go back to page 1 and forward to page 2 again. Then page through the rest:
+#      keep tapping Next (academy.nextPageButton) until the final page, then tap
+#      Complete (academy.completeButton — the same UIButton, relabelled on the
+#      last page). After each tap a page may need to download an image, during
+#      which academy.lessonSpinner spins and the page's button is absent; waiting
+#      for the spinner to stop is what gates the next tap.
 #   5. The lesson dismisses back to the Academy and the next lesson unlocks.
 #      Tap it (academy.nextLessonButton again) to open the following lesson.
 #
@@ -62,9 +63,44 @@ appId: com.bittr.bittr-regtest
     timeout: 30000
 - takeScreenshot: shared/docs/screenshots/academy/04_lesson_page1
 
-# Page through the lesson. Keep tapping Next while it is present; after each
-# tap, wait for academy.lessonSpinner to stop (covers pages that download an
-# image). When the final page is reached, Next is gone (relabelled Complete),
+# Advance to page 2, then exercise the Back button: go back to page 1 and
+# forward to page 2 again before continuing. Page 1 is the first page so it has
+# no Back button; page 2 onward does (academy.backPageButton). After each tap a
+# page may download an image (academy.lessonSpinner), so wait it out.
+- tapOn:
+    id: "academy.nextPageButton"
+- extendedWaitUntil:
+    notVisible:
+      id: "academy.lessonSpinner"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "academy.backPageButton"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/academy/04a_lesson_page2
+# Back to page 1 — the Back button disappears there (it's the first page).
+- tapOn:
+    id: "academy.backPageButton"
+- extendedWaitUntil:
+    notVisible:
+      id: "academy.lessonSpinner"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "academy.nextPageButton"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/academy/04b_back_to_page1
+# Forward to page 2 again, then continue through the rest of the lesson.
+- tapOn:
+    id: "academy.nextPageButton"
+- extendedWaitUntil:
+    notVisible:
+      id: "academy.lessonSpinner"
+    timeout: 30000
+
+# Page through the remaining pages. Keep tapping Next while it is present; after
+# each tap, wait for academy.lessonSpinner to stop (covers pages that download
+# an image). When the final page is reached, Next is gone (relabelled Complete),
 # so the loop exits.
 - repeat:
     while:

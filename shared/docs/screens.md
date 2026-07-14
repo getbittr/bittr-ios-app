@@ -101,8 +101,8 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Signup/Create Wallet/Signup7ViewController.swift`
 - **Purpose**: BDK + LDK init landing page; "Continue" advances to bittr signup.
-- **States**: ready.
-- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `features/buy_signup.yaml`, `onboarding/fresh_install_skip_signup.yaml`
+- **States**: ready (Continue → bittr signup, or Skip → Home).
+- **Flow**: `shared/flows/onboarding/happy_path_wallet.yaml`, `features/buy_signup.yaml`, `onboarding/fresh_install_skip_signup.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/12_wallet_ready.png`, `buy_signup/03_signup7.png`, `fresh_install_skip_signup/01_wallet_ready.png`
 
 ### Article reader
@@ -145,33 +145,33 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer1ViewController.swift`
 - **Purpose**: collect IBAN + email for the bittr deposit account.
-- **States**: empty / filled / validation alerts (missing/invalid IBAN, missing email).
-- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
+- **States**: empty / filled / validation alerts (missing/invalid IBAN, missing email) / "I don't have an IBAN" → "Go to wallet" exit.
+- **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`, `onboarding/fresh_install_unhappy.yaml`
 - **Screenshots**: `onboarding/13_bittr_start.png`, `onboarding/14_bittr_start_filled.png`, `buy_signup_no_notifications/02_no_iban_alert.png`, `buy_signup_no_notifications/03_invalid_iban.png`, `buy_signup_no_notifications/04_missing_email.png`
 
 ### Transfer2 — OTP
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer2ViewController.swift`
 - **Purpose**: 6-digit OTP for email verification (test-mode fixed code 123456).
-- **States**: empty / entered (auto-submits at 6 digits) / wrong-code alert.
+- **States**: empty / entered (auto-submits at 6 digits) / wrong-code alert / resend ("email resent" alert) / resend cooldown ("wait 30 seconds" alert → "Change email" back to Transfer1).
 - **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
-- **Screenshots**: `onboarding/15_bittr_otp_initial.png`, `onboarding/16_bittr_otp_entered.png`, `buy_signup_no_notifications/07_wrong_code.png`
+- **Screenshots**: `onboarding/15_bittr_otp_initial.png`, `onboarding/16_bittr_otp_entered.png`, `buy_signup_no_notifications/04a_code_resent.png`, `buy_signup_no_notifications/04b_resend_cooldown.png`, `buy_signup_no_notifications/07_wrong_code.png`
 
 ### Transfer3 — Success
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer3ViewController.swift`
 - **Purpose**: bittr signup landed; shows IBAN + deposit code.
-- **States**: success (data-bearing labels copy to clipboard).
+- **States**: success / IBAN·name·code "Copied" alerts / Screenshot → Photos "Saved" alert (`buy_signup_no_notifications` walks all four).
 - **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
-- **Screenshots**: `onboarding/17_bittr_success.png`, `buy_signup/08_bittr_success.png`, `buy_signup_no_notifications/09_bittr_success.png`
+- **Screenshots**: `onboarding/17_bittr_success.png`, `buy_signup/08_bittr_success.png`, `buy_signup_no_notifications/09_bittr_success.png`, `buy_signup_no_notifications/10_iban_copied.png`, `buy_signup_no_notifications/13_screenshot_saved.png`
 
 ### Transfer4 — Transfer info
 
 - **VC**: `ios/bittr/Signup/Bittr Signup/Transfer4ViewController.swift`
 - **Purpose**: four explanation cards + "Let's go".
-- **States**: top / bottom (scrolled).
+- **States**: top / bottom (scrolled) / Back → Transfer3 (`buy_signup_no_notifications` round-trips Back then Finish).
 - **Flow**: `shared/flows/onboarding/happy_path_signup.yaml`, `features/{buy_signup,buy_signup_no_notifications}.yaml`
-- **Screenshots**: `onboarding/18_transfer_info_top.png`, `onboarding/19_transfer_info_bottom.png`, `buy_signup/09_transfer_info_top.png`, `buy_signup_no_notifications/10_transfer_info.png`
+- **Screenshots**: `onboarding/18_transfer_info_top.png`, `onboarding/19_transfer_info_bottom.png`, `buy_signup/09_transfer_info_top.png`, `buy_signup_no_notifications/14_transfer_info.png`
 
 ## Core wallet
 
@@ -310,10 +310,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### One lesson
 
 - **VC**: `ios/bittr/Academy/Academy/OneLessonVC/OneLessonViewController.swift`
-- **Purpose**: paged lesson content; completing it unlocks the next.
-- **States**: first page / last page / completed.
+- **Purpose**: paged lesson content (Next / Back paging); completing it unlocks the next.
+- **States**: first page (no Back) / page 2 (Back → page 1) / last page / completed.
 - **Flow**: `shared/flows/features/academy.yaml`
-- **Screenshots**: `academy/04_lesson_page1.png`, `academy/05_last_page.png`, `academy/07_next_lesson_open.png`
+- **Screenshots**: `academy/04_lesson_page1.png`, `academy/04a_lesson_page2.png`, `academy/04b_back_to_page1.png`, `academy/05_last_page.png`, `academy/07_next_lesson_open.png`
 
 ## Map
 
@@ -328,10 +328,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### One place
 
 - **VC**: `ios/bittr/Map/OnePlaceViewController.swift`
-- **Purpose**: detail card for a single map place.
-- **States**: open / closed.
+- **Purpose**: detail card for a single map place (address / website / hours / Open in Maps). Drag down to dismiss.
+- **States**: open / closed / website tapped (→ WebsiteViewController) / "Open in Maps" (→ Apple Maps, returns via the status-bar breadcrumb).
 - **Flow**: `shared/flows/features/bitcoin_map.yaml`
-- **Screenshots**: `bitcoin_map/05_one_place.png`, `bitcoin_map/06_one_place_closed.png`
+- **Screenshots**: `bitcoin_map/05_one_place.png`, `bitcoin_map/05a_website.png`, `bitcoin_map/05b_apple_maps.png`, `bitcoin_map/05c_back_in_bittr.png`, `bitcoin_map/06_one_place_closed.png`
 
 ## Settings
 
@@ -354,10 +354,10 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 ### Website (in-app web)
 
 - **VC**: `ios/bittr/Settings/WebsiteViewController.swift`
-- **Purpose**: in-app web view for support/privacy/terms pages and the block-explorer transaction link.
+- **Purpose**: in-app web view for support/privacy/terms pages, the block-explorer transaction link, and a map place's website.
 - **States**: loaded.
-- **Flow**: `shared/flows/features/settings.yaml`, `features/swap.yaml`
-- **Screenshots**: `settings/04_support.png`, `settings/05_privacy.png`, `settings/06_terms.png`, `swap/20_explorer.png`
+- **Flow**: `shared/flows/features/settings.yaml`, `features/swap.yaml`, `features/bitcoin_map.yaml`
+- **Screenshots**: `settings/04_support.png`, `settings/05_privacy.png`, `settings/06_terms.png`, `swap/20_explorer.png`, `bitcoin_map/05a_website.png`
 
 ---
 

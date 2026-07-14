@@ -20,9 +20,10 @@ shared/flows/
                           scripts/screenshot_server.js; best-effort), an invalid
                           non-BIP39 word then a wrong recovery phrase, and the PIN
                           too-short / too-long / mismatch alerts — before
-                          creating the wallet and Skipping to Home. The
-                          error-branch counterpart to happy_path_wallet.
-                          Top-level entry.
+                          creating the wallet, then continuing into the bittr
+                          signup and exiting via "I don't have an IBAN" →
+                          "Go to wallet" to Home. The error-branch counterpart
+                          to happy_path_wallet. Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
     happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
@@ -128,16 +129,23 @@ shared/flows/
     buy_signup_no_notifications.yaml
                           The unhappy-path counterpart to buy_signup: walks
                           the "I don't have an IBAN" alert, the invalid-IBAN
-                          and invalid-email validation alerts, a wrong OTP
+                          and invalid-email validation alerts, the OTP resend
+                          flow (resend → "email resent" alert; a second tap in
+                          cooldown → "wait 30 seconds" alert → "Change email"
+                          back to Transfer1, then re-verify), a wrong OTP
                           (incorrect-code alert), and the OTP notification gate
                           (Receive-notifications prompt → iOS system dialog,
                           which Maestro auto-denies via launchApp permissions
                           notifications:deny → the denied-notifications gate).
                           It then re-enters the correct OTP and, at each gate,
                           taps "Continue" to finish signup via the on-chain
-                          fallback (payment_mode=onchain), reusing
-                          buy_signup's tail, and ends on the Buy page with the
-                          new cell and the payout-mode switch OFF. Requires an
+                          fallback (payment_mode=onchain). On the Transfer3
+                          success screen it copies the IBAN / name / code (each a
+                          "Copied" alert) and taps Screenshot (saves to Photos →
+                          "Saved" alert); on Transfer4 it taps Back → Transfer3 →
+                          Finish (round-trip) before continuing, then reuses
+                          buy_signup's tail and ends on the Buy page with the new
+                          cell and the payout-mode switch OFF. Requires an
                           existing wallet without a bittr account (run
                           onboarding/fresh_install_skip_signup.yaml first) —
                           it only unlocks, since auto-creating a wallet would
@@ -172,10 +180,16 @@ shared/flows/
                           price data, scrub the graph, switch span to m/y/5y.
     bitcoin_map.yaml      Bitcoin map (MapViewController) — unlock, open it
                           from Home's map icon, wait for the places to sync,
-                          open/close a place, move the map, recentre on user.
+                          open a place, optionally open/close its website in the
+                          in-app browser, tap "Open in Maps" → Apple Maps and
+                          return via a coordinate tap on the "‹ bittr regtest"
+                          status-bar breadcrumb (fixed iPhone 15 geometry), close
+                          the place, move the map, recentre on user.
     academy.yaml          Academy tab (AcademyViewController) — unlock, open
                           the latest available lesson, page through it to
-                          Complete, then open the next freshly-unlocked lesson.
+                          Complete (on page 2 also tapping Back to page 1 and
+                          forward again), then open the next freshly-unlocked
+                          lesson.
     settings.yaml         Settings pop-up end to end — visits Get support /
                           Privacy / Terms (WebsiteViewController), then every
                           Device-details row: dark-mode toggle, language,

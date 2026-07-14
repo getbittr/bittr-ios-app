@@ -4578,58 +4578,16 @@
                                 <rect key="frame" x="393" y="0.0" width="393" height="707"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             </view>
-                            <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="KtK-fv-3qB">
-                                <rect key="frame" x="0.0" y="0.0" width="393" height="707"/>
-                                <subviews>
-                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="pjN-CF-Nfl">
-                                        <rect key="frame" x="102.33333333333333" y="328.66666666666669" width="188.33333333333337" height="50"/>
-                                        <subviews>
-                                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="Tlj-YM-Cae">
-                                                <rect key="frame" x="20" y="15" width="20" height="20"/>
-                                                <color key="color" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                            </activityIndicatorView>
-                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="handling LNURL" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="j6C-cE-DYo">
-                                                <rect key="frame" x="52.000000000000021" y="18.333333333333314" width="116.33333333333331" height="16"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="L08-Vu-nuv"/>
-                                                </constraints>
-                                                <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="16"/>
-                                                <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
-                                                <nil key="highlightedColor"/>
-                                            </label>
-                                        </subviews>
-                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                        <constraints>
-                                            <constraint firstItem="Tlj-YM-Cae" firstAttribute="leading" secondItem="pjN-CF-Nfl" secondAttribute="leading" constant="20" id="5B3-Oi-eE9"/>
-                                            <constraint firstItem="Tlj-YM-Cae" firstAttribute="centerY" secondItem="pjN-CF-Nfl" secondAttribute="centerY" id="5XP-kA-YjZ"/>
-                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" id="AHl-iG-oDX"/>
-                                            <constraint firstAttribute="trailing" secondItem="j6C-cE-DYo" secondAttribute="trailing" constant="20" id="W0Z-UX-VLQ"/>
-                                            <constraint firstItem="j6C-cE-DYo" firstAttribute="leading" secondItem="Tlj-YM-Cae" secondAttribute="trailing" constant="12" id="ZxA-0v-qzV"/>
-                                            <constraint firstAttribute="height" constant="50" id="bhs-tY-I6M"/>
-                                            <constraint firstItem="j6C-cE-DYo" firstAttribute="centerY" secondItem="pjN-CF-Nfl" secondAttribute="centerY" constant="1.5" id="o5E-H3-DVo"/>
-                                        </constraints>
-                                    </view>
-                                </subviews>
-                                <color key="backgroundColor" white="0.0" alpha="0.20000000000000001" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <constraints>
-                                    <constraint firstItem="pjN-CF-Nfl" firstAttribute="centerX" secondItem="KtK-fv-3qB" secondAttribute="centerX" id="dJU-Fb-9td"/>
-                                    <constraint firstItem="pjN-CF-Nfl" firstAttribute="centerY" secondItem="KtK-fv-3qB" secondAttribute="centerY" id="xEN-Wj-pfv"/>
-                                </constraints>
-                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="NYU-Nr-paP"/>
                         <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
-                            <constraint firstItem="KtK-fv-3qB" firstAttribute="top" secondItem="PWr-Bo-hji" secondAttribute="top" id="22f-e2-sEK"/>
                             <constraint firstItem="33n-dT-ISI" firstAttribute="leading" secondItem="CMT-zp-WY3" secondAttribute="trailing" id="A51-ox-Z2h"/>
                             <constraint firstItem="33n-dT-ISI" firstAttribute="top" secondItem="PWr-Bo-hji" secondAttribute="top" id="FPQ-IE-cFp"/>
                             <constraint firstItem="33n-dT-ISI" firstAttribute="width" secondItem="PWr-Bo-hji" secondAttribute="width" id="MIR-Wz-vvu"/>
                             <constraint firstItem="CMT-zp-WY3" firstAttribute="trailing" secondItem="NYU-Nr-paP" secondAttribute="trailing" id="MXw-5l-Rny"/>
                             <constraint firstItem="CMT-zp-WY3" firstAttribute="bottom" secondItem="NYU-Nr-paP" secondAttribute="bottom" id="SIx-bF-OxF"/>
-                            <constraint firstAttribute="bottom" secondItem="KtK-fv-3qB" secondAttribute="bottom" id="Spa-SR-02m"/>
                             <constraint firstItem="CMT-zp-WY3" firstAttribute="width" secondItem="NYU-Nr-paP" secondAttribute="width" id="VBJ-fL-Hk7"/>
-                            <constraint firstItem="KtK-fv-3qB" firstAttribute="leading" secondItem="PWr-Bo-hji" secondAttribute="leading" id="Vxd-9h-sAT"/>
-                            <constraint firstAttribute="trailing" secondItem="KtK-fv-3qB" secondAttribute="trailing" id="X3j-Y2-Fpx"/>
                             <constraint firstAttribute="bottom" secondItem="33n-dT-ISI" secondAttribute="bottom" id="gKG-2L-gxL"/>
                             <constraint firstItem="CMT-zp-WY3" firstAttribute="top" secondItem="PWr-Bo-hji" secondAttribute="top" id="pqd-qB-iwo"/>
                         </constraints>
@@ -4664,7 +4622,6 @@
                         <outlet property="instantButton" destination="Hdf-11-vf6" id="WJf-ED-lgE"/>
                         <outlet property="labelInstant" destination="or8-wJ-kg5" id="C0r-2y-Ib2"/>
                         <outlet property="labelRegular" destination="sj0-lB-iLV" id="i9i-L5-p4u"/>
-                        <outlet property="lnurlSpinner" destination="Tlj-YM-Cae" id="fJr-Vg-TjZ"/>
                         <outlet property="nextButton" destination="F4g-LA-IDY" id="Cxe-2H-4uf"/>
                         <outlet property="nextLabel" destination="ZBD-sQ-nGb" id="LYV-G8-mEn"/>
                         <outlet property="nextSpinner" destination="j8S-NX-g49" id="SGV-Jm-Z41"/>
@@ -4676,9 +4633,6 @@
                         <outlet property="scrollView" destination="CMT-zp-WY3" id="HX6-IY-G0I"/>
                         <outlet property="scrollViewBottom" destination="SIx-bF-OxF" id="7yb-dB-riq"/>
                         <outlet property="scrollViewTrailing" destination="MXw-5l-Rny" id="uFh-QG-sJv"/>
-                        <outlet property="spinnerBox" destination="pjN-CF-Nfl" id="xqk-ES-ZU5"/>
-                        <outlet property="spinnerLabel" destination="j6C-cE-DYo" id="eTK-CZ-xhA"/>
-                        <outlet property="spinnerView" destination="KtK-fv-3qB" id="WV2-Q7-und"/>
                         <outlet property="stackImagePaste" destination="OoE-zV-ec4" id="Iok-GO-Dea"/>
                         <outlet property="stackImageQR" destination="KVs-nE-ZZN" id="ijz-ob-PGQ"/>
                         <outlet property="stackLabelPaste" destination="f7o-MK-uDq" id="feU-gS-WCt"/>

@@ -13,7 +13,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Bittr signup (onboarding subflow) | done | not started | `onboarding/happy_path_signup.yaml` | IBAN / email / OTP / info-cards from Signup7 through to Home. Reusable subflow. |
 | Fresh install (full onboarding) | done | not started | `onboarding/fresh_install.yaml` | Top-level orchestrator: clearState + clearKeychain, then runs `happy_path_wallet` + `happy_path_signup`. |
 | Fresh install, skip bittr signup | done | not started | `onboarding/fresh_install_skip_signup.yaml` | Creates a wallet from scratch then taps Skip on Signup7 → Home with no bittr account. |
-| Fresh install, unhappy path | done | not started | `onboarding/fresh_install_unhappy.yaml` | Wallet creation through every validation gate: Cancel back to Signup1, the confirm-statements alert, the seed-phrase screenshot warning (fires a real Simulator screenshot via `scripts/screenshot_server.js` since Maestro's own capture doesn't post the iOS notification; best-effort), an invalid non-BIP39 word (`invalidwords`) then a valid-but-wrong recovery phrase (`incorrectphrase`), and the PIN too-short / too-long / mismatch alerts, before creating the wallet and Skipping to Home. |
+| Fresh install, unhappy path | done | not started | `onboarding/fresh_install_unhappy.yaml` | Wallet creation through every validation gate: Cancel back to Signup1, the confirm-statements alert, the seed-phrase screenshot warning (fires a real Simulator screenshot via `scripts/screenshot_server.js` since Maestro's own capture doesn't post the iOS notification; best-effort), an invalid non-BIP39 word (`invalidwords`) then a valid-but-wrong recovery phrase (`incorrectphrase`), and the PIN too-short / too-long / mismatch alerts, before creating the wallet, then continuing into the bittr signup (Transfer1) and exiting via "I don't have an IBAN" → "Go to wallet" to reach Home. |
 | Restore wallet | done | not started | `onboarding/restore_wallet.yaml` | clearState + clearKeychain, restores from a fixed test mnemonic, sets PIN 1234 → Home. |
 
 ## Buy & bittr account
@@ -23,7 +23,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Buy — first incoming bank transaction | done | not started | `features/buy_incoming.yaml` | Opens the lightning channel; needs `fresh_install` first. Also walks the TransactionViewController (copy ID, Bittr/Transfer fee alerts, add note). |
 | Buy — subsequent top up | done | not started | `features/buy_more.yaml` | Preserves wallet state; needs a prior `buy_incoming` run for the channel. Requires `scripts/push_server.js`. Also walks the TransactionViewController (copy description + ID, fee alerts, add note). |
 | Buy — bittr signup from Buy | done | not started | `features/buy_signup.yaml` | Completes the bittr signup from the empty Buy card via the RegisterIban modal. Needs a wallet *without* a bittr account (run `restore_wallet` first). |
-| Buy — signup validation + no notifications | done | not started | `features/buy_signup_no_notifications.yaml` | Unhappy IBAN/email validation alerts + the OTP notification-permission gate, finishing on the on-chain payout fallback. Needs `fresh_install_skip_signup` first; launchApp auto-denies the iOS notification dialog. |
+| Buy — signup validation + no notifications | done | not started | `features/buy_signup_no_notifications.yaml` | Unhappy IBAN/email validation alerts + the OTP resend flow (resend → "email resent" alert; a second tap in cooldown → "wait 30 seconds" alert → "Change email" back to Transfer1, then re-verify) + the OTP notification-permission gate, finishing on the on-chain payout fallback. On the Transfer3 success screen also copies the IBAN / name / code (each a "Copied" alert) and taps Screenshot (saves to Photos → "Saved" alert), and on Transfer4 taps Back → Transfer3 → Finish (round-trip) before continuing. Needs `fresh_install_skip_signup` first; launchApp auto-denies the iOS notification dialog. |
 | Payout mode toggle | done | not started | `features/payment_mode.yaml` | Toggles the Buy card's payout mode lightning ↔ onchain (PATCH /customer/payment-mode). Self-provisions a wallet + order if missing. |
 | Notification — QuestionVC push types | done | not started | `features/notification_information.yaml` | Injects the three QuestionViewController-backed push types back-to-back — `.information` (`bittr_notification`), `.htlcExpired` (`htlc_notification` with `expired: true`) and `.unknown` (unrecognised payload → fallback "Oops!") — and asserts each opens with the expected header/body, then closes it. Re-pushes each until it clears the 10s notification dedup window. Requires `scripts/push_server.js`. Independent of wallet state — auto-provisions a wallet if needed. |
 | Notification — LNURL (locked) | done | not started | `features/notification_lnurl.yaml` | Fires a `.lnUrl` (`lightning_address_notification`) push on the PIN screen → asserts the "Payment Request — please sign in" alert, unlocks, and asserts the deferred processing re-runs on sign-in (generate invoice → POST), which fails gracefully ("Payment Request Failed") since no e2e endpoint accepts the invoice. Metadata gathered live from `e2ebittr@staging.getbittr.com` via `scripts/resolve_lnurl.js`. Requires `scripts/push_server.js`; auto-provisions a wallet if needed. |
@@ -53,8 +53,8 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 |---|---|---|---|---|
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses the existing channel + onchain balance from a prior buy flow. Also walks a swap TransactionViewController (Swap status screen, onchain/lightning ID copy, explorer WebsiteViewController, add note). |
 | Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
-| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens/closes a place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
-| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
+| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens a place, optionally opens/closes its website in the in-app browser (WebsiteViewController), taps "Open in Maps" → Apple Maps and returns to Bittr via a coordinate tap on the "‹ bittr regtest" status-bar breadcrumb (fixed iPhone 15 geometry), closes the place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
+| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners; on page 2 it also taps Back to page 1 and forward again to exercise the Back button), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
 | Profit screen | done | not started | _within_ `features/buy_incoming.yaml`, `features/buy_more.yaml` | No dedicated flow; the ProfitViewController is opened and asserted before and after each buy to prove the profit recalculated. |
 
 ## Settings & wallet management
@@ -127,19 +127,15 @@ Within otherwise-covered screens:
 - **Move**: its own Receive/Send buttons (flows launch these from Home instead); the swap-with-no-channel "instant payments" alert.
 - **Value**: the **Week** chart span (month / year / 5y + scrub are tested; week is only ever the default).
 - **Transaction**: the lightning-channel-fee "?"; the **Surcharge** fee explanation button (transfer + bittr fee are tested).
-- **Map / One Place**: dismiss-place-by-background; the place **Website** button; **Open in Maps** (Apple/Google).
-- **Academy**: page-**back** within a lesson (only forward paging tested).
 - **Buy**: the IBAN-card copy buttons (iban / name / code — flows read the labels but never tap copy).
 
 ### Validation / error / edge-path alerts (low priority)
 
 Mostly defensive alerts on the onboarding/auth screens, with no flow:
 
-- **Signup**: "didn't agree" (Signup2); verify-screen empty / invalid-word / wrong-word alerts (Signup4); PIN-mismatch (Signup6); article cards; mnemonic screenshot warning; back buttons.
+- **Signup**: article cards.
 - **Restore**: empty-field & invalid-mnemonic alerts; forgot-PIN wrong-mnemonic / no-cached-mnemonic alerts; Restore3 PIN-mismatch; back buttons.
-- **PIN**: PIN > 8 digits and < 4 digits validation alerts.
-- **Bittr signup (Transfer)**: "I don't have an IBAN" → Cancel branch; **Resend OTP** (cooldown + success); change-email/back path; Transfer3 copy + screenshot buttons; Transfer4 back.
-- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested); applying a language change (only English exists, so only Cancel is testable).
+- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested).
 - **Buy**: payment-mode server-error/retry and `lightningnotready` guard paths.
 
 ### Not parity-tracked
