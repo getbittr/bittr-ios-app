@@ -87,7 +87,10 @@ extension SendViewController {
         // Create transaction.
         Task {
             let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-            guard feeEstimates != nil else {
+            guard let feeEstimates = feeEstimates,
+                  let economyFee = feeEstimates["economyFee"] as? Double,
+                  let hourFee = feeEstimates["hourFee"] as? Double,
+                  let fastestFee = feeEstimates["fastestFee"] as? Double else {
                 DispatchQueue.main.async {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
@@ -96,9 +99,9 @@ extension SendViewController {
                 }
                 return
             }
-            self.feePerVbLow = Float(feeEstimates!["economyFee"] as! Double)
-            self.feePerVbMedium = Float(feeEstimates!["hourFee"] as! Double)
-            self.feePerVbHigh = Float(feeEstimates!["fastestFee"] as! Double)
+            self.feePerVbLow = Float(economyFee)
+            self.feePerVbMedium = Float(hourFee)
+            self.feePerVbHigh = Float(fastestFee)
             
             // Get transaction size.
             let size:UInt64

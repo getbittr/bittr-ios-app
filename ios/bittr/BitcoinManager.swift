@@ -425,26 +425,24 @@ class BitcoinManager {
     }
     
     func getFeeEstimates() async -> NSDictionary? {
-        
-        var receivedDictionary:NSDictionary
+
+        let feeDictionary: NSDictionary
         do {
-            receivedDictionary = try await withCheckedThrowingContinuation { continuation in
+            feeDictionary = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<NSDictionary, Error>) in
                 Task {
                     await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
                         switch result {
                         case .success(let receivedDictionary):
-                            let mutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
-                            for (key, value) in mutableDictionary {
-                                if (value as? Double) == nil || (key as? String) == nil { continuation.resume(returning: receivedDictionary) }
-                                if (value as! Double) < 1 {
-                                    // Minimum fee is 1 sat/vByte.
-                                    mutableDictionary.setValue(Double(1), forKey: (key as! String))
-                                } else {
-                                    // LDKNode requires a rounded number for sat/vByte.
-                                    mutableDictionary.setValue((value as! Double).rounded(), forKey: (key as! String))
-                                }
+                            // Build a fresh dictionary of validated Double fee rates: skip any
+                            // non-numeric entries instead of force-casting them, and never mutate
+                            // the dictionary being enumerated.
+                            let normalized = NSMutableDictionary()
+                            for (key, value) in receivedDictionary {
+                                guard let feeKey = key as? String, let feeRate = value as? Double else { continue }
+                                // Minimum fee is 1 sat/vByte; LDKNode requires a rounded number.
+                                normalized[feeKey] = feeRate < 1 ? Double(1) : feeRate.rounded()
                             }
-                            continuation.resume(returning: mutableDictionary)
+                            continuation.resume(returning: normalized)
                         case .failure(let error):
                             continuation.resume(throwing: error)
                         }
@@ -459,8 +457,8 @@ class BitcoinManager {
             }
             return nil
         }
-        
-        return receivedDictionary
+
+        return feeDictionary
     }
     
     func syncWallets() throws {
