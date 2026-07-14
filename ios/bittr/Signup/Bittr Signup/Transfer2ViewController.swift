@@ -186,7 +186,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         
         // Get current IBAN ID.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
-        for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+        for (index, eachIbanEntity) in BitcoinManager.shared.bittrWallet.ibanEntities.enumerated() {
             if eachIbanEntity.id == currentIbanID {
                 Log.info("Did fetch correct IBAN entity.")
 
@@ -225,7 +225,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                                     CacheManager.addEmailToken(ibanID: eachIbanEntity.id, emailToken: actualEmailToken)
                                     
                                     // Update the in-memory IBAN entity with the new email token
-                                    self.coreVC!.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
+                                    BitcoinManager.shared.bittrWallet.ibanEntities[index].emailToken = actualEmailToken
 
                                     // Recovery: a returning customer (email + pubkey matched) gets back
                                     // their existing deposit code and the original signed message. When
@@ -388,14 +388,14 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                             if self.notificationsDenied {
                                 CacheManager.setPaymentMode(ibanID: ibanEntity.id, paymentMode: "onchain")
                             }
-                            for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+                            for (index, eachIbanEntity) in BitcoinManager.shared.bittrWallet.ibanEntities.enumerated() {
                                 if eachIbanEntity.id == ibanEntity.id {
-                                    self.coreVC!.bittrWallet.ibanEntities[index].ourIbanNumber = dataOurIban
-                                    self.coreVC!.bittrWallet.ibanEntities[index].ourSwift = dataSwift
-                                    self.coreVC!.bittrWallet.ibanEntities[index].yourUniqueCode = dataCode
-                                    self.coreVC!.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
+                                    BitcoinManager.shared.bittrWallet.ibanEntities[index].ourIbanNumber = dataOurIban
+                                    BitcoinManager.shared.bittrWallet.ibanEntities[index].ourSwift = dataSwift
+                                    BitcoinManager.shared.bittrWallet.ibanEntities[index].yourUniqueCode = dataCode
+                                    BitcoinManager.shared.bittrWallet.ibanEntities[index].lightningAddressUsername = lightningAddressUsername
                                     if self.notificationsDenied {
-                                        self.coreVC!.bittrWallet.ibanEntities[index].paymentMode = "onchain"
+                                        BitcoinManager.shared.bittrWallet.ibanEntities[index].paymentMode = "onchain"
                                     }
 
                                     self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
@@ -432,7 +432,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         if self.counter == 0 {
             // 30 seconds have passed since previous request.
             let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
-            for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities {
                 if eachIbanEntity.id == currentIbanID {
                     Task {
                         await self.didSendDetailsToBittr(email: eachIbanEntity.yourEmail, iban: eachIbanEntity.yourIbanNumber) { didSendDetails in

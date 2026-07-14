@@ -20,8 +20,7 @@ class CoreViewController: UIViewController {
     var resettingPin = false
     var removingWalletForIncorrectPin = false
     
-    // Client details
-    var bittrWallet = BittrWallet()
+    // Client details (bittrWallet now lives on BitcoinManager.shared)
     var walletSync:BackgroundSync?
     
     // Pending notifications
@@ -134,9 +133,7 @@ class CoreViewController: UIViewController {
         SentrySDK.metrics.count(key: "app.launch.open")
         
         // Load Bittr wallet details.
-        if let deviceDict = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "device")) as? NSDictionary {
-            self.bittrWallet = CacheManager.parseDevice(deviceDict: deviceDict)
-        }
+        BitcoinManager.shared.bittrWallet = CacheManager.parseDevice()
         
         // Identify current dark mode.
         CacheManager.setCurrentDarkMode(darkModeIsOn: self.darkModeIsOn())

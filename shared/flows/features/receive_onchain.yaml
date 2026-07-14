@@ -127,6 +127,11 @@ appId: com.bittr.bittr-regtest
 # bar, above the sheet) so the tap lands on the backdrop and closes the sheet.
 - tapOn:
     text: "Share"
+# Wait for the share sheet's slide-up animation to finish before tapping the
+# backdrop — otherwise the point tap can fire while the sheet is still
+# presenting and miss the dimmed backdrop.
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: shared/docs/screenshots/receive_onchain/03b_share_sheet
 - tapOn:
     point: "50%,20%"
@@ -384,9 +389,21 @@ appId: com.bittr.bittr-regtest
       - takeScreenshot: shared/docs/screenshots/receive_onchain/07d_send_address_amount
 
       # Close Send → Home, then reopen Receive so the existing onchain renew
-      # path below picks up from a freshly-opened Receive screen.
+      # path below picks up from a freshly-opened Receive screen. The down-button
+      # tap here can occasionally register as a success without dismissing Send
+      # (the view is still mid-transition after the QR→regular switch), so if
+      # we're not back on Home, fall back to dragging Send down to close it —
+      # the same swipe-to-dismiss used in other flows.
       - tapOn:
           id: "header.downButton"
+      - runFlow:
+          when:
+            notVisible:
+              id: "home.headerLabel"
+          commands:
+            - swipe:
+                direction: DOWN
+                duration: 800
       - assertVisible:
           id: "home.headerLabel"
       - tapOn:

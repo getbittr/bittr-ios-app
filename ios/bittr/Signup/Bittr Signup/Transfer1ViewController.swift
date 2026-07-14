@@ -158,23 +158,23 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         if currentIbanID != "" {
             // We're updating information to an existing IBAN entity.
-            for (index, eachIbanEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
+            for (index, eachIbanEntity) in BitcoinManager.shared.bittrWallet.ibanEntities.enumerated() {
                 if eachIbanEntity.id == currentIbanID {
                     eachIbanEntity.yourEmail = enteredEmail
                     eachIbanEntity.yourIbanNumber = enteredIban
-                    self.coreVC!.bittrWallet.ibanEntities[index] = eachIbanEntity
+                    BitcoinManager.shared.bittrWallet.ibanEntities[index] = eachIbanEntity
                     CacheManager.addIban(iban: eachIbanEntity)
                 }
             }
         } else {
             // We're adding a new IBAN entity.
             let newIbanEntity = IbanEntity()
-            newIbanEntity.order = self.coreVC!.bittrWallet.ibanEntities.count
+            newIbanEntity.order = BitcoinManager.shared.bittrWallet.ibanEntities.count
             newIbanEntity.id = UUID().uuidString
             newIbanEntity.yourEmail = enteredEmail
             newIbanEntity.yourIbanNumber = enteredIban
             
-            self.coreVC!.bittrWallet.ibanEntities += [newIbanEntity]
+            BitcoinManager.shared.bittrWallet.ibanEntities += [newIbanEntity]
             CacheManager.addIban(iban: newIbanEntity)
             self.signupVC?.currentIbanID = newIbanEntity.id
             self.ibanVC?.currentIbanID = newIbanEntity.id

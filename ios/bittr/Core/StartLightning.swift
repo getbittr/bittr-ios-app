@@ -76,7 +76,7 @@ extension CoreViewController {
                     Log.info("Did start BDK.")
                     
                     // Manage onchain addresses.
-                    if self.bittrWallet.onchainAddresses == nil {
+                    if BitcoinManager.shared.bittrWallet.onchainAddresses == nil {
                         DispatchQueue.global(qos: .background).async() {
                             self.manageOnchainAddresses()
                         }

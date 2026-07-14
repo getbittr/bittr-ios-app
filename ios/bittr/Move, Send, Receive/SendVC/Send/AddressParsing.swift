@@ -40,7 +40,7 @@ extension SendViewController {
                     // Regular invoice
                     let invoiceAmount = Int(invoiceAmountMilli)/1000
 
-                    let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+                    let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
                     if invoiceAmount > availableLightningBalance, bitcoinAddress != nil {
                         // We can't send this much in Lightning, but the unified QR
                         // carries an onchain address. Send onchain instead.

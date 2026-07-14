@@ -89,16 +89,13 @@ class Transfer3ViewController: UIViewController {
         // Set data received from bittr API.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.id == currentIbanID {
-                
-                self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
-                self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
-                
-                self.ibanButton.boundString = eachIbanEntity.ourIbanNumber
-                self.nameButton.boundString = eachIbanEntity.ourName
-                self.codeButton.boundString = eachIbanEntity.yourUniqueCode
-            }
+        for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.id == currentIbanID {
+            self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
+            self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
+            
+            self.ibanButton.boundString = eachIbanEntity.ourIbanNumber
+            self.nameButton.boundString = eachIbanEntity.ourName
+            self.codeButton.boundString = eachIbanEntity.yourUniqueCode
         }
     }
     

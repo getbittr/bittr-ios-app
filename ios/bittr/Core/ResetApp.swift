@@ -303,6 +303,9 @@ extension CoreViewController {
         // Clear mnemonic from cache
         CacheManager.deleteClientInfo()
         
+        // Clear the in-memory account entity.
+        BitcoinManager.shared.bittrWallet = BittrWallet()
+        
         // Remove wallet from device and remove corresponding cached data.
         do {
             Log.info("Starting wallet reset cleanup")
@@ -369,8 +372,8 @@ extension CoreViewController {
     func didCloseChannel() {
         Log.info("didCloseChannel() - Clearing channel cache and triggering sync")
         
-        self.bittrWallet.lightningChannels = [ChannelDetails]()
-        self.bittrWallet.satoshisLightning = 0
+        BitcoinManager.shared.bittrWallet.lightningChannels = [ChannelDetails]()
+        BitcoinManager.shared.bittrWallet.satoshisLightning = 0
         
         if self.homeVC!.balanceLabel.alpha == 1 {
             self.homeVC!.setTotalSats()
@@ -396,7 +399,7 @@ extension CoreViewController {
         
         DispatchQueue.main.async {
             // Update the cached channel data
-            self.bittrWallet.lightningChannels = updatedChannels
+            BitcoinManager.shared.bittrWallet.lightningChannels = updatedChannels
             
             // Update balance if needed
             if self.homeVC!.balanceLabel.alpha == 1 {

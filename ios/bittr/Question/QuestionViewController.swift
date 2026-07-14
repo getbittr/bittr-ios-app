@@ -57,34 +57,34 @@ class QuestionViewController: UIViewController {
         if let actualType = self.questionType {
             
             // Get active channel.
-            let activeChannel = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+            let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
             
             if activeChannel != nil {
                 self.setChannelChart(forChannel: activeChannel!)
                 
                 if actualType == "lightningreceivable" {
-                    self.answerLabel.text = Language.getWord(withID: "questionvc1")
+                    self.answerLabel.attributedText = Language.getWord(withID: "questionvc1")
                         .replacingOccurrences(of: "<channelsize>", with: "\(activeChannel!.channelValueSats)".addSpaces())
                         .replacingOccurrences(of: "<channelbalance>", with: "\((activeChannel!.outboundCapacityMsat/1000)+(activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
-                        .replacingOccurrences(of: "<receivelimit>", with: "\(activeChannel!.channelValueSats - (activeChannel!.outboundCapacityMsat/1000) - (activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
+                        .replacingOccurrences(of: "<receivelimit>", with: "\(activeChannel!.channelValueSats - (activeChannel!.outboundCapacityMsat/1000) - (activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces()).attributed()
                 } else if actualType == "lightningsendable" {
-                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
+                    self.answerLabel.attributedText = Language.getWord(withID: "questionvc7")
                         .replacingOccurrences(of: "<channelbalance>", with: "\((activeChannel!.outboundCapacityMsat/1000)+(activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
                         .replacingOccurrences(of: "<channelreserve>", with: "\(activeChannel!.unspendablePunishmentReserve ?? 0)".addSpaces())
-                        .replacingOccurrences(of: "<sendlimit>", with: "\(activeChannel!.outboundCapacityMsat/1000)".addSpaces())
+                        .replacingOccurrences(of: "<sendlimit>", with: "\(activeChannel!.outboundCapacityMsat/1000)".addSpaces()).attributed()
                 } else if actualType == "lightningexplanation" {
-                    self.answerLabel.text = Language.getWord(withID: "questionvc7")
+                    self.answerLabel.attributedText = Language.getWord(withID: "questionvc7")
                         .replacingOccurrences(of: "<channelbalance>", with: "\((activeChannel!.outboundCapacityMsat/1000)+(activeChannel!.unspendablePunishmentReserve ?? 0))".addSpaces())
                         .replacingOccurrences(of: "<channelreserve>", with: "\(activeChannel!.unspendablePunishmentReserve ?? 0)".addSpaces())
-                        .replacingOccurrences(of: "<sendlimit>", with: "\(activeChannel!.outboundCapacityMsat/1000)".addSpaces())
+                        .replacingOccurrences(of: "<sendlimit>", with: "\(activeChannel!.outboundCapacityMsat/1000)".addSpaces()).attributed()
                 }
             } else {
                 if actualType == "lightningreceivable" {
                     topHeaderText = Language.getWord(withID: "questionvc6")
-                    self.answerLabel.text = Language.getWord(withID: "lightningexplanation1")
+                    self.answerLabel.attributedText = Language.getWord(withID: "lightningexplanation1").attributed()
                 } else if actualType == "lightningsendable" {
                     topHeaderText = Language.getWord(withID: "questionvc12")
-                    self.answerLabel.text = Language.getWord(withID: "questionvc13")
+                    self.answerLabel.attributedText = Language.getWord(withID: "questionvc13").attributed()
                 }
             }
         }

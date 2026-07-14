@@ -28,6 +28,9 @@ class BitcoinManager {
     private let storageManager = LightningStorage()
     var xpub = ""
     var coreVC:CoreViewController?
+
+    // Bittr wallet
+    var bittrWallet = BittrWallet()
     
     // Event listener
     private var eventListener: Task<Void, Never>?
@@ -210,7 +213,7 @@ class BitcoinManager {
         
         if let blockHeight = receivedDictionary["result"] as? Int {
             Log.info("Block height: \(blockHeight)")
-            self.coreVC?.bittrWallet.currentHeight = blockHeight
+            self.bittrWallet.currentHeight = blockHeight
             CacheManager.updateCachedData(data: blockHeight, key: "height")
             return true
         } else {
@@ -420,7 +423,7 @@ class BitcoinManager {
             _ = self.lightSyncBdkWallet()
             
             // Check if any changes have been found.
-            if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {
