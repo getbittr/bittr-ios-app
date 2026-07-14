@@ -101,6 +101,7 @@ class AnimationViewController: UIViewController {
             self.coreVC?.blackSignupBackground.alpha = 1
             self.coreVC?.changeColors()
             self.coreVC?.animationContainer.alpha = 0
+            self.coreVC?.animationContainer.isHidden = true
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
         }
     }

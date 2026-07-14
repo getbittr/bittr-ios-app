@@ -140,7 +140,10 @@ class CoreViewController: UIViewController {
         // Set words.
         self.setWords()
         self.setBasicStyling()
-        
+
+        // Taps on the animationContainer go through it down to PinVC or SignupVC.
+        self.animationContainer.isUserInteractionEnabled = false
+
         // Check wallet.
         self.checkWalletAvailability()
     }
