@@ -290,9 +290,17 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                 return
             }
             Log.info("Mnemonic validation successful")
-            
-            // Store restorable mnemonic in cache.
-            CacheManager.storeMnemonic(enteredMnemonic)
+
+            // Store restorable mnemonic in cache. Abort loudly if it can't be
+            // securely persisted rather than proceeding with an unsaved seed.
+            do {
+                try CacheManager.storeMnemonic(enteredMnemonic)
+            } catch {
+                self.restoreButtonSpinner.stopAnimating()
+                self.restoreButtonText.alpha = 1
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
         }
         
         // Stop animation.

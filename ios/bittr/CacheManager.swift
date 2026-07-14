@@ -878,8 +878,8 @@ class CacheManager: NSObject {
     
     // MARK: - Mnemonic
     
-    static func storeMnemonic(_ mnemonic:String) {
-        writeSecret(mnemonic, account: EnvironmentConfig.cacheKey(for: "mnemonic"), label: "mnemonic")
+    static func storeMnemonic(_ mnemonic:String) throws {
+        try persistSecret(mnemonic, account: EnvironmentConfig.cacheKey(for: "mnemonic"), label: "mnemonic")
     }
     
     static func getMnemonic() -> String? {
@@ -936,23 +936,29 @@ class CacheManager: NSObject {
         migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "pin"))
     }
 
-    /// Write a secret to the Keychain, verifying the write by reading it back.
-    /// storeMnemonic/storePin stay non-throwing to preserve their call sites; a
-    /// failure is reported to Sentry rather than silently losing the value.
-    /// (Recommended follow-up: make the mnemonic write throwing so the wallet-
-    /// creation flow can abort/retry if the seed cannot be persisted.)
-    private static func writeSecret(_ value: String, account: String, label: String) {
+    /// Write a secret to the Keychain and confirm it by reading it back. Throws
+    /// if the write fails or the read-back doesn't match, so callers that must
+    /// not proceed without the secret persisted (wallet creation/restore) can
+    /// fail loudly instead of stranding a wallet whose seed was never saved.
+    private static func persistSecret(_ value: String, account: String, label: String) throws {
         do {
             try SecureStore.setString(value, account: account)
             let readBack = (try? SecureStore.getString(account: account)) ?? nil
-            if readBack != value {
-                SentrySDK.capture(message: "Keychain \(label) write could not be verified.")
+            guard readBack == value else {
+                throw SecureStore.SecureStoreError.writeVerificationFailed
             }
         } catch {
             SentrySDK.capture(error: error) { scope in
                 scope.setExtra(value: "storing \(label) in keychain", key: "context")
             }
+            throw error
         }
+    }
+
+    /// Non-throwing convenience for secrets where a failed write is recoverable
+    /// (e.g. the PIN, which can be reset via the mnemonic). Failures are logged.
+    private static func writeSecret(_ value: String, account: String, label: String) {
+        try? persistSecret(value, account: account, label: label)
     }
 
     /// Non-throwing read used by getMnemonic()/getPin(). A Keychain read failure

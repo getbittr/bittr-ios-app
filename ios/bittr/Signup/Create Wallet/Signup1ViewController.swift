@@ -94,13 +94,21 @@ class Signup1ViewController: UIViewController {
         // Delay the call 1 second to keep the spinner visible for a moment.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             
-            // Get mnemonic.
-            let _ = BitcoinManager.shared.getNewMnemonic()
-            
             // Stop spinner.
             self.createWalletLabel.alpha = 1
             self.createWalletArrow.alpha = 1
             self.createWalletSpinner.stopAnimating()
+
+            // Create and persist the wallet's mnemonic. If it can't be securely
+            // stored, abort loudly rather than continuing with an unsaved seed —
+            // a wallet the user then funds would otherwise be unrecoverable.
+            do {
+                _ = try BitcoinManager.shared.getNewMnemonic()
+            } catch {
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                return
+            }
+
             self.signupVC?.moveToPage(4)
         }
     }

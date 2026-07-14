@@ -39,6 +39,7 @@ enum SecureStore {
 
     enum SecureStoreError: Error {
         case unexpectedStatus(OSStatus)
+        case writeVerificationFailed
     }
 
     // MARK: - String convenience

@@ -158,11 +158,11 @@ class BitcoinManager {
         return true
     }
     
-    func getNewMnemonic() -> String {
+    func getNewMnemonic() throws -> String {
         // New mnemonic.
         Log.info("Creating a new mnemonic.")
         let newMnemonic:String = LDKNode.generateEntropyMnemonic(wordCount: .words12).description
-        CacheManager.storeMnemonic(newMnemonic)
+        try CacheManager.storeMnemonic(newMnemonic)
         return newMnemonic
     }
     
