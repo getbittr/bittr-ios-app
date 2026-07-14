@@ -301,17 +301,12 @@ extension CoreViewController {
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
         
-        // Removal finished — clear the resume-on-launch flag.
-        CacheManager.setWalletRemovalInProgress(false)
-        
-        // Clear mnemonic from cache
-        CacheManager.deleteClientInfo()
-        
         // Clear the in-memory account entity.
         BitcoinManager.shared.bittrWallet = BittrWallet()
-        
+
         // Remove wallet from device and remove corresponding cached data.
         DispatchQueue.global(qos: .userInitiated).async {
+            var cleanupSucceeded = false
             do {
                 Log.info("Starting wallet reset cleanup")
                 
@@ -332,6 +327,7 @@ extension CoreViewController {
                 BitcoinManager.shared.resetNodeState()
                 Log.info("Node state reset completed")
                 
+                cleanupSucceeded = true
             } catch {
                 Log.info("Error during cleanup: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -340,11 +336,13 @@ extension CoreViewController {
                     }
                 }
                 
-                // Even if everything fails, try to clean up documents
+                // Even if everything fails, try to clean up documents (and state).
                 do {
                     Log.info("Attempting final fallback document cleanup")
                     try BitcoinManager.shared.deleteDocuments()
+                    BitcoinManager.shared.resetNodeState()
                     Log.info("Final fallback document cleanup successful")
+                    cleanupSucceeded = true
                 } catch {
                     Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
                     DispatchQueue.main.async {
@@ -355,7 +353,23 @@ extension CoreViewController {
                 }
             }
             
-            // Cleanup done — relaunch the create-wallet flow on main.
+            guard cleanupSucceeded else {
+                // Teardown failed.
+                Log.info("Wallet reset cleanup did not complete — seed left intact to resume on next launch.")
+                DispatchQueue.main.async {
+                    self.genericSpinner.stopAnimating()
+                    self.fullViewCover.alpha = 0
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+                return
+            }
+            
+            // Node stopped and files removed — now it's safe to delete the seed
+            // (last), and the removal is fully complete.
+            CacheManager.deleteClientInfo()
+            CacheManager.setWalletRemovalInProgress(false)
+            
+            // Relaunch the create-wallet flow on main.
             DispatchQueue.main.async {
                 // Hide signup view and launch create wallet flow
                 // Since we've cleared the PIN, we need to manually show the create wallet flow
