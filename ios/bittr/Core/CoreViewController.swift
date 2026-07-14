@@ -161,14 +161,14 @@ class CoreViewController: UIViewController {
         // can't be swallowed by the cover.
         switch CacheManager.walletSecretsPresence() {
         case .present:
-            // Wallet has been created.
-            self.isAwaitingProtectedData = false
+            Log.info("Wallet is available.")
+            self.finishAwaitingProtectedDataIfNeeded()
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
             
         case .absent:
-            // No wallet on this device.
-            self.isAwaitingProtectedData = false
+            Log.info("No wallet on this device.")
+            self.finishAwaitingProtectedDataIfNeeded()
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
             // Clear any stale cached client data and show the create-wallet flow.
@@ -176,22 +176,40 @@ class CoreViewController: UIViewController {
             self.launchSignup(onPage: 3)
             
         case .unavailable:
-            // The Keychain could not be read reliably.
-            Log.info("Wallet secrets unavailable — deferring wallet-availability check until the Keychain is readable.")
-            if !self.isAwaitingProtectedData {
-                self.isAwaitingProtectedData = true
-                NotificationCenter.default.addObserver(self, selector: #selector(self.recheckWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
-                guard let self = self, self.isAwaitingProtectedData else { return }
-                self.recheckWalletAvailability()
-            }
+            Log.info("The Keychain could not be read.")
+            self.presentKeychainUnavailable()
         }
     }
+    
+    private func presentKeychainUnavailable() {
+        Log.info("Wallet secrets unavailable — showing the retry prompt.")
+        self.signupContainerView.alpha = 0
+        self.pinContainerView.alpha = 1
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
 
-    @objc private func recheckWalletAvailability() {
-        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        if !self.isAwaitingProtectedData {
+            self.isAwaitingProtectedData = true
+            NotificationCenter.default.addObserver(self, selector: #selector(self.retryReadingKeychain), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        }
+
+        self.showAlert(presentingController: self,
+                       title: Language.getWord(withID: "keychainunavailabletitle"),
+                       message: Language.getWord(withID: "keychainunavailable"),
+                       buttons: [Language.getWord(withID: "tryagain")],
+                       actions: [#selector(self.retryReadingKeychain)])
+    }
+    
+    private func finishAwaitingProtectedDataIfNeeded() {
+        guard self.isAwaitingProtectedData else { return }
         self.isAwaitingProtectedData = false
+        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        self.fullViewCover.alpha = 0
+        self.genericSpinner.stopAnimating()
+    }
+    
+    @objc private func retryReadingKeychain() {
+        self.hideAlert()
         self.checkWalletAvailability()
     }
     
