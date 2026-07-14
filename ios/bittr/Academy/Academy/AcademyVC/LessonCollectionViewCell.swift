@@ -80,28 +80,48 @@ class LessonCollectionViewCell: UICollectionViewCell {
 class BlurEffect: UIVisualEffectView {
 
     var blurAnimator = UIViewPropertyAnimator(duration: 1, curve: .linear)
-    
+
     override func didMoveToSuperview() {
-        guard let superview = superview else { return }
+        guard let superview = superview else {
+            // Removed from the hierarchy (removeBlur / cell reuse): stop
+            // observing and kill the paused animator, so detached instances
+            // don't keep doing effect work on every "setupblur" post.
+            NotificationCenter.default.removeObserver(self)
+            self.blurAnimator.stopAnimation(true)
+            return
+        }
         self.backgroundColor = .clear
         self.frame = superview.bounds
         self.setupBlur()
-        
+
+        // didMoveToSuperview can run more than once — never stack observers.
+        NotificationCenter.default.removeObserver(self)
         NotificationCenter.default.addObserver(self, selector: #selector(setupBlur), name: NSNotification.Name(rawValue: "setupblur"), object: nil)
     }
-    
+
     @objc private func setupBlur() {
+        // Detached instances have no business animating.
+        guard self.superview != nil else { return }
+
         self.blurAnimator.stopAnimation(true)
         self.effect = nil
-        
+
+        // Recreate the animator instead of re-adding animation blocks to the
+        // stopped one: addAnimations on a reused animator ACCUMULATES blocks,
+        // and every setFractionComplete then replays the whole pile through
+        // UIVisualEffectView's deferred-animation machinery on the main
+        // thread. With "setupblur" posted per willDisplay/navigation/
+        // foreground to every live instance, the accumulated work fully
+        // blocked the main thread (watchdog kill during wallet reset).
+        self.blurAnimator = UIViewPropertyAnimator(duration: 1, curve: .linear)
         self.blurAnimator.addAnimations { [weak self] in
             self?.effect = UIBlurEffect(style: .regular)
         }
-        
+
         // Determine blur intensity.
         self.blurAnimator.fractionComplete = 0.1
     }
-    
+
     deinit {
         self.blurAnimator.stopAnimation(true)
     }
