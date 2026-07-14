@@ -21,6 +21,7 @@ class CoreViewController: UIViewController {
     // Pin reset
     var resettingPin = false
     var removingWalletForIncorrectPin = false
+    var isRemovalInFlight = false
     
     // Client details (bittrWallet now lives on BitcoinManager.shared)
     var walletSync:BackgroundSync?

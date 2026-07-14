@@ -76,6 +76,11 @@ extension CoreViewController {
                 if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
                     Log.info("Channel still open — initiating cooperative close before any reset.")
                     if self.removingWalletForIncorrectPin {
+                        guard !self.isRemovalInFlight else {
+                            Log.info("Channel close already in flight — skipping duplicate.")
+                            return
+                        }
+                        self.isRemovalInFlight = true
                         self.closeChannelConfirmed()
                     } else {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
@@ -85,6 +90,9 @@ extension CoreViewController {
                     // on-chain yet (still being swept). Don't wipe — tell the
                     // user to come back once it has settled.
                     Log.info("Channel closed but funds still settling — deferring wallet reset.")
+                    
+                    // Release the single-flight guard so the wipe can proceed once swept.
+                    self.isRemovalInFlight = false
                     
                     if self.removingWalletForIncorrectPin {
                         // User is locked out. Show "Try again" button, as only available user action.
@@ -98,6 +106,8 @@ extension CoreViewController {
                     }
                 }
             } else {
+                // Fully closed and swept — the close is done.
+                self.isRemovalInFlight = false
                 if self.resettingPin || self.removingWalletForIncorrectPin {
                     Log.info("No channels and nothing left to sweep — removing wallet.")
                     self.performWalletReset()
@@ -166,13 +176,8 @@ extension CoreViewController {
                     if didConnectToPeer {
                         self.closeChannelConfirmed()
                     } else if self.removingWalletForIncorrectPin {
-                        // Automated wipe path: we only ever cooperatively close,
-                        // which needs the peer online. Don't force close (it locks
-                        // funds behind a CSV delay and risks loss on the wipe) and
-                        // don't wipe. Offer a single "Try again" action
-                        // (startWalletInBackground re-syncs + re-checks), matching
-                        // the "still closing" path — otherwise tapping Okay would
-                        // strand the locked-out user on a static full-screen cover.
+                        // Close attempt failed — release the single-flight guard.
+                        self.isRemovalInFlight = false
                         self.genericSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
@@ -204,11 +209,8 @@ extension CoreViewController {
                         scope.setExtra(value: "ResetApp row 170", key: "context")
                     }
                     if self.removingWalletForIncorrectPin {
-                        // Coop close failed during the automated wipe. Do not force
-                        // close or wipe. Offer a single "Try again" action
-                        // (startWalletInBackground re-syncs + re-checks), matching
-                        // the "still closing" path, so the locked-out user isn't
-                        // stranded behind the cover with only a dismiss button.
+                        // Close attempt failed — release the single-flight guard.
+                        self.isRemovalInFlight = false
                         self.genericSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
