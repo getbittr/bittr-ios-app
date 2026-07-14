@@ -608,14 +608,19 @@ class BitcoinManager {
             guard let self else { return }
             
             while !Task.isCancelled {
-                guard self.ldkNode != nil else { return }
-                let event = await self.ldkNode!.nextEventAsync()
+                // Bind the node once per iteration: resetNodeState (wallet
+                // wipe) can nil ldkNode at any moment — including while this
+                // loop is suspended inside nextEventAsync — so a re-read
+                // force-unwrap here can crash mid-reset. The bound reference
+                // keeps this iteration safe; the next iteration exits.
+                guard let node = self.ldkNode else { return }
+                let event = await node.nextEventAsync()
                 if Task.isCancelled { break }
                 await MainActor.run {
                     self.coreVC?.ldkEventReceived(event: event)
                 }
-                
-                try? self.ldkNode!.eventHandled()
+
+                try? node.eventHandled()
             }
         }
     }
