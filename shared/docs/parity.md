@@ -24,6 +24,9 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Buy — bittr signup from Buy | done | not started | `features/buy_signup.yaml` | Completes the bittr signup from the empty Buy card via the RegisterIban modal. Needs a wallet *without* a bittr account (run `restore_wallet` first). |
 | Buy — signup validation + no notifications | done | not started | `features/buy_signup_no_notifications.yaml` | Unhappy IBAN/email validation alerts + the OTP notification-permission gate, finishing on the on-chain payout fallback. Needs `fresh_install_skip_signup` first; launchApp auto-denies the iOS notification dialog. |
 | Payout mode toggle | done | not started | `features/payment_mode.yaml` | Toggles the Buy card's payout mode lightning ↔ onchain (PATCH /customer/payment-mode). Self-provisions a wallet + order if missing. |
+| Notification — QuestionVC push types | done | not started | `features/notification_information.yaml` | Injects the three QuestionViewController-backed push types back-to-back — `.information` (`bittr_notification`), `.htlcExpired` (`htlc_notification` with `expired: true`) and `.unknown` (unrecognised payload → fallback "Oops!") — and asserts each opens with the expected header/body, then closes it. Re-pushes each until it clears the 10s notification dedup window. Requires `scripts/push_server.js`. Independent of wallet state — auto-provisions a wallet if needed. |
+| Notification — LNURL (locked) | done | not started | `features/notification_lnurl.yaml` | Fires a `.lnUrl` (`lightning_address_notification`) push on the PIN screen → asserts the "Payment Request — please sign in" alert, unlocks, and asserts the deferred processing re-runs on sign-in (generate invoice → POST), which fails gracefully ("Payment Request Failed") since no e2e endpoint accepts the invoice. Metadata gathered live from `e2ebittr@staging.getbittr.com` via `scripts/resolve_lnurl.js`. Requires `scripts/push_server.js`; auto-provisions a wallet if needed. |
+| Notification — HTLC incoming (locked) | done | not started | `features/notification_htlcincoming.yaml` | Fires a `.htlcIncoming` (`htlc_notification`) push on the PIN screen (silent while locked), pauses so it's handled before sign-in (`scripts/sleep.js`), unlocks, and follows the deferred path through the "syncing wallet" → "receiving payment" pending views to the terminal "Incoming payment" alert — the no-real-payment terminal state (`facilitateHTLCReady`'s htlc_ready call fails, or no deposit code short-circuits to the same alert). Requires `scripts/push_server.js`; auto-provisions a wallet if needed. |
 
 ## Receive
 
@@ -102,15 +105,17 @@ Previously listed here and now covered: Restore wallet (`onboarding/restore_wall
 
 ### Push notifications — in scope for parity, flows to come later
 
-Only `.lightningPayout` is exercised (`buy_more.yaml` / `buy_incoming.yaml`). The other five `BittrNotificationType` cases have no flow and should get APNS-injection flows (same technique as `buy_more.yaml` via `scripts/push_notification.js`):
+`.lightningPayout` (`buy_more.yaml` / `buy_incoming.yaml`), the three
+QuestionViewController-backed types — `.information`, `.htlcExpired` and
+`.unknown` (all in `notification_information.yaml`), `.lnUrl`
+(`notification_lnurl.yaml`) and `.htlcIncoming`
+(`notification_htlcincoming.yaml`) are exercised. The one remaining
+`BittrNotificationType` case has no flow and should get an APNS-injection flow
+(same technique via `scripts/push_notification.js`):
 
 | Type | Handler (iOS) |
 |---|---|
-| `.information` | `NotificationManager.swift` → `CoreViewController.newNotification()` |
 | `.swap` | `HandleSwapNotification` — swap UI is covered, but the push entry point is not |
-| `.lnUrl` (Lightning-Address payout) | `HandleLightningAddressNotification.swift` |
-| `.htlcIncoming` | `HandlePaymentNotification.swift` |
-| `.htlcExpired` | `HandlePaymentNotification.swift` |
 
 ### Per-screen interactions not yet exercised (medium priority)
 

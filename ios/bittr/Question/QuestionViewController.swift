@@ -106,7 +106,7 @@ class QuestionViewController: UIViewController {
         NSLayoutConstraint.deactivate([self.balanceBarWidth])
         self.balanceBarWidth = NSLayoutConstraint(item: self.balanceBar, attribute: .width, relatedBy: .equal, toItem: self.barView, attribute: .width, multiplier: CGFloat((forChannel.outboundCapacityMsat/1000)+(forChannel.unspendablePunishmentReserve ?? 0))/CGFloat(forChannel.channelValueSats), constant: 0)
         NSLayoutConstraint.activate([self.balanceBarWidth])
-        self.channelStackHeight.constant = 30 + self.channelView.frame.height
+        self.channelStackHeight.constant = 20 + self.channelView.frame.height
         self.channelStack.alpha = 1
         self.view.layoutIfNeeded()
     }

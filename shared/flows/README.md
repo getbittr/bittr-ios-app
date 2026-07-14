@@ -22,6 +22,34 @@ shared/flows/
   features/        One file per feature, run against a non-clean state.
     buy_incoming.yaml     First-time top up — opens the lightning channel.
     buy_more.yaml         Subsequent top up — channel already open.
+    notification_information.yaml  Injects the three push types that render in
+                          the QuestionViewController — `.information`
+                          (`bittr_notification`), `.htlcExpired`
+                          (`htlc_notification` + `expired: true`) and `.unknown`
+                          (unrecognised payload → fallback "Oops!") — back-to-back
+                          via scripts/push_notification.js, asserting each opens
+                          with the expected header + body, then closing it. Each
+                          is re-pushed until it clears the app's 10s
+                          notification-dedup window. Independent of wallet state
+                          (auto-provisions if needed); needs
+                          scripts/push_server.js.
+    notification_lnurl.yaml  Fires a `.lnUrl`
+                          (`lightning_address_notification`) push on the PIN
+                          screen → the "Payment Request — please sign in" alert,
+                          unlocks, and asserts the deferred processing re-runs on
+                          sign-in (generate invoice → POST) and fails gracefully
+                          ("Payment Request Failed") since no e2e endpoint accepts
+                          the invoice. Metadata is gathered from the e2e Lightning
+                          Address via scripts/resolve_lnurl.js. Auto-provisions a
+                          wallet if needed; needs scripts/push_server.js.
+    notification_htlcincoming.yaml  Fires a `.htlcIncoming` (`htlc_notification`)
+                          push on the PIN screen (silent while locked), pauses so
+                          it's handled before sign-in (scripts/sleep.js), unlocks,
+                          and follows the deferred path through the "syncing
+                          wallet" → "receiving payment" pending views to the
+                          terminal "Incoming payment" alert (the no-real-payment
+                          terminal state). Auto-provisions a wallet if needed;
+                          needs scripts/push_server.js.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).
     receive_onchain.yaml  Onchain receive → send round-trip: show the onchain
                           address (waiting out the verification spinner), read
@@ -172,6 +200,13 @@ shared/flows/
                                 the in-app Paste button (send_lightning.yaml).
     parse_mnemonic.js           Splits the MNEMONIC env var into
                                 output.words[1..12] for forgot_pin.yaml.
+    resolve_lnurl.js            GETs a Lightning Address's /.well-known/lnurlp
+                                params (metadata + username) so
+                                notification_lnurl.yaml can build a realistic
+                                `.lnUrl` payload; static fallback if offline.
+    sleep.js                    Busy-waits output.sleepMs ms (Maestro has no
+                                native sleep) so a flow can let the app handle a
+                                push before the next step (notification_htlcincoming).
 ```
 
 ## Conventions

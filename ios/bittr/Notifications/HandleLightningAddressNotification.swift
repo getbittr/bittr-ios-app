@@ -22,7 +22,7 @@ extension CoreViewController {
               notification.username != nil,
               notification.endpoint != nil else {
             Log.info("Missing required data in lightning address notification")
-            self.hidePendingView()
+            self.hideLoading()
             self.lightningNotification = nil
             return
         }
@@ -34,16 +34,15 @@ extension CoreViewController {
         if !self.userHasSignedIn {
             Log.info("User hasn't signed in yet, store notification for later.")
             self.wasNotified = true
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000)), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
-            self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-            self.showPendingView()
+            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
-            self.hidePendingView()
+            self.hideLoading()
             if !self.wasNotified {
                 Log.info("Will notify user of available LNURL notification.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "handlenow")], actions: [nil, #selector(self.handleLightningAddressNotificationImmediately)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest3").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "handlenow")], actions: [nil, #selector(self.handleLightningAddressNotificationImmediately)])
             } else {
                 Log.info("Will handle LNURL notification now.")
                 self.handleLightningAddressNotificationImmediately()
@@ -62,7 +61,7 @@ extension CoreViewController {
             let endpoint = notification.endpoint
         else {
             Log.info("Missing required data in lightning address notification")
-            self.hidePendingView()
+            self.hideLoading()
             self.lightningNotification = nil
             SentrySDK.capture(message: "Required data unavailable while trying to handle LNURL payout.") { scope in
                 scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
@@ -72,8 +71,7 @@ extension CoreViewController {
         }
         
         // Show loading UI
-        self.pendingLabel.text = Language.getWord(withID: "generatinginvoice")
-        self.showPendingView()
+        self.showLoading(message: Language.getWord(withID: "generatinginvoice"))
         
         // Calculate SHA256 hash from metadata
         let descriptionHash = metadata.sha256()
@@ -91,7 +89,7 @@ extension CoreViewController {
                 Log.info("Failed to generate invoice for lightning address payment: \(error)")
                 DispatchQueue.main.async {
                     // Hide loading UI
-                    self.hidePendingView()
+                    self.hideLoading()
                     self.lightningNotification = nil
                     
                     // Capture Sentry error.
@@ -119,7 +117,7 @@ extension CoreViewController {
             await CallsManager.makeApiCall(url: endpoint, parameters: parameters, getOrPost: .post) { result in
                 
                 DispatchQueue.main.async {
-                    self.hidePendingView()
+                    self.hideLoading()
                     
                     switch result {
                     case .success(let receivedDictionary):

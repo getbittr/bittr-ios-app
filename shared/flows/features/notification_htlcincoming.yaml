@@ -1,0 +1,123 @@
+# Feature test: the .htlcIncoming push notification type, fired while the wallet
+# is LOCKED (before PIN entry) to exercise the deferred "process after sign in"
+# path — without needing a real incoming payment.
+#
+# .htlcIncoming means bittr is holding an inbound Lightning HTLC for the user and
+# is asking the app to come online so the payment can complete. Its payload is an
+# "htlc_notification" object with no "expired" flag. handleHTLCNotification
+# behaves differently depending on state:
+#   - locked (!userHasSignedIn): stores the notification (wasNotified = true) and
+#     shows NO alert — the code deliberately lets the user unlock as fast as
+#     possible.
+#   - after unlock: finalizeSync re-invokes the handler; because wasNotified is
+#     set it goes straight to triggerHTLCReady → the "receiving payment" pending
+#     view → facilitateHTLCReady, which signs an htlc_ready message and calls the
+#     backend (/htlc-interceptor/ready).
+#
+# This flow fires the notification on the PIN screen, unlocks, and follows the
+# deferred path through its pending views to the terminal alert. There is no real
+# paused HTLC on the backend for this device, so the htlc_ready call comes back
+# unsuccessful (or the wallet has no deposit code) and the flow completes with
+# the "Incoming payment" failure alert — which is the terminal state for the
+# no-real-payment case. (A wallet with no bittr account short-circuits to the
+# same alert without a backend call, so the assertion holds either way.)
+#
+# Because .htlcIncoming shows nothing while locked, there is no UI signal to wait
+# on before unlocking — so after pushing we pause (scripts/sleep.js) long enough
+# for the app's ~1s deferred handler to run while still on the PIN screen,
+# guaranteeing the silent pre-unlock path (and avoiding the intermediate
+# "new payment" alert of the handled-during-sync path).
+#
+# Real APNS pushes don't reach the simulator, so — like the buy flows — the
+# payload is delivered via scripts/push_notification.js → push_server.js →
+# `xcrun simctl push`. Start the helper first:
+#
+#   node shared/flows/scripts/push_server.js   # keep running
+#   maestro test shared/flows/features/notification_htlcincoming.yaml
+#
+# Run: maestro test shared/flows/features/notification_htlcincoming.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved. Allow
+# notifications so the foreground push is delivered.
+- launchApp:
+    permissions:
+      notifications: allow
+
+# Auto-provision a wallet if none exists yet. happy_path leaves us on Home
+# (signed in), so relaunch inside this block to get back to the locked PIN screen
+# — the notification has to arrive BEFORE sign-in. When a wallet already exists
+# the app cold-launches straight to the PIN screen, so this whole block is
+# skipped and there is no second launch.
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    commands:
+      - runFlow: ../onboarding/happy_path_wallet.yaml
+      - runFlow: ../onboarding/happy_path_signup.yaml
+      - launchApp:
+          permissions:
+            notifications: allow
+
+# Must be on the PIN unlock screen (CoreViewController is loaded and observing
+# "newNotification" behind it, with userHasSignedIn still false).
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/notification_htlcincoming/01_locked
+
+# Build the .htlcIncoming payload — an "htlc_notification" with no "expired"
+# flag. The handler reads the deposit code from the wallet (not the payload), so
+# an empty object is enough.
+- evalScript: |
+    ${output.notificationPayload = JSON.stringify({
+      aps: { alert: { title: "Incoming payment", body: "You're receiving a payment." }, sound: "default" },
+      htlc_notification: {}
+    })}
+
+# Fire it while LOCKED, then pause so the app's deferred handler (~1s after the
+# push) runs while userHasSignedIn is still false — that stores the notification
+# silently (wasNotified = true) for processing after unlock. A single push is
+# enough; unlike the LNURL flow there's no pre-unlock alert to loop on.
+- runScript: ../scripts/push_notification.js
+- evalScript: ${output.sleepMs = 2500}
+- runScript: ../scripts/sleep.js
+
+# Unlock. Because a notification is waiting (lightningNotification != nil), the
+# app shows the "syncing wallet" loading card while the wallet syncs. Both this
+# card and the "receiving payment" one below are transient: on a warm wallet the
+# sync (and a fast backend reply) can flash them between two Maestro hierarchy
+# polls, so both checks are best-effort (optional) — the terminal "Incoming
+# payment" alert below is the real proof the deferred .htlcIncoming flow ran.
+- runFlow: ../helpers/unlock.yaml
+- assertVisible:
+    text: ".*[Ss]yncing wallet.*"
+    optional: true
+- takeScreenshot: shared/docs/screenshots/notification_htlcincoming/02_syncing
+
+# Once synced, finalizeSync re-runs the handler → triggerHTLCReady shows the
+# "receiving payment" loading card.
+- assertVisible:
+    text: ".*receiving payment.*"
+    optional: true
+- takeScreenshot: shared/docs/screenshots/notification_htlcincoming/03_receiving
+
+# facilitateHTLCReady then signs an htlc_ready message and calls the backend. With
+# no real paused HTLC (or no bittr account) it completes with the "Incoming
+# payment" failure alert. Wait it out, let it finish animating in before the
+# screenshot, assert, dismiss.
+- extendedWaitUntil:
+    visible:
+      text: ".*Incoming payment.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/notification_htlcincoming/04_completed
+- tapOn:
+    id: "alert.button.0"
+
+# Back on Home.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/notification_htlcincoming/05_home
