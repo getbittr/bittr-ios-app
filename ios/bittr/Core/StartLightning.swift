@@ -13,7 +13,17 @@ extension CoreViewController {
     
     func startWallet() {
         
-        if BitcoinManager.shared.ldkNode == nil || BitcoinManager.shared.status()?.isRunning == false {
+        switch BitcoinManager.shared.claimNodeStart() {
+        case .alreadyRunning:
+            // Node is already running.
+            self.continueStartWallet()
+            
+        case .startInFlight:
+            // Node is already being started.
+            Log.info("Node start already in flight — skipping duplicate startWallet.")
+            
+        case .proceed:
+            // Node has not yet been started.
             self.startSync(.ldk)
 
             // Watchdog: building/starting the node can hang on network and
@@ -32,6 +42,7 @@ extension CoreViewController {
 
             DispatchQueue.global(qos: .userInitiated).async {
                 let didStartLDKNode = self.startLightning()
+                BitcoinManager.shared.endNodeStart()
                 DispatchQueue.main.async {
                     ldkStartCompleted = true
                     // The watchdog already surfaced the retry alert; Try again
@@ -45,8 +56,6 @@ extension CoreViewController {
                     self.continueStartWallet()
                 }
             }
-        } else {
-            self.continueStartWallet()
         }
     }
     

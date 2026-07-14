@@ -17,6 +17,10 @@ class BitcoinManager {
     public var ldkNode: LDKNode.Node?
     private var network: LDKNode.Network
     
+    // LDK Node single-flight startup guard.
+    private let nodeStartLock = NSLock()
+    private var isStartingNode = false
+    
     // BDK
     var bdkWallet: BitcoinDevKit.Wallet?
     var electrumClient: BitcoinDevKit.ElectrumClient?
@@ -49,6 +53,33 @@ class BitcoinManager {
     
     deinit {
         self.cancelEventListener()
+    }
+    
+    // MARK: Manage LDKNode starting.
+    enum NodeStartDecision {
+        case proceed         // LDKNode hasn't been started yet.
+        case startInFlight   // LDKNode is already being started.
+        case alreadyRunning  // LDKNode is already running.
+    }
+    
+    func claimNodeStart() -> NodeStartDecision {
+        nodeStartLock.lock()
+        defer { nodeStartLock.unlock() }
+        
+        if isStartingNode {
+            return .startInFlight
+        }
+        if ldkNode != nil, status()?.isRunning == true {
+            return .alreadyRunning
+        }
+        isStartingNode = true
+        return .proceed
+    }
+    
+    func endNodeStart() {
+        nodeStartLock.lock()
+        isStartingNode = false
+        nodeStartLock.unlock()
     }
     
     func didStartLDK() -> Bool {
