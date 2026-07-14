@@ -347,8 +347,9 @@ class SwapManager: NSObject {
             CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
             CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
             if swapVC.thisSwap!.isSuggested {
-                // Mark so the Home table renders this as a completed outbound
-                // transaction instead of a perpetually pending swap.
+                // Mark so the Home table renders this as an outbound
+                // transaction instead of a perpetually pending swap. Stored as
+                // pending; SwapStatusVC upgrades it once Boltz pays the invoice.
                 CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
             }
             
@@ -656,9 +657,15 @@ class SwapManager: NSObject {
         // Persist the payout txid on the swap file so the TransactionVC can show
         // it as the Onchain ID (a normal reverse swap gets it from the matched
         // claim transaction instead).
-        if ongoingSwap.isSuggested, let boltzID = ongoingSwap.boltzID, let existingSwapDetails = self.loadSwapDetailsFromFile(swapID: boltzID), let updatedSwapDetails = existingSwapDetails.mutableCopy() as? NSMutableDictionary {
-            updatedSwapDetails.setValue(transactionId, forKey: "sentOnchainTransactionID")
-            self.saveSwapDetailsToFile(swapID: boltzID, swapDictionary: updatedSwapDetails)
+        if ongoingSwap.isSuggested {
+            if let boltzID = ongoingSwap.boltzID, let existingSwapDetails = self.loadSwapDetailsFromFile(swapID: boltzID), let updatedSwapDetails = existingSwapDetails.mutableCopy() as? NSMutableDictionary {
+                updatedSwapDetails.setValue(transactionId, forKey: "sentOnchainTransactionID")
+                self.saveSwapDetailsToFile(swapID: boltzID, swapDictionary: updatedSwapDetails)
+            }
+
+            // The claim transaction paying the recipient has been broadcast —
+            // only now does the suggested swap count as succeeded.
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .succeeded)
         }
         
         // Light sync wallet to add transaction to table.

@@ -716,25 +716,41 @@ class CacheManager: NSObject {
     }
     
     // MARK: - Suggested swaps
-    
-    static func storeSuggestedSwap(dateID:String) {
+
+    // Each entry holds the swap's last observed status ("pending" until the
+    // recipient is actually paid, then "succeeded" or "failed"), so the Home
+    // table never shows a suggested swap as succeeded before it completes.
+    static func storeSuggestedSwap(dateID:String, status:SwapStatus = .pending) {
+        let statusString:String
+        switch status {
+        case .succeeded: statusString = "succeeded"
+        case .failed: statusString = "failed"
+        case .pending: statusString = "pending"
+        }
         let defaults = UserDefaults.standard
         if let cached = defaults.value(forKey: "suggestedswaps") as? NSDictionary, let actual = cached.mutableCopy() as? NSMutableDictionary {
-            actual.setObject(true, forKey: dateID as NSCopying)
+            actual.setObject(statusString, forKey: dateID as NSCopying)
             defaults.set(actual, forKey: "suggestedswaps")
         } else {
             let suggested = NSMutableDictionary()
-            suggested.setObject(true, forKey: dateID as NSCopying)
+            suggested.setObject(statusString, forKey: dateID as NSCopying)
             defaults.set(suggested, forKey: "suggestedswaps")
         }
     }
-    
-    static func isSuggestedSwap(dateID:String) -> Bool {
+
+    static func getSuggestedSwapStatus(dateID:String) -> SwapStatus? {
         let defaults = UserDefaults.standard
-        if let suggested = defaults.value(forKey: "suggestedswaps") as? NSDictionary {
-            return (suggested[dateID] as? Bool) ?? false
+        guard let suggested = defaults.value(forKey: "suggestedswaps") as? NSDictionary, let value = suggested[dateID] else {
+            return nil
         }
-        return false
+        switch value as? String {
+        case "succeeded": return .succeeded
+        case "failed": return .failed
+        case "pending": return .pending
+        default:
+            // Entries written before status tracking stored a Bool.
+            return (value as? Bool) == true ? .succeeded : nil
+        }
     }
     
     // MARK: - Invoice description

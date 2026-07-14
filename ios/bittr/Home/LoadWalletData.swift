@@ -767,9 +767,9 @@ extension [Transaction] {
                 let thisTransaction = (eachSetOfTransactions as! [Transaction])[0]
                 let thisSwapID = (eachSwapID as! String)
                 
-                if CacheManager.isSuggestedSwap(dateID: thisSwapID) {
+                if let suggestedSwapStatus = CacheManager.getSuggestedSwapStatus(dateID: thisSwapID) {
                     thisTransaction.isSuggestedSwap = true
-                    thisTransaction.swapStatus = .succeeded
+                    thisTransaction.swapStatus = suggestedSwapStatus
                     if thisSwapID.contains("onchain to lightning") {
                         thisTransaction.swapDirection = .onchainToLightning
                     } else {
