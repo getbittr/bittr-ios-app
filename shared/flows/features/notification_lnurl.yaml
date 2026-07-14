@@ -114,13 +114,14 @@ appId: com.bittr.bittr-regtest
 - runFlow: ../helpers/unlock.yaml
 
 # On sign-in, because a notification is waiting (lightningNotification != nil),
-# the app shows the "syncing wallet" pending view in the middle of the screen
-# while the wallet syncs. Wait for it, then capture it before it gives way to the
-# deferred processing.
-- extendedWaitUntil:
-    visible:
-      text: ".*[Ss]yncing wallet.*"
-    timeout: 30000
+# the app shows the "syncing wallet" loading card while the wallet syncs. On a
+# warm wallet the sync finishes so fast that the card can appear and vanish
+# between two Maestro hierarchy polls, so this check is best-effort (optional):
+# it documents the intermediate state when it's catchable, but the terminal
+# "Payment Request Failed" alert below is the real proof of the deferred path.
+- assertVisible:
+    text: ".*[Ss]yncing wallet.*"
+    optional: true
 - takeScreenshot: shared/docs/screenshots/notification_lnurl/03_syncing
 
 # Once synced the stored notification is re-processed (generate invoice → POST).
