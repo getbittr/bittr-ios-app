@@ -19,22 +19,30 @@ extension SwapViewController {
         
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
-            
-            let didStartBDK = BitcoinManager.shared.didStartBDK()
-            if didStartBDK {
-                Log.info("Did start BDK.")
-                BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                    if hasBeenSynced {
-                        Log.info("Did scan BDK wallet.")
-                        self.calculateSendableAmount()
+
+            // didStartBDK is synchronous and blocking (descriptor derivation,
+            // SQLite connection, electrum client setup), so run it off main
+            // and hop back for the UI outcomes. didSyncBdkWallet manages its
+            // own threading and completes on main.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let didStartBDK = BitcoinManager.shared.didStartBDK()
+                DispatchQueue.main.async {
+                    if didStartBDK {
+                        Log.info("Did start BDK.")
+                        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                            if hasBeenSynced {
+                                Log.info("Did scan BDK wallet.")
+                                self.calculateSendableAmount()
+                            } else {
+                                Log.info("Could not scan BDK wallet.")
+                                self.presentOnchainSyncFailedAlert()
+                            }
+                        }
                     } else {
-                        Log.info("Could not scan BDK wallet.")
+                        Log.info("Could not start BDK.")
                         self.presentOnchainSyncFailedAlert()
                     }
                 }
-            } else {
-                Log.info("Could not start BDK.")
-                self.presentOnchainSyncFailedAlert()
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")
@@ -233,14 +241,19 @@ extension SwapViewController {
             return
         }
 
-        let didStartBDK = BitcoinManager.shared.didStartBDK()
-        guard didStartBDK else {
-            Log.info("Could not start BDK for suggested swap.")
-            DispatchQueue.main.async { completion(false) }
-            return
-        }
-        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-            DispatchQueue.main.async { completion(hasBeenSynced) }
+        // didStartBDK is synchronous and blocking — run it off main (this
+        // function is reached via main-queue polling in awaitBdkScan). The
+        // completions are already marshalled back to main.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let didStartBDK = BitcoinManager.shared.didStartBDK()
+            guard didStartBDK else {
+                Log.info("Could not start BDK for suggested swap.")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                DispatchQueue.main.async { completion(hasBeenSynced) }
+            }
         }
     }
     

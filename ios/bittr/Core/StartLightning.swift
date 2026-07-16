@@ -15,9 +15,29 @@ extension CoreViewController {
         
         if BitcoinManager.shared.ldkNode == nil || BitcoinManager.shared.status()?.isRunning == false {
             self.startSync(.ldk)
+
+            // Watchdog: building/starting the node can hang on network and
+            // didStartLDK has no timeout of its own, so without a deadline a
+            // hang means spinner-forever. Surface the retry alert after 15s
+            // (the same deadline the previous async implementation raced
+            // against). Both flags are only touched on main, so no races.
+            var ldkStartCompleted = false
+            var ldkWatchdogFired = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                guard !ldkStartCompleted else { return }
+                ldkWatchdogFired = true
+                Log.info("Starting LDK Node takes too long.")
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+            }
+
             DispatchQueue.global(qos: .userInitiated).async {
                 let didStartLDKNode = self.startLightning()
                 DispatchQueue.main.async {
+                    ldkStartCompleted = true
+                    // The watchdog already surfaced the retry alert; Try again
+                    // re-enters startWallet, which sees the now-running node
+                    // and continues immediately.
+                    guard !ldkWatchdogFired else { return }
                     guard didStartLDKNode else {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
                         return
@@ -59,9 +79,15 @@ extension CoreViewController {
                 }
             }
             
-            // Load wallet data.
-            self.homeVC?.loadWalletData()
-            
+            // Load wallet data — mixed data + UI work (balance labels, table
+            // reload, finalizeSync), so it must run on main, same as the hop
+            // syncLDKnode keeps for the identical call. Splitting its data
+            // phase off-main is the better follow-up. BDK start continues on
+            // this queue concurrently, as it did before the refactor.
+            DispatchQueue.main.async {
+                self.homeVC?.loadWalletData()
+            }
+
             // Start BDK.
             self.startBDK()
         }
