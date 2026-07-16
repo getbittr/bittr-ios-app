@@ -632,6 +632,13 @@ extension [Transaction] {
                     
                     // Amount and fees.
                     swapTransaction.sent = firstTransaction.received + secondTransaction.received - firstTransaction.sent - secondTransaction.sent
+
+                    // Per-leg fees live on Transaction.fee (onchain network fee for
+                    // the onchain leg, lightning routing fee for an outbound
+                    // lightning leg). The home row renders cost as
+                    // (received - sent - fee), so without this the user-paid fee
+                    // on either side gets dropped from the displayed swap cost.
+                    // Inbound legs have fee = 0, so summing both is safe.
                     swapTransaction.fee = firstTransaction.fee + secondTransaction.fee
                     
                     // Direction.
