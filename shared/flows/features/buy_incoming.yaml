@@ -159,10 +159,16 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.0"
 
-# Add a note. The note alert is a native UIAlertController with a text field;
-# type the note and tap Save.
+# Add a note. The note alert is our custom text-field alert; tap the field to
+# focus it (tapOn also waits out the alert's slide-up), type the note, tap Save.
 - tapOn:
     id: "transaction.addNoteButton"
+- tapOn:
+    id: "alert.textField"
+# Capture the note alert once the keyboard has finished popping up.
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: shared/docs/screenshots/buy_incoming/10a_note_alert
 - inputText: "Funding transaction buy_incoming"
 - tapOn:
     text: "Save"

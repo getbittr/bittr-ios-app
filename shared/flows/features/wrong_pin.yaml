@@ -36,16 +36,21 @@ appId: com.bittr.bittr-regtest
 ---
 - launchApp
 
-# Self-provision a wallet if there isn't one. On launch an existing wallet shows
-# the PIN unlock screen (unlock.topLabel); if it's absent (fresh device, or a
-# previous run already wiped the wallet) restore one first. restore_wallet ends
-# on Home, so the relaunch below returns us to the locked unlock screen.
+# Self-provision a wallet if there isn't one. Let the cold-start launch
+# animation settle first — right after launchApp nothing has rendered yet, so
+# an absence gate ("unlock screen not visible") evaluated at that moment would
+# clearState-restore over a perfectly good wallet. Restore only on POSITIVE
+# evidence of no wallet: the app launched to the create-wallet signup screen
+# (same pattern as payment_mode.yaml). restore_wallet ends on Home, so the
+# relaunch below returns us to the locked unlock screen.
 # NOTE: restore_wallet yields a wallet with NO open channel — exactly this
 # test's precondition. For the open-channel case use wrong_pin_with_channel.yaml.
+- waitForAnimationToEnd:
+    timeout: 15000
 - runFlow:
     when:
-      notVisible:
-        id: "unlock.topLabel"
+      visible:
+        id: "signup.create.start.createWalletButton"
     file: ../onboarding/restore_wallet.yaml
 
 # Back to the locked unlock screen (no-op relaunch if a wallet already existed).

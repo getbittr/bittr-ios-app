@@ -186,7 +186,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 self.bdkSpinner.stopAnimating()
                 
                 if self.maximumSendableOnchainBtc == nil {
-                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
+                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                 }
                 let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
                 self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())

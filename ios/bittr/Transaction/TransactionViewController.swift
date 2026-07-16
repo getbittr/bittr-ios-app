@@ -636,23 +636,22 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func noteButtonTapped(_ sender: UIButton) {
-        
-        let alert = UIAlertController(title: Language.getWord(withID: "addanote"), message: "", preferredStyle: .alert)
-        alert.addTextField { (textField) in
-            textField.text = "\(self.labelNote.text ?? "")"
-        }
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "save"), style: .default, handler: { (save) in
-            
-            let noteText = alert.textFields![0].text!
+
+        self.showTextFieldAlert(
+            presentingController: self,
+            title: Language.getWord(withID: "addanote"),
+            initialText: self.labelNote.text ?? "",
+            placeholder: Language.getWord(withID: "addanote"),
+            cancelTitle: Language.getWord(withID: "cancel"),
+            saveTitle: Language.getWord(withID: "save")
+        ) { [weak self] noteText in
+            guard let self = self else { return }
             if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
-                
                 CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: noteText)
                 self.labelNote.text = noteText
                 self.showNoteStack()
             }
-        }))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        }
     }
     
     @IBAction func idButtonTapped(_ sender: UIButton) {

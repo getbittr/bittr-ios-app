@@ -91,7 +91,16 @@ class Transfer4ViewController: UIViewController {
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         
         for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.id == currentIbanID {
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "bankingapp"), message: "\n\(Language.getWord(withID: "bankingapp2"))\n\n\(eachIbanEntity.ourIbanNumber)\n\(eachIbanEntity.ourName)\n\(eachIbanEntity.yourUniqueCode)", buttons: [Language.getWord(withID: "done")], actions: [#selector(self.proceedToWallet)])
+            self.showAlert(
+                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self,
+                title: Language.getWord(withID: "bankingapp"),
+                message: Language.getWord(withID: "bankingapp2")
+                .replacingOccurrences(of: "<ouribannumber>", with: eachIbanEntity.ourIbanNumber)
+                .replacingOccurrences(of: "<ourname>", with: eachIbanEntity.ourName)
+                .replacingOccurrences(of: "<youruniquecode>", with: eachIbanEntity.yourUniqueCode),
+                buttons: [Language.getWord(withID: "done")],
+                actions: [#selector(self.proceedToWallet)]
+            )
         }
     }
     
