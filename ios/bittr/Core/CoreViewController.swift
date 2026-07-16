@@ -12,7 +12,6 @@ import Sentry
 class CoreViewController: UIViewController {
     
     // App start booleans
-    var walletIsAvailable = false
     var userHasSignedIn = false
     var walletHasSynced = false
     
@@ -138,33 +137,10 @@ class CoreViewController: UIViewController {
         // Identify current dark mode.
         CacheManager.setCurrentDarkMode(darkModeIsOn: self.darkModeIsOn())
         
-        // Add observers.
-        NotificationCenter.default.addObserver(self, selector: #selector(newNotification), name: NSNotification.Name(rawValue: "newNotification"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleLightningURI), name: NSNotification.Name(rawValue: "handleLightningURI"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        
         // Set words.
         self.setWords()
         self.setBasicStyling()
-
-        self.leftButton.accessibilityIdentifier = TestID.Nav.walletButton
-        self.middleButton.accessibilityIdentifier = TestID.Nav.academyButton
-        self.rightButton.accessibilityIdentifier = TestID.Nav.settingsButton
-
-        self.statusView.accessibilityIdentifier = TestID.Sync.statusView
-        self.syncCloseButton.accessibilityIdentifier = TestID.Sync.closeButton
-
-        // Swipe the settings popup down to dismiss it. Added once here (the
-        // container is a persistent storyboard view); the handler no-ops while
-        // the popup is closed.
-        let settingsPan = UIPanGestureRecognizer(target: self, action: #selector(self.handleSettingsPan(_:)))
-        // Recognise alongside the settings table's scroll pan so a drag started
-        // on a row still dismisses (the table is content-height and non-scrolling).
-        settingsPan.delegate = self
-        self.settingsContainer.addGestureRecognizer(settingsPan)
-
+        
         // Check wallet.
         self.checkWalletAvailability()
     }
@@ -173,11 +149,10 @@ class CoreViewController: UIViewController {
         
         // Check wallet availability.
         if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
-            // Wallet has been created.
-            self.walletIsAvailable = true
+            // Wallet has been created. The pin container is revealed by
+            // revealPinOrSignup once the launch animation's cover drops.
         } else {
             // User has not completed signup.
-            self.walletIsAvailable = false
             // Remove cached mnemonic.
             CacheManager.deleteClientInfo()
             // Show SignupVC.
@@ -185,35 +160,37 @@ class CoreViewController: UIViewController {
         }
     }
     
-    func showPinOrSignup() {
-        
-        // Show Pin or Signup view upon app launch.
-        if self.walletIsAvailable {
+    func revealPinOrSignup() {
+        // Reveal the pin or signup container. Called from the launch
+        // animation as its cover drops — NOT at viewDidLoad: revealing these
+        // under the still-opaque animation cover puts their buttons in the
+        // accessibility tree while taps still land on the cover, which
+        // silently swallows the first interaction (and broke every Maestro
+        // flow whose tap raced the intro animation).
+        if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
-
-            // Check whether the user has been locked out of their wallet.
-            // Guard against re-entry: once the removal is in progress, don't stack
-            // another lockout alert + a second concurrent startWallet() task if
-            // showPinOrSignup runs again.
-            if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
-                Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
-                self.removingWalletForIncorrectPin = true
-                self.fullViewCover.alpha = 0.8
-                self.genericSpinner.startAnimating()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                
-                // Start wallet in background.
-                Task {
-                    await self.startWallet()
-                }
-            } else if CacheManager.walletRemovalIsInProgress() {
-                Log.info("A wallet removal was left in progress — offering to resume it on launch.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
-            }
         } else {
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
+        }
+    }
+
+    func checkWalletRemoval() {
+        // Upon app launch, check whether the user is locked out.
+        // Or whether the user has previously tried removing the wallet.
+        if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
+            Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
+            self.removingWalletForIncorrectPin = true
+            self.fullViewCover.alpha = 0.8
+            self.genericSpinner.startAnimating()
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            
+            // Start wallet in background.
+            self.startWallet()
+        } else if CacheManager.walletRemovalIsInProgress() {
+            Log.info("A wallet removal was left in progress — offering to resume it on launch.")
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
         }
     }
     

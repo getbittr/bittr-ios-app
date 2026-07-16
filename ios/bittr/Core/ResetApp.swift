@@ -120,9 +120,7 @@ extension CoreViewController {
         self.genericSpinner.startAnimating()
         
         // Sync wallet.
-        Task {
-            await self.startWallet()
-        }
+        self.startWallet()
     }
 
     @objc func resumeWalletRemoval() {
@@ -185,8 +183,17 @@ extension CoreViewController {
             }
             return
         }
-
-        if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() else {
+                // No channel to close — re-evaluate the wipe gate (wipes only if the
+                // funds have fully settled, otherwise shows the "still closing" alert).
+                DispatchQueue.main.async {
+                    self.restoreWalletTapped()
+                }
+                return
+            }
+            
             do {
                 Log.info("Will attempt cooperative channel closure.")
                 try BitcoinManager.shared.closeChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)
@@ -227,12 +234,6 @@ extension CoreViewController {
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 }
             }
-        } else {
-            // No channel to close — re-evaluate the wipe gate (wipes only if the
-            // funds have fully settled, otherwise shows the "still closing" alert).
-            DispatchQueue.main.async {
-                self.restoreWalletTapped()
-            }
         }
     }
 
@@ -247,8 +248,17 @@ extension CoreViewController {
         // Force close is a manual-only path; the removal is committed, so mark it
         // in progress to resume on the next launch if it doesn't finish.
         CacheManager.setWalletRemovalInProgress(true)
-
-        if let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() {
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let closingChannel = BitcoinManager.shared.listChannels().getActiveChannel() else {
+                // No channel to close — re-evaluate the wipe gate rather than wiping
+                // unconditionally (there may still be pending sweeps to wait on).
+                DispatchQueue.main.async {
+                    self.restoreWalletTapped()
+                }
+                return
+            }
+            
             // Try force close (unilateral closure)
             Log.info("Attempting force close for channel.")
             print("Channel ID: \(closingChannel.userChannelId)")
@@ -280,12 +290,6 @@ extension CoreViewController {
                 self.fullViewCover.alpha = 0
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: Language.getWord(withID: "forceclose4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
-        } else {
-            // No channel to close — re-evaluate the wipe gate rather than wiping
-            // unconditionally (there may still be pending sweeps to wait on).
-            DispatchQueue.main.async {
-                self.restoreWalletTapped()
-            }
         }
     }
     
@@ -307,64 +311,69 @@ extension CoreViewController {
         BitcoinManager.shared.bittrWallet = BittrWallet()
         
         // Remove wallet from device and remove corresponding cached data.
-        do {
-            Log.info("Starting wallet reset cleanup")
-            
-            // Always try to stop the node first if it exists
-            if BitcoinManager.shared.ldkNode != nil {
-                Log.info("Stopping Lightning node")
-                try BitcoinManager.shared.stop()
-                Log.info("Lightning node stopped successfully")
-            }
-            
-            // Always clean up documents directory
-            Log.info("Cleaning up documents directory")
-            try BitcoinManager.shared.deleteDocuments()
-            Log.info("Documents directory cleaned successfully")
-            
-            // Reset node state to clear all references
-            Log.info("Resetting node state")
-            BitcoinManager.shared.resetNodeState()
-            Log.info("Node state reset completed")
-            
-        } catch {
-            Log.info("Error during cleanup: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "ResetApp row 269", key: "context")
-                }
-            }
-            
-            // Even if everything fails, try to clean up documents
+        DispatchQueue.global(qos: .userInitiated).async {
             do {
-                Log.info("Attempting final fallback document cleanup")
+                Log.info("Starting wallet reset cleanup")
+                
+                // Always try to stop the node first if it exists
+                if BitcoinManager.shared.ldkNode != nil {
+                    Log.info("Stopping Lightning node")
+                    try BitcoinManager.shared.stop()
+                    Log.info("Lightning node stopped successfully")
+                }
+                
+                // Always clean up documents directory
+                Log.info("Cleaning up documents directory")
                 try BitcoinManager.shared.deleteDocuments()
-                Log.info("Final fallback document cleanup successful")
+                Log.info("Documents directory cleaned successfully")
+                
+                // Reset node state to clear all references
+                Log.info("Resetting node state")
+                BitcoinManager.shared.resetNodeState()
+                Log.info("Node state reset completed")
+                
             } catch {
-                Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
+                Log.info("Error during cleanup: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 282", key: "context")
+                        scope.setExtra(value: "ResetApp row 269", key: "context")
+                    }
+                }
+                
+                // Even if everything fails, try to clean up documents
+                do {
+                    Log.info("Attempting final fallback document cleanup")
+                    try BitcoinManager.shared.deleteDocuments()
+                    Log.info("Final fallback document cleanup successful")
+                } catch {
+                    Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        SentrySDK.capture(error: error) { scope in
+                            scope.setExtra(value: "ResetApp row 282", key: "context")
+                        }
                     }
                 }
             }
-        }
-        
-        // Hide signup view and launch create wallet flow
-        // Since we've cleared the PIN, we need to manually show the create wallet flow
-        self.hideSignup()
-        self.userHasSignedIn = false
-        
-        // Launch signup on create wallet page after a delay to ensure cleanup is complete
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            Log.info("ResetApp - Launching signup after cleanup")
-            self.launchSignup(onPage: 3) // Page 3 is create wallet
-            self.showSignup()
             
-            // Show HomeVC.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.genericSpinner.stopAnimating()
-                self.fullViewCover.alpha = 0
+            // Cleanup done — relaunch the create-wallet flow on main.
+            DispatchQueue.main.async {
+                // Hide signup view and launch create wallet flow
+                // Since we've cleared the PIN, we need to manually show the create wallet flow
+                self.hideSignup()
+                self.userHasSignedIn = false
+                
+                // Launch signup on create wallet page after a delay to ensure cleanup is complete
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    Log.info("ResetApp - Launching signup after cleanup")
+                    self.launchSignup(onPage: 3) // Page 3 is create wallet
+                    self.showSignup()
+                    
+                    // Show HomeVC.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
+                    }
+                }
             }
         }
     }
@@ -379,34 +388,36 @@ extension CoreViewController {
             self.homeVC!.setTotalSats()
         }
         
-        // Trigger a fresh sync to get updated channel data
-        do {
-            Log.info("Syncing wallet to get updated channel count")
-            try BitcoinManager.shared.syncWallets()
-        } catch {
-            Log.info("Error syncing after channel closure: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "ResetApp row 347", key: "context")
+        // Trigger a fresh sync to get updated channel data.
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                Log.info("Syncing wallet to get updated channel count")
+                try BitcoinManager.shared.syncWallets()
+            } catch {
+                Log.info("Error syncing after channel closure: \(error)")
+                DispatchQueue.main.async {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "ResetApp row 347", key: "context")
+                    }
                 }
-            }
-            return
-        }
-            
-        // Get fresh channel data
-        let updatedChannels = BitcoinManager.shared.listChannels()
-        Log.info("Updated channel count: \(updatedChannels.count)")
-        
-        DispatchQueue.main.async {
-            // Update the cached channel data
-            BitcoinManager.shared.bittrWallet.lightningChannels = updatedChannels
-            
-            // Update balance if needed
-            if self.homeVC!.balanceLabel.alpha == 1 {
-                self.homeVC!.setTotalSats()
+                return
             }
             
-            Log.info("Channel cache updated successfully")
+            // Get fresh channel data
+            let updatedChannels = BitcoinManager.shared.listChannels()
+            Log.info("Updated channel count: \(updatedChannels.count)")
+            
+            DispatchQueue.main.async {
+                // Update the cached channel data
+                BitcoinManager.shared.bittrWallet.lightningChannels = updatedChannels
+                
+                // Update balance if needed
+                if self.homeVC!.balanceLabel.alpha == 1 {
+                    self.homeVC!.setTotalSats()
+                }
+                
+                Log.info("Channel cache updated successfully")
+            }
         }
     }
 

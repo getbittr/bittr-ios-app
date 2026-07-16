@@ -209,22 +209,30 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         // Check whether BDK wallet is currently scanning.
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
-            
-            BitcoinManager.shared.didStartBDK { success in
-                if success {
-                    Log.info("Did start BDK.")
-                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                        if hasBeenSynced {
-                            Log.info("Did scan BDK wallet.")
-                            self.setSendAllLabel()
-                        } else {
-                            Log.info("Could not scan BDK wallet.")
-                            self.presentOnchainSyncFailedAlert()
+
+            // didStartBDK is synchronous and blocking (descriptor derivation,
+            // SQLite connection, electrum client setup), so run it off main
+            // and hop back for the UI outcomes. didSyncBdkWallet manages its
+            // own threading and completes on main.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let didStartBDK = BitcoinManager.shared.didStartBDK()
+                DispatchQueue.main.async {
+                    if didStartBDK {
+                        Log.info("Did start BDK.")
+
+                        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                            if hasBeenSynced {
+                                Log.info("Did scan BDK wallet.")
+                                self.setSendAllLabel()
+                            } else {
+                                Log.info("Could not scan BDK wallet.")
+                                self.presentOnchainSyncFailedAlert()
+                            }
                         }
+                    } else {
+                        Log.info("Could not start BDK.")
+                        self.presentOnchainSyncFailedAlert()
                     }
-                } else {
-                    Log.info("Could not start BDK.")
-                    self.presentOnchainSyncFailedAlert()
                 }
             }
         } else {

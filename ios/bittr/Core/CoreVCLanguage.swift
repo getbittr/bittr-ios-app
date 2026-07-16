@@ -86,5 +86,23 @@ extension CoreViewController {
         self.syncCloseButton.setTitle("", for: .normal)
         self.settingsBackgroundButton.setTitle("", for: .normal)
         
+        // Add observers.
+        NotificationCenter.default.addObserver(self, selector: #selector(newNotification), name: NSNotification.Name(rawValue: "newNotification"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleLightningURI), name: NSNotification.Name(rawValue: "handleLightningURI"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+        
+        // Test IDs
+        self.leftButton.accessibilityIdentifier = TestID.Nav.walletButton
+        self.middleButton.accessibilityIdentifier = TestID.Nav.academyButton
+        self.rightButton.accessibilityIdentifier = TestID.Nav.settingsButton
+        self.statusView.accessibilityIdentifier = TestID.Sync.statusView
+        self.syncCloseButton.accessibilityIdentifier = TestID.Sync.closeButton
+        
+        // Settings handler.
+        let settingsPan = UIPanGestureRecognizer(target: self, action: #selector(self.handleSettingsPan(_:)))
+        settingsPan.delegate = self
+        self.settingsContainer.addGestureRecognizer(settingsPan)
     }
 }
