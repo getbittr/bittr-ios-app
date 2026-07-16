@@ -11,20 +11,51 @@ if (output.bankTransactionAmount != null) {
     payload.amount = output.bankTransactionAmount;
 }
 
-var response = http.post(
+// The staging gateway occasionally answers with a transient 5xx (e.g. a 502
+// while it redeploys); one blip must not kill a whole suite run. Retry with a
+// linear busy-wait backoff (Maestro's JS sandbox has no sleep/import, so the
+// helper is inlined — same pattern in the other staging-facing scripts). 4xx
+// is NOT retried: the request itself is wrong and retrying can't fix it.
+function postWithRetry(url, options, label) {
+    var attempts = 5;
+    var response = null;
+    for (var i = 1; i <= attempts; i++) {
+        try {
+            response = http.post(url, options);
+        } catch (e) {
+            response = null;
+            console.log(label + ' attempt ' + i + '/' + attempts + ' network error: ' + e);
+        }
+        if (response != null && response.status < 500) {
+            return response;
+        }
+        if (response != null) {
+            console.log(label + ' attempt ' + i + '/' + attempts + ' got ' + response.status + ' — retrying');
+        }
+        if (i < attempts) {
+            var waitMs = 3000 * i;
+            var start = Date.now();
+            while (Date.now() - start < waitMs) { /* spin */ }
+        }
+    }
+    return response;
+}
+
+var response = postWithRetry(
     'https://staging.getbittr.com/api/e2e/bank-transaction',
     {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-    }
+    },
+    'e2e bank-transaction'
 );
 
 console.log('e2e bank-transaction payload: ' + JSON.stringify(payload));
-console.log('e2e bank-transaction status: ' + response.status);
-console.log('e2e bank-transaction body: ' + response.body);
+console.log('e2e bank-transaction status: ' + (response == null ? 'no response' : response.status));
+console.log('e2e bank-transaction body: ' + (response == null ? '' : response.body));
 
-if (response.status < 200 || response.status >= 300) {
-    throw new Error('Bank transaction trigger failed: ' + response.status + ' ' + response.body);
+if (response == null || response.status < 200 || response.status >= 300) {
+    throw new Error('Bank transaction trigger failed after retries: ' + (response == null ? 'no response' : response.status + ' ' + response.body));
 }
 
 // Capture the fields the calling flow needs to fake the matching APNS push

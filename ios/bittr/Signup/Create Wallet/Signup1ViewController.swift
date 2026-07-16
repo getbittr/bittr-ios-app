@@ -65,6 +65,7 @@ class Signup1ViewController: UIViewController {
         self.headerLabel.accessibilityIdentifier = TestID.Signup.Create.Start.headerLabel
         self.createWalletButton.accessibilityIdentifier = TestID.Signup.Create.Start.createWalletButton
         self.restoreButton.accessibilityIdentifier = TestID.Signup.Create.Start.restoreButton
+        self.articleButton.accessibilityIdentifier = TestID.Signup.Create.Start.articleButton
 
         // Set colors, words, article.
         self.setWords()

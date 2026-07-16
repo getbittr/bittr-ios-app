@@ -1,9 +1,12 @@
 # Feature test: lightning send end-to-end (three invoice types).
 #
 # Starts like features/send_onchain.yaml (launch, auto-recover/unlock, wait for
-# the Home sync spinner) and then sends three lightning payments back to back,
-# exercising the normal-invoice, zero-amount-invoice and Lightning-Address
-# (LNURL) paths:
+# the Home sync spinner). First it inspects the lightning channel — taps the
+# balance card → MoveViewController → the question mark next to the lightning
+# balance → QuestionViewController, which (with an open channel) shows the
+# channel-statistics chart — then closes back to Home. It then sends three
+# lightning payments back to back, exercising the normal-invoice,
+# zero-amount-invoice and Lightning-Address (LNURL) paths:
 #   1. Normal invoice (amount baked in): Send → Paste → the amount field
 #      auto-populates → Next → Confirm screen (invoice + amount) → Send →
 #      TransactionViewController with the confirmed payment → close it.
@@ -70,6 +73,42 @@ appId: com.bittr.bittr-regtest
       id: "home.headerSpinner"
     timeout: 60000
 - takeScreenshot: shared/docs/screenshots/send_lightning/01_home
+
+# ---------------------------------------------------------------------------
+# 0. Inspect the lightning channel via the balance screen.
+# ---------------------------------------------------------------------------
+
+# Tap the balance card → MoveViewController. profitButton overlays the lower
+# half of the card, so tap the upper half (50%,20%) to hit the balance numbers
+# rather than routing to Profit (same trick as swap.yaml).
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- takeScreenshot: shared/docs/screenshots/send_lightning/01a_move
+
+# Tap the question mark next to the lightning (instant) balance → the
+# QuestionViewController. This test always runs with an open channel, so the
+# channel-statistics chart is shown.
+- tapOn:
+    id: "move.channelButton"
+- assertVisible:
+    id: "question.yellowCard"
+- assertVisible:
+    id: "question.channelView"
+- takeScreenshot: shared/docs/screenshots/send_lightning/01b_channel_stats
+
+# Close the QuestionViewController (header down button) → back on Move.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "move.subtitleLabel"
+# Close the MoveViewController → back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
 
 # ---------------------------------------------------------------------------
 # 1. Normal invoice (amount baked in).
@@ -246,13 +285,15 @@ appId: com.bittr.bittr-regtest
 - inputText: "e2ebittr@staging.getbittr.com"
 - pressKey: Enter
 
-# LNURL resolves: the spinner stops and (when the address has a payable range)
-# a "Pay request" alert announces the range. Wait the spinner out, confirm the
-# alert message, then tap Okay (single button at index 0). Match a substring so
-# the exact min/max numbers and the apostrophe don't matter.
+# LNURL resolves: the "Handling LNURL" loading overlay clears and (when the
+# address has a payable range) a "Pay request" alert announces the range. Wait
+# the overlay out, confirm the alert message, then tap Okay (single button at
+# index 0). Match a substring so the exact min/max numbers and the apostrophe
+# don't matter. (The overlay is the shared bottom loading popup — matched by its
+# label text, since it has no test-id.)
 - extendedWaitUntil:
     notVisible:
-      id: "send.lnurlSpinner"
+      text: ".*Handling LNURL.*"
     timeout: 30000
 - extendedWaitUntil:
     visible:

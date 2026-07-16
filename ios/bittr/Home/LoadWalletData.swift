@@ -13,38 +13,32 @@ extension HomeViewController {
 
     func loadWalletData() {
         
-        // Ensure CoreVC availability.
-        guard self.coreVC != nil else {
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
         // Get channels, balance, and funding transaction ID.
-        self.coreVC!.bittrWallet.satoshisLightning = 0
-        self.coreVC?.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
-        if let activeChannel = self.coreVC?.bittrWallet.lightningChannels.getActiveChannel() {
+        BitcoinManager.shared.bittrWallet.satoshisLightning = 0
+        BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
+        if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
             if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
                 CacheManager.storeTxoID(txoID: channelTxoID)
             }
             if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
                 // Channel balance is more than punishment reserve.
-                self.coreVC!.bittrWallet.satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
+                BitcoinManager.shared.bittrWallet.satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
             } else {
                 // Channel balance is less than punishment reserve.
-                self.coreVC!.bittrWallet.satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
+                BitcoinManager.shared.bittrWallet.satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
             }
         }
         
         // Get transactions.
-        self.coreVC?.bittrWallet.allTransactions = BitcoinManager.shared.listPayments()
+        BitcoinManager.shared.bittrWallet.allTransactions = BitcoinManager.shared.listPayments()
         
         // Get onchain balance.
-        self.coreVC?.bittrWallet.satoshisOnchain = Int(BitcoinManager.shared.ldkNode!.listBalances().totalOnchainBalanceSats)
+        BitcoinManager.shared.bittrWallet.satoshisOnchain = Int(BitcoinManager.shared.ldkNode!.listBalances().totalOnchainBalanceSats)
         
         Task {
             // Check whether transactions were Bittr purchases.
-            _ = await self.getBittrTransactionDetails(sendAll: false)
-            
+            _ = await self.getBittrTransactionDetails()
+
             DispatchQueue.main.async {
                 self.updateTransactionHistory()
             }
@@ -71,7 +65,7 @@ extension HomeViewController {
         }
         
         // Create new transaction entities.
-        for eachPayment in self.coreVC!.bittrWallet.allTransactions {
+        for eachPayment in BitcoinManager.shared.bittrWallet.allTransactions {
             // Add succeeded new payments to table.
             if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (Int((eachPayment.amountMsat ?? 0)/1000) > 0 || Int((eachPayment.feePaidMsat ?? 0)/1000) > 0)) || (eachPayment.status == .pending && eachPayment.kind.isOnchain && eachPayment.direction == .inbound)) {
                 
@@ -119,26 +113,23 @@ extension HomeViewController {
         // Calculate profits.
         self.calculateProfit()
         
-        if !self.coreVC!.walletHasSynced {
+        if (self.coreVC != nil && !self.coreVC!.walletHasSynced) {
             // Finalize sync.
             self.finalizeSync()
-        } else if (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
+        } else if self.coreVC != nil, (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
             // User is locked out and is retrying removing their wallet.
             self.coreVC!.restoreWalletTapped()
         }
     }
     
     
-    func getBittrTransactionDetails(sendAll:Bool) async -> Bool {
-        
+    func getBittrTransactionDetails() async -> Bool {
         // Check if transactions were Bittr purchases with the Bittr API.
         
         // Get this user's unique Bittr codes.
         var depositCodes = [String]()
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.yourUniqueCode != "" {
-                depositCodes += [eachIbanEntity.yourUniqueCode]
-            }
+        for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
+            depositCodes += [eachIbanEntity.yourUniqueCode]
         }
         if depositCodes.count == 0 {
             Log.info("No TxIds are being sent to Bittr, because there are no deposit codes registered to this device.")
@@ -146,38 +137,28 @@ extension HomeViewController {
         }
         
         // Create array of transaction IDs to send to Bittr.
+        // Only send new transaction IDs to Bittr.
         var sendableTxIDs = [String]()
-        if sendAll {
-            // Send all transaction IDs to Bittr again.
-            for eachTransaction in self.visibleTransactions {
-                sendableTxIDs += [eachTransaction.id]
-            }
-        } else {
-            // Only send new transaction IDs to Bittr.
             
-            // Add all lightning payment IDs.
-            for eachPayment in self.coreVC!.bittrWallet.allTransactions {
-                let txID = eachPayment.kind.transactionID ?? eachPayment.id
-                if eachPayment.status == .succeeded, eachPayment.direction == .inbound, !CacheManager.getSentToBittr().contains(txID) {
-                    sendableTxIDs += [txID]
-                }
+        // Add all lightning payment IDs.
+        for eachPayment in BitcoinManager.shared.bittrWallet.allTransactions {
+            let txID = eachPayment.kind.transactionID ?? eachPayment.id
+            if eachPayment.status == .succeeded, eachPayment.direction == .inbound, !CacheManager.getSentToBittr().contains(txID) {
+                sendableTxIDs += [txID]
             }
-            
-            // Add funding transaction ID.
-            if
-                let cachedFundingTxID = CacheManager.getTxoID(),
-                !(CacheManager.getSentToBittr().contains(cachedFundingTxID) &&
-                self.visibleTransactions.contains(where: { transaction in transaction.id == cachedFundingTxID})) {
-                sendableTxIDs += [cachedFundingTxID]
-            }
+        }
+        
+        // Add funding transaction ID.
+        if let cachedFundingTxID = CacheManager.getTxoID(),
+            !(CacheManager.getSentToBittr().contains(cachedFundingTxID) &&
+            self.visibleTransactions.contains(where: { transaction in transaction.id == cachedFundingTxID})) {
+            sendableTxIDs += [cachedFundingTxID]
         }
         
         // Add previously cached transactions to Bittr transactions array.
         self.bittrTransactions = [:]
-        for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() {
-            if eachTransaction.isBittr {
-                self.bittrTransactions.updateValue(eachTransaction.toBittrTransaction(), forKey: eachTransaction.id)
-            }
+        for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() where eachTransaction.isBittr {
+            self.bittrTransactions.updateValue(eachTransaction.toBittrTransaction(), forKey: eachTransaction.id)
         }
         
         // Check if any IDs need to be sent.
@@ -208,64 +189,24 @@ extension HomeViewController {
             return false
         }
         
-        // There are Bittr transactions.
-        // Check if any information is new.
-        var newTransactionsWereFound = false
-        
         for eachTransaction in bittrApiTransactions {
             self.bittrTransactions.updateValue(eachTransaction, forKey: eachTransaction.txId)
             
             if let cachedFundingTxID = CacheManager.getTxoID(), eachTransaction.txId == cachedFundingTxID {
                 // This is a channel funding transaction.
                 let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
-                
-                newTransactionsWereFound = true
                 self.newTransactions += [thisTransaction]
                 CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
-                
-            } else if sendAll {
-                // Check transactions that were previously not recognized.
-                for eachExistingTransaction in self.visibleTransactions {
-                    if eachExistingTransaction.id == eachTransaction.txId {
-                        newTransactionsWereFound = true
-                        eachExistingTransaction.isBittr = true
-                        eachExistingTransaction.fiatNetAmount = eachTransaction.fiatNetAmount.toNumber()
-                        eachExistingTransaction.fiatGrossAmount = eachTransaction.fiatGrossAmount.toNumber()
-                        eachExistingTransaction.currency = eachTransaction.currency
-                        let transferFee = eachTransaction.transferFee.toNumber().inSatoshis()
-                        eachExistingTransaction.transferFee = CGFloat(transferFee)
-                        eachExistingTransaction.surcharge = eachTransaction.surcharge.toNumber()
-                        eachExistingTransaction.bittrFee = eachTransaction.bittrFee.toNumber()
-                        eachExistingTransaction.historicalExchangeRate = eachTransaction.historicalExchangeRate.toNumber()
-                        if eachExistingTransaction.isLightning {
-                            CacheManager.storeLightningTransaction(thisTransaction: eachExistingTransaction)
-                        }
-                    }
-                }
             }
         }
         
-        if sendAll {
-            if newTransactionsWereFound {
-                CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
-                self.homeTableView.reloadData()
-            }
-            return newTransactionsWereFound
-        } else {
-            return true
-        }
+        return true
     }
     
     
     func setTotalSats() {
-        
-        if self.coreVC == nil {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
         // Calculate total balance
-        let totalBalanceSats = self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning
+        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning
         let totalBalanceSatsString = "\(totalBalanceSats)"
         
         // Load balance label.
@@ -314,49 +255,39 @@ extension HomeViewController {
         let fillColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "0, 0, 0"
         self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)\(sats)</span></center>"
         
-        if let htmlData = self.balanceText.data(using: .unicode) {
-            
-            var attributedText:NSAttributedString
-            do {
-                attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-            } catch {
-                Log.info("Couldn't fetch text: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LoadWalletData row 360", key: "context")
-                    }
+        guard let htmlData = self.balanceText.data(using: .unicode) else { return }
+        
+        let attributedText:NSAttributedString
+        do {
+            attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
+        } catch {
+            Log.info("Couldn't fetch text: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                SentrySDK.capture(error: error) { scope in
+                    scope.setExtra(value: "LoadWalletData row 360", key: "context")
                 }
-                return
             }
-            
-            self.balanceLabel.attributedText = attributedText
-            self.balanceLabel.alpha = 1
-            self.bitcoinSign.alpha = bitcoinSignAlpha
-            
-            // Store satoshis balance string to cache.
-            CacheManager.updateCachedData(data: amount, key: "satsbalance")
+            return
         }
+        
+        self.balanceLabel.attributedText = attributedText
+        self.balanceLabel.alpha = 1
+        self.bitcoinSign.alpha = bitcoinSignAlpha
+        
+        // Store satoshis balance string to cache.
+        CacheManager.updateCachedData(data: amount, key: "satsbalance")
     }
     
     
     func setConversion() {
         
-        guard self.coreVC != nil else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
         // Set, cache, and show conversion label.
         let cachedBtcBalance = (CacheManager.getCachedData(key: "satsbalance") as? String ?? "0").toNumber().inBTC()
         let conversionLabelText = self.updateConversionLabel(btcValue: cachedBtcBalance)
         CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
-
-        // Only reveal the conversion once the balance is known (i.e. the sats
-        // balance label is showing). Otherwise it would display €0 while the
-        // wallet is still syncing and has no cached balance.
-        if self.balanceLabel.alpha == 1 {
-            self.conversionLabel.alpha = 1
-        }
+        
+        // Only reveal the conversion once the balance is known.
+        self.conversionLabel.alpha = self.balanceLabel.alpha
     }
     
     
@@ -389,32 +320,32 @@ extension HomeViewController {
             return false
         }
         
-        if let actualEurValue = receivedDictionary["btc_eur"] as? String, let actualChfValue = receivedDictionary["btc_chf"] as? String {
-            
-            // Set updated conversion rates for EUR and CHF.
-            self.coreVC!.bittrWallet.valueInEUR = actualEurValue.fixDecimals().toNumber()
-            self.coreVC!.bittrWallet.valueInCHF = actualChfValue.fixDecimals().toNumber()
-            
-            // Store updated conversion rates in cache.
-            CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
-            CacheManager.updateCachedData(data: self.coreVC!.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
-            
-            Log.info("Did successfully download conversion rates.")
-            return true
-        } else {
+        guard
+            let actualEurValue = receivedDictionary["btc_eur"] as? String,
+            let actualChfValue = receivedDictionary["btc_chf"] as? String
+        else {
             Log.info("Could not download conversion rates.")
             SentrySDK.capture(message: "Received unexpected data from conversion API.")
             return false
         }
+            
+        // Set updated conversion rates for EUR and CHF.
+        BitcoinManager.shared.bittrWallet.valueInEUR = actualEurValue.fixDecimals().toNumber()
+        BitcoinManager.shared.bittrWallet.valueInCHF = actualChfValue.fixDecimals().toNumber()
+        
+        // Store updated conversion rates in cache.
+        CacheManager.updateCachedData(data: BitcoinManager.shared.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
+        CacheManager.updateCachedData(data: BitcoinManager.shared.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
+        
+        Log.info("Did successfully download conversion rates.")
+        return true
     }
     
     
     func updateConversionLabel(btcValue:CGFloat) -> String {
         
-        if self.coreVC == nil { return "" }
-        
         // Use preferred currency.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         
         // Converted balance string.
         let balanceValue = String(Int((btcValue*bitcoinValue.currentValue).rounded())).addSpaces()
@@ -463,13 +394,6 @@ extension HomeViewController {
     
     func calculateProfit() {
         
-        Log.info("Will calculate profits.")
-        if self.coreVC == nil {
-            Log.info("Could not calculate profits with nil coreVC.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-            return
-        }
-        
         self.didStartReset = false
         
         // Hide profit label while calculating.
@@ -480,15 +404,10 @@ extension HomeViewController {
         var accumulatedProfit = 0
         var accumulatedInvestments = 0
         var accumulatedCurrentValue = 0
-
+        
         // Get preferred currency.
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
-
-        // Total profit over every Bittr purchase currently on screen. Derive the
-        // set straight from visibleTransactions instead of bittrTransactions.count:
-        // funding transactions are Bittr purchases that live in visibleTransactions
-        // but never in that dictionary (they aren't LDK payments), so a count-based
-        // terminator skipped them and the profit stuck at 0 % after the first buy.
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
+        
         for eachTransaction in self.visibleTransactions where eachTransaction.isBittr {
             let transactionValue = eachTransaction.received.inBTC()
             var correctConversion = bitcoinValue.currentValue
@@ -502,9 +421,9 @@ extension HomeViewController {
             }()
             if transactionCurrency != bitcoinValue.chosenCurrency {
                 if transactionCurrency == "€" {
-                    correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
+                    correctConversion = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0
                 } else {
-                    correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
+                    correctConversion = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0
                 }
             }
 
@@ -533,13 +452,9 @@ extension HomeViewController {
             self.balanceCardGainLabel.text = "0 %"
         }
 
-        // Only reveal the profit once the balance is known (i.e. the sats
-        // balance label is showing). Otherwise it would display 0 % while the
-        // wallet is still syncing and has no cached balance.
-        if self.balanceLabel.alpha == 1 {
-            self.balanceCardGainLabel.alpha = 1
-            self.balanceCardProfitView.alpha = 1
-        }
+        // Only reveal the profit once the balance is known.
+        self.balanceCardGainLabel.alpha = self.balanceLabel.alpha
+        self.balanceCardProfitView.alpha = self.balanceLabel.alpha
         
         if accumulatedProfit < 0 {
             // Loss
@@ -575,7 +490,7 @@ extension HomeViewController {
         // Check if notification needs handling.
         if self.coreVC!.needsToHandleURI() {
             Log.info("Needs to handle URI.")
-            self.coreVC!.hidePendingView()
+            self.coreVC!.hideLoading()
             self.coreVC!.checkForPendingURIs()
         } else if let actualNotification = self.coreVC!.lightningNotification {
             Log.info("Needs to handle push notification.")
@@ -594,7 +509,7 @@ extension HomeViewController {
             }
         } else {
             var userHasBittrAccount = false
-            for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
+            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities {
                 if eachIbanEntity.yourUniqueCode != "" {
                     userHasBittrAccount = true
                 }
@@ -675,14 +590,12 @@ extension [Transaction] {
         // Look for lightning and onchain transactions with matching swap descriptions
         let swapTransactions = NSMutableDictionary()
         
-        for eachTransaction in currentTransactions {
-            if eachTransaction.lnDescription.contains("Swap") {
-                if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
-                    existingTransactions += [eachTransaction]
-                    swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
-                } else {
-                    swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
-                }
+        for eachTransaction in currentTransactions where eachTransaction.lnDescription.contains("Swap") {
+            if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
+                existingTransactions += [eachTransaction]
+                swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
+            } else {
+                swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
             }
         }
         
@@ -699,27 +612,25 @@ extension [Transaction] {
                 
                 if thisSwapID.contains(firstTransaction.id), firstTransaction.swapStatus == .succeeded {
                     // This is already a completed Swap transaction.
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() {
-                        if secondTransaction.id == eachTransaction.id {
-                            currentTransactions.remove(at: index)
-                        }
+                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where secondTransaction.id == eachTransaction.id {
+                        currentTransactions.remove(at: index)
                     }
                     CacheManager.storeLightningTransaction(thisTransaction: firstTransaction)
                 } else if thisSwapID.contains(secondTransaction.id), secondTransaction.swapStatus == .succeeded {
                     // This is already a completed Swap transaction.
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() {
-                        if firstTransaction.id == eachTransaction.id {
-                            currentTransactions.remove(at: index)
-                        }
+                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where firstTransaction.id == eachTransaction.id {
+                        currentTransactions.remove(at: index)
                     }
                     CacheManager.storeLightningTransaction(thisTransaction: secondTransaction)
                 } else {
                     
                     let swapTransaction = Transaction()
+                    swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
                     swapTransaction.isSwap = true
                     swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
                     swapTransaction.lnDescription = thisSwapID
-
+                    
+                    // Amount and fees.
                     swapTransaction.sent = firstTransaction.received + secondTransaction.received - firstTransaction.sent - secondTransaction.sent
 
                     // Per-leg fees live on Transaction.fee (onchain network fee for
@@ -730,15 +641,9 @@ extension [Transaction] {
                     // Inbound legs have fee = 0, so summing both is safe.
                     swapTransaction.fee = firstTransaction.fee + secondTransaction.fee
                     
-                    if thisSwapID.contains("onchain to lightning") {
-                        swapTransaction.swapDirection = .onchainToLightning
-                        swapTransaction.isLightning = false
-                        swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                    } else {
-                        swapTransaction.swapDirection = .lightningToOnchain
-                        swapTransaction.isLightning = true
-                        swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "")
-                    }
+                    // Direction.
+                    swapTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
+                    swapTransaction.isLightning = thisSwapID.contains("lightning to onchain")
                     
                     for eachTransaction in (eachSetOfTransactions as! [Transaction]) {
                         if eachTransaction.isLightning {
@@ -792,10 +697,8 @@ extension [Transaction] {
                     
                     // Remove the individual transactions and add the combined swap transaction
                     let transactionIDs = [firstTransaction.id, secondTransaction.id]
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() {
-                        if transactionIDs.contains(eachTransaction.id) {
-                            currentTransactions.remove(at: index)
-                        }
+                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where transactionIDs.contains(eachTransaction.id) {
+                        currentTransactions.remove(at: index)
                     }
                     
                     currentTransactions += [swapTransaction]
@@ -810,6 +713,14 @@ extension [Transaction] {
                 let thisTransaction = (eachSetOfTransactions as! [Transaction])[0]
                 let thisSwapID = (eachSwapID as! String)
                 
+                if let suggestedSwapStatus = CacheManager.getSuggestedSwapStatus(dateID: thisSwapID) {
+                    thisTransaction.isSuggestedSwap = true
+                    thisTransaction.swapStatus = suggestedSwapStatus
+                    thisTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
+                    thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
+                    continue
+                }
+                
                 let swapTransaction = Transaction()
                 swapTransaction.isSwap = true
                 swapTransaction.swapStatus = .pending
@@ -822,11 +733,7 @@ extension [Transaction] {
                 swapTransaction.isLightning = thisTransaction.isLightning
                 swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
                 
-                if thisSwapID.contains("onchain to lightning") {
-                    swapTransaction.swapDirection = .onchainToLightning
-                } else {
-                    swapTransaction.swapDirection = .lightningToOnchain
-                }
+                swapTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
                 
                 if swapTransaction.isLightning {
                     swapTransaction.lightningID = thisTransaction.id
@@ -837,10 +744,8 @@ extension [Transaction] {
                 }
                 
                 // Remove the individual transactions and add the combined swap transaction
-                for (index, eachTransaction) in currentTransactions.enumerated().reversed() {
-                    if eachTransaction.id == thisTransaction.id {
-                        currentTransactions.remove(at: index)
-                    }
+                for (index, eachTransaction) in currentTransactions.enumerated().reversed() where eachTransaction.id == thisTransaction.id {
+                    currentTransactions.remove(at: index)
                 }
                 
                 currentTransactions += [swapTransaction]

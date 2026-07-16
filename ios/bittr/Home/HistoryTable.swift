@@ -52,7 +52,7 @@ extension HomeViewController {
             cell.satsLabel.text = "\(plusSymbol) \(String(thisTransaction.received - thisTransaction.sent - thisTransaction.fee).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
             
             // Conversion
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
             let transactionValue = (thisTransaction.received - thisTransaction.sent - thisTransaction.fee).inBTC()
             var balanceValue = String(Int((transactionValue*bitcoinValue.currentValue).rounded()))
             balanceValue = balanceValue.addSpaces().replacingOccurrences(of: "-", with: "")
@@ -69,7 +69,7 @@ extension HomeViewController {
                 var correctConversion = bitcoinValue.currentValue
                 let selectedCurrency = (thisTransaction.currency == "EUR") ? "€" : "CHF"
                 if selectedCurrency != bitcoinValue.chosenCurrency {
-                    correctConversion = (selectedCurrency == "€") ? (self.coreVC!.bittrWallet.valueInEUR ?? 0) : (self.coreVC!.bittrWallet.valueInCHF ?? 0)
+                    correctConversion = (selectedCurrency == "€") ? (BitcoinManager.shared.bittrWallet.valueInEUR ?? 0) : (BitcoinManager.shared.bittrWallet.valueInCHF ?? 0)
                 }
                 let relativeGain:Int = {
                     if thisTransaction.fiatNetAmount == 0 {
@@ -106,7 +106,7 @@ extension HomeViewController {
             } else {
                 cell.hideLightningStack()
                 
-                let currentHeight = self.coreVC?.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+                let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
                 
                 if ((thisTransaction.height == nil || (currentHeight - thisTransaction.height! + 1) < 1)) && !(thisTransaction.isSwap && thisTransaction.swapStatus != .pending) {
                     // Unconfirmed transaction.
@@ -119,12 +119,15 @@ extension HomeViewController {
             if thisTransaction.isSwap {
                 cell.showSwapStack()
                 cell.hideLightningStack()
+                // Row-indexed test IDs so the topmost swap is addressable as
+                // ...0 (e.g. history.swapComplete0 / history.swapPending0),
+                // matching history.transactionButton0 above.
                 if thisTransaction.swapStatus == .succeeded {
                     cell.swapImage.image = UIImage(named: "iconswapblue")
-                    cell.swapImage.accessibilityIdentifier = TestID.History.swapComplete
+                    cell.swapImage.accessibilityIdentifier = "\(TestID.History.swapComplete)\(indexPath.row)"
                 } else {
                     cell.swapImage.image = UIImage(named: "iconswapgrey")
-                    cell.swapImage.accessibilityIdentifier = TestID.History.swapPending
+                    cell.swapImage.accessibilityIdentifier = "\(TestID.History.swapPending)\(indexPath.row)"
                 }
             } else {
                 cell.hideSwapStack()

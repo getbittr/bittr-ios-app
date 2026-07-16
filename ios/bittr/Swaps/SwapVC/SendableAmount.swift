@@ -19,31 +19,40 @@ extension SwapViewController {
         
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
-            
-            BitcoinManager.shared.didStartBDK { success in
-                if success {
-                    Log.info("Did start BDK.")
-                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                        if hasBeenSynced {
-                            Log.info("Did scan BDK wallet.")
-                            self.calculateSendableAmount()
-                        } else {
-                            Log.info("Could not scan BDK wallet.")
+
+            // didStartBDK is synchronous and blocking (descriptor derivation,
+            // SQLite connection, electrum client setup), so run it off main
+            // and hop back for the UI outcomes. didSyncBdkWallet manages its
+            // own threading and completes on main.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let didStartBDK = BitcoinManager.shared.didStartBDK()
+                DispatchQueue.main.async {
+                    if didStartBDK {
+                        Log.info("Did start BDK.")
+                        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                            if hasBeenSynced {
+                                Log.info("Did scan BDK wallet.")
+                                self.calculateSendableAmount()
+                            } else {
+                                Log.info("Could not scan BDK wallet.")
+                                self.presentOnchainSyncFailedAlert()
+                            }
                         }
+                    } else {
+                        Log.info("Could not start BDK.")
+                        self.presentOnchainSyncFailedAlert()
                     }
-                } else {
-                    Log.info("Could not start BDK.")
                 }
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")
         }
     }
-    
+
     func calculateSendableAmount() {
         self.bdkSpinner.stopAnimating()
         
-        let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+        let activeChannel:LDKNode.ChannelDetails? = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
         
         if activeChannel == nil {
             // There is no active Lightning channel.
@@ -64,7 +73,7 @@ extension SwapViewController {
                     return
                 }
                 
-                if self.coreVC!.bittrWallet.satoshisOnchain == 0 {
+                if BitcoinManager.shared.bittrWallet.satoshisOnchain == 0 {
                     // There are no onchain funds.
                     self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                     return
@@ -75,14 +84,22 @@ extension SwapViewController {
                 
                 // Calculate available onchain satoshis minus fast fee.
                 // Calculate maximum sendable onchain amount at lowest fee.
-                let maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                let maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                 let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
                 
+                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                self.bdkSpinner.startAnimating()
+                
+                // Capture intended direction.
+                let requestedDirection = self.swapDirection
+
                 Task {
                     let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
                     if feeEstimates == nil {
                         Log.info("Could not fetch fee estimates.")
                         DispatchQueue.main.async {
+                            guard self.swapDirection == requestedDirection else { return }
+                            self.bdkSpinner.stopAnimating()
                             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                         }
                         return
@@ -114,18 +131,21 @@ extension SwapViewController {
                         if let bdkError = error as? BitcoinDevKit.CreateTxError {
                             switch bdkError {
                             case .CoinSelection, .InsufficientFunds:
-                                bdkLooksStale = self.coreVC!.bittrWallet.satoshisOnchain > 0
+                                bdkLooksStale = BitcoinManager.shared.bittrWallet.satoshisOnchain > 0
                             default:
                                 break
                             }
                         }
 
                         DispatchQueue.main.async {
+                            guard self.swapDirection == requestedDirection else { return }
                             if bdkLooksStale && !self.didRescanForStaleBdk {
-                                Log.info("BDK looks stale (LDK Node onchain balance: \(self.coreVC!.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
+                                Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
                                 self.didRescanForStaleBdk = true
+                                // bdkWalletUnavailable keeps the spinner running while it rescans.
                                 self.bdkWalletUnavailable()
                             } else {
+                                self.bdkSpinner.stopAnimating()
                                 SentrySDK.capture(error: error) { scope in
                                     scope.setExtra(value: "SwapVC row 308", key: "context")
                                 }
@@ -139,10 +159,12 @@ extension SwapViewController {
                     let satoshisFee:Int = Int(self.highestFeePerVbyte! * Float(sizeinVbytes))
                     
                     // Onchain satoshis minus highest fee.
-                    let sendableSatoshis = self.coreVC!.bittrWallet.satoshisOnchain - satoshisFee
+                    let sendableSatoshis = BitcoinManager.shared.bittrWallet.satoshisOnchain - satoshisFee
                     
                     // Set label.
                     DispatchQueue.main.async {
+                        guard self.swapDirection == requestedDirection else { return }
+                        self.bdkSpinner.stopAnimating()
                         if sendableSatoshis > availableChannelSpace {
                             // We have enough onchain satoshis to fill up the entire channel.
                             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(availableChannelSpace)".addSpaces())
@@ -153,6 +175,91 @@ extension SwapViewController {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Suggested swap
+
+    func startSuggestedOnchainToLightningSwap(invoiceAmount: Int) {
+        if BitcoinManager.shared.bdkWallet != nil && BitcoinManager.shared.bdkWalletHasBeenScanned {
+            // BDK is ready: refresh the label for the new direction and swap.
+            self.calculateSendableAmount()
+            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+            return
+        }
+        
+        Log.info("BDK wallet isn't available yet; syncing before starting the suggested swap.")
+        
+        // Reflect the syncing state on the sendable-amount label while we wait.
+        self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+        self.bdkSpinner.startAnimating()
+
+        self.awaitBdkScan { [weak self] didScan in
+            guard let self = self else { return }
+            guard didScan else {
+                Log.info("BDK wallet could not be scanned; aborting the suggested swap so the user can retry.")
+                // Reset the loading state so the user can retry via Next, which
+                // runs its own BDK-availability guard.
+                self.nextLabel.alpha = 1
+                self.arrowIcon.alpha = 1
+                self.nextSpinner.stopAnimating()
+                // Let the user know the on-chain sync failed and to retry later
+                // (also stops the bdkSpinner).
+                self.presentOnchainSyncFailedAlert()
+                return
+            }
+            // BDK is ready now: refresh the label and start the swap.
+            self.calculateSendableAmount()
+            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+        }
+    }
+    
+    private func awaitBdkScan(completion: @escaping (Bool) -> Void) {
+        // Bound the whole wait so a hung scan can't poll forever; give up after
+        // the timeout and let the caller show the sync-failed alert.
+        self.awaitBdkScan(deadline: Date().addingTimeInterval(180), completion: completion)
+    }
+
+    private func awaitBdkScan(deadline: Date, completion: @escaping (Bool) -> Void) {
+        if BitcoinManager.shared.bdkWalletHasBeenScanned {
+            DispatchQueue.main.async { completion(true) }
+            return
+        }
+
+        if BitcoinManager.shared.bdkWalletIsScanning {
+            // A scan is already running — poll for it to finish, but stop once we
+            // pass the deadline so a stuck scan doesn't loop indefinitely.
+            guard Date() < deadline else {
+                Log.info("BDK scan didn't finish within the timeout; aborting the suggested swap.")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                self.awaitBdkScan(deadline: deadline, completion: completion)
+            }
+            return
+        }
+
+        // didStartBDK is synchronous and blocking — run it off main (this
+        // function is reached via main-queue polling in awaitBdkScan). The
+        // completions are already marshalled back to main.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let didStartBDK = BitcoinManager.shared.didStartBDK()
+            guard didStartBDK else {
+                Log.info("Could not start BDK for suggested swap.")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                DispatchQueue.main.async { completion(hasBeenSynced) }
+            }
+        }
+    }
+    
+    private func beginSuggestedSwap(invoiceAmount: Int) {
+        Task {
+            await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
         }
     }
 }

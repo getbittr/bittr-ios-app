@@ -1,0 +1,183 @@
+# Feature test: pay a lightning invoice with no channel → the app suggests
+# paying onchain and swapping the funds into the recipient's channel.
+#
+# This is the onchain→lightning suggested swap. Its mirror image — paying an
+# onchain address out of Lightning funds — lives in
+# features/send_swap_suggestion_onchain.yaml.
+#
+# When the user tries to pay a lightning invoice but has no usable lightning
+# channel (so 0 outbound) yet enough onchain balance, SendViewController offers
+# an "insufficient funds / Swap and pay" alert. Tapping "Swap and pay" dismisses
+# Send and opens SwapViewController (via CoreToSwap), which prefills the invoice
+# amount, computes the swap fees and shows the expected-fees confirmation alert;
+# tapping Proceed runs the onchain → lightning swap that pays the recipient's
+# invoice (handlePendingLightningInvoice → SwapManager.onchainToLightning with
+# the pending invoice). The onchain→lightning completion is the same arc as the
+# reverse swap in features/swap.yaml (mine to confirm the funding tx → "Swap
+# complete"), after which we land on Home and open the new transaction.
+#
+# Prerequisite: a wallet on the simulator with an onchain balance (≥ 50000 sats)
+# and NO usable lightning channel — that's what makes the lightning payment fall
+# back to the swap suggestion. (A wallet WITH an open channel would just pay the
+# invoice over lightning and never show the suggestion.) The flow only unlocks;
+# it does not auto-provision, because the required "onchain funds, no channel"
+# state can't be created by the standard onboarding (which opens a channel).
+# Does NOT clearState — wallet state is preserved.
+#
+# The invoice is for 50000 sats because that's the minimum swap amount — a
+# smaller amount would be rejected by the swap.
+#
+# Run the clipboard helper so the in-app Paste button has something to paste:
+#
+#   node shared/flows/scripts/clipboard_server.js   # keep running
+#   maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+#
+# Run: maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — wait for the header spinner to stop
+# so the onchain balance (and BDK scan needed for the swap) are settled.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/01_home
+
+# Open Send (it opens on Instant / lightning by default).
+- tapOn:
+    id: "home.sendButton"
+
+# Request a fresh invoice WITH an amount (50000 sats — the minimum swap amount)
+# from the e2e endpoint and put it on the simulator clipboard (clipboard_server.js
+# bridges to `xcrun simctl pbcopy`). Then tap the in-app Paste button. Because the
+# clipboard was written by another process, iOS shows an "Allow Paste" system
+# prompt; it renders a beat after the tap, so wait for it explicitly, then tap.
+- evalScript: ${output.invoiceAmountSats = 50000}
+- runScript: ../scripts/request_invoice.js
+- runScript: ../scripts/set_clipboard.js
+- tapOn:
+    id: "send.pasteButton"
+- extendedWaitUntil:
+    visible:
+      text: "Allow Paste"
+    timeout: 10000
+- tapOn:
+    text: "Allow Paste"
+
+# Pasting the lightning invoice switches the type to lightning: the "to" label
+# reads "Invoice and amount", the invoice lands in the field, and the amount
+# field shows the parsed 50000 sats (handleScannedOrPastedString displays the
+# invoice amount regardless of channel capacity).
+- assertVisible:
+    id: "send.toLabel"
+    text: "Invoice and amount"
+- assertVisible:
+    id: "send.toTextField"
+    text: ".*lnbcrt.*"
+- assertVisible:
+    id: "send.amountTextField"
+    text: "50000"
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/02_invoice_pasted
+
+# Next → with no channel the lightning balance is 0 < 50000, but the onchain
+# balance covers it, so SendViewController shows the "insufficient funds / Swap
+# and pay" alert ([Cancel, Swap and pay]). Tap "Swap and pay" (index 1).
+- tapOn:
+    id: "send.nextButton"
+- assertVisible:
+    id: "alert.button.1"
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/03_swap_suggested
+- tapOn:
+    id: "alert.button.1"
+
+# Send dismisses and SwapViewController opens (CoreToSwap), prefilling the
+# invoice amount and computing the swap fees. It then shows the expected-fees
+# confirmation alert ([Cancel, Proceed]) — the same one as swap.yaml. Wait for it
+# and tap Proceed (index 1). (The first alert.button.1 above dismisses on tap;
+# the fees alert only appears after the BDK fee estimate, so this waits for it.)
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/04_swap_fees
+- tapOn:
+    id: "alert.button.1"
+
+# Proceeding runs the onchain → lightning swap that pays the recipient's invoice
+# and shows the swap status view. Wait for it before mining.
+- extendedWaitUntil:
+    visible:
+      id: "swapStatus.confirmCard"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/05_swap_status
+
+# Onchain → lightning needs the onchain funding tx to confirm before Boltz pays
+# the lightning invoice, so mine a block. (Same arc as swap.yaml's reverse swap.)
+- evalScript: ${output.blocksToMine = 1}
+- runScript: ../scripts/mine_blocks.js
+
+# Recovery: if the funding tx stays unconfirmed and the status stalls on
+# "Waiting to be mined" instead of progressing to "Swap complete", mine 6 more
+# blocks and tap the status refresh button to pull a fresh status from Boltz.
+- runFlow:
+    when:
+      visible:
+        text: "Waiting to be mined"
+    commands:
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - tapOn:
+          id: "swapStatus.refreshButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "Swap complete"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/06_swap_complete
+
+# Swipe down to dismiss SwapViewController, landing back on Home.
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+
+# Pull Home down to refresh the transaction list, then wait out the resync so
+# the new swap transaction has settled at the top.
+- swipe:
+    direction: DOWN
+    duration: 800
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/07_home_with_swap
+
+# Open the topmost (newest) transaction — the swap that just paid the invoice —
+# in the TransactionViewController, then close it.
+- assertVisible:
+    id: "history.transactionButton0"
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_lightning/08_transaction
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

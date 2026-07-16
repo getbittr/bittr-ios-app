@@ -8,21 +8,6 @@
 import UIKit
 
 extension CoreViewController {
-
-    func correctPin(spinner:UIActivityIndicatorView) {
-        
-        // The correct pin has been entered in the PinVC and the wallet is ready to be synced and shown.
-        self.userHasSignedIn = true
-        
-        // Lower pin view.
-        self.lowerPinView(spinner: spinner)
-        
-        // Start wallet.
-        Task {
-            await self.startWallet()
-        }
-    }
-    
     
     func lowerPinView(spinner:UIActivityIndicatorView) {
         
@@ -38,8 +23,7 @@ extension CoreViewController {
             
             if self.lightningNotification != nil || self.needsToHandleURI() {
                 // A notification will be handled after syncing the wallet.
-                self.pendingLabel.text = Language.getWord(withID: "syncingwallet3")
-                self.showPendingView()
+                self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
             }
         }
     }

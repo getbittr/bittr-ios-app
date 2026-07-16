@@ -160,6 +160,15 @@ class TransactionViewController: UIViewController {
         self.yellowCard.accessibilityIdentifier = TestID.Transaction.yellowCard
         self.labelDate.accessibilityIdentifier = TestID.Transaction.labelDate
         self.labelAmount.accessibilityIdentifier = TestID.Transaction.labelAmount
+        self.buttonSwapStatus.accessibilityIdentifier = TestID.Transaction.swapStatusButton
+        self.buttonDescription.accessibilityIdentifier = TestID.Transaction.descriptionButton
+        self.copyButtonTopId.accessibilityIdentifier = TestID.Transaction.copyIdButton
+        self.urlButtonTopId.accessibilityIdentifier = TestID.Transaction.urlIdButton
+        self.copyButtonBottomId.accessibilityIdentifier = TestID.Transaction.copyBottomIdButton
+        self.buttonBittrFee.accessibilityIdentifier = TestID.Transaction.bittrFeeButton
+        self.buttonTransferFee.accessibilityIdentifier = TestID.Transaction.transferFeeButton
+        self.buttonAddANote.accessibilityIdentifier = TestID.Transaction.addNoteButton
+        self.labelNote.accessibilityIdentifier = TestID.Transaction.labelNote
 
         // Button titles
         self.buttonSwapStatus.setTitle("", for: .normal)
@@ -259,6 +268,17 @@ class TransactionViewController: UIViewController {
                 // Normal swap has failed.
                 self.labelAmount.text = "0 sats"
             }
+        } else if self.tappedTransaction.isSuggestedSwap {
+            // Suggested swap: show only the paid invoice amount (from the swap
+            // file), not the full onchain outflow which also bundles the swap
+            // spread and network fee. Mirrors the SwapStatus screen.
+            if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                let convertedSwap = swapDictionary.toSwap()
+                self.labelAmount.text = "- " + "\(convertedSwap.satoshisAmount)".addSpaces() + " sats"
+            } else {
+                // Fall back to the full outflow if the swap file is unavailable.
+                self.labelAmount.text = "- \(String(self.tappedTransaction.sent - self.tappedTransaction.received).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            }
         } else {
             var plusSymbol = "+"
             if (self.tappedTransaction.received - self.tappedTransaction.sent) < 0 {
@@ -287,8 +307,10 @@ class TransactionViewController: UIViewController {
             }
         }
         
-        // Swap ID and status
-        if self.tappedTransaction.isSwap {
+        // Swap ID and status. Suggested (outgoing) swaps aren't full swaps
+        // (isSwap == false, rendered as a normal outbound transaction) but still
+        // show the Boltz swap ID + status here.
+        if self.tappedTransaction.isSwap || self.tappedTransaction.isSuggestedSwap {
             // Show swap stack
             self.swapStack.alpha = 1
             self.swapStackHeight.constant = 87
@@ -327,6 +349,20 @@ class TransactionViewController: UIViewController {
                     self.labelFees.text = "0 sats"
                 }
             }
+        } else if self.tappedTransaction.isSuggestedSwap {
+            // Suggested swap: fees are everything beyond the paid invoice
+            // amount — the swap spread (sent - received) plus the onchain
+            // network fee. Mirrors the SwapStatus screen.
+            self.feesStackHeight.constant = 55
+            self.feesStack.alpha = 1
+            if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription), let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                let convertedSwap = swapDictionary.toSwap()
+                let totalFees = self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee - convertedSwap.satoshisAmount
+                self.labelFees.text = "\(String(totalFees).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            } else {
+                // Fall back to just the onchain network fee.
+                self.labelFees.text = "\(String(self.tappedTransaction.fee).addSpaces().replacingOccurrences(of: "-", with: "")) sats".replacingOccurrences(of: "  ", with: " ")
+            }
         } else if (self.tappedTransaction.received-self.tappedTransaction.sent-self.tappedTransaction.fee) < 0 {
             // Outbound transaction.
             self.feesStackHeight.constant = 55
@@ -340,7 +376,7 @@ class TransactionViewController: UIViewController {
             self.confirmationsStackHeight.constant = 55
             self.confirmationsStack.alpha = 1
             
-            let currentHeight = self.coreVC!.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+            let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
             
             if self.tappedTransaction.height == nil || (currentHeight - self.tappedTransaction.height! + 1) < 1 {
                 // Unconfirmed transaction.
@@ -352,7 +388,7 @@ class TransactionViewController: UIViewController {
         }
         
         // Description
-        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.showConfetti {
+        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
             
             if self.tappedTransaction.isBittr {
                 self.labelDescription.numberOfLines = 1
@@ -424,6 +460,49 @@ class TransactionViewController: UIViewController {
                     self.bottomIdStackHeight.constant = 0
                 }
             }
+        } else if self.tappedTransaction.isSuggestedSwap {
+            
+            self.bottomIdStack.alpha = 1
+            self.bottomIdStackHeight.constant = 29
+            var convertedSwap:Swap?
+            if let swapID = CacheManager.getSwapID(dateID: self.tappedTransaction.lnDescription),
+               let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: swapID) {
+                convertedSwap = swapDictionary.toSwap()
+            }
+            if self.tappedTransaction.swapDirection == .onchainToLightning {
+                // Onchain lockup transaction on top, payment hash of the paid
+                // Lightning invoice below.
+                self.titleTopId.text = Language.getWord(withID: "onchainid")
+                self.labelTopId.text = self.tappedTransaction.id
+                self.copyButtonTopId.boundString = self.tappedTransaction.id
+                self.urlStackTopId.alpha = 1
+                self.urlStackTopIdWidth.constant = 22
+                self.urlButtonTopId.boundString = self.tappedTransaction.id
+                self.titleBottomId.text = Language.getWord(withID: "lightningid")
+                if let lightningID = convertedSwap?.createdInvoice?.getInvoiceHash() {
+                    self.labelBottomId.text = lightningID
+                    self.copyButtonBottomId.boundString = lightningID
+                } else {
+                    self.labelBottomId.text = "Unavailable"
+                }
+            } else {
+                // Lightning payment on top, onchain payout transaction (paying
+                // the recipient) below, with an explorer link like a normal
+                // reverse swap's onchain leg.
+                self.titleTopId.text = Language.getWord(withID: "lightningid")
+                self.labelTopId.text = self.tappedTransaction.id
+                self.copyButtonTopId.boundString = self.tappedTransaction.id
+                self.titleBottomId.text = Language.getWord(withID: "onchainid")
+                if let onchainID = convertedSwap?.sentOnchainTransactionID {
+                    self.labelBottomId.text = onchainID
+                    self.copyButtonBottomId.boundString = onchainID
+                    self.urlStackBottomId.alpha = 1
+                    self.urlStackBottomIdWidth.constant = 22
+                    self.urlButtonBottomId.boundString = onchainID
+                } else {
+                    self.labelBottomId.text = "Unavailable"
+                }
+            }
         } else {
             // Onchain or Lightning transaction.
             self.titleTopId.text = Language.getWord(withID: "id")
@@ -437,7 +516,7 @@ class TransactionViewController: UIViewController {
         }
         
         // Value
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let transactionValue:CGFloat = {
             if self.tappedTransaction.isSwap {
                 return (self.tappedTransaction.sent - self.tappedTransaction.received + self.tappedTransaction.fee).inBTC()
@@ -508,9 +587,9 @@ class TransactionViewController: UIViewController {
                 var correctConversion = bitcoinValue.currentValue
                 if bitcoinValue.chosenCurrency != currencySymbol {
                     if currencySymbol == "€" {
-                        correctConversion = self.coreVC!.bittrWallet.valueInEUR ?? 0
+                        correctConversion = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0
                     } else {
-                        correctConversion = self.coreVC!.bittrWallet.valueInCHF ?? 0
+                        correctConversion = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0
                     }
                     self.labelBittrCurrentValue.text = "\((transactionValue*correctConversion).twoDecimals())".replacingOccurrences(of: "-", with: "").addSpaces() + " \(currencySymbol)"
                 }
@@ -557,23 +636,22 @@ class TransactionViewController: UIViewController {
     }
     
     @IBAction func noteButtonTapped(_ sender: UIButton) {
-        
-        let alert = UIAlertController(title: Language.getWord(withID: "addanote"), message: "", preferredStyle: .alert)
-        alert.addTextField { (textField) in
-            textField.text = "\(self.labelNote.text ?? "")"
-        }
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "save"), style: .default, handler: { (save) in
-            
-            let noteText = alert.textFields![0].text!
+
+        self.showTextFieldAlert(
+            presentingController: self,
+            title: Language.getWord(withID: "addanote"),
+            initialText: self.labelNote.text ?? "",
+            placeholder: Language.getWord(withID: "addanote"),
+            cancelTitle: Language.getWord(withID: "cancel"),
+            saveTitle: Language.getWord(withID: "save")
+        ) { [weak self] noteText in
+            guard let self = self else { return }
             if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
-                
                 CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: noteText)
                 self.labelNote.text = noteText
                 self.showNoteStack()
             }
-        }))
-        alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-        self.present(alert, animated: true)
+        }
     }
     
     @IBAction func idButtonTapped(_ sender: UIButton) {

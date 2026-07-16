@@ -1,0 +1,146 @@
+# Feature test: the .lnUrl push notification type, fired while the wallet is
+# LOCKED (before PIN entry) to exercise the deferred "wait for the user to sign
+# in" path.
+#
+# When someone pays a bittr user's Lightning Address, the backend pushes a
+# .lnUrl notification ("lightning_address_notification" — amount_msats, metadata,
+# time_sent, username, endpoint). handleLightningAddressNotification behaves
+# differently depending on state:
+#   - locked (!userHasSignedIn): shows a "Payment Request — please sign in" alert
+#     and stores the notification (wasNotified = true) for later.
+#   - after unlock: finalizeSync re-invokes the handler; because wasNotified is
+#     set it goes straight to handleLightningAddressNotificationImmediately,
+#     which generates a Lightning invoice for the requested amount and POSTs it
+#     back to the notification's endpoint.
+#
+# This flow fires the notification on the PIN screen, asserts the "please sign
+# in" alert, unlocks, and asserts the deferred processing runs. There is no e2e
+# endpoint that accepts the generated invoice (the real endpoint is minted by the
+# backend per payment request and can't be gathered from the address), so the
+# POST is pointed at a dead local port: the deferred processing therefore fails
+# gracefully with the "Payment Request Failed" alert. Reaching that alert proves
+# the notification survived the lock and was re-processed on unlock — the same
+# error alert also covers the no-channel case (invoice generation failing), so
+# the assertion holds regardless of channel state.
+#
+# The metadata is gathered live from the e2e Lightning Address
+# e2ebittr@staging.getbittr.com (the same address send_lightning.yaml pays) via
+# scripts/resolve_lnurl.js, with a static fallback.
+#
+# Real APNS pushes don't reach the simulator, so — like the buy flows — the
+# payload is delivered via scripts/push_notification.js → push_server.js →
+# `xcrun simctl push`. Start the helper first:
+#
+#   node shared/flows/scripts/push_server.js   # keep running
+#   maestro test shared/flows/features/notification_lnurl.yaml
+#
+# Run: maestro test shared/flows/features/notification_lnurl.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved. Allow
+# notifications so the foreground push is delivered.
+- launchApp:
+    permissions:
+      notifications: allow
+
+# Auto-provision a wallet if none exists yet. happy_path leaves us on Home
+# (signed in), so relaunch inside this block to get back to the locked PIN screen
+# — the notification has to arrive BEFORE sign-in. When a wallet already exists
+# the app cold-launches straight to the PIN screen, so this whole block is
+# skipped and there is no second launch.
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    commands:
+      - runFlow: ../onboarding/happy_path_wallet.yaml
+      - runFlow: ../onboarding/happy_path_signup.yaml
+      - launchApp:
+          permissions:
+            notifications: allow
+
+# Must be on the PIN unlock screen (CoreViewController is loaded and observing
+# "newNotification" behind it, with userHasSignedIn still false).
+- assertVisible:
+    id: "unlock.topLabel"
+- takeScreenshot: shared/docs/screenshots/notification_lnurl/01_locked
+
+# Gather the LNURL-pay metadata for the e2e Lightning Address so the payload is
+# realistic (falls back to a static value if resolution fails). Sets
+# output.lnurlMetadata and output.lnurlUsername.
+- evalScript: ${output.lnurlAddress = "e2ebittr@staging.getbittr.com"}
+- runScript: ../scripts/resolve_lnurl.js
+
+# Build the .lnUrl payload. amount_msats / 1000 = 1500 is echoed in the "please
+# sign in" alert. endpoint is a dead local port — no e2e endpoint accepts the
+# generated invoice, so the post-unlock POST is expected to fail gracefully.
+- evalScript: |
+    ${output.notificationPayload = JSON.stringify({
+      aps: { alert: { title: "Payment Request", body: "Someone wants to pay you." }, sound: "default" },
+      lightning_address_notification: {
+        amount_msats: 1500000,
+        metadata: output.lnurlMetadata,
+        time_sent: "2026-07-06T12:00:00Z",
+        username: output.lnurlUsername,
+        endpoint: "http://127.0.0.1:59999/e2e/lnurl-invoice"
+      }
+    })}
+
+# Fire it while LOCKED. handleLightningAddressNotification sees !userHasSignedIn
+# and shows the "Payment Request — please sign in" alert (single Okay button),
+# storing the notification for after unlock. Re-push until the alert shows — the
+# app dedups a repeat push within 10s of the last, so early re-pushes are
+# swallowed; the loop body has no failing assertion so it keeps pushing until one
+# gets through.
+- repeat:
+    while:
+      notVisible:
+        text: ".*Please sign in to accept the payment.*"
+    commands:
+      - runScript: ../scripts/push_notification.js
+      - waitForAnimationToEnd:
+          timeout: 3000
+- assertVisible:
+    text: ".*Please sign in to accept the payment.*"
+- takeScreenshot: shared/docs/screenshots/notification_lnurl/02_please_sign_in
+- tapOn:
+    id: "alert.button.0"
+
+# Unlock. On sign-in the stored notification is re-processed once the wallet
+# syncs (finalizeSync → handleLightningAddressNotification → wasNotified set →
+# handleLightningAddressNotificationImmediately): it generates an invoice and
+# POSTs it to endpoint.
+- runFlow: ../helpers/unlock.yaml
+
+# On sign-in, because a notification is waiting (lightningNotification != nil),
+# the app shows the "syncing wallet" loading card while the wallet syncs. On a
+# warm wallet the sync finishes so fast that the card can appear and vanish
+# between two Maestro hierarchy polls, so this check is best-effort (optional):
+# it documents the intermediate state when it's catchable, but the terminal
+# "Payment Request Failed" alert below is the real proof of the deferred path.
+- assertVisible:
+    text: ".*[Ss]yncing wallet.*"
+    optional: true
+- takeScreenshot: shared/docs/screenshots/notification_lnurl/03_syncing
+
+# Once synced the stored notification is re-processed (generate invoice → POST).
+# With no reachable endpoint the POST fails and the deferred processing surfaces
+# the "Payment Request Failed" alert — proving the notification survived the lock
+# and was re-processed on unlock. Wait it out (covers the post-unlock sync), then
+# let the alert finish animating in before the screenshot so it's fully visible,
+# then assert + dismiss.
+- extendedWaitUntil:
+    visible:
+      text: ".*couldn't process this payment request.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/notification_lnurl/04_request_failed
+- tapOn:
+    id: "alert.button.0"
+
+# Back on Home.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/notification_lnurl/05_home

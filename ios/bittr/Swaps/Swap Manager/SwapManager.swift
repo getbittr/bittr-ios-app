@@ -84,6 +84,7 @@ class SwapManager: NSObject {
             
             swapVC.thisSwap!.dateID = "Swap onchain to lightning \(idString)"
             swapVC.thisSwap!.createdInvoice = invoice.description
+            swapVC.thisSwap!.isSuggested = (existingInvoice != nil)
         }
         
         // Get next swap index and derive key dynamically
@@ -259,7 +260,7 @@ class SwapManager: NSObject {
                     swapVC.nextSpinner.stopAnimating()
 
                     if isInsufficientFunds {
-                        let balance = swapVC.coreVC?.bittrWallet.satoshisOnchain ?? 0
+                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain ?? 0
                         let message = Language.getWord(withID: "onchaininsufficientfunds")
                             .replacingOccurrences(of: "<amount>", with: "\(balance)")
                         swapVC.showAlert(
@@ -345,6 +346,12 @@ class SwapManager: NSObject {
             // Create transaction object.
             CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
             CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+            if swapVC.thisSwap!.isSuggested {
+                // Mark so the Home table renders this as an outbound
+                // transaction instead of a perpetually pending swap. Stored as
+                // pending; SwapStatusVC upgrades it once Boltz pays the invoice.
+                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+            }
             
             // Update Home table.
             BitcoinManager.shared.lightSync() { _ in }
@@ -407,7 +414,7 @@ class SwapManager: NSObject {
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
-            destinationAddress = swapVC.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
+            destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
@@ -510,7 +517,9 @@ class SwapManager: NSObject {
                             // Store transaction details in cache.
                             CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
                             CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
-                            
+                            if swapVC.thisSwap!.isSuggested {
+                                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+                            }
                             self.checkReverseSwapFees(swapVC: swapVC)
                         } else {
                             // Expected data unavailable.
@@ -642,6 +651,22 @@ class SwapManager: NSObject {
         // Store transaction details in cache.
         CacheManager.storeInvoiceDescription(preimage: transactionId, desc: ongoingSwap.dateID)
         CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+        
+        // For a suggested swap the onchain payout goes to an external recipient,
+        // so it never lands in this wallet as a matchable onchain transaction.
+        // Persist the payout txid on the swap file so the TransactionVC can show
+        // it as the Onchain ID (a normal reverse swap gets it from the matched
+        // claim transaction instead).
+        if ongoingSwap.isSuggested {
+            if let boltzID = ongoingSwap.boltzID, let existingSwapDetails = self.loadSwapDetailsFromFile(swapID: boltzID), let updatedSwapDetails = existingSwapDetails.mutableCopy() as? NSMutableDictionary {
+                updatedSwapDetails.setValue(transactionId, forKey: "sentOnchainTransactionID")
+                self.saveSwapDetailsToFile(swapID: boltzID, swapDictionary: updatedSwapDetails)
+            }
+
+            // The claim transaction paying the recipient has been broadcast —
+            // only now does the suggested swap count as succeeded.
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .succeeded)
+        }
         
         // Light sync wallet to add transaction to table.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

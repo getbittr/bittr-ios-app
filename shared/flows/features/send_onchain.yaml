@@ -65,6 +65,34 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.sendButton"
 
+# Open the QR scanner → ScannerViewController. The simulator has no camera, so
+# the scanner immediately shows a "scanning not supported" alert (single Okay
+# button) whose Okay action also closes the scanner → back on Send.
+- tapOn:
+    id: "send.scanButton"
+- assertVisible:
+    id: "scanner.scannerView"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/send_onchain/01b_scanner_alert
+- tapOn:
+    id: "alert.button.0"
+- assertVisible:
+    id: "send.regularButton"
+
+# Still on the default Instant (lightning) view: tap the question mark next to
+# the "You can send…" label → the QuestionViewController explaining the lightning
+# channel. Close it (header down button) → back on Send.
+- tapOn:
+    id: "send.availableQuestionButton"
+- assertVisible:
+    id: "question.yellowCard"
+- takeScreenshot: shared/docs/screenshots/send_onchain/01c_lightning_sendable_info
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "send.regularButton"
+
 # Switch to Regular (onchain). Recomputing the max sendable amount kicks off a
 # BDK scan if it hasn't run yet, which surfaces a "syncing wallet" alert and
 # spins the spinner next to "You can send 0 satoshis". Dismiss the alert if
@@ -79,6 +107,27 @@ appId: com.bittr.bittr-regtest
       id: "send.bdkSpinner"
     timeout: 60000
 - takeScreenshot: shared/docs/screenshots/send_onchain/02_regular
+
+# Tap the question mark next to the "Regular"/"Instant" toggle → an alert
+# explaining the difference between Regular and Instant (single Okay button) →
+# close it.
+- tapOn:
+    id: "send.switchQuestionButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/send_onchain/02a_regular_instant_info
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the question mark next to the "You can send…" label → an alert explaining
+# the onchain maximum sendable balance (single Okay button) → close it.
+- tapOn:
+    id: "send.availableQuestionButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/send_onchain/02b_max_sendable_info
+- tapOn:
+    id: "alert.button.0"
 
 # Enter the destination address. The address keyboard stays up, but tapping the
 # currency toggle next dismisses it on its own.

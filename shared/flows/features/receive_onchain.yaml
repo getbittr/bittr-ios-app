@@ -9,7 +9,12 @@
 #      with the address filled in and no amount.
 #   4. Back in Receive, attach a 5000 sat amount, copy, paste into Send and
 #      verify the address + amount carry across.
-#   5. Renew the onchain address repeatedly until the pool is exhausted and the
+#   5. Optional (only when a lightning channel is present, i.e. the More button
+#      is shown): switch to the unified Bitcoin QR, read its info alert, attach a
+#      5 EUR amount, copy it, paste into Send and verify it carries both the
+#      lightning invoice + amount and — after tapping Regular — the onchain
+#      address + amount.
+#   6. Renew the onchain address repeatedly until the pool is exhausted and the
 #      "no new address available" alert appears.
 #
 # Assumes a wallet exists. If launched on a clean install it auto-runs the
@@ -45,6 +50,44 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "home.headerLabel"
 
+# As soon as the PIN view has lowered and Home is up, tap the syncing-status
+# header button (it overlays the spinner) — done as early as possible to catch
+# the wallet while it is still syncing. We tap by COORDINATE rather than by id:
+# a `tapOn id` triggers a full UI-hierarchy snapshot (~1-2s on iOS) before the
+# tap lands, which is often long enough for a quick sync to finish first. A
+# point tap fires immediately, maximising the chance of hitting the spinner
+# while it is still spinning. The point sits over the header spinner (the
+# sparkle next to "your wallet", ~45% from the left, ~20% down on iPhone 15);
+# tune if your simulator differs. Two outcomes, both handled:
+#   • Still syncing → the sync status view opens. It dismisses itself when the
+#     sync finishes, so we wait for that auto-close (no manual close — that
+#     would race the auto-dismiss).
+#   • Already synced (the tap landed too late, or missed) → syncingStatusTapped
+#     opens the balance/Move screen instead; just close it.
+# Either branch ends back on Home.
+- tapOn:
+    point: "45%,20%"
+- runFlow:
+    when:
+      visible:
+        id: "sync.statusView"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/00_sync_status
+      - extendedWaitUntil:
+          notVisible:
+            id: "sync.statusView"
+          timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: "move.subtitleLabel"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/00_move_balance
+      - tapOn:
+          id: "header.downButton"
+      - assertVisible:
+          id: "home.headerLabel"
+
 # On a fresh launch the wallet syncs first — the header spinner spins until the
 # sync finishes. Wait for it to stop before doing anything so the onchain
 # address pool is ready by the time we open Receive.
@@ -71,10 +114,36 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.0"
 
-# Copy the address (puts "bitcoin:<address>" on the clipboard), close the
-# "Copied" alert.
+# Instead of the Copy button, use the QR long-press context menu. Long-press the
+# QR → the focused preview shows "Copy" and "Share".
+- longPressOn:
+    id: "receive.qrImageView"
+- assertVisible:
+    text: "Share"
+- takeScreenshot: shared/docs/screenshots/receive_onchain/03a_qr_context_menu
+
+# Tap Share → the iOS share sheet opens. Dismiss it by tapping the dimmed
+# Receive view above the bottom share sheet (~20% down — below the iOS status
+# bar, above the sheet) so the tap lands on the backdrop and closes the sheet.
 - tapOn:
-    id: "receive.copyButton"
+    text: "Share"
+# Wait for the share sheet's slide-up animation to finish before tapping the
+# backdrop — otherwise the point tap can fire while the sheet is still
+# presenting and miss the dimmed backdrop.
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: shared/docs/screenshots/receive_onchain/03b_share_sheet
+- tapOn:
+    point: "50%,20%"
+
+# Long-press the QR again and tap Copy → the same "Copied" alert the Copy button
+# shows (puts "bitcoin:<address>" on the clipboard). Close it.
+- longPressOn:
+    id: "receive.qrImageView"
+- assertVisible:
+    text: "Copy"
+- tapOn:
+    text: "Copy"
 - assertVisible:
     id: "alert.button.0"
 - takeScreenshot: shared/docs/screenshots/receive_onchain/04_copied
@@ -192,6 +261,154 @@ appId: com.bittr.bittr-regtest
 # exhausted.
 - tapOn:
     id: "home.receiveButton"
+
+# Optional Bitcoin QR detour. The default Receive type depends on lightning
+# availability — a unified Bitcoin QR is only offered when a channel exists,
+# which is exactly when the More button is present. If there's no channel this
+# whole block is skipped and we fall straight through to the onchain renew path
+# below. We wait out the QR spinner first so the More button has rendered before
+# the gate is evaluated.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+- runFlow:
+    when:
+      visible:
+        id: "receive.moreButton"
+    commands:
+      # Open the Transaction Type picker and switch to Bitcoin QR. Picker
+      # buttons: [Cancel, Address, Bitcoin QR, Create invoice, Show LNURL] —
+      # Bitcoin QR is index 2.
+      - tapOn:
+          id: "receive.moreButton"
+      - tapOn:
+          id: "alert.button.2"
+      - extendedWaitUntil:
+          notVisible:
+            id: "receive.qrSpinner"
+          timeout: 30000
+
+      # Read the Bitcoin QR info alert (question mark) and close it.
+      - tapOn:
+          id: "receive.questionButton"
+      - assertVisible:
+          id: "alert.button.0"
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/07a_bitcoinqr_info
+      - tapOn:
+          id: "alert.button.0"
+
+      # Add an amount in euros: reveal the amount field, switch the currency
+      # from Sats to € via the currency action sheet, confirm it reads EUR,
+      # then enter 5 and tap Done.
+      - tapOn:
+          id: "receive.editButton"
+      - tapOn:
+          id: "receive.amountTextField"
+      - tapOn:
+          id: "receive.currencyButton"
+      - tapOn:
+          text: "€"
+      - assertVisible:
+          id: "receive.currencyLabel"
+          text: "EUR"
+      - tapOn:
+          id: "receive.amountTextField"
+      - inputText: "5"
+      - tapOn:
+          text: "Done"
+
+      # The Bitcoin QR regenerates with the amount appended. Wait for the
+      # spinner to settle, then confirm the label reloaded with "?amount=".
+      - extendedWaitUntil:
+          notVisible:
+            id: "receive.qrSpinner"
+          timeout: 30000
+      - assertVisible:
+          id: "receive.invoiceLabel"
+          text: ".*amount=.*"
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/07b_bitcoinqr_amount
+
+      # Copy the unified Bitcoin QR (bitcoin:<addr>?amount=…&lightning=<invoice>),
+      # close the "Copied" alert.
+      - tapOn:
+          id: "receive.copyButton"
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
+
+      # Close Receive → Home.
+      - tapOn:
+          id: "header.downButton"
+      - assertVisible:
+          id: "home.headerLabel"
+
+      # Open Send and paste the unified QR. It carries a lightning invoice, so
+      # Send defaults to lightning: the invoice lands in the "to" field and the
+      # invoice amount in the amount field.
+      - tapOn:
+          id: "home.sendButton"
+      - tapOn:
+          id: "send.pasteButton"
+      - tapOn:
+          id: "alert.button.0"
+          optional: true
+      - assertVisible:
+          id: "send.toLabel"
+          text: "Invoice and amount"
+      - assertVisible:
+          id: "send.toTextField"
+          text: ".*lnbcrt.*"
+      - assertVisible:
+          id: "send.amountTextField"
+          text: ".*[0-9].*"
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/07c_send_invoice_amount
+
+      # Switch to Regular (onchain): the stored onchain address from the unified
+      # QR replaces the invoice, keeping the amount. A BDK rescan may surface a
+      # "syncing wallet" alert — dismiss it and wait out the spinner.
+      - tapOn:
+          id: "send.regularButton"
+      - tapOn:
+          id: "alert.button.0"
+          optional: true
+      - extendedWaitUntil:
+          notVisible:
+            id: "send.bdkSpinner"
+          timeout: 60000
+      - assertVisible:
+          id: "send.toLabel"
+          text: "Address and amount"
+      - assertVisible:
+          id: "send.toTextField"
+          text: ".*bcrt1.*"
+      - assertVisible:
+          id: "send.amountTextField"
+          text: ".*[0-9].*"
+      - takeScreenshot: shared/docs/screenshots/receive_onchain/07d_send_address_amount
+
+      # Close Send → Home, then reopen Receive so the existing onchain renew
+      # path below picks up from a freshly-opened Receive screen. The down-button
+      # tap here can occasionally register as a success without dismissing Send
+      # (the view is still mid-transition after the QR→regular switch), so if
+      # we're not back on Home, fall back to dragging Send down to close it —
+      # the same swipe-to-dismiss used in other flows.
+      - tapOn:
+          id: "header.downButton"
+      - runFlow:
+          when:
+            notVisible:
+              id: "home.headerLabel"
+          commands:
+            - swipe:
+                direction: DOWN
+                duration: 800
+      - assertVisible:
+          id: "home.headerLabel"
+      - tapOn:
+          id: "home.receiveButton"
+
 - runFlow:
     file: ../helpers/show_onchain_address.yaml
 - takeScreenshot: shared/docs/screenshots/receive_onchain/08_before_renew

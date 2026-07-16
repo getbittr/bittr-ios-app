@@ -38,7 +38,7 @@ extension SendViewController {
             enteredAmount = amountText.toNumber().inSatoshis() * 1000 // Convert to millisatoshis
         } else { // .currency (fiat)
             let fiatAmount = amountText.toNumber()
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
             let btcAmount = fiatAmount / bitcoinValue.currentValue
             
             // Safety check for invalid values
@@ -614,17 +614,11 @@ func signLNURLAuthK1DERHex(k1: Data, privateKeyData: Data) throws -> String {
 extension SendViewController {
     
     func startLNURLSpinner() {
-        DispatchQueue.main.async {
-            self.spinnerView.alpha = 1
-            self.lnurlSpinner.startAnimating()
-        }
+        self.showLoading(message: Language.getWord(withID: "handlinglnurl"))
     }
     
     func stopLNURLSpinner() {
-        DispatchQueue.main.async {
-            self.spinnerView.alpha = 0
-            self.lnurlSpinner.stopAnimating()
-        }
+        self.hideLoading()
     }
 }
 

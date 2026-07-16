@@ -35,13 +35,20 @@ appId: com.bittr.bittr-regtest
 - launchApp
 
 # --- Self-provision: ensure a wallet with an OPEN channel --------------------
-# 1) Ensure a wallet and reach Home. On launch an existing wallet shows the PIN
-#    unlock screen; if it's absent, restore one (restore_wallet ends on Home).
-#    If it's present, unlock to reach Home.
+# 1) Ensure a wallet and reach Home. Let the cold-start launch animation settle
+#    first: right after launchApp NOTHING has rendered yet, so a gate on
+#    "unlock screen not visible" evaluated at that moment concludes "no wallet"
+#    against a perfectly good one — this exact race once clearState-wiped the
+#    suite's channel wallet one second after launch. Then restore only on
+#    POSITIVE evidence of no wallet (the app launched to the create-wallet
+#    signup screen — same pattern as payment_mode.yaml); evaluated too early
+#    that gate merely skips, which the assertions below catch safely.
+- waitForAnimationToEnd:
+    timeout: 15000
 - runFlow:
     when:
-      notVisible:
-        id: "unlock.topLabel"
+      visible:
+        id: "signup.create.start.createWalletButton"
     file: ../onboarding/restore_wallet.yaml
 - runFlow:
     when:

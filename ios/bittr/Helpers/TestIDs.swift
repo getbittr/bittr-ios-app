@@ -4,21 +4,26 @@
 
 enum TestID {
     enum Academy {
+        static let backPageButton = "academy.backPageButton"
         static let completeButton = "academy.completeButton"
         static let headerLabel = "academy.headerLabel"
         static let lessonSpinner = "academy.lessonSpinner"
         static let nextLessonButton = "academy.nextLessonButton"
         static let nextPageButton = "academy.nextPageButton"
     }
+    enum Article {
+        static let downButton = "article.downButton"
+        static let tableView = "article.tableView"
+    }
     enum Buy {
         static let continueButton = "buy.continueButton"
         static let downButton = "buy.downButton"
         static let headerLabel = "buy.headerLabel"
+        static let paymentModeButton = "buy.paymentModeButton"
+        static let paymentModeSwitch = "buy.paymentModeSwitch"
         static let yourCode = "buy.yourCode"
         static let yourEmail = "buy.yourEmail"
         static let yourIban = "buy.yourIban"
-        static let paymentModeSwitch = "buy.paymentModeSwitch"
-        static let paymentModeButton = "buy.paymentModeButton"
     }
     enum Device {
         enum Darkmode {
@@ -33,15 +38,14 @@ enum TestID {
             static let devicetoken = "device.row.devicetoken"
             static let language = "device.row.language"
             static let lightningchannels = "device.row.lightningchannels"
-            static let notification = "device.row.notification"
             static let pendingpayouts = "device.row.pendingpayouts"
             static let publickey = "device.row.publickey"
-            static let purchases = "device.row.purchases"
             static let restore = "device.row.restore"
         }
     }
     enum Header {
         static let downButton = "header.downButton"
+        static let titleLabel = "header.titleLabel"
     }
     enum History {
         static let swapComplete = "history.swapComplete"
@@ -61,13 +65,16 @@ enum TestID {
         static let profitLabel = "home.profitLabel"
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
+        static let syncStatusButton = "home.syncStatusButton"
     }
     enum Map {
         static let mapSpinner = "map.mapSpinner"
         static let mapView = "map.mapView"
         enum OnePlace {
             static let closeButton = "map.onePlace.closeButton"
+            static let goToMapsButton = "map.onePlace.goToMapsButton"
             static let nameLabel = "map.onePlace.nameLabel"
+            static let websiteButton = "map.onePlace.websiteButton"
         }
         static let placeCellButton = "map.placeCellButton"
         static let placeName = "map.placeName"
@@ -75,6 +82,7 @@ enum TestID {
         static let userLocationButton = "map.userLocationButton"
     }
     enum Move {
+        static let channelButton = "move.channelButton"
         static let satsInstant = "move.satsInstant"
         static let satsRegular = "move.satsRegular"
         static let satsTotal = "move.satsTotal"
@@ -110,6 +118,7 @@ enum TestID {
     }
     enum Question {
         static let answerLabel = "question.answerLabel"
+        static let channelView = "question.channelView"
         static let yellowCard = "question.yellowCard"
     }
     enum Receive {
@@ -117,6 +126,8 @@ enum TestID {
         static let addressTitle = "receive.addressTitle"
         static let amountTextField = "receive.amountTextField"
         static let copyButton = "receive.copyButton"
+        static let currencyButton = "receive.currencyButton"
+        static let currencyLabel = "receive.currencyLabel"
         static let editButton = "receive.editButton"
         static let invoiceLabel = "receive.invoiceLabel"
         static let moreButton = "receive.moreButton"
@@ -125,10 +136,15 @@ enum TestID {
         static let questionButton = "receive.questionButton"
         static let refreshButton = "receive.refreshButton"
     }
+    enum Scanner {
+        static let closeButton = "scanner.closeButton"
+        static let scannerView = "scanner.scannerView"
+    }
     enum Send {
         static let amountTextField = "send.amountTextField"
         static let availableButton = "send.availableButton"
         static let availableLabel = "send.availableLabel"
+        static let availableQuestionButton = "send.availableQuestionButton"
         static let bdkSpinner = "send.bdkSpinner"
         enum Confirm {
             static let addressLabel = "send.confirm.addressLabel"
@@ -140,10 +156,11 @@ enum TestID {
         }
         static let currencyButton = "send.currencyButton"
         static let currencyLabel = "send.currencyLabel"
-        static let lnurlSpinner = "send.lnurlSpinner"
         static let nextButton = "send.nextButton"
         static let pasteButton = "send.pasteButton"
         static let regularButton = "send.regularButton"
+        static let scanButton = "send.scanButton"
+        static let switchQuestionButton = "send.switchQuestionButton"
         static let toLabel = "send.toLabel"
         static let toTextField = "send.toTextField"
     }
@@ -179,8 +196,12 @@ enum TestID {
                 static let topLabelTwo = "signup.bittr.start.topLabelTwo"
             }
             enum Success {
+                static let codeButton = "signup.bittr.success.codeButton"
+                static let ibanButton = "signup.bittr.success.ibanButton"
+                static let nameButton = "signup.bittr.success.nameButton"
                 static let nextButton = "signup.bittr.success.nextButton"
                 static let ourIbanLabel = "signup.bittr.success.ourIbanLabel"
+                static let screenshotButton = "signup.bittr.success.screenshotButton"
                 static let topLabelOne = "signup.bittr.success.topLabelOne"
                 static let topLabelTwo = "signup.bittr.success.topLabelTwo"
                 static let yourCodeLabel = "signup.bittr.success.yourCodeLabel"
@@ -224,6 +245,7 @@ enum TestID {
                 static let topLabelOne = "signup.create.ready.topLabelOne"
             }
             enum Start {
+                static let articleButton = "signup.create.start.articleButton"
                 static let createWalletButton = "signup.create.start.createWalletButton"
                 static let headerLabel = "signup.create.start.headerLabel"
                 static let restoreButton = "signup.create.start.restoreButton"
@@ -274,10 +296,24 @@ enum TestID {
     enum SwapStatus {
         static let confirmCard = "swapStatus.confirmCard"
         static let confirmStatusLabel = "swapStatus.confirmStatusLabel"
+        static let refreshButton = "swapStatus.refreshButton"
+    }
+    enum Sync {
+        static let closeButton = "sync.closeButton"
+        static let statusView = "sync.statusView"
     }
     enum Transaction {
+        static let addNoteButton = "transaction.addNoteButton"
+        static let bittrFeeButton = "transaction.bittrFeeButton"
+        static let copyBottomIdButton = "transaction.copyBottomIdButton"
+        static let copyIdButton = "transaction.copyIdButton"
+        static let descriptionButton = "transaction.descriptionButton"
         static let labelAmount = "transaction.labelAmount"
         static let labelDate = "transaction.labelDate"
+        static let labelNote = "transaction.labelNote"
+        static let swapStatusButton = "transaction.swapStatusButton"
+        static let transferFeeButton = "transaction.transferFeeButton"
+        static let urlIdButton = "transaction.urlIdButton"
         static let yellowCard = "transaction.yellowCard"
     }
     enum Unlock {

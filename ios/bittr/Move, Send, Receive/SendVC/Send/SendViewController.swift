@@ -10,7 +10,7 @@ import LDKNode
 import LightningDevKit
 import Sentry
 
-class SendViewController: UIViewController, UITextFieldDelegate {
+class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFailureReporting {
     
     // Generic
     @IBOutlet weak var yellowCard: UIView!
@@ -75,12 +75,6 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     // Confirm view
     @IBOutlet weak var confirmContainer: UIView!
-    
-    // Spinner view
-    @IBOutlet weak var spinnerView: UIView!
-    @IBOutlet weak var spinnerBox: UIView!
-    @IBOutlet weak var lnurlSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var spinnerLabel: UILabel!
     
     // Variables
     var coreVC:CoreViewController?
@@ -152,14 +146,16 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         self.toTextField.accessibilityIdentifier = TestID.Send.toTextField
         self.amountTextField.accessibilityIdentifier = TestID.Send.amountTextField
         self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
+        self.qrButton.accessibilityIdentifier = TestID.Send.scanButton
         self.regularButton.accessibilityIdentifier = TestID.Send.regularButton
+        self.switchQuestionButton.accessibilityIdentifier = TestID.Send.switchQuestionButton
         self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
         self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
         self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
         self.availableButton.accessibilityIdentifier = TestID.Send.availableButton
         self.availableAmount.accessibilityIdentifier = TestID.Send.availableLabel
+        self.availableQuestionButton.accessibilityIdentifier = TestID.Send.availableQuestionButton
         self.nextButton.accessibilityIdentifier = TestID.Send.nextButton
-        self.lnurlSpinner.accessibilityIdentifier = TestID.Send.lnurlSpinner
 
         // Set colors and language
         self.changeColors()
@@ -190,7 +186,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
                 self.bdkSpinner.stopAnimating()
                 
                 if self.maximumSendableOnchainBtc == nil {
-                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats(coreVC:self.coreVC!) ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
+                    self.maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                 }
                 let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc!).inSatoshis()
                 self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(sendableInSatoshis)".addSpaces())
@@ -198,7 +194,7 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         } else {
             // Set "Send all" for lightning payments.
             self.bdkSpinner.stopAnimating()
-            let lightningSats = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+            let lightningSats = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(lightningSats)".addSpaces())
         }
     }
@@ -213,27 +209,37 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         // Check whether BDK wallet is currently scanning.
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
-            
-            BitcoinManager.shared.didStartBDK { success in
-                if success {
-                    Log.info("Did start BDK.")
-                    BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
-                        if hasBeenSynced {
-                            Log.info("Did scan BDK wallet.")
-                            self.setSendAllLabel()
-                        } else {
-                            Log.info("Could not scan BDK wallet.")
+
+            // didStartBDK is synchronous and blocking (descriptor derivation,
+            // SQLite connection, electrum client setup), so run it off main
+            // and hop back for the UI outcomes. didSyncBdkWallet manages its
+            // own threading and completes on main.
+            DispatchQueue.global(qos: .userInitiated).async {
+                let didStartBDK = BitcoinManager.shared.didStartBDK()
+                DispatchQueue.main.async {
+                    if didStartBDK {
+                        Log.info("Did start BDK.")
+
+                        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+                            if hasBeenSynced {
+                                Log.info("Did scan BDK wallet.")
+                                self.setSendAllLabel()
+                            } else {
+                                Log.info("Could not scan BDK wallet.")
+                                self.presentOnchainSyncFailedAlert()
+                            }
                         }
+                    } else {
+                        Log.info("Could not start BDK.")
+                        self.presentOnchainSyncFailedAlert()
                     }
-                } else {
-                    Log.info("Could not start BDK.")
                 }
             }
         } else {
             Log.info("Waiting for BDK wallet to finish scanning.")
         }
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
@@ -330,13 +336,13 @@ class SendViewController: UIViewController, UITextFieldDelegate {
         
         if self.onchainOrLightning == .onchain {
             // Regular - use satoshis for onchain too
-            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc ?? self.coreVC!.bittrWallet.satoshisOnchain.inBTC()).inSatoshis()
+            let sendableInSatoshis:Int = CGFloat(self.maximumSendableOnchainBtc ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()).inSatoshis()
             self.amountTextField.text = "\(sendableInSatoshis)"
             self.btcLabel.text = "Sats"
             self.selectedCurrency = .satoshis
         } else {
             // Instant
-            let sendableInSatoshis:Int = Int((self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
+            let sendableInSatoshis:Int = Int((BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
             self.amountTextField.text = "\(sendableInSatoshis)"
             self.btcLabel.text = "Sats"
             self.selectedCurrency = .satoshis
@@ -479,11 +485,8 @@ class SendViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-
-        // Use the shared custom alert (same component as ReceiveViewController's
-        // More type picker) rather than a standard iOS action sheet.
-        // Buttons: [Cancel, Bitcoin, Satoshis, <fiat currency>].
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, #selector(self.tappedBitcoinCurrency), #selector(self.tappedSatsCurrency), #selector(self.tappedFiatCurrency)])
     }
 

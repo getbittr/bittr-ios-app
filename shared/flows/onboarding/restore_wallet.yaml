@@ -149,3 +149,11 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/restore_wallet/08_home
+
+# Wait for the initial wallet sync to finish — the header spinner stops in
+# finalizeSync — so the wallet is fully synced before the test ends (and before
+# any suite flow that runs after this one begins).
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000

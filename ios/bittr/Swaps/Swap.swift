@@ -11,6 +11,7 @@ class Swap: NSObject {
 
     var dateID = ""
     var swapDirection:SwapDirection = .onchainToLightning
+    var isSuggested = false
     var satoshisAmount:Int = 0
     var createdInvoice:String?
     var privateKey:String?
@@ -45,7 +46,7 @@ class Swap: NSObject {
         
         var onchainToLightning = true
         if self.swapDirection == .lightningToOnchain { onchainToLightning = false }
-        let swapDictionary:NSMutableDictionary = ["dateID":self.dateID, "onchainToLightning":onchainToLightning, "satoshisAmount":self.satoshisAmount]
+        let swapDictionary:NSMutableDictionary = ["dateID":self.dateID, "onchainToLightning":onchainToLightning, "satoshisAmount":self.satoshisAmount, "isSuggested":self.isSuggested]
         if self.createdInvoice != nil {
             swapDictionary.setValue(self.createdInvoice!, forKey: "createdInvoice")
         }
@@ -125,6 +126,9 @@ extension NSDictionary {
         }
         if let satoshisAmount = self["satoshisAmount"] as? Int {
             thisSwap.satoshisAmount = satoshisAmount
+        }
+        if let isSuggested = self["isSuggested"] as? Bool {
+            thisSwap.isSuggested = isSuggested
         }
         if let createdInvoice = self["createdInvoice"] as? String {
             thisSwap.createdInvoice = createdInvoice

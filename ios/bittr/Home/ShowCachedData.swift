@@ -14,12 +14,12 @@ extension HomeViewController {
         
         // Set cached Eur Value.
         if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
-            self.coreVC?.bittrWallet.valueInEUR = cachedEurValue
+            BitcoinManager.shared.bittrWallet.valueInEUR = cachedEurValue
         }
         
         // Set cached Chf Value.
         if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
-            self.coreVC?.bittrWallet.valueInCHF = cachedChfValue
+            BitcoinManager.shared.bittrWallet.valueInCHF = cachedChfValue
         }
         
         // Set conversion.

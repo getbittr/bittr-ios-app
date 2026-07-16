@@ -29,7 +29,7 @@ extension SendViewController {
             return btcAmount.inSatoshis()
         case .currency:
             let fiatAmount = enteredAmount.toNumber()
-            let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
             let btcAmount = fiatAmount / bitcoinValue.currentValue
             
             guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
@@ -160,7 +160,7 @@ extension SendViewController {
         }
         
         // Check if we have sufficient Lightning balance.
-        let availableLightningBalance = (self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+        let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
         if invoiceAmount > availableLightningBalance {
             // Insufficient Lightning balance.
             if bolt12Offer == nil {
@@ -168,7 +168,7 @@ extension SendViewController {
                 self.checkAvailableOnchainBalance(invoiceAmount: invoiceAmount, availableLightningBalance: availableLightningBalance, invoiceText: invoiceText)
             } else {
                 // BOLT12 offer. Insufficient funds available.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
             }
             return
         }
@@ -191,13 +191,13 @@ extension SendViewController {
     
     func checkAvailableOnchainBalance(invoiceAmount:Int, availableLightningBalance:UInt64, invoiceText:String?) {
         
-        let availableOnchainBalance = self.coreVC?.bittrWallet.satoshisOnchain ?? 0
+        let availableOnchainBalance = BitcoinManager.shared.bittrWallet.satoshisOnchain ?? 0
         if availableOnchainBalance >= invoiceAmount {
             // Suggest swap to Lightning
             self.showAlert(
                 presentingController: self,
                 title: Language.getWord(withID: "insufficientfunds"),
-                message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance)) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)"),
+                message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)".addSpaces()),
                 buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                 actions: [nil, #selector(self.swapAndPayLightning)]
             )
@@ -205,7 +205,7 @@ extension SendViewController {
             self.pendingLightningInvoice = invoiceText!
         } else {
             // Insufficient funds in both Lightning and onchain
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: "\(Language.getWord(withID: "lightninginsufficientfunds")) \(availableLightningBalance) satoshis.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
     }
     
@@ -391,7 +391,11 @@ extension UIViewController {
         sendVC?.completedTransaction = newTransaction
         receiveVC?.completedTransaction = newTransaction
         (sendVC?.coreVC?.homeVC ?? receiveVC?.coreVC?.homeVC ?? swapVC?.homeVC)?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
-        sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
-        receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
+
+        // Don't auto-open the TransactionVC for a swap's own lightning payment.
+        if !newTransaction.isSwap, !newTransaction.isSwapPayment {
+            sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
+            receiveVC?.performSegue(withIdentifier: "ReceiveToTransaction", sender: self)
+        }
     }
 }

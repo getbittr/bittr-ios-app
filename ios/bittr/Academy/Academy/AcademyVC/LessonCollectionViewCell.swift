@@ -80,28 +80,73 @@ class LessonCollectionViewCell: UICollectionViewCell {
 class BlurEffect: UIVisualEffectView {
 
     var blurAnimator = UIViewPropertyAnimator(duration: 1, curve: .linear)
-    
+
+    // Whether the blur is already built for the current attachment. Repeated
+    // "setupblur" posts are then no-ops: rebuilding a UIVisualEffectView blur
+    // is an expensive filter regeneration on the main thread, and the
+    // notification fans out to EVERY live instance per post (posted per
+    // willDisplay, per menu navigation, per foreground) — during a wallet
+    // reset's academy re-render that multiplied into a full main-thread hang
+    // (watchdog kill), even after the per-instance animator-accumulation fix.
+    // The blur is appearance-independent (overrideUserInterfaceStyle .light),
+    // so the only event that genuinely needs a rebuild is returning from the
+    // background, where iOS can drop a paused animator's effect — handled by
+    // clearing the flag on willEnterForeground.
+    private var isConfigured = false
+
     override func didMoveToSuperview() {
-        guard let superview = superview else { return }
+        guard let superview = superview else {
+            // Removed from the hierarchy (removeBlur / cell reuse): stop
+            // observing and kill the paused animator, so detached instances
+            // don't keep doing effect work on every "setupblur" post.
+            NotificationCenter.default.removeObserver(self)
+            self.blurAnimator.stopAnimation(true)
+            self.isConfigured = false
+            return
+        }
         self.backgroundColor = .clear
         self.frame = superview.bounds
+        self.isConfigured = false
         self.setupBlur()
-        
+
+        // didMoveToSuperview can run more than once — never stack observers.
+        NotificationCenter.default.removeObserver(self)
         NotificationCenter.default.addObserver(self, selector: #selector(setupBlur), name: NSNotification.Name(rawValue: "setupblur"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(invalidateBlur), name: UIApplication.willEnterForegroundNotification, object: nil)
     }
-    
+
+    @objc private func invalidateBlur() {
+        // Backgrounding can tear down the paused animator's effect — let the
+        // next "setupblur" post (SceneDelegate posts one on foregrounding)
+        // rebuild it.
+        self.isConfigured = false
+    }
+
     @objc private func setupBlur() {
+        // Detached instances have no business animating.
+        guard self.superview != nil else { return }
+        // Already built for this attachment — see isConfigured.
+        guard !self.isConfigured else { return }
+        self.isConfigured = true
+
         self.blurAnimator.stopAnimation(true)
         self.effect = nil
-        
+        self.overrideUserInterfaceStyle = .light
+
+        // Recreate the animator instead of re-adding animation blocks to the
+        // stopped one: addAnimations on a reused animator ACCUMULATES blocks,
+        // and every setFractionComplete then replays the whole pile through
+        // UIVisualEffectView's deferred-animation machinery on the main
+        // thread.
+        self.blurAnimator = UIViewPropertyAnimator(duration: 1, curve: .linear)
         self.blurAnimator.addAnimations { [weak self] in
             self?.effect = UIBlurEffect(style: .regular)
         }
-        
+
         // Determine blur intensity.
         self.blurAnimator.fractionComplete = 0.1
     }
-    
+
     deinit {
         self.blurAnimator.stopAnimation(true)
     }

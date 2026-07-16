@@ -41,17 +41,17 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
 
 ### Each test run
 
-The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more` flow needs it). Leave it running in its own terminal:
+The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more`, `notification_information` and `notification_lnurl` flows need it). Leave it running in its own terminal:
 
 ```sh
 # Terminal A — keep this running for the whole session
 node shared/flows/scripts/push_server.js
 ```
 
-The lightning send flow additionally needs the clipboard helper, which bridges Maestro to `xcrun simctl pbcopy` so the in-app Paste button has something to paste (see the `send_lightning.yaml` run line below). Start it the same way:
+The lightning send flows additionally need the clipboard helper, which bridges Maestro to `xcrun simctl pbcopy` so the in-app Paste button has something to paste (see the `send_lightning.yaml` / `send_swap_suggestion_lightning.yaml` run lines below). Start it the same way:
 
 ```sh
-# Terminal A′ — only needed for send_lightning.yaml
+# Terminal A′ — needed for send_lightning.yaml and send_swap_suggestion_lightning.yaml
 node shared/flows/scripts/clipboard_server.js
 ```
 
@@ -67,16 +67,32 @@ maestro test shared/flows/onboarding/fresh_install.yaml
 # (taps "Skip" on Signup7 and lands on Home):
 maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
 
+# Option 1c: Full reset + wallet creation through every validation gate
+# (confirm-statements / screenshot-warning / invalid-word / wrong-phrase /
+# PIN-length alerts), then Skip to Home — the onboarding error-path counterpart.
+# To exercise the seed-phrase screenshot warning (optional): run
+# "node shared/flows/scripts/screenshot_server.js" (needs Accessibility
+# permission), AND on the simulated device turn OFF Settings > General > Screen
+# Capture > Full-Screen Previews (else the screenshot preview covers the app and
+# blocks the flow). Without this setup the screenshot step is skipped.
+maestro test shared/flows/onboarding/fresh_install_unhappy.yaml
+
 # Option 2: Full reset + restore existing wallet.
 # Followed by onboarding through the Buy page.
 maestro test shared/flows/onboarding/restore_wallet.yaml
 maestro test shared/flows/features/buy_signup.yaml
 
-# Buy-signup validation + notification-gate test (unhappy path). Requires an
-# existing wallet without a bittr account (run fresh_install_skip_signup.yaml
-# first) — it only unlocks, no auto-create. launchApp's permissions config
-# makes Maestro auto-deny the iOS notification dialog so the OTP step drives
-# the denied-notification UX through to the "authorize in Settings" gate:
+# Buy-signup validation + notification-gate test (unhappy path, then on-chain
+# fallback). Requires an existing wallet without a bittr account (run
+# fresh_install_skip_signup.yaml first) — it only unlocks, no auto-create.
+# launchApp's permissions config makes Maestro auto-deny the iOS notification
+# dialog. On the OTP screen it first exercises resend (resend → email-resent
+# alert; a second tap in cooldown → wait-30s alert → Change email → re-verify).
+# It enters a wrong OTP first (incorrect-code alert), then the correct one; at
+# each denied-notifications gate it taps "Continue" to finish signup on-chain.
+# On the Transfer3 success screen it copies the IBAN/name/code (Copied alerts)
+# and taps Screenshot (Saved alert), on Transfer4 taps Back → Transfer3 → Finish,
+# then ends on Buy with the payout-mode switch OFF:
 maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
 # Then a feature test on the resulting wallet — opens the lightning channel:
@@ -84,6 +100,20 @@ maestro test shared/flows/features/buy_incoming.yaml
 
 # Subsequent feature tests reuse that channel:
 maestro test shared/flows/features/buy_more.yaml
+
+# The three QuestionViewController-backed push types (.information, .htlcExpired,
+# .unknown), injected back-to-back → each opens the QuestionViewController.
+# Independent of wallet state (auto-provisions if needed); needs push_server.js:
+maestro test shared/flows/features/notification_information.yaml
+
+# The .lnUrl (Lightning-Address) push, fired on the PIN screen → "please sign in"
+# alert, then deferred processing on unlock. Needs push_server.js:
+maestro test shared/flows/features/notification_lnurl.yaml
+
+# The .htlcIncoming push, fired on the PIN screen (silent) → deferred processing
+# on unlock through to the terminal "Incoming payment" alert. Needs push_server.js:
+maestro test shared/flows/features/notification_htlcincoming.yaml
+
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/receive_onchain.yaml
 maestro test shared/flows/features/receive_invoice.yaml
@@ -102,6 +132,19 @@ maestro test shared/flows/features/payment_mode.yaml
 # so the in-app Paste button has something to paste:
 maestro test shared/flows/features/send_lightning.yaml
 
+# Pay a lightning invoice with NO channel — the app suggests "Swap and pay",
+# which runs an onchain->lightning swap that pays the recipient. Requires a
+# wallet with onchain funds and no usable channel; also needs clipboard_server.js:
+maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+
+# The mirror image — pay an onchain address with too little onchain balance but a
+# funded channel; the app suggests "Swap and pay", running a lightning->onchain
+# swap that pays the address. Reads the balances from the Move screen, sizes the
+# payment off the lightning balance, and pays one of its own receive addresses.
+# Requires < 50000 sats onchain and > 75000 sats of Lightning outbound. No
+# clipboard helper needed (it copies its own address in-app):
+maestro test shared/flows/features/send_swap_suggestion_onchain.yaml
+
 maestro test shared/flows/features/remove_wallet.yaml
 maestro test shared/flows/features/forgot_pin_remove_wallet.yaml
 # PIN lockout, no open channel (immediate wipe):
@@ -110,7 +153,13 @@ maestro test shared/flows/features/wrong_pin.yaml
 # channel first (e.g. run buy_incoming.yaml):
 maestro test shared/flows/features/wrong_pin_with_channel.yaml
 maestro test shared/flows/features/bitcoin_value.yaml
+# Bitcoin map: open a place, optionally its website (in-app browser), tap Open
+# in Maps → Apple Maps and return via a coordinate tap on the "‹ bittr regtest"
+# breadcrumb (fixed iPhone 15 geometry). Needs an existing wallet (unlocks PIN):
 maestro test shared/flows/features/bitcoin_map.yaml
+# Academy: play a lesson to completion (Next → Complete), tapping Back to page 1
+# and forward again on page 2 to exercise the Back button; then open the next
+# unlocked lesson. Needs an existing wallet (unlocks with PIN):
 maestro test shared/flows/features/academy.yaml
 maestro test shared/flows/features/settings.yaml
 

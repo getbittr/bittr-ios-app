@@ -66,11 +66,6 @@ class DeviceTableViewCell: UITableViewCell {
         case "bittrpeer":
             self.deviceVC?.tappedCell = self
             self.deviceVC?.checkPeerConnection()
-        case "purchases":
-            self.deviceVC?.tappedCell = self
-            self.deviceVC?.checkPurchases()
-        case "notification":
-            self.deviceVC?.checkNotification()
         case "lightningchannels":
             self.deviceVC?.checkChannels()
         case "cache":

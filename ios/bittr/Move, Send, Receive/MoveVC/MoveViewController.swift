@@ -58,6 +58,7 @@ class MoveViewController: UIViewController {
         self.satsTotal.accessibilityIdentifier = TestID.Move.satsTotal
         self.satsRegular.accessibilityIdentifier = TestID.Move.satsRegular
         self.satsInstant.accessibilityIdentifier = TestID.Move.satsInstant
+        self.channelButton.accessibilityIdentifier = TestID.Move.channelButton
         self.swapButton.accessibilityIdentifier = TestID.Move.swapButton
         self.swapButton.accessibilityLabel = "Swap"
 
@@ -72,17 +73,17 @@ class MoveViewController: UIViewController {
     func updateLabels() {
         
         // Calculate balance values.
-        let correctBtcBalance:CGFloat = self.coreVC!.bittrWallet.satoshisOnchain.inBTC()
-        let correctBtclnBalance:CGFloat = self.coreVC!.bittrWallet.satoshisLightning.inBTC()
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let correctBtcBalance:CGFloat = BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
+        let correctBtclnBalance:CGFloat = BitcoinManager.shared.bittrWallet.satoshisLightning.inBTC()
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         
         // Show balance values.
-        self.satsTotal.text = "\(self.coreVC!.bittrWallet.satoshisOnchain + self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
-        self.satsRegular.text = "\(self.coreVC!.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
-        self.satsInstant.text = "\(self.coreVC!.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        self.satsTotal.text = "\(BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        self.satsRegular.text = "\(BitcoinManager.shared.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
+        self.satsInstant.text = "\(BitcoinManager.shared.bittrWallet.satoshisLightning)".addSpaces() + " sats"
         self.conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
         self.conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
         self.conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
@@ -121,7 +122,7 @@ class MoveViewController: UIViewController {
     
     @IBAction func channelButtonTapped(_ sender: UIButton) {
         
-        if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
+        if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: nil)
         } else {
@@ -132,7 +133,7 @@ class MoveViewController: UIViewController {
     
     @IBAction func swapButtonTapped(_ sender: UIButton) {
         
-        if self.coreVC!.bittrWallet.lightningChannels.count == 0 {
+        if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
             self.showAlert(presentingController: self, title: Language.getWord(withID: "instantpayments"), message: Language.getWord(withID: "questionvc13"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {

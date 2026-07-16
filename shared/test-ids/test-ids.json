@@ -26,7 +26,12 @@
     "profitButton": null,
     "profitLabel": null,
     "currencyButton": null,
-    "mapButton": null
+    "mapButton": null,
+    "syncStatusButton": null
+  },
+  "sync": {
+    "statusView": null,
+    "closeButton": null
   },
   "value": {
     "currentValueLabel": null,
@@ -54,15 +59,22 @@
     "placeCellButton": null,
     "onePlace": {
       "nameLabel": null,
-      "closeButton": null
+      "closeButton": null,
+      "websiteButton": null,
+      "goToMapsButton": null
     }
   },
   "academy": {
     "headerLabel": null,
     "nextLessonButton": null,
     "nextPageButton": null,
+    "backPageButton": null,
     "completeButton": null,
     "lessonSpinner": null
+  },
+  "article": {
+    "tableView": null,
+    "downButton": null
   },
   "history": {
     "swapPending": null,
@@ -75,6 +87,7 @@
     "satsTotal": null,
     "satsRegular": null,
     "satsInstant": null,
+    "channelButton": null,
     "swapButton": null
   },
   "nav": {
@@ -83,7 +96,8 @@
     "settingsButton": null
   },
   "header": {
-    "downButton": null
+    "downButton": null,
+    "titleLabel": null
   },
   "settings": {
     "row": {
@@ -104,8 +118,6 @@
       "devicetoken": null,
       "publickey": null,
       "bittrpeer": null,
-      "purchases": null,
-      "notification": null,
       "pendingpayouts": null,
       "lightningchannels": null,
       "restore": null
@@ -128,7 +140,12 @@
   },
   "swapStatus": {
     "confirmCard": null,
-    "confirmStatusLabel": null
+    "confirmStatusLabel": null,
+    "refreshButton": null
+  },
+  "scanner": {
+    "scannerView": null,
+    "closeButton": null
   },
   "unlock": {
     "topLabel": null
@@ -145,12 +162,22 @@
   },
   "question": {
     "yellowCard": null,
-    "answerLabel": null
+    "answerLabel": null,
+    "channelView": null
   },
   "transaction": {
     "yellowCard": null,
     "labelDate": null,
-    "labelAmount": null
+    "labelAmount": null,
+    "swapStatusButton": null,
+    "descriptionButton": null,
+    "copyIdButton": null,
+    "urlIdButton": null,
+    "copyBottomIdButton": null,
+    "bittrFeeButton": null,
+    "transferFeeButton": null,
+    "addNoteButton": null,
+    "labelNote": null
   },
   "receive": {
     "addressTitle": null,
@@ -160,6 +187,8 @@
     "qrSpinner": null,
     "questionButton": null,
     "amountTextField": null,
+    "currencyButton": null,
+    "currencyLabel": null,
     "copyButton": null,
     "refreshButton": null,
     "editButton": null,
@@ -170,14 +199,16 @@
     "toTextField": null,
     "amountTextField": null,
     "pasteButton": null,
+    "scanButton": null,
     "regularButton": null,
+    "switchQuestionButton": null,
     "currencyButton": null,
     "currencyLabel": null,
     "bdkSpinner": null,
     "availableButton": null,
     "availableLabel": null,
+    "availableQuestionButton": null,
     "nextButton": null,
-    "lnurlSpinner": null,
     "confirm": {
       "addressLabel": null,
       "amountLabel": null,
@@ -192,7 +223,8 @@
       "start": {
         "headerLabel": null,
         "createWalletButton": null,
-        "restoreButton": null
+        "restoreButton": null,
+        "articleButton": null
       },
       "confirm": {
         "topLabel": null,
@@ -277,6 +309,10 @@
         "topLabelTwo": null,
         "ourIbanLabel": null,
         "yourCodeLabel": null,
+        "ibanButton": null,
+        "nameButton": null,
+        "codeButton": null,
+        "screenshotButton": null,
         "nextButton": null
       },
       "transferInfo": {

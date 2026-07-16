@@ -73,6 +73,10 @@ class Transfer3ViewController: UIViewController {
         self.topLabelTwo.accessibilityIdentifier = TestID.Signup.Bittr.Success.topLabelTwo
         self.ourIbanLabel.accessibilityIdentifier = TestID.Signup.Bittr.Success.ourIbanLabel
         self.yourCodeLabel.accessibilityIdentifier = TestID.Signup.Bittr.Success.yourCodeLabel
+        self.ibanButton.accessibilityIdentifier = TestID.Signup.Bittr.Success.ibanButton
+        self.nameButton.accessibilityIdentifier = TestID.Signup.Bittr.Success.nameButton
+        self.codeButton.accessibilityIdentifier = TestID.Signup.Bittr.Success.codeButton
+        self.screenshotButton.accessibilityIdentifier = TestID.Signup.Bittr.Success.screenshotButton
         self.nextButton.accessibilityIdentifier = TestID.Signup.Bittr.Success.nextButton
 
         // Set colors, language, data.
@@ -85,16 +89,13 @@ class Transfer3ViewController: UIViewController {
         // Set data received from bittr API.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.id == currentIbanID {
-                
-                self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
-                self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
-                
-                self.ibanButton.boundString = eachIbanEntity.ourIbanNumber
-                self.nameButton.boundString = eachIbanEntity.ourName
-                self.codeButton.boundString = eachIbanEntity.yourUniqueCode
-            }
+        for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.id == currentIbanID {
+            self.ourIbanLabel.text = eachIbanEntity.ourIbanNumber
+            self.yourCodeLabel.text = eachIbanEntity.yourUniqueCode
+            
+            self.ibanButton.boundString = eachIbanEntity.ourIbanNumber
+            self.nameButton.boundString = eachIbanEntity.ourName
+            self.codeButton.boundString = eachIbanEntity.yourUniqueCode
         }
     }
     

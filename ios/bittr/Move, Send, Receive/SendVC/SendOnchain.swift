@@ -43,16 +43,16 @@ extension SendViewController {
         switch self.selectedCurrency {
         case .bitcoin: divideBy = 1
         case .satoshis: divideBy = 100000000
-        case .currency: divideBy = self.getCorrectBitcoinValue(coreVC: self.coreVC!).currentValue
+        case .currency: divideBy = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().currentValue
         }
         self.onchainAmountInSatoshis = (enteredAmount/divideBy).inSatoshis()
         
         // Check balance.
-        guard self.onchainAmountInSatoshis <= self.coreVC!.bittrWallet.satoshisOnchain else {
+        guard self.onchainAmountInSatoshis <= BitcoinManager.shared.bittrWallet.satoshisOnchain else {
             Log.info("Insufficient onchain balance.")
             Log.info("Check if we have sufficient Lightning balance for a swap.")
             
-            let availableLightningBalance = (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+            let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             
             if availableLightningBalance >= self.onchainAmountInSatoshis {
                 Log.info("Offering Lightning swap option.")
@@ -60,7 +60,7 @@ extension SendViewController {
                 self.showAlert(
                     presentingController: self,
                     title: Language.getWord(withID: "insufficientfunds"),
-                    message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(self.coreVC!.bittrWallet.satoshisOnchain)) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)"),
+                    message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(BitcoinManager.shared.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
                     buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
                     actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
                 )
@@ -175,7 +175,7 @@ extension ConfirmSendViewController {
         }
         
         // Double-check transaction details.
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)").replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)").replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
     }
     
     @objc func performOnchainTransaction() {
@@ -240,7 +240,7 @@ extension ConfirmSendViewController {
         
         BitcoinManager.shared.lightSync() { success in
             if success {
-                for eachTransaction in self.coreVC!.bittrWallet.allTransactions {
+                for eachTransaction in BitcoinManager.shared.bittrWallet.allTransactions {
                     if eachTransaction.kind.transactionID == self.newTxId {
                         self.sendVC!.completedTransaction = eachTransaction.createTransaction(coreVC: self.coreVC!, bittrTransactions: nil)
                         self.sendVC!.performSegue(withIdentifier: "SendToTransaction", sender: self)
@@ -256,19 +256,19 @@ extension ConfirmSendViewController {
 
 extension UIViewController {
     
-    func getMaximumSendableSats(coreVC:CoreViewController) -> Double? {
+    func getMaximumSendableSats() -> Double? {
         
         do {
             let actualAddress = BitcoinManager.shared.getAddress(atIndex: 0)
             
             // Create PSBT, which will throw an error.
-            _ = try BitcoinManager.shared.getPsbt(address: actualAddress, amountSats: coreVC.bittrWallet.satoshisOnchain, selectedVbyte: nil)
+            _ = try BitcoinManager.shared.getPsbt(address: actualAddress, amountSats: BitcoinManager.shared.bittrWallet.satoshisOnchain, selectedVbyte: nil)
             return nil
         } catch {
             if let bdkError = error as? BitcoinDevKit.CreateTxError {
                 switch bdkError {
                 case .InsufficientFunds(needed: let needed, available: _):
-                    let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
+                    let btcOnchain = BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                     let neededAmount:Double = Int(needed).inBTC()
                     let minimumFees:Double = neededAmount - btcOnchain
                     let spendableBtcAmount = btcOnchain - minimumFees
@@ -279,7 +279,7 @@ extension UIViewController {
                     }
                 case .CoinSelection(errorMessage: let errorMessage):
                     if errorMessage.contains("Insufficient funds") {
-                        let btcOnchain = coreVC.bittrWallet.satoshisOnchain.inBTC()
+                        let btcOnchain = BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
                         let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
                         let minimumFees:Double = neededAmount - btcOnchain
                         let spendableBtcAmount = btcOnchain - minimumFees

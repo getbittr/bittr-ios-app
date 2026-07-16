@@ -21,11 +21,6 @@
 #   • Bittr peer (Check): the peer may or may not already be connected. If a
 #     Connect button is present we retry, then dismiss whatever result alert
 #     comes back.
-#   • Bittr notification (Retry): the alert is either "no alert available for
-#     handling" (single Okay) or, if a payment notification is cached,
-#     "You're receiving a new payment!". The latter navigates out of Device
-#     details and shows a follow-up "already processed" alert; both that extra
-#     alert and reopening Device details are handled via optional taps.
 #
 # Colour changes from the dark-mode toggle can't be asserted in Maestro, so
 # they're captured as before/after screenshots for visual review.
@@ -209,61 +204,16 @@ appId: com.bittr.bittr-regtest
       - takeScreenshot: shared/docs/screenshots/settings/12_peer_disconnected
       - tapOn:
           id: "alert.button.1"
+      # The two-button connect alert is replaced by a single-button result
+      # alert ("connected" or a failure) — both have alert.button.0, so wait
+      # for the Connect button (alert.button.1) to disappear instead, then the
+      # tap below dismisses whatever result alert came back.
       - extendedWaitUntil:
           notVisible:
-            id: "alert.button.0"
-          timeout: 10000
-      - extendedWaitUntil:
-          visible:
-            id: "alert.button.0"
+            id: "alert.button.1"
           timeout: 30000
 - tapOn:
     id: "alert.button.0"
-
-# Bittr purchases (Check): first alert offers Check / Close — tap Check
-# (alert.button.0) to fetch transactions, wait for the result alert, then
-# tap Okay (alert.button.0).
-- tapOn:
-    id: "device.row.purchases"
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.0"
-    timeout: 10000
-- tapOn:
-    id: "alert.button.0"
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.0"
-    timeout: 30000
-- takeScreenshot: shared/docs/screenshots/settings/13_purchases_result
-- tapOn:
-    id: "alert.button.0"
-
-# Bittr notification (Retry): the resulting alert is one of two. Usually it's
-# the "no alert available for handling" alert (single Okay). But if a payment
-# notification happens to be cached, it instead reads "You're receiving a new
-# payment! ...". Both are dismissed with Okay.
-- tapOn:
-    id: "device.row.notification"
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.0"
-    timeout: 10000
-- tapOn:
-    id: "alert.button.0"
-
-# In the "receiving a new payment" case, handling it navigates out of Device
-# details and a second alert reports "This payment has already been
-# processed." Dismiss it, then reopen Device details so we can continue to
-# Pending payout. Both steps are optional: in the common "no alert available"
-# case there's no second alert and we never left Device details (settings.row.device
-# isn't visible from inside it), so they're skipped.
-- tapOn:
-    id: "alert.button.0"
-    optional: true
-- tapOn:
-    id: "settings.row.device"
-    optional: true
 
 # Pending payout (Check): signs a message and calls the notifications API
 # (async). The resulting alert is dismissed by alert.button.0 (Okay when
@@ -274,7 +224,7 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "alert.button.0"
     timeout: 30000
-- takeScreenshot: shared/docs/screenshots/settings/14_pendingpayout
+- takeScreenshot: shared/docs/screenshots/settings/13_pendingpayout
 - tapOn:
     id: "alert.button.0"
 
@@ -284,7 +234,7 @@ appId: com.bittr.bittr-regtest
     id: "device.row.lightningchannels"
 - assertVisible:
     id: "question.yellowCard"
-- takeScreenshot: shared/docs/screenshots/settings/15_lightning_question
+- takeScreenshot: shared/docs/screenshots/settings/14_lightning_question
 - tapOn:
     id: "header.downButton"
 - assertVisible:
@@ -299,4 +249,4 @@ appId: com.bittr.bittr-regtest
     id: "header.downButton"
 - assertVisible:
     id: "home.headerLabel"
-- takeScreenshot: shared/docs/screenshots/settings/16_home
+- takeScreenshot: shared/docs/screenshots/settings/15_home

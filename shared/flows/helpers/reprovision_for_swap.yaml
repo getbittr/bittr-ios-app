@@ -1,0 +1,56 @@
+# Helper: reprovision a fresh wallet with notifications ALLOWED, then open the
+# lightning channel. swap.yaml runs this only when the first swap attempt hit
+# the "notifications required" gate (no APNs device token because a prior run —
+# e.g. buy_signup_no_notifications.yaml — denied notifications).
+#
+# Why a full reinstall: once notifications are denied on the simulator they
+# can't be re-enabled via Settings, and `permissions: allow` can't re-grant a
+# decided permission. A clearState launch REINSTALLS the app, which resets the
+# notification permission to "not determined"; permissions: allow + the
+# onboarding flow then grant it so signup registers a device token, and
+# buy_incoming reopens the channel the swap pulls from.
+#
+# Heavy by design (full onboarding + channel open). Prereqs are the same as
+# buy_incoming.yaml: the push helper (node shared/flows/scripts/push_server.js)
+# and the hosted regtest e2e endpoints must be available.
+#
+# NOTE: this hinges on Maestro's iOS clearState actually reinstalling the app
+# (and thus resetting notifications) — verified working on iPhone 16e / iOS 18.5.
+# If it ever doesn't, the swap stays blocked and swap.yaml's assertNotVisible
+# guard fails loudly rather than silently passing.
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    permissions:
+      notifications: allow
+
+# Fresh onboarding: create the wallet and complete the bittr signup. The signup
+# step allows notifications (happy_path_signup taps Allow on the prompt), which
+# registers the device token the swap needs.
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path_wallet.yaml
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.ready.topLabelOne"
+    file: ../onboarding/happy_path_signup.yaml
+
+# Open + confirm the lightning channel (buy_incoming self-launches, preserving
+# the freshly-onboarded state).
+- runFlow: ../features/buy_incoming.yaml
+
+# End on Home so the swap retry (helpers/swap_leg1.yaml) starts from the balance
+# card. buy_incoming may leave us on the Profit screen (older flow) or already
+# on Home (once it opens the TransactionViewController itself) — close the
+# Profit screen if it's showing, otherwise the optional tap is a no-op.
+- tapOn:
+    id: "header.downButton"
+    optional: true
+- assertVisible:
+    id: "home.headerLabel"

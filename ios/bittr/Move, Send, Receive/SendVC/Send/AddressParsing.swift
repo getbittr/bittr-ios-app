@@ -34,25 +34,26 @@ extension SendViewController {
             self.toTextField.text = lightningInvoice!
             self.onchainOrLightning = .lightning
             
-            // Check if we have sufficient funds in Lightning.
+            // Display the invoice amount if it carries one.
             if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningInvoice!).getValue() {
                 if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                     // Regular invoice
                     let invoiceAmount = Int(invoiceAmountMilli)/1000
-                    
-                    if invoiceAmount <= (self.coreVC?.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000 {
-                        // We have sufficient funds in Lightning.
-                        
-                        self.amountTextField.text = "\(invoiceAmount)"
-                        self.btcLabel.text = "Sats"
-                        self.selectedCurrency = .satoshis
-                    } else {
-                        if bitcoinAddress != nil {
-                            // We can't send this much in Lightning. Send onchain.
-                            self.handleScannedOrPastedString(bitcoinAddress!)
-                            return
-                        }
+
+                    let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+                    if invoiceAmount > availableLightningBalance, bitcoinAddress != nil {
+                        // We can't send this much in Lightning, but the unified QR
+                        // carries an onchain address. Send onchain instead.
+                        self.handleScannedOrPastedString(bitcoinAddress!)
+                        return
                     }
+
+                    // Show the parsed amount regardless of channel capacity. If it
+                    // exceeds the lightning balance (e.g. no channel), the swap
+                    // suggestion on Next handles the insufficient-balance case.
+                    self.amountTextField.text = "\(invoiceAmount)"
+                    self.btcLabel.text = "Sats"
+                    self.selectedCurrency = .satoshis
                 }
             }
             

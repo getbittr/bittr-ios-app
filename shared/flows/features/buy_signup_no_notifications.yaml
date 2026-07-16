@@ -1,7 +1,9 @@
 # Feature test: the bittr signup from the Buy page, exercising the IBAN /
 # email validation alerts and the notification-permission gate on the OTP
-# screen. A companion to buy_signup.yaml that walks the *unhappy* branches
-# rather than the clean path.
+# screen, then proceeding WITHOUT notifications. A companion to buy_signup.yaml
+# that walks the *unhappy* branches and then completes signup via the on-chain
+# fallback: declining notifications no longer blocks the user — it registers
+# them for on-chain payouts (payment_mode=onchain) and lets them finish.
 #
 # Prerequisite: a wallet must ALREADY exist on the device, WITHOUT a
 # completed bittr signup (e.g. run onboarding/fresh_install_skip_signup.yaml
@@ -22,14 +24,34 @@
 #      its last digit + the correct email → Verify → invalid-IBAN alert.
 #   5. Fix the IBAN, then drop ".com" from the email → Verify → the
 #      "enter your IBAN and email" alert (invalid email).
-#   6. Fix the email → Verify → advance to the OTP screen.
-#   7. Enter a code (123456 — never actually submitted/checked, since the
-#      gate blocks it). Notification permission is undetermined, so: the
-#      in-app "Receive notifications" prompt (Alert A) → Okay → the iOS
-#      system dialog, which Maestro auto-denies → the "authorize
-#      notifications in Settings" gate (Alert B) → Okay.
-#   8. END at the notification gate. We don't continue to the
-#      enter-correct-code path — that would need notifications enabled.
+#   6. Fix the email → Verify → advance to the OTP screen. Before entering any
+#      code, exercise resend: tap "Resend code" (resends → "email resent" alert
+#      → Okay), wait 5s, tap it again (now in cooldown → "wait 30 seconds"
+#      alert), and tap "Change email" → back to Transfer1; re-enter the same
+#      IBAN + email and Verify to return to the OTP screen.
+#   7. Enter a WRONG code first (111111). At the first notification gate the
+#      app shows EITHER the in-app prompt (Alert A) → Okay → iOS system dialog
+#      (auto-denied) → the denied gate (Alert B) when permission was still
+#      undetermined, OR jumps straight to the denied gate (Alert B) if
+#      notifications were already denied. The test handles both. Either way,
+#      tap Continue on Alert B → the WRONG code is submitted and check2fa
+#      rejects it → incorrect-code alert.
+#   8. Re-enter the correct code (123456). Erasing re-arms the auto-submit, so
+#      the 6th keystroke auto-triggers again. Permission is now .denied (no
+#      in-app prompt / system dialog this round) → straight to the denied gate
+#      (Alert B) again → Continue. check2fa accepts 123456.
+#   9. Signup proceeds, registering the customer for on-chain payouts. On the
+#      Transfer3 success screen, copy the IBAN / name / code (each shows a
+#      "Copied" alert) and tap Screenshot (saves to Photos → "Saved" alert),
+#      then reuse buy_signup.yaml's clean-path tail — Transfer4 info cards (tap
+#      Back → Transfer3 → Finish to return), then "Let's go" → "Open your
+#      banking app" modal → back on Buy with the new cell.
+#  10. Back on the Buy page: assert the new cell rendered AND that the
+#      payout-mode switch is OFF (on-chain), reflecting the denied path.
+#  11. Try to flip the payout-mode switch to lightning. Lightning needs push
+#      notifications (denied), so the switch is blocked: it reverts and shows
+#      the "lightningneedsnotifications" alert → tap Okay → switch back OFF.
+#      END.
 #
 # Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
@@ -174,38 +196,285 @@ appId: com.bittr.bittr-regtest
     id: "signup.bittr.start.nextButton"
 
 # Transfer2 (OTP). The code field auto-focuses and auto-submits once 6
-# digits are entered. The submit path checks notification permission first;
-# it's undetermined, so the app shows its "Receive notifications" prompt,
-# then the iOS system dialog — which Maestro auto-denies (the launchApp
-# permissions: notifications: deny config taps "Don't Allow" for us).
+# digits are entered. We enter a WRONG code first (111111) to exercise the
+# invalid-code path. The submit path checks notification permission BEFORE
+# validating the code, so the next step handles whichever notification gate
+# appears (see below) — depending on whether permission is still undetermined
+# or was already denied.
 - extendedWaitUntil:
     visible:
       id: "signup.bittr.otp.codeTextField"
     timeout: 30000
+
+# Before entering any code, exercise the resend-code flow. The code field
+# auto-focuses, so its keyboard covers the "Resend code" button — dismiss it
+# first by tapping the top label (a UILabel whose tap falls through to
+# endEditing). The cooldown timer starts at 0, so the first "Resend code"
+# actually resends the email (async call) and shows the "We've resent our
+# email!" alert ([Okay, Change email]), starting the 30s cooldown. Wait for it,
+# then tap Okay (index 0).
+- tapOn:
+    id: "signup.bittr.otp.topLabel"
+- tapOn:
+    id: "signup.bittr.otp.resendButton"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04a_code_resent
+- tapOn:
+    id: "alert.button.0"
+
+# Wait 5s (still inside the 30s cooldown), then tap "Resend code" again — the
+# timer is now counting, so it shows the "please wait 30 seconds" alert
+# ([Okay, Change email]) with no network call. Tap "Change email" (index 1),
+# which returns to Transfer1.
+- evalScript: ${output.sleepMs = 5000}
+- runScript: ../scripts/sleep.js
+# Dismiss the keyboard again (the code field may have re-focused after the
+# alert) before tapping "Resend code".
+- tapOn:
+    id: "signup.bittr.otp.topLabel"
+- tapOn:
+    id: "signup.bittr.otp.resendButton"
+- assertVisible:
+    text: ".*wait 30 seconds.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04b_resend_cooldown
+- tapOn:
+    id: "alert.button.1"
+
+# Back on Transfer1 (moveToPage re-instantiates it). Re-enter the same IBAN +
+# email — clearing first in case the fields come back pre-filled — and Verify to
+# return to the OTP screen. The IBAN field auto-focuses.
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- tapOn:
+    id: "signup.bittr.start.ibanTextField"
+- eraseText: 30
+- inputText: "NL27ABNA0451135725"
+- tapOn:
+    id: "signup.bittr.start.emailTextField"
+- eraseText: 30
+- inputText: "e2ebittr@getbittr.com"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+
+# Back on Transfer2 — wait for the code field again before entering the code.
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.otp.codeTextField"
+    timeout: 30000
+
+- inputText: "111111"
+
+# First notification gate. What shows depends on the OS permission state:
+#   - .notDetermined: the in-app "Receive notifications" prompt (Alert A,
+#     single Okay button) appears first → Okay fires the iOS system dialog
+#     (Maestro auto-denies) → then the denied gate (Alert B).
+#   - already .denied (e.g. a previous run denied them): NO Alert A and NO
+#     system dialog — the app jumps straight to the denied gate (Alert B).
+# Wait for whichever alert appears first (both have an Okay/Cancel button.0).
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+
+# Distinguish the two cases by the presence of a "Continue" button (Alert B
+# has one; Alert A doesn't). If it's Alert A (no Continue), tap Okay to fire
+# the system dialog (auto-denied). When notifications were already denied this
+# block is skipped, because Alert B is shown directly.
+- runFlow:
+    when:
+      notVisible:
+        text: "Continue"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
+      - tapOn:
+          id: "alert.button.0"
+
+# Alert B: the denied-notifications gate, [Cancel (button.0), Continue
+# (button.1)] — reached either after the system dialog (undetermined case) or
+# directly (already-denied case). Tap Continue (button.1) to proceed without
+# notifications: the signup submits the entered code (still the WRONG 111111)
+# and registers the customer for on-chain payouts rather than being blocked.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 20000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/06_notification_gate
+- tapOn:
+    id: "alert.button.1"
+
+# check2fa rejects 111111 → the "Oops" incorrect-code alert (verificationfail,
+# single Okay button). Dismiss it and try again with the correct code.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_wrong_code
+- tapOn:
+    id: "alert.button.0"
+
+# Re-enter the code with the correct value. Erasing drops the field below 6
+# digits, which re-arms the auto-submit, so typing 123456 auto-triggers again
+# on the 6th keystroke — same as the first attempt, no manual Confirm needed.
+- tapOn:
+    id: "signup.bittr.otp.codeTextField"
+- eraseText: 6
 - inputText: "123456"
 
-# Alert A: the in-app "Receive notifications" prompt. Okay fires the iOS
-# system permission dialog, which Maestro auto-denies.
+# The submit path re-checks notification permission every time. It's now
+# .denied (not .notDetermined), so there's NO in-app prompt and NO system
+# dialog this round — it goes straight to the denied-notifications gate again.
+# Tap Continue (button.1) once more to proceed; this time check2fa accepts
+# 123456.
 - extendedWaitUntil:
     visible:
-      id: "alert.button.0"
+      id: "alert.button.1"
     timeout: 20000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/08_notification_gate_retry
 - tapOn:
-    id: "alert.button.0"
+    id: "alert.button.1"
 
-# Alert B: after the system dialog is denied, the app shows the "...go to
-# Settings > Notifications > bittr to authorize..." gate. Tap Okay to dismiss
-# it (the app just stops the spinner).
+# Proceeding submits 123456 (accepted in test mode), then createBittrAccount
+# runs the long async chain. From here the flow mirrors buy_signup.yaml's
+# clean-path tail — the only difference is the on-chain payout mode at the end.
+
+# Transfer3: bittr signup success. Generous timeout for the async chain.
 - extendedWaitUntil:
     visible:
-      id: "alert.button.0"
-    timeout: 20000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/06_authorize_notifications
-- tapOn:
-    id: "alert.button.0"
+      id: "signup.bittr.success.topLabelOne"
+    timeout: 90000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/09_bittr_success
 
-# Both gates dismissed → back on the OTP screen. End of test.
+# Tap the IBAN, name and code (one by one) to copy each to the clipboard — each
+# shows a "Copied" alert (single Okay). Screenshots are taken after the alert
+# has finished animating in.
+- tapOn:
+    id: "signup.bittr.success.ibanButton"
 - assertVisible:
-    id: "signup.bittr.otp.codeTextField"
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/07_end
+    text: ".*[Cc]opied.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_iban_copied
+- tapOn:
+    id: "alert.button.0"
+- tapOn:
+    id: "signup.bittr.success.nameButton"
+- assertVisible:
+    text: ".*[Cc]opied.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_name_copied
+- tapOn:
+    id: "alert.button.0"
+- tapOn:
+    id: "signup.bittr.success.codeButton"
+- assertVisible:
+    text: ".*[Cc]opied.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_code_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the Screenshot button — it renders the card to an image and saves it to
+# Photos, then shows a "Saved" alert (single Okay). Saving to Photos can raise
+# the iOS add-to-Photos permission prompt on first use; allow it if it appears
+# (harmless if it doesn't — if already granted/denied the app's alert follows
+# directly). If the prompt uses different button text on your iOS, adjust here.
+- tapOn:
+    id: "signup.bittr.success.screenshotButton"
+- runFlow:
+    when:
+      visible:
+        text: "Allow"
+    commands:
+      - tapOn:
+          text: "Allow"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/13_screenshot_saved
+- tapOn:
+    id: "alert.button.0"
+
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+
+# Transfer4: 4 explanation cards + "Let's go" at the bottom.
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+
+# Tap Back to return to Transfer3, then Finish again to come back to Transfer4.
+- tapOn:
+    id: "signup.bittr.transferInfo.backButton"
+- assertVisible:
+    id: "signup.bittr.success.topLabelOne"
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+
+- scrollUntilVisible:
+    element:
+      id: "signup.bittr.transferInfo.nextButton"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/14_transfer_info
+- tapOn:
+    id: "signup.bittr.transferInfo.nextButton"
+
+# "Open your banking app" modal — Done dismisses both the alert and the
+# RegisterIban modal; Buy reappears underneath with the new cell.
+- tapOn:
+    id: "alert.button.0"
+
+# Back on Buy — the new IBAN cell renders on the next layout pass after
+# parseIbanEntities, so allow a small grace period.
+- extendedWaitUntil:
+    visible:
+      id: "buy.yourCode"
+    timeout: 20000
+- assertVisible:
+    id: "buy.yourEmail"
+- assertVisible:
+    id: "buy.yourIban"
+
+# Because the user proceeded without notifications, the account was registered
+# on-chain, so the payout-mode switch renders OFF (paymentMode == "onchain").
+# NOTE: same `checked` caveat as payment_mode.yaml — if your Maestro version
+# doesn't read UISwitch state on iOS, drop the `checked:` line and rely on the
+# screenshot.
+- assertVisible:
+    id: "buy.paymentModeSwitch"
+    checked: false
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/15_buy_onchain
+
+# Now try to switch the payout mode to lightning. Lightning payouts are
+# delivered via push notifications, which the user denied, so setPaymentMode
+# blocks the switch: it reverts the toggle and shows the
+# "lightningneedsnotifications" alert (single Okay button) rather than sending
+# the PATCH.
+- tapOn:
+    id: "buy.paymentModeSwitch"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 20000
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/16_lightning_blocked
+- tapOn:
+    id: "alert.button.0"
+
+# The blocked switch reverts to OFF (on-chain). End of test.
+- assertVisible:
+    id: "buy.paymentModeSwitch"
+    checked: false
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/17_end

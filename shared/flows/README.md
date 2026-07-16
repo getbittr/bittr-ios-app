@@ -13,6 +13,17 @@ shared/flows/
                           Wipes state, runs happy_path_wallet, then taps
                           "Skip" on Signup7 to land on Home without the
                           bittr signup. Top-level entry.
+    fresh_install_unhappy.yaml
+                          Wipes state and walks wallet creation through every
+                          validation gate — confirm-statements alert, the seed
+                          screenshot warning (real screenshot triggered via
+                          scripts/screenshot_server.js; best-effort), an invalid
+                          non-BIP39 word then a wrong recovery phrase, and the PIN
+                          too-short / too-long / mismatch alerts — before
+                          creating the wallet, then continuing into the bittr
+                          signup and exiting via "I don't have an IBAN" →
+                          "Go to wallet" to Home. The error-branch counterpart
+                          to happy_path_wallet. Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
     happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
@@ -22,6 +33,34 @@ shared/flows/
   features/        One file per feature, run against a non-clean state.
     buy_incoming.yaml     First-time top up — opens the lightning channel.
     buy_more.yaml         Subsequent top up — channel already open.
+    notification_information.yaml  Injects the three push types that render in
+                          the QuestionViewController — `.information`
+                          (`bittr_notification`), `.htlcExpired`
+                          (`htlc_notification` + `expired: true`) and `.unknown`
+                          (unrecognised payload → fallback "Oops!") — back-to-back
+                          via scripts/push_notification.js, asserting each opens
+                          with the expected header + body, then closing it. Each
+                          is re-pushed until it clears the app's 10s
+                          notification-dedup window. Independent of wallet state
+                          (auto-provisions if needed); needs
+                          scripts/push_server.js.
+    notification_lnurl.yaml  Fires a `.lnUrl`
+                          (`lightning_address_notification`) push on the PIN
+                          screen → the "Payment Request — please sign in" alert,
+                          unlocks, and asserts the deferred processing re-runs on
+                          sign-in (generate invoice → POST) and fails gracefully
+                          ("Payment Request Failed") since no e2e endpoint accepts
+                          the invoice. Metadata is gathered from the e2e Lightning
+                          Address via scripts/resolve_lnurl.js. Auto-provisions a
+                          wallet if needed; needs scripts/push_server.js.
+    notification_htlcincoming.yaml  Fires a `.htlcIncoming` (`htlc_notification`)
+                          push on the PIN screen (silent while locked), pauses so
+                          it's handled before sign-in (scripts/sleep.js), unlocks,
+                          and follows the deferred path through the "syncing
+                          wallet" → "receiving payment" pending views to the
+                          terminal "Incoming payment" alert (the no-real-payment
+                          terminal state). Auto-provisions a wallet if needed;
+                          needs scripts/push_server.js.
     receive.yaml          Receive screen (auto-recovers via happy_path if no wallet).
     receive_onchain.yaml  Onchain receive → send round-trip: show the onchain
                           address (waiting out the verification spinner), read
@@ -55,6 +94,30 @@ shared/flows/
                           The Paste steps need scripts/clipboard_server.js
                           running. Requires an active channel with outbound
                           capacity.
+    send_swap_suggestion_lightning.yaml  Pay a lightning invoice with NO channel:
+                          Send → paste an amount-bearing invoice → Next → the
+                          "insufficient funds / Swap and pay" suggestion →
+                          SwapViewController auto-runs an onchain→lightning swap
+                          that pays the recipient (reusing swap.yaml's reverse-
+                          swap mine → "Swap complete" arc), then opens the new
+                          transaction from Home. Requires a wallet with onchain
+                          funds and no usable channel; needs
+                          scripts/clipboard_server.js.
+    send_swap_suggestion_onchain.yaml  The mirror image: pay an onchain address
+                          with too little onchain balance but a funded channel.
+                          Reads the Move-screen balances (asserts regular < 50000
+                          and instant > 75000), sizes the payment off the lightning
+                          balance (50000 + any lightning above 75000), and copies
+                          one of its own onchain receive addresses as the target.
+                          Send → paste that address (switches to Regular) → enter
+                          the computed amount → Next → the "insufficient funds /
+                          Swap and pay" suggestion → SwapViewController auto-runs a
+                          lightning→onchain swap that pays the address (same arc
+                          as swap.yaml's first leg: Proceed → "Swap complete" →
+                          mine), then opens the new transaction from Home.
+                          Requires a wallet with < 50000 sats onchain and > 75000
+                          sats of Lightning outbound. No clipboard helper (it
+                          copies its own address in-app).
     swap.yaml             Lightning ↔ onchain, both directions.
     payment_mode.yaml     The lightning/onchain payout-mode toggle on the Buy
                           card (PATCH /customer/payment-mode). Self-provisions:
@@ -70,16 +133,27 @@ shared/flows/
     buy_signup_no_notifications.yaml
                           The unhappy-path counterpart to buy_signup: walks
                           the "I don't have an IBAN" alert, the invalid-IBAN
-                          and invalid-email validation alerts, and the OTP
-                          notification gate (Receive-notifications prompt →
-                          iOS system dialog, which Maestro auto-denies via
-                          launchApp permissions notifications:deny → the
-                          authorize-in-Settings gate). Requires an existing
-                          wallet without a bittr account (run
+                          and invalid-email validation alerts, the OTP resend
+                          flow (resend → "email resent" alert; a second tap in
+                          cooldown → "wait 30 seconds" alert → "Change email"
+                          back to Transfer1, then re-verify), a wrong OTP
+                          (incorrect-code alert), and the OTP notification gate
+                          (Receive-notifications prompt → iOS system dialog,
+                          which Maestro auto-denies via launchApp permissions
+                          notifications:deny → the denied-notifications gate).
+                          It then re-enters the correct OTP and, at each gate,
+                          taps "Continue" to finish signup via the on-chain
+                          fallback (payment_mode=onchain). On the Transfer3
+                          success screen it copies the IBAN / name / code (each a
+                          "Copied" alert) and taps Screenshot (saves to Photos →
+                          "Saved" alert); on Transfer4 it taps Back → Transfer3 →
+                          Finish (round-trip) before continuing, then reuses
+                          buy_signup's tail and ends on the Buy page with the new
+                          cell and the payout-mode switch OFF. Requires an
+                          existing wallet without a bittr account (run
                           onboarding/fresh_install_skip_signup.yaml first) —
                           it only unlocks, since auto-creating a wallet would
-                          wipe the permissions config. Ends at the
-                          notification gate (see the flow header).
+                          wipe the permissions config.
     remove_wallet.yaml    Settings → Device details → Remove wallet. Handles
                           both branches (active channel → close → mine →
                           re-trigger; no channel → direct confirm).
@@ -110,17 +184,22 @@ shared/flows/
                           price data, scrub the graph, switch span to m/y/5y.
     bitcoin_map.yaml      Bitcoin map (MapViewController) — unlock, open it
                           from Home's map icon, wait for the places to sync,
-                          open/close a place, move the map, recentre on user.
+                          open a place, optionally open/close its website in the
+                          in-app browser, tap "Open in Maps" → Apple Maps and
+                          return via a coordinate tap on the "‹ bittr regtest"
+                          status-bar breadcrumb (fixed iPhone 15 geometry), close
+                          the place, move the map, recentre on user.
     academy.yaml          Academy tab (AcademyViewController) — unlock, open
                           the latest available lesson, page through it to
-                          Complete, then open the next freshly-unlocked lesson.
+                          Complete (on page 2 also tapping Back to page 1 and
+                          forward again), then open the next freshly-unlocked
+                          lesson.
     settings.yaml         Settings pop-up end to end — visits Get support /
                           Privacy / Terms (WebsiteViewController), then every
                           Device-details row: dark-mode toggle, language,
                           currency (EUR↔CHF, verified on Home), device token,
-                          public key, Bittr peer / purchases / notification /
-                          pending payout, and Lightning connections
-                          (QuestionViewController).
+                          public key, Bittr peer / pending payout, and
+                          Lightning connections (QuestionViewController).
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
@@ -149,6 +228,23 @@ shared/flows/
                                 the in-app Paste button (send_lightning.yaml).
     parse_mnemonic.js           Splits the MNEMONIC env var into
                                 output.words[1..12] for forgot_pin.yaml.
+    resolve_lnurl.js            GETs a Lightning Address's /.well-known/lnurlp
+                                params (metadata + username) so
+                                notification_lnurl.yaml can build a realistic
+                                `.lnUrl` payload; static fallback if offline.
+    sleep.js                    Busy-waits output.sleepMs ms (Maestro has no
+                                native sleep) so a flow can let the app handle a
+                                push before the next step (notification_htlcincoming).
+    trigger_screenshot.js       Asks screenshot_server.js to fire a real
+                                Simulator screenshot (posts the screenshot
+                                notification, unlike Maestro's takeScreenshot);
+                                best-effort (fresh_install_unhappy).
+    screenshot_server.js        Local helper bridging Maestro → `osascript`
+                                clicking the Simulator's "Device > Trigger
+                                Screenshot". Needs Accessibility permission, and
+                                the device's Settings > General > Screen Capture >
+                                "Full-Screen Previews" turned OFF (else the
+                                preview covers the app and blocks the flow).
 ```
 
 ## Conventions

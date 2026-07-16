@@ -40,6 +40,15 @@ class Transaction: NSObject {
     
     // Swaps
     var isSwap = false
+    var isSuggestedSwap = false
+    // Whether this payment is a swap's own leg (its cached description is the
+    // dateID of a recorded swap). Checked against the swapids cache — which
+    // only the swap flows write — rather than by matching the description
+    // text, so a look-alike description can't make a payment pass as a swap.
+    var isSwapPayment: Bool {
+        let description = self.lnDescription != "" ? self.lnDescription : CacheManager.getInvoiceDescription(preimage: self.id)
+        return description != "" && CacheManager.getSwapID(dateID: description) != nil
+    }
     var swapStatus:SwapStatus = .succeeded
     var swapDirection:SwapDirection = .onchainToLightning
     var onchainID = ""
@@ -90,7 +99,7 @@ extension PaymentDetails {
             thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: thisTransaction.id)
             
             // Set channel ID.
-            if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+            if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
                 thisTransaction.channelId = activeChannel.channelId
             }
         }
@@ -175,7 +184,7 @@ extension BittrTransaction {
         thisTransaction.historicalExchangeRate = self.historicalExchangeRate.toNumber()
         
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: self.txId)
-        if let actualChannels = coreVC?.bittrWallet.lightningChannels, let activeChannel = actualChannels.getActiveChannel() {
+        if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
             thisTransaction.channelId = activeChannel.channelId
         }
         

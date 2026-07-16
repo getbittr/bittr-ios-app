@@ -28,6 +28,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     @IBOutlet weak var onePlaceContainer: UIView!
     @IBOutlet weak var onePlaceContainerTop: NSLayoutConstraint!
     @IBOutlet weak var onePlaceHeight: NSLayoutConstraint!
+    var onePlaceOpenConstant: CGFloat = 0
     
     // Variables
     let locationManager = CLLocationManager()
@@ -58,7 +59,12 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         // Table view
         self.placesTableView.delegate = self
         self.placesTableView.dataSource = self
-        
+
+        // Swipe the open place popup down to dismiss it
+        let onePlacePan = UIPanGestureRecognizer(target: self, action: #selector(self.handleOnePlacePan(_:)))
+        onePlacePan.delegate = self
+        self.onePlaceContainer.addGestureRecognizer(onePlacePan)
+
         // Map
         self.mapView.delegate = self
         self.mapView.showsUserLocation = true

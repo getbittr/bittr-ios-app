@@ -27,7 +27,7 @@
 appId: com.bittr.bittr-regtest
 ---
 # --- Setup: clean wallet → bittr account → funded channel ---------------------
-- runFlow: onboarding/restore_wallet.yaml      # clearState + restore (fixed mnemonic), PIN 1234
+- runFlow: onboarding/fresh_install_skip_signup.yaml  # clearState + create wallet, skip bittr signup, PIN 1234
 - runFlow: features/buy_signup.yaml            # create the bittr account
 - runFlow: features/buy_incoming.yaml          # first top-up: opens the channel + funds (needs push_server)
 
@@ -37,23 +37,24 @@ appId: com.bittr.bittr-regtest
 - runFlow: features/receive.yaml
 - runFlow: features/receive_onchain.yaml       # onchain receive → small onchain send
 - runFlow: features/receive_invoice.yaml       # lightning receive → send
-- runFlow: features/send_onchain.yaml          # onchain send (5 EUR)
-- runFlow: features/send_lightning.yaml        # lightning sends (needs clipboard_server)
 - runFlow: features/swap.yaml                  # lightning <-> onchain, both directions
+- runFlow: features/send_onchain.yaml          # onchain send (5 EUR)
+- runFlow: features/send_onchain_all.yaml      # send all remaining onchain funds
+- runFlow: features/send_lightning.yaml        # lightning sends (needs clipboard_server)
+
+# --- SendViewController swap suggestion ---------------------------------------
+# At this point, our onchain wallet is empty, so (unbeknownst to our wallet) we can paste
+# our own onchain address in Send, and send >50 000 satoshis through Boltz.
+# Then, having made sure that our Lightning connection has <60 000 satoshis, we can
+# pay an invoice of 60 000 satoshis through Boltz.
+- runFlow: features/send_swap_suggestion_onchain.yaml    # send onchain through Boltz
+- runFlow: features/send_swap_suggestion_lightning.yaml  # send lightning through Boltz
 
 # --- Read-only screens (no wallet-state change) -------------------------------
 - runFlow: features/bitcoin_value.yaml
 - runFlow: features/bitcoin_map.yaml
 - runFlow: features/academy.yaml
 - runFlow: features/settings.yaml
-
-# --- Drains the entire onchain balance — must run after the onchain flows above
-- runFlow: features/send_onchain_all.yaml
-
-# --- PIN recovery (non-destructive), run while the main wallet + channel are
-#     still alive. forgot_pin needs the MNEMONIC env, keeps the wallet + channel,
-#     and resets the PIN back to 1234.
-- runFlow: features/forgot_pin.yaml
 
 # --- Destructive wipes, dead last ---------------------------------------------
 # Channel-dependent lockout first — it reuses the main channel that's still open
@@ -66,5 +67,10 @@ appId: com.bittr.bittr-regtest
 # non-destructively — leaving exactly the no-channel wallet wrong_pin wants next.
 - runFlow: features/pin_warning.yaml
 - runFlow: features/wrong_pin.yaml             # 10 wrong PINs (no channel) → wipe → Signup1
-- runFlow: onboarding/restore_wallet.yaml      # re-setup a wallet for remove_wallet
+- runFlow: onboarding/restore_wallet.yaml      # re-setup the fixed-mnemonic wallet (for forgot_pin + remove_wallet)
+# PIN recovery (non-destructive): forgot_pin needs the MNEMONIC env, which only
+# matches now that restore_wallet re-established the fixed-mnemonic wallet above
+# (the suite's earlier wallet is a fresh-install random seed). Resets the PIN
+# back to 1234 and keeps the wallet, leaving it ready for remove_wallet.
+- runFlow: features/forgot_pin.yaml
 - runFlow: features/remove_wallet.yaml         # Settings → Device details → Remove wallet

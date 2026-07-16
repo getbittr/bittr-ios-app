@@ -1,0 +1,378 @@
+# Onboarding unhappy-path: wipes state and walks wallet creation through every
+# validation gate — the confirm-statements alert, the seed-phrase screenshot
+# warning, an invalid non-BIP39 word then a wrong recovery-phrase entry, and the
+# PIN length/mismatch alerts — before creating the wallet, then continuing into
+# the bittr signup (Transfer1) and exiting via "I don't have an IBAN" →
+# "Go to wallet" to land on Home.
+#
+# The happy-path counterpart is onboarding/happy_path_wallet.yaml; this exercises
+# the error branches that flow doesn't. Starts from a clean install (clearState +
+# clearKeychain), so no prior wallet is required.
+#
+# Note on the screenshot warning: the app shows a "Be careful!" alert when it
+# receives iOS's userDidTakeScreenshotNotification on the mnemonic screen.
+# Maestro's takeScreenshot only grabs the framebuffer and does NOT post that
+# notification, so this flow also triggers a real Simulator screenshot
+# (Device > Trigger Screenshot) via scripts/screenshot_server.js, which does.
+#
+# This part is OPTIONAL — without the setup below the alert step is skipped and
+# the flow still passes. To exercise and capture the alert, do ALL of:
+#   1. Run the helper:  node shared/flows/scripts/screenshot_server.js
+#   2. Grant your terminal Accessibility control (System Settings > Privacy &
+#      Security > Accessibility) so it can drive the Simulator menu.
+#   3. On the simulated device, turn OFF Settings > General > Screen Capture >
+#      "Full-Screen Previews". With it ON, the screenshot preview covers the app
+#      and never auto-dismisses, blocking the rest of the flow; with it OFF the
+#      preview is a corner thumbnail that clears on its own.
+#
+# Alert screenshots are taken after waitForAnimationToEnd so the alert is fully
+# slid up and cleanly visible.
+#
+# Run: maestro test shared/flows/onboarding/fresh_install_unhappy.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Clean slate — no wallet.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+# Signup1 (start).
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/01_signup1
+
+# Create wallet → confirm screen (Signup2), then Cancel straight back to Signup1.
+- tapOn:
+    id: "signup.create.start.createWalletButton"
+- assertVisible:
+    id: "signup.create.confirm.topLabel"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/02_confirm
+- tapOn:
+    id: "signup.create.confirm.cancelButton"
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/03_back_on_signup1
+
+# Create wallet again → tap "I understand" with neither toggle on → the
+# "please confirm the above statements" alert.
+- tapOn:
+    id: "signup.create.start.createWalletButton"
+- assertVisible:
+    id: "signup.create.confirm.topLabel"
+- tapOn:
+    id: "signup.create.confirm.nextButton"
+- assertVisible:
+    text: ".*confirm the above statements.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/04_confirm_statements_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Turn both toggles on, then "I understand" → mnemonic screen (Signup3).
+- tapOn:
+    id: "signup.create.confirm.switchOne"
+- tapOn:
+    id: "signup.create.confirm.switchTwo"
+- tapOn:
+    id: "signup.create.confirm.nextButton"
+- assertVisible:
+    id: "signup.create.mnemonic.mnemonicStack"
+
+# The user takes a screenshot of the seed phrase. Maestro's takeScreenshot only
+# grabs the framebuffer (no userDidTakeScreenshotNotification), so also fire a
+# REAL Simulator screenshot via the helper (Device > Trigger Screenshot) — that
+# posts the notification and triggers the app's "Be careful!" warning. Best-
+# effort: with scripts/screenshot_server.js running (+ Accessibility permission)
+# the alert appears and is captured + dismissed; without it this is skipped and
+# the flow still passes.
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/05_mnemonic_screenshot
+- runScript: ../scripts/trigger_screenshot.js
+- runFlow:
+    when:
+      visible:
+        text: ".*recommend against screenshotting.*"
+    commands:
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/06_screenshot_warning
+      - tapOn:
+          id: "alert.button.0"
+      # Triggering a real screenshot also raises iOS's screenshot preview, which
+      # isn't a targetable element. This step requires "Full-Screen Previews" to
+      # be OFF (Settings > General > Screen Capture) so the preview is the small
+      # corner thumbnail that auto-dismisses — wait out that ~5s before scrolling.
+      # (With Full-Screen Previews ON the preview covers the app and never
+      # dismisses, blocking the rest of the flow — see the header note.)
+      - evalScript: ${output.sleepMs = 6000}
+      - runScript: ../scripts/sleep.js
+
+# Scroll down and continue to the verify screen (Signup4).
+- scrollUntilVisible:
+    element:
+      id: "signup.create.mnemonic.nextButton"
+- tapOn:
+    id: "signup.create.mnemonic.nextButton"
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+
+# First verify attempt: enter two valid words plus one non-BIP39 word
+# ("nonexistent") → Confirm → the "invalid words" alert (that word isn't in the
+# recovery-phrase word list). Close the keyboard first (tapping the
+# non-interactive topLabel falls through to endEditing) so Confirm is reachable.
+- tapOn:
+    id: "signup.create.verify.field1"
+- inputText: "wrong"
+- tapOn:
+    id: "signup.create.verify.field2"
+- inputText: "wrong"
+- tapOn:
+    id: "signup.create.verify.field3"
+- inputText: "nonexistent"
+- tapOn:
+    id: "signup.create.verify.topLabel"
+- tapOn:
+    id: "signup.create.verify.nextButton"
+- assertVisible:
+    text: ".*not valid recovery phrase words.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/07_invalid_word_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Fix the third field to a valid (but still incorrect) word: now all three are
+# real BIP39 words yet none matches → Confirm → the "incorrect recovery phrase"
+# alert. Tap near the field's right edge so the caret lands at the end, erase
+# "nonexistent", then type "wrong".
+- tapOn:
+    id: "signup.create.verify.field3"
+    point: "95%,50%"
+- eraseText
+- inputText: "wrong"
+- tapOn:
+    id: "signup.create.verify.topLabel"
+- tapOn:
+    id: "signup.create.verify.nextButton"
+- assertVisible:
+    text: ".*entered are incorrect.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/08_wrong_phrase_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Back to the mnemonic screen (Signup3), capture the 12 words this time, and
+# continue to the verify screen again.
+- tapOn:
+    id: "signup.create.verify.backButton"
+- assertVisible:
+    id: "signup.create.mnemonic.mnemonicStack"
+- evalScript: ${output.words = {}}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word1"
+- evalScript: ${output.words[1] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word2"
+- evalScript: ${output.words[2] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word3"
+- evalScript: ${output.words[3] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word4"
+- evalScript: ${output.words[4] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word5"
+- evalScript: ${output.words[5] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word6"
+- evalScript: ${output.words[6] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word7"
+- evalScript: ${output.words[7] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word8"
+- evalScript: ${output.words[8] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word9"
+- evalScript: ${output.words[9] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word10"
+- evalScript: ${output.words[10] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word11"
+- evalScript: ${output.words[11] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word12"
+- evalScript: ${output.words[12] = maestro.copiedText}
+- scrollUntilVisible:
+    element:
+      id: "signup.create.mnemonic.nextButton"
+- tapOn:
+    id: "signup.create.mnemonic.nextButton"
+
+# Second verify attempt: the screen asks for three 1-based indices; enter the
+# matching words. Closing the keyboard auto-advances once all three match
+# (same as happy_path_wallet.yaml) → PIN set screen (Signup5).
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+- copyTextFrom:
+    id: "signup.create.verify.label1"
+- evalScript: ${output.idx1 = parseInt(maestro.copiedText)}
+- copyTextFrom:
+    id: "signup.create.verify.label2"
+- evalScript: ${output.idx2 = parseInt(maestro.copiedText)}
+- copyTextFrom:
+    id: "signup.create.verify.label3"
+- evalScript: ${output.idx3 = parseInt(maestro.copiedText)}
+- tapOn:
+    id: "signup.create.verify.field1"
+- inputText: ${output.words[output.idx1]}
+- tapOn:
+    id: "signup.create.verify.field2"
+- inputText: ${output.words[output.idx2]}
+- tapOn:
+    id: "signup.create.verify.field3"
+- inputText: ${output.words[output.idx3]}
+- tapOn:
+    id: "signup.create.verify.topLabel"
+
+# PIN set (Signup5). Enter 123 (too short) → Next → the "4 to 8 digits" alert.
+- assertVisible:
+    id: "signup.create.pinSet.topLabel"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/09_pin_set
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    text: ".*between 4 and 8 digits.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/10_pin_too_short_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Add 456789. The 9th digit is rejected with the "up to 8 digits" alert; the PIN
+# stays at 12345678.
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.button5"
+- tapOn:
+    id: "pin.button6"
+- tapOn:
+    id: "pin.button7"
+- tapOn:
+    id: "pin.button8"
+- tapOn:
+    id: "pin.button9"
+- assertVisible:
+    text: ".*up to 8 digits.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/11_pin_too_long_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Backspace 4 times → 1234, then Next → PIN confirm screen (Signup6).
+- tapOn:
+    id: "pin.buttonBackspace"
+- tapOn:
+    id: "pin.buttonBackspace"
+- tapOn:
+    id: "pin.buttonBackspace"
+- tapOn:
+    id: "pin.buttonBackspace"
+- tapOn:
+    id: "pin.confirmButton"
+
+# Confirm PIN (Signup6): enter a mismatching 1111 → Confirm → the "repeat the
+# same number" alert.
+- assertVisible:
+    id: "signup.create.pinConfirm.topLabel"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    text: ".*Repeat the same number.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/12_pin_mismatch_alert
+- tapOn:
+    id: "alert.button.0"
+
+# Back (the PIN pad's restore button is labelled "Back" here) → PIN set again.
+- tapOn:
+    id: "pin.restoreButton"
+- assertVisible:
+    id: "signup.create.pinSet.topLabel"
+
+# Enter 1234 → Next → PIN confirm.
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.confirmButton"
+
+# Confirm with the matching 1234 → wallet ready (Signup7).
+- assertVisible:
+    id: "signup.create.pinConfirm.topLabel"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.confirmButton"
+
+# Wallet ready → Next (Continue) into the bittr signup (Transfer1) instead of Skip.
+- assertVisible:
+    id: "signup.create.ready.topLabelOne"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/13_wallet_ready
+- tapOn:
+    id: "signup.create.ready.continueButton"
+
+# Transfer1 (bittr signup start). The IBAN field auto-focuses, so the "I don't
+# have an IBAN" button sits under the keyboard — dismiss it first by tapping the
+# non-interactive top label (falls through to the background's endEditing).
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/14_transfer1
+- tapOn:
+    id: "signup.bittr.start.skipButton"
+
+# "We're sorry! / only available to IBAN holders" alert ([Go to wallet, Cancel]).
+# "Go to wallet" (index 0) → alertGoToWallet → hideSignup → Home.
+- assertVisible:
+    text: ".*only available to IBAN holders.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/15_no_iban_alert
+- tapOn:
+    id: "alert.button.0"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/16_home

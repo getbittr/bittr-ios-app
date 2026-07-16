@@ -69,6 +69,7 @@ extension UIViewController {
         headerLabel.textAlignment = .left
         headerLabel.lineBreakMode = .byTruncatingTail
         headerLabel.backgroundColor = .clear
+        headerLabel.accessibilityIdentifier = TestID.Header.titleLabel
         headerView.addSubview(headerLabel)
         
         let headerLabelLeft = NSLayoutConstraint(item: headerLabel, attribute: .leading, relatedBy: .equal, toItem: headerIcon, attribute: .trailing, multiplier: 1, constant: 10)
@@ -174,7 +175,7 @@ extension UIViewController {
                                 }
                             }
                         }
-                    }   
+                    }
 
                 case .authorized, .provisional, .ephemeral:
                     // Already authorized in some form — register and let
@@ -195,18 +196,4 @@ extension UIViewController {
             }
         }
     }
-    
-    func getCorrectBitcoinValue(coreVC:CoreViewController) -> BitcoinValue {
-        
-        let bitcoinValue = BitcoinValue()
-        bitcoinValue.currentValue = coreVC.bittrWallet.valueInEUR ?? 0.0
-        if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
-            bitcoinValue.currentValue = coreVC.bittrWallet.valueInCHF ?? 0.0
-            bitcoinValue.chosenCurrency = "CHF"
-            bitcoinValue.apiUrl = "https://getbittr.com/api/price/btc/historical/chf"
-        }
-        
-        return bitcoinValue
-    }
-    
 }

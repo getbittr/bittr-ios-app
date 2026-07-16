@@ -1,0 +1,248 @@
+# Feature test: pay an onchain address with insufficient onchain funds → the app
+# suggests paying out of Lightning and swapping the funds to the recipient.
+#
+# This is the mirror image of features/send_swap_suggestion_lightning.yaml: there
+# the user pays a Lightning invoice with no channel (onchain→lightning swap);
+# here the user pays an onchain address but doesn't have enough onchain balance,
+# while the Lightning channel does have the funds — so SendViewController offers
+# an "insufficient funds / Swap and pay" alert. Tapping "Swap and pay" opens
+# SwapViewController (via SendToSwap), which auto-runs a lightning→onchain swap
+# (handlePendingOnchainPayment → SwapManager.lightningToOnchain with the pending
+# onchain address as the payout). That leg is the same arc as the first
+# (lightning→onchain) leg in features/swap.yaml: confirm the expected fees →
+# Proceed → "Swap complete" → mine to confirm the claim. Because the swap is
+# marked suggested, the payout lands on Home as a completed outbound transaction
+# rather than a perpetually pending swap.
+#
+# The payment is sized off the live balances instead of a hard-coded amount:
+# the flow opens the Move screen, asserts the "little onchain, lots of lightning"
+# state, and computes the send amount from the lightning balance (see below). The
+# destination is one of our OWN onchain receive addresses, so the swapped funds
+# come back to the wallet and the test is self-contained.
+#
+# Prerequisite: a wallet on the simulator with an onchain (regular) balance BELOW
+# 50000 sats and a Lightning (instant) balance ABOVE 75000 sats — that's what
+# makes the onchain payment fall back to the swap suggestion. (Enough onchain
+# balance would just send onchain; too little Lightning would show a plain
+# insufficient-funds alert instead.) The flow only unlocks; it does not
+# auto-provision, because the required "little onchain, lots of lightning" state
+# can't be created by the standard onboarding. Does NOT clearState — wallet state
+# is preserved.
+#
+# Swaps also require an APNs device token (SwapManager blocks otherwise); the
+# pre-provisioned wallet that opened the channel already has one.
+#
+# Amount sizing: Boltz's minimum swap is 50000 sats; the channel keeps a ~20000
+# sat reserve and Boltz + lightning fees take a bit more, so ~75000 sats of
+# lightning is the floor for actually sending 50000 out. We send at least 50000,
+# and if there's more than 75000 in lightning we sweep the surplus too:
+#   send = 50000 + max(0, lightningBalance - 75000)
+# e.g. 90000 in lightning → send 65000.
+#
+# Run: maestro test shared/flows/features/send_swap_suggestion_onchain.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+# Explicitly allow notifications so a prior deny (e.g.
+# buy_signup_no_notifications.yaml) doesn't block the swap.
+- launchApp:
+    permissions:
+      notifications: allow
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — wait for the header spinner to stop
+# so the balances (and BDK scan needed for the swap) are settled.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/01_home
+
+# Open the Move screen to read the balances. Tap the Balance card 20% down, not
+# dead-centre: profitButton overlays the card centre, so a centre tap would open
+# ProfitVC instead of MoveViewController (same trick send_lightning/swap use).
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/01a_move_balances
+
+# Regular (onchain) balance must be below 50000 sats, so the onchain payment
+# can't be covered onchain and falls back to the swap suggestion. The label reads
+# like "45 000 sats"; strip the non-digits to a number.
+- copyTextFrom:
+    id: "move.satsRegular"
+- evalScript: ${output.regularSats = parseInt(String(maestro.copiedText).replace(/[^0-9]/g, ''), 10)}
+- assertTrue: ${output.regularSats < 50000}
+
+# Instant (lightning) balance must exceed 75000 sats (Boltz's 50000 minimum plus
+# the ~20000 channel reserve plus Boltz + lightning fees).
+- copyTextFrom:
+    id: "move.satsInstant"
+- evalScript: ${output.instantSats = parseInt(String(maestro.copiedText).replace(/[^0-9]/g, ''), 10)}
+- assertTrue: ${output.instantSats > 75000}
+
+# Size the payment: at least 50000, plus any lightning above 75000.
+# send = 50000 + max(0, instant - 75000)  →  e.g. instant 90000 → send 65000.
+- evalScript: ${output.sendAmount = String(50000 + Math.max(0, output.instantSats - 75000))}
+
+# Back to Home, then open Receive to grab one of our own onchain addresses — the
+# swap will pay this amount out to it.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- tapOn:
+    id: "home.receiveButton"
+- runFlow:
+    file: ../helpers/show_onchain_address.yaml
+
+# Copy the onchain address. This is an in-app copy (UIPasteboard) → it lands on
+# the device clipboard, so the Send Paste button below reads it with no cross-app
+# "Allow Paste" prompt (and no clipboard_server helper needed). copyTapped shows
+# a "Copied" alert; wait for it to finish sliding up, screenshot, then close it.
+- tapOn:
+    id: "receive.copyButton"
+- assertVisible:
+    id: "alert.button.0"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/01b_address_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Close Receive → back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Open Send (it opens on Instant / lightning by default).
+- tapOn:
+    id: "home.sendButton"
+
+# Paste the onchain address we just copied. Our own app put it on the clipboard,
+# so there's no "Allow Paste" prompt. Pasting a bare onchain address switches the
+# type to Regular (onchain) and lands the address in the field. Recomputing the
+# max sendable amount kicks off a BDK scan if it hasn't run yet, which surfaces a
+# "syncing wallet" alert and spins the spinner. Dismiss the alert if present,
+# then wait for the spinner to stop before entering an amount (Next needs BDK
+# scanned).
+- tapOn:
+    id: "send.pasteButton"
+- assertVisible:
+    id: "send.toTextField"
+    text: ".*bcrt1.*"
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      id: "send.bdkSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/02_address_pasted
+
+# Enter the amount we calculated. "Done" on the amount keyboard acts as Next
+# (doneButtonTapped → nextButtonTapped).
+- tapOn:
+    id: "send.amountTextField"
+- inputText: ${output.sendAmount}
+- tapOn:
+    text: "Done"
+
+# Next → the onchain balance is below the amount but the Lightning channel covers
+# it, so SendViewController shows the "insufficient funds / Swap and pay" alert
+# ([Cancel, Swap and pay]). Wait for it to settle, then tap "Swap and pay"
+# (index 1).
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/03_swap_suggested
+- tapOn:
+    id: "alert.button.1"
+
+# Send stays behind while SwapViewController opens (SendToSwap) and auto-runs the
+# lightning→onchain swap that pays the recipient's address. It then shows the
+# expected-fees confirmation alert ([Cancel, Proceed]) — the same one as
+# swap.yaml. The first alert.button.1 above dismisses on tap; the fees alert only
+# appears after the Boltz reverse-swap reply + fee estimate, so wait for it and
+# let it settle, then tap Proceed (index 1).
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/04_swap_fees
+- tapOn:
+    id: "alert.button.1"
+
+# Proceeding pays the Boltz invoice, Boltz locks up onchain and the app claims it
+# to the recipient's address. SwapStatusVC embeds inside SwapVC; wait for "Swap
+# complete" — covers all the intermediate Boltz status updates.
+- extendedWaitUntil:
+    visible:
+      text: "Swap complete"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/05_swap_complete
+
+# Confirm the claim onchain.
+- evalScript: ${output.blocksToMine = 1}
+- runScript: ../scripts/mine_blocks.js
+
+# Swipe down to dismiss SwapViewController, landing back on the SendViewController
+# it was presented from (unlike the lightning variant, which is presented from
+# Core and dismisses straight to Home).
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "send.toLabel"
+
+# Close Send → back on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+
+# Pull Home down to refresh the transaction list, then wait out the resync so the
+# new outbound swap transaction has settled at the top.
+- swipe:
+    direction: DOWN
+    duration: 800
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/06_home_with_swap
+
+# Open the topmost (newest) transaction — the swap that just paid the address —
+# in the TransactionViewController, then close it.
+- assertVisible:
+    id: "history.transactionButton0"
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/07_transaction
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

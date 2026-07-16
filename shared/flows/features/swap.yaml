@@ -2,25 +2,42 @@
 #
 # Prerequisite: buy_incoming.yaml has been run at least once on this app
 # install — that's what creates and confirms the lightning channel that the
-# swap pulls from. This flow does NOT clearState, so the wallet + channel
-# survive across runs of this test.
+# swap pulls from. The flow normally preserves state (wallet + channel survive
+# across runs).
+#
+# Notifications: swaps require an APNs device token (SwapManager blocks with a
+# "notifications required" alert otherwise). If a prior run denied notifications
+# (e.g. buy_signup_no_notifications.yaml) the token is gone and — because iOS
+# won't let you re-enable notifications via Settings once denied — the only way
+# back is a reinstall. So if the first swap leg hits that gate, this flow
+# reprovisions a fresh wallet with notifications allowed (helpers/
+# reprovision_for_swap.yaml: clearState reinstall → onboarding → buy_incoming)
+# and retries. That recovery path has the same prereqs as buy_incoming.yaml
+# (push helper running, hosted e2e endpoints) and is heavy, so it only runs when
+# actually blocked; the happy path skips it entirely.
 #
 # Flow:
-#   1. Launch (preserve state). Unlock with PIN if locked.
-#   2. Tap the big balance card → MoveVC.
-#   3. Tap the swap (exchange) button → SwapVC.
-#   4. Type 50000 sats, tap Next → fees alert appears.
-#   5. Tap Proceed (alert button index 1).
-#   6. Wait for "Swap complete" status.
-#   7. Mine 1 block.
-#   8. Swipe down twice (SwapVC, then MoveVC) to land back on Home.
-#   9. Verify Home with the new swap row in the transaction list.
+#   1. Launch (preserve state, notifications allowed). Unlock with PIN if locked.
+#   2. First leg (helpers/swap_leg1.yaml): balance card → MoveVC → SwapVC, type
+#      75000 sats, Next. (Next is where the APNs-token check runs.)
+#   3. Next shows the fees alert, OR the "notifications required" gate if there's
+#      no token. On the gate: reprovision + re-run leg 1. Then Proceed on the
+#      fees alert.
+#   4. Wait for "Swap complete" status, mine 1 block, return Home.
+#   5. Reverse leg (onchain → lightning, 50000 sats) the same way.
+#   6. Verify Home with the new swap rows in the transaction list.
 #
 # Run: maestro test shared/flows/features/swap.yaml
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
+# Swaps require notifications (the app blocks swapping with a "notifications
+# required" alert otherwise). Explicitly allow them at launch so this test is
+# unaffected by a prior run that denied notifications (e.g.
+# buy_signup_no_notifications.yaml) — permissions is applied on every launch.
+- launchApp:
+    permissions:
+      notifications: allow
 
 # If app launched into the PIN unlock screen, enter it.
 - runFlow:
@@ -44,38 +61,45 @@ appId: com.bittr.bittr-regtest
     timeout: 60000
 - takeScreenshot: shared/docs/screenshots/swap/01_home
 
-# Tap the big balance card → MoveVC.
-# Note: profitButton overlays the lower half of the balance card. Tapping
-# balanceCardButton's center routes the tap to profitButton (HomeToProfit).
-# Point offset 50%,20% lands in the upper half (the big balance numbers).
-- tapOn:
-    id: "home.balanceCardButton"
-    point: "50%,20%"
-- assertVisible:
-    id: "move.subtitleLabel"
-- takeScreenshot: shared/docs/screenshots/swap/02_move
+# First swap leg (lightning → onchain), extracted to a helper so it can be
+# re-run after a reprovision. It stops at Next, where the app shows either the
+# fees alert OR — if notifications were denied on a prior run, so there's no
+# APNs device token — the "notifications required" gate (SwapManager's
+# deviceToken check).
+- runFlow: ../helpers/swap_leg1.yaml
 
-# Tap the exchange icon between regular and instant balances → SwapVC.
-- tapOn:
-    id: "move.swapButton"
-- assertVisible:
-    id: "swap.amountTextField"
-- takeScreenshot: shared/docs/screenshots/swap/03_swap_initial
+# Tapping Next surfaces one of two alerts: the fees alert (APNs token present) or
+# the "notifications required" gate (token absent). Both have alert.button.0, so
+# wait for one to appear before deciding.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
 
-# Type 75000 satoshis (initial swap amount — leaves enough onchain to swap
-# 50000 back the other direction in the second leg). Tap Done on the
-# keyboard's accessory toolbar (added in SwapViewController.viewDidLoad);
-# Maestro's hideKeyboard doesn't work against iOS numeric keyboards reliably.
-- tapOn:
-    id: "swap.amountTextField"
-- inputText: "75000"
-- tapOn:
-    text: "Done"
-- takeScreenshot: shared/docs/screenshots/swap/04_swap_amount_entered
-- tapOn:
-    id: "swap.nextButton"
+# If it's the gate, dismiss it and reprovision a fresh wallet with notifications
+# allowed (a clearState reinstall resets the OS notification permission — it
+# can't be re-enabled via Settings once denied), then re-run the leg. The gated
+# Next never created a swap.
+- runFlow:
+    when:
+      visible:
+        text: ".*To process swaps.*"
+    commands:
+      - tapOn:
+          text: "Okay"
+      - runFlow: ../helpers/reprovision_for_swap.yaml
+      - runFlow: ../helpers/swap_leg1.yaml
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.0"
+          timeout: 30000
 
-# Fees alert: [Cancel, Proceed]. Proceed is index 1.
+# Fail loudly if still blocked (e.g. clearState didn't reset the notification
+# permission) rather than silently skipping the swap below.
+- assertNotVisible:
+    text: ".*To process swaps.*"
+
+# Now it's the fees alert: [Cancel, Proceed]. Proceed is index 1.
 - assertVisible:
     id: "alert.button.1"
 - takeScreenshot: shared/docs/screenshots/swap/05_fees_alert
@@ -121,15 +145,41 @@ appId: com.bittr.bittr-regtest
       id: "home.headerSpinner"
     timeout: 60000
 
-# Wait for the first swap to settle from pending to complete before starting
-# the reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled,
-# but the onchain claim still needs a block confirmation + wallet sync before
-# the funds show up on the onchain side. Without this wait the reverse
-# onchain→lightning swap fires before the funds land and fails with
-# insufficient onchain balance.
+# The first swap must settle from pending to complete before starting the
+# reverse swap. "Swap complete" in SwapStatusVC means Boltz has settled, but the
+# onchain claim still needs a block confirmation + wallet sync before the funds
+# show up on the onchain side. If the reverse onchain→lightning swap fires
+# before the funds land it fails with insufficient onchain balance.
+#
+# Scope the check to the topmost row (history.swapPending0) — only the swap we
+# just made matters. A global "history.swapPending" check would also catch any
+# older unsuccessful swaps further down the list and never clear.
+#
+# If the swap is still pending here (the claim hasn't confirmed on-chain yet),
+# don't fail — force it: mine 6 blocks, pull Home down to resync, then re-check.
+# Mirrors the mine-6 recovery in the swap-status flow below, and is skipped
+# entirely when the swap has already settled.
+- runFlow:
+    when:
+      visible:
+        id: "history.swapPending0"
+    commands:
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - swipe:
+          direction: DOWN
+          duration: 800
+      - extendedWaitUntil:
+          notVisible:
+            id: "home.headerSpinner"
+          timeout: 60000
+      - assertVisible:
+          id: "home.headerLabel"
+# Authoritative: the swap must be settled before the reverse swap starts. If it
+# already settled (or the recovery above just settled it) this passes at once.
 - extendedWaitUntil:
     notVisible:
-      id: "history.swapPending"
+      id: "history.swapPending0"
     timeout: 60000
 
 # Reverse swap: onchain → lightning, 50000 sats. Re-enter the swap UI from
@@ -193,6 +243,21 @@ appId: com.bittr.bittr-regtest
 - evalScript: ${output.blocksToMine = 1}
 - runScript: ../scripts/mine_blocks.js
 
+# Recovery: if the funding tx stays unconfirmed and the status stalls on
+# "Waiting to be mined" instead of progressing to "Swap complete" on its own,
+# mine 6 more blocks and tap the status refresh button to pull a fresh status
+# from Boltz. Skipped when the swap has already moved on (the status label
+# shows one status at a time, so "Waiting to be mined" is no longer visible).
+- runFlow:
+    when:
+      visible:
+        text: "Waiting to be mined"
+    commands:
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - tapOn:
+          id: "swapStatus.refreshButton"
+
 - extendedWaitUntil:
     visible:
       text: "Swap complete"
@@ -214,3 +279,78 @@ appId: com.bittr.bittr-regtest
     direction: DOWN
     duration: 800
 - takeScreenshot: shared/docs/screenshots/swap/16_home_final
+
+# The pull-down refresh kicks off another wallet sync; wait for the header
+# spinner to stop before opening the transaction so its data is settled.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Open the topmost (newest) transaction — the reverse onchain → lightning swap —
+# in the TransactionViewController.
+- assertVisible:
+    id: "history.transactionButton0"
+- tapOn:
+    id: "history.transactionButton0"
+- assertVisible:
+    id: "transaction.yellowCard"
+- takeScreenshot: shared/docs/screenshots/swap/17_transaction
+
+# Tap "Swap status" → SwapStatusViewController. Close it (header down button) →
+# back on the transaction screen.
+- tapOn:
+    id: "transaction.swapStatusButton"
+- assertVisible:
+    id: "swapStatus.confirmCard"
+- takeScreenshot: shared/docs/screenshots/swap/18_swap_status
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "transaction.yellowCard"
+
+# Tap the onchain ID to copy it → "Copied" alert (single Okay button) → close it.
+- tapOn:
+    id: "transaction.copyIdButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/swap/19_onchain_id_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Tap the explorer URL button next to the onchain ID → WebsiteViewController.
+# Close it via its own down button → back on the transaction screen.
+- tapOn:
+    id: "transaction.urlIdButton"
+- assertVisible:
+    id: "website.downButton"
+- takeScreenshot: shared/docs/screenshots/swap/20_explorer
+- tapOn:
+    id: "website.downButton"
+- assertVisible:
+    id: "transaction.yellowCard"
+
+# Tap the lightning ID to copy it → "Copied" alert (single Okay button) → close it.
+- tapOn:
+    id: "transaction.copyBottomIdButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/swap/21_lightning_id_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Add a note. The note alert is our custom text-field alert; tap the field to
+# focus it (tapOn also waits out the alert's slide-up), type the note, tap Save.
+- tapOn:
+    id: "transaction.addNoteButton"
+- tapOn:
+    id: "alert.textField"
+- inputText: "swap.yaml test"
+- tapOn:
+    text: "Save"
+
+# The note now shows in the transaction's note stack.
+- assertVisible:
+    id: "transaction.labelNote"
+    text: "swap.yaml test"
+- takeScreenshot: shared/docs/screenshots/swap/22_note_saved

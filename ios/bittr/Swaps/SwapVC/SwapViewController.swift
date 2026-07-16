@@ -11,7 +11,7 @@ import UserNotifications
 import LightningDevKit
 import Sentry
 
-class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
+class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate, OnchainSyncFailureReporting {
 
     // General
     @IBOutlet weak var mainScrollView: UIScrollView!
@@ -148,7 +148,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         
         // Get active channel.
-        let activeChannel:LDKNode.ChannelDetails? = self.coreVC!.bittrWallet.lightningChannels.getActiveChannel()
+        let activeChannel:LDKNode.ChannelDetails? = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
         
         // Check budget availability.
         let maxAmount = (activeChannel?.inboundHtlcMaximumMsat ?? 0)/1000
@@ -227,17 +227,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         guard self.thisSwap != nil else { return }
         
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         
         // Calculate total fees including claim transaction fee for lightning-to-onchain swaps
         // For lightning-to-onchain swaps, the claim transaction fee is included in the on-chain amount
         // so the user receives exactly what they input
         let totalFees = self.thisSwap!.onchainFees! + self.thisSwap!.lightningFees! + (self.thisSwap!.claimTransactionFee ?? 0)
         
-        var convertedFees = "\(CGFloat(Int(totalFees.inBTC()*bitcoinValue.currentValue*100))/100)".replacingOccurrences(of: ".", with: ",")
-        if convertedFees.split(separator: ",")[1].count == 1 {
-            convertedFees = convertedFees + "0"
-        }
+        // Fiat fee, rounded to two decimals and formatted with the device's
+        // decimal separator (e.g. "0,50" in comma locales).
+        let convertedFees = (totalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
         let convertedAmount = "\(Int((self.thisSwap!.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
         
         let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)".addSpaces()).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
@@ -358,10 +357,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.thisSwap!.satoshisAmount = invoiceAmount
                 self.thisSwap!.swapDirection = .onchainToLightning
                 
-                // Start the swap process
-                Task {
-                    await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
-                }
+                self.startSuggestedOnchainToLightningSwap(invoiceAmount: invoiceAmount)
             } else {
                 // Zero amount invoice - user needs to enter amount
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -388,6 +384,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.thisSwap = Swap()
         self.thisSwap!.satoshisAmount = self.pendingOnchainAmount
         self.thisSwap!.swapDirection = .lightningToOnchain
+        self.thisSwap!.isSuggested = true
         
         // Start the swap process
         Task {

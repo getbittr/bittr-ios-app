@@ -28,6 +28,9 @@ class BitcoinManager {
     private let storageManager = LightningStorage()
     var xpub = ""
     var coreVC:CoreViewController?
+
+    // Bittr wallet
+    var bittrWallet = BittrWallet()
     
     // Event listener
     private var eventListener: Task<Void, Never>?
@@ -48,14 +51,10 @@ class BitcoinManager {
         self.cancelEventListener()
     }
     
-    func startLDK(completion: @escaping (Bool) -> Void) {
+    func didStartLDK() -> Bool {
         
         // Delete previous LDK Node log.
-        do {
-            try FileManager.deleteLDKNodeLogLatestFile()
-        } catch {
-            Log.info("Could not delete LDK Node log latest file.")
-        }
+        try? FileManager.deleteLDKNodeLogLatestFile()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
@@ -75,19 +74,12 @@ class BitcoinManager {
         )
         
         // Set mnemonic string.
-        let mnemonicString:String
-        if let cachedMnemonic = CacheManager.getMnemonic() {
-            mnemonicString = cachedMnemonic
-        } else {
-            // No cached mnemonic available.
+        guard let mnemonicString = CacheManager.getMnemonic() else {
             Log.info("Could not get mnemonic from cache.")
-            DispatchQueue.main.async {
-                SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
-                    scope.setExtra(value: "BitcoinManager row 71", key: "context")
-                }
-                completion(false)
+            SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
+                scope.setExtra(value: "BitcoinManager row 71", key: "context")
             }
-            return
+            return false
         }
         
         // Set LDK background syncing.
@@ -137,40 +129,33 @@ class BitcoinManager {
 //        let logPath = logDirectory + "/ruben.log"
 //        
 //        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
-
-        
-        let newLdkNode: Node
         
         // Build new node.
+        let newLdkNode: Node
         do {
             newLdkNode = try nodeBuilder.build()
         } catch {
             Log.info("Could not build newLdkNode. \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 130", key: "context")
-                }
-                completion(false)
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "BitcoinManager row 130", key: "context")
             }
-            return
+            return false
         }
         
         // Start new node.
         do {
             try newLdkNode.start()
-            self.ldkNode = newLdkNode
-            DispatchQueue.main.async {
-                completion(true)
-            }
         } catch {
             Log.info("Could not start newLdkNode. \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 147", key: "context")
-                }
-                completion(false)
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "BitcoinManager row 147", key: "context")
             }
+            return false
         }
+        
+        // Successful start.
+        self.ldkNode = newLdkNode
+        return true
     }
     
     func getNewMnemonic() -> String {
@@ -210,7 +195,7 @@ class BitcoinManager {
         
         if let blockHeight = receivedDictionary["result"] as? Int {
             Log.info("Block height: \(blockHeight)")
-            self.coreVC?.bittrWallet.currentHeight = blockHeight
+            self.bittrWallet.currentHeight = blockHeight
             CacheManager.updateCachedData(data: blockHeight, key: "height")
             return true
         } else {
@@ -420,7 +405,7 @@ class BitcoinManager {
             _ = self.lightSyncBdkWallet()
             
             // Check if any changes have been found.
-            if self.coreVC!.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.coreVC!.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {
@@ -605,13 +590,19 @@ class BitcoinManager {
             guard let self else { return }
             
             while !Task.isCancelled {
-                let event = await self.ldkNode!.nextEventAsync()
+                // Bind the node once per iteration: resetNodeState (wallet
+                // wipe) can nil ldkNode at any moment — including while this
+                // loop is suspended inside nextEventAsync — so a re-read
+                // force-unwrap here can crash mid-reset. The bound reference
+                // keeps this iteration safe; the next iteration exits.
+                guard let node = self.ldkNode else { return }
+                let event = await node.nextEventAsync()
                 if Task.isCancelled { break }
                 await MainActor.run {
                     self.coreVC?.ldkEventReceived(event: event)
                 }
-                
-                try? self.ldkNode!.eventHandled()
+
+                try? node.eventHandled()
             }
         }
     }

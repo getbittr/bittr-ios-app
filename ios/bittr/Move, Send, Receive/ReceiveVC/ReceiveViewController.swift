@@ -123,7 +123,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.bothAmountTextField.delegate = self
         self.bothAmountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
         
-        // QR code
+        // QR code. UIImageView defaults to isUserInteractionEnabled = false, so
+        // the long-press context menu (Copy / Share) below never received touches
+        // without this — enable it so the interaction actually fires.
+        self.qrImageView.isUserInteractionEnabled = true
         self.qrImageView.addInteraction(UIContextMenuInteraction(delegate: self))
         
         // Set default currency to satoshis.
@@ -136,6 +139,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.qrSpinner.accessibilityIdentifier = TestID.Receive.qrSpinner
         self.questionButton.accessibilityIdentifier = TestID.Receive.questionButton
         self.bothAmountTextField.accessibilityIdentifier = TestID.Receive.amountTextField
+        self.btcButton.accessibilityIdentifier = TestID.Receive.currencyButton
+        self.btcLabel.accessibilityIdentifier = TestID.Receive.currencyLabel
         self.copyButton.accessibilityIdentifier = TestID.Receive.copyButton
         self.refreshButton.accessibilityIdentifier = TestID.Receive.refreshButton
         self.editButton.accessibilityIdentifier = TestID.Receive.editButton
@@ -171,7 +176,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let onchainAddress:String = {
             if type == .onchain || type == .bitcoinqr {
                 if newAddress {
-                    let nextUnusedAddress = self.coreVC?.bittrWallet.onchainAddresses?.getNextUnusedAddress()
+                    let nextUnusedAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress()
                     if nextUnusedAddress == nil {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     }
@@ -197,7 +202,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                     return self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
                 } else if self.selectedCurrency == .currency {
                     let fiatAmount = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
-                    let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+                    let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
                     let btcAmount = fiatAmount / bitcoinValue.currentValue
                     
                     // Safety check for invalid values
@@ -274,7 +279,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.lowerAddressLabel.text = ""
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.hideLowerAddress()
-                self.currentCopyableText = "bitcoin:\(onchainAddress)\(amountText)"
+                self.currentCopyableText = amountText.isEmpty
+                    ? onchainAddress
+                    : "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.addressLabel.text = ""
@@ -329,7 +336,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             refreshIsVisible = true
             editIsVisible = true
             copyLabelIsVisible = false
-            if self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() == nil {
+            if BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() == nil {
                 // User has no lightning channels.
                 numberOfCards = 3
                 moreIsVisible = false
@@ -487,7 +494,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         // Wait for onchain address management to finish before showing the onchain
         // address — manageOnchainAddresses() calls onchainAddressesReady() when it
         // sets onchainAddressesVerified, which re-enters this method.
-        if (type == .onchain || type == .bitcoinqr) && !newAddress && self.coreVC?.bittrWallet.onchainAddressesVerified == false {
+        if (type == .onchain || type == .bitcoinqr) && !newAddress && BitcoinManager.shared.bittrWallet.onchainAddressesVerified == false {
             self.currentType = type
             self.updateCards(for: type)
 
@@ -502,10 +509,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             // after the user switched to a different receive type.
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
                 guard let self = self,
-                      self.coreVC?.bittrWallet.onchainAddressesVerified == false,
+                      BitcoinManager.shared.bittrWallet.onchainAddressesVerified == false,
                       self.currentType == .onchain || self.currentType == .bitcoinqr else { return }
                 Log.info("Onchain address verification timed out — showing best-available address.")
-                self.coreVC?.bittrWallet.onchainAddressesVerified = true
+                BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
                 self.alertTapped(for: self.currentType, withoutAnimation: true)
             }
             return
@@ -581,7 +588,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
             self.selectSatsCurrency()
         }
-        let bitcoinValue = self.getCorrectBitcoinValue(coreVC: self.coreVC!)
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
             self.selectFiatCurrency()
         }
@@ -678,7 +685,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     func lightningIsAvailable() -> Bool {
-        if self.coreVC!.bittrWallet.lightningChannels.getActiveChannel() == nil {
+        if BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() == nil {
             return false
         } else {
             return true
@@ -689,7 +696,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         // Return the first iban entity that actually has a lightning address.
         // Checking only `.first` missed it when the lightning-address iban
         // wasn't first after parseDevice's sort (e.g. multiple deposit codes).
-        for iban in self.coreVC!.bittrWallet.ibanEntities where !iban.lightningAddressUsername.isEmpty {
+        for iban in BitcoinManager.shared.bittrWallet.ibanEntities where !iban.lightningAddressUsername.isEmpty {
             return iban.lightningAddressUsername
         }
         return nil

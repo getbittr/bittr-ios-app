@@ -7,6 +7,7 @@
 
 import UIKit
 import Sentry
+import UserNotifications
 
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -67,12 +68,9 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     func parseIbanEntities(uponPageLaunch:Bool) {
         
         // Set IBAN entities.
-        self.allIbanEntities = [IbanEntity]()
-        if self.coreVC == nil {return}
-        for eachIbanEntity in self.coreVC!.bittrWallet.ibanEntities {
-            if eachIbanEntity.yourUniqueCode != "" {
-                self.allIbanEntities += [eachIbanEntity]
-            }
+        self.allIbanEntities = []
+        for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
+            self.allIbanEntities += [eachIbanEntity]
         }
         
         // Reload collection view.
@@ -257,39 +255,34 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             let lightningAddressUsername = receivedEntity["lightning_address_username"] as? String
             let paymentMode = receivedEntity["payment_mode"] as? String
                 
-            for (index, eachExistingEntity) in self.allIbanEntities.enumerated() {
-                if eachExistingEntity.yourUniqueCode == depositCode {
-                    if partnerIban != eachExistingEntity.ourIbanNumber || partnerSwift != eachExistingEntity.ourSwift || lightningAddressUsername != eachExistingEntity.lightningAddressUsername {
-                        // Details have changed.
-                        someDetailsHaveChanged = true
-                        
-                        // Update details in BuyVC.
-                        self.allIbanEntities[index].ourIbanNumber = partnerIban
-                        self.allIbanEntities[index].ourSwift = partnerSwift
-                        self.allIbanEntities[index].lightningAddressUsername = lightningAddressUsername ?? self.allIbanEntities[index].lightningAddressUsername
-                        
-                        // Update details in CoreVC.
-                        for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                            if eachWalletEntity.yourUniqueCode == depositCode {
-                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourIbanNumber = partnerIban
-                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].ourSwift = partnerSwift
-                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername = lightningAddressUsername ?? self.coreVC!.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername
-                            }
-                        }
-                        
-                        // Update details in cache.
-                        CacheManager.addBittrIban(ibanID: eachExistingEntity.id, ourIban: partnerIban, ourSwift: partnerSwift, yourCode: depositCode, lightningAddressUsername: lightningAddressUsername)
+            for (index, eachExistingEntity) in self.allIbanEntities.enumerated() where eachExistingEntity.yourUniqueCode == depositCode {
+                
+                if partnerIban != eachExistingEntity.ourIbanNumber || partnerSwift != eachExistingEntity.ourSwift || lightningAddressUsername != eachExistingEntity.lightningAddressUsername {
+                    // Details have changed.
+                    someDetailsHaveChanged = true
+                    
+                    // Update details in BuyVC.
+                    self.allIbanEntities[index].ourIbanNumber = partnerIban
+                    self.allIbanEntities[index].ourSwift = partnerSwift
+                    self.allIbanEntities[index].lightningAddressUsername = lightningAddressUsername ?? self.allIbanEntities[index].lightningAddressUsername
+                    
+                    // Update details in CoreVC.
+                    for (walletIndex, eachWalletEntity) in BitcoinManager.shared.bittrWallet.ibanEntities.enumerated() where eachWalletEntity.yourUniqueCode == depositCode {
+                        BitcoinManager.shared.bittrWallet.ibanEntities[walletIndex].ourIbanNumber = partnerIban
+                        BitcoinManager.shared.bittrWallet.ibanEntities[walletIndex].ourSwift = partnerSwift
+                        BitcoinManager.shared.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername = lightningAddressUsername ?? BitcoinManager.shared.bittrWallet.ibanEntities[walletIndex].lightningAddressUsername
                     }
+                    
+                    // Update details in cache.
+                    CacheManager.addBittrIban(ibanID: eachExistingEntity.id, ourIban: partnerIban, ourSwift: partnerSwift, yourCode: depositCode, lightningAddressUsername: lightningAddressUsername)
 
                     // Payout mode is tracked independently of the IBAN/SWIFT details above.
                     if let paymentMode = paymentMode, paymentMode != eachExistingEntity.paymentMode {
                         paymentModeChanged = true
                         changedPaymentModeIndexPaths.append(IndexPath(item: index, section: 0))
                         self.allIbanEntities[index].paymentMode = paymentMode
-                        for (walletIndex, eachWalletEntity) in self.coreVC!.bittrWallet.ibanEntities.enumerated() {
-                            if eachWalletEntity.yourUniqueCode == depositCode {
-                                self.coreVC!.bittrWallet.ibanEntities[walletIndex].paymentMode = paymentMode
-                            }
+                        for (walletIndex, eachWalletEntity) in BitcoinManager.shared.bittrWallet.ibanEntities.enumerated() where eachWalletEntity.yourUniqueCode == depositCode {
+                            BitcoinManager.shared.bittrWallet.ibanEntities[walletIndex].paymentMode = paymentMode
                         }
                         CacheManager.setPaymentMode(ibanID: eachExistingEntity.id, paymentMode: paymentMode)
                     }
@@ -316,8 +309,31 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     // MARK: - Payout mode (PATCH /customer/payment-mode)
 
-    func setPaymentMode(for entity: IbanEntity, newMode: String, isRetry: Bool = false) {
-
+    func setPaymentMode(for entity: IbanEntity, newMode: String) {
+        if newMode == "lightning" {
+            self.hasAcceptedPushNotifications { hasAccepted in
+                if hasAccepted {
+                    self.proceedWithApiCall(for: entity, newMode: newMode)
+                } else {
+                    Log.info("Notifications not authorized; blocking switch to lightning.")
+                    self.reloadCard(for: entity)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "lightningneedsnotifications"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+            }
+        } else {
+            self.proceedWithApiCall(for: entity, newMode: newMode)
+        }
+    }
+    
+    func hasAcceptedPushNotifications(completion: @escaping (Bool) -> Void) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                completion(settings.authorizationStatus == .authorized)
+            }
+        }
+    }
+    
+    func proceedWithApiCall(for entity: IbanEntity, newMode: String, isRetry: Bool = false) {
         // The lightning node must be running to sign the request.
         guard BitcoinManager.shared.ldkNode != nil, let pubkey = BitcoinManager.shared.nodeId() else {
             Log.info("Lightning not ready for payment mode update.")
@@ -325,7 +341,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
-
+        
         let depositCode = entity.yourUniqueCode
         let timestamp = Int(Date().timeIntervalSince1970)
         let message = "payment_mode:\(pubkey):\(depositCode):\(newMode):\(timestamp)"
@@ -379,7 +395,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                             // Retry.
                             if serverError.lowercased().contains("expired timestamp"), !isRetry {
                                 // Stale timestamp — rebuild with a fresh one and retry once.
-                                self.setPaymentMode(for: entity, newMode: newMode, isRetry: true)
+                                self.proceedWithApiCall(for: entity, newMode: newMode, isRetry: true)
                                 return
                             }
                             self.handlePaymentModeError(serverError, for: entity)
@@ -398,10 +414,8 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         for (index, eachEntity) in self.allIbanEntities.enumerated() where eachEntity.yourUniqueCode == entity.yourUniqueCode {
             self.allIbanEntities[index].paymentMode = mode
         }
-        if let coreVC = self.coreVC {
-            for (index, eachEntity) in coreVC.bittrWallet.ibanEntities.enumerated() where eachEntity.yourUniqueCode == entity.yourUniqueCode {
-                coreVC.bittrWallet.ibanEntities[index].paymentMode = mode
-            }
+        for (index, eachEntity) in BitcoinManager.shared.bittrWallet.ibanEntities.enumerated() where eachEntity.yourUniqueCode == entity.yourUniqueCode {
+            BitcoinManager.shared.bittrWallet.ibanEntities[index].paymentMode = mode
         }
         CacheManager.setPaymentMode(ibanID: entity.id, paymentMode: mode)
         self.reloadCard(for: entity)
