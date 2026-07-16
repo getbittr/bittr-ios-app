@@ -94,8 +94,12 @@ class AnimationViewController: UIViewController {
             }
             self.view.layoutIfNeeded()
             
-            // Show PinVC or SignupVC.
-            self.coreVC?.showPinOrSignup()
+            // Reveal the pin/signup container now that the animation cover is
+            // dropping (revealing it earlier puts tappable-looking buttons
+            // under the opaque cover), then check for a pending lockout wipe
+            // or an interrupted wallet removal.
+            self.coreVC?.revealPinOrSignup()
+            self.coreVC?.checkWalletRemoval()
         } completion: { finished in
             // Logo finishes sliding with a bounce.
             UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
