@@ -140,19 +140,30 @@ class CoreViewController: UIViewController {
         // Set words.
         self.setWords()
         self.setBasicStyling()
-        
+
+        // Taps on the animationContainer go through it down to PinVC or SignupVC.
+        self.animationContainer.isUserInteractionEnabled = false
+
         // Check wallet.
         self.checkWalletAvailability()
     }
     
     func checkWalletAvailability() {
         
-        // Check wallet availability.
+        // Check wallet availability. The containers are revealed here, at
+        // viewDidLoad, and stay interactable during the launch animation:
+        // the animation cover passes taps through (its
+        // isUserInteractionEnabled is false), so the PIN/signup screen is
+        // usable while it becomes visible — and automation taps can't be
+        // swallowed by the cover.
         if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
-            // Wallet has been created. The pin container is revealed by
-            // revealPinOrSignup once the launch animation's cover drops.
+            // Wallet has been created.
+            self.signupContainerView.alpha = 0
+            self.pinContainerView.alpha = 1
         } else {
             // User has not completed signup.
+            self.signupContainerView.alpha = 1
+            self.pinContainerView.alpha = 0
             // Remove cached mnemonic.
             CacheManager.deleteClientInfo()
             // Show SignupVC.
@@ -160,22 +171,6 @@ class CoreViewController: UIViewController {
         }
     }
     
-    func revealPinOrSignup() {
-        // Reveal the pin or signup container. Called from the launch
-        // animation as its cover drops — NOT at viewDidLoad: revealing these
-        // under the still-opaque animation cover puts their buttons in the
-        // accessibility tree while taps still land on the cover, which
-        // silently swallows the first interaction (and broke every Maestro
-        // flow whose tap raced the intro animation).
-        if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
-            self.signupContainerView.alpha = 0
-            self.pinContainerView.alpha = 1
-        } else {
-            self.signupContainerView.alpha = 1
-            self.pinContainerView.alpha = 0
-        }
-    }
-
     func checkWalletRemoval() {
         // Upon app launch, check whether the user is locked out.
         // Or whether the user has previously tried removing the wallet.

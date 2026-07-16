@@ -56,29 +56,28 @@ class AnimationViewController: UIViewController {
     
     func widenLogoView() {
         // Logo widens to unveil bittr text.
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-            self.logoViewWidth.constant = 111
+        UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.65, initialSpringVelocity: 0, options: .curveEaseInOut) {
+            self.logoViewWidth.constant = 106
             self.view.layoutIfNeeded()
         } completion: { finished in
-            // Logo finishes widening with a bounce.
-            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                self.logoViewWidth.constant = 106
-                self.view.layoutIfNeeded()
-            } completion: { finished in
-                self.logoSlidesToTop()
-            }
+            self.coreVC?.checkWalletRemoval()
+            self.logoSlidesToTop()
         }
     }
     
     func logoSlidesToTop() {
-        // Logo slides from center to top.
+        
+        let fadedBackground = self.view.backgroundColor?.withAlphaComponent(0)
         UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseInOut) {
+            self.view.backgroundColor = fadedBackground
+        }
+
+        UIView.animate(withDuration: 0.7, delay: 0.3, usingSpringWithDamping: 0.65, initialSpringVelocity: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.logoViewCenterY])
-            self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 0)
+            self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 10)
             NSLayoutConstraint.activate([self.logoViewTop])
-            
+
             // Hide logo elements.
-            self.view.backgroundColor = .clear
             self.coin1.alpha = 0
             self.coin3.alpha = 0
             self.secondCoin.alpha = 0
@@ -93,32 +92,17 @@ class AnimationViewController: UIViewController {
                 self.bittrTextDarkMode.alpha = 1
             }
             self.view.layoutIfNeeded()
-            
-            // Reveal the pin/signup container now that the animation cover is
-            // dropping (revealing it earlier puts tappable-looking buttons
-            // under the opaque cover), then check for a pending lockout wipe
-            // or an interrupted wallet removal.
-            self.coreVC?.revealPinOrSignup()
-            self.coreVC?.checkWalletRemoval()
         } completion: { finished in
-            // Logo finishes sliding with a bounce.
-            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
-                NSLayoutConstraint.deactivate([self.logoViewTop])
-                self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 10)
-                NSLayoutConstraint.activate([self.logoViewTop])
-                self.view.layoutIfNeeded()
-            } completion: { finished in
-                
-                // Final adjustments after animation.
-                self.coreVC?.topBar.alpha = 1
-                self.coreVC?.lowerTopBar.alpha = 1
-                self.coreVC?.homeContainerView.alpha = 1
-                self.coreVC?.menuBarContainer.alpha = 1
-                self.coreVC?.blackSignupBackground.alpha = 1
-                self.coreVC?.changeColors()
-                self.coreVC?.animationContainer.alpha = 0
-                NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
-            }
+            // Final adjustments after animation.
+            self.coreVC?.topBar.alpha = 1
+            self.coreVC?.lowerTopBar.alpha = 1
+            self.coreVC?.homeContainerView.alpha = 1
+            self.coreVC?.menuBarContainer.alpha = 1
+            self.coreVC?.blackSignupBackground.alpha = 1
+            self.coreVC?.changeColors()
+            self.coreVC?.animationContainer.alpha = 0
+            self.coreVC?.animationContainer.isHidden = true
+            NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
         }
     }
     
