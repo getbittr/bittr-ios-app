@@ -223,6 +223,7 @@ class Language: NSObject {
             "closedlightningchannel3": " We've been notified that ",
             "bittrnotificationfail": "Something went wrong processing the notification we sent to you. Please contact support@getbittr.com if you have any questions.",
             "pinlock": "You've entered an incorrect PIN too many times. Please restore your wallet.",
+            "tokenregistrationfail": "We couldn't register this device for notifications. Please check your internet connection and try again, or continue with regular payouts.",
             "incorrectpin2": "Please enter your correct PIN. If you've forgotten it, please restore your wallet.",
             "pinattemptsleft": "You have <attempts> attempts left.",
             "pinattemptleft": "You have 1 attempt left.",
