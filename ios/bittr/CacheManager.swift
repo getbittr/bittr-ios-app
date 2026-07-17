@@ -7,6 +7,7 @@
 
 import UIKit
 import Sentry
+import CryptoKit
 
 class CacheManager: NSObject {
     
@@ -893,19 +894,56 @@ class CacheManager: NSObject {
     }
     
     // MARK: - Pin
-    
-    // The PIN is stored in the Keychain as its raw value so getPin()'s existing
-    // call sites (PinViewController) keep working unchanged. It is protected at
-    // rest by the Keychain (device-locked, never backed up or synced). Follow-up
-    // hardening: store a salted hash behind a verifyPin() API, and move the
-    // failed-attempt counter into the Keychain too (it is currently a plain,
-    // resettable Int in UserDefaults).
+
+    // The PIN is stored as a salted SHA-256 record ("v1$<salt>$<digest>",
+    // base64) so its raw value never sits anywhere at rest — people reuse
+    // bank-card PINs, so disclosure matters beyond this app. Honest scope:
+    // hashing cannot make a 4-8 digit PIN resistant to offline brute force
+    // (the keyspace is tiny); the wipe-after-10 attempt counter is the real
+    // guard, and the mnemonic — not the PIN — is the actual key material.
+    // Legacy raw values (UserDefaults, or early Keychain builds) are
+    // re-hashed by the launch migration; verifyPin also upgrades any
+    // straggler on its next successful entry.
     static func storePin(pin:String) {
-        writeSecret(pin, account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
+        writeSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
     }
-    
-    static func getPin() -> String? {
-        readSecret(account: EnvironmentConfig.cacheKey(for: "pin"))
+
+    /// Whether a PIN is stored (hashed or legacy raw).
+    static func hasPin() -> Bool {
+        readSecret(account: EnvironmentConfig.cacheKey(for: "pin")) != nil
+    }
+
+    /// Check an entered PIN against the stored record.
+    static func verifyPin(_ entered: String) -> Bool {
+        guard let stored = readSecret(account: EnvironmentConfig.cacheKey(for: "pin")) else { return false }
+        if let record = parseHashedPinRecord(stored) {
+            return pinDigest(entered, salt: record.salt) == record.digest
+        }
+        // Legacy raw value — compare directly, and upgrade to the hashed form
+        // now that the correct PIN is known.
+        guard stored == entered else { return false }
+        storePin(pin: entered)
+        return true
+    }
+
+    private static func hashedPinRecord(for pin: String) -> String {
+        var salt = Data(count: 32)
+        _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
+        return "v1$\(salt.base64EncodedString())$\(pinDigest(pin, salt: salt).base64EncodedString())"
+    }
+
+    private static func parseHashedPinRecord(_ record: String) -> (salt: Data, digest: Data)? {
+        let parts = record.split(separator: "$")
+        guard parts.count == 3, parts[0] == "v1",
+              let salt = Data(base64Encoded: String(parts[1])),
+              let digest = Data(base64Encoded: String(parts[2])) else { return nil }
+        return (salt, digest)
+    }
+
+    private static func pinDigest(_ pin: String, salt: Data) -> Data {
+        var input = salt
+        input.append(Data(pin.utf8))
+        return Data(SHA256.hash(data: input))
     }
     
     // MARK: - Secure storage (Keychain)
@@ -949,6 +987,11 @@ class CacheManager: NSObject {
         // Rewriting in place re-applies the intended class; idempotent.
         refreshAccessibility(account: EnvironmentConfig.cacheKey(for: "mnemonic"), accessibility: .afterFirstUnlockThisDeviceOnly)
         refreshAccessibility(account: EnvironmentConfig.cacheKey(for: "pin"), accessibility: .whenUnlockedThisDeviceOnly)
+        // Re-hash a legacy raw PIN (from UserDefaults, or an early Keychain
+        // build that stored the raw value).
+        if let storedPin = (try? SecureStore.getString(account: EnvironmentConfig.cacheKey(for: "pin"))) ?? nil, parseHashedPinRecord(storedPin) == nil {
+            storePin(pin: storedPin)
+        }
     }
 
     /// Re-apply the intended accessibility class to an already-stored secret
@@ -1154,39 +1197,45 @@ class CacheManager: NSObject {
     
     // MARK: - Failed pin attempts
     
+    // The wipe-after-10 counter lives in the Keychain, not UserDefaults:
+    // backups restore UserDefaults but a live device's Keychain kept the PIN,
+    // so a backup-restore cycle used to reset the counter while the PIN
+    // survived — unlimited attempts for anyone with backup access. Honest
+    // scope: a full same-device erase-and-restore replays ThisDeviceOnly
+    // items too and buys another 9 attempts per multi-minute cycle; the
+    // Keychain counter turns a seconds-long plist edit into that, it does
+    // not eliminate it. Reads fail open (0): wiping wallets on a transient
+    // Keychain error would be worse than granting extra attempts.
+    private static var failedAttemptsAccount: String {
+        EnvironmentConfig.cacheKey(for: "failedattempts")
+    }
+
     static func getFailedPinAttempts() -> Int {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
-        
-        let defaults = UserDefaults.standard
-        let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
-        if let actualCachedAttempts = cachedFailedAttempts {
-            return actualCachedAttempts
-        } else {
-            return 0
-        }
+        migrateLegacyFailedAttemptsIfNeeded()
+        guard let stored = (try? SecureStore.getString(account: failedAttemptsAccount)) ?? nil else { return 0 }
+        return Int(stored) ?? 0
     }
-    
+
     static func increaseFailedPinAttempts() {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
-        
-        let defaults = UserDefaults.standard
-        let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
-        if var actualCachedAttempts = cachedFailedAttempts {
-            actualCachedAttempts += 1
-            defaults.set(actualCachedAttempts, forKey: envKey)
-        } else {
-            defaults.set(1, forKey: envKey)
-        }
+        let next = getFailedPinAttempts() + 1
+        try? SecureStore.setString("\(next)", account: failedAttemptsAccount, accessibility: .whenUnlockedThisDeviceOnly)
     }
-    
+
     static func resetFailedPinAttempts() {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(0, forKey: envKey)
+        SecureStore.remove(account: failedAttemptsAccount)
+        UserDefaults.standard.removeObject(forKey: failedAttemptsAccount)
+    }
+
+    /// Move a legacy UserDefaults counter into the Keychain. Keeps the higher
+    /// of the two values so a restored (older) count can never lower a live
+    /// one. Idempotent; the UserDefaults copy is removed once read.
+    private static func migrateLegacyFailedAttemptsIfNeeded() {
+        guard let legacy = UserDefaults.standard.value(forKey: failedAttemptsAccount) as? Int else { return }
+        let current = Int(((try? SecureStore.getString(account: failedAttemptsAccount)) ?? nil) ?? "0") ?? 0
+        if legacy > current {
+            try? SecureStore.setString("\(legacy)", account: failedAttemptsAccount, accessibility: .whenUnlockedThisDeviceOnly)
+        }
+        UserDefaults.standard.removeObject(forKey: failedAttemptsAccount)
     }
 
     // MARK: - Wallet removal in progress
