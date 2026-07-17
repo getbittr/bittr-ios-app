@@ -942,6 +942,24 @@ class CacheManager: NSObject {
         migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
         migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "pin"))
         migrateLegacyOngoingSwapKey()
+        applyProtectionToExistingSwapFiles()
+    }
+
+    /// Stamp existing swap JSON files with the at-rest protection class that
+    /// new writes get explicitly (saveSwapDetailsToFile). Files are only ever
+    /// rewritten while a swap is in flight, so completed swaps' files would
+    /// otherwise keep whatever class they were created with. Idempotent and
+    /// content-preserving: this sets a file attribute — the file's deliberate
+    /// plain-text content (the Boltz rescue artifact) is untouched.
+    private static func applyProtectionToExistingSwapFiles() {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        guard let files = try? FileManager.default.contentsOfDirectory(at: documentsPath, includingPropertiesForKeys: nil) else { return }
+        for file in files where file.pathExtension == "json" {
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                ofItemAtPath: file.path
+            )
+        }
     }
 
     /// Move a legacy ongoingswap dictionary's inline Boltz refund key into the
