@@ -3,16 +3,15 @@
 //  bittr
 //
 //  Thin wrapper over the iOS Keychain for storing sensitive values (the wallet
-//  mnemonic and the app PIN). Every item is written with:
+//  mnemonic, the app PIN, and in-flight swap refund keys). Every item shares
+//  these invariants:
 //
-//    • kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-//        Hardware-encrypted; readable only while the device is unlocked, and —
-//        crucially — NEVER included in device backups (iCloud/Finder) and NEVER
-//        synced through iCloud Keychain. This is the attribute that stops a
-//        stored value from ever appearing on another device or in Keychain
-//        Access on a Mac (the problem the old Keychain attempt hit). It also
-//        can't leave the device: `ThisDeviceOnly` and `Synchronizable` are
-//        mutually exclusive.
+//    • …ThisDeviceOnly accessibility
+//        Hardware-encrypted; NEVER included in device backups (iCloud/Finder)
+//        and NEVER synced through iCloud Keychain. This is what stops a stored
+//        value from ever appearing on another device or in Keychain Access on
+//        a Mac (the problem the old Keychain attempt hit). `ThisDeviceOnly`
+//        and `Synchronizable` are mutually exclusive.
 //
 //    • kSecAttrSynchronizable = false
 //        Belt-and-suspenders: explicitly never iCloud-synced.
@@ -22,10 +21,22 @@
 //        is ever built for Mac Catalyst — without it, items land in the
 //        user-visible login keychain).
 //
+//  The unlock requirement differs per secret, because the app declares the
+//  `fetch` and `remote-notification` background modes and genuinely runs while
+//  the device is locked:
+//
+//    • afterFirstUnlockThisDeviceOnly — the mnemonic and swap refund keys.
+//        Node start and swap processing happen in background wakes (silent
+//        pushes for held HTLCs and swap status); `WhenUnlocked` would silently
+//        break exactly those flows on a locked device. Readable any time after
+//        the device's first unlock since boot.
+//
+//    • whenUnlockedThisDeviceOnly — the PIN.
+//        Only ever read at the foreground unlock screen, so it keeps the
+//        strictest class for free.
+//
 //  No biometrics / SecAccessControl are used: values are protected by the
-//  device lock, which matches the app's current PIN-only UX. The seed is only
-//  ever read in the foreground with the device unlocked, so
-//  `WhenUnlockedThisDeviceOnly` never blocks a legitimate read.
+//  device lock, which matches the app's current PIN-only UX.
 //
 
 import Foundation
@@ -42,10 +53,25 @@ enum SecureStore {
         case writeVerificationFailed
     }
 
+    /// Unlock requirement for an item. Both variants are ThisDeviceOnly
+    /// (never backed up, never synced) — see the header for which secret
+    /// uses which and why.
+    enum Accessibility {
+        case whenUnlockedThisDeviceOnly
+        case afterFirstUnlockThisDeviceOnly
+
+        var attribute: CFString {
+            switch self {
+            case .whenUnlockedThisDeviceOnly: return kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            case .afterFirstUnlockThisDeviceOnly: return kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            }
+        }
+    }
+
     // MARK: - String convenience
 
-    static func setString(_ value: String, account: String) throws {
-        try setData(Data(value.utf8), account: account)
+    static func setString(_ value: String, account: String, accessibility: Accessibility = .whenUnlockedThisDeviceOnly) throws {
+        try setData(Data(value.utf8), account: account, accessibility: accessibility)
     }
 
     static func getString(account: String) throws -> String? {
@@ -61,7 +87,7 @@ enum SecureStore {
     /// nothing stored (which a delete-then-add could, if the add failed after the
     /// delete succeeded). The accessibility attribute is (re)applied on both the
     /// add and the update, so it never goes stale.
-    static func setData(_ data: Data, account: String) throws {
+    static func setData(_ data: Data, account: String, accessibility: Accessibility = .whenUnlockedThisDeviceOnly) throws {
         // Identity of the item — also the search query when updating.
         let identity: [String: Any] = [
             kSecClass as String:                     kSecClassGenericPassword,
@@ -72,7 +98,7 @@ enum SecureStore {
 
         var addQuery = identity
         addQuery[kSecValueData as String] = data
-        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        addQuery[kSecAttrAccessible as String] = accessibility.attribute
         addQuery[kSecAttrSynchronizable as String] = false
 
         let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
@@ -81,9 +107,11 @@ enum SecureStore {
             return
         case errSecDuplicateItem:
             // An item already exists — replace its value in place (atomic).
+            // The accessibility attribute is re-applied here too, so a
+            // rewrite also migrates an item to its intended class.
             let attributes: [String: Any] = [
                 kSecValueData as String:      data,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+                kSecAttrAccessible as String: accessibility.attribute,
             ]
             let updateStatus = SecItemUpdate(identity as CFDictionary, attributes as CFDictionary)
             guard updateStatus == errSecSuccess else {
