@@ -121,11 +121,33 @@ enum SecureStore {
     @discardableResult
     static func remove(account: String) -> Bool {
         let query: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+            kSecClass as String:                     kSecClassGenericPassword,
+            kSecAttrService as String:               service,
+            kSecAttrAccount as String:               account,
+            kSecUseDataProtectionKeychain as String: true,
         ]
         let status = SecItemDelete(query as CFDictionary)
         return status == errSecSuccess || status == errSecItemNotFound
+    }
+
+    /// Delete every item of ours whose account begins with `accountPrefix`
+    /// (e.g. the per-swap refund keys, "swapkey_", on wallet reset). Nothing
+    /// stored is not an error.
+    static func removeAll(accountPrefix: String) {
+        let query: [String: Any] = [
+            kSecClass as String:                     kSecClassGenericPassword,
+            kSecAttrService as String:               service,
+            kSecReturnAttributes as String:          true,
+            kSecMatchLimit as String:                kSecMatchLimitAll,
+            kSecUseDataProtectionKeychain as String: true,
+        ]
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let items = result as? [[String: Any]] else { return }
+        for item in items {
+            if let account = item[kSecAttrAccount as String] as? String, account.hasPrefix(accountPrefix) {
+                remove(account: account)
+            }
+        }
     }
 }

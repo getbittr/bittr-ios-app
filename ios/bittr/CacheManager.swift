@@ -28,6 +28,12 @@ class CacheManager: NSObject {
         SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
         SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "pin"))
 
+        // A wiped wallet's pending swap is meaningless (its documents are
+        // deleted with the wallet): clear the ongoing-swap record and sweep
+        // the per-swap refund keys out of the Keychain.
+        defaults.removeObject(forKey: "ongoingswap")
+        SecureStore.removeAll(accountPrefix: "swapkey_")
+
         self.resetFailedPinAttempts()
     }
     
@@ -929,11 +935,29 @@ class CacheManager: NSObject {
         }
     }
 
-    /// Eagerly migrate any legacy UserDefaults-stored secrets (mnemonic, PIN)
-    /// into the Keychain. Safe to call on every launch; a no-op once migrated.
+    /// Eagerly migrate any legacy UserDefaults-stored secrets (mnemonic, PIN,
+    /// and an in-flight swap's refund key) into the Keychain. Safe to call on
+    /// every launch; a no-op once migrated.
     static func migrateSecretsToKeychainIfNeeded() {
         migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
         migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "pin"))
+        migrateLegacyOngoingSwapKey()
+    }
+
+    /// Move a legacy ongoingswap dictionary's inline Boltz refund key into the
+    /// Keychain. Same contract as migrateLegacyValue: the UserDefaults copy is
+    /// only stripped once the Keychain copy is confirmed readable, so access
+    /// is never lost. Idempotent.
+    private static func migrateLegacyOngoingSwapKey() {
+        guard let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary,
+              let privateKey = storedSwap["privateKey"] as? String,
+              let boltzID = storedSwap["boltzID"] as? String else {
+            return
+        }
+        if storeSwapPrivateKey(privateKey, boltzID: boltzID), let stripped = storedSwap.mutableCopy() as? NSMutableDictionary {
+            stripped.removeObject(forKey: "privateKey")
+            UserDefaults.standard.set(stripped, forKey: "ongoingswap")
+        }
     }
 
     /// Write a secret to the Keychain and confirm it by reading it back. Throws
@@ -1253,23 +1277,59 @@ class CacheManager: NSObject {
     // MARK: - Swaps
     
     static func saveLatestSwap(_ latestSwap:Swap?) {
-        
-        if latestSwap != nil {
-            let swapDictionary = latestSwap!.toDictionary()
+
+        if let swap = latestSwap, let swapDictionary = swap.toDictionary().mutableCopy() as? NSMutableDictionary {
+            // Keep the Boltz refund key out of UserDefaults: store it in the
+            // Keychain (keyed per swap) and strip it from the persisted
+            // dictionary — but only once the Keychain copy is confirmed
+            // readable. If the write fails, the key stays inline: for an
+            // in-flight swap, a plaintext key beats a lost refund key.
+            // (The per-swap JSON file DELIBERATELY keeps the key in plain
+            // text — it is the user-facing emergency artifact for Boltz's
+            // rescue flow and must not depend on a working app or Keychain.)
+            if let privateKey = swap.privateKey, let boltzID = swap.boltzID, storeSwapPrivateKey(privateKey, boltzID: boltzID) {
+                swapDictionary.removeObject(forKey: "privateKey")
+            }
             UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
         } else {
-            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
-                UserDefaults.standard.removeObject(forKey: "ongoingswap")
+            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary, let boltzID = storedSwap["boltzID"] as? String {
+                SecureStore.remove(account: "swapkey_\(boltzID)")
             }
+            UserDefaults.standard.removeObject(forKey: "ongoingswap")
         }
     }
-    
+
     static func getLatestSwap() -> Swap? {
         if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
             let thisSwap = storedSwap.toSwap()
+            // New saves strip the refund key from the dictionary — read it
+            // back from the Keychain. A legacy dictionary still carries it
+            // inline (toSwap picks that up), and
+            // migrateSecretsToKeychainIfNeeded moves it across on launch.
+            if thisSwap.privateKey == nil, let boltzID = thisSwap.boltzID {
+                thisSwap.privateKey = (try? SecureStore.getString(account: "swapkey_\(boltzID)")) ?? nil
+            }
             return thisSwap
         } else {
             return nil
+        }
+    }
+
+    /// Store an in-flight swap's Boltz refund key in the Keychain, verified by
+    /// read-back. Returns true only when the Keychain copy is confirmed, so
+    /// callers only strip the inline copy on certainty.
+    private static func storeSwapPrivateKey(_ privateKey: String, boltzID: String) -> Bool {
+        do {
+            try SecureStore.setString(privateKey, account: "swapkey_\(boltzID)")
+            guard ((try? SecureStore.getString(account: "swapkey_\(boltzID)")) ?? nil) == privateKey else {
+                throw SecureStore.SecureStoreError.writeVerificationFailed
+            }
+            return true
+        } catch {
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "storing swap private key in keychain", key: "context")
+            }
+            return false
         }
     }
     
