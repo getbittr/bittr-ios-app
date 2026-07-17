@@ -1044,7 +1044,7 @@ class CacheManager: NSObject {
             UserDefaults.standard.removeObject(forKey: account)   // clean up any legacy leftover
             return value
         }
-        return migrateLegacyValue(account: account)
+        return migrateLegacyValue(account: account, accessibility: accessibilityForAccount(account))
     }
 
     /// Move a legacy UserDefaults value into the Keychain (if one exists). Returns
