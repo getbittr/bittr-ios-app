@@ -383,7 +383,9 @@ class SwapStatusViewController: UIViewController {
             let fileName = "Swap \(ongoingSwap.boltzID!).json"
             let temporaryFileURL = temporaryFolder.appendingPathComponent(fileName)
             
-            try jsonData.write(to: temporaryFileURL)
+            // Same at-rest protection as the swap file itself; the exported
+            // copy the user shares stays plain-text JSON either way.
+            try jsonData.write(to: temporaryFileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             let vc = UIActivityViewController(activityItems: [temporaryFileURL], applicationActivities: [])
             self.present(vc, animated: true, completion: nil)
         } catch {
