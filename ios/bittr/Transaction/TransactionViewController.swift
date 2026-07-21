@@ -635,6 +635,16 @@ class TransactionViewController: UIViewController {
         self.view.layoutIfNeeded()
     }
     
+    func hideNoteStack() {
+        self.noteStack.alpha = 0
+        NSLayoutConstraint.deactivate([self.noteStackHeight])
+        self.noteStackHeight = NSLayoutConstraint(item: self.noteStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.noteStackHeight])
+        self.addANoteStack.alpha = 1
+        self.addANoteStackHeight.constant = 45
+        self.view.layoutIfNeeded()
+    }
+    
     @IBAction func noteButtonTapped(_ sender: UIButton) {
 
         self.showTextFieldAlert(
@@ -650,6 +660,11 @@ class TransactionViewController: UIViewController {
                 CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: noteText)
                 self.labelNote.text = noteText
                 self.showNoteStack()
+            } else {
+                // The user cleared the note: delete it and revert to the "Add a note" button.
+                CacheManager.deleteTransactionNote(txid: self.tappedTransaction.id)
+                self.labelNote.text = ""
+                self.hideNoteStack()
             }
         }
     }

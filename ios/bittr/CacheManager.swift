@@ -808,6 +808,21 @@ class CacheManager: NSObject {
         }
     }
     
+    static func deleteTransactionNote(txid:String) {
+
+        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
+
+        let defaults = UserDefaults.standard
+        let cachedTransactionNotes = defaults.value(forKey: envKey) as? NSDictionary
+        if let actualCachedNotes = cachedTransactionNotes {
+            // Notes have been cached.
+            if let actualMutableNotes = actualCachedNotes.mutableCopy() as? NSMutableDictionary {
+                actualMutableNotes.removeObject(forKey: txid)
+                defaults.set(actualMutableNotes, forKey: envKey)
+            }
+        }
+    }
+
     static func getTransactionNote(txid:String) -> String {
         
         let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
