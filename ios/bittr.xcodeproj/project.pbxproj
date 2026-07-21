@@ -66,6 +66,7 @@
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
 		053C37542FD28E8E00A510DF /* BittrArticles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053C37532FD28E8800A510DF /* BittrArticles.swift */; };
 		054D42DF2F7B739E00599720 /* AnimationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D42DE2F7B739800599720 /* AnimationViewController.swift */; };
+		05512F26300F80AF00E75272 /* WalletCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F25300F80AC00E75272 /* WalletCache.swift */; };
 		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
 		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
 		055403692CC14FC5006F27CA /* SendLNURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055403682CC14FC0006F27CA /* SendLNURL.swift */; };
@@ -279,6 +280,7 @@
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
 		053C37532FD28E8800A510DF /* BittrArticles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrArticles.swift; sourceTree = "<group>"; };
 		054D42DE2F7B739800599720 /* AnimationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationViewController.swift; sourceTree = "<group>"; };
+		05512F25300F80AC00E75272 /* WalletCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCache.swift; sourceTree = "<group>"; };
 		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
 		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
 		05546CF42F2A337600512129 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
@@ -565,6 +567,15 @@
 			path = Animation;
 			sourceTree = "<group>";
 		};
+		05512F24300F809200E75272 /* Cache */ = {
+			isa = PBXGroup;
+			children = (
+				05980B572A46F8DA001F312F /* CacheManager.swift */,
+				05512F25300F80AC00E75272 /* WalletCache.swift */,
+			);
+			path = Cache;
+			sourceTree = "<group>";
+		};
 		0579B26F2A0530DB0007891F /* Move, Send, Receive */ = {
 			isa = PBXGroup;
 			children = (
@@ -827,9 +838,9 @@
 				052E98C02F1638F2000035A8 /* Extensions */,
 				05C3C0B429CCBFDD00C1E695 /* Helpers */,
 				051015502F973F8D00D3F631 /* Map */,
+				05512F24300F809200E75272 /* Cache */,
 				05D5D0E62A66825000A1E771 /* BitcoinManager.swift */,
 				05546D282F35B86700512129 /* BDKManager.swift */,
-				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				05622A682DB61E3700D91066 /* AlertManager.swift */,
 				05622A6A2DB8BA3000D91066 /* CallsManager.swift */,
 				051DDEF82C6B185C0002CF2D /* Colors.swift */,
@@ -1225,6 +1236,7 @@
 				050B4BB32A1BBD5F00563F29 /* Signup1ViewController.swift in Sources */,
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				051016602F9F4CF100D3F631 /* PlaceCategories.swift in Sources */,
+				05512F26300F80AF00E75272 /* WalletCache.swift in Sources */,
 				051015522F973F9E00D3F631 /* MapViewController.swift in Sources */,
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
 				053022002E7803BC00B23226 /* SendVCTextFields.swift in Sources */,

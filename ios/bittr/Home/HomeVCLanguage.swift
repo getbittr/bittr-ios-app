@@ -67,7 +67,7 @@ extension HomeViewController {
         }
         
         if self.balanceLabel.alpha == 1 {
-            if let actualCachedBalance = CacheManager.getCachedData(key: "satsbalance") as? String {
+            if let actualCachedBalance = CacheManager.cachedSatsBalance {
                 self.loadBalanceLabel(amount: actualCachedBalance)
                 self.setConversion()
                 

@@ -13,17 +13,17 @@ extension HomeViewController {
     func showCachedData() {
         
         // Set cached Eur Value.
-        if let cachedEurValue = CacheManager.getCachedData(key: "eurvalue") as? CGFloat {
+        if let cachedEurValue = CacheManager.cachedEurValue {
             BitcoinManager.shared.bittrWallet.valueInEUR = cachedEurValue
         }
         
         // Set cached Chf Value.
-        if let cachedChfValue = CacheManager.getCachedData(key: "chfvalue") as? CGFloat {
+        if let cachedChfValue = CacheManager.cachedChfValue {
             BitcoinManager.shared.bittrWallet.valueInCHF = cachedChfValue
         }
         
         // Set conversion.
-        if let actualCachedBalance = CacheManager.getCachedData(key: "satsbalance") as? String {
+        if let actualCachedBalance = CacheManager.cachedSatsBalance {
             
             // Show cached balance.
             self.loadBalanceLabel(amount: actualCachedBalance)
@@ -33,7 +33,7 @@ extension HomeViewController {
         }
         
         // Set cached transactions.
-        if let cachedTransactions = CacheManager.getCachedData(key: "transactions") as? [Transaction] {
+        if let cachedTransactions = CacheManager.cachedHomeTransactions {
             
             self.visibleTransactions = cachedTransactions
             self.newTransactions = cachedTransactions

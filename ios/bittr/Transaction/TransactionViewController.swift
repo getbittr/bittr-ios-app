@@ -376,7 +376,7 @@ class TransactionViewController: UIViewController {
             self.confirmationsStackHeight.constant = 55
             self.confirmationsStack.alpha = 1
             
-            let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+            let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? CacheManager.cachedHeight ?? 0
             
             if self.tappedTransaction.height == nil || (currentHeight - self.tappedTransaction.height! + 1) < 1 {
                 // Unconfirmed transaction.
