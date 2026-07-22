@@ -259,7 +259,7 @@ class BitcoinManager {
         if let blockHeight = receivedDictionary["result"] as? Int {
             Log.info("Block height: \(blockHeight)")
             self.bittrWallet.currentHeight = blockHeight
-            CacheManager.updateCachedData(data: blockHeight, key: "height")
+            CacheManager.cachedHeight = blockHeight
             return true
         } else {
             DispatchQueue.main.async {

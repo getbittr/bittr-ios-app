@@ -120,7 +120,7 @@ extension HomeViewController {
         }
         
         // Store transactions in cache.
-        CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
+        CacheManager.cachedHomeTransactions = self.newTransactions
         
         // Update balance label.
         self.setTotalSats()
@@ -176,7 +176,7 @@ extension HomeViewController {
         
         // Add previously cached transactions to Bittr transactions array.
         self.bittrTransactions = [:]
-        for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() where eachTransaction.isBittr {
+        for eachTransaction in (CacheManager.cachedHomeTransactions ?? [Transaction]()) where eachTransaction.isBittr {
             self.bittrTransactions.updateValue(eachTransaction.toBittrTransaction(), forKey: eachTransaction.id)
         }
         
@@ -294,16 +294,16 @@ extension HomeViewController {
         self.bitcoinSign.alpha = bitcoinSignAlpha
         
         // Store satoshis balance string to cache.
-        CacheManager.updateCachedData(data: amount, key: "satsbalance")
+        CacheManager.cachedSatsBalance = amount
     }
     
     
     func setConversion() {
         
         // Set, cache, and show conversion label.
-        let cachedBtcBalance = (CacheManager.getCachedData(key: "satsbalance") as? String ?? "0").toNumber().inBTC()
+        let cachedBtcBalance = (CacheManager.cachedSatsBalance ?? "0").toNumber().inBTC()
         let conversionLabelText = self.updateConversionLabel(btcValue: cachedBtcBalance)
-        CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
+        CacheManager.cachedConversion = conversionLabelText
         
         // Only reveal the conversion once the balance is known.
         self.conversionLabel.alpha = self.balanceLabel.alpha
@@ -353,8 +353,8 @@ extension HomeViewController {
         BitcoinManager.shared.bittrWallet.valueInCHF = actualChfValue.fixDecimals().toNumber()
         
         // Store updated conversion rates in cache.
-        CacheManager.updateCachedData(data: BitcoinManager.shared.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
-        CacheManager.updateCachedData(data: BitcoinManager.shared.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
+        CacheManager.cachedEurValue = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0.0
+        CacheManager.cachedChfValue = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0.0
         
         Log.info("Did successfully download conversion rates.")
         return true

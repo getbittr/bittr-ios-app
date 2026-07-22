@@ -106,7 +106,7 @@ extension HomeViewController {
             } else {
                 cell.hideLightningStack()
                 
-                let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+                let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? CacheManager.cachedHeight ?? 0
                 
                 if ((thisTransaction.height == nil || (currentHeight - thisTransaction.height! + 1) < 1)) && !(thisTransaction.isSwap && thisTransaction.swapStatus != .pending) {
                     // Unconfirmed transaction.
