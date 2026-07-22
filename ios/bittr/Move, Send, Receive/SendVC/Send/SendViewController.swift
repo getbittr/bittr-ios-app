@@ -217,19 +217,16 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         await MainActor.run {
             self.bdkSpinner.stopAnimating()
             
-            guard let feeEstimates = feeEstimates,
-                  let economyFee = feeEstimates["economyFee"] as? Double,
-                  let hourFee = feeEstimates["hourFee"] as? Double,
-                  let fastestFee = feeEstimates["fastestFee"] as? Double else {
+            guard let feeEstimates = feeEstimates else {
                 Log.info("Could not fetch recommended fees; quoting the spendable balance instead.")
                 let spendable = max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable, 0)
                 self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(spendable)".addSpaces())
                 return
             }
-            
-            self.feePerVbLow = Float(economyFee)
-            self.feePerVbMedium = Float(hourFee)
-            self.feePerVbHigh = Float(fastestFee)
+
+            self.feePerVbLow = Float(feeEstimates.economy)
+            self.feePerVbMedium = Float(feeEstimates.hour)
+            self.feePerVbHigh = Float(feeEstimates.fastest)
             
             self.setSendAllLabel()
         }
