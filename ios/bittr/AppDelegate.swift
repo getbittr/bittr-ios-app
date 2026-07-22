@@ -139,6 +139,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             }
         }
 
+        // Migrate any legacy UserDefaults-stored secrets (mnemonic, PIN) into the
+        // Keychain. Safe to call on every launch; a no-op once migrated. The
+        // getters also self-heal on first read, so this is just eager cleanup.
+        CacheManager.migrateSecretsToKeychainIfNeeded()
+
         UNUserNotificationCenter.current().delegate = self
         
         return true

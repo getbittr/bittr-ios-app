@@ -559,13 +559,20 @@ class SwapManager: NSObject {
         do {
             // Convert NSDictionary to JSON Data
             let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
-            
+
             // Get the documents directory
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
-            
-            // Write the JSON data to file
-            try jsonData.write(to: fileURL)
+
+            // Write the JSON data to file. The swap file DELIBERATELY contains
+            // the Boltz refund key in plain text: it is the user-facing
+            // emergency artifact for Boltz's rescue flow (see the Download
+            // button in SwapStatusVC) and must stay usable without a working
+            // app or Keychain — do not strip or encrypt its contents. The
+            // file-protection option below encrypts it at rest with the
+            // device passcode (readable after first unlock, so background
+            // swap processing and the user's export both keep working).
+            try jsonData.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             
             print("Swap details saved to: \(fileURL.path)")
         } catch {
