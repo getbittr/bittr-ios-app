@@ -38,7 +38,9 @@ extension HomeViewController {
         let allTransactions = BitcoinManager.shared.listPayments()
         
         // Get onchain balance.
-        let satoshisOnchain = Int(node.listBalances().totalOnchainBalanceSats)
+        let balances = node.listBalances()
+        let satoshisOnchain = Int(balances.totalOnchainBalanceSats)
+        let satoshisOnchainSpendable = Int(balances.spendableOnchainBalanceSats)
         
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
@@ -46,6 +48,7 @@ extension HomeViewController {
             BitcoinManager.shared.bittrWallet.lightningChannels = lightningChannels
             BitcoinManager.shared.bittrWallet.allTransactions = allTransactions
             BitcoinManager.shared.bittrWallet.satoshisOnchain = satoshisOnchain
+            BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable = satoshisOnchainSpendable
 
             Task {
                 // Check whether transactions were Bittr purchases.

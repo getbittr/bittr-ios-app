@@ -13,6 +13,7 @@ class BittrWallet: NSObject {
     // Balance
     var satoshisLightning:Int = 0
     var satoshisOnchain:Int = 0
+    var satoshisOnchainSpendable:Int = 0
     
     // Channels
     var lightningChannels = [ChannelDetails]()

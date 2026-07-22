@@ -82,11 +82,6 @@ extension SwapViewController {
                 // Calculate available channel space.
                 let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0) - Int(activeChannel!.counterpartyUnspendablePunishmentReserve)
                 
-                // Calculate available onchain satoshis minus fast fee.
-                // Calculate maximum sendable onchain amount at lowest fee.
-                let maximumSendableOnchainBtc = self.getMaximumSendableSats() ?? BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
-                let maximumSendableOnchainSats = CGFloat(maximumSendableOnchainBtc).inSatoshis()
-                
                 self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                 self.bdkSpinner.startAnimating()
                 
@@ -107,13 +102,14 @@ extension SwapViewController {
                     // Select highest fee.
                     self.highestFeePerVbyte = Float(feeEstimates.fastest)
                     
-                    // Get own onchain address.
-                    let actualAddress:String = BitcoinManager.shared.getAddress(atIndex: 0)
-                    
-                    var sizeinVbytes:UInt64
+                    // Calculate maximum sendable onchain satoshis.
+                    let sendableSatoshis:Int
                     do {
-                        // Calculate transaction size.
-                        sizeinVbytes = try BitcoinManager.shared.getSize(address: actualAddress, amountSats: maximumSendableOnchainSats)
+                        let preview = try BitcoinManager.shared.previewOnchainDrain(
+                            toScript: BitcoinManager.largestCommonOutputScript,
+                            satPerVb: UInt64(max(self.highestFeePerVbyte!, 1))
+                        )
+                        sendableSatoshis = Int(preview.sendableSats)
                     } catch {
                         Log.info("Error: \(error.localizedDescription)")
 
@@ -153,12 +149,6 @@ extension SwapViewController {
                         }
                         return
                     }
-                    
-                    // Calculate highest fee in satoshis.
-                    let satoshisFee:Int = Int(self.highestFeePerVbyte! * Float(sizeinVbytes))
-                    
-                    // Onchain satoshis minus highest fee.
-                    let sendableSatoshis = BitcoinManager.shared.bittrWallet.satoshisOnchain - satoshisFee
                     
                     // Set label.
                     DispatchQueue.main.async {
