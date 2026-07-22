@@ -228,6 +228,14 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 self.didCloseChannel()
                 self.genericSpinner.stopAnimating()
+
+                // Release the single-flight guard: the close is broadcast and a
+                // terminal alert is about to go up, so the only way forward is a
+                // fresh user-initiated attempt. Holding the guard past this point
+                // makes that attempt a silent no-op — and nothing else would ever
+                // clear it for the rest of the session.
+                self.isRemovalInFlight = false
+
                 if self.removingWalletForIncorrectPin {
                     // User is locked out. Show "Try again" button as only available user action.
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
