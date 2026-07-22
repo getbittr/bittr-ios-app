@@ -41,6 +41,42 @@ class Swap: NSObject {
     var boltzInvoice:String?
     var lockupTx:String?
     
+    
+    // MARK: - Fees
+    
+    var definiteFees:Int {
+        if self.swapDirection == .lightningToOnchain {
+            return (self.onchainFees ?? 0)
+        } else {
+            return (self.onchainFees ?? 0) + (self.lightningFees ?? 0) + (self.claimTransactionFee ?? 0)
+        }
+    }
+    
+    var maximumRoutingFee:Int {
+        guard self.swapDirection == .lightningToOnchain else { return 0 }
+        return self.lightningFees ?? 0
+    }
+    
+    var hasVariableFee:Bool {
+        return self.maximumRoutingFee > 0
+    }
+    
+    var minimumTotalFees:Int {
+        return self.definiteFees + (self.hasVariableFee ? 1 : 0)
+    }
+    
+    var maximumTotalFees:Int {
+        return self.definiteFees + self.maximumRoutingFee
+    }
+    
+    func formattedTotalFees() -> String {
+        guard self.hasVariableFee else { return "\(self.maximumTotalFees)".addSpaces() }
+        return "\(self.minimumTotalFees)".addSpaces() + " - " + "\(self.maximumTotalFees)".addSpaces()
+    }
+    
+    
+    // MARK: - Cache conversions
+    
     // Convert to NSDictionary.
     func toDictionary() -> NSDictionary {
         

@@ -330,6 +330,7 @@ class Language: NSObject {
             "nodatareceived": "No data was received",
             "swapamountexceeded": "You can only move up to <amount> satoshis at a time. Please enter an amount within this limit.",
             "swapfunds3": "The expected fee to move <b><amount> satoshis</b> (<convertedamount>) is <b><feesamount> satoshis</b> (<convertedfees>).",
+            "swapfunds3range": "The expected fee to move <b><amount> satoshis</b> (<convertedamount>) is between <b><feesamountmin> and <feesamount> satoshis</b> (<convertedfees>).",
             "onchaintolightningexplanation": "\n\nIt may take around <b>10 minutes</b> to complete this swap. You may close the app in the meantime.\n\nIf the swap fails, some of the paid fees may not be refundable.",
             "wishtoproceed": "Do you wish to proceed?",
             "proceed": "Proceed",

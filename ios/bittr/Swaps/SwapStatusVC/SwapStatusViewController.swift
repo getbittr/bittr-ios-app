@@ -106,9 +106,9 @@ class SwapStatusViewController: UIViewController {
         // Amount
         self.confirmAmountLabel.text = "\(self.thisSwap!.satoshisAmount)".addSpaces() + " sats"
         
-        // Fees
-        let totalFees = (self.thisSwap!.onchainFees ?? 0) + (self.thisSwap!.lightningFees ?? 0) + (self.thisSwap!.claimTransactionFee ?? 0)
-        self.confirmFeesLabel.text = "\(totalFees)".addSpaces() + " sats"
+        // Fees.
+        // Lightning-to-onchain fees contain a variable range for the invoice payment.
+        self.confirmFeesLabel.text = self.thisSwap!.formattedTotalFees() + " sats"
         
         // Status
         self.confirmStatusSpinner.startAnimating()
