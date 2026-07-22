@@ -12,36 +12,55 @@ import Sentry
 extension HomeViewController {
 
     func loadWalletData() {
-        
+
+        // Take the node handle up front — everything below reads through it, and
+        // bailing halfway (after caching a txo ID, before any of the balances)
+        // leaves the cache describing a snapshot we never applied.
+        guard let node = BitcoinManager.shared.ldkNode else { return }
+
         // Get channels, balance, and funding transaction ID.
-        BitcoinManager.shared.bittrWallet.satoshisLightning = 0
-        BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
-        if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
+        var satoshisLightning = 0
+        let lightningChannels = BitcoinManager.shared.listChannels()
+        if let activeChannel = lightningChannels.getActiveChannel() {
             if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
                 CacheManager.storeTxoID(txoID: channelTxoID)
             }
             if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
                 // Channel balance is more than punishment reserve.
-                BitcoinManager.shared.bittrWallet.satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
+                satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
             } else {
                 // Channel balance is less than punishment reserve.
-                BitcoinManager.shared.bittrWallet.satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
+                satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
             }
         }
         
         // Get transactions.
-        BitcoinManager.shared.bittrWallet.allTransactions = BitcoinManager.shared.listPayments()
+        let allTransactions = BitcoinManager.shared.listPayments()
         
         // Get onchain balance.
-        BitcoinManager.shared.bittrWallet.satoshisOnchain = Int(BitcoinManager.shared.ldkNode!.listBalances().totalOnchainBalanceSats)
+        let satoshisOnchain = Int(node.listBalances().totalOnchainBalanceSats)
         
-        Task {
-            // Check whether transactions were Bittr purchases.
-            _ = await self.getBittrTransactionDetails()
+        // Apply the snapshot to the shared wallet on the main thread.
+        let apply = {
+            BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
+            BitcoinManager.shared.bittrWallet.lightningChannels = lightningChannels
+            BitcoinManager.shared.bittrWallet.allTransactions = allTransactions
+            BitcoinManager.shared.bittrWallet.satoshisOnchain = satoshisOnchain
 
-            DispatchQueue.main.async {
-                self.updateTransactionHistory()
+            Task {
+                // Check whether transactions were Bittr purchases.
+                _ = await self.getBittrTransactionDetails()
+
+                DispatchQueue.main.async {
+                    self.updateTransactionHistory()
+                }
             }
+        }
+        
+        if Thread.isMainThread {
+            apply()
+        } else {
+            DispatchQueue.main.async(execute: apply)
         }
     }
     

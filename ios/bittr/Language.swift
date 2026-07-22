@@ -248,6 +248,7 @@ class Language: NSObject {
             "pinwarning2": "You've entered the wrong PIN several times. After 10 failed attempts this wallet will be erased from the device, and any Bitcoin or Lightning funds it holds may be permanently lost.\n\nIf you still have your 12-word recovery phrase, tap \"Forgot PIN\" to reset your PIN instead — this keeps your wallet and your funds.\n\nNever delete the app from your phone, as this can also lead to loss of funds.",
             "stillclosing": "Your Lightning connection is still being closed. For your safety, the wallet can only be reset once the connection is fully closed and the funds have returned on-chain — this can take a while.\n\nPlease reopen the app later to finish the reset. Do not delete the app from your phone, as this will lead to loss of funds.",
             "closeretrylater": "Your Lightning connection could not be closed right now — the bittr node may be temporarily offline. Your wallet has not been reset.\n\nPlease reopen the app to try again later. Do not delete the app from your phone, as this will lead to loss of funds.",
+            "removalfailed": "Something went wrong removing your wallet, so it hasn't been removed — your wallet and funds are safe.\n\nPlease reopen the app to try again. Do not delete the app from your phone.",
             "pinlength": "PIN Length",
             "pincanbeupto8": "PIN can be up to 8 digits",
             "pinrequired": "PIN Required",

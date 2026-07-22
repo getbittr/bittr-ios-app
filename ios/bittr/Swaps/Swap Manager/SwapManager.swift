@@ -218,8 +218,7 @@ class SwapManager: NSObject {
         // Check what the onchain fees will be for sending this onchain payment.
         Task {
             if swapVC.highestFeePerVbyte == nil {
-                let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-                if feeEstimates == nil {
+                guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                     Log.info("Could not fetch fee estimates.")
                     DispatchQueue.main.async {
                         swapVC.nextLabel.alpha = 1
@@ -229,9 +228,9 @@ class SwapManager: NSObject {
                     }
                     return
                 }
-                
+
                 // Select highest fee.
-                swapVC.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
+                swapVC.highestFeePerVbyte = Float(feeEstimates.fastest)
             }
             
             var size:UInt64

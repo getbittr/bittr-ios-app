@@ -17,6 +17,11 @@ class BitcoinManager {
     public var ldkNode: LDKNode.Node?
     private var network: LDKNode.Network
     
+    // LDK Node single-flight startup guard.
+    private let nodeStartLock = NSLock()
+    private var isStartingNode = false
+    private var nodeStartCompletions = [(Bool) -> Void]()
+    
     // BDK
     var bdkWallet: BitcoinDevKit.Wallet?
     var electrumClient: BitcoinDevKit.ElectrumClient?
@@ -49,6 +54,61 @@ class BitcoinManager {
     
     deinit {
         self.cancelEventListener()
+    }
+    
+    // MARK: Manage LDKNode starting.
+    enum NodeStartDecision {
+        case proceed         // LDKNode hasn't been started yet.
+        case startInFlight   // LDKNode is already being started.
+        case alreadyRunning  // LDKNode is already running.
+    }
+    
+    /// Claims the right to start the node.
+    ///
+    /// - Parameter onInFlightStart: called on the main thread with the outcome of
+    ///   the start that is *already* running, but only when `.startInFlight` is
+    ///   returned. Callers that can't just walk away from a start they didn't win
+    ///   (they've raised a spinner, or they're a retry after a hang) must pass this
+    ///   — otherwise their branch is a silent dead end for as long as that start runs.
+    func claimNodeStart(onInFlightStart: ((Bool) -> Void)? = nil) -> NodeStartDecision {
+        nodeStartLock.lock()
+        defer { nodeStartLock.unlock() }
+
+        if isStartingNode {
+            if let onInFlightStart {
+                nodeStartCompletions.append(onInFlightStart)
+            }
+            return .startInFlight
+        }
+        if ldkNode != nil, status()?.isRunning == true {
+            return .alreadyRunning
+        }
+        isStartingNode = true
+        return .proceed
+    }
+
+    /// Runs the node start that `claimNodeStart()` just granted, releasing the
+    /// single-flight flag however `start` exits. Owning both sides of the guard here
+    /// is what makes it unleakable: a caller can't return early past the release, and
+    /// nothing outside this method is in a position to bypass it.
+    func runClaimedNodeStart(_ start: () -> Bool) -> Bool {
+        var didStart = false
+        defer { endNodeStart(didStart: didStart) }
+        didStart = start()
+        return didStart
+    }
+
+    private func endNodeStart(didStart: Bool) {
+        nodeStartLock.lock()
+        isStartingNode = false
+        let completions = nodeStartCompletions
+        nodeStartCompletions.removeAll()
+        nodeStartLock.unlock()
+
+        guard !completions.isEmpty else { return }
+        DispatchQueue.main.async {
+            completions.forEach { $0(didStart) }
+        }
     }
     
     func didStartLDK() -> Bool {
@@ -340,19 +400,13 @@ class BitcoinManager {
     }
     
     func listPayments() -> [PaymentDetails] {
-        guard self.ldkNode != nil else {
-            return []
-        }
-        let payments = self.ldkNode!.listPayments()
-        return payments
+        guard let node = self.ldkNode else { return [] }
+        return node.listPayments()
     }
-    
+
     func listChannels() -> [LDKNode.ChannelDetails] {
-        guard self.ldkNode != nil else {
-            return []
-        }
-        let channels = self.ldkNode!.listChannels()
-        return channels
+        guard let node = self.ldkNode else { return [] }
+        return node.listChannels()
     }
 
     /// Whether it is safe to wipe the wallet from the device.
@@ -400,12 +454,16 @@ class BitcoinManager {
         
         DispatchQueue.global(qos: .background).async {
             Log.info("Will light sync wallet.")
+            guard let node = self.ldkNode else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
             
             // Light sync BDK.
             _ = self.lightSyncBdkWallet()
             
             // Check if any changes have been found.
-            if self.bittrWallet.satoshisOnchain != Int(self.ldkNode!.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(node.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {
@@ -424,27 +482,25 @@ class BitcoinManager {
         }
     }
     
-    func getFeeEstimates() async -> NSDictionary? {
-        
-        var receivedDictionary:NSDictionary
+    func getFeeEstimates() async -> FeeEstimates? {
+
+        let feeDictionary: NSDictionary
         do {
-            receivedDictionary = try await withCheckedThrowingContinuation { continuation in
+            feeDictionary = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<NSDictionary, Error>) in
                 Task {
                     await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
                         switch result {
                         case .success(let receivedDictionary):
-                            let mutableDictionary = receivedDictionary.mutableCopy() as! NSMutableDictionary
-                            for (key, value) in mutableDictionary {
-                                if (value as? Double) == nil || (key as? String) == nil { continuation.resume(returning: receivedDictionary) }
-                                if (value as! Double) < 1 {
-                                    // Minimum fee is 1 sat/vByte.
-                                    mutableDictionary.setValue(Double(1), forKey: (key as! String))
-                                } else {
-                                    // LDKNode requires a rounded number for sat/vByte.
-                                    mutableDictionary.setValue((value as! Double).rounded(), forKey: (key as! String))
-                                }
+                            // Build a fresh dictionary of validated Double fee rates: skip any
+                            // non-numeric entries instead of force-casting them, and never mutate
+                            // the dictionary being enumerated.
+                            let normalized = NSMutableDictionary()
+                            for (key, value) in receivedDictionary {
+                                guard let feeKey = key as? String, let feeRate = value as? Double else { continue }
+                                // Minimum fee is 1 sat/vByte; LDKNode requires a rounded number.
+                                normalized[feeKey] = feeRate < 1 ? Double(1) : feeRate.rounded()
                             }
-                            continuation.resume(returning: mutableDictionary)
+                            continuation.resume(returning: normalized)
                         case .failure(let error):
                             continuation.resume(throwing: error)
                         }
@@ -459,12 +515,23 @@ class BitcoinManager {
             }
             return nil
         }
-        
-        return receivedDictionary
+
+        // A response missing any of the three rates is unusable — treat it as a
+        // failed fetch rather than handing back a half-filled struct that every
+        // call site would have to re-check.
+        guard let fastest = feeDictionary["fastestFee"] as? Double,
+              let hour = feeDictionary["hourFee"] as? Double,
+              let economy = feeDictionary["economyFee"] as? Double else {
+            Log.info("Fee estimate response was missing one or more expected rates.")
+            return nil
+        }
+
+        return FeeEstimates(fastest: fastest, hour: hour, economy: economy)
     }
     
     func syncWallets() throws {
-        try self.ldkNode!.syncWallets()
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        try node.syncWallets()
     }
     
     func getInvoice(amountMsat: UInt64, description:String, expirySecs:UInt32) async -> Bolt11Invoice? {
@@ -499,13 +566,13 @@ class BitcoinManager {
     }
     
     func sendPayment(invoice: Bolt11Invoice) throws -> PaymentHash {
-        let paymentHash = try self.ldkNode!.bolt11Payment().send(invoice: invoice, routeParameters: nil)
-        return paymentHash
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        return try node.bolt11Payment().send(invoice: invoice, routeParameters: nil)
     }
-    
+
     func sendZeroAmountPayment(invoice: Bolt11Invoice, amount:Int) throws -> PaymentHash {
-        let paymentHash = try self.ldkNode!.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), routeParameters: nil)
-        return paymentHash
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        return try node.bolt11Payment().sendUsingAmount(invoice: invoice, amountMsat: UInt64(amount*1000), routeParameters: nil)
     }
     
     func sendBolt12Payment(offer:LDKNode.Offer, amount:Int) throws -> PaymentId? {
@@ -515,21 +582,18 @@ class BitcoinManager {
             maxTotalCltvExpiryDelta: 1008,
             maxPathCount: 10,
             maxChannelSaturationPowerOfHalf: 2)
-        let paymentId = try self.ldkNode!.bolt12Payment().sendUsingAmount(offer: offer, amountMsat: UInt64(amount*1000), quantity: nil, payerNote: nil, routeParameters: routeConfig)
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        let paymentId = try node.bolt12Payment().sendUsingAmount(offer: offer, amountMsat: UInt64(amount*1000), quantity: nil, payerNote: nil, routeParameters: routeConfig)
         return paymentId
     }
     
     func getNewOnchainAddress() -> String? {
-        
-        if self.ldkNode == nil {
+        guard let node = self.ldkNode else { return nil }
+        do {
+            let newAddress = try node.onchainPayment().newAddress()
+            return newAddress.description
+        } catch {
             return nil
-        } else {
-            do {
-                let newAddress = try self.ldkNode!.onchainPayment().newAddress()
-                return newAddress.description
-            } catch {
-                return nil
-            }
         }
     }
     
@@ -539,18 +603,16 @@ class BitcoinManager {
         let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: feeRateSatVb)
         
         // Broadcast transaction.
-        let onchainID = try self.ldkNode!.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        let onchainID = try node.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
         
         // Return transaction ID.
         return onchainID.description
     }
     
     func getPaymentDetails(paymentHash: PaymentHash) -> PaymentDetails? {
-        if let invoiceDetails = self.ldkNode!.payment(paymentId: paymentHash) {
-            return invoiceDetails
-        } else {
-            return nil
-        }
+        guard let node = self.ldkNode else { return nil }
+        return node.payment(paymentId: paymentHash)
     }
     
     func getEsploraClient() -> EsploraClient? {
@@ -672,6 +734,14 @@ class BitcoinManager {
         return "m/84'/\(coinType)'/\(account)'/\(change)/\(addressIndex)"
     }
     
+}
+
+/// Recommended on-chain fee rates in sat/vByte, already normalized by
+/// `getFeeEstimates()`: each rate is at least 1 and rounded, as LDKNode requires.
+struct FeeEstimates {
+    let fastest: Double
+    let hour: Double
+    let economy: Double
 }
 
 enum WalletError: Error {

@@ -21,6 +21,12 @@ class CoreViewController: UIViewController {
     // Pin reset
     var resettingPin = false
     var removingWalletForIncorrectPin = false
+    var isRemovalInFlight = false
+
+    // True while continueStartWallet's post-start work is running. Several
+    // startWallet callers can be attached to a single node start, and they all
+    // get told when it finishes — but that work is global, not per-caller.
+    var isContinuingStartWallet = false
     
     // Client details (bittrWallet now lives on BitcoinManager.shared)
     var walletSync:BackgroundSync?
