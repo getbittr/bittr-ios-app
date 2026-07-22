@@ -5,7 +5,7 @@
 //  Created by Tom Melters on 7/21/26.
 //
 
-import UIKit
+import Foundation
 
 extension [Transaction] {
     
@@ -22,19 +22,18 @@ extension [Transaction] {
         
         for (swapID, pairedTransactions) in swapGroups {
             if pairedTransactions.count == 2 {
-                handleCompletedSwap(swapID: swapID, first: pairedTransactions[0], second: pairedTransactions[1], in: &currentTransactions)
+                Self.handleCompletedSwap(swapID: swapID, first: pairedTransactions[0], second: pairedTransactions[1], in: &currentTransactions)
             } else if pairedTransactions.count == 1, !pairedTransactions[0].isSwap {
-                handlePendingSwap(swapID: swapID, leg: pairedTransactions[0], in: &currentTransactions)
+                Self.handlePendingSwap(swapID: swapID, leg: pairedTransactions[0], in: &currentTransactions)
             }
         }
         
         return currentTransactions
     }
     
-    private func handleCompletedSwap(swapID: String, first: Transaction, second: Transaction, in currentTransactions: inout [Transaction]) {
-        Log.info("Found completed swap.")
-        print("Swap ID: \(swapID)")
-        
+    private static func handleCompletedSwap(swapID: String, first: Transaction, second: Transaction, in currentTransactions: inout [Transaction]) {
+        Log.info("Found completed swap. Swap ID: \(swapID)")
+
         if swapID.contains(first.id), first.swapStatus == .succeeded {
             // `first` is already the completed swap transaction; drop the other leg.
             currentTransactions.removeAll { $0.id == second.id }
@@ -48,7 +47,7 @@ extension [Transaction] {
             return
         }
         
-        let swapTransaction = makeCompletedSwapTransaction(swapID: swapID, first: first, second: second)
+        let swapTransaction = Self.makeCompletedSwapTransaction(swapID: swapID, first: first, second: second)
         
         // Replace the two individual legs with the combined swap transaction.
         let legIDs = [first.id, second.id]
@@ -57,7 +56,7 @@ extension [Transaction] {
         CacheManager.storeLightningTransaction(swapTransaction)
     }
     
-    private func makeCompletedSwapTransaction(swapID: String, first: Transaction, second: Transaction) -> Transaction {
+    private static func makeCompletedSwapTransaction(swapID: String, first: Transaction, second: Transaction) -> Transaction {
         
         let swapTransaction = Transaction()
         swapTransaction.id = swapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
@@ -67,6 +66,12 @@ extension [Transaction] {
         
         // Amount and fees.
         swapTransaction.sent = first.received + second.received - first.sent - second.sent
+
+        // Per-leg fees live on Transaction.fee (onchain network fee for the
+        // onchain leg, lightning routing fee for an outbound lightning leg).
+        // The home row renders cost as (received - sent - fee), so without this
+        // the user-paid fee on either side gets dropped from the displayed swap
+        // cost. Inbound legs have fee = 0, so summing both is safe.
         swapTransaction.fee = first.fee + second.fee
         
         // Direction.
@@ -118,10 +123,9 @@ extension [Transaction] {
         return swapTransaction
     }
     
-    private func handlePendingSwap(swapID: String, leg: Transaction, in currentTransactions: inout [Transaction]) {
-        Log.info("Found pending swap.")
-        print("Swap ID: \(swapID)")
-        
+    private static func handlePendingSwap(swapID: String, leg: Transaction, in currentTransactions: inout [Transaction]) {
+        Log.info("Found pending swap. Swap ID: \(swapID)")
+
         if let suggestedSwapStatus = CacheManager.getSuggestedSwapStatus(dateID: swapID) {
             leg.isSuggestedSwap = true
             leg.swapStatus = suggestedSwapStatus
