@@ -41,6 +41,57 @@ class Swap: NSObject {
     var boltzInvoice:String?
     var lockupTx:String?
     
+    
+    // MARK: - Fees
+    
+    var definiteFees:Int {
+        if self.swapDirection == .lightningToOnchain {
+            // The claim fee is deliberately absent: lightningToOnchain adds it to
+            // the amount requested from Boltz, so onchainFees — the invoice spread
+            // — already contains it. Adding it here would count it twice.
+            return (self.onchainFees ?? 0)
+        } else {
+            // claimTransactionFee is always nil on this side: in an onchain-to-
+            // lightning swap Boltz claims the locked funds, so the user never
+            // broadcasts a claim transaction. The term is kept for symmetry.
+            return (self.onchainFees ?? 0) + (self.lightningFees ?? 0) + (self.claimTransactionFee ?? 0)
+        }
+    }
+    
+    var maximumRoutingFee:Int {
+        guard self.swapDirection == .lightningToOnchain else { return 0 }
+        return self.lightningFees ?? 0
+    }
+    
+    /// A route has to be paid for, so the total isn't fully known up front.
+    private var hasRoutingFee:Bool {
+        return self.maximumRoutingFee > 0
+    }
+    
+    var minimumTotalFees:Int {
+        // Assume a route costs at least 1 sat whenever one is needed.
+        return self.definiteFees + (self.hasRoutingFee ? 1 : 0)
+    }
+    
+    var maximumTotalFees:Int {
+        return self.definiteFees + self.maximumRoutingFee
+    }
+    
+    /// True only when the two ends of the range actually differ. A maximum routing
+    /// fee of exactly 1 sat leaves minimum equal to maximum, and quoting "between
+    /// X and X" reads as a bug rather than a range.
+    var hasVariableFee:Bool {
+        return self.minimumTotalFees < self.maximumTotalFees
+    }
+    
+    func formattedTotalFees() -> String {
+        guard self.hasVariableFee else { return "\(self.maximumTotalFees)".addSpaces() }
+        return "\(self.minimumTotalFees)".addSpaces() + " - " + "\(self.maximumTotalFees)".addSpaces()
+    }
+    
+    
+    // MARK: - Cache conversions
+    
     // Convert to NSDictionary.
     func toDictionary() -> NSDictionary {
         
