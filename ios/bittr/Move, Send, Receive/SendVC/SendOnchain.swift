@@ -288,7 +288,7 @@ extension ConfirmSendViewController {
             if success {
                 for eachTransaction in BitcoinManager.shared.bittrWallet.allTransactions {
                     if eachTransaction.kind.transactionID == self.newTxId {
-                        self.sendVC!.completedTransaction = eachTransaction.createTransaction(coreVC: self.coreVC!, bittrTransactions: nil)
+                        self.sendVC!.completedTransaction = eachTransaction.createTransaction(bittrTransactions: nil)
                         self.sendVC!.performSegue(withIdentifier: "SendToTransaction", sender: self)
                     }
                 }

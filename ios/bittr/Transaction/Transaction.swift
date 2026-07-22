@@ -69,7 +69,7 @@ enum SwapStatus {
 
 extension PaymentDetails {
     
-    func createTransaction(coreVC:CoreViewController?, bittrTransactions:[String:BittrTransaction]?) -> Transaction {
+    func createTransaction(bittrTransactions:[String:BittrTransaction]?) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()
@@ -152,7 +152,7 @@ extension PaymentDetails {
 
 extension BittrTransaction {
     
-    func createTransaction(coreVC:CoreViewController?, isFundingTransaction:Bool) -> Transaction {
+    func createTransaction(isFundingTransaction:Bool) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()

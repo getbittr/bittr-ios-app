@@ -87,42 +87,32 @@ extension String {
     
     func extractBitcoinAddress() -> String? {
         let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
-        for eachComponent in components {
-            if eachComponent.isValidBitcoinAddress() {
-                return eachComponent
-            }
+        for eachComponent in components where eachComponent.isValidBitcoinAddress() {
+            return eachComponent
         }
         return nil
     }
     
     func extractLightningInvoice() -> String? {
         let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
-        for eachComponent in components {
-            if eachComponent.isValidInvoice() {
-                return eachComponent
-            }
+        for eachComponent in components where eachComponent.isValidInvoice() {
+            return eachComponent
         }
         return nil
     }
     
     func extractLNURL() -> String? {
         let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
-        for eachComponent in components {
-            if eachComponent.isValidEmail() {
-                return eachComponent
-            } else if eachComponent.hasPrefix("lnurl") {
-                return eachComponent
-            }
+        for eachComponent in components where (eachComponent.isValidEmail() || eachComponent.hasPrefix("lnurl")) {
+            return eachComponent
         }
         return nil
     }
     
     func extractAmount() -> Int? {
         let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?"))
-        for eachComponent in components {
-            if eachComponent.contains("amount=") {
-                return eachComponent.replacingOccurrences(of: "amount=", with: "").toNumber().inSatoshis()
-            }
+        for eachComponent in components where eachComponent.contains("amount=") {
+            return eachComponent.replacingOccurrences(of: "amount=", with: "").toNumber().inSatoshis()
         }
         return nil
     }
@@ -141,19 +131,16 @@ extension String {
     }
     
     func isValidInvoice() -> Bool {
-        if self.hasPrefix("ln") {
-            let bolt11Invoice = Bolt11Invoice.fromStr(s: self)
-            if bolt11Invoice.isOk(), bolt11Invoice.getValue() != nil {
+        guard self.hasPrefix("ln") else { return false }
+        let bolt11Invoice = Bolt11Invoice.fromStr(s: self)
+        if bolt11Invoice.isOk(), bolt11Invoice.getValue() != nil {
+            return true
+        } else {
+            if let _ = self.bolt12Offer() {
                 return true
             } else {
-                if let _ = self.bolt12Offer() {
-                    return true
-                } else {
-                    return false
-                }
+                return false
             }
-        } else {
-            return false
         }
     }
 }

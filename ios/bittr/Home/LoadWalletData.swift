@@ -89,10 +89,10 @@ extension HomeViewController {
         // Create new transaction entities.
         for eachPayment in BitcoinManager.shared.bittrWallet.allTransactions {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (Int((eachPayment.amountMsat ?? 0)/1000) > 0 || Int((eachPayment.feePaidMsat ?? 0)/1000) > 0)) || (eachPayment.status == .pending && eachPayment.kind.isOnchain && eachPayment.direction == .inbound)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.hasSucceeded() || eachPayment.isPendingOutbound() || eachPayment.isUnconfirmedOnchainInbound()) {
                 
                 // Create transaction.
-                let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                let thisTransaction = eachPayment.createTransaction(bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 
                 // Cache succeeded Lightning payments.
@@ -102,16 +102,11 @@ extension HomeViewController {
             }
             
             // Make sure there are no duplicate transactions.
-            if eachPayment.kind.transactionID != nil {
-                if self.cachedLightningIds.contains(eachPayment.kind.transactionID!), self.cachedLightningIds.contains(eachPayment.id) {
-                    for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
-                        if eachTransaction.id == eachPayment.id {
-                            self.newTransactions.remove(at: index)
-                        }
-                    }
+            if eachPayment.kind.transactionID != nil, self.cachedLightningIds.contains(eachPayment.kind.transactionID!), self.cachedLightningIds.contains(eachPayment.id) {
+                for (index, eachTransaction) in self.newTransactions.enumerated().reversed() where eachTransaction.id == eachPayment.id {
+                    self.newTransactions.remove(at: index)
                 }
             }
-            
         }
         
         // Check for matching swap transactions.
@@ -216,7 +211,7 @@ extension HomeViewController {
             
             if let cachedFundingTxID = CacheManager.getTxoID(), eachTransaction.txId == cachedFundingTxID {
                 // This is a channel funding transaction.
-                let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
+                let thisTransaction = eachTransaction.createTransaction(isFundingTransaction: true)
                 self.newTransactions += [thisTransaction]
                 CacheManager.storeLightningTransaction(thisTransaction)
             }
@@ -434,19 +429,9 @@ extension HomeViewController {
             let transactionValue = eachTransaction.received.inBTC()
             var correctConversion = bitcoinValue.currentValue
 
-            let transactionCurrency:String = {
-                if eachTransaction.currency == "EUR" {
-                    return "€"
-                } else {
-                    return "CHF"
-                }
-            }()
+            let transactionCurrency = eachTransaction.currency == "EUR" ? "€" : "CHF"
             if transactionCurrency != bitcoinValue.chosenCurrency {
-                if transactionCurrency == "€" {
-                    correctConversion = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0
-                } else {
-                    correctConversion = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0
-                }
+                correctConversion = transactionCurrency == "€" ? (BitcoinManager.shared.bittrWallet.valueInEUR ?? 0) : (BitcoinManager.shared.bittrWallet.valueInCHF ?? 0)
             }
 
             var transactionProfit = (transactionValue*correctConversion) - eachTransaction.fiatNetAmount
@@ -468,11 +453,7 @@ extension HomeViewController {
     
     func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
         
-        if accumulatedInvestments != 0 {
-            self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
-        } else {
-            self.balanceCardGainLabel.text = "0 %"
-        }
+        self.balanceCardGainLabel.text = (accumulatedInvestments == 0) ? "0 %" : "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
 
         // Only reveal the profit once the balance is known.
         self.balanceCardGainLabel.alpha = self.balanceLabel.alpha
@@ -531,14 +512,10 @@ extension HomeViewController {
             }
         } else {
             var userHasBittrAccount = false
-            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities {
-                if eachIbanEntity.yourUniqueCode != "" {
-                    userHasBittrAccount = true
-                }
+            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
+                userHasBittrAccount = true
             }
-            // Skip the payout check when a wipe / PIN reset is in progress: the
-            // node is about to be torn down, so signing a message against it
-            // would race the teardown (force-unwrap of a nil ldkNode).
+            // Skip payout check when a wipe / PIN reset is in progress.
             if userHasBittrAccount, !self.coreVC!.resettingPin, !self.coreVC!.removingWalletForIncorrectPin {
                 Log.info("Check for pending payout.")
                 self.coreVC!.checkPendingPayout()
@@ -554,50 +531,4 @@ extension HomeViewController {
         }
     }
 
-}
-
-extension UILabel{
-    func adjustedFont()->UIFont {
-        guard let txt = text else {
-            return self.font
-        }
-        let attributes: [NSAttributedString.Key: Any] = [.font: self.font]
-        let attributedString = NSAttributedString(string: txt, attributes: attributes)
-        let drawingContext = NSStringDrawingContext()
-        drawingContext.minimumScaleFactor = self.minimumScaleFactor
-        attributedString.boundingRect(with: bounds.size,
-                                      options: [.usesLineFragmentOrigin,.usesFontLeading],
-                                      context: drawingContext)
-
-        let fontSize = font.pointSize * drawingContext.actualScaleFactor
-        return font.withSize(CGFloat(floor(Double(fontSize))))
-    }
-}
-
-extension PaymentKind {
-    var transactionID: String? {
-        switch self {
-        case .onchain(let txID, _):
-            return txID
-        case .bolt11(_, let preimage, _):
-            return preimage
-        case .bolt11Jit(_, let preimage, _, _, _):
-            return preimage
-        case .spontaneous(_, let preimage):
-            return preimage
-        case .bolt12Offer(hash: _, preimage: let preimage, secret: _, offerId: _, payerNote: _, quantity: _):
-            return preimage
-        case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
-            return preimage
-        }
-    }
-    
-    var isOnchain: Bool {
-        switch self {
-        case .onchain(_, _):
-            return true
-        default:
-            return false
-        }
-    }
 }

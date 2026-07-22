@@ -231,15 +231,11 @@ extension String {
     }
     
     func bolt12Offer() -> LDKNode.Offer? {
-        if self.lowercased().hasPrefix("lno") {
-            do {
-                let offer = try LDKNode.Offer.fromStr(offerStr: self)
-                return offer
-            } catch {
-                Log.info("Could not generate BOLT12 offer.")
-                return nil
-            }
-        } else {
+        guard self.lowercased().hasPrefix("lno") else { return nil }
+        do {
+            let offer = try LDKNode.Offer.fromStr(offerStr: self)
+            return offer
+        } catch {
             return nil
         }
     }
