@@ -12,7 +12,12 @@ import Sentry
 extension HomeViewController {
 
     func loadWalletData() {
-        
+
+        // Take the node handle up front — everything below reads through it, and
+        // bailing halfway (after caching a txo ID, before any of the balances)
+        // leaves the cache describing a snapshot we never applied.
+        guard let node = BitcoinManager.shared.ldkNode else { return }
+
         // Get channels, balance, and funding transaction ID.
         var satoshisLightning = 0
         let lightningChannels = BitcoinManager.shared.listChannels()
@@ -33,7 +38,6 @@ extension HomeViewController {
         let allTransactions = BitcoinManager.shared.listPayments()
         
         // Get onchain balance.
-        guard let node = BitcoinManager.shared.ldkNode else { return }
         let satoshisOnchain = Int(node.listBalances().totalOnchainBalanceSats)
         
         // Apply the snapshot to the shared wallet on the main thread.
