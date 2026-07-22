@@ -20,6 +20,7 @@ class BitcoinManager {
     // LDK Node single-flight startup guard.
     private let nodeStartLock = NSLock()
     private var isStartingNode = false
+    private var nodeStartCompletions = [(Bool) -> Void]()
     
     // BDK
     var bdkWallet: BitcoinDevKit.Wallet?
@@ -62,11 +63,21 @@ class BitcoinManager {
         case alreadyRunning  // LDKNode is already running.
     }
     
-    func claimNodeStart() -> NodeStartDecision {
+    /// Claims the right to start the node.
+    ///
+    /// - Parameter onInFlightStart: called on the main thread with the outcome of
+    ///   the start that is *already* running, but only when `.startInFlight` is
+    ///   returned. Callers that can't just walk away from a start they didn't win
+    ///   (they've raised a spinner, or they're a retry after a hang) must pass this
+    ///   — otherwise their branch is a silent dead end for as long as that start runs.
+    func claimNodeStart(onInFlightStart: ((Bool) -> Void)? = nil) -> NodeStartDecision {
         nodeStartLock.lock()
         defer { nodeStartLock.unlock() }
-        
+
         if isStartingNode {
+            if let onInFlightStart {
+                nodeStartCompletions.append(onInFlightStart)
+            }
             return .startInFlight
         }
         if ldkNode != nil, status()?.isRunning == true {
@@ -75,11 +86,29 @@ class BitcoinManager {
         isStartingNode = true
         return .proceed
     }
-    
-    func endNodeStart() {
+
+    /// Runs the node start that `claimNodeStart()` just granted, releasing the
+    /// single-flight flag however `start` exits. Owning both sides of the guard here
+    /// is what makes it unleakable: a caller can't return early past the release, and
+    /// nothing outside this method is in a position to bypass it.
+    func runClaimedNodeStart(_ start: () -> Bool) -> Bool {
+        var didStart = false
+        defer { endNodeStart(didStart: didStart) }
+        didStart = start()
+        return didStart
+    }
+
+    private func endNodeStart(didStart: Bool) {
         nodeStartLock.lock()
         isStartingNode = false
+        let completions = nodeStartCompletions
+        nodeStartCompletions.removeAll()
         nodeStartLock.unlock()
+
+        guard !completions.isEmpty else { return }
+        DispatchQueue.main.async {
+            completions.forEach { $0(didStart) }
+        }
     }
     
     func didStartLDK() -> Bool {

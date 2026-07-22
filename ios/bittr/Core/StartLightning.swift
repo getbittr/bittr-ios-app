@@ -12,54 +12,90 @@ import Sentry
 extension CoreViewController {
     
     func startWallet() {
-        
-        switch BitcoinManager.shared.claimNodeStart() {
-        case .alreadyRunning:
-            // Node is already running.
-            self.continueStartWallet()
-            
-        case .startInFlight:
-            // Node is already being started.
-            Log.info("Node start already in flight — skipping duplicate startWallet.")
-            
-        case .proceed:
-            // Node has not yet been started.
-            self.startSync(.ldk)
 
-            // Watchdog: building/starting the node can hang on network and
-            // didStartLDK has no timeout of its own, so without a deadline a
-            // hang means spinner-forever. Surface the retry alert after 15s
-            // (the same deadline the previous async implementation raced
-            // against). Both flags are only touched on main, so no races.
-            var ldkStartCompleted = false
-            var ldkWatchdogFired = false
+        // Both flags are only touched on main, so no races.
+        var ldkStartCompleted = false
+        var ldkWatchdogFired = false
+
+        let showRetryAlert = { [weak self] in
+            guard let self else { return }
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+        }
+
+        // Watchdog: building/starting the node can hang on network and
+        // didStartLDK has no timeout of its own, so without a deadline a hang
+        // means spinner-forever. Surface the retry alert after 15s (the same
+        // deadline the previous async implementation raced against).
+        let armWatchdog = {
             DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
                 guard !ldkStartCompleted else { return }
                 ldkWatchdogFired = true
                 Log.info("Starting LDK Node takes too long.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+                showRetryAlert()
             }
+        }
+
+        // Called on main with the outcome of the start this call is riding on —
+        // whether we own it or attached to one already in flight.
+        let finish: (Bool) -> Void = { [weak self] didStartLDKNode in
+            ldkStartCompleted = true
+            // The watchdog already surfaced the retry alert; Try again re-enters
+            // startWallet, which either sees the now-running node or attaches to
+            // the start still in flight.
+            guard !ldkWatchdogFired else { return }
+            guard didStartLDKNode else {
+                showRetryAlert()
+                return
+            }
+            self?.continueStartWallet()
+        }
+
+        switch BitcoinManager.shared.claimNodeStart(onInFlightStart: finish) {
+        case .alreadyRunning:
+            // Node is already running.
+            self.continueStartWallet()
+
+        case .startInFlight:
+            // A start is already running and `finish` is now attached to it, so
+            // this call still gets an outcome instead of returning into nothing.
+            // Arm a watchdog here too: this branch is exactly where the retry
+            // alert's Try again lands when a start hangs, and without a fresh
+            // deadline that tap would dismiss the alert with nothing left to
+            // re-show it — leaving the user behind a full-screen cover with no
+            // action available, on the lockout path especially.
+            Log.info("Node start already in flight — attaching to it.")
+            self.startSync(.ldk)
+            armWatchdog()
+
+        case .proceed:
+            // Node has not yet been started.
+            self.startSync(.ldk)
+            armWatchdog()
 
             DispatchQueue.global(qos: .userInitiated).async {
-                let didStartLDKNode = self.startLightning()
-                BitcoinManager.shared.endNodeStart()
+                let didStartLDKNode = BitcoinManager.shared.runClaimedNodeStart {
+                    self.startLightning()
+                }
                 DispatchQueue.main.async {
-                    ldkStartCompleted = true
-                    // The watchdog already surfaced the retry alert; Try again
-                    // re-enters startWallet, which sees the now-running node
-                    // and continues immediately.
-                    guard !ldkWatchdogFired else { return }
-                    guard didStartLDKNode else {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
-                        return
-                    }
-                    self.continueStartWallet()
+                    finish(didStartLDKNode)
                 }
             }
         }
     }
     
     func continueStartWallet() {
+
+        // One node start can have several startWallet callers riding on it, and
+        // each of them is told when it finishes. The work below (syncWallets,
+        // loadWalletData, startBDK) is global rather than per-caller, so let the
+        // first one through and drop the rest until it has finished. Only ever
+        // touched on main.
+        guard !self.isContinuingStartWallet else {
+            Log.info("continueStartWallet already running — skipping duplicate.")
+            return
+        }
+        self.isContinuingStartWallet = true
+
         self.completeSync(.ldk)
         
         // Start final calculations.
@@ -74,8 +110,12 @@ extension CoreViewController {
         }
         
         DispatchQueue.global(qos: .userInitiated).async {
+            // Release the guard however this block exits, so a later restart
+            // (after a reset, or a genuinely new start) isn't locked out by it.
+            defer { DispatchQueue.main.async { self.isContinuingStartWallet = false } }
+
             guard BitcoinManager.shared.ldkNode != nil else { return }
-            
+
             // Sync wallet.
             do {
                 try BitcoinManager.shared.syncWallets()
