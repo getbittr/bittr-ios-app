@@ -482,7 +482,7 @@ class BitcoinManager {
         }
     }
     
-    func getFeeEstimates() async -> NSDictionary? {
+    func getFeeEstimates() async -> FeeEstimates? {
 
         let feeDictionary: NSDictionary
         do {
@@ -516,7 +516,17 @@ class BitcoinManager {
             return nil
         }
 
-        return feeDictionary
+        // A response missing any of the three rates is unusable — treat it as a
+        // failed fetch rather than handing back a half-filled struct that every
+        // call site would have to re-check.
+        guard let fastest = feeDictionary["fastestFee"] as? Double,
+              let hour = feeDictionary["hourFee"] as? Double,
+              let economy = feeDictionary["economyFee"] as? Double else {
+            Log.info("Fee estimate response was missing one or more expected rates.")
+            return nil
+        }
+
+        return FeeEstimates(fastest: fastest, hour: hour, economy: economy)
     }
     
     func syncWallets() throws {
@@ -724,6 +734,14 @@ class BitcoinManager {
         return "m/84'/\(coinType)'/\(account)'/\(change)/\(addressIndex)"
     }
     
+}
+
+/// Recommended on-chain fee rates in sat/vByte, already normalized by
+/// `getFeeEstimates()`: each rate is at least 1 and rounded, as LDKNode requires.
+struct FeeEstimates {
+    let fastest: Double
+    let hour: Double
+    let economy: Double
 }
 
 enum WalletError: Error {

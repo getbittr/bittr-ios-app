@@ -94,8 +94,7 @@ extension SwapViewController {
                 let requestedDirection = self.swapDirection
 
                 Task {
-                    let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-                    guard let fastestFee = feeEstimates?["fastestFee"] as? Double else {
+                    guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                         Log.info("Could not fetch fee estimates.")
                         DispatchQueue.main.async {
                             guard self.swapDirection == requestedDirection else { return }
@@ -106,7 +105,7 @@ extension SwapViewController {
                     }
 
                     // Select highest fee.
-                    self.highestFeePerVbyte = Float(fastestFee)
+                    self.highestFeePerVbyte = Float(feeEstimates.fastest)
                     
                     // Get own onchain address.
                     let actualAddress:String = BitcoinManager.shared.getAddress(atIndex: 0)
