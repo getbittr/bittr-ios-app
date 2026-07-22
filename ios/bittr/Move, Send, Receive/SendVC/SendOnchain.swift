@@ -178,6 +178,14 @@ extension ConfirmSendViewController {
     }
     
     @objc func performOnchainTransaction() {
+        // An on-chain send reaches the broadcast from the confirmation alert's
+        // Confirm button, not from confirmButtonTapped — which shows that alert
+        // and returns without ever starting the spinner. So the guard on the
+        // button can't catch this; it has to sit here, where the spinner goes up.
+        // sendOnchainPayment below blocks main, so a second tap queues behind it
+        // and gets delivered once the broadcast is already under way.
+        if self.confirmSpinner.isAnimating { return }
+
         self.hideAlert()
         
         // Start spinner.

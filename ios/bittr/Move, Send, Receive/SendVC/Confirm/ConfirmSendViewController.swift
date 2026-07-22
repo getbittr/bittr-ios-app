@@ -282,6 +282,7 @@ class ConfirmSendViewController: UIViewController {
     }
     
     @IBAction func confirmButtonTapped(_ sender: UIButton) {
+        if self.confirmSpinner.isAnimating { return }
         guard self.checkInternetConnection() else { return }
         
         if self.sendVC!.onchainOrLightning == .onchain {

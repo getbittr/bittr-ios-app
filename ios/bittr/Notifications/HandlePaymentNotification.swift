@@ -395,9 +395,17 @@ extension CoreViewController {
                     let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
                     let swapVC = self.swapVC
                     
-                    // Update views.
+                    // Update views. The confirm spinner has to be stopped here
+                    // too, the way addNewPaymentToTable does on success: a
+                    // payment LDK accepts and then fails asynchronously
+                    // (routeNotFound, retriesExhausted, recipientRejected)
+                    // leaves the user on the confirm screen, and the spinner
+                    // now gates the Confirm button — so leaving it running
+                    // would strand them with no way to retry.
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
+                    sendVC?.confirmSendVC?.confirmLabel.alpha = 1
+                    sendVC?.confirmSendVC?.confirmSpinner.stopAnimating()
                     sendVC?.resetFields()
                     
                     // Parse failure reason.
