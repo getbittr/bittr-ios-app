@@ -10,6 +10,12 @@ import LightningDevKit
 
 extension SendViewController {
     
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        // Reset didTapAvailable boolean upon manual changes.
+        if textField == self.amountTextField { self.didTapAvailable = false }
+        return true
+    }
+    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         // Same logic as doneButtonTapped for return key
         if textField == self.toTextField {

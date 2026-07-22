@@ -600,14 +600,29 @@ class BitcoinManager {
         }
     }
     
+    // The user intends to send an onchain transaction, not emptying their funds.
     func sendOnchainPayment(address:String, amountSats:UInt64, feeRateSatVb:UInt64) throws -> String {
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
         
-        // Set fee rate.
-        let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: feeRateSatVb)
+        // Set fee rate (minimum 1sat/Vbyte).
+        let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: max(feeRateSatVb, 1))
         
         // Broadcast transaction.
-        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
         let onchainID = try node.onchainPayment().sendToAddress(address: address, amountSats: amountSats, feeRate: feeRate)
+        
+        // Return transaction ID.
+        return onchainID.description
+    }
+    
+    // The user intends to empty their onchain funds.
+    func sendAllOnchainPayment(address:String, feeRateSatVb:UInt64) throws -> String {
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        
+        // Set fee rate (minimum 1sat/Vbyte).
+        let feeRate = LDKNode.FeeRate.fromSatPerVbUnchecked(satVb: max(feeRateSatVb, 1))
+        
+        // Broadcast transaction.
+        let onchainID = try node.onchainPayment().sendAllToAddress(address: address, retainReserve: true, feeRate: feeRate)
         
         // Return transaction ID.
         return onchainID.description
@@ -750,6 +765,8 @@ struct FeeEstimates {
 enum WalletError: Error {
     case walletNotInitiated
     case clientNotInitiated
+    /// A drain PSBT finished but carried no output, so there is no maximum to read.
+    case drainProducedNoOutput
 }
 
 extension FileManager {

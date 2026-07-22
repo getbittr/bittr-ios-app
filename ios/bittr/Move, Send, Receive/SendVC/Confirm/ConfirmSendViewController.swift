@@ -143,11 +143,12 @@ class ConfirmSendViewController: UIViewController {
             
             // Check fee availability
             let lowestSats:Float = self.sendVC!.feePerVbLow*self.sendVC!.confirmTxSize
-            let availableSatsForFee:Float = Float(BitcoinManager.shared.bittrWallet.satoshisOnchain - self.sendVC!.confirmSatoshis)
+            let availableSatsForFee:Float = Float((BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - self.sendVC!.confirmSatoshis)
             if lowestSats > availableSatsForFee {
                 // There aren't enough sats available to pay for the cheapest fee.
+                // Calculate the cheapest possible fee (minimum 1sat/Vbyte).
                 let availableSatsPerVb:Float = availableSatsForFee / self.sendVC!.confirmTxSize
-                self.maxAvailableFeePerVb = Float(Int(availableSatsPerVb * 10))/10
+                self.maxAvailableFeePerVb = max(Float(Int(availableSatsPerVb * 10))/10, 1)
                 
                 self.timeSlow.text = Language.getWord(withID: "slow")
                 self.highlightFee(.low)
@@ -222,6 +223,15 @@ class ConfirmSendViewController: UIViewController {
             self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * (self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow))
         }
         
+        // A drain sends whatever is left after the fee, so its amount moves with
+        // the selected rate. Restate it, otherwise picking a higher fee leaves
+        // the screen quoting the amount from the rate it was calculated at.
+        if self.sendVC!.isSendingMaximum, let drainTotal = self.sendVC!.drainTotalSats {
+            self.sendVC!.confirmSatoshis = max(drainTotal - self.selectedFeeInSats, 0)
+            self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
+            self.amountFiatLabel.text = self.formattedFiatAmount()
+        }
+
         self.selectedFee = tappedFee
         self.highlightFee(tappedFee)
         guard self.canAffordFees() else { return }
@@ -248,8 +258,14 @@ class ConfirmSendViewController: UIViewController {
     
     func canAffordFees() -> Bool {
         
-        if (self.selectedFeeInSats + self.sendVC!.confirmSatoshis) > BitcoinManager.shared.bittrWallet.satoshisOnchain {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(BitcoinManager.shared.bittrWallet.satoshisOnchain) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
+        if self.sendVC!.isSendingMaximum {
+            // A balance draining transaction will manage to afford the appropriate fee.
+            return true
+        }
+        
+        let spendable = BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0
+        if (self.selectedFeeInSats + self.sendVC!.confirmSatoshis) > spendable {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(spendable) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [#selector(self.handleAmountChange), nil])
             return false
         } else {
             return true
@@ -266,8 +282,8 @@ class ConfirmSendViewController: UIViewController {
     @objc func handleAmountChange() {
         self.hideAlert()
         
-        // New amount.
-        self.sendVC!.confirmSatoshis = BitcoinManager.shared.bittrWallet.satoshisOnchain-self.selectedFeeInSats
+        // New amount (at least 0 satoshis).
+        self.sendVC!.confirmSatoshis = max((BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - self.selectedFeeInSats, 0)
         
         // Update SendVC amount text field.
         self.sendVC!.amountTextField.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin()

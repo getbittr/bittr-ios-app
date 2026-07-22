@@ -9,6 +9,12 @@ import Foundation
 import BitcoinDevKit
 import Sentry
 
+struct OnchainDrainPreview {
+    let sendableSats:UInt64
+    let feeSats:UInt64
+    let vsize:UInt64
+}
+
 extension BitcoinManager {
     
     func didStartBDK() -> Bool {
@@ -271,12 +277,84 @@ extension BitcoinManager {
         return true
     }
     
-    func getSize(address:String, amountSats:Int) throws -> UInt64 {
+    func getSize(address:String, amountSats:Int, selectedVbyte:Float?) throws -> UInt64 {
         
-        let tx = try self.getTx(address: address, amountSats: amountSats, selectedVbyte: nil)
+        let tx = try self.getTx(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
         let size = tx.vsize()
         
         return size
+    }
+    
+    // MARK: - Onchain maximum
+    
+    // Get a placeholder output script to calculate fees before knowing the recipient.
+    static var largestCommonOutputScript: Script {
+        Script(rawOutputScript: [0x51, 0x20] + [UInt8](repeating: 0, count: 32))
+    }
+    
+    // Get maximum sendable onchain transaction.
+    func previewOnchainDrain(toScript script:Script, satPerVb:UInt64) throws -> OnchainDrainPreview {
+        guard let wallet = self.bdkWallet else {
+            throw WalletError.walletNotInitiated
+        }
+        
+        // Minimum 1 sat/vB.
+        let feeRate = try FeeRate.fromSatPerVb(satVb: max(satPerVb, 1))
+        
+        let psbt = try TxBuilder()
+            .drainWallet()
+            .drainTo(script: script)
+            .feeRate(feeRate: feeRate)
+            .finish(wallet: wallet)
+        let _ = try wallet.sign(psbt: psbt, signOptions: nil)
+        let tx = try psbt.extractTx()
+        
+        // drainTo produces exactly one output, so its value is the maximum.
+        guard let drainOutput = tx.output().first else {
+            throw WalletError.drainProducedNoOutput
+        }
+        
+        return OnchainDrainPreview(sendableSats: drainOutput.value, feeSats: try psbt.fee(), vsize: tx.vsize())
+    }
+    
+    // Calculate the maximum sendable onchain amount, with or without known recipient.
+    func maximumSendableOnchainDrain(toAddress address:String?, satPerVb:UInt64) throws -> OnchainDrainPreview {
+
+        let script:Script
+        if let address = address,
+           let parsed = try? Address(address: address, network: EnvironmentConfig.bitcoinDevKitNetwork) {
+            // Recipient is known.
+            script = parsed.scriptPubkey()
+        } else {
+            // Recipient is unknown.
+            script = BitcoinManager.largestCommonOutputScript
+        }
+        
+        let preview = try self.previewOnchainDrain(toScript: script, satPerVb: satPerVb)
+        
+        // Verify that LDKNode agrees with BDK's maximum sendable onchain amount.
+        // BDK knows nothing about the reserve LDK Node holds back for anchor
+        // channels, so it will happily drain it; LDK's spendable balance is the
+        // authority on what may actually leave.
+        guard let loadedSpendable = BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable else {
+            // Balances haven't been read yet, so there's nothing to clamp
+            // against. Note this is NOT the same as a spendable balance of zero,
+            // which clamps to zero below.
+            return preview
+        }
+
+        let spendable = UInt64(max(loadedSpendable, 0))
+        guard preview.sendableSats + preview.feeSats > spendable else {
+            // BDK is already at or under LDKNode's spendable balance, so it's
+            // the more conservative of the two. Stick with it.
+            return preview
+        }
+        let clamped = spendable > preview.feeSats ? spendable - preview.feeSats : 0
+        return OnchainDrainPreview(sendableSats: clamped, feeSats: preview.feeSats, vsize: preview.vsize)
+    }
+    
+    func maximumSendableOnchainSats(toAddress address:String?, satPerVb:UInt64) throws -> UInt64 {
+        return try self.maximumSendableOnchainDrain(toAddress: address, satPerVb: satPerVb).sendableSats
     }
     
     func getTx(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
@@ -297,8 +375,9 @@ extension BitcoinManager {
         let address = try Address(address: address, network: network)
         let script = address.scriptPubkey()
         var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))
-        if selectedVbyte != nil {
-            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: UInt64(selectedVbyte!)))
+        if let selectedVbyte = selectedVbyte {
+            // Minimum 1 sat/Vbyte.
+            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: max(UInt64(selectedVbyte), 1)))
         }
         let details = try txBuilder.finish(wallet: self.bdkWallet!)
         let _ = try self.bdkWallet!.sign(psbt: details, signOptions: nil)

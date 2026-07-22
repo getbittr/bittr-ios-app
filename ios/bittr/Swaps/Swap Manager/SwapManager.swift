@@ -236,7 +236,7 @@ class SwapManager: NSObject {
             var size:UInt64
             do {
                 // Calculate transaction size.
-                size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!)
+                size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: swapVC.highestFeePerVbyte)
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
 
