@@ -28,6 +28,9 @@ class BitcoinManager {
     var connection: BitcoinDevKit.Connection?
     var bdkWalletIsScanning = false
     var bdkWalletHasBeenScanned = false
+    // Set when the full scan's watchdog fires. The scan can't be cancelled, so
+    // this session stays scan-blocked and only a restart clears it.
+    var bdkFullScanTimedOut = false
     
     // General
     private let storageManager = LightningStorage()

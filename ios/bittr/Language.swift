@@ -503,6 +503,7 @@ class Language: NSObject {
             "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet.",
             "onchainsyncfailedtitle": "Syncing issue",
             "onchainsyncfailed": "We ran into an issue syncing the on-chain part of your wallet. Please try again later.",
+            "onchainsynctimedout": "Syncing the on-chain part of your wallet is taking longer than expected. Your wallet and funds are safe.\n\nPlease reopen the app to try again. Do not delete the app from your phone.",
             "transferfee": "Transfer fee",
             "bittrfee": "Bittr fee",
             "surcharge": "Surcharge",

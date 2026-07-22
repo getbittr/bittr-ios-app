@@ -44,17 +44,22 @@ protocol OnchainSyncFailureReporting: UIViewController {
 
 extension OnchainSyncFailureReporting {
     /// Stops the on-chain sync spinner and tells the user the on-chain sync
-    /// failed and to retry later. Safe to call from any thread — BDK completions
-    /// fire off the main thread.
+    /// failed. Safe to call from any thread — BDK completions fire off the main
+    /// thread.
+    ///
+    /// A scan that timed out gets different copy: the scan is still running and
+    /// can't be stopped, so "try again later" would send the user back to a
+    /// screen that stays blocked no matter how long they wait.
     func presentOnchainSyncFailedAlert() {
         DispatchQueue.main.async {
             self.bdkSpinner.stopAnimating()
+            let timedOut = BitcoinManager.shared.bdkFullScanTimedOut
             // Replace the "syncing" alert (if still visible) with the failure alert.
             self.hideAlert()
             self.showAlert(
                 presentingController: self,
                 title: Language.getWord(withID: "onchainsyncfailedtitle"),
-                message: Language.getWord(withID: "onchainsyncfailed"),
+                message: Language.getWord(withID: timedOut ? "onchainsynctimedout" : "onchainsyncfailed"),
                 buttons: [Language.getWord(withID: "okay")],
                 actions: nil
             )
