@@ -385,7 +385,7 @@ extension UIViewController {
         
         // Create transaction.
         let newTransaction = thisPayment.createTransaction(coreVC: coreVC, bittrTransactions: nil)
-        CacheManager.storeLightningTransaction(thisTransaction: newTransaction)
+        CacheManager.storeLightningTransaction(newTransaction)
         
         // Add invoice to Transactions table.
         sendVC?.completedTransaction = newTransaction

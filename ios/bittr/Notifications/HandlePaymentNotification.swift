@@ -383,7 +383,7 @@ extension CoreViewController {
                                 self.homeVC!.tappedTransaction = newTransaction
                                 self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                             }
-                            CacheManager.storeLightningTransaction(thisTransaction: newTransaction)
+                            CacheManager.storeLightningTransaction(newTransaction)
                         }
                     }
                 }
@@ -462,7 +462,7 @@ extension CoreViewController {
         DispatchQueue.main.async {
             // Add and cache transaction.
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+            CacheManager.storeLightningTransaction(thisTransaction)
             
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in

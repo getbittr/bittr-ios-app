@@ -94,7 +94,7 @@ extension HomeViewController {
                 
                 // Cache succeeded Lightning payments.
                 if thisTransaction.isLightning, eachPayment.status == .succeeded {
-                    CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                    CacheManager.storeLightningTransaction(thisTransaction)
                 }
             }
             
@@ -215,7 +215,7 @@ extension HomeViewController {
                 // This is a channel funding transaction.
                 let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
                 self.newTransactions += [thisTransaction]
-                CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                CacheManager.storeLightningTransaction(thisTransaction)
             }
         }
         
@@ -596,181 +596,5 @@ extension PaymentKind {
         default:
             return false
         }
-    }
-}
-
-extension [Transaction] {
-    
-    func performSwapMatching() -> [Transaction] {
-        
-        // Create a mutable array of Transactions.
-        var currentTransactions = self
-        
-        // Look for lightning and onchain transactions with matching swap descriptions
-        let swapTransactions = NSMutableDictionary()
-        
-        for eachTransaction in currentTransactions where eachTransaction.lnDescription.contains("Swap") {
-            if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
-                existingTransactions += [eachTransaction]
-                swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
-            } else {
-                swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
-            }
-        }
-        
-        // Process completed swaps
-        for (eachSwapID, eachSetOfTransactions) in swapTransactions {
-            if (eachSetOfTransactions as! [Transaction]).count == 2 {
-                // Completed swap.
-                Log.info("Found completed swap.")
-                print("Swap ID: \(eachSwapID)")
-                
-                let thisSwapID = (eachSwapID as! String)
-                let firstTransaction = (eachSetOfTransactions as! [Transaction])[0]
-                let secondTransaction = (eachSetOfTransactions as! [Transaction])[1]
-                
-                if thisSwapID.contains(firstTransaction.id), firstTransaction.swapStatus == .succeeded {
-                    // This is already a completed Swap transaction.
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where secondTransaction.id == eachTransaction.id {
-                        currentTransactions.remove(at: index)
-                    }
-                    CacheManager.storeLightningTransaction(thisTransaction: firstTransaction)
-                } else if thisSwapID.contains(secondTransaction.id), secondTransaction.swapStatus == .succeeded {
-                    // This is already a completed Swap transaction.
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where firstTransaction.id == eachTransaction.id {
-                        currentTransactions.remove(at: index)
-                    }
-                    CacheManager.storeLightningTransaction(thisTransaction: secondTransaction)
-                } else {
-                    
-                    let swapTransaction = Transaction()
-                    swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                    swapTransaction.isSwap = true
-                    swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
-                    swapTransaction.lnDescription = thisSwapID
-                    
-                    // Amount and fees.
-                    swapTransaction.sent = firstTransaction.received + secondTransaction.received - firstTransaction.sent - secondTransaction.sent
-
-                    // Per-leg fees live on Transaction.fee (onchain network fee for
-                    // the onchain leg, lightning routing fee for an outbound
-                    // lightning leg). The home row renders cost as
-                    // (received - sent - fee), so without this the user-paid fee
-                    // on either side gets dropped from the displayed swap cost.
-                    // Inbound legs have fee = 0, so summing both is safe.
-                    swapTransaction.fee = firstTransaction.fee + secondTransaction.fee
-                    
-                    // Direction.
-                    swapTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
-                    swapTransaction.isLightning = thisSwapID.contains("lightning to onchain")
-                    
-                    for eachTransaction in (eachSetOfTransactions as! [Transaction]) {
-                        if eachTransaction.isLightning {
-                            // Lightning payment
-                            if eachTransaction.isSwap {
-                                swapTransaction.lightningID = eachTransaction.lightningID
-                            } else {
-                                swapTransaction.lightningID = eachTransaction.id
-                            }
-                            swapTransaction.channelId = eachTransaction.channelId
-                            if swapTransaction.swapDirection == .onchainToLightning {
-                                swapTransaction.timestamp = eachTransaction.timestamp
-                                swapTransaction.received = eachTransaction.received
-                            } else {
-                                swapTransaction.sent = eachTransaction.sent
-                            }
-                        } else {
-                            // Onchain transaction
-                            if eachTransaction.isSwap {
-                                swapTransaction.onchainID = eachTransaction.onchainID
-                            } else {
-                                swapTransaction.onchainID = eachTransaction.id
-                            }
-                            swapTransaction.height = eachTransaction.height
-                            if swapTransaction.swapDirection == .lightningToOnchain {
-                                swapTransaction.timestamp = eachTransaction.timestamp
-                                swapTransaction.received = eachTransaction.received - eachTransaction.sent
-                            } else {
-                                swapTransaction.sent = eachTransaction.sent - eachTransaction.received
-                            }
-                        }
-                    }
-                    
-                    if !firstTransaction.isLightning, !secondTransaction.isLightning {
-                        // Both transactions are onchain. This is a failed normal swap.
-                        swapTransaction.timestamp = firstTransaction.timestamp
-                        swapTransaction.sent = firstTransaction.sent + secondTransaction.sent
-                        swapTransaction.received = firstTransaction.received + secondTransaction.received
-                        swapTransaction.swapStatus = .failed
-                        
-                        if (firstTransaction.received - firstTransaction.sent) < (secondTransaction.received - secondTransaction.sent) {
-                            // The 2nd transaction is the refund.
-                            swapTransaction.onchainID = firstTransaction.id
-                            swapTransaction.lightningID = secondTransaction.id
-                        } else {
-                            // The 1st transaction is the refund.
-                            swapTransaction.onchainID = secondTransaction.id
-                            swapTransaction.lightningID = firstTransaction.id
-                        }
-                    }
-                    
-                    // Remove the individual transactions and add the combined swap transaction
-                    let transactionIDs = [firstTransaction.id, secondTransaction.id]
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where transactionIDs.contains(eachTransaction.id) {
-                        currentTransactions.remove(at: index)
-                    }
-                    
-                    currentTransactions += [swapTransaction]
-                    CacheManager.storeLightningTransaction(thisTransaction: swapTransaction)
-                }
-                
-            } else if (eachSetOfTransactions as! [Transaction]).count == 1, !(eachSetOfTransactions as! [Transaction])[0].isSwap {
-                // These are pending swap transactions.
-                Log.info("Found pending swap.")
-                print("Swap ID: \(eachSwapID)")
-                
-                let thisTransaction = (eachSetOfTransactions as! [Transaction])[0]
-                let thisSwapID = (eachSwapID as! String)
-                
-                if let suggestedSwapStatus = CacheManager.getSuggestedSwapStatus(dateID: thisSwapID) {
-                    thisTransaction.isSuggestedSwap = true
-                    thisTransaction.swapStatus = suggestedSwapStatus
-                    thisTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
-                    thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
-                    continue
-                }
-                
-                let swapTransaction = Transaction()
-                swapTransaction.isSwap = true
-                swapTransaction.swapStatus = .pending
-                swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
-                swapTransaction.lnDescription = thisSwapID
-                
-                swapTransaction.timestamp = thisTransaction.timestamp
-                swapTransaction.sent = thisTransaction.sent
-                swapTransaction.received = thisTransaction.received
-                swapTransaction.isLightning = thisTransaction.isLightning
-                swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                
-                swapTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
-                
-                if swapTransaction.isLightning {
-                    swapTransaction.lightningID = thisTransaction.id
-                    swapTransaction.channelId = thisTransaction.channelId
-                } else {
-                    swapTransaction.onchainID = thisTransaction.id
-                    swapTransaction.height = thisTransaction.height
-                }
-                
-                // Remove the individual transactions and add the combined swap transaction
-                for (index, eachTransaction) in currentTransactions.enumerated().reversed() where eachTransaction.id == thisTransaction.id {
-                    currentTransactions.remove(at: index)
-                }
-                
-                currentTransactions += [swapTransaction]
-            }
-        }
-        
-        return currentTransactions
     }
 }

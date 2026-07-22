@@ -424,7 +424,7 @@ class CacheManager: NSObject {
         return allTransactions
     }
     
-    static func storeLightningTransaction(thisTransaction:Transaction) {
+    static func storeLightningTransaction(_ thisTransaction:Transaction) {
         
         let envKey = EnvironmentConfig.cacheKey(for: "lightning")
         
