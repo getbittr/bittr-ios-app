@@ -66,7 +66,6 @@ extension CacheManager {
             return WalletCache()
         }
         var cache = WalletCache()
-        cache.balance = legacy["balance"] as? String
         cache.satsBalance = legacy["satsbalance"] as? String
         cache.conversion = legacy["conversion"] as? String
         cache.eurValue = legacy["eurvalue"] as? CGFloat
@@ -88,7 +87,6 @@ extension CacheManager {
 }
 
 struct WalletCache: Codable {
-    var balance: String?
     var satsBalance: String?
     var conversion: String?
     var eurValue: CGFloat?
