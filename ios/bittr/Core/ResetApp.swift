@@ -307,16 +307,20 @@ extension CoreViewController {
         self.hideAlert()
         self.hideSettings()
         
-        // Stop background sync timer.
+        // Stop background sync timer. This has to happen before the teardown
+        // below — a sync running against a half-deleted wallet is worse than
+        // losing the timer if the cleanup then fails, and the failure alert
+        // tells the user to reopen the app, which starts it again.
         self.walletSync?.stop()
         self.walletSync = nil
-        
-        // Reset PIN reset state
+
+        // Reset PIN reset state, remembering it so the failure path can put it
+        // back: if nothing was actually removed the user is still mid-PIN-reset
+        // or still locked out, and clearing these strands them outside both flows.
+        let wasResettingPin = self.resettingPin
+        let wasRemovingWalletForIncorrectPin = self.removingWalletForIncorrectPin
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
-        
-        // Clear the in-memory account entity.
-        BitcoinManager.shared.bittrWallet = BittrWallet()
 
         // Remove wallet from device and remove corresponding cached data.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -371,6 +375,10 @@ extension CoreViewController {
                 // Teardown failed.
                 Log.info("Wallet reset cleanup did not complete — seed left intact to resume on next launch.")
                 DispatchQueue.main.async {
+                    // Nothing was removed, so put the removal state back rather
+                    // than leaving the app half-reset for the rest of the session.
+                    self.resettingPin = wasResettingPin
+                    self.removingWalletForIncorrectPin = wasRemovingWalletForIncorrectPin
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -385,6 +393,12 @@ extension CoreViewController {
             
             // Relaunch the create-wallet flow on main.
             DispatchQueue.main.async {
+                // Clear the in-memory account entity now that the on-device
+                // wallet is actually gone. Doing this up front would leave a
+                // zeroed-out wallet behind on the failure path above, where
+                // everything it described still exists.
+                BitcoinManager.shared.bittrWallet = BittrWallet()
+
                 // Hide signup view and launch create wallet flow
                 // Since we've cleared the PIN, we need to manually show the create wallet flow
                 self.hideSignup()
