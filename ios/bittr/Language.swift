@@ -223,6 +223,7 @@ class Language: NSObject {
             "closedlightningchannel3": " We've been notified that ",
             "bittrnotificationfail": "Something went wrong processing the notification we sent to you. Please contact support@getbittr.com if you have any questions.",
             "pinlock": "You've entered an incorrect PIN too many times. Please restore your wallet.",
+            "tokenregistrationfail": "We couldn't register this device for notifications. Please check your internet connection and try again, or continue with regular payouts.",
             "keychainunavailabletitle": "Couldn't access your wallet",
             "keychainunavailable": "We couldn't securely read your wallet just now. This can happen right after unlocking your device or when the phone is busy — your wallet and funds are safe.\n\nPlease tap Try again. Do not delete the app from your phone.",
             "mnemonicsavefail": "Something went wrong securely saving your wallet. Please try again.",

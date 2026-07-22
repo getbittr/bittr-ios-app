@@ -71,6 +71,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         
         // Notification observers.
         NotificationCenter.default.addObserver(self, selector: #selector(resume2Fa), name: NSNotification.Name(rawValue: "receivedToken"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(tokenRegistrationFailed), name: NSNotification.Name(rawValue: "tokenRegistrationFailed"), object: nil)
         
         self.topLabel.accessibilityIdentifier = TestID.Signup.Bittr.Otp.topLabel
         self.codeTextField.accessibilityIdentifier = TestID.Signup.Bittr.Otp.codeTextField
@@ -178,6 +179,40 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         if self.start2Fa {
             self.sendCodeToBittr()
             self.start2Fa = false
+        }
+    }
+
+    // Each token wait gets a generation so a stale deadline (from an earlier
+    // attempt) can't fire into a newer one.
+    private static var tokenWaitGeneration = 0
+
+    /// Arm a deadline on the wait for didRegisterForRemoteNotificationsWith-
+    /// DeviceToken. Registration is allowed to never call back (no APNS
+    /// connectivity, wedged simulator push daemon, flaky network), and
+    /// without a deadline the Next-button spinner spins forever with no way
+    /// out. After 15s of silence, fail the same way an explicit registration
+    /// failure does.
+    func startTokenRegistrationTimeout() {
+        Transfer2ViewController.tokenWaitGeneration += 1
+        let generation = Transfer2ViewController.tokenWaitGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+            guard let self = self,
+                  generation == Transfer2ViewController.tokenWaitGeneration,
+                  self.start2Fa else { return }
+            Log.info("Timed out waiting for the device token.")
+            self.tokenRegistrationFailed()
+        }
+    }
+
+    /// Token registration failed (didFailToRegister… fired, or the deadline
+    /// above expired). Stop the spinner and offer the same choice as the
+    /// denied-permission path: retry, or continue with on-chain payouts.
+    @objc func tokenRegistrationFailed() {
+        guard self.start2Fa else { return }
+        self.start2Fa = false
+        DispatchQueue.main.async {
+            self.cancelLoading()
+            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "tokenregistrationfail"), buttons: [Language.getWord(withID: "tryagain"), Language.getWord(withID: "continue")], actions: [#selector(self.askForPushNotifications), #selector(self.proceedWithoutNotifications)])
         }
     }
     

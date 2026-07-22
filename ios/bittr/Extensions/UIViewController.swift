@@ -171,6 +171,7 @@ extension UIViewController {
                                         return
                                     }
                                     transfer15VC?.start2Fa = true
+                                    transfer15VC?.startTokenRegistrationTimeout()
                                     UIApplication.shared.registerForRemoteNotifications()
                                 }
                             }
@@ -182,6 +183,7 @@ extension UIViewController {
                     // didRegisterForRemoteNotificationsWithDeviceToken trigger
                     // resume2Fa.
                     transfer15VC?.start2Fa = true
+                    transfer15VC?.startTokenRegistrationTimeout()
                     UIApplication.shared.registerForRemoteNotifications()
 
                 case .denied:

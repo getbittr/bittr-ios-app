@@ -184,6 +184,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         Log.info("Failed to register: \(error)")
+        // Tell whoever is waiting on the token (Transfer2's 2FA gate) instead
+        // of only logging — an unanswered wait is an infinite spinner.
+        NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "tokenRegistrationFailed"), object: nil, userInfo: nil) as Notification)
     }
 
 }
