@@ -280,10 +280,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Show swap status.
         self.showStatusView()
         
-        // Update swap file.
-        let direction = (self.thisSwap!.swapDirection == .lightningToOnchain) ? 1 : 0
-        SwapManager.updateSwapFileWithFees(swapID: self.thisSwap!.boltzID!, totalFees: self.thisSwap!.maximumTotalFees, userAmount: self.thisSwap!.satoshisAmount, direction: direction)
-        
         // Send payment.
         if self.thisSwap!.swapDirection == .onchainToLightning {
             SentrySDK.metrics.count(key: "swap.onchaintolightning.initiated")

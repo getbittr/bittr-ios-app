@@ -510,7 +510,6 @@ class SwapManager: NSObject {
                             swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
                             swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
                             swapVC.thisSwap!.refundPublicKey = refundPublicKey
-                            swapVC.thisSwap!.sentLightningPaymentID = randomPreimage.hexEncodedString()
                             self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
                             
                             // Store transaction details in cache.
@@ -625,26 +624,6 @@ class SwapManager: NSObject {
         
         print("Updated swap file with lockup transaction for ID: \(swapID)")
             
-    }
-    
-    static func updateSwapFileWithFees(swapID: String, totalFees: Int, userAmount: Int, direction: Int) {
-        
-        // Load existing swap details
-        guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
-            print("Could not load existing swap details for ID: \(swapID)")
-            return
-        }
-        
-        // Create a mutable copy and add the fees information
-        let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
-        updatedSwapDetails.setValue(totalFees, forKey: "totalFees")
-        updatedSwapDetails.setValue(userAmount, forKey: "userAmount")
-        updatedSwapDetails.setValue(direction, forKey: "direction")
-        
-        // Save the updated swap details back to file
-        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
-        
-        print("Updated swap file with fees for ID: \(swapID)")
     }
     
     static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapStatusViewController) {

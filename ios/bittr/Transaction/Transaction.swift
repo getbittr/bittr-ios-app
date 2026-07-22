@@ -17,7 +17,6 @@ class Transaction: NSObject {
     var received = 0
     var sent = 0
     var timestamp = 0
-    var note = ""
     
     // Onchain
     var height:Int?
@@ -116,8 +115,7 @@ extension PaymentDetails {
             }
         }
         
-        // Note and Description.
-        thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
+        // Description.
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
         
         // Check if transaction is Bittr.
