@@ -640,8 +640,13 @@ class TransactionViewController: UIViewController {
         NSLayoutConstraint.deactivate([self.noteStackHeight])
         self.noteStackHeight = NSLayoutConstraint(item: self.noteStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
         NSLayoutConstraint.activate([self.noteStackHeight])
-        self.addANoteStack.alpha = 1
-        self.addANoteStackHeight.constant = 45
+        // Keep "Add a note" hidden on the Bittr payout summary, which suppresses
+        // it deliberately — reverting to it there would put the button on a
+        // screen that never offers one.
+        if !self.showConfetti {
+            self.addANoteStack.alpha = 1
+            self.addANoteStackHeight.constant = 45
+        }
         self.view.layoutIfNeeded()
     }
     
@@ -656,9 +661,12 @@ class TransactionViewController: UIViewController {
             saveTitle: Language.getWord(withID: "save")
         ) { [weak self] noteText in
             guard let self = self else { return }
-            if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
-                CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: noteText)
-                self.labelNote.text = noteText
+            let trimmedNote = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedNote != "" {
+                // Store what the emptiness check was made against, so a note
+                // isn't persisted (and redisplayed) with stray padding.
+                CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: trimmedNote)
+                self.labelNote.text = trimmedNote
                 self.showNoteStack()
             } else {
                 // The user cleared the note: delete it and revert to the "Add a note" button.
