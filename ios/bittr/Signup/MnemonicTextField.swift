@@ -243,8 +243,6 @@ class MnemonicTextField: UITextField {
             let maxDistance = min(2, text.count - 1) // Don't correct if distance is too high
             
             if distance <= maxDistance && distance > 0 {
-                print("Auto-correcting '\(text)' to '\(correctedWord)' (distance: \(distance))")
-                
                 // Show visual feedback for the correction
                 showCorrectionFeedback()
                 

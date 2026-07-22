@@ -158,11 +158,11 @@ class BitcoinManager {
         return true
     }
     
-    func getNewMnemonic() -> String {
+    func getNewMnemonic() throws -> String {
         // New mnemonic.
         Log.info("Creating a new mnemonic.")
         let newMnemonic:String = LDKNode.generateEntropyMnemonic(wordCount: .words12).description
-        CacheManager.storeMnemonic(newMnemonic)
+        try CacheManager.storeMnemonic(newMnemonic)
         return newMnemonic
     }
     
@@ -648,7 +648,10 @@ class BitcoinManager {
         let network: KeyDerivationNetwork = EnvironmentConfig.isDevelopment ? .testnet : .mainnet
         
         // Create SimpleKeyDerivation instance with the stored mnemonic
-        let keyDerivation = try SimpleKeyDerivation(mnemonic: CacheManager.getMnemonic()!, network: network)
+        guard let mnemonic = CacheManager.getMnemonic() else {
+            throw WalletError.walletNotInitiated
+        }
+        let keyDerivation = try SimpleKeyDerivation(mnemonic: mnemonic, network: network)
             
         // Derive keys for the given path
         let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(path)

@@ -59,7 +59,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     var allBackgrounds:[UIView]?
     
     // Variables
-    var correctPin:String?
     var coreVC:CoreViewController?
     
     // Changing elements
@@ -135,9 +134,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Text field
         self.pinTextField.delegate = self
         
-        // Get correct pin
-        self.correctPin = CacheManager.getPin()
-        
         // Configure button backgrounds.
         self.allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
         for eachBackground in self.allBackgrounds! {
@@ -194,7 +190,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         switch self.embeddingView {
         case .core:
             guard (self.coreVC ?? self).checkInternetConnection() else { return }
-            guard self.correctPin != nil else {
+            guard CacheManager.hasPin() else {
                 Log.info("No pin found in storage.")
                 return
             }
@@ -206,7 +202,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 return
             }
             
-            if self.correctPin! == self.pinTextField.text {
+            if CacheManager.verifyPin(self.pinTextField.text ?? "") {
                 // Correct pin.
                 CacheManager.resetFailedPinAttempts()
                 self.pinSpinner.startAnimating()

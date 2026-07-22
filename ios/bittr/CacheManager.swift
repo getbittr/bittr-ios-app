@@ -7,6 +7,7 @@
 
 import UIKit
 import Sentry
+import CryptoKit
 
 class CacheManager: NSObject {
     
@@ -22,6 +23,18 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
+
+        // Remove the secrets from the Keychain too — they no longer live in
+        // UserDefaults, so the UserDefaults removals above wouldn't clear them.
+        SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "pin"))
+
+        // A wiped wallet's pending swap is meaningless (its documents are
+        // deleted with the wallet): clear the ongoing-swap record and sweep
+        // the per-swap refund keys out of the Keychain.
+        defaults.removeObject(forKey: "ongoingswap")
+        SecureStore.removeAll(accountPrefix: "swapkey_")
+
         self.resetFailedPinAttempts()
     }
     
@@ -872,50 +885,233 @@ class CacheManager: NSObject {
     
     // MARK: - Mnemonic
     
-    static func storeMnemonic(_ mnemonic:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(mnemonic, forKey: envKey)
+    static func storeMnemonic(_ mnemonic:String) throws {
+        try persistSecret(mnemonic, account: EnvironmentConfig.cacheKey(for: "mnemonic"), label: "mnemonic", accessibility: .afterFirstUnlockThisDeviceOnly)
     }
     
     static func getMnemonic() -> String? {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "mnemonic")
-        
-        let defaults = UserDefaults.standard
-        let cachedMnemonic = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedMnemonic = cachedMnemonic {
-            return actualCachedMnemonic
-        } else {
-            return nil
-        }
+        readSecret(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
     }
     
     // MARK: - Pin
-    
+
+    // The PIN is stored as a salted SHA-256 record ("v1$<salt>$<digest>",
+    // base64) so its raw value never sits anywhere at rest — people reuse
+    // bank-card PINs, so disclosure matters beyond this app. Honest scope:
+    // hashing cannot make a 4-8 digit PIN resistant to offline brute force
+    // (the keyspace is tiny); the wipe-after-10 attempt counter is the real
+    // guard, and the mnemonic — not the PIN — is the actual key material.
+    // Legacy raw values (UserDefaults, or early Keychain builds) are
+    // re-hashed by the launch migration; verifyPin also upgrades any
+    // straggler on its next successful entry.
     static func storePin(pin:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "pin")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(pin, forKey: envKey)
+        writeSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
+    }
+
+    /// Whether a PIN is stored (hashed or legacy raw).
+    static func hasPin() -> Bool {
+        readSecret(account: EnvironmentConfig.cacheKey(for: "pin")) != nil
+    }
+
+    /// Check an entered PIN against the stored record.
+    static func verifyPin(_ entered: String) -> Bool {
+        guard let stored = readSecret(account: EnvironmentConfig.cacheKey(for: "pin")) else { return false }
+        if let record = parseHashedPinRecord(stored) {
+            return pinDigest(entered, salt: record.salt) == record.digest
+        }
+        // Legacy raw value — compare directly, and upgrade to the hashed form
+        // now that the correct PIN is known.
+        guard stored == entered else { return false }
+        storePin(pin: entered)
+        return true
+    }
+
+    private static func hashedPinRecord(for pin: String) -> String {
+        var salt = Data(count: 32)
+        _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
+        return "v1$\(salt.base64EncodedString())$\(pinDigest(pin, salt: salt).base64EncodedString())"
+    }
+
+    private static func parseHashedPinRecord(_ record: String) -> (salt: Data, digest: Data)? {
+        let parts = record.split(separator: "$")
+        guard parts.count == 3, parts[0] == "v1",
+              let salt = Data(base64Encoded: String(parts[1])),
+              let digest = Data(base64Encoded: String(parts[2])) else { return nil }
+        return (salt, digest)
+    }
+
+    private static func pinDigest(_ pin: String, salt: Data) -> Data {
+        var input = salt
+        input.append(Data(pin.utf8))
+        return Data(SHA256.hash(data: input))
     }
     
-    static func getPin() -> String? {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "pin")
-        
-        let defaults = UserDefaults.standard
-        let cachedPin = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedPin = cachedPin {
-            return actualCachedPin
-        } else {
+    // MARK: - Secure storage (Keychain)
+    
+    // Check whether PIN and mnemonic are available.
+    enum WalletSecretsPresence {
+        case present
+        case absent
+        case unavailable
+    }
+    
+    static func walletSecretsPresence() -> WalletSecretsPresence {
+        // While the device is locked the WhenUnlockedThisDeviceOnly items are
+        // unreadable, so we can't decide anything.
+        guard UIApplication.shared.isProtectedDataAvailable else { return .unavailable }
+        do {
+            let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+            let pin = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin"))
+            return (mnemonic != nil && pin != nil) ? .present : .absent
+        } catch {
+            // A Keychain read failed (not a genuine absence). Report it and treat
+            // as unavailable so nothing destructive happens.
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "reading wallet secrets for presence check", key: "context")
+            }
+            return .unavailable
+        }
+    }
+
+    /// Eagerly migrate any legacy UserDefaults-stored secrets (mnemonic, PIN,
+    /// and an in-flight swap's refund key) into the Keychain. Safe to call on
+    /// every launch; a no-op once migrated.
+    static func migrateSecretsToKeychainIfNeeded() {
+        migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "mnemonic"), accessibility: .afterFirstUnlockThisDeviceOnly)
+        migrateLegacyValue(account: EnvironmentConfig.cacheKey(for: "pin"), accessibility: .whenUnlockedThisDeviceOnly)
+        migrateLegacyOngoingSwapKey()
+        applyProtectionToExistingSwapFiles()
+        // Items keep the accessibility class they were written with; the
+        // mnemonic's intended class changed (WhenUnlocked -> AfterFirstUnlock,
+        // so background node starts work) after the first Keychain builds.
+        // Rewriting in place re-applies the intended class; idempotent.
+        refreshAccessibility(account: EnvironmentConfig.cacheKey(for: "mnemonic"), accessibility: .afterFirstUnlockThisDeviceOnly)
+        refreshAccessibility(account: EnvironmentConfig.cacheKey(for: "pin"), accessibility: .whenUnlockedThisDeviceOnly)
+        // Re-hash a legacy raw PIN (from UserDefaults, or an early Keychain
+        // build that stored the raw value).
+        if let storedPin = (try? SecureStore.getString(account: EnvironmentConfig.cacheKey(for: "pin"))) ?? nil, parseHashedPinRecord(storedPin) == nil {
+            storePin(pin: storedPin)
+        }
+    }
+
+    /// Re-apply the intended accessibility class to an already-stored secret
+    /// by rewriting it in place. No-op when nothing is stored.
+    private static func refreshAccessibility(account: String, accessibility: SecureStore.Accessibility) {
+        guard let value = (try? SecureStore.getString(account: account)) ?? nil else { return }
+        try? SecureStore.setString(value, account: account, accessibility: accessibility)
+    }
+
+    /// Stamp existing swap JSON files with the at-rest protection class that
+    /// new writes get explicitly (saveSwapDetailsToFile). Files are only ever
+    /// rewritten while a swap is in flight, so completed swaps' files would
+    /// otherwise keep whatever class they were created with. Idempotent and
+    /// content-preserving: this sets a file attribute — the file's deliberate
+    /// plain-text content (the Boltz rescue artifact) is untouched.
+    private static func applyProtectionToExistingSwapFiles() {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        guard let files = try? FileManager.default.contentsOfDirectory(at: documentsPath, includingPropertiesForKeys: nil) else { return }
+        for file in files where file.pathExtension == "json" {
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                ofItemAtPath: file.path
+            )
+        }
+    }
+
+    /// Move a legacy ongoingswap dictionary's inline Boltz refund key into the
+    /// Keychain. Same contract as migrateLegacyValue: the UserDefaults copy is
+    /// only stripped once the Keychain copy is confirmed readable, so access
+    /// is never lost. Idempotent.
+    private static func migrateLegacyOngoingSwapKey() {
+        guard let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary,
+              let privateKey = storedSwap["privateKey"] as? String,
+              let boltzID = storedSwap["boltzID"] as? String else {
+            return
+        }
+        if storeSwapPrivateKey(privateKey, boltzID: boltzID), let stripped = storedSwap.mutableCopy() as? NSMutableDictionary {
+            stripped.removeObject(forKey: "privateKey")
+            UserDefaults.standard.set(stripped, forKey: "ongoingswap")
+        }
+    }
+
+    /// Write a secret to the Keychain and confirm it by reading it back. Throws
+    /// if the write fails or the read-back doesn't match, so callers that must
+    /// not proceed without the secret persisted (wallet creation/restore) can
+    /// fail loudly instead of stranding a wallet whose seed was never saved.
+    private static func persistSecret(_ value: String, account: String, label: String, accessibility: SecureStore.Accessibility) throws {
+        do {
+            try SecureStore.setString(value, account: account, accessibility: accessibility)
+            let readBack = (try? SecureStore.getString(account: account)) ?? nil
+            guard readBack == value else {
+                throw SecureStore.SecureStoreError.writeVerificationFailed
+            }
+        } catch {
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "storing \(label) in keychain", key: "context")
+            }
+            throw error
+        }
+    }
+
+    /// Non-throwing convenience for secrets where a failed write is recoverable
+    /// (e.g. the PIN, which can be reset via the mnemonic). Failures are logged.
+    private static func writeSecret(_ value: String, account: String, label: String, accessibility: SecureStore.Accessibility) {
+        try? persistSecret(value, account: account, label: label, accessibility: accessibility)
+    }
+
+    /// Non-throwing read used by getMnemonic()/getPin(). A Keychain read failure
+    /// yields nil here (existing callers guard on nil and handle it gracefully);
+    /// it never drives a destructive decision — the launch presence check uses
+    /// walletSecretsPresence() instead, which separates failure from absence.
+    /// The intended accessibility class for a secret, by account. The
+    /// mnemonic (and swap keys) must be readable in background wakes; the PIN
+    /// is foreground-only. See SecureStore's header.
+    private static func accessibilityForAccount(_ account: String) -> SecureStore.Accessibility {
+        return account == EnvironmentConfig.cacheKey(for: "pin") ? .whenUnlockedThisDeviceOnly : .afterFirstUnlockThisDeviceOnly
+    }
+
+    private static func readSecret(account: String) -> String? {
+        do {
+            return try readSecretOrThrow(account: account)
+        } catch {
+            // Keychain read failed — still honour a legacy UserDefaults copy if one exists.
+            return migrateLegacyValue(account: account, accessibility: accessibilityForAccount(account))
+        }
+    }
+
+    /// Read a secret, throwing on a Keychain read failure and returning nil only
+    /// when the value is genuinely absent (checked in the Keychain and in a
+    /// legacy UserDefaults copy). Migrates a legacy value on the way.
+    private static func readSecretOrThrow(account: String) throws -> String? {
+        if let value = try SecureStore.getString(account: account) {
+            UserDefaults.standard.removeObject(forKey: account)   // clean up any legacy leftover
+            return value
+        }
+        return migrateLegacyValue(account: account, accessibility: accessibilityForAccount(account))
+    }
+
+    /// Move a legacy UserDefaults value into the Keychain (if one exists). Returns
+    /// the value so a read still works even if the Keychain write can't complete
+    /// right now; the UserDefaults copy is removed only once the Keychain copy is
+    /// confirmed readable, so access is never lost. Idempotent.
+    @discardableResult
+    private static func migrateLegacyValue(account: String, accessibility: SecureStore.Accessibility) -> String? {
+        guard let legacy = UserDefaults.standard.value(forKey: account) as? String else {
             return nil
         }
+        do {
+            try SecureStore.setString(legacy, account: account, accessibility: accessibility)
+            let confirmed = (try? SecureStore.getString(account: account)) ?? nil
+            if confirmed == legacy {
+                UserDefaults.standard.removeObject(forKey: account)   // safe: verified in Keychain
+            }
+        } catch {
+            // Keychain write failed — keep the UserDefaults copy so access isn't lost.
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "migrating secret to keychain", key: "context")
+            }
+        }
+        return legacy
     }
     
     // MARK: - Txo ID
@@ -1001,39 +1197,45 @@ class CacheManager: NSObject {
     
     // MARK: - Failed pin attempts
     
+    // The wipe-after-10 counter lives in the Keychain, not UserDefaults:
+    // backups restore UserDefaults but a live device's Keychain kept the PIN,
+    // so a backup-restore cycle used to reset the counter while the PIN
+    // survived — unlimited attempts for anyone with backup access. Honest
+    // scope: a full same-device erase-and-restore replays ThisDeviceOnly
+    // items too and buys another 9 attempts per multi-minute cycle; the
+    // Keychain counter turns a seconds-long plist edit into that, it does
+    // not eliminate it. Reads fail open (0): wiping wallets on a transient
+    // Keychain error would be worse than granting extra attempts.
+    private static var failedAttemptsAccount: String {
+        EnvironmentConfig.cacheKey(for: "failedattempts")
+    }
+
     static func getFailedPinAttempts() -> Int {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
-        
-        let defaults = UserDefaults.standard
-        let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
-        if let actualCachedAttempts = cachedFailedAttempts {
-            return actualCachedAttempts
-        } else {
-            return 0
-        }
+        migrateLegacyFailedAttemptsIfNeeded()
+        guard let stored = (try? SecureStore.getString(account: failedAttemptsAccount)) ?? nil else { return 0 }
+        return Int(stored) ?? 0
     }
-    
+
     static func increaseFailedPinAttempts() {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
-        
-        let defaults = UserDefaults.standard
-        let cachedFailedAttempts = defaults.value(forKey: envKey) as? Int
-        if var actualCachedAttempts = cachedFailedAttempts {
-            actualCachedAttempts += 1
-            defaults.set(actualCachedAttempts, forKey: envKey)
-        } else {
-            defaults.set(1, forKey: envKey)
-        }
+        let next = getFailedPinAttempts() + 1
+        try? SecureStore.setString("\(next)", account: failedAttemptsAccount, accessibility: .whenUnlockedThisDeviceOnly)
     }
-    
+
     static func resetFailedPinAttempts() {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "failedattempts")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(0, forKey: envKey)
+        SecureStore.remove(account: failedAttemptsAccount)
+        UserDefaults.standard.removeObject(forKey: failedAttemptsAccount)
+    }
+
+    /// Move a legacy UserDefaults counter into the Keychain. Keeps the higher
+    /// of the two values so a restored (older) count can never lower a live
+    /// one. Idempotent; the UserDefaults copy is removed once read.
+    private static func migrateLegacyFailedAttemptsIfNeeded() {
+        guard let legacy = UserDefaults.standard.value(forKey: failedAttemptsAccount) as? Int else { return }
+        let current = Int(((try? SecureStore.getString(account: failedAttemptsAccount)) ?? nil) ?? "0") ?? 0
+        if legacy > current {
+            try? SecureStore.setString("\(legacy)", account: failedAttemptsAccount, accessibility: .whenUnlockedThisDeviceOnly)
+        }
+        UserDefaults.standard.removeObject(forKey: failedAttemptsAccount)
     }
 
     // MARK: - Wallet removal in progress
@@ -1162,23 +1364,59 @@ class CacheManager: NSObject {
     // MARK: - Swaps
     
     static func saveLatestSwap(_ latestSwap:Swap?) {
-        
-        if latestSwap != nil {
-            let swapDictionary = latestSwap!.toDictionary()
+
+        if let swap = latestSwap, let swapDictionary = swap.toDictionary().mutableCopy() as? NSMutableDictionary {
+            // Keep the Boltz refund key out of UserDefaults: store it in the
+            // Keychain (keyed per swap) and strip it from the persisted
+            // dictionary — but only once the Keychain copy is confirmed
+            // readable. If the write fails, the key stays inline: for an
+            // in-flight swap, a plaintext key beats a lost refund key.
+            // (The per-swap JSON file DELIBERATELY keeps the key in plain
+            // text — it is the user-facing emergency artifact for Boltz's
+            // rescue flow and must not depend on a working app or Keychain.)
+            if let privateKey = swap.privateKey, let boltzID = swap.boltzID, storeSwapPrivateKey(privateKey, boltzID: boltzID) {
+                swapDictionary.removeObject(forKey: "privateKey")
+            }
             UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
         } else {
-            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
-                UserDefaults.standard.removeObject(forKey: "ongoingswap")
+            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary, let boltzID = storedSwap["boltzID"] as? String {
+                SecureStore.remove(account: "swapkey_\(boltzID)")
             }
+            UserDefaults.standard.removeObject(forKey: "ongoingswap")
         }
     }
-    
+
     static func getLatestSwap() -> Swap? {
         if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
             let thisSwap = storedSwap.toSwap()
+            // New saves strip the refund key from the dictionary — read it
+            // back from the Keychain. A legacy dictionary still carries it
+            // inline (toSwap picks that up), and
+            // migrateSecretsToKeychainIfNeeded moves it across on launch.
+            if thisSwap.privateKey == nil, let boltzID = thisSwap.boltzID {
+                thisSwap.privateKey = (try? SecureStore.getString(account: "swapkey_\(boltzID)")) ?? nil
+            }
             return thisSwap
         } else {
             return nil
+        }
+    }
+
+    /// Store an in-flight swap's Boltz refund key in the Keychain, verified by
+    /// read-back. Returns true only when the Keychain copy is confirmed, so
+    /// callers only strip the inline copy on certainty.
+    private static func storeSwapPrivateKey(_ privateKey: String, boltzID: String) -> Bool {
+        do {
+            try SecureStore.setString(privateKey, account: "swapkey_\(boltzID)", accessibility: .afterFirstUnlockThisDeviceOnly)
+            guard ((try? SecureStore.getString(account: "swapkey_\(boltzID)")) ?? nil) == privateKey else {
+                throw SecureStore.SecureStoreError.writeVerificationFailed
+            }
+            return true
+        } catch {
+            SentrySDK.capture(error: error) { scope in
+                scope.setExtra(value: "storing swap private key in keychain", key: "context")
+            }
+            return false
         }
     }
     
