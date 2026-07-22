@@ -765,6 +765,8 @@ struct FeeEstimates {
 enum WalletError: Error {
     case walletNotInitiated
     case clientNotInitiated
+    /// A drain PSBT finished but carried no output, so there is no maximum to read.
+    case drainProducedNoOutput
 }
 
 extension FileManager {

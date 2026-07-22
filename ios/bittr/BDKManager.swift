@@ -311,7 +311,7 @@ extension BitcoinManager {
         
         // drainTo produces exactly one output, so its value is the maximum.
         guard let drainOutput = tx.output().first else {
-            throw WalletError.walletNotInitiated
+            throw WalletError.drainProducedNoOutput
         }
         
         return OnchainDrainPreview(sendableSats: drainOutput.value, feeSats: try psbt.fee(), vsize: tx.vsize())
@@ -333,10 +333,20 @@ extension BitcoinManager {
         let preview = try self.previewOnchainDrain(toScript: script, satPerVb: satPerVb)
         
         // Verify that LDKNode agrees with BDK's maximum sendable onchain amount.
-        let spendable = UInt64(max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable, 0))
-        guard spendable > 0, preview.sendableSats + preview.feeSats > spendable else {
-            // LDKNode's maximum sendable onchain amount is lower than BDK's.
-            // Therefore, stick with LDKNode as the source of truth.
+        // BDK knows nothing about the reserve LDK Node holds back for anchor
+        // channels, so it will happily drain it; LDK's spendable balance is the
+        // authority on what may actually leave.
+        guard let loadedSpendable = BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable else {
+            // Balances haven't been read yet, so there's nothing to clamp
+            // against. Note this is NOT the same as a spendable balance of zero,
+            // which clamps to zero below.
+            return preview
+        }
+
+        let spendable = UInt64(max(loadedSpendable, 0))
+        guard preview.sendableSats + preview.feeSats > spendable else {
+            // BDK is already at or under LDKNode's spendable balance, so it's
+            // the more conservative of the two. Stick with it.
             return preview
         }
         let clamped = spendable > preview.feeSats ? spendable - preview.feeSats : 0

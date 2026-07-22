@@ -48,7 +48,7 @@ extension HomeViewController {
         self.calculatedInvestments = 0
         self.calculatedCurrentValue = 0
         BitcoinManager.shared.bittrWallet.satoshisOnchain = 0
-        BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable = 0
+        BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable = nil
         BitcoinManager.shared.bittrWallet.satoshisLightning = 0
         
         self.noTransactionsLabel.alpha = 0

@@ -54,7 +54,7 @@ extension SendViewController {
         }
         
         // Check balance.
-        guard self.onchainAmountInSatoshis <= BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable else {
+        guard self.onchainAmountInSatoshis <= (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) else {
             Log.info("Insufficient onchain balance.")
             Log.info("Check if we have sufficient Lightning balance for a swap.")
             
@@ -108,13 +108,23 @@ extension SendViewController {
             // Check the maximum sendable onchain amount.
             let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: UInt64(max(self.feePerVbMedium, 1)))
             
-            // Check whether the user intends to empty their onchain funds.
-            if self.didTapAvailable, let drain = drain {
+            // Check whether the user intends to empty their onchain funds —
+            // either by tapping the quoted maximum, or by typing an amount at or
+            // above it (the balance guard above only rejects amounts over the
+            // spendable balance, and the drain maximum sits a fee below that).
+            //
+            // Either way, restate the amount as the drain figure. sendAllToAddress
+            // ignores confirmSatoshis and sends whatever is left after the fee, so
+            // leaving the typed amount in place would let the confirmation screen
+            // promise a number the wallet never broadcasts.
+            if let drain = drain, self.didTapAvailable || self.onchainAmountInSatoshis >= Int(drain.sendableSats) {
                 self.onchainAmountInSatoshis = Int(drain.sendableSats)
                 self.confirmSatoshis = Int(drain.sendableSats)
+                self.drainTotalSats = Int(drain.sendableSats + drain.feeSats)
                 self.isSendingMaximum = true
             } else {
-                self.isSendingMaximum = drain != nil && self.onchainAmountInSatoshis >= Int(drain!.sendableSats)
+                self.drainTotalSats = nil
+                self.isSendingMaximum = false
             }
             
             // Get transaction size.
@@ -221,7 +231,9 @@ extension ConfirmSendViewController {
         case .high: selectedVbyte = self.sendVC!.feePerVbHigh
         default: selectedVbyte = self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow
         }
-        let feeRateSatVb = max(UInt64(selectedVbyte), 1)
+        // Clamp before converting: UInt64(_:) traps on a negative or NaN Float,
+        // so max() has to run on the Float side to actually guard anything.
+        let feeRateSatVb = UInt64(max(selectedVbyte, 1))
         
         // Broadcast transaction.
         let txid:String

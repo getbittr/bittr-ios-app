@@ -105,8 +105,14 @@ extension SwapViewController {
                     // Calculate maximum sendable onchain satoshis.
                     let sendableSatoshis:Int
                     do {
-                        let preview = try BitcoinManager.shared.previewOnchainDrain(
-                            toScript: BitcoinManager.largestCommonOutputScript,
+                        // Go through maximumSendableOnchainDrain rather than
+                        // previewOnchainDrain: BDK will happily drain the reserve
+                        // LDK Node holds back for anchor channels, and only the
+                        // former clamps against LDK's spendable balance. The
+                        // recipient isn't known yet, so this quotes against the
+                        // heaviest common output script.
+                        let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
+                            toAddress: nil,
                             satPerVb: UInt64(max(self.highestFeePerVbyte!, 1))
                         )
                         sendableSatoshis = Int(preview.sendableSats)
