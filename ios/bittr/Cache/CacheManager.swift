@@ -451,7 +451,7 @@ class CacheManager: NSObject {
         
         if let cachedData = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "lightning")) as? NSDictionary {
             var allTransactions = [NSMutableDictionary]()
-            for (transactionId, transactionData) in cachedData {
+            for (_, transactionData) in cachedData {
                 allTransactions.append((transactionData as! NSDictionary).mutableCopy() as! NSMutableDictionary)
             }
             let parsedTransactions = self.getTransactions(transactionsDict: allTransactions)

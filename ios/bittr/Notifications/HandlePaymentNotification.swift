@@ -306,7 +306,7 @@ extension CoreViewController {
                         self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.transactionID ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
                         // This is a normal incoming payment.
-                        let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
+                        let thisTransaction = paymentDetails.createTransaction(bittrTransactions: nil)
                         self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
                     }
                 }
@@ -363,7 +363,7 @@ extension CoreViewController {
                 if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
                     
                     // Create transaction item.
-                    let newTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
+                    let newTransaction = paymentDetails.createTransaction(bittrTransactions: nil)
                     if feePaidMsat != nil, Int(feePaidMsat!/1000) > 0 {
                         CacheManager.storePaymentFees(preimage: newTransaction.id, fees: Int(feePaidMsat!/1000))
                         newTransaction.fee = Int(feePaidMsat!/1000)
@@ -534,14 +534,14 @@ extension CoreViewController {
                             }
                             
                             // Create transaction object.
-                            let thisTransaction = bittrApiTransactions.first!.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
+                            let thisTransaction = bittrApiTransactions.first!.createTransaction(isFundingTransaction: isFundingTransaction)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: nil)
                         }
                     } else {
                         Log.info("channelPending: Received no transaction details from Bittr API.")
                         print("Funding txid: \(paymentPreimage)")
                         if paymentDetails != nil {
-                            let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                            let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
                         }
                     }
@@ -552,7 +552,7 @@ extension CoreViewController {
                             scope.setExtra(value: "HandlePaymentNotification row 453", key: "context")
                         }
                         if paymentDetails != nil {
-                            let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                            let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
                         }
                     }
