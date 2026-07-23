@@ -515,7 +515,9 @@ extension HomeViewController {
             for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
                 userHasBittrAccount = true
             }
-            // Skip payout check when a wipe / PIN reset is in progress.
+            // Skip the payout check when a wipe / PIN reset is in progress: the
+            // node is about to be torn down, so signing a message against it
+            // would race the teardown (force-unwrap of a nil ldkNode).
             if userHasBittrAccount, !self.coreVC!.resettingPin, !self.coreVC!.removingWalletForIncorrectPin {
                 Log.info("Check for pending payout.")
                 self.coreVC!.checkPendingPayout()

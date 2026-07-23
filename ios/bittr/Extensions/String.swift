@@ -236,6 +236,9 @@ extension String {
             let offer = try LDKNode.Offer.fromStr(offerStr: self)
             return offer
         } catch {
+            // Reached from isValidInvoice while parsing pasted/scanned input, so
+            // keep the breadcrumb for a malformed lno string.
+            Log.info("Could not generate BOLT12 offer.")
             return nil
         }
     }
