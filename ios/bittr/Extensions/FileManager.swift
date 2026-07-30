@@ -9,10 +9,13 @@ import Foundation
 
 extension FileManager {
     
-    // Deletes log file before `start` to keep log file small and loadable in Log View
+    // Rotates the LDK Node log before `start`: keeps the active log small and loadable in Log View, while preserving the previous session as `ldk_node_previous.log` so a crash or channel close can still be investigated after a relaunch.
     static func deleteLDKNodeLogLatestFile() throws {
-        let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
-        let logFilePath = URL(fileURLWithPath: documentsPath).appendingPathComponent("logs/ldk_node_latest.log").path
-        try FileManager.default.removeItem(atPath: logFilePath)
+        let documentsURL = URL(fileURLWithPath: NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])
+        let current = documentsURL.appendingPathComponent("ldk_node.log")
+        guard FileManager.default.fileExists(atPath: current.path) else { return }
+        let previous = documentsURL.appendingPathComponent("ldk_node_previous.log")
+        try? FileManager.default.removeItem(at: previous)
+        try FileManager.default.moveItem(at: current, to: previous)
     }
 }
