@@ -48,7 +48,6 @@ extension HomeViewController {
         
         // Store channel closure txIDs.
         CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
-        BitcoinManager.shared.storeChannelClosureTxIDIfFound(openFundingTxIDs: lightningChannels.compactMap { $0.fundingTxo?.txid })
         
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {

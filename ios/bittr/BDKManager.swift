@@ -210,6 +210,7 @@ extension BitcoinManager {
             Log.info("Did sync BDK wallet.")
             self.bdkWalletIsScanning = false
             self.bdkWalletHasBeenScanned = true
+            self.storeChannelClosureTxIDIfFound()
             completion(true)
         }
     }
@@ -273,6 +274,8 @@ extension BitcoinManager {
         } catch {
             self.handleError(error: error, row: 603)
         }
+        
+        self.storeChannelClosureTxIDIfFound()
         
         return true
     }
@@ -423,9 +426,10 @@ extension BitcoinManager {
     }
     
     // Look for the transaction that closed a channel and remember it.
-    func storeChannelClosureTxIDIfFound(openFundingTxIDs:[String]) {
+    func storeChannelClosureTxIDIfFound() {
         
         // Nothing to look for until a channel has closed.
+        let openFundingTxIDs = self.listChannels().compactMap { $0.fundingTxo?.txid }
         guard let fundingOutpoint = CacheManager.getChannelFundingOutpoint(),
               !openFundingTxIDs.contains(fundingOutpoint.txID) else { return }
         

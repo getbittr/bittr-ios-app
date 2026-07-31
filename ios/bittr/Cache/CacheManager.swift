@@ -308,7 +308,6 @@ class CacheManager: NSObject {
             oneTransaction.setObject(eachTransaction.fee, forKey: "fee" as NSCopying)
             oneTransaction.setObject(eachTransaction.channelId, forKey: "channelId" as NSCopying)
             oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
-            oneTransaction.setObject(eachTransaction.isChannelClosure, forKey: "isChannelClosure" as NSCopying)
             oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
             oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
             var swapStatus = ""
@@ -390,9 +389,6 @@ class CacheManager: NSObject {
             }
             if let transactionIsFundingTransaction = eachTransaction["isFundingTransaction"] as? Bool {
                 thisTransaction.isFundingTransaction = transactionIsFundingTransaction
-            }
-            if let transactionIsChannelClosure = eachTransaction["isChannelClosure"] as? Bool {
-                thisTransaction.isChannelClosure = transactionIsChannelClosure
             }
             if let transactionLnDescription = eachTransaction["lnDescription"] as? String {
                 thisTransaction.lnDescription = transactionLnDescription
